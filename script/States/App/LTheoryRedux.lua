@@ -67,7 +67,16 @@ function LimitTheoryRedux:initMainMenu(isAppInit)
         UIRouter:addPage(UIPageGameplay)
     end
     Input:setCursorVisible(true)
-    UIRouter:setCurrentPage("Main_Menu")
+
+    -- Autonomous test hook: LTR_AUTOSTART=1 skips the main menu and jumps
+    -- straight into gameplay (same flow as clicking "New Game" -> loading
+    -- screen -> star system with economy). Lets CI/benchmark runs measure
+    -- the INGAME state without manual menu interaction.
+    if os.getenv("LTR_AUTOSTART") == "1" then
+        UIRouter:setCurrentPage("Loading_Screen")
+    else
+        UIRouter:setCurrentPage("Main_Menu")
+    end
 end
 
 ---@param data EventData

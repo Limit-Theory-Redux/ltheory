@@ -71,8 +71,18 @@ function Application:appInit()
 
     -- GC CONTROL: Disable automatic collection
     GC.Stop()
-    self.gcThresholdKB = Config.gc and Config.gc.thresholdKB or 65536 -- 64 MB
-    self.gcHighWaterMark = nil                                        -- Will be set on first onPostRender
+    -- Threshold for the manual drain (Application:onPostRender). Fixed
+    -- 64 MB was below the game's real steady-state heap (66-90 MB), so
+    -- GC.Step ran every frame draining overshoot at a constant ~12-15 ms
+    -- tax (measured in the benchmark perf work). Instead of chasing a
+    -- magic constant, track the heap high-water mark and only start
+    -- collecting when memory GROWS beyond the previous peak: a state that
+    -- has settled (menu idle, gameplay cruise) stops paying the tax
+    -- entirely, while genuine growth (world gen, ship spawning) still
+    -- gets collected.
+    self.gcThresholdKB = Config.gc and Config.gc.thresholdKB or 0 -- 0 = adaptive
+    self.gcAdaptive = self.gcThresholdKB == 0
+    self.gcHighWaterMark = nil -- set on first onPostRender
 
     self:onInit()
     self:onResize(self.resX, self.resY)
@@ -179,6 +189,17 @@ function Application:onPostRender(data)
         self.prevMem = currentMem
     end
 
+    -- Adaptive threshold (gcThresholdKB == 0): baseline follows the heap.
+    -- On the first frame (and after each completed collect) the threshold
+    -- is set to (currentMem + margin), so a settled state never exceeds
+    -- it and pays no GC tax; genuine growth past the baseline still
+    -- triggers the drain. Fixed thresholds (Config.gc.thresholdKB > 0)
+    -- keep the old behavior.
+    local GC_MARGIN_KB = 8192 -- 8 MB of headroom above the baseline
+    if self.gcAdaptive then
+        self.gcThresholdKB = currentMem + GC_MARGIN_KB
+    end
+
     -- Start cleaning if memory exceeds threshold
     if not self.cleaning and currentMem > self.gcThresholdKB then
         self.cleaning = true
@@ -215,6 +236,13 @@ function Application:onPostRender(data)
         local done = GC.Step(stepSize)
         if done then
             self.cleaning = false
+            -- Re-baseline the adaptive threshold after a completed
+            -- collect: memory now sits at the post-collect level; the
+            -- next drain should only fire when the heap GROWS beyond
+            -- it again (by the margin), not on the very next frame.
+            if self.gcAdaptive then
+                self.gcThresholdKB = GC.GetMemory() + GC_MARGIN_KB
+            end
         end
 
         -- **! seems to be a bug: engine restarts GC on collect, so we stop it again**
