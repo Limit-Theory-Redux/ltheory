@@ -28,7 +28,12 @@ local FirstPersonCameraController = Subclass("FirstPersonCameraController", Came
 
     -- Target settings
     self.target = nil                                     -- Set via setTarget()
-    self.eyeOffset = config.eyeOffset or Vec3f(0, 1.8, 0) -- Default eye height
+    -- Eye height in ship radii: the ship's actual radius varies by hull
+    -- class (a 50m fighter vs a 500m cruiser), so a fixed 1.8 GU offset
+    -- would put the eye kilometers off the hull for a small ship - the
+    -- "camera on a stick" effect. The default ~0.6x radius keeps the eye
+    -- at cockpit height for any ship size.
+    self.eyeOffset = config.eyeOffset or Vec3f(0, 0.6, 0)
 
     -- Rotation settings
     self.mouseSensitivity = config.mouseSensitivity or 0.003
@@ -96,11 +101,15 @@ function FirstPersonCameraController:updateCameraPosition(dt)
     local targetPos = rb:getPos()
     local targetRot = rb:getRot()
 
-    -- Rotate eye offset by ship's rotation
+    -- Rotate eye offset by ship's rotation. The offset is in SHIP RADII
+    -- (see constructor), so scale it by the ship's bounding radius before
+    -- transforming - a fixed GU offset would float the eye kilometers off
+    -- a small hull.
+    local shipRadius = math.max(rb:getBoundingRadius(), 1e-4)
     local fwd = targetRot:getForward()
     local up  = targetRot:getUp()
     local rt  = targetRot:getRight()
-    local ox, oy, oz = self.eyeOffset.x, self.eyeOffset.y, self.eyeOffset.z
+    local ox, oy, oz = self.eyeOffset.x * shipRadius, self.eyeOffset.y * shipRadius, self.eyeOffset.z * shipRadius
     local rotatedOffset = Vec3f(
         rt.x * ox + up.x * oy + fwd.x * oz,
         rt.y * ox + up.y * oy + fwd.y * oz,

@@ -138,11 +138,15 @@ function OrbitalSystem:update(orbiters, dt, followers)
             transform:setPos(newPos)
         end
 
-        -- Self-rotation (spin on axis)
+        -- Self-rotation (spin on axis). RotationPeriod is in HOURS
+        -- (ruleset: 24 = Earth-like day), so convert to seconds before
+        -- deriving angular speed - treating hours as seconds spins a
+        -- 24h-day planet 3600x too fast.
         local rotPeriod = orb.entity:get(CelestialComponents.RotationPeriod)
         if rotPeriod and rbCmp then
-            local period = rotPeriod:getRotationPeriod() or 24
-            local rotSpeed = (2 * math.pi) / (period * 2)
+            local periodHours = rotPeriod:getRotationPeriod() or 24
+            local periodSec = periodHours * 3600
+            local rotSpeed = (2 * math.pi) / periodSec
             local rb = rbCmp:getRigidBody()
             if rb then
                 local currentRot = rb:getRot()
@@ -159,6 +163,16 @@ function OrbitalSystem:update(orbiters, dt, followers)
             local transform = fol.entity:get(PhysicsComponents.Transform)
             if transform then
                 transform:setPos(parentPos)
+            end
+            -- The rigid body drives rendering (mWorld comes from the RB),
+            -- so it must follow too or the visual stays at spawn while
+            -- only the transform tracks the parent.
+            local rbCmp = fol.entity:get(PhysicsComponents.RigidBody)
+            if rbCmp then
+                local rb = rbCmp:getRigidBody()
+                if rb then
+                    rb:setPos(parentPos)
+                end
             end
         end
     end

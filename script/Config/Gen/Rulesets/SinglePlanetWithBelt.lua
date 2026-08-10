@@ -79,12 +79,12 @@ local Ruleset = {
         }
     },
     asteroidBelts = {
-        count = { type = Enums.Gen.Rule.Fixed, value = 1 },                -- belt between planets
+        count = { type = Enums.Gen.Rule.Fixed, value = 0 },                -- rocks come from the planet's ring band
         aspects = {
-            orbitRadius = { type = Enums.Gen.Rule.Fixed, value = 2.5 },    -- just outside the planet
+            orbitRadius = { type = Enums.Gen.Rule.Fixed, value = 1.0 },
             type = { type = Enums.Gen.Rule.Fixed, value = Enums.Gen.AsteroidRingTypes.Rocky },
             density = { type = Enums.Gen.Rule.Fixed, value = 0.5 },
-            width = { type = Enums.Gen.Rule.Fixed, value = 1.0 },
+            width = { type = Enums.Gen.Rule.Fixed, value = 0.05 },
             inclination = { type = Enums.Gen.Rule.Fixed, value = 5.0 },
             composition = {
                 type = Enums.Gen.Rule.ByType,

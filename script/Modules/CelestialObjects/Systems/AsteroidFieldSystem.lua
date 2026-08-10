@@ -29,6 +29,32 @@ function AsteroidFieldSystem.setSpawnCaps(total, perUpdate)
     MAX_SPAWN_PER_UPDATE = perUpdate or 5
 end
 
+--- Resolve the RENDER ORIGIN of a belt/ring entity: rings attach to a
+--- parent body (planet) that ORBITS, so their own transform goes stale as
+--- the parent moves. The world position of the belt's asteroids is
+--- (origin + baked offset), with origin = the PARENT's current transform
+--- when one exists, else the entity's own transform. This must match the
+--- renderer's origin resolution or spawned entities would sit at a
+--- different place than the drawn rocks.
+---@param beltEntity Entity
+---@return number, number, number origin x, y, z
+local function getRenderOrigin(beltEntity)
+    local originEntity = beltEntity
+    local parentCmp = beltEntity:get(CoreComponents.Parent)
+    if parentCmp then
+        local p = parentCmp:getParent()
+        if p and p:get(PhysicsComponents.Transform) then
+            originEntity = p
+        end
+    end
+    local t = originEntity:get(PhysicsComponents.Transform)
+    if t then
+        local p = t:getPos()
+        return p.x, p.y, p.z
+    end
+    return 0, 0, 0
+end
+
 local spawnedAsteroids = {}  -- [beltEntity] = { [asteroidIndex] = entity }
 local timeSinceUpdate = 0
 local totalSpawned = 0       -- Global count across all belts/rings
@@ -37,15 +63,31 @@ local totalSpawned = 0       -- Global count across all belts/rings
 ---@param dt number
 ---@param beltEntities table Array of belt entities with AsteroidBeltComponent
 ---@param physicsWorld Physics
-function AsteroidFieldSystem:update(dt, beltEntities, physicsWorld)
+---@param refEntity Entity|nil Entity to measure distance from (player ship).
+---        Falls back to the active camera eye. A stable reference (ship,
+---        not camera) prevents the map camera from despawning everything
+---        when it activates and re-spawning it on return.
+function AsteroidFieldSystem:update(dt, beltEntities, physicsWorld, refEntity)
     if not beltEntities or #beltEntities == 0 then return end
 
     timeSinceUpdate = timeSinceUpdate + dt
     if timeSinceUpdate < UPDATE_INTERVAL then return end
     timeSinceUpdate = 0
 
-    local eye = CameraManager:getEye()
-    if not eye then return end
+    local refX, refY, refZ
+    if refEntity then
+        local rbCmp = refEntity:get(PhysicsComponents.RigidBody)
+        local rb = rbCmp and rbCmp:getRigidBody()
+        if rb then
+            local p = rb:getPos()
+            refX, refY, refZ = p.x, p.y, p.z
+        end
+    end
+    if not refX then
+        local eye = CameraManager:getEye()
+        if not eye then return end
+        refX, refY, refZ = eye.x, eye.y, eye.z
+    end
 
     for _, beltEntity in ipairs(beltEntities) do
         local beltCmp = beltEntity:get(CelestialComponents.AsteroidBelt)
@@ -56,20 +98,18 @@ function AsteroidFieldSystem:update(dt, beltEntities, physicsWorld)
             spawnedAsteroids[beltEntity] = {}
         end
 
-        -- Get belt/ring entity world position (rings are offset from their parent planet)
-        local beltTransform = beltEntity:get(PhysicsComponents.Transform)
-        local beltPosX = beltTransform and beltTransform:getPos().x or 0
-        local beltPosY = beltTransform and beltTransform:getPos().y or 0
-        local beltPosZ = beltTransform and beltTransform:getPos().z or 0
+        -- Belt/ring render origin: rings are offset from their parent
+        -- planet, whose position changes as it orbits (see getRenderOrigin)
+        local beltPosX, beltPosY, beltPosZ = getRenderOrigin(beltEntity)
         local spawned = spawnedAsteroids[beltEntity]
 
         -- Despawn distant, update positions for rings
         for idx, entity in pairs(spawned) do
             local a = asteroids[idx]
             if a then
-                local dx = beltPosX + a.px - eye.x
-                local dy = beltPosY + a.py - eye.y
-                local dz = beltPosZ + a.pz - eye.z
+                local dx = beltPosX + a.px - refX
+                local dy = beltPosY + a.py - refY
+                local dz = beltPosZ + a.pz - refZ
                 local distSq = dx*dx + dy*dy + dz*dz
 
                 if distSq > DESPAWN_RADIUS * DESPAWN_RADIUS then
@@ -94,9 +134,9 @@ function AsteroidFieldSystem:update(dt, beltEntities, physicsWorld)
             if spawnedThisUpdate >= MAX_SPAWN_PER_UPDATE then break end
             if spawned[idx] then goto next_asteroid end
 
-            local dx = beltPosX + a.px - eye.x
-            local dy = beltPosY + a.py - eye.y
-            local dz = beltPosZ + a.pz - eye.z
+            local dx = beltPosX + a.px - refX
+            local dy = beltPosY + a.py - refY
+            local dz = beltPosZ + a.pz - refZ
             local distSq = dx*dx + dy*dy + dz*dz
 
             if distSq < SPAWN_RADIUS * SPAWN_RADIUS then
@@ -163,10 +203,7 @@ function AsteroidFieldSystem:updatePositions()
         local beltCmp = beltEntity:get(CelestialComponents.AsteroidBelt)
         if not beltCmp then goto next_pos end
         local asteroids = beltCmp:getAsteroidData()
-        local bt = beltEntity:get(PhysicsComponents.Transform)
-        if not bt then goto next_pos end
-        local bp = bt:getPos()
-        local bx, by, bz = bp.x, bp.y, bp.z
+        local bx, by, bz = getRenderOrigin(beltEntity)
         for idx, entity in pairs(spawned) do
             local a = asteroids[idx]
             if a then
@@ -190,10 +227,7 @@ function AsteroidFieldSystem:getSpawnedEntities()
         local beltCmp = beltEntity:get(CelestialComponents.AsteroidBelt)
         if beltCmp then
             local asteroids = beltCmp:getAsteroidData()
-            local bt = beltEntity:get(PhysicsComponents.Transform)
-            local bx = bt and bt:getPos().x or 0
-            local by = bt and bt:getPos().y or 0
-            local bz = bt and bt:getPos().z or 0
+            local bx, by, bz = getRenderOrigin(beltEntity)
             for idx, entity in pairs(spawned) do
                 local a = asteroids[idx]
                 if a then

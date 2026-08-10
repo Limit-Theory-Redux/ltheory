@@ -17,8 +17,12 @@ local ffi = require('ffi')
 
 --- Maximum render distance (squared)
 local MAX_RENDER_DIST_SQ = 4e12
---- Maximum drawn asteroids per frame per belt/ring
-local MAX_DRAWN_PER_FRAME = 200
+--- Maximum drawn asteroids per frame per belt/ring. Generous: the ring
+--- alone has 1000 rocks and the belt 20000; the per-asteroid work is a
+--- single 4-byte index write, so the real limiter is the GPU vertex
+--- budget, not this counter. The benchmark lowers it via setMaxDrawnPerFrame
+--- to hold frame time constant across scenes.
+local MAX_DRAWN_PER_FRAME = 5000
 --- Render-distance override (benchmark: camera orbits far outside the belt).
 --- nil = derive from belt spread (game default).
 local benchRenderDistSq = nil

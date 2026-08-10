@@ -198,9 +198,10 @@ function UniverseManager:_generateStarSystem(rng, cfg, context, systemIndex)
         end
     end
 
-    -- Generate asteroid belt
+    -- Generate asteroid belt (star-system orbiting, separate from planet rings)
     local hasAsteroidBelt = RuleEvaluator.evaluate(ssRNG, cfg.asteroidBelts.count, context)
-    if hasAsteroidBelt then
+    -- Lua treats 0 as truthy - a Fixed(0) count must mean "no belt"
+    if hasAsteroidBelt and hasAsteroidBelt ~= 0 then
         local belt = self:_generateAsteroidBelt(ssRNG, cfg, context)
         if belt then
             Registry:attachEntity(starSystem, belt)

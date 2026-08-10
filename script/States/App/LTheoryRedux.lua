@@ -24,6 +24,7 @@ local Registry = require('Core.ECS.Registry')
 local CoreComponents = require('Modules.Core.Components')
 local PhysicsComponents = require('Modules.Physics.Components')
 local ConstructComponents = require('Modules.Constructs.Components')
+local CelestialComponents = require('Modules.CelestialObjects.Components')
 local CameraManager = require('Modules.Cameras.Managers.CameraManager')
 local RenderCoreSystem = require('Modules.Rendering.Systems.RenderCoreSystem')
 local PlayerController = require('Modules.Constructs.Systems.PlayerController')
@@ -43,6 +44,7 @@ local CoordinateRebaser = require('Modules.CelestialObjects.Managers.CoordinateR
 local OrbitalSystem = require('Modules.CelestialObjects.Systems.OrbitalSystem')
 local SystemMap = require('Modules.CelestialObjects.Systems.SystemMap')
 local SystemMap3D = require('Modules.CelestialObjects.Systems.SystemMap3D')
+local MemoryReporter = require('Modules.Profiling.MemoryReporter')
 local ShipGenerator = require('Modules.Constructs.Managers.Generators.ShipGenerator')
 local StationGenerator = require('Modules.Constructs.Managers.Generators.StationGenerator')
 
@@ -137,7 +139,11 @@ function LimitTheoryRedux:startGame(seed)
     GameState:SetState(Enums.GameStates.InGame)
 
     self.cfg = SceneConfig
-    self.seed = seed or SceneConfig.defaultSeed
+    -- Static scene: bodies stay at generated positions (see onStateSim)
+    self.staticStarSystem = true
+    -- Random universe each game: a nil seed means "surprise me", never a
+    -- fixed default (the same universe on every New Game would be stale).
+    self.seed = seed or rng:get64()
     self.rng = RNG.Create(self.seed)
     self.world = Physics.Create()
 
@@ -271,7 +277,8 @@ function LimitTheoryRedux:collectEntities(entity)
     end
 end
 
---- Spawn the player ship near the first planet.
+--- Spawn the player ship next to the nearest belt asteroid (so the first
+--- thing the player sees is a rock up close, with the ring/planet nearby).
 function LimitTheoryRedux:spawnPlayerShip()
     local cfg = self.cfg
     local flightCfg = Config.game.shipFlight
@@ -279,11 +286,48 @@ function LimitTheoryRedux:spawnPlayerShip()
     local spawnPos = Position(0, 0, 0)
     if #self.planets > 0 then
         local planet = self.planets[1]
-        local transform = planet:get(PhysicsComponents.Transform)
-        local planetPos = transform:getPos()
-        local planetScale = transform:getScale()
-        local offset = planetScale * cfg.shipSpawnOffset
-        spawnPos = Position(planetPos.x + offset, planetPos.y + offset * 0.5, planetPos.z)
+        local planetPos = planet:get(PhysicsComponents.Transform):getPos()
+
+        -- Nearest belt asteroid to the planet: belt data is baked
+        -- relative to the belt's render origin (the parent body when one
+        -- exists, else the belt's own transform).
+        local beltEntity = self.beltEntities and self.beltEntities[1]
+        local beltCmp = beltEntity and beltEntity:get(CelestialComponents.AsteroidBelt)
+        local asteroids = beltCmp and beltCmp:getAsteroidData() or {}
+
+        local ox, oy, oz = 0, 0, 0
+        if beltEntity then
+            local originEntity = beltEntity
+            local parentCmp = beltEntity:get(CoreComponents.Parent)
+            if parentCmp then
+                local p = parentCmp:getParent()
+                if p and p:get(PhysicsComponents.Transform) then originEntity = p end
+            end
+            local t = originEntity:get(PhysicsComponents.Transform)
+            if t then local p = t:getPos() ox, oy, oz = p.x, p.y, p.z end
+        end
+
+        local bestIdx, bestDistSq = 1, math.huge
+        for i = 1, #asteroids do
+            local a = asteroids[i]
+            local dx = (ox + a.px) - planetPos.x
+            local dy = (oy + a.py) - planetPos.y
+            local dz = (oz + a.pz) - planetPos.z
+            local d = dx * dx + dy * dy + dz * dz
+            if d < bestDistSq then bestDistSq = d; bestIdx = i end
+        end
+
+        local a = asteroids[bestIdx]
+        if a then
+            -- Just off the rock's surface, on the side away from the planet
+            local ax, ay, az = ox + a.px, oy + a.py, oz + a.pz
+            local clearDist = a.scale * 2.0
+            local px, py, pz = planetPos.x, planetPos.y, planetPos.z
+            local nx, ny, nz = ax - px, ay - py, az - pz
+            local len = math.sqrt(nx * nx + ny * ny + nz * nz)
+            if len > 1e-9 then nx, ny, nz = nx / len, ny / len, nz / len end
+            spawnPos = Position(ax + nx * clearDist, ay + ny * clearDist, az + nz * clearDist)
+        end
     end
 
     self.playerShip = ShipGenerator:createFighter(self.rng:get31(), {
@@ -510,11 +554,18 @@ function LimitTheoryRedux:onStateSim(data)
     if not self.playerShip then return end
     local dt = data:deltaTime()
 
-    OrbitalSystem:update(self.orbiters, dt, self.followers)
+    -- Static star system: skip orbital motion so bodies stay at their
+    -- generated positions (deterministic scene while orbital mechanics
+    -- are still being developed). Asteroid fields still follow parents.
+    if not self.staticStarSystem then
+        OrbitalSystem:update(self.orbiters, dt, self.followers)
+    end
     AsteroidFieldSystem:updatePositions()
     GravityWellSystem:update(dt, self.playerShip)
-    AsteroidFieldSystem:update(dt, self.beltEntities, self.world)
+    AsteroidFieldSystem:update(dt, self.beltEntities, self.world, self.playerShip)
     SystemMap3D:updateTrails(self.map3DState, dt)
+
+    MemoryReporter:update(dt)
 
     self.player:update(dt)
     self.world:update(dt)

@@ -1,4 +1,5 @@
 local Registry            = require("Core.ECS.Registry")
+local Entity              = require("Core.ECS.Entity")
 local CoreComponents      = require("Modules.Core.Components")
 local PhysicsComponents   = require("Modules.Physics.Components")
 local CelestialComponents = require("Modules.CelestialObjects.Components")
@@ -29,6 +30,16 @@ end
 function SolarSystemVisualizer:_walkEntity(entity, physicsWorld)
     local name = tostring(entity)
 
+    -- Belt/ring entities that already carry a render fn (e.g. the rocks
+    -- emitted by _materializeAsteroidRing) must not be re-materialized by
+    -- the walk when it recurses into the ring's children - that would
+    -- generate a SECOND, default-radius belt over the real one.
+    local existingRender = entity:get(RenderComp)
+    if existingRender and existingRender:getRenderFn() then
+        existingRender:setVisible(true)
+        goto recurse_children
+    end
+
     if name:find("StarEntity") then
         self:_materializeStar(entity, physicsWorld)
     elseif name:find("PlanetEntity") then
@@ -48,6 +59,7 @@ function SolarSystemVisualizer:_walkEntity(entity, physicsWorld)
         end
     end
 
+    ::recurse_children::
     -- Recurse into children
     local childrenCmp = entity:get(CoreComponents.Children)
     if childrenCmp then
@@ -352,41 +364,88 @@ function SolarSystemVisualizer:_materializeAsteroidRing(entity, physicsWorld)
 
     local inclCmp = entity:get(SpatialComponents.Inclination)
     local inclination = inclCmp and inclCmp:getInclination() or 0
+    local tiltRad = math.rad(inclination)
 
     local densityCmp = entity:get(CelestialComponents.Density)
     local density = densityCmp and densityCmp:getDensity() or 0.5
 
-    -- Ring asteroids: fewer than belts, capped for performance
-    local count = math.min(5000, math.max(200, math.floor(density * 2000)))
+    -- The ring entity is the SHADER BAND: a flat annulus rendered with
+    -- the procedural PlanetRing material (same as PlanetTest's ring).
+    -- The individual ROCKS are a separate concern - they belong to the
+    -- asteroid BELT system (AsteroidBeltEntity + AsteroidBeltRenderer),
+    -- which the generator emits as its own entity.
+    local innerRadius = orbitRadius - width * 0.5
+    local outerRadius = orbitRadius + width * 0.5
+    local mesh = Primitive.Ring(innerRadius, outerRadius, 128)
 
-    -- Get shared asteroid mesh from pool
-    local lodMesh = AsteroidMeshPool:getFromSeed(seed)
+    local matRing = Materials.PlanetRing()
+    matRing:setTexture("ringTex", Tex2D.Create(512, 512, TexFormat.RGBA8), Enums.UniformType.Tex2D)
+    matRing:addStaticShaderVar("rMin", Enums.UniformType.Float, function() return innerRadius end)
+    matRing:addStaticShaderVar("rMax", Enums.UniformType.Float, function() return outerRadius end)
+    matRing:addStaticShaderVar("ringHeight", Enums.UniformType.Float, function() return 50 end)
+    matRing:addStaticShaderVar("rotationSpeed", Enums.UniformType.Float, function() return 2.0 end)
+    matRing:addStaticShaderVar("twistFactor", Enums.UniformType.Float, function() return 0.25 end)
+    matRing:addStaticShaderVar("enableDebug", Enums.UniformType.Int, function() return 0 end)
+    matRing:addStaticShaderVar("debugMode", Enums.UniformType.Int, function() return 0 end)
 
-    -- Generate asteroid positions (rings are thinner, smaller asteroids)
-    local asteroids = AsteroidBeltRenderer.generateBeltAsteroids({
-        orbitRadius = orbitRadius,
-        width = width,
-        count = count,
-        inclination = math.rad(inclination),
-        seed = seed,
-        minScale = 0.05,  -- ~500m ring asteroid
-        maxScale = 2.0,   -- ~20km ring asteroid
-    })
-
-    Log.Info("Materialized asteroid ring: %d asteroids, orbit=%.0f, width=%.0f",
-        count, orbitRadius, width)
-
-    -- Store data as component
-    entity:add(CelestialComponents.AsteroidBelt(asteroids, orbitRadius, width, lodMesh))
-
-    -- Create render component with batch renderer
     local renderCmp = entity:get(RenderComp)
     if not renderCmp then
         renderCmp = RenderComp()
         entity:add(renderCmp)
     end
-    renderCmp:setRenderFn(AsteroidBeltRenderer.createRenderFn(asteroids, lodMesh))
+    renderCmp:setMeshes({ { mesh = mesh, material = matRing } })
     renderCmp:setVisible(true)
+
+    -- Tilt the band against the planet axis (matching the generated
+    -- inclination). The band is attached to the planet; when the planet
+    -- orbits, OrbitalSystem's follower pass keeps the ring transform at
+    -- the planet's current position.
+    local rbCmp = entity:get(PhysicsComponents.RigidBody)
+    if not rbCmp then
+        rbCmp = PhysicsComponents.RigidBody()
+        entity:add(rbCmp)
+    end
+    local rb = RigidBody.CreateSphere()
+    rb:setKinematic(true)
+    rb:setPos(transform:getPos())
+    rb:setRot(Quat.FromAxisAngle(Vec3f(1, 0, 0), tiltRad))
+    rbCmp:setRigidBody(rb)
+    if physicsWorld then
+        physicsWorld:addRigidBody(rb)
+    end
+
+    -- ROCKS: the ring band is populated by the asteroid BELT system
+    -- (AsteroidBeltEntity + AsteroidBeltRenderer), the same system that
+    -- renders star-system belts. The belt entity is a child of the ring
+    -- so it shares the ring's parent-tracking (follows the planet), and
+    -- its render origin resolves through that parent to the planet's
+    -- current position.
+    local beltEntity = Entity.Create("AsteroidBeltEntity", CoreComponents.Seed(seed + 99))
+    local beltTransform = beltEntity:get(PhysicsComponents.Transform)
+    if beltTransform then beltTransform:setPos(transform:getPos()) end
+    local lodMesh = AsteroidMeshPool:getFromSeed(seed)
+    local beltCount = math.min(2000, math.max(200, math.floor(density * 2000)))
+    local asteroids = AsteroidBeltRenderer.generateBeltAsteroids({
+        orbitRadius = orbitRadius,
+        width = width,
+        count = beltCount,
+        inclination = tiltRad,
+        seed = seed,
+        minScale = 0.1,  -- ~1km rock
+        maxScale = 5.0,  -- ~50km rock
+    })
+    beltEntity:add(CelestialComponents.AsteroidBelt(asteroids, orbitRadius, width, lodMesh))
+    local beltRenderCmp = beltEntity:get(RenderComp)
+    if not beltRenderCmp then
+        beltRenderCmp = RenderComp()
+        beltEntity:add(beltRenderCmp)
+    end
+    beltRenderCmp:setRenderFn(AsteroidBeltRenderer.createRenderFn(asteroids, lodMesh))
+    beltRenderCmp:setVisible(true)
+    Registry:attachEntity(entity, beltEntity)
+
+    Log.Info("Materialized planet ring: orbit=%.0f, width=%.0f, tilt=%.1f deg, %d rocks",
+        orbitRadius, width, inclination, beltCount)
 end
 
 return SolarSystemVisualizer

@@ -500,7 +500,7 @@ function SolarSystemPlayable:onStateSim(data)
     OrbitalSystem:update(self.orbiters, dt, self.followers)  -- moves planets + rings
     AsteroidFieldSystem:updatePositions()                     -- every frame: spawned asteroids follow parent
     GravityWellSystem:update(dt, self.playerShip)
-    AsteroidFieldSystem:update(dt, self.beltEntities, self.world)  -- rate-limited: spawn/despawn
+    AsteroidFieldSystem:update(dt, self.beltEntities, self.world, self.playerShip)  -- rate-limited: spawn/despawn
     SystemMap3D:updateTrails(self.map3DState, dt)
 
     self.player:update(dt)
