@@ -179,15 +179,13 @@ function AsteroidBeltRenderer.createRenderFn(asteroidData, lodMesh)
     -- bounds and ranges share boundaries (e.g. LOD0 max 2000^2 == LOD1 min),
     -- so a boundary query would resolve to the PREVIOUS level's mesh.
     local lodMeshes = {}
-    -- Flat squared upper bounds (float[8], 0-indexed cdata) for a JIT-
-    -- friendly LOD scan. Ranges are contiguous in ascending order and share
-    -- boundaries, so "first li with distNorm <= lodMaxSq[li]" selects the
-    -- same level as the inclusive-both-bounds table scan (and matches
-    -- LodMesh:get's first-match-wins semantics at shared boundaries).
-    local lodMaxSq = ffi.new('float[8]')
+    -- Screen-size LOD thresholds (projected pixels). Bands are geometric
+    -- (halving each level) to match the ~2.3x vertex reduction per LOD.
+    -- LOD 0 = res 96 (16k verts) down to LOD 7 (34 verts). Sub-pixel
+    -- asteroids (below the LOD-7 threshold) are culled entirely.
+    local lodPxMin = ffi.new('float[8]', { 32, 16, 8, 4, 2, 1, 0.5, 0.25 })
     for i = 1, #LOD_RANGES do
         local r = LOD_RANGES[i]
-        lodMaxSq[i - 1] = r[2] * r[2]
         local midRaw = (r[1] + r[2]) * 0.5
         lodMeshes[i] = lodMesh:get(midRaw * midRaw)
     end
@@ -201,6 +199,12 @@ function AsteroidBeltRenderer.createRenderFn(asteroidData, lodMesh)
         local eye = CameraManager:getEye()
         if not eye then return end
         local eyeX, eyeY, eyeZ = eye.x, eye.y, eye.z
+
+        -- Projection factor: pixels per game-unit at distance 1. Pure
+        -- function of fov + screen height, so LOD bands auto-adapt to
+        -- resolution AND to any Simulation Size (GameUnit-agnostic).
+        local fovRad = (Config.render.camera.fov or 70) * 0.5 * (math.pi / 180)
+        local pxPerUnit = Window:height() / (2 * math.tan(fovRad))
 
         -- Entity world position (rings: planet position)
         local entPosX, entPosY, entPosZ = 0, 0, 0
@@ -242,17 +246,21 @@ function AsteroidBeltRenderer.createRenderFn(asteroidData, lodMesh)
                     local rz = entPosZ + a.pz - eyeZ
                     local distSq = rx * rx + ry * ry + rz * rz
 
-                    -- LOD selection, normalized by scale (matches legacy path)
-                    -- Flat-array scan: first level whose squared upper bound
-                    -- holds distNorm (ranges are contiguous ascending, so the
-                    -- lower bound is implied). JIT-friendly: no table lookups.
+                    -- Screen-size LOD selection (GameUnit-agnostic):
+                    -- projected pixel height ≈ scale / dist * pxPerUnit.
+                    -- scale/dist is a pure ratio, so the same thresholds
+                    -- work at any Simulation Size without retuning. LOD 0
+                    -- (16k verts) only for big/near rocks; sub-pixel rocks
+                    -- are culled entirely.
+                    -- pxPerUnit = screenH / (2*tan(fov/2)); 720p@70° ≈ 514
                     local s = a.scale
-                    local distNorm = distSq / (s * s)
+                    local dist = math.sqrt(distSq)
+                    local px = s / dist * pxPerUnit
                     local li = 1
-                    while li < 8 and distNorm > lodMaxSq[li - 1] do
+                    while li < 8 and px < lodPxMin[li - 1] do
                         li = li + 1
                     end
-                    if distNorm <= lodMaxSq[li - 1] then
+                    if px >= lodPxMin[li - 1] then
                         local mesh = lodMeshes[li]
                         if mesh then
                             -- Camera-relative world matrix: static
