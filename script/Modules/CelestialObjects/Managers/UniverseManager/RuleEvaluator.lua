@@ -250,9 +250,11 @@ local conditionHandlers = {
 ---@param rule Rule
 ---@param context GenerationContext
 ---@return any
-function RuleEvaluator.evaluate(rng, rule, context)
+function RuleEvaluator.evaluate(rng, rule, context, ruleLabel)
     if not rule or not rule.type then
-        Log.Error("Invalid rule %s, context: %s", table.tostring(rule), table.tostring(context))
+        Log.Error("Invalid rule%s: %s, context: %s",
+            ruleLabel and (" for '" .. ruleLabel .. "'") or "",
+            table.tostring(rule), table.tostring(context))
         return nil
     end
 

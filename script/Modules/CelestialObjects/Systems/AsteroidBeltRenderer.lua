@@ -1,5 +1,6 @@
 local CameraManager     = require("Modules.Cameras.Managers.CameraManager")
 local AsteroidFieldSystem = require("Modules.CelestialObjects.Systems.AsteroidFieldSystem")
+local CoreComponents = require("Modules.Core.Components")
 
 --- AsteroidBeltRenderer — performant batch renderer for asteroid belts/rings.
 --- Chunked instancing (article-derived): asteroids are partitioned into
@@ -311,9 +312,22 @@ function AsteroidBeltRenderer.createRenderFn(asteroidData, lodMesh)
         local REF_H = 720
         local pxPerUnitSq = (REF_H / (2 * math.tan(fovRad))) ^ 2
 
-        -- Entity world position (rings: planet position)
+        -- Origin = entity world position. Rings/belts attach to a parent
+        -- body (planet) that ORBITS, so the render origin must track the
+        -- parent's CURRENT transform every frame - the entity's own
+        -- transform was set once at generation and goes stale as the
+        -- parent moves (a static origin visibly detaches the ring from a
+        -- moving planet). Standalone belts (no parent) use their own.
         local entPosX, entPosY, entPosZ = 0, 0, 0
-        local transform = entity:get(PhysicsComponents.Transform)
+        local originEntity = entity
+        local parentCmp = entity:get(CoreComponents.Parent)
+        if parentCmp then
+            local p = parentCmp:getParent()
+            if p and p:get(PhysicsComponents.Transform) then
+                originEntity = p
+            end
+        end
+        local transform = originEntity:get(PhysicsComponents.Transform)
         if transform then
             local p = transform:getPos()
             entPosX, entPosY, entPosZ = p.x, p.y, p.z
@@ -436,8 +450,15 @@ function AsteroidBeltRenderer.createRenderFn(asteroidData, lodMesh)
             inst_shader:start()
             inst_shader:setTex2D('texDiffuse', asteroid_tex)
             inst_shader:setTex2D('instanceDataTex', staticTex)
-            inst_shader:setFloat3('beltOrigin', entPosX, entPosY, entPosZ)
-            inst_shader:setFloat3('cameraEye', eyeX, eyeY, eyeZ)
+            -- Camera-relative origin, subtracted in DOUBLE precision here
+            -- (Lua numbers are f64): at AU-scale coordinates the origin
+            -- and eye are ~1e7 GU, and float32 cannot represent
+            -- (1e7 - 1e7 + 1000) - the ULP at 1e7 is ~1 GU, so the shader
+            -- doing origin - eye itself would jitter every asteroid by up
+            -- to a GU per frame (larger than a 1 GU rock). The shader
+            -- receives ONE small-magnitude vec3 and adds the baked
+            -- position on top - no cancellation.
+            inst_shader:setFloat3('originRelEye', entPosX - eyeX, entPosY - eyeY, entPosZ - eyeZ)
             for i = 1, #groupOrder do
                 local g = groups[groupOrder[i]]
                 if g.count > 0 then

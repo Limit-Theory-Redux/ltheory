@@ -68,10 +68,14 @@ function ChaseCameraController:onPreRender(dt)
     local shipFwd = shipRot:getForward()
     local shipRt  = shipRot:getRight()
     local shipUp  = shipRot:getUp()
-    local shipRadius = rb:getBoundingRadius()
-
-    -- Scale relative position by ship radius and zoom
-    local scale = 0.25 * self.radius * math.max(1, shipRadius)
+    -- Scale relative position by ship radius and zoom. The camera
+    -- distance is proportional to the target's actual radius (same
+    -- convention as the benchmark's body zoom: dist = radius * factor),
+    -- so a 50m fighter and a 500m cruiser both sit at the same multiple
+    -- of their own size. A floor of 1 GU would treat every small ship as
+    -- a 1 GU object and push the camera hundreds of ship-lengths away.
+    local shipRadius = math.max(rb:getBoundingRadius(), 1e-4)
+    local scale = 0.25 * self.radius * shipRadius
     local pr = self.posRel
 
     -- Transform posRel from ship-local to world space (matches legacy toWorld)

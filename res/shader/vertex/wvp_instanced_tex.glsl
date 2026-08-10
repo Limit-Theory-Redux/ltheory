@@ -19,8 +19,7 @@
 #autovar mat4 mProj
 
 uniform sampler2D instanceDataTex;
-uniform vec3 beltOrigin;
-uniform vec3 cameraEye;
+uniform vec3 originRelEye;
 
 layout(location = 10) in uint instanceIndex;
 
@@ -40,7 +39,12 @@ void main() {
   vec4 posScale = texelFetch(instanceDataTex, base + ivec2(3, 0), 0);
 
   normal = normalize(rs * vertex_normal);
-  vec3 wp = rs * vertex_position + (posScale.xyz + beltOrigin - cameraEye);
+  /* The producer subtracts (beltOrigin - cameraEye) on the CPU in double
+     precision and passes the small-magnitude result as originRelEye; the
+     baked posScale.xyz is belt-relative. Composing in float32 here avoids
+     the catastrophic cancellation (ULP ~1 GU at AU-scale coords) that
+     jittered asteroids when origin and eye were both ~1e7. */
+  vec3 wp = rs * vertex_position + (posScale.xyz + originRelEye);
   pos = wp;
   objPos = vertex_position;
   vertScale = posScale.w;

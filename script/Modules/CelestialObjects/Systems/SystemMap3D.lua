@@ -29,6 +29,12 @@ function SystemMap3D:create(config)
         radiusTarget = 3.0,
         minRadius    = 0.0000001,
         maxRadius    = 20.0,
+        -- Floor for the zoom: camDist = radius * maxOrbit, so a radius of
+        -- 1e-7 lets the camera dive to a few game units - INSIDE a planet
+        -- mesh (the camera then clips through the body and gets surrounded
+        -- by its ring asteroids). The zoom clamp is raised to a selected
+        -- body's surface when following one (see updateInput).
+        bodyRadiusFloor = 0.0,
         zoomSpeed    = 0.15,
         rotateSens   = 0.005,
         dragging     = false,
@@ -108,6 +114,11 @@ function SystemMap3D:_walk(state, entity, parentPos)
         label = "Asteroid Belt"; color = Color(0.7, 0.5, 0.3, 0.3); trailWidth = 0
     elseif name:find("AsteroidRingEntity") then
         label = "Asteroid Ring"; color = Color(0.6, 0.5, 0.4, 0.3); trailWidth = 0
+    elseif name:find("AsteroidEntity") then
+        -- Spawned asteroid (AsteroidFieldSystem attaches these to the belt
+        -- entity). Markers only matter up close; the per-entity scale is
+        -- small so they cluster into a dot at system zoom.
+        label = "Asteroid"; color = Color(0.7, 0.6, 0.5, 0.6); trailWidth = 0
     end
 
     if label then
@@ -168,9 +179,16 @@ function SystemMap3D:updateInput(state, dt)
     -- Zoom
     local scrollY = MapActions.Zoom:get()
     if math.abs(scrollY) > 0.001 then
+        -- Effective min radius: when following a body, the camera must
+        -- stay outside its surface (radius in real GU / maxOrbit), else it
+        -- clips through the mesh and gets swamped by ring/atmo geometry.
+        local minRad = state.minRadius
+        if state.bodyRadiusFloor and state.bodyRadiusFloor > 0 then
+            minRad = math.max(minRad, state.bodyRadiusFloor)
+        end
         state.radiusTarget = Math.Clamp(
             state.radiusTarget * math.exp(-state.zoomSpeed * scrollY),
-            state.minRadius, state.maxRadius)
+            minRad, state.maxRadius)
     end
     local logCur = math.log(state.radius)
     local logTgt = math.log(state.radiusTarget)
@@ -254,6 +272,19 @@ function SystemMap3D:updateInput(state, dt)
             ::next_sel::
         end
         state.selected = bestEntry
+        if bestEntry then
+            -- Zoom to the selected body: a few multiples of its own
+            -- radius (normalized by maxOrbit). The default radius (3.0)
+            -- frames the WHOLE system, so without this the camera stays
+            -- system-scale after clicking a planet - it appears to fly
+            -- far away when the system's largest orbit (e.g. a distant
+            -- belt) dominates maxOrbit.
+            local selTransform = bestEntry.entity:get(PhysicsComponents.Transform)
+            local selScale = selTransform and selTransform:getScale() or 0
+            if selScale > 0 then
+                state.radiusTarget = (selScale / state.maxOrbit) * 5.0
+            end
+        end
         ::skip_click::
     end
 end
@@ -268,10 +299,19 @@ function SystemMap3D:updateCamera(state)
         if rbCmp and rbCmp:getRigidBody() then
             state.focusPos = rbCmp:getRigidBody():getPos()
         end
+        -- Camera must stay outside the selected body's surface: its radius
+        -- (transform scale) maps to a zoom-floor of scale/maxOrbit in the
+        -- normalized radius space. Prevents clipping through the mesh and
+        -- being surrounded by ring asteroids.
+        local selTransform = state.selected.entity:get(PhysicsComponents.Transform)
+        local selScale = selTransform and selTransform:getScale() or 0
+        local norm = state.maxOrbit or 1
+        state.bodyRadiusFloor = (selScale / norm) * 1.05  -- 5% clearance
         -- Clear manual offset when following an entity
         state.manualFocusX = 0
         state.manualFocusZ = 0
     else
+        state.bodyRadiusFloor = 0
         -- Apply manual pan offset
         local mx = state.manualFocusX or 0
         local mz = state.manualFocusZ or 0

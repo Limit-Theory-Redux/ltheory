@@ -52,13 +52,37 @@ local SkyboxEntity            = require("Modules.CelestialObjects.Entities.Skybo
 local Generator               = require("Legacy.Systems.Gen.Generator")
 local Starfield               = require("Legacy.Systems.Gen.Starfield")
 
+-- Scene tuning: spawn placement + station layout for this state. Camera
+-- defaults and ship scale live in the generic game config (orbitCamera,
+-- freeCamera, shipHulls) - they describe the ship, not this state.
+local SceneConfig = {
+    defaultSeed        = 12345,
+
+    -- Ship spawn
+    shipSpawnOffset    = 1.3,     -- Multiplier of planet radius (just outside the surface)
+
+    -- Station spawn
+    maxStations        = 2,       -- Max stations to spawn (limited by planet count)
+    stationScale       = 0.3,     -- ~3km station
+    stationOrbitMult   = 2.5,     -- Multiplier of planet radius for station orbit distance
+}
+
 function SolarSystemPlayable:onInit()
-    self.cfg = Config.game.solarSystemPlayable
+    self.cfg = SceneConfig
+    self.ruleset = Rulesets.StandardSolarSystem
 
     Window:setPresentMode(PresentMode.NoVsync)
     Window:setFullscreen(false, true)
 
-    self.seed = self.cfg.defaultSeed
+    self:buildScene(self.cfg.defaultSeed)
+end
+
+--- Build the whole scene: world, skybox, universe, ship, stations, maps,
+--- player controller, and sim subscription. Subclasses can defer this
+--- (e.g. to build the scene after a menu phase) by calling it later.
+---@param seed integer
+function SolarSystemPlayable:buildScene(seed)
+    self.seed = seed
     self.rng = RNG.Create(self.seed)
     self.timer = DeltaTimer("SolarSystemPlayable")
 
@@ -85,18 +109,20 @@ function SolarSystemPlayable:onInit()
     self.mapMode = 0  -- 0=off, 1=2D, 2=3D
 
     -- Player controller owns camera modes, input routing, and ship reference
+    local cam = Config.game.orbitCamera
+    local free = Config.game.freeCamera
     self.player = PlayerController(self.playerShip, {
         chase = {
-            distance     = self.cfg.orbitDistance,
-            minDistance   = self.cfg.orbitMinDistance,
-            maxDistance   = self.cfg.orbitMaxDistance,
-            zoomSpeed    = self.cfg.orbitZoomSpeed,
-            smoothing    = self.cfg.orbitSmoothing,
+            distance     = cam.distance,
+            minDistance   = cam.minDistance,
+            maxDistance   = cam.maxDistance,
+            zoomSpeed    = cam.zoomSpeed,
+            smoothing    = cam.smoothing,
         },
         free = {
-            moveSpeed      = self.cfg.freeMoveSpeed,
-            fastMultiplier = self.cfg.freeFastMult,
-            mouseSensitivity = self.cfg.freeMouseSens,
+            moveSpeed      = free.moveSpeed,
+            fastMultiplier = free.fastMultiplier,
+            mouseSensitivity = free.mouseSensitivity,
         },
     })
 
@@ -146,7 +172,7 @@ end
 
 function SolarSystemPlayable:generateSolarSystem()
     Log.Info("Generating solar system with seed %d...", self.seed)
-    self.universe = UniverseManager:createUniverse(Rulesets.StandardSolarSystem, self.seed)
+    self.universe = UniverseManager:createUniverse(self.ruleset, self.seed)
 
     if not self.universe then
         Log.Error("Failed to generate solar system!")
@@ -241,7 +267,7 @@ function SolarSystemPlayable:spawnPlayerShip()
 
     self.playerShip = ShipGenerator:createFighter(self.rng:get31(), {
         position = spawnPos,
-        scale = cfg.shipScale,
+        scale = Config.game.shipHulls.scale[1],  -- Solo hull (~50m fighter)
         isKinematic = false,
     })
 

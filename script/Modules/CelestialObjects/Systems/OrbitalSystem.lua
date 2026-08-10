@@ -18,6 +18,24 @@ function OrbitalSystem:collectOrbiters(starSystem)
     return orbiters, followers
 end
 
+--- Get current position of an entity from its rigid body or transform
+---@param entity Entity|nil
+---@return Position
+local function getEntityPos(entity)
+    if not entity then return Position(0, 0, 0) end
+
+    local rbCmp = entity:get(PhysicsComponents.RigidBody)
+    if rbCmp then
+        local rb = rbCmp:getRigidBody()
+        if rb then return rb:getPos() end
+    end
+
+    local transform = entity:get(PhysicsComponents.Transform)
+    if transform then return transform:getPos() end
+
+    return Position(0, 0, 0)
+end
+
 ---@param entity Entity
 ---@param parentEntity Entity|nil
 ---@param orbiters table[]
@@ -26,11 +44,20 @@ function OrbitalSystem:_walkForOrbiters(entity, parentEntity, orbiters, follower
     if orbitCmp then
         local orbitRadius = orbitCmp:getOrbitRadius() or 0
         if orbitRadius > 0 then
-            -- Randomize starting phase from entity seed
-            local seedCmp = entity:get(CoreComponents.Seed)
-            local seed = seedCmp and seedCmp:getSeed() or 0
-            local rng = RNG.Create(seed)
-            local phase = rng:getUniformRange(0, 2 * math.pi)
+            -- Initial phase derived from the entity's CURRENT position,
+            -- not randomized: the generator places bodies via
+            -- meanAnomaly/true-anomaly math, so a random phase here would
+            -- make the first orbital update JUMP the body to a different
+            -- point on its orbit (spawning a ship "at the planet" then
+            -- leaving it floating at the orbit path as the planet moves).
+            -- phase = atan2(z, x) of (entityPos - parentPos) keeps the
+            -- orbit continuous with the generated position.
+            local entPos = getEntityPos(entity)
+            local parentPos = getEntityPos(parentEntity)
+            local relX = entPos.x - parentPos.x
+            local relZ = entPos.z - parentPos.z
+            local phase = math.atan2(relZ, relX)
+            if phase ~= phase then phase = 0 end -- NaN guard (relX=relZ=0)
 
             -- Kepler-ish orbital speed: speed ∝ 1/sqrt(r)
             -- Reduced so travel drive can catch planets
@@ -69,24 +96,6 @@ function OrbitalSystem:_walkForOrbiters(entity, parentEntity, orbiters, follower
             self:_walkForOrbiters(child, entity, orbiters, followers)
         end
     end
-end
-
---- Get current position of an entity from its rigid body or transform
----@param entity Entity|nil
----@return Position
-local function getEntityPos(entity)
-    if not entity then return Position(0, 0, 0) end
-
-    local rbCmp = entity:get(PhysicsComponents.RigidBody)
-    if rbCmp then
-        local rb = rbCmp:getRigidBody()
-        if rb then return rb:getPos() end
-    end
-
-    local transform = entity:get(PhysicsComponents.Transform)
-    if transform then return transform:getPos() end
-
-    return Position(0, 0, 0)
 end
 
 --- Update all orbiter positions for one frame

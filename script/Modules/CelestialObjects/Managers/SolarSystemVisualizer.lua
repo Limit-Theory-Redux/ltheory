@@ -122,7 +122,7 @@ function SolarSystemVisualizer:_materializePlanet(entity, physicsWorld)
         atmoScale    = 1.1,
     }
 
-    local texRes = Config.game.solarSystemPlayable and Config.game.solarSystemPlayable.planetTexRes or 1024
+    local texRes = Config.game.planetTexRes or 1024
     local texSurface = GenUtil.ShaderToTexCube(texRes, TexFormat.RGBA16F, 'gen/planet', {
         seed  = planetRNG:getUniform(),
         freq  = genOptions.surfaceFreq,
@@ -212,7 +212,7 @@ function SolarSystemVisualizer:_materializeMoon(entity, physicsWorld)
         enableAtmosphere  = false,
     }
 
-    local texRes = Config.game.solarSystemPlayable and Config.game.solarSystemPlayable.moonTexRes or 1024
+    local texRes = Config.game.moonTexRes or 1024
     local texSurface = GenUtil.ShaderToTexCube(texRes, TexFormat.RGBA16F, 'gen/moon', {
         seed              = moonRNG:getUniform(),
         craterDensity     = moonOptions.craterDensity,

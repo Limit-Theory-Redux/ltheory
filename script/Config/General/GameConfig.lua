@@ -155,34 +155,25 @@ Config.game = {
         zoomSpeed      = 0.15,   -- Zoom per scroll tick
     },
 
-    solarSystemPlayable = {
-        defaultSeed        = 12345,
-
-        -- Ship spawn
-        shipScale          = 0.005,    -- ~50m fighter
-        shipSpawnOffset    = 3.0,     -- Multiplier of planet radius for spawn distance
-
-        -- Station spawn
-        maxStations        = 2,       -- Max stations to spawn (limited by planet count)
-        stationScale       = 0.3,     -- ~3km station
-        stationOrbitMult   = 2.5,     -- Multiplier of planet radius for station orbit distance
-
-        -- Orbit camera defaults (scaled for 50m ship)
-        orbitDistance       = 0.015,
-        orbitMinDistance    = 0.005,
-        orbitMaxDistance    = 5.0,
-        orbitSmoothing     = 0.1,
-        orbitZoomSpeed     = 0.01,
-
-        -- Free camera defaults
-        freeMoveSpeed      = 1.0,
-        freeFastMult       = 100.0,
-        freeMouseSens      = 0.003,
-
-        -- Texture quality (cube map resolution for planet/moon surfaces)
-        planetTexRes       = 1024,
-        moonTexRes         = 1024,
+    -- Orbit camera (chase view of the player ship)
+    orbitCamera = {
+        distance     = 0.015,    -- Default follow distance
+        minDistance  = 0.005,
+        maxDistance  = 5.0,
+        smoothing    = 0.1,
+        zoomSpeed    = 0.01,
     },
+
+    -- Free camera (unattached fly-around view)
+    freeCamera = {
+        moveSpeed      = 1.0,
+        fastMultiplier = 100.0,
+        mouseSensitivity = 0.003,
+    },
+
+    -- Texture quality (cube map resolution for planet/moon surfaces)
+    planetTexRes       = 1024,
+    moonTexRes         = 1024,
 
     dispoMin               = -1.0,
     dispoNeutral           = 0.0,

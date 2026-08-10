@@ -146,13 +146,13 @@ function UniverseManager:_generateStarSystem(rng, cfg, context, systemIndex)
     context:set("starCount", starCount)
 
     local aspects = {
-        { key = "systemType",        rule = cfg.starSystems.aspects.type },
-        { key = "systemAge",         rule = cfg.starSystems.aspects.age },
-        { key = "systemMetallicity", rule = cfg.starSystems.aspects.metallicity },
-        { key = "stability",         rule = cfg.starSystems.aspects.stability }
+        { key = "systemType",        rule = cfg.starSystems.aspects.type,       label = "starSystems.aspects.type" },
+        { key = "systemAge",         rule = cfg.starSystems.aspects.age,        label = "starSystems.aspects.age" },
+        { key = "systemMetallicity", rule = cfg.starSystems.aspects.metallicity, label = "starSystems.aspects.metallicity" },
+        { key = "stability",         rule = cfg.starSystems.aspects.stability,  label = "starSystems.aspects.stability" }
     }
     for _, aspect in ipairs(aspects) do
-        local value = RuleEvaluator.evaluate(ssRNG, aspect.rule, context)
+        local value = RuleEvaluator.evaluate(ssRNG, aspect.rule, context, aspect.label)
         if value then
             context:set(aspect.key, value)
         else
@@ -272,7 +272,7 @@ local function resolveOrbitalParams(rng, cfg, context, bodyKind)
         meanAnomaly = 0
     }
     for key, default in pairs(params) do
-        context:set(key, context:get(key) or RuleEvaluator.evaluate(rng, aspects[key], context) or default)
+        context:set(key, context:get(key) or RuleEvaluator.evaluate(rng, aspects[key], context, bodyKind .. ".aspects." .. key) or default)
     end
 end
 
@@ -345,14 +345,14 @@ function UniverseManager:_generateStar(rng, cfg, context)
     end
 
     local aspects = {
-        { key = "starType",   rule = cfg.stars.aspects.type,       default = Enums.Gen.StarTypes.MainSequence },
-        { key = "starMass",   rule = cfg.stars.aspects.mass,       default = 1.0 },
-        { key = "luminosity", rule = cfg.stars.aspects.luminosity, default = 1.0 },
-        { key = "position",   rule = cfg.stars.aspects.position,   default = Position(0, 0, 0) }
+        { key = "starType",   rule = cfg.stars.aspects.type,       label = "stars.aspects.type",      default = Enums.Gen.StarTypes.MainSequence },
+        { key = "starMass",   rule = cfg.stars.aspects.mass,       label = "stars.aspects.mass",      default = 1.0 },
+        { key = "luminosity", rule = cfg.stars.aspects.luminosity, label = "stars.aspects.luminosity", default = 1.0 },
+        { key = "position",   rule = cfg.stars.aspects.position,   label = "stars.aspects.position",  default = Position(0, 0, 0) }
     }
 
     for _, aspect in ipairs(aspects) do
-        local val = RuleEvaluator.evaluate(starRNG, aspect.rule, context) or aspect.default
+        local val = RuleEvaluator.evaluate(starRNG, aspect.rule, context, aspect.label) or aspect.default
         context:set(aspect.key, val)
     end
 
@@ -393,7 +393,7 @@ function UniverseManager:_generatePlanet(rng, cfg, context)
     end
 
     local orbitRadius = context:get("orbitRadius") or 1.0
-    local planetType = RuleEvaluator.evaluate(pRNG, cfg.planets.aspects.type, context) or Enums.Gen.PlanetTypes.Rocky
+    local planetType = RuleEvaluator.evaluate(pRNG, cfg.planets.aspects.type, context, "planets.aspects.type") or Enums.Gen.PlanetTypes.Rocky
     context:set("planetType", planetType)
 
     local size
@@ -469,7 +469,7 @@ function UniverseManager:_generatePlanet(rng, cfg, context)
         planet:add(CelestialComponents.MagneticField())
     end
     -- Close-in planets lose atmospheres (< 0.2 AU for rocky, always for desert)
-    local hasAtmosphere = RuleEvaluator.evaluate(pRNG, cfg.planets.aspects.atmosphere, context)
+    local hasAtmosphere = RuleEvaluator.evaluate(pRNG, cfg.planets.aspects.atmosphere, context, "planets.aspects.atmosphere")
     if hasAtmosphere and orbitRadius < 0.2 and planetType ~= Enums.Gen.PlanetTypes.GasGiant then
         hasAtmosphere = false -- too close to star, atmosphere stripped
     end
@@ -479,7 +479,7 @@ function UniverseManager:_generatePlanet(rng, cfg, context)
 
     attachZone(self, planet, pRNG, cfg, context, "planet")
 
-    local asteroidRingType = RuleEvaluator.evaluate(pRNG, cfg.asteroidRings.aspects.type, context)
+    local asteroidRingType = RuleEvaluator.evaluate(pRNG, cfg.asteroidRings.aspects.type, context, "asteroidRings.aspects.type")
     if asteroidRingType and asteroidRingType ~= Enums.Gen.AsteroidRingTypes.None then
         -- Set parent position to planet for ring placement
         local savedParentPos = context:get("parentPosition")
@@ -541,7 +541,7 @@ function UniverseManager:_generateMoon(rng, cfg, context)
     local planetRotation = context:get("rotationPeriod")
     local parentPos = context:get("parentPosition")
 
-    local moonOrbitRadius, err = RuleEvaluator.evaluate(mRNG, cfg.moons.aspects.orbitalRadius, context)
+    local moonOrbitRadius, err = RuleEvaluator.evaluate(mRNG, cfg.moons.aspects.orbitalRadius, context, "moons.aspects.orbitalRadius")
     if not moonOrbitRadius then
         Log.Error("Missing or invalid moon orbitalRadius rule: %s", err or "Rule is nil")
         return nil
@@ -605,23 +605,23 @@ function UniverseManager:_generateAsteroidBelt(rng, cfg, context)
         return nil
     end
 
-    local beltOrbitRadius = RuleEvaluator.evaluate(bRNG, cfg.asteroidBelts.aspects.orbitRadius, context)
+    local beltOrbitRadius = RuleEvaluator.evaluate(bRNG, cfg.asteroidBelts.aspects.orbitRadius, context, "asteroidBelts.aspects.orbitRadius")
     if not beltOrbitRadius or beltOrbitRadius < 0.1 then
         beltOrbitRadius = 2.0 + bRNG:getUniform() * 8.0  -- 2-10 AU fallback
     end
     context:set("beltOrbit", beltOrbitRadius)
 
-    local inclination = RuleEvaluator.evaluate(bRNG, cfg.asteroidBelts.aspects.inclination, context) or 0
+    local inclination = RuleEvaluator.evaluate(bRNG, cfg.asteroidBelts.aspects.inclination, context, "asteroidBelts.aspects.inclination") or 0
     context:set("beltInclination", inclination)
 
-    local density = RuleEvaluator.evaluate(bRNG, cfg.asteroidBelts.aspects.density, context) or 0.5
+    local density = RuleEvaluator.evaluate(bRNG, cfg.asteroidBelts.aspects.density, context, "asteroidBelts.aspects.density") or 0.5
     context:set("beltDensity", density)
 
-    local composition = RuleEvaluator.evaluate(bRNG, cfg.asteroidBelts.aspects.composition, context) or
+    local composition = RuleEvaluator.evaluate(bRNG, cfg.asteroidBelts.aspects.composition, context, "asteroidBelts.aspects.composition") or
         { type = Enums.Gen.AsteroidRingTypes.Rocky }
     context:set("beltComposition", composition)
 
-    local widthAU = RuleEvaluator.evaluate(bRNG, cfg.asteroidBelts.aspects.width, context) or 1.0
+    local widthAU = RuleEvaluator.evaluate(bRNG, cfg.asteroidBelts.aspects.width, context, "asteroidBelts.aspects.width") or 1.0
     context:set("beltWidth", widthAU)
 
     local parentPos = context:get("parentPosition") or Position(0, 0, 0)
@@ -663,14 +663,14 @@ function UniverseManager:_generateAsteroidRing(rng, cfg, context)
     local orbitRadius = context:get("orbitRadius") or 1.0
     context:set("ringOrbit", orbitRadius)
 
-    local density = RuleEvaluator.evaluate(rRNG, cfg.asteroidRings.aspects.density, context) or 0.5
+    local density = RuleEvaluator.evaluate(rRNG, cfg.asteroidRings.aspects.density, context, "asteroidRings.aspects.density") or 0.5
     context:set("ringDensity", density)
 
-    local composition = RuleEvaluator.evaluate(rRNG, cfg.asteroidRings.aspects.composition, context) or
+    local composition = RuleEvaluator.evaluate(rRNG, cfg.asteroidRings.aspects.composition, context, "asteroidRings.aspects.composition") or
         { type = Enums.Gen.AsteroidRingTypes.Rocky }
     context:set("ringComposition", composition)
 
-    local widthAU = RuleEvaluator.evaluate(rRNG, cfg.asteroidRings.aspects.width, context) or 0.1
+    local widthAU = RuleEvaluator.evaluate(rRNG, cfg.asteroidRings.aspects.width, context, "asteroidRings.aspects.width") or 0.1
     context:set("ringWidth", widthAU)
 
     local parentIncl = context:get("inclination") or 0
