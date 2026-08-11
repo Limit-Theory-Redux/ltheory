@@ -7,9 +7,22 @@
 //! in `renderer_ffi.rs` only ever calls methods defined here and never
 //! needs to know which backend is active. This file holds what both share.
 
+use std::sync::Arc;
+
 use tracing::error;
 
-use crate::render::{CmdPrimitiveType, GpuHandle, RenderBatch, RenderCommand};
+use crate::render::{CmdPrimitiveType, RenderBatch, RenderCommand};
+
+thread_local! {
+    /// Cached `Arc<str>` uniform names for the batch path, so per-entity
+    /// `SetUniformMat4ByName` commands only pay one clone (an `Arc` bump) each
+    /// instead of allocating a `String` every entity, every frame. Names match
+    /// `res/shader/include/vertex.glsl`'s per-draw uniforms - the camera's
+    /// `mView`/`mProj` come from `CameraUBO` instead (see
+    /// `res/shader/include/camera_ubo.glsl`), so there is no MVP uniform here.
+    static UNIFORM_M_WORLD: Arc<str> = Arc::from("mWorld");
+    static UNIFORM_M_WORLD_IT: Arc<str> = Arc::from("mWorldIT");
+}
 
 /// A snapshot of the executor's counters, taken once per frame at
 /// `SwapBuffers`. In immediate mode this is read straight off the executor;
@@ -53,7 +66,7 @@ pub(in crate::render::thread) fn process_batch_intern(
     // Sort entities by sort key for better batching
     batch.entities.sort_by_key(|e| e.sort_key);
 
-    let mut current_shader: Option<u32> = None;
+    let mut current_shader = None;
 
     for entity in batch.entities.drain(..) {
         // Frustum culling
@@ -67,35 +80,29 @@ pub(in crate::render::thread) fn process_batch_intern(
 
         batch.stats.entities_visible += 1;
 
-        // Compute MVP matrix
-        let mvp = batch.camera.view_projection * entity.transform;
-        let mvp_array = mvp.to_cols_array();
-
         // Bind shader if changed
-        if current_shader != Some(entity.shader_handle) {
-            command_buffer.push(RenderCommand::BindShader {
-                handle: GpuHandle(entity.shader_handle),
+        if current_shader != Some(entity.shader_id) {
+            command_buffer.push(RenderCommand::BindShaderByResource {
+                id: entity.shader_id,
+                shader_key: None,
             });
-            current_shader = Some(entity.shader_handle);
+            current_shader = Some(entity.shader_id);
         }
 
-        // Set MVP uniform
-        command_buffer.push(RenderCommand::SetUniformMat4 {
-            location: entity.mvp_location,
-            value: mvp_array,
+        // Set per-draw transform uniforms. View/projection come from
+        // `CameraUBO`, bound once per frame - see the module-level comment.
+        command_buffer.push(RenderCommand::SetUniformMat4ByName {
+            name: UNIFORM_M_WORLD.with(|n| n.clone()),
+            value: entity.transform.to_cols_array(),
+        });
+        command_buffer.push(RenderCommand::SetUniformMat4ByName {
+            name: UNIFORM_M_WORLD_IT.with(|n| n.clone()),
+            value: entity.transform.inverse().transpose().to_cols_array(),
         });
 
-        // Set model matrix uniform if needed
-        if entity.model_location >= 0 {
-            command_buffer.push(RenderCommand::SetUniformMat4 {
-                location: entity.model_location,
-                value: entity.transform.to_cols_array(),
-            });
-        }
-
         // Draw call
-        command_buffer.push(RenderCommand::DrawMesh {
-            vao: GpuHandle(entity.mesh_vao),
+        command_buffer.push(RenderCommand::DrawMeshByResource {
+            id: entity.mesh_id,
             index_count: entity.index_count,
             primitive: CmdPrimitiveType::Triangles,
         });

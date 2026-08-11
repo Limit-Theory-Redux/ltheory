@@ -4,7 +4,7 @@ use tracing::error;
 use crate::math::Matrix;
 use crate::render::{
     BatchStats, BlendMode, CameraUboData, CmdPrimitiveType, CullFace, GpuHandle, LightUboData,
-    MaterialUboData, RenderBatch, Renderer,
+    MaterialUboData, RenderBatch, Renderer, ResourceId,
 };
 
 // =============================================================================
@@ -69,9 +69,9 @@ impl Renderer {
                 bounds_center_y,
                 bounds_center_z,
                 bounds_radius,
-                mesh_vao,
+                ResourceId(mesh_vao as u64),
                 index_count,
-                shader_handle,
+                ResourceId(shader_handle as u64),
                 sort_key,
             );
         } else {

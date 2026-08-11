@@ -1,5 +1,7 @@
 use glam::{Mat4, Vec3};
 
+use crate::render::ResourceId;
+
 /// Data for a single entity to be prepared for rendering
 #[derive(Clone, Debug)]
 pub struct EntityRenderData {
@@ -11,16 +13,12 @@ pub struct EntityRenderData {
     pub bounds_center: Vec3,
     /// Bounding sphere radius
     pub bounds_radius: f32,
-    /// Mesh VAO handle
-    pub mesh_vao: u32,
+    /// GPU resource id of the mesh to draw
+    pub mesh_id: ResourceId,
     /// Number of indices in mesh
     pub index_count: i32,
-    /// Shader program handle
-    pub shader_handle: u32,
-    /// MVP uniform location in shader
-    pub mvp_location: i32,
-    /// Model matrix uniform location
-    pub model_location: i32,
+    /// GPU resource id of the shader program to bind
+    pub shader_id: ResourceId,
     /// Sort key for render ordering (lower = render first)
     pub sort_key: u32,
 }

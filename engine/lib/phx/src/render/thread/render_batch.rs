@@ -1,6 +1,6 @@
 use glam::{Mat4, Vec3};
 
-use crate::render::{BatchStats, CameraRenderData, EntityRenderData};
+use crate::render::{BatchStats, CameraRenderData, EntityRenderData, ResourceId};
 
 /// Render batch collector - accumulates entities for worker processing
 pub struct RenderBatch {
@@ -36,6 +36,7 @@ impl RenderBatch {
     }
 
     /// Add an entity to the batch
+    #[allow(clippy::too_many_arguments)]
     pub fn add_entity(
         &mut self,
         transform: &[f32; 16],
@@ -43,9 +44,9 @@ impl RenderBatch {
         bounds_center_y: f32,
         bounds_center_z: f32,
         bounds_radius: f32,
-        mesh_vao: u32,
+        mesh_id: ResourceId,
         index_count: i32,
-        shader_handle: u32,
+        shader_id: ResourceId,
         sort_key: u32,
     ) {
         self.entities.push(EntityRenderData {
@@ -53,11 +54,9 @@ impl RenderBatch {
             transform: Mat4::from_cols_array(transform),
             bounds_center: Vec3::new(bounds_center_x, bounds_center_y, bounds_center_z),
             bounds_radius,
-            mesh_vao,
+            mesh_id,
             index_count,
-            shader_handle,
-            mvp_location: -1, // Will use name-based uniforms
-            model_location: -1,
+            shader_id,
             sort_key,
         });
 
