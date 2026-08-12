@@ -11,9 +11,9 @@ use crate::render::thread::{
     FBO_STACK_DEPTH, FboEntry, GpuResource, MAX_TEXTURE_SLOTS, TextureBinding, TextureType,
 };
 use crate::render::{
-    BlendMode, CmdPrimitiveType, CommandExecutor, CommandReply, CullFace, ImmVertex, InstanceData,
-    RenderStats, ResourceId, ShaderReloadResult, TexFilter, TexFormat, TexWrapMode, VertexFormat,
-    GenericUniformName,
+    BlendMode, CmdPrimitiveType, CommandExecutor, CommandReply, CullFace, GenericUniformName,
+    ImmVertex, InstanceData, RenderStats, ResourceId, ShaderReloadResult, TexFilter, TexFormat,
+    TexWrapMode, VertexFormat,
 };
 use crate::window::WindowGlContext;
 

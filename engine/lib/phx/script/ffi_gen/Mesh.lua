@@ -17,55 +17,56 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            void    Mesh_Free              (Mesh*);
-            Mesh*   Mesh_Create            ();
-            Mesh*   Mesh_Clone             (Mesh const*);
-            Mesh*   Mesh_Load              (cstr name);
-            void    Mesh_Save              (Mesh const*, cstr path);
-            Bytes*  Mesh_ToBytes           (Mesh const*);
-            Mesh*   Mesh_FromBytes         (Bytes* buf);
-            Mesh*   Mesh_FromObj           (cstr bytes);
-            Mesh*   Mesh_Box               (int res);
-            Mesh*   Mesh_BoxSphere         (int res);
-            Mesh*   Mesh_Plane             (Vec3f origin, Vec3f du, Vec3f dv, int resU, int resV);
-            void    Mesh_AddIndex          (Mesh*, int newIndex);
-            void    Mesh_AddMesh           (Mesh*, Mesh const* other);
-            void    Mesh_AddQuad           (Mesh*, int i1, int i2, int i3, int i4);
-            void    Mesh_AddTri            (Mesh*, int i1, int i2, int i3);
-            void    Mesh_AddVertex         (Mesh*, float px, float py, float pz, float nx, float ny, float nz, float u, float v);
-            void    Mesh_AddVertexRaw      (Mesh*, Vertex const* vertex);
-            void    Mesh_DrawBind          (Mesh*, Renderer* r);
-            void    Mesh_DrawBound         (Mesh const*, Renderer* r);
-            void    Mesh_DrawUnbind        (Mesh const*, Renderer* r);
-            void    Mesh_Draw              (Mesh*, Renderer* r);
-            void    Mesh_DrawNormals       (Mesh const*, Renderer* r, float scale);
-            void    Mesh_GetBound          (Mesh*, Box3f* out);
-            void    Mesh_GetCenter         (Mesh*, Vec3f* out);
-            int     Mesh_GetIndexCount     (Mesh const*);
-            void    Mesh_LockIndexData     (Mesh*, void (*)(int*, uint64));
-            float   Mesh_GetRadius         (Mesh*);
-            uint64  Mesh_GetVersion        (Mesh const*);
-            void    Mesh_IncVersion        (Mesh*);
-            uint32  Mesh_Validate          (Mesh const*);
-            Vertex* Mesh_GetVertex         (Mesh*, int index);
-            int     Mesh_GetVertexCount    (Mesh const*);
-            void    Mesh_LockVertexData    (Mesh*, void (*)(Vertex*, uint64));
-            void    Mesh_ReserveIndexData  (Mesh*, int capacity);
-            void    Mesh_ReserveVertexData (Mesh*, int capacity);
-            Mesh*   Mesh_Center            (Mesh*);
-            Mesh*   Mesh_Invert            (Mesh*);
-            Mesh*   Mesh_RotateX           (Mesh*, float rads);
-            Mesh*   Mesh_RotateY           (Mesh*, float rads);
-            Mesh*   Mesh_RotateZ           (Mesh*, float rads);
-            Mesh*   Mesh_RotateYPR         (Mesh*, float yaw, float pitch, float roll);
-            Mesh*   Mesh_Scale             (Mesh*, float x, float y, float z);
-            Mesh*   Mesh_ScaleUniform      (Mesh*, float s);
-            Mesh*   Mesh_Translate         (Mesh*, float x, float y, float z);
-            void    Mesh_Transform         (Mesh*, Matrix const* matrix);
-            void    Mesh_ComputeNormals    (Mesh*);
-            void    Mesh_SplitNormals      (Mesh*, float minDot);
-            void    Mesh_ComputeAO         (Mesh*, Renderer* r, float radius);
-            void    Mesh_ComputeOcclusion  (Mesh*, Renderer* r, Tex3D* sdf, float radius);
+            void        Mesh_Free              (Mesh*);
+            Mesh*       Mesh_Create            ();
+            Mesh*       Mesh_Clone             (Mesh const*);
+            Mesh*       Mesh_Load              (cstr name);
+            void        Mesh_Save              (Mesh const*, cstr path);
+            Bytes*      Mesh_ToBytes           (Mesh const*);
+            Mesh*       Mesh_FromBytes         (Bytes* buf);
+            Mesh*       Mesh_FromObj           (cstr bytes);
+            Mesh*       Mesh_Box               (int res);
+            Mesh*       Mesh_BoxSphere         (int res);
+            Mesh*       Mesh_Plane             (Vec3f origin, Vec3f du, Vec3f dv, int resU, int resV);
+            void        Mesh_AddIndex          (Mesh*, int newIndex);
+            void        Mesh_AddMesh           (Mesh*, Mesh const* other);
+            void        Mesh_AddQuad           (Mesh*, int i1, int i2, int i3, int i4);
+            void        Mesh_AddTri            (Mesh*, int i1, int i2, int i3);
+            void        Mesh_AddVertex         (Mesh*, float px, float py, float pz, float nx, float ny, float nz, float u, float v);
+            void        Mesh_AddVertexRaw      (Mesh*, Vertex const* vertex);
+            void        Mesh_DrawBind          (Mesh*, Renderer* r);
+            ResourceId* Mesh_ResourceId        (Mesh*, Renderer* r);
+            void        Mesh_DrawBound         (Mesh const*, Renderer* r);
+            void        Mesh_DrawUnbind        (Mesh const*, Renderer* r);
+            void        Mesh_Draw              (Mesh*, Renderer* r);
+            void        Mesh_DrawNormals       (Mesh const*, Renderer* r, float scale);
+            void        Mesh_GetBound          (Mesh*, Box3f* out);
+            void        Mesh_GetCenter         (Mesh*, Vec3f* out);
+            int         Mesh_GetIndexCount     (Mesh const*);
+            void        Mesh_LockIndexData     (Mesh*, void (*)(int*, uint64));
+            float       Mesh_GetRadius         (Mesh*);
+            uint64      Mesh_GetVersion        (Mesh const*);
+            void        Mesh_IncVersion        (Mesh*);
+            uint32      Mesh_Validate          (Mesh const*);
+            Vertex*     Mesh_GetVertex         (Mesh*, int index);
+            int         Mesh_GetVertexCount    (Mesh const*);
+            void        Mesh_LockVertexData    (Mesh*, void (*)(Vertex*, uint64));
+            void        Mesh_ReserveIndexData  (Mesh*, int capacity);
+            void        Mesh_ReserveVertexData (Mesh*, int capacity);
+            Mesh*       Mesh_Center            (Mesh*);
+            Mesh*       Mesh_Invert            (Mesh*);
+            Mesh*       Mesh_RotateX           (Mesh*, float rads);
+            Mesh*       Mesh_RotateY           (Mesh*, float rads);
+            Mesh*       Mesh_RotateZ           (Mesh*, float rads);
+            Mesh*       Mesh_RotateYPR         (Mesh*, float yaw, float pitch, float roll);
+            Mesh*       Mesh_Scale             (Mesh*, float x, float y, float z);
+            Mesh*       Mesh_ScaleUniform      (Mesh*, float s);
+            Mesh*       Mesh_Translate         (Mesh*, float x, float y, float z);
+            void        Mesh_Transform         (Mesh*, Matrix const* matrix);
+            void        Mesh_ComputeNormals    (Mesh*);
+            void        Mesh_SplitNormals      (Mesh*, float minDot);
+            void        Mesh_ComputeAO         (Mesh*, Renderer* r, float radius);
+            void        Mesh_ComputeOcclusion  (Mesh*, Renderer* r, Tex3D* sdf, float radius);
         ]]
     end
 
@@ -125,6 +126,10 @@ function Loader.defineType()
                 addVertex         = libphx.Mesh_AddVertex,
                 addVertexRaw      = libphx.Mesh_AddVertexRaw,
                 drawBind          = libphx.Mesh_DrawBind,
+                resourceId        = function(self, r)
+                    local _instance = libphx.Mesh_ResourceId(self, r)
+                    return Core.ManagedObject(_instance, libphx.ResourceId_Free)
+                end,
                 drawBound         = libphx.Mesh_DrawBound,
                 drawUnbind        = libphx.Mesh_DrawUnbind,
                 draw              = libphx.Mesh_Draw,

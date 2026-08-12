@@ -77,6 +77,15 @@ function Mesh:addVertexRaw(vertex) end
 ---@param r Renderer
 function Mesh:drawBind(r) end
 
+-- The mesh's GPU resource id, lazily creating (or recreating, if the
+-- mesh changed) the executor-owned resource just like `draw_bind` does
+-- - without also drawing. For code that needs to reference the mesh by
+-- `ResourceId` instead of calling `draw`/`drawBind` itself (e.g. the
+-- batch API, `Renderer:addEntity`).
+---@param r Renderer
+---@return ResourceId
+function Mesh:resourceId(r) end
+
 ---@param r Renderer
 function Mesh:drawBound(r) end
 

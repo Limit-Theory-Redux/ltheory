@@ -96,7 +96,7 @@ contract instead of the fork's MVP-by-name scheme:
 - `BindShaderByResource { id: entity.shader_id, shader_key: None }` on shader
   change (mirrors `Shader::start`, `shader.rs:509`, which also passes `None` —
   match its contract, don't invent a different one).
-- A `SetUniformMat4ByWellKnownName { name: WellKnownUniformName, value }`
+- A `SetUniformMat4ByGenericName { name: GenericUniformName, value }`
   command for `mWorld`/`mWorldIT` — **not** the `Arc<str>`-keyed
   `SetUniformMat4ByName` and **not** a thread-local cache (see revision below).
 - `DrawMeshByResource { id: entity.mesh_id, index_count, primitive: Triangles }`.
@@ -116,13 +116,13 @@ could clone the `Arc` instead of allocating a fresh one. This reintroduced a
 the render path (`renderer_data.rs`'s `RendererData` fields are documented as
 `was thread_local!` for exactly this reason). Replaced with:
 
-- `WellKnownUniformName` — a small `Copy` enum (`render_command.rs`, next to
+- `GenericUniformName` — a small `Copy` enum (`render_command.rs`, next to
   `ResourceId`) with variants `MWorld`/`MWorldIT` and `as_str(self) -> &'static str`.
   Being `Copy`, a value costs nothing to construct or send across the
   render-thread channel — no allocation, no cache, no thread-local.
-- `RenderCommand::SetUniformMat4ByWellKnownName { name: WellKnownUniformName, value: [f32; 16] }` —
+- `RenderCommand::SetUniformMat4ByGenericName { name: GenericUniformName, value: [f32; 16] }` —
   a fully `Copy` command payload.
-- Executor (`command_executor_gl.rs`): `cmd_set_uniform_mat4_by_well_known_name`
+- Executor (`command_executor_gl.rs`): `cmd_set_uniform_mat4_by_generic_name`
   resolves the location through the existing per-program
   `HashMap<Arc<str>, i32>` cache (`uniform_caches`), but the lookup itself
   takes `&str` (`Arc<str>: Borrow<str>`) and only allocates an `Arc<str>` on a
@@ -133,7 +133,7 @@ the render path (`renderer_data.rs`'s `RendererData` fields are documented as
   (still producer-less) `cmd_set_uniform_*_by_name` methods were updated to
   pass `&name` — mechanical, no behavior change for them.
 - `renderer_shared.rs`: the `thread_local!` block was deleted; `process_batch_intern`
-  emits `SetUniformMat4ByWellKnownName { name: WellKnownUniformName::MWorld, .. }`
+  emits `SetUniformMat4ByGenericName { name: GenericUniformName::MWorld, .. }`
   / `::MWorldIT` directly.
 - `SetUniformMat4ByName`/`Arc<str>` and its 8 Int/Float siblings were left in
   place as pre-existing scaffolding (zero producers before and after this

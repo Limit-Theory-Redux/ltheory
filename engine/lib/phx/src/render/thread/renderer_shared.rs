@@ -9,7 +9,7 @@
 
 use tracing::error;
 
-use crate::render::{CmdPrimitiveType, RenderBatch, RenderCommand, GenericUniformName};
+use crate::render::{CmdPrimitiveType, GenericUniformName, RenderBatch, RenderCommand};
 
 /// A snapshot of the executor's counters, taken once per frame at
 /// `SwapBuffers`. In immediate mode this is read straight off the executor;

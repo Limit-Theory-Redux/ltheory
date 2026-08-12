@@ -9,7 +9,7 @@ use super::{DataFormat, Draw, PixelFormat, RenderTarget, Tex2D, Tex3D, TexFormat
 use crate::error::Error;
 use crate::math::{Box3, Matrix, Triangle, validate_vec2, validate_vec3};
 use crate::render::{
-    CmdPrimitiveType, RenderState, Renderer, ResourceHandle, Shader, VertexFormat,
+    CmdPrimitiveType, RenderState, Renderer, ResourceHandle, ResourceId, Shader, VertexFormat,
 };
 use crate::rf::Rf;
 use crate::system::*;
@@ -115,6 +115,44 @@ impl Mesh {
                 self.add_vertex(p.x, p.y, p.z, n.x, n.y, n.z, u, v);
             }
         }
+    }
+
+    /// Lazily create (or recreate, if the mesh changed since it was last
+    /// built) the executor-owned GPU resource, and return its id. Shared by
+    /// `draw_bind` (which only cares that the resource exists) and
+    /// `resource_id` (which also needs the id itself, e.g. for the batch API).
+    fn ensure_resource(&mut self, r: &mut Renderer) -> ResourceId {
+        let this = &mut *self.shared.as_mut();
+
+        /* Release the cached GPU resource if the mesh has changed since we built
+         * it. Dropping the handle enqueues the destroy; it lands at frame end
+         * rather than right now, which is harmless - the replacement below gets
+         * a fresh id, and command order is preserved either way. */
+        if this.handle.is_some() && this.version != this.version_buffers {
+            this.handle = None;
+        }
+
+        /* Create the cached GPU resource for fast drawing. */
+        if this.handle.is_none() {
+            let handle = r.create_resource();
+
+            #[allow(unsafe_code)] // TODO: refactor
+            let vertex_bytes = unsafe {
+                std::slice::from_raw_parts(
+                    this.vertex.as_ptr() as *const u8,
+                    std::mem::size_of_val(this.vertex.as_slice()),
+                )
+            }
+            .to_vec();
+            let indices: Vec<u32> = this.index.iter().map(|&i| i as u32).collect();
+
+            r.create_mesh(handle.id(), vertex_bytes, indices, VertexFormat::default());
+
+            this.handle = Some(handle);
+            this.version_buffers = this.version;
+        }
+
+        this.handle.as_ref().expect("just ensured above").id()
     }
 }
 
@@ -360,35 +398,16 @@ impl Mesh {
     }
 
     pub fn draw_bind(&mut self, r: &mut Renderer) {
-        let this = &mut *self.shared.as_mut();
+        self.ensure_resource(r);
+    }
 
-        /* Release the cached GPU resource if the mesh has changed since we built
-         * it. Dropping the handle enqueues the destroy; it lands at frame end
-         * rather than right now, which is harmless - the replacement below gets
-         * a fresh id, and command order is preserved either way. */
-        if this.handle.is_some() && this.version != this.version_buffers {
-            this.handle = None;
-        }
-
-        /* Create the cached GPU resource for fast drawing. */
-        if this.handle.is_none() {
-            let handle = r.create_resource();
-
-            #[allow(unsafe_code)] // TODO: refactor
-            let vertex_bytes = unsafe {
-                std::slice::from_raw_parts(
-                    this.vertex.as_ptr() as *const u8,
-                    std::mem::size_of_val(this.vertex.as_slice()),
-                )
-            }
-            .to_vec();
-            let indices: Vec<u32> = this.index.iter().map(|&i| i as u32).collect();
-
-            r.create_mesh(handle.id(), vertex_bytes, indices, VertexFormat::default());
-
-            this.handle = Some(handle);
-            this.version_buffers = this.version;
-        }
+    /// The mesh's GPU resource id, lazily creating (or recreating, if the
+    /// mesh changed) the executor-owned resource just like `draw_bind` does
+    /// - without also drawing. For code that needs to reference the mesh by
+    /// `ResourceId` instead of calling `draw`/`drawBind` itself (e.g. the
+    /// batch API, `Renderer:addEntity`).
+    pub fn resource_id(&mut self, r: &mut Renderer) -> ResourceId {
+        self.ensure_resource(r)
     }
 
     pub fn draw_bound(&self, r: &mut Renderer) {

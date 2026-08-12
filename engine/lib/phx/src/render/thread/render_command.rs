@@ -232,7 +232,7 @@ pub enum RenderCommand {
     SetUniformMat4ByName { name: Arc<str>, value: [f32; 16] },
 
     /// Set mat4 uniform by a fixed, known-in-advance name - no allocation,
-    /// no cache needed at the call site (see `WellKnownUniformName`)
+    /// no cache needed at the call site (see `GenericUniformName`)
     SetUniformMat4ByGenericName {
         name: GenericUniformName,
         value: [f32; 16],
