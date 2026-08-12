@@ -5,8 +5,6 @@ use crate::render::ResourceId;
 /// Data for a single entity to be prepared for rendering
 #[derive(Clone, Debug)]
 pub struct EntityRenderData {
-    /// Unique entity ID
-    pub entity_id: u64,
     /// World transform matrix
     pub transform: Mat4,
     /// Bounding sphere center (world space)

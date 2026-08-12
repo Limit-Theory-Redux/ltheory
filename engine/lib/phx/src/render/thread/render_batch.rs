@@ -11,8 +11,6 @@ pub struct RenderBatch {
     pub camera: CameraRenderData,
     /// Statistics
     pub stats: BatchStats,
-    /// Entity ID counter
-    pub next_entity_id: u64,
 }
 
 impl RenderBatch {
@@ -26,7 +24,6 @@ impl RenderBatch {
             entities: Vec::with_capacity(1024),
             camera: CameraRenderData::new(view_mat, proj_mat, position),
             stats: BatchStats::default(),
-            next_entity_id: 1,
         }
     }
 
@@ -45,7 +42,6 @@ impl RenderBatch {
         sort_key: u32,
     ) {
         self.entities.push(EntityRenderData {
-            entity_id: self.next_entity_id,
             transform: Mat4::from_cols_array(&transform.to_cols_array()),
             bounds_center: Vec3::new(bounds_center_x, bounds_center_y, bounds_center_z),
             bounds_radius,
@@ -55,7 +51,6 @@ impl RenderBatch {
             sort_key,
         });
 
-        self.next_entity_id += 1;
         self.stats.entities_submitted += 1;
     }
 

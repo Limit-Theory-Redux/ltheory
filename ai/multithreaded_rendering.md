@@ -119,31 +119,43 @@ toggle the render thread with the `R` key, `RenderCoreSystem.lua:322` switches
 between `renderBatched` and `renderDirect` based on `Engine:isRenderThreadActive()`,
 and all resource creation transparently routes through commands.
 
-### 1.3 The batch API (committed in `adcc19d1`)
+### 1.3 The batch API and GPU instancing — done (see `ai/batch_rendering_port.md`)
 
-The branch adds an entity-batch layer, originally copied from the fork and since
-trimmed to fit the port's member-based design (`adcc19d1 "Make it compile"`):
+Superseded this section: as of `ai/batch_rendering_port.md` (all 6 phases
+complete), the batch layer described below as a non-functional stub has been
+rebuilt on this repo's actual (post-fork) design — `ResourceId`-based
+resources, no dual-mode interception, no MVP uniform — and is live and
+end-to-end verified:
 
-- `render_batch.rs` — `RenderBatch` (entity accumulator + camera) and `BatchStats`.
-  The fork-design code that depended on unported modules (`flush(worker_pool)`,
-  `apply_result`, `process_serial`, the `RenderBatchApi` FFI wrapper) was deleted
-  rather than ported; it lives on in the fork's `render_batch.rs` if the worker
-  path is ever revived.
-- `camera_render_data.rs` / `entity_render_data.rs` — extracted from the fork's
-  `render_worker.rs` (data types only).
-- `renderer.rs` holds `active_batch: Option<RenderBatch>` and a **port-only**
-  `process_batch()` (sort → frustum-cull → dedupe shader binds → emit commands)
-  that operates on the active batch in place and writes culling counters into
-  `batch.stats`; `renderer_queue.rs` exposes FFI
-  `begin_batch`/`add_entity`/`flush_batch`. Still unfinished: MVP uniforms don't
-  reach the shader (§2.3) and flush semantics need defining (§2.7 caveats).
+- `render_batch.rs` — `RenderBatch` (entity accumulator + camera) +
+  `BatchStats`, now keyed on `ResourceId` for mesh/shader instead of raw GL
+  handles (`entity_id`/`next_entity_id`, dead weight since the port, removed
+  in Phase 6).
+- `renderer_shared.rs::process_batch_intern` — sort by shader → frustum-cull
+  → emit `BindShaderByResource` + `SetUniformMat4ByGenericName` (`mWorld`/
+  `mWorldIT`, a `Copy` enum — see `ai/batch_rendering_port.md` Phase 1's
+  revision for why this isn't `Arc<str>` or a thread-local) +
+  `DrawMeshByResource` per visible entity; `renderer_ffi.rs` exposes
+  `beginBatch`/`addEntity`/`flushBatch`/`getBatchStats` to Lua.
+  `Mesh::resourceId()`/`Shader::resourceId()` (Phase 2) let Lua obtain the
+  ids `addEntity` needs.
+- `script/Modules/Rendering/Systems/RenderCoreSystem.lua::renderInOrder` —
+  wired to the batch API (Phase 4); routes camera-relative entity transforms
+  (`RigidBodyComponent:getToWorldMatrix(eye)`, matching every entity's
+  existing `mWorld` auto var) through `addEntity`, giving real CPU frustum
+  culling that didn't exist in Lua before. Not exercised by `Main`'s actual
+  gameplay path, which uses a separate legacy pipeline
+  (`script/Legacy/Systems/Overlay/GameView.lua`) — see
+  `ai/legacy_background_rendering_bug.md`.
+- `instance_batch.rs` (Phase 5) — `InstanceBatch`, true GPU instancing via
+  the (previously unused) `DrawInstancedWithData` command and its executor;
+  `res/shader/include/instanced.glsl` + `vertex/wvp_instanced.glsl`. No
+  caller wired up yet — `AsteroidBeltRenderer.lua`'s hand-rolled per-rock
+  draw loop is the natural first one.
 
-Note: even in the fork the batch/worker path is **dormant at runtime** — nothing in
-its `script/` feeds `RenderBatch` or the worker pool; `renderBatched` groups
-materials in Lua and calls `mesh:draw()` per entity. The pool also has no
-intra-batch parallelism (each flush sends the whole entity list to one worker,
-`render_worker.rs:177,262-329`). Treat this layer as an optimization to finish
-*after* parity, not a prerequisite.
+Everything below this point in §1-§2 describes the pre-port state and is
+kept for historical context; treat `ai/batch_rendering_port.md` as
+authoritative for the batch/instancing layer specifically.
 
 ---
 
@@ -195,19 +207,17 @@ also fixed. `RendererState` isn't yet exposed on `Engine`'s own FFI (no Lua
 caller needs it today — activation is still boot-flag-only, §1.2), so the new
 enum only needed its own FFI type generated (`ffi_gen/meta/RendererState.lua`).
 
-### 2.3 MVP uniform is never actually set in the batch path — [port-only]
+### 2.3 MVP uniform is never actually set in the batch path — ✅ FIXED, see `ai/batch_rendering_port.md` Phase 1
 
-`RenderBatch::add_entity` hardcodes `mvp_location = -1` ("Will use name-based
-uniforms"), but the port-only `Renderer::process_batch` (`renderer.rs:401`) emits
-location-based `SetUniformMat4 { location: -1, .. }`. GL ignores location -1 →
-nothing visible.
-
-The fork's equivalent serial path (`render_batch.rs::process_serial`) does it
-correctly: `SetUniformMat4ByName` with interned thread-local `Arc<str>` names
-(`UNIFORM_MVP`, `UNIFORM_MODEL`), resolved through the render thread's per-shader
-uniform cache — which also survives shader hot-reload, where locations don't.
-Port that approach into `process_batch` and drop
-`mvp_location`/`model_location` from `EntityRenderData`.
+Fixed, but not by porting the fork's `SetUniformMat4ByName`/thread-local-`Arc<str>`
+approach as originally planned here — this repo has no MVP uniform at all
+(view/proj come from `CameraUBO`, not a per-draw uniform). `process_batch_intern`
+now emits `SetUniformMat4ByGenericName` for `mWorld`/`mWorldIT`, a small `Copy`
+enum (`GenericUniformName`) instead of a string name, so there's no allocation
+and no cache needed at the call site — see Phase 1's "Revision" note in
+`ai/batch_rendering_port.md` for the full reasoning (a thread-local was tried
+first and rejected as reintroducing global state right after this codebase
+removed all of it from the render path).
 
 ### 2.4 Frustum-plane normalization is mathematically wrong — [upstream]
 
@@ -280,24 +290,24 @@ Known limitations in the fork to carry over/document: texture read-back,
 (fork `tex2d.rs:82,335,441`), and a texture bound without a `resource_id` or cached
 CPU data logs a warning and renders wrong (fork `shader.rs:405,468,533`).
 
-### 2.7 Cull stats are computed and dropped — ✅ FIXED in `adcc19d1`; both caveats now also fixed, staged uncommitted
+### 2.7 Cull stats are computed and dropped — ✅ FIXED
 
-`process_batch` now writes `total_entities`/`entities_visible`/`entities_culled`
-directly into `batch.stats` instead of a dropped local. Both caveats noted
-previously are now addressed (uncommitted):
+`process_batch_intern` writes `total_entities`/`entities_visible`/`entities_culled`
+directly into `batch.stats`. Both caveats noted previously are addressed:
 
-1. **Flush no longer consumes the batch — fixed.** `process_batch` now iterates
-   with `batch.entities.drain(..)` (`renderer.rs:363`) instead of `&batch.entities`,
-   so the entity list is cleared as it's processed; a double `flush_batch` is now
-   a no-op rather than a re-submit. (`entity_id`, moved by value through the
-   drain, is still unused — see the §2.1 leftover above.)
-2. **Stats are not reachable from Lua — fixed.** `BatchStats` moved to its own
-   file (`render/thread/batch_stats.rs`) with `#[luajit_ffi_gen::luajit_ffi]`
-   getters for all six fields, and `Renderer::get_batch_stats()`
-   (`renderer_queue.rs`) exposes it as `Renderer:getBatchStats()`; FFI bindings
-   regenerated (`ffi_gen|meta/BatchStats.lua`, updated `Renderer.lua`). Nothing
-   in `script/` calls it yet — wiring into a perf overlay is still Phase 3+
-   territory (§2.7 exposure alone doesn't make the batch path live, see §1.3).
+1. **Flush no longer consumes the batch — fixed.** `process_batch_intern`
+   iterates with `batch.entities.drain(..)`, so the entity list is cleared as
+   it's processed; a double `flush_batch` is a no-op rather than a re-submit.
+   (The unused `entity_id` field this note used to reference was removed
+   entirely in `ai/batch_rendering_port.md` Phase 6, along with
+   `next_entity_id`.)
+2. **Stats are reachable from Lua — fixed and now actually used for
+   verification.** `BatchStats` (`render/thread/batch_stats.rs`) has
+   `#[luajit_ffi_gen::luajit_ffi]` getters for all six fields;
+   `Renderer::get_batch_stats()` exposes `Renderer:getBatchStats()`. Used
+   directly during `ai/batch_rendering_port.md` Phase 4's verification to
+   confirm frustum culling actually runs (`visible=1, culled=0` for
+   on-screen entities). No perf-overlay caller yet — still a follow-up.
 
 ---
 
