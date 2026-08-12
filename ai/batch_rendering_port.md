@@ -145,12 +145,16 @@ Batch entities need a `ResourceId` for their mesh and shader, which nothing
 currently exposes outside `render/`:
 
 **`engine/lib/phx/src/render/mesh.rs`**
-Extract the resource-creation half of `draw_bind` (`:362-390`) into a new
-internal helper `fn ensure_resource(&mut self, r: &mut Renderer) -> ResourceId`
-that both `draw_bind` and a new public FFI method call. Add:
+Extracted the resource-creation half of `draw_bind` into a private
+`fn ensure_resource(&mut self, r: &mut Renderer) -> ResourceId` helper, placed
+in `Mesh`'s plain (non-FFI) `impl` block alongside other Rust-internal helpers
+like `add_plane` - the `#[luajit_ffi_gen::luajit_ffi]` block exposes *every*
+method inside it to Lua regardless of `pub`/private, so a helper meant to stay
+internal has to live outside it. `draw_bind` now just calls the helper; a new
+public FFI method also calls it:
 ```rust
-pub fn resource_id(&mut self, r: &mut Renderer) -> ResourceId {
-    self.ensure_resource(r)
+pub fn resource_id(&mut self, r: &mut Renderer) -> u64 {
+    self.ensure_resource(r).0
 }
 ```
 so Lua/batch code can lazily create (or reuse) the mesh's GPU resource and get
@@ -160,10 +164,25 @@ its id back, exactly like `draw_bind` does today but without also drawing.
 `ShaderShared::handle: ResourceHandle` is already created eagerly in
 `Shader::new`/`from_preprocessed`, so this is just a getter:
 ```rust
-pub fn resource_id(&self) -> ResourceId {
-    self.shared.as_ref().handle.id()
+pub fn resource_id(&self) -> u64 {
+    self.shared.as_ref().handle.id().0
 }
 ```
+
+**Revision (applied):** both getters return a plain `u64`, not `ResourceId`
+itself. The first pass returned `ResourceId` directly from these
+FFI-exposed methods; the codegen doesn't know `ResourceId` is a bare `Copy`
+newtype (it has no `#[luajit_ffi_gen::luajit_ffi]` impl block of its own -
+`Tex1D`/`Tex2D`/`Tex3D`/`TexCube`'s existing `resource_id()` getters, which
+predate this work, are correspondingly *not* FFI-exposed, Rust-internal only)
+and defaulted to boxed/managed-object semantics: it generated
+`Core.ManagedObject(_instance, libphx.ResourceId_Free)` in the Lua bindings,
+but `ResourceId_Free` is never declared or exported anywhere - that call
+would have failed at runtime. Returning `u64` instead matches this codebase's
+established convention for handles crossing the FFI boundary (e.g.
+`bind_shader(&mut self, handle: u32)` in `renderer_ffi.rs`) and regenerates
+as a plain `uint64` return with a direct `libphx.Mesh_ResourceId`/
+`Shader_ResourceId` call - no managed object, nothing to free.
 
 Both are new `#[luajit_ffi_gen::luajit_ffi]` methods, so `resourceId(r)` /
 `resourceId()` become callable from Lua and regenerate the corresponding

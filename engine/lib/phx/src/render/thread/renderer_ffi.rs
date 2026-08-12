@@ -50,6 +50,10 @@ impl Renderer {
         self.data.active_batch = Some(RenderBatch::new(view, projection, eye_x, eye_y, eye_z));
     }
 
+    /// `mesh_id`/`shader_id` are `ResourceId`s as plain scalars - obtain them
+    /// from `Mesh::resource_id`/`Shader::resource_id` (`mesh:resourceId(r)` /
+    /// `shader:resourceId()` in Lua).
+    #[allow(clippy::too_many_arguments)]
     pub fn add_entity(
         &mut self,
         transform: &[f32; 16],
@@ -57,9 +61,9 @@ impl Renderer {
         bounds_center_y: f32,
         bounds_center_z: f32,
         bounds_radius: f32,
-        mesh_vao: u32,
+        mesh_id: u64,
         index_count: i32,
-        shader_handle: u32,
+        shader_id: u64,
         sort_key: u32,
     ) {
         if let Some(batch) = &mut self.data.active_batch {
@@ -69,9 +73,9 @@ impl Renderer {
                 bounds_center_y,
                 bounds_center_z,
                 bounds_radius,
-                ResourceId(mesh_vao as u64),
+                ResourceId(mesh_id),
                 index_count,
-                ResourceId(shader_handle as u64),
+                ResourceId(shader_id),
                 sort_key,
             );
         } else {

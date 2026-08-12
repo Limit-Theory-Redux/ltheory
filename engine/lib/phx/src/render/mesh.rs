@@ -401,13 +401,15 @@ impl Mesh {
         self.ensure_resource(r);
     }
 
-    /// The mesh's GPU resource id, lazily creating (or recreating, if the
+    /// The mesh's GPU resource id (as a plain scalar - see
+    /// `Renderer::add_entity`'s `mesh_id`/`shader_id` params for why this
+    /// isn't `ResourceId` itself), lazily creating (or recreating, if the
     /// mesh changed) the executor-owned resource just like `draw_bind` does
-    /// - without also drawing. For code that needs to reference the mesh by
-    /// `ResourceId` instead of calling `draw`/`drawBind` itself (e.g. the
-    /// batch API, `Renderer:addEntity`).
-    pub fn resource_id(&mut self, r: &mut Renderer) -> ResourceId {
-        self.ensure_resource(r)
+    /// - without also drawing. For code that needs to reference the mesh
+    /// instead of calling `draw`/`drawBind` itself (e.g. the batch API,
+    /// `Renderer:addEntity`).
+    pub fn resource_id(&mut self, r: &mut Renderer) -> u64 {
+        self.ensure_resource(r).0
     }
 
     pub fn draw_bound(&self, r: &mut Renderer) {

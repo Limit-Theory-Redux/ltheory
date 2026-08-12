@@ -337,13 +337,15 @@ impl Shader {
         self.shared.as_ref().name.clone()
     }
 
-    /// The shader's GPU resource id, e.g. for code that needs to reference
-    /// the shader by `ResourceId` instead of calling `start`/`stop` itself
-    /// (the batch API, `Renderer:addEntity`). Unlike `Mesh::resource_id`,
-    /// this is a plain getter - `ShaderShared::handle` is always created
-    /// eagerly in `new`/`from_preprocessed`, never lazily.
-    pub fn resource_id(&self) -> ResourceId {
-        self.shared.as_ref().handle.id()
+    /// The shader's GPU resource id (as a plain scalar - see
+    /// `Renderer::add_entity`'s `mesh_id`/`shader_id` params for why this
+    /// isn't `ResourceId` itself), e.g. for code that needs to reference the
+    /// shader instead of calling `start`/`stop` itself (the batch API,
+    /// `Renderer:addEntity`). Unlike `Mesh::resource_id`, this is a plain
+    /// getter - `ShaderShared::handle` is always created eagerly in
+    /// `new`/`from_preprocessed`, never lazily.
+    pub fn resource_id(&self) -> u64 {
+        self.shared.as_ref().handle.id().0
     }
 
     #[bind(name = "Clone")]

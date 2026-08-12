@@ -25,12 +25,14 @@ function Shader:reload(r) end
 ---@return string
 function Shader:name() end
 
--- The shader's GPU resource id, e.g. for code that needs to reference
--- the shader by `ResourceId` instead of calling `start`/`stop` itself
--- (the batch API, `Renderer:addEntity`). Unlike `Mesh::resource_id`,
--- this is a plain getter - `ShaderShared::handle` is always created
--- eagerly in `new`/`from_preprocessed`, never lazily.
----@return ResourceId
+-- The shader's GPU resource id (as a plain scalar - see
+-- `Renderer::add_entity`'s `mesh_id`/`shader_id` params for why this
+-- isn't `ResourceId` itself), e.g. for code that needs to reference the
+-- shader instead of calling `start`/`stop` itself (the batch API,
+-- `Renderer:addEntity`). Unlike `Mesh::resource_id`, this is a plain
+-- getter - `ShaderShared::handle` is always created eagerly in
+-- `new`/`from_preprocessed`, never lazily.
+---@return integer
 function Shader:resourceId() end
 
 ---@return Shader
