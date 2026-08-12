@@ -21,8 +21,8 @@ function Loader.defineType()
             void              Renderer_BeginFrame             (Renderer*);
             void              Renderer_Flush                  (Renderer*);
             bool              Renderer_Sync                   (Renderer*);
-            void              Renderer_BeginBatch             (Renderer*, float const* view, uint64 view_size, float const* projection, uint64 projection_size, float eyeX, float eyeY, float eyeZ);
-            void              Renderer_AddEntity              (Renderer*, float const* transform, uint64 transform_size, float boundsCenterX, float boundsCenterY, float boundsCenterZ, float boundsRadius, uint64 meshId, int indexCount, uint64 shaderId, uint32 sortKey);
+            void              Renderer_BeginBatch             (Renderer*, Matrix const* view, Matrix const* projection, float eyeX, float eyeY, float eyeZ);
+            void              Renderer_AddEntity              (Renderer*, Matrix const* transform, float boundsCenterX, float boundsCenterY, float boundsCenterZ, float boundsRadius, uint64 meshId, int indexCount, uint64 shaderId, uint32 sortKey);
             void              Renderer_FlushBatch             (Renderer*);
             BatchStats const* Renderer_GetBatchStats          (Renderer const*);
             void              Renderer_SetViewport            (Renderer*, int x, int y, int width, int height);

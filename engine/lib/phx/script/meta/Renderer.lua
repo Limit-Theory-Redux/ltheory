@@ -14,20 +14,17 @@ function Renderer:flush() end
 ---@return boolean
 function Renderer:sync() end
 
----@param view number[]
----@param view_size integer
----@param projection number[]
----@param projection_size integer
+---@param view Matrix
+---@param projection Matrix
 ---@param eyeX number
 ---@param eyeY number
 ---@param eyeZ number
-function Renderer:beginBatch(view, view_size, projection, projection_size, eyeX, eyeY, eyeZ) end
+function Renderer:beginBatch(view, projection, eyeX, eyeY, eyeZ) end
 
 -- `mesh_id`/`shader_id` are `ResourceId`s as plain scalars - obtain them
 -- from `Mesh::resource_id`/`Shader::resource_id` (`mesh:resourceId(r)` /
 -- `shader:resourceId()` in Lua).
----@param transform number[]
----@param transform_size integer
+---@param transform Matrix
 ---@param boundsCenterX number
 ---@param boundsCenterY number
 ---@param boundsCenterZ number
@@ -36,7 +33,7 @@ function Renderer:beginBatch(view, view_size, projection, projection_size, eyeX,
 ---@param indexCount integer
 ---@param shaderId integer
 ---@param sortKey integer
-function Renderer:addEntity(transform, transform_size, boundsCenterX, boundsCenterY, boundsCenterZ, boundsRadius, meshId, indexCount, shaderId, sortKey) end
+function Renderer:addEntity(transform, boundsCenterX, boundsCenterY, boundsCenterZ, boundsRadius, meshId, indexCount, shaderId, sortKey) end
 
 function Renderer:flushBatch() end
 

@@ -1,5 +1,6 @@
 use glam::{Mat4, Vec3};
 
+use crate::math::Matrix;
 use crate::render::{BatchStats, CameraRenderData, EntityRenderData, ResourceId};
 
 /// Render batch collector - accumulates entities for worker processing
@@ -16,15 +17,9 @@ pub struct RenderBatch {
 
 impl RenderBatch {
     /// Begin a new batch - clears accumulated data and set camera for frustum culling
-    pub fn new(
-        view: &[f32; 16],
-        projection: &[f32; 16],
-        eye_x: f32,
-        eye_y: f32,
-        eye_z: f32,
-    ) -> Self {
-        let view_mat = Mat4::from_cols_array(view);
-        let proj_mat = Mat4::from_cols_array(projection);
+    pub fn new(view: &Matrix, projection: &Matrix, eye_x: f32, eye_y: f32, eye_z: f32) -> Self {
+        let view_mat = Mat4::from_cols_array(&view.to_cols_array());
+        let proj_mat = Mat4::from_cols_array(&projection.to_cols_array());
         let position = Vec3::new(eye_x, eye_y, eye_z);
 
         Self {
@@ -39,7 +34,7 @@ impl RenderBatch {
     #[allow(clippy::too_many_arguments)]
     pub fn add_entity(
         &mut self,
-        transform: &[f32; 16],
+        transform: &Matrix,
         bounds_center_x: f32,
         bounds_center_y: f32,
         bounds_center_z: f32,
@@ -51,7 +46,7 @@ impl RenderBatch {
     ) {
         self.entities.push(EntityRenderData {
             entity_id: self.next_entity_id,
-            transform: Mat4::from_cols_array(transform),
+            transform: Mat4::from_cols_array(&transform.to_cols_array()),
             bounds_center: Vec3::new(bounds_center_x, bounds_center_y, bounds_center_z),
             bounds_radius,
             mesh_id,

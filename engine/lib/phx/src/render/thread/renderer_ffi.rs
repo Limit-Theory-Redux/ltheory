@@ -41,8 +41,8 @@ impl Renderer {
 
     pub fn begin_batch(
         &mut self,
-        view: &[f32; 16],
-        projection: &[f32; 16],
+        view: &Matrix,
+        projection: &Matrix,
         eye_x: f32,
         eye_y: f32,
         eye_z: f32,
@@ -56,7 +56,7 @@ impl Renderer {
     #[allow(clippy::too_many_arguments)]
     pub fn add_entity(
         &mut self,
-        transform: &[f32; 16],
+        transform: &Matrix,
         bounds_center_x: f32,
         bounds_center_y: f32,
         bounds_center_z: f32,
