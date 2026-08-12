@@ -27,6 +27,10 @@ function onDef_Mesh_t(t, mt)
         libphx.Mesh_DrawBind(self, Renderer)
     end
 
+    mt.__index.resourceId = function(self)
+        return libphx.Mesh_ResourceId(self, Renderer)
+    end
+
     mt.__index.drawBound = function(self)
         libphx.Mesh_DrawBound(self, Renderer)
     end

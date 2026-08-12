@@ -1,11 +1,12 @@
-local Registry         = require("Core.ECS.Registry")
-local QuickProfiler    = require("Shared.Tools.QuickProfiler")
-local RenderingPass    = require("Shared.Rendering.RenderingPass")
-local CameraManager    = require("Modules.Cameras.Managers.CameraManager")
-local RenderComp       = require("Modules.Rendering.Components").Render
-local CameraComponent  = require("Modules.Cameras.Components.CameraDataComponent")
-local UniformFuncs     = require("Shared.Rendering.UniformFuncs")
-local Cache            = require("Render.Cache")
+local Registry           = require("Core.ECS.Registry")
+local QuickProfiler      = require("Shared.Tools.QuickProfiler")
+local RenderingPass      = require("Shared.Rendering.RenderingPass")
+local CameraManager      = require("Modules.Cameras.Managers.CameraManager")
+local RenderComp         = require("Modules.Rendering.Components").Render
+local CameraComponent    = require("Modules.Cameras.Components.CameraDataComponent")
+local UniformFuncs       = require("Shared.Rendering.UniformFuncs")
+local Cache              = require("Render.Cache")
+local RigidBodyComponent = require("Modules.Physics.Components.RigidBodyComponent")
 
 ---@class RenderCoreSystem
 ---@overload fun(self): RenderCoreSystem
@@ -261,6 +262,18 @@ function RenderCoreSystem:handleResize()
 end
 
 function RenderCoreSystem:renderInOrder(blendMode)
+    local eye = CameraManager:getEye()
+
+    -- One `RenderBatch` for the whole pass (reuses its backing storage across
+    -- entities - `beginBatch` allocates a 1024-entity Vec, so this must not
+    -- be called per entity). Each entity is still flushed individually right
+    -- below its own `applyCachedVars` call: the batch's commands only reach
+    -- the render thread on `Renderer:flush()`, so flushing per-entity keeps
+    -- them correctly interleaved with that entity's (immediately-submitted)
+    -- material uniforms instead of letting every entity's uniforms land
+    -- before any of their draws.
+    Renderer:beginBatch(CameraManager:getViewMatrix(), CameraManager:getProjectionMatrix(), 0, 0, 0)
+
     for entity in Registry:view(RenderComp) do
         local rend = entity:get(RenderComp)
         if not rend:isVisible() then goto next_render end
@@ -275,7 +288,28 @@ function RenderCoreSystem:renderInOrder(blendMode)
 
                     self:applyCachedVars(mat, entity)
 
-                    meshmat.mesh:draw()
+                    local mesh = meshmat.mesh
+                    local rb = entity:get(RigidBodyComponent):getRigidBody()
+                    -- Camera-relative world transform, matching what every
+                    -- entity's mWorld/mWorldIT auto vars already use
+                    -- (ShaderVarFuncs.mWorldFunc) - this engine renders with
+                    -- the camera at the origin for float precision far from
+                    -- world origin, so raw TransformComponent coordinates
+                    -- would be the wrong space here.
+                    local transform = rb:getToWorldMatrix(eye)
+                    local center = transform:mulPoint(mesh:getCenter())
+                    local radius = mesh:getRadius() * rb:getScale()
+                    Renderer:addEntity(
+                        transform,
+                        center.x, center.y, center.z, radius,
+                        mesh:resourceId(),
+                        mesh:getIndexCount(),
+                        sh:shader():resourceId(),
+                        0 -- single-entity flush below; grouping doesn't apply
+                    )
+                    Renderer:flushBatch()
+                    Renderer:flush()
+
                     sh:stop()
                 end
             end

@@ -200,45 +200,96 @@ the removed fields).
 
 ### Phase 4 — Wire `RenderCoreSystem.lua` to the batch API
 
-Replace the per-entity direct-draw loop in `renderInOrder`
-(`script/Modules/Rendering/Systems/RenderCoreSystem.lua:263-285`) with a batched
-path for the common case (entities with `getMeshes()`, no custom `renderFn`,
-which still needs to fall back to direct calls):
+**What actually shipped differs from the original plan in three ways**,
+each discovered mid-implementation and resolved with the user before
+writing code:
 
-1. Before the pass loops (near `cacheData()`, `:169`), call
-   `Renderer:beginBatch(view, projection, eyeX, eyeY, eyeZ)` once per frame
-   (camera data is already computed by `CameraManager`).
-2. In `renderInOrder`, for entities with meshes: apply the existing
-   `applyCachedVars(mat, entity)` (material/instance uniform caching stays —
-   it covers *material* uniforms like textures/colors, which the batch API
-   does not touch, only `mWorld`/`mWorldIT`/draw), then call
-   `Renderer:addEntity(transform, cx, cy, cz, radius, mesh:resourceId(), shader:resourceId(), sortKey)`
-   instead of `sh:start()` / `mesh:draw()` / `sh:stop()`.
-   - **World-space bounds**: use the existing `mesh:getCenter()` /
-     `mesh:getRadius()` FFI (`mesh.rs:433-454`, already implemented) combined
-     with the entity's `TransformComponent` (`pos`, `scale` — scale is a single
-     uniform scalar per `TransformComponent.lua:17`, so
-     `worldRadius = mesh:getRadius() * transform:getScale()` needs no matrix
-     decomposition). No new engine code needed for this.
-   - **Sort key**: define a simple `u32` packing — shader `ResourceId` in the
-     high bits, mesh `ResourceId` (or a running counter) in the low bits — so
-     entities naturally group by shader first (minimizes `BindShaderByResource`
-     calls in `process_batch_intern`), matching what
-     `applyCachedVars`'s material-level cache already assumes about grouping.
-     Keep this in one helper function, not inlined at each call site (existing
-     ask from `ai/multithreaded_rendering.md`'s improvement list, still valid).
-   - Entities with a custom `renderFn` keep calling it directly, unbatched
-     (matches current behavior — `renderFn` may issue arbitrary GL work).
-3. After the entity loop for a pass, call `Renderer:flushBatch()` before
-   `passes[...]:stop()`.
-4. `deferredLighting()`'s full-screen `Draw.Rect` calls and the UI/post chain
-   are unaffected — only world-geometry draws route through the batch.
+1. **World transform: `RigidBodyComponent`, not `TransformComponent`.**
+   This engine renders camera-relative (floating origin, for float precision
+   far from world origin) — `CameraManager:updateViewMatrix()` zeroes the
+   view matrix's translation, and every entity's existing `mWorld` auto var
+   (`ShaderVarFuncs.mWorldFunc`) already computes
+   `entity:get(RigidBodyComponent):getRigidBody():getToWorldMatrix(eye)`,
+   not raw `TransformComponent` coordinates. Batched entities use the exact
+   same call, so geometry lands in the same space the camera (and every
+   other entity) already uses.
+2. **`begin_batch`/`add_entity` take `&Matrix`, not `&[f32; 16]`.**
+   Retroactive fix to Phase 3: `update_camera_ubo` already established
+   `&Matrix` (a `#[repr(C)]` newtype over `glam::Mat4`,
+   `typedef = "float m[16]"`) as this FFI layer's idiom for passing matrices
+   — cheap, and Lua just passes a `Matrix` object directly instead of
+   flattening one into a raw array + size param. `render_batch.rs`'s
+   `RenderBatch::new`/`add_entity` and `renderer_ffi.rs`'s
+   `begin_batch`/`add_entity` were updated together with Phase 3's other
+   changes (same files, folded in before Phase 4 started).
+3. **No material-group batching — flush per entity.** The plan called for
+   grouping entities by `Material` object to bind/apply material uniforms
+   once per group. Traced `Materials.Asteroid()`-style factories
+   (`Shared/Registries/Materials.lua`'s `__call = function(_, ...) return
+   template:clone() end`) and confirmed every entity gets its own `Material`
+   clone — grouping by object identity never groups more than one entity in
+   this codebase, so the machinery bought nothing. Separately, grouping
+   turned out to be load-bearing for *correctness*, not just an optimization:
+   `applyCachedVars`'s uniform-set commands submit immediately, while the
+   batch's commands only reach the render thread on `Renderer:flush()` — call
+   `addEntity` for several entities before flushing and every entity's
+   uniforms land before any of their draws (last-instance-wins). Flushing
+   after every single entity sidesteps this entirely (nothing is deferred
+   across entities), at the cost of no shader-bind-count reduction versus
+   today — the real, kept benefit is CPU-side frustum culling, which does
+   not exist in Lua today (see `AsteroidBeltRenderer.lua`'s hand-rolled
+   distance culling for the kind of thing this could eventually replace).
 
-This keeps `applyCachedVars`'s per-material/per-instance uniform caching (it's
-solving a different problem — arbitrary material uniforms, not just
-transform/shader — and there's no reason to touch it) while removing the
-per-entity shader start/stop and adding real frustum culling, which does not
-exist in Lua today.
+**Changes:**
+- `script/Modules/Cameras/Managers/CameraManager.lua` — added
+  `getViewMatrix()`/`getProjectionMatrix()` getters (thin wrappers over
+  `activeCameraData:getView()`/`getProjection()`); nothing previously
+  exposed the camera matrices themselves outside `CameraManager`.
+- `script/Modules/Rendering/Systems/RenderCoreSystem.lua` — `renderInOrder`
+  calls `Renderer:beginBatch(...)` once per pass (reuses the batch's backing
+  storage across entities — calling it per-entity would reallocate a
+  1024-capacity `Vec` every entity). Per meshed entity (unchanged for
+  `renderFn` entities): `sh:start()` → `applyCachedVars(mat, entity)` →
+  compute `transform = rb:getToWorldMatrix(eye)`,
+  `center = transform:mulPoint(mesh:getCenter())`,
+  `radius = mesh:getRadius() * rb:getScale()` → `Renderer:addEntity(...)` →
+  `Renderer:flushBatch()` → `Renderer:flush()` → `sh:stop()` (replaces the
+  old `mesh:draw()` call).
+- `engine/lib/phx/script/ffi_ext/Mesh.lua` — added a `resourceId` override
+  (`mt.__index.resourceId = function(self) return
+  libphx.Mesh_ResourceId(self, Renderer) end`), matching the file's existing
+  pattern for `drawBind`/`draw`/etc. (auto-inject the global `Renderer` so
+  call sites read `mesh:resourceId()`, not `mesh:resourceId(Renderer)`).
+
+**Verification performed:**
+- `cargo check -p phx` (default + `immediate`), `cargo clippy -p phx
+  --all-features -- -D warnings` — clean.
+- `luajit -e "loadfile(...)"` on all three edited Lua files — parses clean.
+- Ran `RenderingTest` (a 216-box grid with `RigidBody` physics + `DebugColor`
+  material) via `cargo run -p ltr -- RenderingTest`: no crash, no panic, no
+  Lua runtime error, stable 59 FPS for the run duration.
+- Added temporary tracing (removed before landing) at both the Lua call site
+  and the Rust executor (`cmd_bind_shader_by_resource`,
+  `cmd_set_uniform_float3`, `cmd_draw_mesh_by_resource`) to confirm the full
+  pipeline end-to-end: correct `ResourceId`s resolved, `BatchStats` showing
+  `visible=1, culled=0` for on-screen entities (frustum culling genuinely
+  runs and passes), correct GL program bound, correct uniform value
+  (`(1.0, 0.0, 1.0)`, `DebugColor`'s magenta) set on the correct program,
+  `glDrawElements` called with a valid VAO and the right index count.
+- **Could not get a screenshot-level visual confirmation.** `RenderingTest`
+  renders solid black in this environment both before and unrelated to this
+  change: it's a deferred-lit scene (`deferredLighting()` composites
+  `buffer0`/`buffer1` G-buffer output through global/directional/point light
+  passes into the final image) and `RenderingTest.lua` sets up zero lights
+  (confirmed: zero matches for `"light"` in that file) — the `<irMap>`/
+  `<envMap>` "shader variable stack does not contain variable" warnings
+  present from the very first log line, before any batch code runs, are the
+  same symptom. A scene with no lights produces a black final composite
+  regardless of what's drawn to the G-buffer, so this is a pre-existing
+  property of this test scene's content, not a rendering regression — but it
+  means the GL-trace verification above is the strongest evidence obtained
+  this session; an actual lit test scene (e.g. one with a star/sun light)
+  would be needed for a true pixel-level before/after comparison.
 
 ### Phase 5 — GPU instancing (`InstanceBatch`)
 

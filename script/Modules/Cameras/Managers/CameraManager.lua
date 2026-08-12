@@ -196,6 +196,26 @@ function CameraManager:getEye()
     return self.activeCameraTransform:getPos()
 end
 
+---Get the active camera's view matrix (camera-relative - position zeroed, see `updateViewMatrix`)
+---@return Matrix
+function CameraManager:getViewMatrix()
+    if not self.activeCameraData then
+        Log.Error("CameraManager: No active camera set")
+        return Matrix.Identity()
+    end
+    return self.activeCameraData:getView()
+end
+
+---Get the active camera's projection matrix
+---@return Matrix
+function CameraManager:getProjectionMatrix()
+    if not self.activeCameraData then
+        Log.Error("CameraManager: No active camera set")
+        return Matrix.Identity()
+    end
+    return self.activeCameraData:getProjection()
+end
+
 ---Get the active camera's forward direction
 ---@return Vec3f direction Forward direction vector
 function CameraManager:getForward()
