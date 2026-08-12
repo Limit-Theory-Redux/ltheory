@@ -291,13 +291,13 @@ writing code:
   this session; an actual lit test scene (e.g. one with a star/sun light)
   would be needed for a true pixel-level before/after comparison.
 
-### Phase 5 — GPU instancing (`InstanceBatch`)
+### Phase 5 — GPU instancing (`InstanceBatch`) — done
 
-Add a small new Rust type mirroring the fork's `InstanceBatch`
-(`ltheory-redux` `render/render_queue.rs:552-652`) but built on this repo's
-`ResourceId`/`Renderer` model instead of the fork's global `submit_command()`:
+Everything in the original plan below shipped as designed; the notes call
+out the one thing that had to be discovered rather than assumed (vertex
+attribute binding) and the verification performed.
 
-**New file `engine/lib/phx/src/render/thread/instance_batch.rs`**
+**`engine/lib/phx/src/render/thread/instance_batch.rs`** (new file)
 ```rust
 pub struct InstanceBatch {
     mesh_id: ResourceId,
@@ -306,37 +306,60 @@ pub struct InstanceBatch {
     primitive: CmdPrimitiveType,
 }
 ```
-- `create(mesh: &mut Mesh, r: &mut Renderer, primitive: CmdPrimitiveType) -> InstanceBatch`
-  — calls `mesh.resource_id(r)` (Phase 2) and `mesh.get_index_count()`.
-- `add_instance(&mut self, transform: &Matrix, r: f32, g: f32, b: f32, a: f32)`
-  — pushes `InstanceData::from_transform_color(..)` (already exists,
-  `render_command.rs:78-87`).
-- `draw(&mut self, r: &mut Renderer)` — submits one
-  `RenderCommand::DrawInstancedWithData { mesh_id, index_count, instances: self.instances.clone(), primitive }`.
-  Needs a new `Renderer::draw_instanced_with_data_intern` producer method in
-  both `renderer_threaded.rs` and `renderer_immediate.rs` (mirroring
-  `draw_mesh_instanced_intern`'s shape) — the executor side needs no changes.
-- `clear(&mut self)`, `flush(&mut self, r: &mut Renderer)` (= draw + clear),
-  `instance_count(&self) -> usize`.
-- `#[luajit_ffi_gen::luajit_ffi] impl InstanceBatch` for all of the above so
-  Lua can build instance batches (e.g. for asteroid fields / debris —
-  `script/Modules/CelestialObjects/Systems/AsteroidBeltRenderer.lua` currently
-  hand-loops `lodMesh:draw(distSq)` per rock and is the natural first caller,
-  though wiring it up is a follow-up, not required by this plan).
+`#[luajit_ffi_gen::luajit_ffi] impl InstanceBatch`: `create(mesh: &mut Mesh,
+r: &mut Renderer, primitive: CmdPrimitiveType) -> InstanceBatch` (calls
+`mesh.resource_id(r)` + `mesh.get_index_count()`); `add_instance(&mut self,
+transform: &Matrix, r: f32, g: f32, b: f32, a: f32)` (converts via
+`transform.to_cols_array()` into `InstanceData::from_transform_color`,
+matching the `&Matrix`-at-the-boundary convention from Phase 3's revision);
+`draw(&mut self, r: &mut Renderer)` (submits one
+`RenderCommand::DrawInstancedWithData`); `clear`; `flush` (draw + clear);
+`instance_count(&self) -> i32`. Registered in `render/thread/mod.rs`.
 
-**GLSL** — port from the fork, adapted to this repo's UBO-based vertex
-pipeline (the fork's versions predate the UBO migration and must be checked
-against `res/shader/include/vertex.glsl`/`camera_ubo.glsl` rather than copied
-verbatim):
-- `res/shader/include/instanced.glsl` — per-instance attributes at locations
-  4-7 (mat4 columns) and 8 (color), `VS_INSTANCED_BEGIN`/`VS_INSTANCED_END`
-  macros providing `mWorld`/`mWorldIT`-equivalent values built from the
-  instance matrix (replacing the fork's uniform `mWorld` with an attribute).
-- `res/shader/vertex/wvp_instanced.glsl` — `wvp.glsl` (Phase 1 confirmed its
-  exact contents above) with `VS_BEGIN`/instance-matrix substitution instead
-  of the uniform `mWorld`/`mWorldIT`.
-No material/Lua wiring beyond what's listed above — this phase delivers the
-capability, not a specific visual feature to switch over.
+**`renderer_threaded.rs` / `renderer_immediate.rs`** — added
+`draw_instanced_with_data_intern`, mirroring `draw_mesh_by_resource`'s shape
+in each backend (`self.submit(...)` vs `self.executor.cmd_draw_instanced_with_data(...)`).
+The executor implementation itself (`command_executor_gl.rs:1241-1330` —
+persistent instance VBO, attribute locations 4-7/8, correct divisors) already
+existed from before this port and needed no changes.
+
+**Discovered mid-implementation: vertex attribute *names* must be bound to
+locations 4-8 in Rust, the same way locations 0-3 already are.** GLSL 330
+vertex attribute locations here aren't set via `layout(location=N)` in the
+shader — they're bound by name via `gl::BindAttribLocation` before linking
+(`command_executor_gl.rs`'s `create_shader`, previously only binding
+`vertex_position`/`vertex_normal`/`vertex_uv`/`vertex_color` to 0-3). Added
+five more calls binding `instance_matrix_col0..3`/`instance_color` to 4-8,
+right next to the existing ones — a no-op for shaders that don't declare
+those names, so this doesn't affect anything else.
+
+**GLSL** — not a verbatim port from the fork (its version predates the
+camera-UBO migration): `res/shader/include/instanced.glsl` duplicates
+`vertex.glsl`'s varyings/`logDepth` but declares `mWorld`/`mWorldIT` as
+`mat4` *local variables* built from the per-instance attributes inside a new
+`VS_INSTANCED_BEGIN` macro, instead of `vertex.glsl`'s `uniform mat4 mWorld;`
+(a per-draw uniform can't hold a different value per instance within one
+instanced draw call, hence the separate include rather than reusing
+`vertex.glsl` as-is). `res/shader/vertex/wvp_instanced.glsl` mirrors
+`wvp.glsl` exactly, swapping `#include vertex`/`VS_BEGIN`/`VS_END` for
+`#include instanced`/`VS_INSTANCED_BEGIN`/`VS_INSTANCED_END`.
+
+**Verification performed:**
+- `cargo check -p phx` (default + `immediate`), `cargo clippy -p phx
+  --all-features -- -D warnings`, `cargo test -p phx --lib render::` — all
+  clean; FFI bindings regenerated (`ffi_gen`/`meta/InstanceBatch.lua`) with
+  the expected surface (`InstanceBatch.Create(mesh, r, primitive)` →
+  `:addInstance`/`:draw`/`:clear`/`:flush`/`:instanceCount()`).
+- Live shader-compile check: temporarily added
+  `Cache.Shader('wvp_instanced', 'material/solidcolor')` to
+  `RenderingTest.lua:onInit` and ran it — logged a valid `Shader*` cdata
+  pointer, no compile/link error. Reverted before landing (`git diff` on
+  that file is empty).
+
+No material/Lua wiring beyond the above — this phase delivers the
+capability, not a specific visual feature to switch over. A natural first
+caller is `script/Modules/CelestialObjects/Systems/AsteroidBeltRenderer.lua`
+(currently hand-loops `lodMesh:draw(distSq)` per rock), left as a follow-up.
 
 ### Phase 6 — Cleanup
 

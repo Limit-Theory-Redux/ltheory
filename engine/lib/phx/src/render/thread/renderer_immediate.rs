@@ -6,9 +6,9 @@ use tracing::{error, info};
 use crate::render::thread::{CommandExecutor, CommandReply, RendererData, process_batch_intern};
 use crate::render::{
     BlendMode, ClipManager, CmdPrimitiveType, CullFace, DrawState, GpuHandle, ImmVertex,
-    PrimitiveBuilder, RenderStateIntern, RenderStats, RenderTargetStack, RenderThreadError,
-    ResourceHandle, ResourceId, ShaderErrorQueue, ShaderReloadResult, ShaderVarMap, TexFilter,
-    TexFormat, TexWrapMode, VertexFormat, VpStack,
+    InstanceData, PrimitiveBuilder, RenderStateIntern, RenderStats, RenderTargetStack,
+    RenderThreadError, ResourceHandle, ResourceId, ShaderErrorQueue, ShaderReloadResult,
+    ShaderVarMap, TexFilter, TexFormat, TexWrapMode, VertexFormat, VpStack,
 };
 use crate::window::WindowGlContext;
 
@@ -545,6 +545,17 @@ impl Renderer {
     ) {
         self.executor
             .cmd_draw_mesh_by_resource(id, index_count, primitive);
+    }
+
+    pub fn draw_instanced_with_data_intern(
+        &mut self,
+        mesh_id: ResourceId,
+        index_count: i32,
+        instances: Vec<InstanceData>,
+        primitive: CmdPrimitiveType,
+    ) {
+        self.executor
+            .cmd_draw_instanced_with_data(mesh_id, index_count, instances, primitive);
     }
 
     pub fn draw_immediate(&mut self, primitive: CmdPrimitiveType, vertices: Vec<ImmVertex>) {

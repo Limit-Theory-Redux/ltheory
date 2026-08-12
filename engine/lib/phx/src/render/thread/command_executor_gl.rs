@@ -1704,6 +1704,14 @@ impl CommandExecutor {
             gl::BindAttribLocation(program, 1, c"vertex_normal".as_ptr() as *const _);
             gl::BindAttribLocation(program, 2, c"vertex_uv".as_ptr() as *const _);
             gl::BindAttribLocation(program, 3, c"vertex_color".as_ptr() as *const _);
+            // Per-instance attributes for DrawInstancedWithData (res/shader/include/instanced.glsl);
+            // must match cmd_draw_instanced_with_data's VertexAttribPointer setup: 4-7=mWorld
+            // columns, 8=color. No-op (harmless) for shaders that don't declare these names.
+            gl::BindAttribLocation(program, 4, c"instance_matrix_col0".as_ptr() as *const _);
+            gl::BindAttribLocation(program, 5, c"instance_matrix_col1".as_ptr() as *const _);
+            gl::BindAttribLocation(program, 6, c"instance_matrix_col2".as_ptr() as *const _);
+            gl::BindAttribLocation(program, 7, c"instance_matrix_col3".as_ptr() as *const _);
+            gl::BindAttribLocation(program, 8, c"instance_color".as_ptr() as *const _);
 
             gl::LinkProgram(program);
 

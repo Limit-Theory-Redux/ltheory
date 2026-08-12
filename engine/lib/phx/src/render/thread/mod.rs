@@ -5,6 +5,7 @@ mod command_executor_gl;
 mod config;
 mod entity_render_data;
 mod error;
+mod instance_batch;
 mod render_batch;
 mod render_command;
 mod renderer_data;
@@ -29,6 +30,7 @@ pub use command_executor::*;
 pub use config::*;
 pub use entity_render_data::*;
 pub use error::*;
+pub use instance_batch::*;
 pub use render_batch::*;
 pub use render_command::*;
 #[cfg(not(feature = "immediate"))]
