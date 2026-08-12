@@ -96,11 +96,9 @@ contract instead of the fork's MVP-by-name scheme:
 - `BindShaderByResource { id: entity.shader_id, shader_key: None }` on shader
   change (mirrors `Shader::start`, `shader.rs:509`, which also passes `None` —
   match its contract, don't invent a different one).
-- `SetUniformMat4ByName { name: "mWorld", value: entity.transform }` and
-  `SetUniformMat4ByName { name: "mWorldIT", value: entity.transform.inverse().transpose() }`,
-  using thread-local cached `Arc<str>` names (same pattern the fork used for
-  `UNIFORM_MVP`/`UNIFORM_MODEL`, just with the correct names) so cloning is
-  cheap per entity.
+- A `SetUniformMat4ByWellKnownName { name: WellKnownUniformName, value }`
+  command for `mWorld`/`mWorldIT` — **not** the `Arc<str>`-keyed
+  `SetUniformMat4ByName` and **not** a thread-local cache (see revision below).
 - `DrawMeshByResource { id: entity.mesh_id, index_count, primitive: Triangles }`.
 - Keep frustum culling and `sort_key` sorting exactly as-is — `CameraRenderData`
   and `sphere_in_frustum` are already correct (the plane-normalization fix at
@@ -110,6 +108,36 @@ Every `RenderCommand::SetUniform*ByName`/`BindShaderByResource`/`DrawMeshByResou
 variant used here already has a working executor implementation
 (`command_executor.rs:391-427`) — this phase only needs to *produce* commands
 that already work, not add new engine plumbing.
+
+**Revision (applied):** the first pass used `SetUniformMat4ByName { name: Arc<str>, .. }`
+with a `thread_local!` cache of two pre-built `Arc<str>` names so each entity
+could clone the `Arc` instead of allocating a fresh one. This reintroduced a
+`thread_local!` right after the codebase finished removing all of them from
+the render path (`renderer_data.rs`'s `RendererData` fields are documented as
+`was thread_local!` for exactly this reason). Replaced with:
+
+- `WellKnownUniformName` — a small `Copy` enum (`render_command.rs`, next to
+  `ResourceId`) with variants `MWorld`/`MWorldIT` and `as_str(self) -> &'static str`.
+  Being `Copy`, a value costs nothing to construct or send across the
+  render-thread channel — no allocation, no cache, no thread-local.
+- `RenderCommand::SetUniformMat4ByWellKnownName { name: WellKnownUniformName, value: [f32; 16] }` —
+  a fully `Copy` command payload.
+- Executor (`command_executor_gl.rs`): `cmd_set_uniform_mat4_by_well_known_name`
+  resolves the location through the existing per-program
+  `HashMap<Arc<str>, i32>` cache (`uniform_caches`), but the lookup itself
+  takes `&str` (`Arc<str>: Borrow<str>`) and only allocates an `Arc<str>` on a
+  cache *miss*, to use as the insert key. This mirrors the split
+  `shader.rs::resolve_uniform_location` (`shader.rs:606-620`) already uses for
+  its own cache. `get_uniform_location_cached`/`get_uniform_location_for_program`
+  were changed from taking `name: Arc<str>` to `name: &str`; the 9 existing
+  (still producer-less) `cmd_set_uniform_*_by_name` methods were updated to
+  pass `&name` — mechanical, no behavior change for them.
+- `renderer_shared.rs`: the `thread_local!` block was deleted; `process_batch_intern`
+  emits `SetUniformMat4ByWellKnownName { name: WellKnownUniformName::MWorld, .. }`
+  / `::MWorldIT` directly.
+- `SetUniformMat4ByName`/`Arc<str>` and its 8 Int/Float siblings were left in
+  place as pre-existing scaffolding (zero producers before and after this
+  work — out of scope to remove).
 
 ### Phase 2 — Give Lua a way to obtain `ResourceId`s
 

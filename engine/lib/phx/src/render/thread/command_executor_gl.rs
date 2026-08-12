@@ -13,6 +13,7 @@ use crate::render::thread::{
 use crate::render::{
     BlendMode, CmdPrimitiveType, CommandExecutor, CommandReply, CullFace, ImmVertex, InstanceData,
     RenderStats, ResourceId, ShaderReloadResult, TexFilter, TexFormat, TexWrapMode, VertexFormat,
+    GenericUniformName,
 };
 use crate::window::WindowGlContext;
 
@@ -191,7 +192,7 @@ impl CommandExecutor {
     }
 
     pub(super) fn cmd_set_uniform_int_by_name(&mut self, name: Arc<str>, value: i32) {
-        let loc = self.get_uniform_location_cached(name);
+        let loc = self.get_uniform_location_cached(&name);
         if loc >= 0 {
             unsafe {
                 gl::Uniform1i(loc, value);
@@ -200,7 +201,7 @@ impl CommandExecutor {
     }
 
     pub(super) fn cmd_set_uniform_int2_by_name(&mut self, name: Arc<str>, value: [i32; 2]) {
-        let loc = self.get_uniform_location_cached(name);
+        let loc = self.get_uniform_location_cached(&name);
         if loc >= 0 {
             unsafe {
                 gl::Uniform2i(loc, value[0], value[1]);
@@ -209,7 +210,7 @@ impl CommandExecutor {
     }
 
     pub(super) fn cmd_set_uniform_int3_by_name(&mut self, name: Arc<str>, value: [i32; 3]) {
-        let loc = self.get_uniform_location_cached(name);
+        let loc = self.get_uniform_location_cached(&name);
         if loc >= 0 {
             unsafe {
                 gl::Uniform3i(loc, value[0], value[1], value[2]);
@@ -218,7 +219,7 @@ impl CommandExecutor {
     }
 
     pub(super) fn cmd_set_uniform_int4_by_name(&mut self, name: Arc<str>, value: [i32; 4]) {
-        let loc = self.get_uniform_location_cached(name);
+        let loc = self.get_uniform_location_cached(&name);
         if loc >= 0 {
             unsafe {
                 gl::Uniform4i(loc, value[0], value[1], value[2], value[3]);
@@ -227,7 +228,7 @@ impl CommandExecutor {
     }
 
     pub(super) fn cmd_set_uniform_float_by_name(&mut self, name: Arc<str>, value: f32) {
-        let loc = self.get_uniform_location_cached(name);
+        let loc = self.get_uniform_location_cached(&name);
         if loc >= 0 {
             unsafe {
                 gl::Uniform1f(loc, value);
@@ -236,7 +237,7 @@ impl CommandExecutor {
     }
 
     pub(super) fn cmd_set_uniform_float2_by_name(&mut self, name: Arc<str>, value: [f32; 2]) {
-        let loc = self.get_uniform_location_cached(name);
+        let loc = self.get_uniform_location_cached(&name);
         if loc >= 0 {
             unsafe {
                 gl::Uniform2f(loc, value[0], value[1]);
@@ -245,7 +246,7 @@ impl CommandExecutor {
     }
 
     pub(super) fn cmd_set_uniform_float3_by_name(&mut self, name: Arc<str>, value: [f32; 3]) {
-        let loc = self.get_uniform_location_cached(name);
+        let loc = self.get_uniform_location_cached(&name);
         if loc >= 0 {
             unsafe {
                 gl::Uniform3f(loc, value[0], value[1], value[2]);
@@ -254,7 +255,7 @@ impl CommandExecutor {
     }
 
     pub(super) fn cmd_set_uniform_float4_by_name(&mut self, name: Arc<str>, value: [f32; 4]) {
-        let loc = self.get_uniform_location_cached(name);
+        let loc = self.get_uniform_location_cached(&name);
         if loc >= 0 {
             unsafe {
                 gl::Uniform4f(loc, value[0], value[1], value[2], value[3]);
@@ -263,7 +264,20 @@ impl CommandExecutor {
     }
 
     pub(super) fn cmd_set_uniform_mat4_by_name(&mut self, name: Arc<str>, value: [f32; 16]) {
-        let loc = self.get_uniform_location_cached(name);
+        let loc = self.get_uniform_location_cached(&name);
+        if loc >= 0 {
+            unsafe {
+                gl::UniformMatrix4fv(loc, 1, gl::FALSE, value.as_ptr());
+            }
+        }
+    }
+
+    pub(super) fn cmd_set_uniform_mat4_by_generic_name(
+        &mut self,
+        name: GenericUniformName,
+        value: [f32; 16],
+    ) {
+        let loc = self.get_uniform_location_cached(name.as_str());
         if loc >= 0 {
             unsafe {
                 gl::UniformMatrix4fv(loc, 1, gl::FALSE, value.as_ptr());
@@ -1375,7 +1389,7 @@ impl CommandExecutor {
     ) {
         let loc = if let Some(GpuResource::Shader { program }) = self.resources.get(&id) {
             let program = *program;
-            self.get_uniform_location_for_program(program, name)
+            self.get_uniform_location_for_program(program, &name)
         } else {
             warn!("GetUniformLocationByResource: resource {:?} not found", id);
             -1
@@ -2355,9 +2369,10 @@ impl CommandExecutor {
 
     /// Get uniform location with per-shader caching to avoid repeated gl::GetUniformLocation calls.
     /// Cache is keyed by (program, name) - preserves locations across shader switches.
-    /// Takes Arc<str> to avoid allocation - Arc::clone() is O(1).
+    /// Takes `&str` so callers never need to own an `Arc<str>` just to do a
+    /// lookup; an `Arc<str>` is only allocated internally on a cache miss.
     /// Returns -1 if uniform not found (matches OpenGL behavior).
-    fn get_uniform_location_cached(&mut self, name: Arc<str>) -> i32 {
+    fn get_uniform_location_cached(&mut self, name: &str) -> i32 {
         if self.current_program == 0 {
             return -1;
         }
@@ -2368,21 +2383,21 @@ impl CommandExecutor {
     /// named program rather than whichever one is currently bound - used to
     /// resolve a uniform's location for a shader that may not be bound yet
     /// (e.g. right after `CreateShader`, or from `GetUniformLocationByResource`).
-    fn get_uniform_location_for_program(&mut self, program: u32, name: Arc<str>) -> i32 {
+    fn get_uniform_location_for_program(&mut self, program: u32, name: &str) -> i32 {
         let cache = self
             .uniform_caches
             .entry(program)
             .or_insert_with(|| HashMap::with_capacity(32));
 
-        if let Some(&loc) = cache.get(&name) {
+        if let Some(&loc) = cache.get(name) {
             return loc;
         }
 
-        let c_name = std::ffi::CString::new(&*name).unwrap_or_default();
+        let c_name = std::ffi::CString::new(name).unwrap_or_default();
         let loc = unsafe { gl::GetUniformLocation(program, c_name.as_ptr()) };
 
         // Store in cache (even if -1 to avoid repeated lookups for non-existent uniforms)
-        cache.insert(name, loc);
+        cache.insert(Arc::from(name), loc);
         loc
     }
 }

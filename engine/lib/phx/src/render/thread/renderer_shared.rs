@@ -7,22 +7,9 @@
 //! in `renderer_ffi.rs` only ever calls methods defined here and never
 //! needs to know which backend is active. This file holds what both share.
 
-use std::sync::Arc;
-
 use tracing::error;
 
-use crate::render::{CmdPrimitiveType, RenderBatch, RenderCommand};
-
-thread_local! {
-    /// Cached `Arc<str>` uniform names for the batch path, so per-entity
-    /// `SetUniformMat4ByName` commands only pay one clone (an `Arc` bump) each
-    /// instead of allocating a `String` every entity, every frame. Names match
-    /// `res/shader/include/vertex.glsl`'s per-draw uniforms - the camera's
-    /// `mView`/`mProj` come from `CameraUBO` instead (see
-    /// `res/shader/include/camera_ubo.glsl`), so there is no MVP uniform here.
-    static UNIFORM_M_WORLD: Arc<str> = Arc::from("mWorld");
-    static UNIFORM_M_WORLD_IT: Arc<str> = Arc::from("mWorldIT");
-}
+use crate::render::{CmdPrimitiveType, RenderBatch, RenderCommand, GenericUniformName};
 
 /// A snapshot of the executor's counters, taken once per frame at
 /// `SwapBuffers`. In immediate mode this is read straight off the executor;
@@ -90,13 +77,15 @@ pub(in crate::render::thread) fn process_batch_intern(
         }
 
         // Set per-draw transform uniforms. View/projection come from
-        // `CameraUBO`, bound once per frame - see the module-level comment.
-        command_buffer.push(RenderCommand::SetUniformMat4ByName {
-            name: UNIFORM_M_WORLD.with(|n| n.clone()),
+        // `CameraUBO`, bound once per frame - `mWorld`/`mWorldIT` are the
+        // only per-draw uniforms this engine's shaders expect (see
+        // `res/shader/include/vertex.glsl`, `res/shader/include/camera_ubo.glsl`).
+        command_buffer.push(RenderCommand::SetUniformMat4ByGenericName {
+            name: GenericUniformName::MWorld,
             value: entity.transform.to_cols_array(),
         });
-        command_buffer.push(RenderCommand::SetUniformMat4ByName {
-            name: UNIFORM_M_WORLD_IT.with(|n| n.clone()),
+        command_buffer.push(RenderCommand::SetUniformMat4ByGenericName {
+            name: GenericUniformName::MWorldIT,
             value: entity.transform.inverse().transpose().to_cols_array(),
         });
 

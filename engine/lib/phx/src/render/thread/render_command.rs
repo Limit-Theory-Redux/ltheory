@@ -27,6 +27,26 @@ impl GpuHandle {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ResourceId(pub u64);
 
+/// A fixed, known-in-advance uniform name. `Copy`, so a value costs nothing
+/// to construct or send across the render-thread channel. Used by the batch
+/// path (`renderer_shared.rs`) for the two per-draw uniforms every shader in
+/// this engine's pipeline exposes; extend with more variants if another
+/// fixed name needs this path.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GenericUniformName {
+    MWorld,
+    MWorldIT,
+}
+
+impl GenericUniformName {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::MWorld => "mWorld",
+            Self::MWorldIT => "mWorldIT",
+        }
+    }
+}
+
 /// Primitive type for drawing operations (command buffer version)
 #[luajit_ffi_gen::luajit_ffi]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -210,6 +230,13 @@ pub enum RenderCommand {
 
     /// Set mat4 uniform by name
     SetUniformMat4ByName { name: Arc<str>, value: [f32; 16] },
+
+    /// Set mat4 uniform by a fixed, known-in-advance name - no allocation,
+    /// no cache needed at the call site (see `WellKnownUniformName`)
+    SetUniformMat4ByGenericName {
+        name: GenericUniformName,
+        value: [f32; 16],
+    },
 
     // === Texture Operations ===
     /// Bind a 2D texture to a slot

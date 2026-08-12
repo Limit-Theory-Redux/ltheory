@@ -424,6 +424,10 @@ impl CommandExecutor {
                 self.cmd_set_uniform_mat4_by_name(name, value);
             }
 
+            RenderCommand::SetUniformMat4ByGenericName { name, value } => {
+                self.cmd_set_uniform_mat4_by_generic_name(name, value);
+            }
+
             // === Texture Operations ===
             // Uses caching to skip redundant binds.
             // CRITICAL: After binding to a texture unit, we MUST reset ActiveTexture to TEXTURE0
