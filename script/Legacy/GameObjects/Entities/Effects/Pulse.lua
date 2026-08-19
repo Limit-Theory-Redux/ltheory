@@ -69,7 +69,7 @@ function Pulse.Render(projectiles, state)
                         Config.game.pulseColorBodyG,
                         Config.game.pulseColorBodyB)
                 end
-                shader:iSetFloat(cacheHead.size, 16)
+                shader:iSetFloat(cacheHead.size, proj.pulseHeadSize or state.headSize or 16)
                 shader:iSetFloat(cacheHead.alpha, pulse.life / pulse.lifeMax)
                 shader:iSetMatrix(cacheHead.mWorld, pulse.matrix)
                 meshHead:drawBound()
@@ -97,7 +97,10 @@ function Pulse.Render(projectiles, state)
                         Config.game.pulseColorBodyB)
                 end
                 shader:iSetFloat(cacheTail.alpha, pulse.life / pulse.lifeMax)
-                shader:iSetFloat2(cacheTail.size, 16, min(Config.gen.compTurretPulseStats.size, 1.5 * pulse.dist))
+                shader:iSetFloat2(
+                    cacheTail.size,
+                    proj.pulseTailWidth or state.tailWidth or 16,
+                    min(proj.pulseTailLength or state.tailLength or Config.gen.compTurretPulseStats.size, 1.5 * pulse.dist))
                 shader:iSetFloat3(cacheTail.axis, pulse.dir.x, pulse.dir.y, pulse.dir.z)
                 shader:iSetMatrix(cacheTail.mWorld, pulse.matrix)
                 meshTail:drawBound()
