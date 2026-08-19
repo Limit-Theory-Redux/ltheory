@@ -125,6 +125,7 @@ function ShipGenerator:createFighter(seed, config, stats)
     -- Set additional ship data
     local shipData = entity:get(ShipComponents.ShipData)
     if shipData then
+        shipData:setGeneratedMesh(mesh)
         if shipType then
             shipData:setShipType(shipType)
         end
@@ -184,6 +185,7 @@ function ShipGenerator:createCapital(seed, config, stats)
     -- Set additional ship data
     local shipData = entity:get(ShipComponents.ShipData)
     if shipData then
+        shipData:setGeneratedMesh(mesh)
         if shipType then
             shipData:setShipType(shipType)
         end
@@ -243,6 +245,7 @@ function ShipGenerator:createBasic(seed, config, stats)
     -- Set additional ship data
     local shipData = entity:get(ShipComponents.ShipData)
     if shipData then
+        shipData:setGeneratedMesh(mesh)
         if shipType then
             shipData:setShipType(shipType)
         end

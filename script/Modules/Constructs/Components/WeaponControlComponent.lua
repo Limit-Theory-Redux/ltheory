@@ -4,8 +4,9 @@ local Component = require("Core.ECS.Component")
 ---@overload fun(mode?: string, sequence?: string[]): WeaponControlComponent
 local WeaponControlComponent = Subclass("WeaponControlComponent", Component, function(self, mode, sequence)
     self:setComponentName("WeaponControl")
-    self.mode = mode or "volley"
-    assert(self.mode == "volley" or self.mode == "sequence")
+    local fireModes = Enums.Weapon.FireMode
+    self.mode = mode or fireModes.Volley
+    assert(self.mode == fireModes.Volley or self.mode == fireModes.Sequence)
 
     self.sequence = {}
     for _, mountId in ipairs(sequence or {}) do
@@ -25,7 +26,8 @@ end
 
 ---@param mode string
 function WeaponControlComponent:setMode(mode)
-    assert(mode == "volley" or mode == "sequence")
+    local fireModes = Enums.Weapon.FireMode
+    assert(mode == fireModes.Volley or mode == fireModes.Sequence)
     self.mode = mode
 end
 

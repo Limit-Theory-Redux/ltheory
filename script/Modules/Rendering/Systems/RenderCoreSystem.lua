@@ -3,6 +3,8 @@ local QuickProfiler    = require("Shared.Tools.QuickProfiler")
 local RenderingPass    = require("Shared.Rendering.RenderingPass")
 local CameraManager    = require("Modules.Cameras.Managers.CameraManager")
 local RenderComp       = require("Modules.Rendering.Components").Render
+local PointLightSystem = require("Modules.Rendering.Systems.PointLightSystem")
+local LightManager     = require("Modules.Rendering.Managers.LightManager")
 local CameraComponent  = require("Modules.Cameras.Components.CameraDataComponent")
 local UniformFuncs     = require("Shared.Rendering.UniformFuncs")
 local Cache            = require("Render.Cache")
@@ -25,7 +27,8 @@ function RenderCoreSystem:registerVars()
         superSampleRate = Config.render.general.superSampleRate,
         downSampleRate  = Config.render.general.downSampleRate,
         showBuffers     = Config.render.debug.showBuffers,
-        cullFace        = Config.render.renderState.cullFace
+        cullFace        = Config.render.renderState.cullFace,
+        deferredLighting = Config.render.general.deferredLighting ~= false
     }
 
     self.postSettings    = {
@@ -144,6 +147,10 @@ function RenderCoreSystem:render(data)
     CameraManager:updateProjectionMatrix(self.resX, self.resY)
     CameraManager:beginDraw()
 
+    -- Refresh the generic ECS light snapshot once per frame. All render passes
+    -- (including reusable diagnostics) consume this same snapshot.
+    PointLightSystem:update(dt)
+
     -- Sort visible meshes into per-pass lists once (renderInOrder runs 3×).
     self:buildPassLists()
 
@@ -156,9 +163,11 @@ function RenderCoreSystem:render(data)
     Profiler.End() -- Render.Opaque
 
     -- Deferred Lighting Pass
-    Profiler.Begin('Render.Lighting.Deferred')
-    self:deferredLighting()
-    Profiler.End() -- Render.Lighting.Deferred
+    if self.settings.deferredLighting then
+        Profiler.Begin('Render.Lighting.Deferred')
+        self:deferredLighting()
+        Profiler.End() -- Render.Lighting.Deferred
+    end
 
     -- Additive Pass
     Profiler.Begin('Render.Additive')
@@ -302,6 +311,10 @@ end
 function RenderCoreSystem:renderInOrder(blendMode)
     local lastMaterial = nil
     local eye = CameraManager:getEye()
+
+    if blendMode == BlendMode.Additive then
+        PointLightSystem:renderDiagnostics(blendMode, eye)
+    end
 
     -- Custom render fns are called in every pass (their blend mode isn't
     -- queryable). Mesh entities are pre-sorted into per-pass lists by
@@ -545,13 +558,13 @@ function RenderCoreSystem:setDirectionalLights(lights)
     self.directionalLights = lights
 end
 
---- Set point lights for the scene (call before render)
----@param lights table[] Array of { pos: Position, color: Vec3f }
-function RenderCoreSystem:setPointLights(lights)
-    self.pointLights = lights
+--- Enable or disable the deferred lighting pass for the active scene
+---@param enabled boolean
+function RenderCoreSystem:setDeferredLightingEnabled(enabled)
+    self.settings.deferredLighting = enabled == true
 end
 
---- Deferred lighting pass: global environment + point lights → composite with albedo
+-- Deferred lighting pass: global environment + point lights → composite with albedo
 function RenderCoreSystem:deferredLighting()
     local buffer0 = self.buffers[Enums.BufferName.buffer0]   -- albedo
     local buffer1 = self.buffers[Enums.BufferName.buffer1]   -- normals/material
@@ -590,17 +603,18 @@ function RenderCoreSystem:deferredLighting()
         buffer2:pop()
     end
 
-    -- 3. Point lights (stations, engines, etc.)
-    if self.pointLights and #self.pointLights > 0 then
+    -- 3. Point lights (stations, engines, weapon effects, etc.)
+    local pointLights = LightManager:getPointLights()
+    if #pointLights > 0 then
         buffer2:push()
         RenderState.PushBlendMode(BlendMode.Additive)
         local pointShader = Cache.Shader('worldray', 'light/point')
         pointShader:start()
-        for _, light in ipairs(self.pointLights) do
+        for _, light in ipairs(pointLights) do
             local renderPos = light.pos:relativeTo(eye)
             Renderer:updateLightUbo(
-                renderPos.x, renderPos.y, renderPos.z, 0.0,
-                light.color.x, light.color.y, light.color.z, 1.0
+                renderPos.x, renderPos.y, renderPos.z, light.radius or 0.0,
+                light.color.x, light.color.y, light.color.z, light.intensity or 1.0
             )
             pointShader:setTex2D('texDepth', zBufferL)
             pointShader:setTex2D('texNormalMat', buffer1)

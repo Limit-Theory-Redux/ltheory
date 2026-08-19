@@ -17,4 +17,10 @@ return {
     Reset = ActionBinding({
         keyboard = { Control.Single(Button.KeyboardR) },
     }),
+    Orbit = ActionBinding({
+        keyboard = { Control.Single(Button.KeyboardO) },
+    }),
+    OrbitPhase = ActionBinding({
+        keyboard = { Control.Single(Button.KeyboardP) },
+    }),
 }

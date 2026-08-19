@@ -1,45 +1,96 @@
-local ShipWeaponRegistry = require("Shared.Registries.ShipWeaponRegistry")
+require("Shared.Definitions.WeaponDefs")
 
+-- Scenario and installation data only. Weapon identity and behavior live in
+-- Shared.Definitions.WeaponDefs.
 Config.weapons = Config.weapons or {}
-
-ShipWeaponRegistry:new("debugPulseTurret", {
-    -- The weapon testbed deliberately uses a four-times enlarged capital hull.
-    projectileSpeed = 0.72,
-    range = 6.5,
-    damage = 25,
-    projectileLifetime = 10.0,
-    cooldown = 0.75,
-    interShotGap = 0.12,
-    traverseRate = math.rad(120),
-    aimTolerance = math.rad(2.0),
-    turretScale = 0.016,
-    projectileScale = 0.006,
-    pulseHeadSize = 0.040,
-    pulseTailWidth = 0.015,
-    pulseTailLength = 0.35,
-
-    -- AI policy belongs to the weapon/loadout definition so a ship can
-    -- select different behavior without hardcoding it in WeaponSystem.
-    ai = {
-        activeByDefault = false,
-        targetRange = 6.5,
-        defaultMode = "sequence",
-        modeBySizeClass = {
-            small = "sequence",
-            medium = "sequence",
-            large = "volley",
-            capital = "volley",
-        },
-    },
-})
-
--- Scenario/lifecycle settings are kept separate from weapon ballistics.
--- The weapon definition above remains the source of cooldown and projectile
--- behavior; this table controls the isolated testbed's target lifecycle.
 Config.weapons.testbed = {
+    loadout = {
+        { mountId = "fore_outer_port", weaponId = Enums.Weapon.Type.Laser },
+        { mountId = "fore_outer_starboard", weaponId = Enums.Weapon.Type.Plasma },
+        { mountId = "fore_inner_port", weaponId = Enums.Weapon.Type.Plasma },
+        { mountId = "fore_inner_starboard", weaponId = Enums.Weapon.Type.LaserGreen },
+        { mountId = "mid_port", weaponId = Enums.Weapon.Type.Plasma },
+        { mountId = "mid_starboard", weaponId = Enums.Weapon.Type.LaserBlue },
+        { mountId = "aft_inner_port", weaponId = Enums.Weapon.Type.LaserViolet },
+        { mountId = "aft_inner_starboard", weaponId = Enums.Weapon.Type.Plasma },
+        { mountId = "aft_outer_port", weaponId = Enums.Weapon.Type.Plasma },
+        { mountId = "aft_outer_starboard", weaponId = Enums.Weapon.Type.Laser },
+    },
     targetMaxHealth = 10000,
     targetRespawnDelay = 3.0,
     targetSizeClass = "capital",
     targetScaleMultiplier = 1.0,
-    aiActive = false,
+    deferredLighting = true,
+    aiActive = true,
+    targetMotion = {
+        enabled = true,
+        mode = "orbit",
+        startMode = 1,
+        center = { x = 0, y = 0, z = 0 },
+        orbitModes = {
+            {
+                name = "horizontal-clockwise",
+                plane = "xz",
+                angularSpeed = 0.52,
+                direction = 1,
+                phase = 0,
+            },
+            {
+                name = "horizontal-counterclockwise",
+                plane = "xz",
+                angularSpeed = 0.52,
+                direction = -1,
+                phase = 0,
+            },
+            {
+                name = "vertical-clockwise",
+                plane = "xy",
+                angularSpeed = 0.42,
+                direction = 1,
+                phase = 0,
+            },
+            {
+                name = "tilted-counterclockwise",
+                plane = "tilted",
+                tilt = math.rad(35),
+                angularSpeed = 0.46,
+                direction = -1,
+                phase = 0,
+            },
+            {
+                name = "fore-aft-vertical",
+                plane = "yz",
+                angularSpeed = 0.38,
+                direction = 1,
+                phase = 0,
+            },
+        },
+    },
+    targetPoint = {
+        motionAmplitude = 0.04,
+        motionFrequency = 0.30,
+        minFacingDot = 0.15,
+    },
+    capacitors = {
+        banks = {
+            {
+                groupId = Enums.Weapon.CapacitorGroup.Laser,
+                maxCharge = 8.0,
+                chargeRate = 2.5,
+            },
+            {
+                groupId = Enums.Weapon.CapacitorGroup.Plasma,
+                maxCharge = 5.0,
+                chargeRate = 1.5,
+            },
+        },
+        policies = {
+            [Enums.Weapon.FireMode.Volley] = {
+                id = Enums.Weapon.CapacityPolicy.Burst,
+            },
+            [Enums.Weapon.FireMode.Sequence] = {
+                id = Enums.Weapon.CapacityPolicy.Sustain,
+            },
+        },
+    },
 }
