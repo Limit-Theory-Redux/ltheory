@@ -9,7 +9,17 @@ local TurretComponent = Subclass("TurretComponent", Component, function(self, mo
     self.mountId = mountId
     self.localPosition = localPosition or Position()
     self.localRotation = config and config.localRotation or Quat.Identity()
-    self.weaponKey = config and config.weaponKey or "debugPulseTurret"
+    assert(type(config) == "table"
+        and ((type(config.weaponId) == "number" and config.weaponId > 0)
+            or (type(config.weaponRef) == "table" and config.weaponRef.canonicalKey)),
+        "turret " .. mountId .. " requires an explicit weaponId or procedural weaponRef")
+    self.weaponId = config.weaponId
+    self.weaponRef = config.weaponRef
+        or { kind = "builtin", id = self.weaponId }
+    self.trackingModuleRef = config.trackingModuleRef
+    self.trackingModuleStats = config.trackingModuleStats or {}
+    self.burstRemaining = 0
+    self.burstGap = 0
 
     self.yaw = 0
     self.pitch = 0
@@ -40,8 +50,8 @@ function TurretComponent:getLocalRotation()
     return self.localRotation
 end
 
-function TurretComponent:getWeaponKey()
-    return self.weaponKey
+function TurretComponent:getWeaponId()
+    return self.weaponId
 end
 
 function TurretComponent:getYaw()

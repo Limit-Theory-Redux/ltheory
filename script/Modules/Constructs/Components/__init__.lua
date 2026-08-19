@@ -9,6 +9,9 @@ return {
     Turret            = require("Modules.Constructs.Components.TurretComponent"),
     Targeting         = require("Modules.Constructs.Components.TargetingComponent"),
     WeaponControl     = require("Modules.Constructs.Components.WeaponControlComponent"),
+    WeaponCapacitor   = require("Modules.Constructs.Components.WeaponCapacitorComponent"),
+    WeaponTracking    = require("Modules.Constructs.Components.WeaponTrackingComponent"),
     Projectile        = require("Modules.Constructs.Components.ProjectileComponent"),
+    Beam              = require("Modules.Constructs.Components.BeamComponent"),
 
 }

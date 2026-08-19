@@ -1,7 +1,7 @@
 local PhysicsComponents = require("Modules.Physics.Components")
 local ConstructComponents = require("Modules.Constructs.Components")
 local CoreComponents = require("Modules.Core.Components")
-local ShipWeaponRegistry = require("Shared.Registries.ShipWeaponRegistry")
+local WeaponRegistry = require("Shared.Registries.WeaponRegistry")
 local WeaponSystem = require("Modules.Constructs.Systems.WeaponSystem")
 
 ---@class AIWeaponSystem
@@ -48,10 +48,14 @@ function AIWeaponSystem:getWeaponAIConfig(state)
 
     for _, mount in ipairs(state.turrets or {}) do
         local turret = mount.component
-        local weapon = ShipWeaponRegistry:get(turret.weaponKey)
-        if weapon and weapon.ai then
-            return weapon.ai
-        end
+        local weapon = WeaponRegistry:get(turret.weaponId)
+        local weaponAI = weapon.ai or {}
+        local firePolicy = weapon.firePolicy or {}
+        return {
+            targetRange = weaponAI.targetRange,
+            defaultMode = firePolicy.defaultMode,
+            modeBySizeClass = firePolicy.modeBySizeClass,
+        }
     end
 
     return {}
