@@ -1,3 +1,8 @@
+---Weapon tracking: per-mount target-point sampling and intercept solutions.
+---
+---Consumes the AI-selected targets (battery focus or per-mount assignments)
+---and produces ready/fireSolution state consumed by WeaponSystem:update.
+---See AIWeaponSystem.lua header for the owned tick order.
 local WeaponRegistry = require("Shared.Registries.WeaponRegistry")
 local WeaponSystem = require("Modules.Constructs.Systems.WeaponSystem")
 local BeamAimHelper = require("Shared.Helpers.BeamAimHelper")
@@ -109,16 +114,8 @@ local function getTrackingConfig(weapon, turret, component)
     return config
 end
 
-local function resolveWeapon(turret)
-    if turret.weaponRef and turret.weaponRef.kind == "procedural" then
-        local generated = ProceduralCatalog:resolve(turret.weaponRef)
-        assert(generated,
-            "unregistered procedural weapon: " .. tostring(turret.weaponRef.canonicalKey))
-        return generated
-    end
-    local weapon = WeaponRegistry:get(turret.weaponId)
-    assert(weapon, "unregistered weapon: " .. tostring(turret.weaponId))
-    return weapon
+local resolveWeapon = function(turret)
+    return WeaponSystem:resolveWeapon(turret)
 end
 
 local function getTargetKey(state, targetBody)
@@ -146,6 +143,70 @@ local function clearComponent(component, targetKey)
     component.mountSolutions = {}
     component.targetPointByMount = {}
     component.lastTargetPoint = nil
+end
+
+-- Update (or create) the motion track for one contact in the shared
+-- per-contact track store. Returns the track table.
+function WeaponTrackingSystem:updateContactTrack(state, contactBody, contactKey, dt, config)
+    if not state.contactTracks then
+        state.contactTracks = {}
+    end
+    local store = state.contactTracks
+
+    -- Multiple mounts share contacts; the track must advance ONCE per sim
+    -- frame or repeated same-frame calls see zero position delta and lerp
+    -- velocity toward zero, destroying intercept leading.
+    local frameSerial = state.aimStep or 0
+    local existing = store[contactKey]
+    if existing and existing.frameSerial == frameSerial then
+        return existing
+    end
+
+    local track = store[contactKey]
+    if not track then
+        store[contactKey] = {
+            position = copyVector(contactBody:getPos()),
+            velocity = getBodyVelocity(contactBody),
+            acceleration = Vec3f(0, 0, 0),
+            rotation = contactBody.getRot and contactBody:getRot() or Quat.Identity(),
+            angularVelocity = getBodyAngularVelocity(contactBody),
+            age = 0,
+            samples = 1,
+            confidence = 0.2,
+            frameSerial = frameSerial,
+        }
+        return store[contactKey]
+    end
+
+    local currentPosition = contactBody:getPos()
+    local finiteVelocity = getBodyVelocity(contactBody)
+    if dt > ROOT_EPSILON then
+        finiteVelocity = scale(subtract(currentPosition, track.position), 1 / dt)
+    end
+    local velocityResponse = clamp(
+        config.velocityResponse * dt * config.sampleRate, 0, 1)
+    local accelerationResponse = clamp(
+        config.accelerationResponse * dt * config.sampleRate, 0, 1)
+    local rawAcceleration = Vec3f(0, 0, 0)
+    if dt > ROOT_EPSILON then
+        rawAcceleration = scale(subtract(finiteVelocity, track.velocity), 1 / dt)
+    end
+    local predictedPosition = self:predictPosition(track, dt, config)
+    local residual = length(subtract(currentPosition, predictedPosition))
+    local expectedStep = math.max(0.05,
+        length(finiteVelocity) * math.max(dt, ROOT_EPSILON) * 2)
+    local delta = residual <= expectedStep and 0.045 or -0.08
+    track.confidence = clamp((track.confidence or 0.2) + delta, 0, 1)
+
+    track.position = copyVector(currentPosition)
+    track.velocity = lerp(track.velocity, finiteVelocity, velocityResponse)
+    track.acceleration = lerp(track.acceleration, rawAcceleration, accelerationResponse)
+    track.rotation = contactBody.getRot and contactBody:getRot() or track.rotation
+    track.angularVelocity = getBodyAngularVelocity(contactBody)
+    track.age = 0
+    track.samples = (track.samples or 1) + 1
+    track.frameSerial = frameSerial
+    return track
 end
 
 function WeaponTrackingSystem:updateMotionTrack(component, state, targetBody, targetKey, dt, config)
@@ -353,8 +414,10 @@ function WeaponTrackingSystem:solveIntercept(
     }
 end
 
-function WeaponTrackingSystem:getTargetPoint(state, sourcePosition, targetPosition, targetBody, seed, time)
-    if not state.targetSurface then
+function WeaponTrackingSystem:getTargetPoint(state, sourcePosition, targetPosition, targetBody, seed, time, surfaceOverride)
+    local surface = surfaceOverride or state.targetSurface
+    if not surface then
+        -- No known surface: aim at body center.
         return targetPosition, nil, nil
     end
     local toSource = subtract(sourcePosition, targetPosition)
@@ -369,7 +432,7 @@ function WeaponTrackingSystem:getTargetPoint(state, sourcePosition, targetPositi
         sampledOptions.viewDirection = scale(toSource, 1 / toSourceLength)
     end
     local sample = WeaponSystem:sampleTargetPoint(
-        state.targetSurface,
+        surface,
         seed,
         time,
         sampledOptions)
@@ -379,18 +442,33 @@ end
 
 function WeaponTrackingSystem:update(state, dt)
     local control = state.control
-    local targetBody = state.weaponTargetBody or state.targetBody
+    local focusBody = state.weaponTargetBody or state.targetBody
     local component = state.weaponTrackingComponent
     if not control or not component then
         return
     end
 
-    local targetKey = targetBody and getTargetKey(state, targetBody) or nil
-    if not targetBody then
+    -- Multi-target: mounts may carry their own assignments even without a
+    -- battery-wide focus. The gate passes if ANY engagement exists.
+    local hasAssignments = false
+    for _, _ in pairs(state.mountTargetByMount or {}) do
+        hasAssignments = true
+        break
+    end
+    local targetBody = focusBody
+    if not targetBody and not hasAssignments then
+        local targetKey = nil
         clearComponent(component, targetKey)
         state.trackingByMount = {}
         state.targetPointByMount = {}
         state.lastTargetPoint = nil
+        -- Drop per-turret solutions so nothing remains fireable.
+        for _, mount in ipairs(state.turrets or {}) do
+            mount.component.ready = false
+            mount.component.fireSolution = nil
+            mount.component.hasLineOfSight = false
+            mount.component.inRange = false
+        end
         return
     end
 
@@ -401,10 +479,14 @@ function WeaponTrackingSystem:update(state, dt)
         state.turrets and state.turrets[1] and state.turrets[1].component or {},
         component)
     component.sampleTime = (component.sampleTime or 0) + dt
-    local track = self:updateMotionTrack(component, state, targetBody, targetKey, dt, trackConfig)
-    track.config = trackConfig
-    state.targetTrack = track
-    state.targetTrackConfidence = component.confidence
+    local track
+    if targetBody then
+        local focusKey = getTargetKey(state, targetBody)
+        track = self:updateMotionTrack(component, state, targetBody, focusKey, dt, trackConfig)
+        track.config = trackConfig
+        state.targetTrack = track
+        state.targetTrackConfidence = component.confidence
+    end
     state.targetPointTime = (state.targetPointTime or 0) + dt
     state.aimStep = (state.aimStep or 0) + 1
     state.beamSwayBasisByMount = state.beamSwayBasisByMount or {}
@@ -422,14 +504,24 @@ function WeaponTrackingSystem:update(state, dt)
         assert(effect, "ship weapon has no effect definition: " .. tostring(turret.weaponId))
         local sourcePosition = mount.body:getPos()
         local sourceVelocity = getBodyVelocity(mount.body)
-        local targetPosition = targetBody:getPos()
+        -- Per-mount target: role groups may engage different contacts.
+        local mountTargetBody = state.mountTargetByMount
+            and state.mountTargetByMount[mount.mountId]
+            or targetBody
+        local targetPosition = mountTargetBody:getPos()
+        local mountSurface = state.mountSurfaces
+            and state.mountSurfaces[mount.mountId]
+        local pointSeed = state.mountTargetPointSeeds
+            and state.mountTargetPointSeeds[mount.mountId]
+            or state.targetPointSeed or 0
         local targetPoint, targetPointLocal, targetPointSample = self:getTargetPoint(
             state,
             sourcePosition,
             targetPosition,
-            targetBody,
-            targetPointRng:get64(),
-            state.targetPointTime)
+            mountTargetBody,
+            targetPointRng:get64() + (pointSeed % 1000),
+            state.targetPointTime,
+            mountSurface)
         if targetPointSample then
             targetPointByMount[mount.mountId] = {
                 position = targetPoint,
@@ -439,7 +531,15 @@ function WeaponTrackingSystem:update(state, dt)
         end
 
         local trackingConfig = getTrackingConfig(weapon, turret, component)
-        local targetScale = targetBody.getScale and targetBody:getScale() or 1
+        -- Each mount solves against ITS OWN target's motion track so role
+        -- groups engaging different contacts get correct intercept leads.
+        local mountTrackKey = tostring(state.contactTrackKeys
+            and state.contactTrackKeys[mountTargetBody]
+            or mountTargetBody)
+        local mountTrack = self:updateContactTrack(
+            state, mountTargetBody, mountTrackKey, dt, trackingConfig)
+        local targetScale = mountTargetBody.getScale
+            and mountTargetBody:getScale() or 1
         local solution
         local beamSwayPhase = 0
         local beamSwayBasis
@@ -450,15 +550,19 @@ function WeaponTrackingSystem:update(state, dt)
                 targetPoint,
                 state.beamSwayBasisByMount[mount.mountId])
             state.beamSwayBasisByMount[mount.mountId] = beamSwayBasis
+            -- Beams are instantaneous: aim at the raw current surface point.
+            -- Filtered-track prediction would make the beam lag fast ships.
             solution = {
                 time = 0,
                 position = targetPoint,
+                confidence = 1.0,
+                model = "beam-direct",
             }
         else
             solution = self:solveIntercept(
                 sourcePosition,
                 sourceVelocity,
-                track,
+                mountTrack,
                 targetPointLocal or Vec3f(0, 0, 0),
                 targetScale,
                 effect.speed,
@@ -527,6 +631,13 @@ function WeaponTrackingSystem:update(state, dt)
             targetPoint = targetPoint,
             targetPointLocal = targetPointLocal,
             targetPointSample = targetPointSample,
+            -- Per-mount engagement: LOS/damage validation must use the
+            -- contact THIS mount is engaging, not the battery focus.
+            targetBody = mountTargetBody,
+            targetEntity = state.mountTargetEntities
+                and state.mountTargetEntities[mountTargetBody]
+                and state.mountTargetEntities[mountTargetBody].entity
+                or nil,
         }
     end
 

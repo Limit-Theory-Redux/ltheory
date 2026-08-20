@@ -1,3 +1,7 @@
+---Beam lifecycle: endpoint validation, damage ticks, duration/cleanup.
+---
+---Runs after ProjectileSystem in the tick order owned by the host state's
+---Sim handler (see AIWeaponSystem.lua header).
 local CoreComponents = require("Modules.Core.Components")
 local PhysicsComponents = require("Modules.Physics.Components")
 local RenderingComponents = require("Modules.Rendering.Components")
@@ -268,12 +272,15 @@ function BeamSystem:update(state, dt)
         beam.baseTargetPoint = baseTargetPoint
         beam.targetPoint = targetPoint
 
+        -- Damage validation raycasts to the TRUE hull point; sway only
+        -- offsets the visual endpoint so beams don't "miss" a target they
+        -- are locked onto.
         local hitValidated, hitReason, hitPosition = validateBeam(
             state,
             sourceBody,
             targetBody,
             sourcePosition,
-            targetPoint)
+            baseTargetPoint or targetPoint)
         component.hitValidated = hitValidated
         component.hitReason = hitReason
         beam.hitValidated = hitValidated
@@ -295,9 +302,10 @@ function BeamSystem:update(state, dt)
             if targetHealth:isDestroyed() and not destroyedTargets[target] then
                 destroyedTargets[target] = true
                 table.insert(destroyedTargetOrder, target)
+                Log.Info("WeaponSystem beam destroyed target entity "
+                    .. tostring(target.id))
             end
         end
-
         component.remainingDuration = component.remainingDuration - dt
         if component.remainingDuration <= 0
             or not targetHealth

@@ -4,15 +4,33 @@ local WeaponSystem = Class("WeaponSystem", function() end)
 
 local ffi = require("ffi")
 local WeaponRegistry = require("Shared.Registries.WeaponRegistry")
+local WeaponResolver = require("Shared.Content.WeaponResolver")
 local PointLightEffectEntity = require("Modules.Constructs.Entities.PointLightEffectEntity")
 local PhysicsComponents = require("Modules.Physics.Components")
 local RaycastHelper = require("Shared.Helpers.RaycastHelper")
 local BeamAimHelper = require("Shared.Helpers.BeamAimHelper")
+local WeaponMountSizing = require("Shared.Helpers.WeaponMountSizing")
 local NULL_RIGID_BODY = ffi.cast("RigidBody*", nil)
 local ROOT_EPSILON = 0.000001
 
 local function clamp(value, minimum, maximum)
     return math.max(minimum, math.min(maximum, value))
+end
+
+---@param turret table
+---@return table
+function WeaponSystem:resolveWeapon(turret)
+    assert(turret, "weapon resolution requires a turret")
+    local weapon = WeaponResolver:resolve({
+        weaponId = turret.weaponId,
+        weaponRef = turret.weaponRef,
+    })
+    if turret.weaponRef and not weapon then
+        error("unregistered procedural weapon: "
+            .. tostring(turret.weaponRef.canonicalKey), 0)
+    end
+    assert(weapon, "unregistered weapon: " .. tostring(turret.weaponId))
+    return weapon
 end
 
 local function wrapAngle(angle)
@@ -584,32 +602,191 @@ function WeaponSystem:applyAccuracy(sourcePosition, targetPosition, weapon, seed
     }
 end
 
-local function getCapacitorBanks(capacitor, groupId)
+local function getCapacitorBanks(capacitor)
     if not capacitor then
         return nil
     end
     if capacitor.getBanks then
-        return capacitor:getBanks(groupId)
+        return capacitor:getBanks()
     end
-    local banks = capacitor.banks or capacitor
-    if groupId == nil then
-        return banks
-    end
+    return capacitor.banks or capacitor
+end
 
-    local groupedBanks = false
-    local selected = {}
+local function ensureBankId(bank, declarationIndex)
+    if bank.id == nil then
+        bank.id = "bank_" .. tostring(declarationIndex)
+    else
+        bank.id = tostring(bank.id)
+    end
+    return bank.id
+end
+
+local function getReservationLedger(capacitor)
+    capacitor.weaponReservationScopes = capacitor.weaponReservationScopes or {}
+    return capacitor.weaponReservationScopes
+end
+
+local function normalizeReservationOwner(ownerKey)
+    if ownerKey == nil then
+        return nil
+    end
+    local normalized = tostring(ownerKey)
+    if #normalized == 0 then
+        return nil
+    end
+    return normalized
+end
+
+local function reservationStorageKey(requestId, ownerKey)
+    local normalizedOwner = normalizeReservationOwner(ownerKey)
+    if requestId == nil or normalizedOwner == nil then
+        return nil
+    end
+    local normalizedRequest = tostring(requestId)
+    return table.concat({
+        tostring(#normalizedOwner), normalizedOwner,
+        tostring(#normalizedRequest), normalizedRequest,
+    }, ":")
+end
+
+local function setReservation(capacitor, storageKey, reservation)
+    getReservationLedger(capacitor)[storageKey] = reservation
+    if capacitor.setReservation then
+        capacitor:setReservation(reservation.requestId, reservation)
+    end
+end
+
+local function removeReservation(capacitor, storageKey)
+    local ledger = getReservationLedger(capacitor)
+    local reservation = ledger[storageKey]
+    ledger[storageKey] = nil
+    if reservation and capacitor.removeReservation then
+        local visible
+        if capacitor.getReservation then
+            visible = capacitor:getReservation(reservation.requestId)
+        elseif capacitor.reservations then
+            visible = capacitor.reservations[reservation.requestId]
+        end
+        if visible == reservation
+            or (visible and visible.storageKey == storageKey)
+        then
+            capacitor:removeReservation(reservation.requestId)
+        end
+    end
+    return reservation
+end
+
+local function nextReservationId(capacitor, prefix)
+    if capacitor.nextReservationId then
+        return capacitor:nextReservationId(prefix)
+    end
+    capacitor.reservationSerial = (capacitor.reservationSerial or 0) + 1
+    return (prefix or "capacitor") .. ":" .. tostring(capacitor.reservationSerial)
+end
+
+local function getBankById(capacitor, banks, id)
+    if capacitor.getBank then
+        return capacitor:getBank(id)
+    end
     for _, bank in ipairs(banks or {}) do
-        if bank.groupId ~= nil then
-            groupedBanks = true
-            if bank.groupId == groupId then
-                table.insert(selected, bank)
+        if tostring(bank.id) == tostring(id) then
+            return bank
+        end
+    end
+    return nil
+end
+
+local function sortedReservationIds(ledger)
+    local ids = {}
+    for id in pairs(ledger or {}) do
+        table.insert(ids, id)
+    end
+    table.sort(ids, function(left, right)
+        return tostring(left) < tostring(right)
+    end)
+    return ids
+end
+
+local function reservedAmount(ledger, bankId)
+    local amount = 0
+    for _, requestId in ipairs(sortedReservationIds(ledger)) do
+        local reservation = ledger[requestId]
+        for _, allocation in ipairs(reservation.allocations or {}) do
+            if tostring(allocation.bankId) == tostring(bankId) then
+                amount = amount + allocation.amount
             end
         end
     end
-    if not groupedBanks then
-        return banks
+    return amount
+end
+
+local function bankSupportsWeapon(bank, weapon)
+    local supported = bank.supportedSizeClasses
+    if not supported or #supported == 0 or weapon.mountSizeClass == nil then
+        return true
     end
-    return selected
+    local sizeClass = WeaponMountSizing:normalize(weapon.mountSizeClass)
+    for _, supportedSizeClass in ipairs(supported) do
+        if WeaponMountSizing:normalize(supportedSizeClass) == sizeClass then
+            return true
+        end
+    end
+    return false
+end
+
+local function bankPreference(bank, weapon, declarationIndex)
+    local sizeClass = weapon.mountSizeClass and WeaponMountSizing:normalize(weapon.mountSizeClass)
+    local supported = bank.supportedSizeClasses
+    local exact = 1
+    if sizeClass and supported and #supported == 1
+        and WeaponMountSizing:normalize(supported[1]) == sizeClass
+    then
+        exact = 0
+    end
+    local group = 1
+    if weapon.capacitorGroup ~= nil and bank.groupId == weapon.capacitorGroup then
+        group = 0
+    end
+    local flexibility = supported and #supported or math.huge
+    return {
+        bank = bank,
+        exact = exact,
+        group = group,
+        flexibility = flexibility,
+        declarationIndex = declarationIndex,
+    }
+end
+
+local function validateCapacityPolicy(mode, weapon, capacitor)
+    local policy = weapon.capacityPolicy and weapon.capacityPolicy[mode]
+    if capacitor then
+        local configuredPolicy
+        if capacitor.getPolicy then
+            configuredPolicy = capacitor:getPolicy(mode)
+        elseif capacitor.policies then
+            configuredPolicy = capacitor.policies[mode]
+        end
+        policy = configuredPolicy or policy
+    end
+    local policies = Enums.Weapon.CapacityPolicy
+    if mode == Enums.Weapon.FireMode.Volley then
+        assert(not policy or policy.id == policies.Burst,
+            "volley weapon must use burst capacity policy")
+    elseif mode == Enums.Weapon.FireMode.Sequence then
+        assert(not policy or policy.id == policies.Sustain,
+            "sequence weapon must use sustain capacity policy")
+    end
+end
+
+local function releaseReservation(capacitor, requestId, ownerKey)
+    if not capacitor or not requestId then
+        return false
+    end
+    local storageKey = reservationStorageKey(requestId, ownerKey)
+    if not storageKey then
+        return false
+    end
+    return removeReservation(capacitor, storageKey) ~= nil
 end
 
 ---@param capacitor table
@@ -623,28 +800,34 @@ function WeaponSystem:rechargeCapacitors(capacitor, dt)
             0,
             bank.maxCharge or 0)
     end
+    self:refreshCapacitorReservations(capacitor)
 end
 
----@param banks table[]
+---@param capacitor table
 ---@param cost number
 ---@return boolean
-function WeaponSystem:dischargeCapacitors(banks, cost)
-    assert(banks and cost >= 0)
+function WeaponSystem:dischargeCapacitors(capacitor, cost)
+    assert(capacitor and cost >= 0)
     if cost == 0 then
         return true
     end
-
+    local banks = getCapacitorBanks(capacitor) or {}
+    local ledger = getReservationLedger(capacitor)
     local available = 0
-    for _, bank in ipairs(banks) do
-        available = available + math.max(0, bank.charge or 0)
+    for declarationIndex, bank in ipairs(banks) do
+        ensureBankId(bank, declarationIndex)
+        available = available + math.max(0,
+            (bank.charge or 0) - reservedAmount(ledger, bank.id))
     end
     if available + ROOT_EPSILON < cost then
         return false
     end
-
     local remaining = cost
-    for _, bank in ipairs(banks) do
-        local used = math.min(math.max(0, bank.charge or 0), remaining)
+    for declarationIndex, bank in ipairs(banks) do
+        ensureBankId(bank, declarationIndex)
+        local free = math.max(0,
+            (bank.charge or 0) - reservedAmount(ledger, bank.id))
+        local used = math.min(free, remaining)
         bank.charge = bank.charge - used
         remaining = remaining - used
         if remaining <= ROOT_EPSILON then
@@ -654,6 +837,300 @@ function WeaponSystem:dischargeCapacitors(banks, cost)
     return true
 end
 
+---@param capacitor table
+function WeaponSystem:refreshCapacitorReservations(capacitor)
+    if not capacitor then
+        return
+    end
+    local ledger = getReservationLedger(capacitor)
+    local requestIds = sortedReservationIds(ledger)
+    for _, storageKey in ipairs(requestIds) do
+        local reservation = ledger[storageKey]
+        if reservation and reservation.mode and reservation.weaponByMount then
+            self:reserveFirePlan(
+                reservation.mode,
+                {
+                    shots = reservation.shots or {},
+                    nextIndex = reservation.nextIndex,
+                },
+                reservation.weaponByMount,
+                capacitor,
+                reservation.requestId,
+                reservation.ownerKey)
+        end
+    end
+end
+
+---@param mode integer
+---@param plan table
+---@param weaponByMount table<string, table>
+---@param capacitor table|nil
+---@param requestId string|nil
+---@param ownerKey string|nil
+---@return table
+function WeaponSystem:reserveFirePlan(mode, plan, weaponByMount, capacitor, requestId, ownerKey)
+    assert(mode and plan and weaponByMount)
+    local demands = {}
+    local selectedShots = {}
+    local selectedWeapons = {}
+    local required = 0
+    for order, mountId in ipairs(plan.shots or {}) do
+        if mode == Enums.Weapon.FireMode.Sequence and order > 1 then
+            break
+        end
+        table.insert(selectedShots, mountId)
+        local weapon = weaponByMount[mountId]
+        assert(weapon, "missing weapon for capacitor plan mount: " .. tostring(mountId))
+        selectedWeapons[mountId] = weapon
+        validateCapacityPolicy(mode, weapon, capacitor)
+        local amount = math.max(0, weapon.capacitorCost or 0)
+        if amount > ROOT_EPSILON then
+            table.insert(demands, {
+                mountId = mountId,
+                amount = amount,
+                order = order,
+                sizeClass = weapon.mountSizeClass,
+                weapon = weapon,
+                candidates = {},
+                remaining = amount,
+            })
+            required = required + amount
+        end
+    end
+
+    if not capacitor then
+        return {
+            ready = true,
+            required = required,
+            allocated = required,
+            reservationId = nil,
+            demands = demands,
+            shots = selectedShots,
+        }
+    end
+    requestId = tostring(requestId or nextReservationId(capacitor, "weapon"))
+    local normalizedOwnerKey = normalizeReservationOwner(ownerKey)
+    if #demands == 0 then
+        local storageKey = reservationStorageKey(requestId, normalizedOwnerKey)
+        if storageKey then
+            removeReservation(capacitor, storageKey)
+        end
+        return {
+            ready = true,
+            required = required,
+            allocated = required,
+            reservationId = nil,
+            demands = demands,
+            shots = selectedShots,
+        }
+    end
+    assert(normalizedOwnerKey,
+        "capacitor reservations require a non-empty owner key")
+    local storageKey = reservationStorageKey(requestId, normalizedOwnerKey)
+
+    local banks = getCapacitorBanks(capacitor) or {}
+    local ledger = getReservationLedger(capacitor)
+    removeReservation(capacitor, storageKey)
+
+    for _, demand in ipairs(demands) do
+        for declarationIndex, bank in ipairs(banks) do
+            ensureBankId(bank, declarationIndex)
+            if bankSupportsWeapon(bank, demand.weapon) then
+                table.insert(demand.candidates,
+                    bankPreference(bank, demand.weapon, declarationIndex))
+            end
+        end
+        table.sort(demand.candidates, function(left, right)
+            if left.exact ~= right.exact then
+                return left.exact < right.exact
+            end
+            if left.group ~= right.group then
+                return left.group < right.group
+            end
+            if left.flexibility ~= right.flexibility then
+                return left.flexibility < right.flexibility
+            end
+            if tostring(left.bank.id) ~= tostring(right.bank.id) then
+                return tostring(left.bank.id) < tostring(right.bank.id)
+            end
+            return left.declarationIndex < right.declarationIndex
+        end)
+    end
+
+    table.sort(demands, function(left, right)
+        if #left.candidates ~= #right.candidates then
+            return #left.candidates < #right.candidates
+        end
+        local leftSize = left.sizeClass and (WeaponMountSizing:order(left.sizeClass) or 0) or 0
+        local rightSize = right.sizeClass and (WeaponMountSizing:order(right.sizeClass) or 0) or 0
+        if leftSize ~= rightSize then
+            return leftSize > rightSize
+        end
+        return left.order < right.order
+    end)
+
+    local allocations = {}
+    local allocatedByBank = {}
+    local allocated = 0
+    for _, demand in ipairs(demands) do
+        local remaining = demand.amount
+        for _, candidate in ipairs(demand.candidates) do
+            local bank = candidate.bank
+            local bankId = tostring(bank.id)
+            local free = math.max(0, (bank.charge or 0)
+                - reservedAmount(ledger, bankId)
+                - (allocatedByBank[bankId] or 0))
+            if free > ROOT_EPSILON then
+                local amount = math.min(free, remaining)
+                table.insert(allocations, {
+                    mountId = demand.mountId,
+                    bankId = bankId,
+                    amount = amount,
+                })
+                allocatedByBank[bankId] = (allocatedByBank[bankId] or 0) + amount
+                allocated = allocated + amount
+                remaining = remaining - amount
+                if remaining <= ROOT_EPSILON then
+                    break
+                end
+            end
+        end
+        demand.remaining = remaining
+    end
+
+    local ready = true
+    for _, demand in ipairs(demands) do
+        if demand.remaining > ROOT_EPSILON then
+            ready = false
+            break
+        end
+    end
+    local reservation = {
+        requestId = requestId,
+        ownerKey = normalizedOwnerKey,
+        storageKey = storageKey,
+        mode = mode,
+        nextIndex = plan.nextIndex,
+        shots = selectedShots,
+        weaponByMount = selectedWeapons,
+        demands = demands,
+        allocations = allocations,
+        required = required,
+        allocated = allocated,
+        ready = ready,
+    }
+    setReservation(capacitor, storageKey, reservation)
+    return reservation
+end
+
+---@param capacitor table
+---@param requestId string
+---@param ownerKey string
+---@return boolean
+function WeaponSystem:commitFireReservation(capacitor, requestId, ownerKey)
+    if not capacitor or not requestId then
+        return true
+    end
+    local storageKey = reservationStorageKey(requestId, ownerKey)
+    if not storageKey then
+        return false
+    end
+    local ledger = getReservationLedger(capacitor)
+    local reservation = ledger[storageKey]
+    if not reservation
+        or reservation.ownerKey ~= normalizeReservationOwner(ownerKey)
+        or not reservation.ready
+    then
+        return false
+    end
+    local banks = getCapacitorBanks(capacitor) or {}
+    local bankById = {}
+    for _, bank in ipairs(banks) do
+        bankById[tostring(bank.id)] = bank
+    end
+    local requiredByBank = {}
+    for _, allocation in ipairs(reservation.allocations or {}) do
+        local bankId = tostring(allocation.bankId)
+        local bank = bankById[bankId]
+        if not bank then
+            return false
+        end
+        requiredByBank[bankId] = (requiredByBank[bankId] or 0) + allocation.amount
+    end
+    for bankId, amount in pairs(requiredByBank) do
+        local bank = bankById[bankId]
+        if (bank.charge or 0) + ROOT_EPSILON < amount then
+            return false
+        end
+    end
+    for _, allocation in ipairs(reservation.allocations or {}) do
+        local bank = bankById[tostring(allocation.bankId)]
+        bank.charge = math.max(0, bank.charge - allocation.amount)
+    end
+    removeReservation(capacitor, storageKey)
+    return true
+end
+
+---@param capacitor table
+---@param requestId string
+---@param ownerKey string
+---@return boolean
+function WeaponSystem:releaseFireReservation(capacitor, requestId, ownerKey)
+    return releaseReservation(capacitor, requestId, ownerKey)
+end
+
+function WeaponSystem:getStateCapacitorRequestId(state)
+    if not state.weaponCapacitorRequestId then
+        local ownerKey = state.capacitorOwnerKey
+            or state.weaponCapacitorOwnerKey
+            or state.seed
+            or state.name
+            or "weapon-state"
+        state.weaponCapacitorRequestId = "weapon:" .. tostring(ownerKey)
+    end
+    return state.weaponCapacitorRequestId
+end
+
+function WeaponSystem:releaseStateCapacitorReservation(state)
+    if state and state.weaponCapacitor and state.weaponCapacitorRequestId then
+        self:releaseFireReservation(
+            state.weaponCapacitor,
+            state.weaponCapacitorRequestId,
+            state.capacitorOwnerKey
+                or state.weaponCapacitorOwnerKey
+                or state.weaponCapacitorRequestId)
+    end
+end
+
+function WeaponSystem:fundStateFirePlan(state, mode, plan, weaponByMount)
+    if not plan or #(plan.shots or {}) == 0 then
+        self:releaseStateCapacitorReservation(state)
+        return false
+    end
+    if not state.weaponCapacitor then
+        return true
+    end
+    local requestId = self:getStateCapacitorRequestId(state)
+    local reservation = self:reserveFirePlan(
+        mode,
+        plan,
+        weaponByMount,
+        state.weaponCapacitor,
+        requestId,
+        state.capacitorOwnerKey
+            or state.weaponCapacitorOwnerKey
+            or requestId)
+    if not reservation.ready then
+        return false
+    end
+    return self:commitFireReservation(
+        state.weaponCapacitor,
+        requestId,
+        state.capacitorOwnerKey
+            or state.weaponCapacitorOwnerKey
+            or requestId)
+end
+
 ---@param mode integer
 ---@param plan table
 ---@param weaponByMount table<string, table>
@@ -661,76 +1138,31 @@ end
 ---@return table
 function WeaponSystem:gateFirePlan(mode, plan, weaponByMount, capacitor)
     assert(mode and plan and weaponByMount)
-    local allBanks = getCapacitorBanks(capacitor)
-    if not allBanks or #allBanks == 0 then
+    if not capacitor then
         return plan
     end
-
-    local policies = Enums.Weapon.CapacityPolicy
-    local gated = { shots = {}, nextIndex = plan.nextIndex, denied = {} }
-    local burstGroupReady = {}
-    if mode == Enums.Weapon.FireMode.Volley then
-        local requiredByGroup = {}
-        for _, mountId in ipairs(plan.shots) do
-            local weapon = weaponByMount[mountId]
-            assert(weapon, "missing weapon for capacitor plan mount: " .. tostring(mountId))
-            if weapon.capacitorGroup ~= nil then
-                requiredByGroup[weapon.capacitorGroup] =
-                    (requiredByGroup[weapon.capacitorGroup] or 0)
-                    + math.max(0, weapon.capacitorCost or 0)
-            end
+    local requestId = nextReservationId(capacitor, "gate")
+    local reservation = self:reserveFirePlan(
+        mode, plan, weaponByMount, capacitor, requestId, "gateFirePlan")
+    if not reservation.ready then
+        self:releaseFireReservation(capacitor, requestId, "gateFirePlan")
+        local denied = {}
+        for _, mountId in ipairs(plan.shots or {}) do
+            table.insert(denied, mountId)
         end
-        for groupId, requiredCharge in pairs(requiredByGroup) do
-            local groupBanks = getCapacitorBanks(capacitor, groupId)
-            assert(groupBanks and #groupBanks > 0,
-                "missing capacitor bank for weapon group: " .. tostring(groupId))
-            local available = 0
-            for _, bank in ipairs(groupBanks) do
-                available = available + math.max(0, bank.charge or 0)
-            end
-            burstGroupReady[groupId] = available + ROOT_EPSILON >= requiredCharge
-        end
+        return {
+            shots = {},
+            nextIndex = plan.startIndex or plan.nextIndex,
+            denied = denied,
+        }
     end
-    for _, mountId in ipairs(plan.shots) do
-        local weapon = weaponByMount[mountId]
-        assert(weapon, "missing weapon for capacitor plan mount: " .. tostring(mountId))
-        local policy = weapon.capacityPolicy and weapon.capacityPolicy[mode]
-        if capacitor then
-            local configuredPolicy
-            if capacitor.getPolicy then
-                configuredPolicy = capacitor:getPolicy(mode)
-            elseif capacitor.policies then
-                configuredPolicy = capacitor.policies[mode]
-            end
-            policy = configuredPolicy or policy
-        end
-        if mode == Enums.Weapon.FireMode.Volley then
-            assert(not policy or policy.id == policies.Burst,
-                "volley weapon must use burst capacity policy")
-        elseif mode == Enums.Weapon.FireMode.Sequence then
-            assert(not policy or policy.id == policies.Sustain,
-                "sequence weapon must use sustain capacity policy")
-        end
-
-        local banks = getCapacitorBanks(capacitor, weapon.capacitorGroup)
-        if not banks or #banks == 0 then
-            assert((weapon.capacitorCost or 0) <= 0,
-                "missing capacitor bank for weapon group: " .. tostring(weapon.capacitorGroup))
-        end
-        local groupReady = weapon.capacitorGroup == nil
-            or mode ~= Enums.Weapon.FireMode.Volley
-            or burstGroupReady[weapon.capacitorGroup]
-        local sustainLimit = mode == Enums.Weapon.FireMode.Sequence and 1 or math.huge
-        if #gated.shots < sustainLimit
-            and groupReady
-            and banks
-            and self:dischargeCapacitors(banks, math.max(0, weapon.capacitorCost or 0)) then
-            table.insert(gated.shots, mountId)
-        else
-            table.insert(gated.denied, mountId)
-        end
-    end
-    return gated
+    assert(self:commitFireReservation(capacitor, requestId, "gateFirePlan"),
+        "ready capacitor reservation failed to commit")
+    return {
+        shots = reservation.shots or plan.shots,
+        nextIndex = plan.nextIndex,
+        denied = {},
+    }
 end
 
 ---@param mode string
@@ -745,7 +1177,8 @@ function WeaponSystem:planFire(mode, mountIds, readyByMount, sequenceIndex)
 
     local plan = {
         shots = {},
-        nextIndex = sequenceIndex or 1
+        nextIndex = sequenceIndex or 1,
+        startIndex = sequenceIndex or 1,
     }
 
     if #mountIds == 0 then
@@ -819,6 +1252,159 @@ function WeaponSystem:selectNearestTarget(origin, candidates, range)
         end
     end
 
+    return best
+end
+
+
+
+---Select the highest-priority target in range for a weapon role.
+---Score = sizeClassPriority / distance; closer and role-appropriate
+---contacts win. Hysteresis keeps the current target unless a candidate
+---scores decisively better.
+---@param origin Vec3f
+---@param candidates table[]
+---@param range number
+---@param combatRole string|nil
+---@param currentEntity Entity|nil
+---@return table|nil best, number bestScore
+function WeaponSystem:selectPriorityTarget(
+    origin, candidates, range, combatRole, currentEntity)
+    assert(origin and candidates and range >= 0)
+
+    local priorities = Config.weapons.targetPriorityByRole
+    local weights = (combatRole and priorities[combatRole])
+        or priorities[Enums.Weapon.CombatRole.Line]
+    local rangeSquared = range * range
+    local switchHysteresis = 1.3
+
+    local best, bestScore, bestIsCurrent = nil, 0.0, false
+    for _, candidate in ipairs(candidates) do
+        if candidate.enabled ~= false and candidate.position then
+            local dx = candidate.position.x - origin.x
+            local dy = candidate.position.y - origin.y
+            local dz = candidate.position.z - origin.z
+            local distanceSquared = dx * dx + dy * dy + dz * dz
+            if distanceSquared <= rangeSquared then
+                local distance = math.sqrt(distanceSquared)
+                local weight = weights[candidate.sizeClass] or 1.0
+                -- Weight dominates; distance applies a soft falloff so a
+                -- high-priority large hull beats a close low-priority one.
+                local distanceFactor = range / math.max(distance, 0.0001)
+                local score = weight * (0.5 + 0.5 * math.min(distanceFactor, 2.0))
+                local isCurrent = currentEntity ~= nil
+                    and candidate.entity == currentEntity
+                if not best
+                    or score > bestScore * (bestIsCurrent and switchHysteresis or 1.0)
+                    or (isCurrent and not bestIsCurrent
+                        and score >= bestScore / switchHysteresis)
+                then
+                    best = candidate
+                    bestScore = score
+                    bestIsCurrent = isCurrent
+                end
+            end
+        end
+    end
+
+    return best, bestScore
+end
+
+---Choose the best target for one weapon mount from live candidates.
+---Scoring: role-based size-class weight divided by distance. An explicit
+---focusTarget (set by external systems) overrides scoring when valid and
+---in range.
+---@param mount table Mount record with body/position context
+---@param candidates table[] Live candidate records
+---@param origin Vec3f
+---@param range number Weapon range in game units
+---@param combatRole string|nil Weapon combat role for priority weights
+---@param focusTargetEntity Entity|nil External focus override
+---@return table|nil best Chosen candidate record
+function WeaponSystem:chooseBestTarget(
+    mount, candidates, origin, range, combatRole, focusTargetEntity)
+    assert(mount and candidates and origin and range >= 0)
+
+    local priorities = Config.weapons.targetPriorityByRole
+    local weights = (combatRole and priorities[combatRole])
+        or priorities[Enums.Weapon.CombatRole.Line]
+
+    -- Focus override: external systems can command this mount onto a
+    -- specific contact; validity and range are still enforced.
+    if focusTargetEntity then
+        for _, candidate in ipairs(candidates) do
+            if candidate.entity == focusTargetEntity
+                and candidate.enabled ~= false
+                and candidate.position
+            then
+                local dx = candidate.position.x - origin.x
+                local dy = candidate.position.y - origin.y
+                local dz = candidate.position.z - origin.z
+                if dx*dx + dy*dy + dz*dz <= range * range then
+                    return candidate
+                end
+            end
+        end
+        -- Focus invalid/out of range: fall through to scoring.
+    end
+
+    -- X4-style threat scoring:
+    --   threat   = base danger the contact represents (size class)
+    --   killEase = damaged contacts are cheaper to finish off
+    --   distance = soft falloff, tie-breaker only (not dominant)
+    --   role     = mount-role vs contact-size matching multiplier
+    local best, bestScore = nil, -math.huge
+    for _, candidate in ipairs(candidates) do
+        if candidate.enabled ~= false and candidate.position then
+            local dx = candidate.position.x - origin.x
+            local dy = candidate.position.y - origin.y
+            local dz = candidate.position.z - origin.z
+            local distanceSquared = dx*dx + dy*dy + dz*dz
+            if distanceSquared <= range * range then
+                local distance = math.max(math.sqrt(distanceSquared), 0.0001)
+
+                -- Threat: how dangerous is this contact class?
+                local threat = weights[candidate.sizeClass] or 1.0
+
+                -- Kill ease: weakened contacts are attractive finishes.
+                local killEase = 1.0
+                if candidate.healthFraction ~= nil then
+                    local fraction = clamp(candidate.healthFraction, 0.05, 1.0)
+                    killEase = 0.75 + 0.85 * (1.0 - fraction)
+                end
+
+                -- Role match: PD guns value small prey, capital guns value
+                -- big hulls; mismatched pairings are penalized.
+                local roleMatch = 1.0
+                if combatRole == Enums.Weapon.CombatRole.PointDefense then
+                    roleMatch = candidate.sizeClass == Enums.Target.SizeClass.Small and 2.0
+                        or candidate.sizeClass == Enums.Target.SizeClass.Medium and 1.0
+                        or 0.35
+                elseif combatRole == Enums.Weapon.CombatRole.CapitalHeavy then
+                    roleMatch = candidate.sizeClass == Enums.Target.SizeClass.Capital and 2.2
+                        or candidate.sizeClass == Enums.Target.SizeClass.Large and 1.6
+                        or 0.5
+                elseif combatRole == Enums.Weapon.CombatRole.Line
+                    or combatRole == Enums.Weapon.CombatRole.Heavy
+                then
+                    roleMatch = candidate.sizeClass == Enums.Target.SizeClass.Capital and 1.8
+                        or candidate.sizeClass == Enums.Target.SizeClass.Large and 1.6
+                        or candidate.sizeClass == Enums.Target.SizeClass.Medium and 1.2
+                        or 0.8
+                end
+
+                -- Distance: soft falloff so it breaks ties but doesn't
+                -- dominate the threat decision.
+                local distanceFactor = range / (distance + range * 0.25)
+
+                local score = threat * killEase * roleMatch
+                    * (0.6 + 0.4 * math.min(distanceFactor, 2.0))
+                if score > bestScore then
+                    bestScore = score
+                    best = candidate
+                end
+            end
+        end
+    end
     return best
 end
 
@@ -914,6 +1500,7 @@ function WeaponSystem:updateFromTracking(state)
     state.sightHitPosition = nil
 
     if not targetBody then
+        self:releaseStateCapacitorReservation(state)
         state.readyByMount = {}
         state.sightCount = 0
         state.sightReasons = sightReasons
@@ -939,7 +1526,7 @@ function WeaponSystem:updateFromTracking(state)
     for _, mount in ipairs(state.turrets or {}) do
         local turret = mount.component
         local tracking = trackingByMount[mount.mountId] or {}
-        local weapon = tracking.weapon or WeaponRegistry:get(turret.weaponId)
+        local weapon = tracking.weapon or self:resolveWeapon(turret)
         assert(weapon, "unregistered weapon: " .. tostring(turret.weaponId))
         weaponByMount[mount.mountId] = weapon
         turret.burstGap = math.max(0, (turret.burstGap or 0) - (state.deltaTime or 0))
@@ -959,10 +1546,13 @@ function WeaponSystem:updateFromTracking(state)
         local sightReason = solution and "none" or "no_solution"
         local sightHitPosition
         if solution then
+            -- LOS validates against THIS mount's engaged contact; role
+            -- groups engaging different contacts don't block each other.
+            local mountTargetBody = tracking.targetBody or targetBody
             hasSight, sightReason, sightHitPosition = self:hasLineOfSight(
                 state.world,
                 mount.body,
-                targetBody,
+                mountTargetBody,
                 sourcePosition,
                 targetPoint,
                 state.losObstacles)
@@ -1011,13 +1601,50 @@ function WeaponSystem:updateFromTracking(state)
             break
         end
     end
-    if (not control.triggerHeld and not hasBurstPending) or control.interShotGap > 0 then
+    if not control.triggerHeld and not hasBurstPending then
+        self:releaseStateCapacitorReservation(state)
+        return
+    end
+
+    -- Point-defense mounts bypass the shared battery cadence: each fires on
+    -- its own cooldown as long as it holds a solution, so PD coverage is a
+    -- continuous stream instead of one round-robin slot among all mounts.
+    local pdShots = {}
+    for _, mount in ipairs(state.turrets or {}) do
+        local weapon = weaponByMount[mount.mountId]
+        if weapon and weapon.combatRole == Enums.Weapon.CombatRole.PointDefense
+            and readyByMount[mount.mountId]
+            and (mount.component.cooldown or 0) <= 0
+            and mount.component.fireSolution
+        then
+            table.insert(pdShots, mount.mountId)
+        end
+    end
+    if #pdShots > 0 then
+        local pdPlan = { shots = pdShots, nextIndex = control.sequenceIndex }
+        if self:fundStateFirePlan(state, Enums.Weapon.FireMode.Volley, pdPlan, weaponByMount) then
+            for _, mountId in ipairs(pdPlan.shots) do
+                local mount = state.turretsById[mountId]
+                local weapon = weaponByMount[mountId]
+                if mount and mount.component.fireSolution then
+                    control.shotSerial = control.shotSerial + 1
+                    self:spawnFiringLight(state, mount, weapon, control.shotSerial)
+                    mount.component.cooldown = weapon.cooldown
+                    state:spawnProjectile(mount, mount.component.fireSolution, weapon, control.shotSerial)
+                end
+            end
+        end
+    end
+
+    if control.interShotGap > 0 then
         return
     end
 
     local order = control.mode == Enums.Weapon.FireMode.Sequence and control.sequence or state.mountIds
     local plan = self:planFire(control.mode, order, readyByMount, control.sequenceIndex)
-    plan = self:gateFirePlan(control.mode, plan, weaponByMount, state.weaponCapacitor)
+    if not self:fundStateFirePlan(state, control.mode, plan, weaponByMount) then
+        return
+    end
     if #plan.shots == 0 then
         return
     end
@@ -1122,6 +1749,7 @@ function WeaponSystem:update(state, dt)
     end
 
     if not targetBody then
+        self:releaseStateCapacitorReservation(state)
         state.readyByMount = {}
         state.sightCount = 0
         state.sightReasons = { none = 0, source = 0, target = 0, other = 0, hull = 0 }
@@ -1166,8 +1794,7 @@ function WeaponSystem:update(state, dt)
     for mountIndex, mount in ipairs(state.turrets) do
         local turret = mount.component
         local body = mount.body
-        local weapon = WeaponRegistry:get(turret.weaponId)
-        assert(weapon, "unregistered weapon: " .. tostring(turret.weaponId))
+        local weapon = self:resolveWeapon(turret)
         weaponByMount[mount.mountId] = weapon
         turret.cooldown = math.max(0, turret.cooldown - dt)
 
@@ -1342,13 +1969,19 @@ function WeaponSystem:update(state, dt)
     state.lastTargetPoint = firstMountId and targetPointByMount[firstMountId] or nil
     state.readyCount = readyCount
 
-    if not control.triggerHeld or control.interShotGap > 0 then
+    if not control.triggerHeld then
+        self:releaseStateCapacitorReservation(state)
+        return
+    end
+    if control.interShotGap > 0 then
         return
     end
 
     local order = control.mode == Enums.Weapon.FireMode.Sequence and control.sequence or state.mountIds
     local plan = self:planFire(control.mode, order, readyByMount, control.sequenceIndex)
-    plan = self:gateFirePlan(control.mode, plan, weaponByMount, state.weaponCapacitor)
+    if not self:fundStateFirePlan(state, control.mode, plan, weaponByMount) then
+        return
+    end
     if #plan.shots == 0 then
         return
     end

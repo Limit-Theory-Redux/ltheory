@@ -15,7 +15,11 @@ local TurretComponent = Subclass("TurretComponent", Component, function(self, mo
         "turret " .. mountId .. " requires an explicit weaponId or procedural weaponRef")
     self.weaponId = config.weaponId
     self.weaponRef = config.weaponRef
-        or { kind = "builtin", id = self.weaponId }
+    self.pairId = config.pairId
+    self.mountSizeClass = config.mountSizeClass
+    self.mountRole = config.mountRole
+    self.surfaceBand = config.surfaceBand
+    self.arc = config.arc
     self.trackingModuleRef = config.trackingModuleRef
     self.trackingModuleStats = config.trackingModuleStats or {}
     self.burstRemaining = 0
