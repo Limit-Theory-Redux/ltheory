@@ -1,4 +1,9 @@
+---Projectile movement, guidance, collision, damage, lifetime.
+---
+---Runs after WeaponSystem:update in the tick order owned by the host
+---state's Sim handler (see AIWeaponSystem.lua header).
 ---@class ProjectileSystem
+local PhysicsComponents = require("Modules.Physics.Components")
 ---@overload fun(): ProjectileSystem
 local ProjectileSystem = Class("ProjectileSystem", function() end)
 
@@ -259,39 +264,85 @@ function ProjectileSystem:update(state, dt)
             effect.life = math.max(0, component.remainingLifetime)
         end
 
-        local targetAlive = state.targetHealth and not state.targetHealth:isDestroyed()
-        if targetAlive then
-            local targetRadius = state.targetRadius
-            local guidance = component.guidance
-            if guidance and guidance.proximityRadius then
-                targetRadius = math.max(targetRadius or 0, guidance.proximityRadius)
-            end
-            local hit = self:segmentSphereHit(
-                startPosition,
-                endPosition,
-                state.targetBody:getPos(),
-                targetRadius)
-            if hit then
-                local hitPosition = hit.position
-                body:setPos(Position(hitPosition.x, hitPosition.y, hitPosition.z))
-                component.previousPosition = Position(
-                    hitPosition.x,
-                    hitPosition.y,
-                    hitPosition.z)
-                if effect then
-                    local hitDistance = stepDistance * (hit.t or 1)
-                    projectile.pulseDistance = math.max(0,
-                        (projectile.pulseDistance or 0) - stepDistance + hitDistance)
-                    effect.pos = Position(hitPosition.x, hitPosition.y, hitPosition.z)
-                    effect.dist = projectile.pulseDistance
+        -- Hit detection sweeps ALL live Targetable entities in the ECS
+        -- registry (multi-contact): the closest segment-sphere intersection
+        -- along this step wins. Guided projectiles keep their proximity
+        -- bonus against their own target; unguided shots hit whatever they
+        -- actually touch. The projectile's own source entity is excluded.
+        local Registry = require("Core.ECS.Registry")
+        local CoreComponents = require("Modules.Core.Components")
+        local ConstructComponents = require("Modules.Constructs.Components")
+        local bestHit, bestHitEntity, bestHitT = nil, nil, math.huge
+        for entity, targetable in
+            Registry:iterEntities(ConstructComponents.Targetable)
+        do
+            if entity ~= component.source
+                and targetable:isEnabled()
+            then
+                local health = entity:get(CoreComponents.Health)
+                if not health or not health:isDestroyed() then
+                    local rbComponent = entity:get(PhysicsComponents.RigidBody)
+                    local contactRadius = rbComponent and rbComponent:getRadius() or 0
+                    local guidance = component.guidance
+                    if guidance and guidance.proximityRadius
+                        and component.targetEntity == entity
+                    then
+                        contactRadius = math.max(
+                            contactRadius, guidance.proximityRadius)
+                    end
+                    if contactRadius > 0 then
+                        local contactBody = rbComponent
+                            and rbComponent:getRigidBody()
+                        if contactBody then
+                            local hit = self:segmentSphereHit(
+                                startPosition,
+                                endPosition,
+                                contactBody:getPos(),
+                                contactRadius)
+                            if hit and (hit.t or 1) < bestHitT then
+                                bestHit = hit
+                                bestHitEntity = entity
+                                bestHitT = hit.t or 1
+                            end
+                        end
+                    end
                 end
-                self:applyImpact(state, projectile, hit, true)
-                targetDestroyed = state.targetHealth:isDestroyed() or targetDestroyed
-                if not self:beginDissipation(projectile) then
-                    state:removeProjectile(index)
-                end
-                goto continue
             end
+        end
+        if bestHit then
+            local hitPosition = bestHit.position
+            body:setPos(Position(hitPosition.x, hitPosition.y, hitPosition.z))
+            component.previousPosition = Position(
+                hitPosition.x,
+                hitPosition.y,
+                hitPosition.z)
+            if effect then
+                local hitDistance = stepDistance * bestHitT
+                projectile.pulseDistance = math.max(0,
+                    (projectile.pulseDistance or 0) - stepDistance + hitDistance)
+                effect.pos = Position(hitPosition.x, hitPosition.y, hitPosition.z)
+                effect.dist = projectile.pulseDistance
+            end
+            -- Damage the contact actually struck.
+            local impactHealth = bestHitEntity
+                and bestHitEntity:get(require("Modules.Core.Components").Health)
+            if impactHealth then
+                self:applyDamage(component, impactHealth)
+                state.lastImpact = {
+                    shotSerial = projectile.shotSerial,
+                    mountId = projectile.mountId,
+                    position = hitPosition,
+                }
+                if impactHealth:isDestroyed() then
+                    Log.Info("WeaponSystem projectile destroyed target entity "
+                        .. tostring(bestHitEntity and bestHitEntity.id or "?"))
+                end
+                targetDestroyed = impactHealth:isDestroyed() or targetDestroyed
+            end
+            if not self:beginDissipation(projectile) then
+                state:removeProjectile(index)
+            end
+            goto continue
         end
 
         component.remainingLifetime = component.remainingLifetime - dt
@@ -315,8 +366,12 @@ end
 ---@return boolean
 function ProjectileSystem:applyImpact(state, projectile, hit, deferTargetDestroyed)
     assert(state and projectile and projectile.component and hit and hit.position)
-    local health = state.targetHealth
-    if not self:applyDamage(projectile.component, health) then
+    local component = projectile.component
+    local health = component.targetEntity
+        and component.targetEntity.isValid
+        and component.targetEntity:isValid()
+        and component.targetEntity:get(require("Modules.Core.Components").Health)
+    if not health or not self:applyDamage(projectile.component, health) then
         return false
     end
 

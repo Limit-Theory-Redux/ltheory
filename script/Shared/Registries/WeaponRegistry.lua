@@ -1,3 +1,5 @@
+local ProceduralCatalog = require("Shared.Content.ProceduralCatalog")
+
 ---@class WeaponDefinition
 ---@field id integer
 ---@field name string
@@ -42,6 +44,21 @@ function WeaponRegistry:new(id, definition)
     self._definitions[id] = definition
     table.insert(self._order, id)
     return definition
+end
+
+---@param weaponId integer|nil
+---@param weaponRef table|nil
+---@return WeaponDefinition|nil
+function WeaponRegistry:resolveIdentity(weaponId, weaponRef)
+    if weaponRef and (weaponRef.kind == Enums.Weapon.IdentityKind.Procedural
+            or weaponRef.canonicalKey)
+    then
+        return ProceduralCatalog:resolve(weaponRef)
+    end
+    if weaponId ~= nil then
+        return self:get(weaponId)
+    end
+    return nil
 end
 
 ---@param id integer

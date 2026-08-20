@@ -10,7 +10,12 @@ local WeaponRegistry = require("Shared.Registries.WeaponRegistry")
 ---@field cooldown number
 ---@field interShotGap number
 ---@field capacitorCost number
+---@field capacitorGroup integer|string|nil
+---@field launcherFamilyId integer|string|nil
 ---@field turretScale number
+---@field mountSizeClass string|nil
+---@field supportedSizeClasses table|nil
+---@field combatRole string|nil
 ---@field laserProfileId integer|nil
 ---@field laserProfile LaserProfileDefinition|nil
 ---@field accuracy table

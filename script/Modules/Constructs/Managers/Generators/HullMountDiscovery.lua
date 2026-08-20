@@ -4,9 +4,34 @@ local HullMountDiscovery = Class("HullMountDiscovery", function() end)
 
 local DEFAULT_NORMAL = Vec3f(0, 1, 0)
 local DEFAULT_FACING = Vec3f(0, 0, 1)
+local MountSide = Enums.Weapon.MountSide
+local MountZone = Enums.Weapon.MountZone
+local MountSurfaceBand = Enums.Weapon.MountSurfaceBand
 
 local function copyVec3(value)
     return Vec3f(value.x, value.y, value.z)
+end
+
+local function normalForSpec(spec)
+    if spec.normal then
+        return spec.normal
+    end
+
+    local surfaceBand = spec.surfaceBand or MountSurfaceBand.Dorsal
+    if surfaceBand == MountSurfaceBand.Ventral
+        or surfaceBand == MountSurfaceBand.Bottom
+        or surfaceBand == MountSurfaceBand.Underside
+    then
+        return Vec3f(0, -1, 0)
+    end
+    if surfaceBand == MountSurfaceBand.Side then
+        if spec.side == MountSide.Port then
+            return Vec3f(-1, 0, 0)
+        elseif spec.side == MountSide.Starboard then
+            return Vec3f(1, 0, 0)
+        end
+    end
+    return DEFAULT_NORMAL
 end
 
 local function distanceSquared(a, b)
@@ -85,26 +110,48 @@ local function findMirroredSurfaceCandidate(portCandidate, starboardCandidates, 
     return nil
 end
 
-local function inZone(position, center, radius, zone)
-    local normalizedZ = (position.z - center.z) / radius
+local function inZone(position, center, longitudinalRadius, zone)
+    local normalizedZ = (position.z - center.z) / longitudinalRadius
 
-    if zone == "fore" then
+    if zone == MountZone.Fore then
         return normalizedZ >= 0.15
-    elseif zone == "aft" then
+    elseif zone == MountZone.Aft then
         return normalizedZ <= -0.15
-    elseif zone == "mid" then
+    elseif zone == MountZone.Mid then
         return math.abs(normalizedZ) <= 0.35
     end
 
     return true
 end
 
-local function onSide(position, center, radius, side)
-    local normalizedX = (position.x - center.x) / radius
+local function longitudinalRadiusForMesh(mesh)
+    local minimumZ = math.huge
+    local maximumZ = -math.huge
+    for index = 0, mesh:getVertexCount() - 1 do
+        local vertex = mesh:getVertex(index)
+        minimumZ = math.min(minimumZ, vertex.pz)
+        maximumZ = math.max(maximumZ, vertex.pz)
+    end
+    return math.max((maximumZ - minimumZ) * 0.5, 0.0001)
+end
 
-    if side == "port" then
+local function transverseRadiusForMesh(mesh)
+    local minimumX = math.huge
+    local maximumX = -math.huge
+    for index = 0, mesh:getVertexCount() - 1 do
+        local vertex = mesh:getVertex(index)
+        minimumX = math.min(minimumX, vertex.px)
+        maximumX = math.max(maximumX, vertex.px)
+    end
+    return math.max((maximumX - minimumX) * 0.5, 0.0001)
+end
+
+local function onSide(position, center, transverseRadius, side)
+    local normalizedX = (position.x - center.x) / transverseRadius
+
+    if side == MountSide.Port then
         return normalizedX <= -0.08
-    elseif side == "starboard" then
+    elseif side == MountSide.Starboard then
         return normalizedX >= 0.08
     end
 
@@ -112,9 +159,9 @@ local function onSide(position, center, radius, side)
 end
 
 local function onStrictSide(position, center, side)
-    if side == "port" then
+    if side == MountSide.Port then
         return position.x < center.x
-    elseif side == "starboard" then
+    elseif side == MountSide.Starboard then
         return position.x > center.x
     end
 
@@ -184,27 +231,256 @@ local function collectSurfaceCandidates(mesh, desiredNormal, minNormalDot)
     return candidates
 end
 
+local function findStructuralSocket(structuralSockets, spec, strict)
+    if type(structuralSockets) ~= "table" then
+        return nil
+    end
+    local requestedSocketId = spec.socketId
+    if strict and not requestedSocketId and spec.pairId then
+        requestedSocketId = spec.pairId .. "_" .. tostring(spec.side)
+    end
+    for _, socket in ipairs(structuralSockets) do
+        local sameIdentity
+        if strict then
+            sameIdentity = requestedSocketId ~= nil
+                and socket.socketId == requestedSocketId
+        else
+            sameIdentity = (spec.socketId ~= nil
+                    and socket.socketId == spec.socketId)
+                or (spec.pairId ~= nil
+                    and socket.socketId == spec.pairId)
+                or (spec.pairId ~= nil
+                    and socket.pairId == spec.pairId)
+        end
+        if sameIdentity and socket.side == spec.side then
+            return socket
+        end
+    end
+    return nil
+end
+
+local function validateStructuralSocketRecords(structuralSockets)
+    assert(type(structuralSockets) == "table",
+        "strict structural discovery requires structural socket records")
+    local socketIds = {}
+    local pairSides = {}
+    for index, socket in ipairs(structuralSockets) do
+        assert(type(socket) == "table",
+            "strict structural socket record " .. tostring(index) .. " must be a table")
+        assert(type(socket.socketId) == "string" and #socket.socketId > 0,
+            "strict structural socket record " .. tostring(index)
+                .. " requires a non-empty socketId")
+        assert(not socketIds[socket.socketId],
+            "strict structural socket records must not duplicate socketId " .. socket.socketId)
+        socketIds[socket.socketId] = true
+        assert(socket.side == MountSide.Port or socket.side == MountSide.Starboard,
+            "strict structural socket record " .. tostring(index)
+                .. " requires a port or starboard side")
+        if socket.pairId ~= nil then
+            local pairSide = tostring(socket.pairId) .. "|" .. socket.side
+            assert(not pairSides[pairSide],
+                "strict structural socket records must not duplicate pair side " .. pairSide)
+            pairSides[pairSide] = true
+        end
+    end
+end
+
+local function validatePairSpecifications(mountSpecs, requireStructuralSockets)
+    local membersByPair = {}
+    for index, spec in ipairs(mountSpecs) do
+        if requireStructuralSockets then
+            assert((type(spec.socketId) == "string" and #spec.socketId > 0)
+                or (type(spec.pairId) == "string" and #spec.pairId > 0),
+                "strict structural hull mount " .. tostring(spec.mountId)
+                    .. " requires a non-empty socketId or pairId")
+            assert(spec.side == MountSide.Port or spec.side == MountSide.Starboard,
+                "strict structural hull mount " .. tostring(spec.mountId)
+                    .. " requires a port or starboard side")
+        end
+        if spec.pairId then
+            assert(spec.side == MountSide.Port or spec.side == MountSide.Starboard,
+                "paired hull mount " .. tostring(spec.pairId)
+                    .. " requires a port or starboard side")
+            local members = membersByPair[spec.pairId]
+            if not members then
+                members = {}
+                membersByPair[spec.pairId] = members
+            end
+            table.insert(members, { index = index, spec = spec })
+        end
+    end
+
+    local pairIndexByIndex = {}
+    for pairId, members in pairs(membersByPair) do
+        assert(#members == 2,
+            "paired hull mount " .. tostring(pairId)
+                .. " requires exactly one port and one starboard specification")
+        local first = members[1]
+        local second = members[2]
+        local port = first.spec.side == MountSide.Port and first or second
+        local starboard = first.spec.side == MountSide.Starboard and first or second
+        assert(port.spec.side == MountSide.Port and starboard.spec.side == MountSide.Starboard,
+            "paired hull mount " .. tostring(pairId)
+                .. " requires one port and one starboard specification")
+        assert(port.spec.zone == starboard.spec.zone,
+            "paired hull mount " .. tostring(pairId)
+                .. " must use the same requested zone on both sides")
+        if requireStructuralSockets then
+            assert(port.spec.zone ~= nil,
+                "strict paired hull mount " .. tostring(pairId)
+                    .. " requires a requested zone")
+            assert(port.spec.surfaceBand ~= nil and starboard.spec.surfaceBand ~= nil,
+                "strict paired hull mount " .. tostring(pairId)
+                    .. " requires a surface band on both sides")
+            assert(port.spec.surfaceBand == starboard.spec.surfaceBand,
+                "strict paired hull mount " .. tostring(pairId)
+                    .. " must use the same requested surface band on both sides")
+        else
+            assert(port.spec.surfaceBand == nil
+                or starboard.spec.surfaceBand == nil
+                or port.spec.surfaceBand == starboard.spec.surfaceBand,
+                "paired hull mount " .. tostring(pairId)
+                    .. " must use the same requested surface band on both sides")
+        end
+        pairIndexByIndex[port.index] = starboard.index
+        pairIndexByIndex[starboard.index] = port.index
+    end
+    return pairIndexByIndex
+end
+
+local function assertStructuralSocketContract(socket, spec, label, strict)
+    local identity = spec.socketId
+    if not identity and spec.pairId then
+        identity = spec.pairId .. "_" .. tostring(spec.side)
+    end
+    if not strict then
+        assert(socket.side == spec.side,
+            "structural " .. label .. " socket must match requested side for " .. tostring(identity))
+        return
+    end
+    if spec.pairId then
+        assert(socket.pairId == spec.pairId,
+            "structural " .. label .. " socket must share pairId " .. tostring(spec.pairId))
+    else
+        assert(socket.socketId == spec.socketId,
+            "structural " .. label .. " socket must match socketId " .. tostring(spec.socketId))
+    end
+    assert(socket.side == spec.side,
+        "structural " .. label .. " socket must match requested side for " .. tostring(identity))
+    assert(socket.socketId == identity,
+        "strict structural " .. label .. " socket must match socketId " .. tostring(identity))
+    assert(spec.zone ~= nil and socket.zone ~= nil and socket.zone == spec.zone,
+        "strict structural " .. label .. " socket must match requested zone for " .. tostring(identity))
+    assert(spec.surfaceBand ~= nil and socket.surfaceBand ~= nil
+        and socket.surfaceBand == spec.surfaceBand,
+        "strict structural " .. label .. " socket must match requested surface band for " .. tostring(identity))
+end
+
+local function assertStructuralSocketGeometry(
+    socket,
+    label,
+    minimumFootprintRadius,
+    minimumForwardClearance,
+    strict)
+    if strict then
+        assert(type(socket.footprintRadius) == "number"
+                and socket.footprintRadius >= minimumFootprintRadius,
+            "strict structural " .. label .. " socket requires sufficient footprint")
+        assert(type(socket.forwardClearance) == "number"
+                and socket.forwardClearance >= minimumForwardClearance,
+            "strict structural " .. label .. " socket requires sufficient clearance")
+    else
+        assert(socket.footprintRadius == nil
+                or socket.footprintRadius >= minimumFootprintRadius,
+            "structural " .. label .. " socket has insufficient footprint")
+        assert(socket.forwardClearance == nil
+                or socket.forwardClearance >= minimumForwardClearance,
+            "structural " .. label .. " socket has insufficient clearance")
+    end
+end
+
+local function findSocketCandidate(socket, candidates, tolerance)
+    if not socket or not socket.localPosition then
+        return nil
+    end
+    for _, candidate in ipairs(candidates) do
+        if pointOnTriangle(socket.localPosition, candidate.triangle, tolerance) then
+            return {
+                position = copyVec3(socket.localPosition),
+                surfaceNormal = copyVec3(candidate.surfaceNormal),
+                triangle = candidate.triangle,
+                footprintRadius = socket.footprintRadius,
+                forwardClearance = socket.forwardClearance,
+                socketId = socket.socketId,
+            }
+        end
+    end
+    return nil
+end
+
+local function deriveMountSpecs(structuralSockets)
+    assert(type(structuralSockets) == "table" and #structuralSockets > 0,
+        "mount discovery requires structural sockets when no mount specs are supplied")
+    local mountSpecs = {}
+    for index, socket in ipairs(structuralSockets) do
+        assert(type(socket.socketId) == "string" and #socket.socketId > 0,
+            "structural socket " .. tostring(index) .. " requires a socketId")
+        mountSpecs[index] = {
+            mountId = socket.socketId,
+            socketId = socket.socketId,
+            pairId = socket.pairId,
+            zone = socket.zone,
+            side = socket.side,
+            surfaceBand = socket.surfaceBand,
+            normal = socket.surfaceNormal,
+            mountSizeClass = socket.mountSizeClass,
+            allowedSizeClasses = socket.allowedSizeClasses,
+            mountRole = socket.mountRole,
+            arc = socket.arc,
+            facing = socket.facing,
+            localRotation = socket.localRotation,
+        }
+    end
+    return mountSpecs
+end
+
 ---@param mesh Mesh Generated hull mesh in local coordinates
 ---@param seed integer Deterministic discovery seed
 ---@param mountSpecs table[] Ordered mount descriptors: {mountId, zone, side, normal?, facing?}
----@param options table|nil {maxAttempts, minSpacing, minNormalDot}
+---@param options table|nil {maxAttempts, minSpacing, minNormalDot, structuralSockets, requireStructuralSockets, enforceZoneSide}
 ---@return table[] mounts
 function HullMountDiscovery:discover(mesh, seed, mountSpecs, options)
     assert(mesh, "hull mount discovery requires a generated mesh")
-    assert(type(seed) == "number", "hull mount discovery requires a numeric seed")
-    assert(type(mountSpecs) == "table" and #mountSpecs > 0,
-        "hull mount discovery requires ordered mount specifications")
+    assert(seed ~= nil, "hull mount discovery requires a seed")
 
     options = options or {}
+    if type(mountSpecs) ~= "table" or #mountSpecs == 0 then
+        mountSpecs = deriveMountSpecs(options.structuralSockets)
+    end
+    assert(#mountSpecs > 0,
+        "hull mount discovery requires ordered mount specifications")
     local maxAttempts = options.maxAttempts or 256
     local minNormalDot = options.minNormalDot or 0.35
     local center = mesh:getCenter()
-    local radius = math.max(mesh:getRadius(), 0.0001)
-    local minSpacing = options.minSpacing or math.max(radius * 0.08, 0.05)
+    local transverseRadius = transverseRadiusForMesh(mesh)
+    local longitudinalRadius = longitudinalRadiusForMesh(mesh)
+    local minimumFootprintRadius = options.minimumFootprintRadius or 0.025
+    local minSpacing = options.minSpacing or math.max(
+        transverseRadius * 0.08,
+        minimumFootprintRadius * 2,
+        0.05)
     local minSpacingSquared = minSpacing * minSpacing
     local mirrorTolerance = options.mirrorTolerance or 0.0001
+    local socketTolerance = options.socketTolerance or 0.001
+    local minimumForwardClearance = options.minimumForwardClearance or 0.05
+    local enforceZoneSide = options.enforceZoneSide ~= false
+    local requireStructuralSockets = options.requireStructuralSockets == true
     local rng = RNG.Create(seed)
     local mounts = {}
+    if requireStructuralSockets then
+        validateStructuralSocketRecords(options.structuralSockets)
+    end
+    local pairIndexByIndex = validatePairSpecifications(mountSpecs, requireStructuralSockets)
 
     local function isSeparated(position)
         for _, previous in pairs(mounts) do
@@ -229,6 +505,15 @@ function HullMountDiscovery:discover(mesh, seed, mountSpecs, options)
                 or Quat.FromLookUp(facing, candidate.surfaceNormal),
             zone = spec.zone,
             side = spec.side,
+            pairId = spec.pairId,
+            socketId = candidate.socketId or spec.socketId or spec.pairId,
+            mountSizeClass = spec.mountSizeClass,
+            allowedSizeClasses = spec.allowedSizeClasses,
+            mountRole = spec.mountRole,
+            surfaceBand = spec.surfaceBand,
+            arc = spec.arc,
+            footprintRadius = candidate.footprintRadius,
+            forwardClearance = candidate.forwardClearance,
             zoneMatch = zoneMatch,
             sideMatch = sideMatch,
         }
@@ -238,15 +523,7 @@ function HullMountDiscovery:discover(mesh, seed, mountSpecs, options)
         if not spec.pairId then
             return nil
         end
-        for otherIndex, otherSpec in ipairs(mountSpecs) do
-            if otherIndex ~= index
-                and otherSpec.pairId == spec.pairId
-                and otherSpec.side ~= spec.side
-            then
-                return otherIndex
-            end
-        end
-        return nil
+        return pairIndexByIndex[index]
     end
 
     local function findUnpairedCandidate(spec, candidates)
@@ -258,8 +535,8 @@ function HullMountDiscovery:discover(mesh, seed, mountSpecs, options)
         for offset = 0, math.min(maxAttempts, #candidates) - 1 do
             local candidate = candidates[((start + offset - 1) % #candidates) + 1]
             if isSeparated(candidate.position) then
-                local matchesZone = inZone(candidate.position, center, radius, spec.zone)
-                local matchesSide = onSide(candidate.position, center, radius, spec.side)
+                local matchesZone = inZone(candidate.position, center, longitudinalRadius, spec.zone)
+                local matchesSide = onSide(candidate.position, center, transverseRadius, spec.side)
                 local score = (matchesSide and 4 or 0) + (matchesZone and 2 or 0)
                 if score > bestScore then
                     bestScore = score
@@ -284,23 +561,101 @@ function HullMountDiscovery:discover(mesh, seed, mountSpecs, options)
                 assert(pairSpec.pairId == spec.pairId,
                     "paired hull mount specifications must share a pairId")
 
-                local portIndex = spec.side == "port" and index or pairIndex
-                local starboardIndex = spec.side == "starboard" and index or pairIndex
+                local portIndex = spec.side == MountSide.Port and index or pairIndex
+                local starboardIndex = spec.side == MountSide.Starboard and index or pairIndex
                 local portSpec = mountSpecs[portIndex]
                 local starboardSpec = mountSpecs[starboardIndex]
-                assert(portSpec.side == "port" and starboardSpec.side == "starboard",
+                assert(portSpec.side == MountSide.Port
+                    and starboardSpec.side == MountSide.Starboard,
                     "paired hull mounts must contain one port and one starboard side")
 
                 local portCandidates = collectSurfaceCandidates(
                     mesh,
-                    portSpec.normal or DEFAULT_NORMAL,
+                    normalForSpec(portSpec),
                     minNormalDot)
                 local starboardCandidates = collectSurfaceCandidates(
                     mesh,
-                    starboardSpec.normal or DEFAULT_NORMAL,
+                    normalForSpec(starboardSpec),
                     minNormalDot)
                 assert(#portCandidates > 0 and #starboardCandidates > 0,
                     "paired hull discovery requires candidates on both sides")
+
+                local portSocket = findStructuralSocket(
+                    options.structuralSockets,
+                    portSpec,
+                    requireStructuralSockets)
+                local starboardSocket = findStructuralSocket(
+                    options.structuralSockets,
+                    starboardSpec,
+                    requireStructuralSockets)
+                if requireStructuralSockets then
+                    assert(portSocket and starboardSocket,
+                        "strict structural hull mount pair " .. tostring(spec.pairId)
+                            .. " requires both port and starboard sockets")
+                elseif portSocket or starboardSocket then
+                    assert(portSocket and starboardSocket,
+                        "structural hull mount pair " .. tostring(spec.pairId)
+                            .. " requires both port and starboard sockets")
+                end
+                if portSocket and starboardSocket then
+                    assertStructuralSocketContract(
+                        portSocket,
+                        portSpec,
+                        "port",
+                        requireStructuralSockets)
+                    assertStructuralSocketContract(
+                        starboardSocket,
+                        starboardSpec,
+                        "starboard",
+                        requireStructuralSockets)
+                    assert(portSocket.pairId == starboardSocket.pairId,
+                        "structural hull mount pair sockets must share a pairId")
+                    assert(portSocket.surfaceBand == nil
+                        or starboardSocket.surfaceBand == nil
+                        or portSocket.surfaceBand == starboardSocket.surfaceBand,
+                        "structural hull mount pair sockets must share a surface band")
+                    assertStructuralSocketGeometry(
+                        portSocket,
+                        "port",
+                        minimumFootprintRadius,
+                        minimumForwardClearance,
+                        requireStructuralSockets)
+                    assertStructuralSocketGeometry(
+                        starboardSocket,
+                        "starboard",
+                        minimumFootprintRadius,
+                        minimumForwardClearance,
+                        requireStructuralSockets)
+                    if requireStructuralSockets then
+                        assert(math.abs(portSocket.footprintRadius - starboardSocket.footprintRadius)
+                                <= mirrorTolerance,
+                            "strict structural pair sockets must share footprint metadata")
+                        assert(math.abs(portSocket.forwardClearance - starboardSocket.forwardClearance)
+                                <= mirrorTolerance,
+                            "strict structural pair sockets must share clearance metadata")
+                    end
+                    local structuralPortCandidate = findSocketCandidate(
+                        portSocket,
+                        portCandidates,
+                        socketTolerance)
+                    local structuralStarboardCandidate = findSocketCandidate(
+                        starboardSocket,
+                        starboardCandidates,
+                        socketTolerance)
+                    assert(structuralPortCandidate and structuralStarboardCandidate,
+                        "structural hull mount sockets are not attached to matching mesh triangles: "
+                            .. tostring(spec.pairId))
+                    local mirroredSocketPosition = mirrorAcrossX(
+                        structuralPortCandidate.position,
+                        center)
+                    assert(distanceSquared(
+                            mirroredSocketPosition,
+                            structuralStarboardCandidate.position)
+                            <= mirrorTolerance * mirrorTolerance,
+                        "structural hull mount sockets are not mirrored: " .. tostring(spec.pairId))
+                    portCandidates = { structuralPortCandidate }
+                    starboardCandidates = { structuralStarboardCandidate }
+                end
 
                 local start = rng:getInt(1, #portCandidates)
                 local foundPort = nil
@@ -312,8 +667,12 @@ function HullMountDiscovery:discover(mesh, seed, mountSpecs, options)
                 local bestScore = -math.huge
                 for offset = 0, #portCandidates - 1 do
                     local portCandidate = portCandidates[((start + offset - 1) % #portCandidates) + 1]
-                    local portZoneMatch = inZone(portCandidate.position, center, radius, portSpec.zone)
-                    local portSideMatch = onSide(portCandidate.position, center, radius, portSpec.side)
+                    local portZoneMatch = inZone(
+                        portCandidate.position,
+                        center,
+                        longitudinalRadius,
+                        portSpec.zone)
+                    local portSideMatch = onSide(portCandidate.position, center, transverseRadius, portSpec.side)
                     if isSeparated(portCandidate.position)
                         and onStrictSide(portCandidate.position, center, portSpec.side)
                     then
@@ -327,16 +686,19 @@ function HullMountDiscovery:discover(mesh, seed, mountSpecs, options)
                             local starboardMountCandidate = {
                                 position = copyVec3(mirroredPosition),
                                 surfaceNormal = copyVec3(starboardCandidate.surfaceNormal),
+                                footprintRadius = starboardCandidate.footprintRadius,
+                                forwardClearance = starboardCandidate.forwardClearance,
+                                socketId = starboardCandidate.socketId,
                             }
                             local starboardZoneMatch = inZone(
                                 starboardMountCandidate.position,
                                 center,
-                                radius,
+                                longitudinalRadius,
                                 starboardSpec.zone)
                             local starboardSideMatch = onSide(
                                 starboardMountCandidate.position,
                                 center,
-                                radius,
+                                transverseRadius,
                                 starboardSpec.side)
                             if onStrictSide(
                                     starboardMountCandidate.position,
@@ -374,12 +736,22 @@ function HullMountDiscovery:discover(mesh, seed, mountSpecs, options)
                         mirrorTolerance,
                         #portCandidates,
                         #starboardCandidates))
-                assert(foundPortZoneMatch and foundStarboardZoneMatch,
-                    "mirrored hull mount pair " .. tostring(spec.pairId)
-                        .. " does not satisfy its requested zone")
-                assert(foundPortSideMatch and foundStarboardSideMatch,
-                    "mirrored hull mount pair " .. tostring(spec.pairId)
-                        .. " does not satisfy its requested side")
+                if enforceZoneSide then
+                    assert(foundPortZoneMatch and foundStarboardZoneMatch,
+                        string.format(
+                            "mirrored hull mount pair %s does not satisfy its requested zone "
+                                .. "(port=%s starboard=%s portZ=%.6f starboardZ=%.6f centerZ=%.6f transverseRadius=%.6f)",
+                            tostring(spec.pairId),
+                            tostring(foundPortZoneMatch),
+                            tostring(foundStarboardZoneMatch),
+                            foundPort.position.z,
+                            foundStarboard.position.z,
+                            center.z,
+                            transverseRadius))
+                    assert(foundPortSideMatch and foundStarboardSideMatch,
+                        "mirrored hull mount pair " .. tostring(spec.pairId)
+                            .. " does not satisfy its requested side")
+                end
 
                 mounts[portIndex] = createMount(
                     portSpec,
@@ -396,11 +768,48 @@ function HullMountDiscovery:discover(mesh, seed, mountSpecs, options)
             else
                 local candidates = collectSurfaceCandidates(
                     mesh,
-                    spec.normal or DEFAULT_NORMAL,
+                    normalForSpec(spec),
                     minNormalDot)
                 assert(#candidates > 0,
                     string.format("hull mesh has no surface candidates for mount %s", spec.mountId))
-                local found, foundZoneMatch, foundSideMatch = findUnpairedCandidate(spec, candidates)
+
+                local structuralSocket = findStructuralSocket(
+                    options.structuralSockets,
+                    spec,
+                    requireStructuralSockets)
+                if requireStructuralSockets then
+                    assert(structuralSocket,
+                        "strict structural hull mount " .. tostring(spec.mountId)
+                            .. " requires its declared structural socket")
+                end
+                local found
+                local foundZoneMatch
+                local foundSideMatch
+                if structuralSocket then
+                    assertStructuralSocketContract(
+                        structuralSocket,
+                        spec,
+                        "unpaired",
+                        requireStructuralSockets)
+                    assertStructuralSocketGeometry(
+                        structuralSocket,
+                        "unpaired",
+                        minimumFootprintRadius,
+                        minimumForwardClearance,
+                        requireStructuralSockets)
+                    found = findSocketCandidate(structuralSocket, candidates, socketTolerance)
+                    assert(found,
+                        "structural hull mount socket is not attached to a matching mesh triangle: "
+                            .. tostring(spec.mountId))
+                    foundZoneMatch = inZone(
+                        found.position,
+                        center,
+                        longitudinalRadius,
+                        spec.zone)
+                    foundSideMatch = onSide(found.position, center, transverseRadius, spec.side)
+                else
+                    found, foundZoneMatch, foundSideMatch = findUnpairedCandidate(spec, candidates)
+                end
 
                 assert(found,
                     string.format(
@@ -409,9 +818,11 @@ function HullMountDiscovery:discover(mesh, seed, mountSpecs, options)
                         tostring(spec.zone),
                         tostring(spec.side),
                         seed))
-                assert(foundZoneMatch and foundSideMatch,
-                    "unable to discover hull mount " .. spec.mountId
-                        .. " with a matching zone/side candidate")
+                if enforceZoneSide then
+                    assert(foundZoneMatch and foundSideMatch,
+                        "unable to discover hull mount " .. spec.mountId
+                            .. " with a matching zone/side candidate")
+                end
 
                 mounts[index] = createMount(spec, found, foundZoneMatch, foundSideMatch)
                 processed[index] = true

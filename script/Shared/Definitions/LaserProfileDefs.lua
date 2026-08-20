@@ -17,7 +17,7 @@ LaserProfileDefinition {
         kind = Enums.Weapon.Visual.Beam,
         bodyColor = Color(2.2, 0.04, 0.02, 1.0),
         lightColor = Color(4.0, 0.08, 0.04, 1.0),
-        beamWidth = 0.008,
+        beamWidth = 0.002,
         lightRadius = 0.0,
         lightIntensity = 0.18,
         firingLight = {
@@ -44,7 +44,7 @@ LaserProfileDefinition {
         kind = Enums.Weapon.Visual.Beam,
         bodyColor = Color(0.03, 2.2, 0.04, 1.0),
         lightColor = Color(0.06, 4.2, 0.08, 1.0),
-        beamWidth = 0.0075,
+        beamWidth = 0.001875,
         lightRadius = 0.0,
         lightIntensity = 0.19,
         firingLight = {
@@ -71,7 +71,7 @@ LaserProfileDefinition {
         kind = Enums.Weapon.Visual.Beam,
         bodyColor = Color(0.02, 0.20, 2.3, 1.0),
         lightColor = Color(0.04, 0.40, 4.4, 1.0),
-        beamWidth = 0.007,
+        beamWidth = 0.00175,
         lightRadius = 0.0,
         lightIntensity = 0.20,
         firingLight = {
@@ -98,7 +98,7 @@ LaserProfileDefinition {
         kind = Enums.Weapon.Visual.Beam,
         bodyColor = Color(0.45, 0.04, 2.5, 1.0),
         lightColor = Color(0.90, 0.08, 4.8, 1.0),
-        beamWidth = 0.0065,
+        beamWidth = 0.001625,
         lightRadius = 0.0,
         lightIntensity = 0.21,
         firingLight = {
