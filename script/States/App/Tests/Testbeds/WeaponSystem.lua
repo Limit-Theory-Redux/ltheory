@@ -970,15 +970,6 @@ function WeaponSystemTestbed:onTargetDestroyed(destroyedEntity)
         if matches then
             removedLabel = target.label
             Log.Info("WeaponSystem contact destroyed: " .. target.label)
-            -- Drop the dead contact's motion track so long sessions don't
-            -- accumulate stale track tables (unbounded heap growth).
-            if self.contactTrackKeys and self.contactTracks then
-                local key = self.contactTrackKeys[target.body]
-                if key then
-                    self.contactTracks[key] = nil
-                    self.contactTrackKeys[target.body] = nil
-                end
-            end
             self.constructManager:destroy(target.handle)
             table.remove(self.targets, index)
             self.respawnQueue[#self.respawnQueue + 1] =
@@ -1093,11 +1084,6 @@ function WeaponSystemTestbed:spawnDestroyedContact()
         sizeClass = config.sizeClass or Enums.Target.SizeClass.Small,
     })
     self.targetGeneration = (self.targetGeneration or 0) + 1
-    -- Respawned contacts carry the same targeting metadata as initial ones;
-    -- omitting surface/seed silently degrades per-mount aiming after the
-    -- first destruction wave.
-    local surface = WeaponSystem:buildTargetSurface(
-        handle.shipData:getGeneratedMesh())
     table.insert(self.targets, {
         handle = handle,
         entity = handle.root,
@@ -1105,8 +1091,6 @@ function WeaponSystemTestbed:spawnDestroyedContact()
         health = handle.root:get(CoreComponents.Health),
         sizeClass = config.sizeClass or Enums.Target.SizeClass.Small,
         label = config.label or ("contact" .. self.contactCursor),
-        surface = surface,
-        targetPointSeed = self.targetSeedRng and self.targetSeedRng:getUniform() or nil,
         orbitRadius = orbitRadius,
         orbitSpeed = config.orbitSpeed or 0.15,
         phase = phase,
@@ -1623,10 +1607,17 @@ function WeaponSystemTestbed:onPreSim(data)
                     self.focusTargetEntity)
                 if not chosen then
                     -- Nothing in range: track nearest so the turret stays useful.
-                    chosen = WeaponSystem:selectNearestTarget(
-                        mount.body:getPos(),
-                        self.targetCandidates,
-                        math.huge)
+                    local bestDistance = math.huge
+                    for _, contact in ipairs(self.targetCandidates) do
+                        local dx = contact.position.x - mount.body:getPos().x
+                        local dy = contact.position.y - mount.body:getPos().y
+                        local dz = contact.position.z - mount.body:getPos().z
+                        local d = math.sqrt(dx*dx + dy*dy + dz*dz)
+                        if d < bestDistance then
+                            bestDistance = d
+                            chosen = contact
+                        end
+                    end
                 end
                 if chosen then
                     assigned[mountId] = chosen
@@ -1634,13 +1625,7 @@ function WeaponSystemTestbed:onPreSim(data)
                 end
             end
         end
-                -- Publish per-mount engagement: this is what tracking/spawn read.
-        self.mountTargetByMount = {}
-        for mountId, contact in pairs(assigned) do
-            self.mountTargetByMount[mountId] = contact.body
-        end
-
--- Resolve per-mount surfaces + point seeds from the contact records.
+        -- Resolve per-mount surfaces + point seeds from the contact records.
         self.mountSurfaces = {}
         self.mountTargetPointSeeds = {}
         for mountId, contactBody in pairs(self.mountTargetByMount) do
@@ -1731,11 +1716,7 @@ function WeaponSystemTestbed:onSim(data)
     if not self.lastTargetPoint and self.weaponTargetBody then
         self.lastTargetPoint = { position = self.weaponTargetBody:getPos(), triangleIndex = -1 }
     end
-    -- Health diagnostics at 1 Hz, not per-tick: per-frame formatting and
-    -- logging can dominate the testbed's frame budget.
-    self.healthLogTime = (self.healthLogTime or 0) + dt
-    if self.healthLogTime >= 1.0 then
-        self.healthLogTime = 0
+    do
         local healthSummary = {}
         for _, target in ipairs(self.targets) do
             if target.entity:isValid() and not target.health:isDestroyed() then
