@@ -53,6 +53,20 @@ function TargetGenerator:create(seed, config)
         config.team or "debug",
         config.sizeClass or Enums.Target.SizeClass.Small))
 
+    local maxShield = config.maxShield
+        or (config.stats and config.stats.defense and config.stats.defense.maxShield)
+        or 0
+    local shieldRegen = config.shieldRegen
+        or (config.stats and config.stats.defense and config.stats.defense.shieldRegen)
+        or 0
+    if maxShield > 0 then
+        entity:add(ConstructComponents.Defense(
+            config.maxHealth or 500,
+            maxShield,
+            0,
+            shieldRegen))
+    end
+
     local bodyComponent = entity:get(PhysicsComponents.RigidBody)
     local body = bodyComponent and bodyComponent:getRigidBody()
     local health = entity:get(require("Modules.Core.Components").Health)

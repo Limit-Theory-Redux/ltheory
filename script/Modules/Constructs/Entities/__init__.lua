@@ -5,6 +5,7 @@ return {
     DebugTarget = require('Modules.Constructs.Entities.DebugTargetEntity'),
     Projectile = require('Modules.Constructs.Entities.ProjectileEntity'),
     Beam = require('Modules.Constructs.Entities.BeamEntity'),
-    PointLightEffect = require('Modules.Constructs.Entities.PointLightEffectEntity'),
+        ImpactEffect = require('Modules.Constructs.Entities.ImpactEffectEntity'),
+PointLightEffect = require('Modules.Constructs.Entities.PointLightEffectEntity'),
 
 }

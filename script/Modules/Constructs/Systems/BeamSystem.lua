@@ -292,8 +292,26 @@ function BeamSystem:update(state, dt)
         if targetHealth and not targetHealth:isDestroyed()
             and damageDuration > 0 and hitValidated
         then
-            targetHealth:setCurrentHealth(
-                targetHealth:getCurrentHealth() - component.damagePerSecond * damageDuration)
+            -- Defense shields absorb beam damage first; remainder burns hull.
+            local defense = target and target:get(
+                require("Modules.Constructs.Components").Defense) or nil
+            local rawDamage = component.damagePerSecond * damageDuration
+            local absorbed = 0
+            if defense then
+                absorbed = math.min(defense:getCurrentShield(), rawDamage)
+                defense:setCurrentShield(defense:getCurrentShield() - absorbed)
+            end
+            local hullDamage = rawDamage - absorbed
+            if hullDamage > 0 then
+                targetHealth:setCurrentHealth(targetHealth:getCurrentHealth() - hullDamage)
+            end
+            -- Impact flash keyed by shield vs hull, from the beam def.
+            local tickInterval = component.effect and component.effect.tickInterval
+            if tickInterval and damageDuration >= tickInterval then
+                self:spawnImpactEffect(state, component.effect,
+                    hitPosition or targetPoint or (targetBody and targetBody:getPos()),
+                    defense and absorbed > 0)
+            end
             state.lastBeamImpact = {
                 shotSerial = beam.shotSerial,
                 mountId = beam.mountId,
@@ -319,6 +337,36 @@ function BeamSystem:update(state, dt)
             state:onTargetDestroyed(target)
         end
     end
+end
+
+---Spawn a transient impact light at the hit position. Effect data comes
+---from the beam's visual.impact (hull vs shield variants). Rate-limited by
+---the caller to the beam tick interval.
+---@param state table
+---@param effectDef table Beam effect definition (visual.impact)
+---@param position Position|Vec3f|nil Hit position
+---@param shieldUp boolean|nil True when the target's shield absorbed the hit
+function BeamSystem:spawnImpactEffect(state, effectDef, position, shieldUp)
+    local impact = effectDef and effectDef.visual and effectDef.visual.impact
+    if not impact or not position then
+        return
+    end
+    local preset = (shieldUp and impact.shield) or impact.hull
+    if not preset then
+        return
+    end
+    local ImpactEffectEntity =
+        require("Modules.Constructs.Entities.ImpactEffectEntity")
+    self.impactSerial = (self.impactSerial or 0) + 1
+    local entity = ImpactEffectEntity(self.impactSerial, {
+        position = Position(position.x, position.y, position.z),
+        color = preset.color,
+        intensity = preset.intensity,
+        radius = preset.radius,
+        duration = preset.duration,
+    })
+    state.lightEffects = state.lightEffects or {}
+    table.insert(state.lightEffects, entity)
 end
 
 ---@param beam table

@@ -281,13 +281,8 @@ function ProjectileSystem:update(state, dt)
             then
                 local health = entity:get(CoreComponents.Health)
                 if not health or not health:isDestroyed() then
-                    local okRadius, contactRadius = pcall(function()
-                        local rb = entity:get(PhysicsComponents.RigidBody)
-                        return rb and rb:getRadius() or 0
-                    end)
-                    if not okRadius or type(contactRadius) ~= "number" then
-                        contactRadius = 0
-                    end
+                    local rbComponent = entity:get(PhysicsComponents.RigidBody)
+                    local contactRadius = rbComponent and rbComponent:getRadius() or 0
                     local guidance = component.guidance
                     if guidance and guidance.proximityRadius
                         and component.targetEntity == entity
@@ -296,10 +291,8 @@ function ProjectileSystem:update(state, dt)
                             contactRadius, guidance.proximityRadius)
                     end
                     if contactRadius > 0 then
-                        local bodyComponent =
-                            entity:get(PhysicsComponents.RigidBody)
-                        local contactBody = bodyComponent
-                            and bodyComponent:getRigidBody()
+                        local contactBody = rbComponent
+                            and rbComponent:getRigidBody()
                         if contactBody then
                             local hit = self:segmentSphereHit(
                                 startPosition,
@@ -330,11 +323,26 @@ function ProjectileSystem:update(state, dt)
                 effect.pos = Position(hitPosition.x, hitPosition.y, hitPosition.z)
                 effect.dist = projectile.pulseDistance
             end
-            -- Damage the contact actually struck.
+            -- Damage the contact actually struck; shields absorb first.
             local impactHealth = bestHitEntity
                 and bestHitEntity:get(require("Modules.Core.Components").Health)
             if impactHealth then
-                self:applyDamage(component, impactHealth)
+                local defense = bestHitEntity:get(
+                    require("Modules.Constructs.Components").Defense)
+                local totalDamage = component:getDamage()
+                local absorbed = 0
+                if defense then
+                    absorbed = math.min(defense:getCurrentShield(), totalDamage)
+                    defense:setCurrentShield(defense:getCurrentShield() - absorbed)
+                end
+                local remaining = totalDamage - absorbed
+                if remaining > 0 then
+                    self:applyDamage(component, impactHealth, remaining)
+                end
+                -- Impact effect: shield shimmer vs hull strike,
+                -- data-driven from the projectile visual.impact def.
+                self:spawnImpactEffect(state, component.visual, hitPosition,
+                    defense and absorbed > 0)
                 state.lastImpact = {
                     shotSerial = projectile.shotSerial,
                     mountId = projectile.mountId,
@@ -393,16 +401,59 @@ function ProjectileSystem:applyImpact(state, projectile, hit, deferTargetDestroy
     end
     return true
 end
+---Spawn a transient impact light at the hit position. Effect data comes
+---from the weapon's effect.visual.impact (hull vs shield variants).
+---@param state table
+---@param effectDef table Projectile/beam effect definition (visual.impact)
+---@param position Position|Vec3f Hit position
+---@param shieldUp boolean|nil True when the target's shield absorbed the hit
+function ProjectileSystem:spawnImpactEffect(state, visual, position, shieldUp)
+    local impact = visual and visual.impact
+    self.impactDiagCount = (self.impactDiagCount or 0) + 1
+    if self.impactDiagCount <= 5 then
+        Log.Info(string.format(
+            "impact diag %d: visual=%s impact=%s shieldUp=%s",
+            self.impactDiagCount,
+            tostring(visual ~= nil),
+            tostring(impact ~= nil),
+            tostring(shieldUp)))
+    end
+    if not impact then
+        return
+    end
+    local preset = (shieldUp and impact.shield) or impact.hull
+    if not preset then
+        return
+    end
+    local ImpactEffectEntity =
+        require("Modules.Constructs.Entities.ImpactEffectEntity")
+    self.impactSerial = (self.impactSerial or 0) + 1
+    local entity = ImpactEffectEntity(self.impactSerial, {
+        position = Position(position.x, position.y, position.z),
+        color = preset.color,
+        intensity = preset.intensity,
+        radius = preset.radius,
+        duration = preset.duration,
+    })
+    state.lightEffects = state.lightEffects or {}
+    table.insert(state.lightEffects, entity)
+end
+
 
 ---@param projectile ProjectileComponent
 ---@param health HealthComponent
 ---@return boolean
-function ProjectileSystem:applyDamage(projectile, health)
+---Apply damage to health. `amount` overrides the projectile's own damage
+---(used when a shield absorbed part of the hit).
+function ProjectileSystem:applyDamage(projectile, health, amount)
     if not projectile or not health or health:isDestroyed() then
         return false
     end
-
-    health:setCurrentHealth(health:getCurrentHealth() - projectile:getDamage())
+    local damage = amount or projectile:getDamage()
+    if damage <= 0 then
+        return true
+    end
+    health:setCurrentHealth(health:getCurrentHealth() - damage)
     return true
 end
 

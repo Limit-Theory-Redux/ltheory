@@ -4,13 +4,7 @@ local WeaponMountSizing = require("Shared.Helpers.WeaponMountSizing")
 ---@overload fun(): LoadoutGenerator
 local LoadoutGenerator = Class("LoadoutGenerator", function() end)
 
-local function copyTable(source)
-    local result = {}
-    for key, value in pairs(source or {}) do
-        result[key] = value
-    end
-    return result
-end
+
 
 local function matchesAssignmentRule(mount, selector)
     for key, value in pairs(selector or {}) do
@@ -33,7 +27,7 @@ local function selectPolicyEntry(policy, mount, cursors)
             local entry = rule.entry or rule.assignment
             assert(type(entry) == "table",
                 "loadout policy rules require an entry table")
-            return copyTable(entry)
+            return table.copy(entry)
         end
     end
 
@@ -46,11 +40,11 @@ local function selectPolicyEntry(policy, mount, cursors)
     if choices and #choices > 0 then
         cursors[sizeClass] = (cursors[sizeClass] or 0) + 1
         local choice = choices[((cursors[sizeClass] - 1) % #choices) + 1]
-        return copyTable(choice)
+        return table.copy(choice)
     end
 
     if policy.fallback then
-        return copyTable(policy.fallback)
+        return table.copy(policy.fallback)
     end
     return nil
 end
@@ -80,7 +74,7 @@ function LoadoutGenerator:expand(mounts, explicitLoadout, policy)
             "loadout references unknown mount: " .. entry.mountId)
         assert(not loadoutByMount[entry.mountId],
             "loadout contains duplicate mount: " .. entry.mountId)
-        loadoutByMount[entry.mountId] = copyTable(entry)
+        loadoutByMount[entry.mountId] = table.copy(entry)
     end
 
     if not policy then
@@ -112,11 +106,11 @@ function LoadoutGenerator:expand(mounts, explicitLoadout, policy)
             local firstEntry = loadoutByMount[first.mountId]
             local secondEntry = loadoutByMount[second.mountId]
             if firstEntry and not secondEntry then
-                secondEntry = copyTable(firstEntry)
+                secondEntry = table.copy(firstEntry)
                 secondEntry.mountId = second.mountId
                 loadoutByMount[second.mountId] = secondEntry
             elseif secondEntry and not firstEntry then
-                firstEntry = copyTable(secondEntry)
+                firstEntry = table.copy(secondEntry)
                 firstEntry.mountId = first.mountId
                 loadoutByMount[first.mountId] = firstEntry
             elseif firstEntry and secondEntry then
@@ -154,7 +148,7 @@ function LoadoutGenerator:expand(mounts, explicitLoadout, policy)
                     if selected then
                         selected.mountId = first.mountId
                         loadoutByMount[first.mountId] = selected
-                        local mirrored = copyTable(selected)
+                        local mirrored = table.copy(selected)
                         mirrored.mountId = second.mountId
                         loadoutByMount[second.mountId] = mirrored
                     end
@@ -275,7 +269,7 @@ function LoadoutGenerator:build(mounts, explicitLoadout, policy, resolver, optio
                 "weapon mount size is incompatible with mount " .. mount.mountId
                 .. " (mount=" .. tostring(mount.mountSizeClass)
                 .. ", weapon=" .. tostring(weapon.mountSizeClass) .. ")")
-            local resolved = copyTable(entry)
+            local resolved = table.copy(entry)
             resolved.weaponId = identity.weaponId
             resolved.weaponRef = identity.weaponRef
             resolved.weapon = weapon

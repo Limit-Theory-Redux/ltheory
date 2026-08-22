@@ -4,7 +4,6 @@
 ---and produces ready/fireSolution state consumed by WeaponSystem:update.
 ---See AIWeaponSystem.lua header for the owned tick order.
 local WeaponRegistry = require("Shared.Registries.WeaponRegistry")
-local WeaponResolver = require("Shared.Content.WeaponResolver")
 local WeaponSystem = require("Modules.Constructs.Systems.WeaponSystem")
 local BeamAimHelper = require("Shared.Helpers.BeamAimHelper")
 local ProceduralCatalog = require("Shared.Content.ProceduralCatalog")
@@ -115,17 +114,8 @@ local function getTrackingConfig(weapon, turret, component)
     return config
 end
 
-local function resolveWeapon(turret)
-    local weapon = WeaponResolver:resolve({
-        weaponId = turret.weaponId,
-        weaponRef = turret.weaponRef,
-    })
-    if turret.weaponRef and not weapon then
-        error("unregistered procedural weapon: "
-            .. tostring(turret.weaponRef.canonicalKey), 0)
-    end
-    assert(weapon, "unregistered weapon: " .. tostring(turret.weaponId))
-    return weapon
+local resolveWeapon = function(turret)
+    return WeaponSystem:resolveWeapon(turret)
 end
 
 local function getTargetKey(state, targetBody)
