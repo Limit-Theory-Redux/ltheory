@@ -281,8 +281,13 @@ function ProjectileSystem:update(state, dt)
             then
                 local health = entity:get(CoreComponents.Health)
                 if not health or not health:isDestroyed() then
-                    local rbComponent = entity:get(PhysicsComponents.RigidBody)
-                    local contactRadius = rbComponent and rbComponent:getRadius() or 0
+                    local okRadius, contactRadius = pcall(function()
+                        local rb = entity:get(PhysicsComponents.RigidBody)
+                        return rb and rb:getRadius() or 0
+                    end)
+                    if not okRadius or type(contactRadius) ~= "number" then
+                        contactRadius = 0
+                    end
                     local guidance = component.guidance
                     if guidance and guidance.proximityRadius
                         and component.targetEntity == entity
@@ -291,8 +296,10 @@ function ProjectileSystem:update(state, dt)
                             contactRadius, guidance.proximityRadius)
                     end
                     if contactRadius > 0 then
-                        local contactBody = rbComponent
-                            and rbComponent:getRigidBody()
+                        local bodyComponent =
+                            entity:get(PhysicsComponents.RigidBody)
+                        local contactBody = bodyComponent
+                            and bodyComponent:getRigidBody()
                         if contactBody then
                             local hit = self:segmentSphereHit(
                                 startPosition,

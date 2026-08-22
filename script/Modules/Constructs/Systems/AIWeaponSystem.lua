@@ -14,6 +14,7 @@
 local PhysicsComponents = require("Modules.Physics.Components")
 local ConstructComponents = require("Modules.Constructs.Components")
 local CoreComponents = require("Modules.Core.Components")
+local WeaponResolver = require("Shared.Content.WeaponResolver")
 local WeaponSystem = require("Modules.Constructs.Systems.WeaponSystem")
 
 ---@class AIWeaponSystem
@@ -53,8 +54,17 @@ local function targetRecord(entity)
     }
 end
 
-local resolveWeapon = function(turret)
-    return WeaponSystem:resolveWeapon(turret)
+local function resolveWeapon(turret)
+    local weapon = WeaponResolver:resolve({
+        weaponId = turret.weaponId,
+        weaponRef = turret.weaponRef,
+    })
+    if turret.weaponRef and not weapon then
+        error("unregistered procedural weapon: "
+            .. tostring(turret.weaponRef.canonicalKey), 0)
+    end
+    assert(weapon, "unregistered weapon: " .. tostring(turret.weaponId))
+    return weapon
 end
 
 function AIWeaponSystem:getWeaponAIConfig(state)
