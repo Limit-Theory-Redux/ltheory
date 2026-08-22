@@ -1631,6 +1631,9 @@ function WeaponSystem:updateFromTracking(state)
                     self:spawnFiringLight(state, mount, weapon, control.shotSerial)
                     mount.component.cooldown = weapon.cooldown
                     state:spawnProjectile(mount, mount.component.fireSolution, weapon, control.shotSerial)
+                    -- Exclude this mount from the shared battery plan so it cannot
+                    -- be fired twice in one update.
+                    readyByMount[mountId] = nil
                 end
             end
         end

@@ -470,6 +470,8 @@ local TESTBED_CONFIG = {
             shipType = ShipType.Capital,
             sizeClass = Enums.Target.SizeClass.Capital,
             maxHealth = 10000,
+            maxShield = 800,
+            shieldRegen = 40.0,
             scaleMultiplier = 1.0,
             orbitRadius = 3.2,
             orbitSpeed = 0.10,
@@ -480,6 +482,8 @@ local TESTBED_CONFIG = {
             shipType = ShipType.Capital,
             sizeClass = Enums.Target.SizeClass.Large,
             maxHealth = 2500,
+            maxShield = 400,
+            shieldRegen = 25.0,
             scaleMultiplier = 0.5,
             orbitRadius = 2.6,
             orbitSpeed = -0.16,
@@ -491,6 +495,8 @@ local TESTBED_CONFIG = {
             hull = 3, -- Compact: legacy ShipBasic generator needs a hull index
             sizeClass = Enums.Target.SizeClass.Medium,
             maxHealth = 600,
+            maxShield = 120,
+            shieldRegen = 10.0,
             scaleMultiplier = 0.25,
             orbitRadius = 2.2,
             orbitSpeed = 0.24,
@@ -877,6 +883,8 @@ function WeaponSystemTestbed:spawnTargets()
             isKinematic = true,
             collidable = true,
             maxHealth = config.maxHealth or 500,
+            maxShield = config.maxShield or 0,
+            shieldRegen = config.shieldRegen or 0,
             sizeClass = config.sizeClass or Enums.Target.SizeClass.Small,
         })
         local surface = WeaponSystem:buildTargetSurface(
@@ -886,6 +894,7 @@ function WeaponSystemTestbed:spawnTargets()
             entity = handle.root,
             body = handle.rigidBody,
             health = handle.root:get(CoreComponents.Health),
+            defense = handle.root:get(ConstructComponents.Defense),
             sizeClass = config.sizeClass or Enums.Target.SizeClass.Small,
             label = config.label or ("target" .. index),
             surface = surface,
@@ -1081,6 +1090,8 @@ function WeaponSystemTestbed:spawnDestroyedContact()
         isKinematic = true,
         collidable = true,
         maxHealth = config.maxHealth or 500,
+        maxShield = config.maxShield or 0,
+        shieldRegen = config.shieldRegen or 0,
         sizeClass = config.sizeClass or Enums.Target.SizeClass.Small,
     })
     self.targetGeneration = (self.targetGeneration or 0) + 1
@@ -1123,7 +1134,7 @@ function WeaponSystemTestbed:onInit()
     self.deferredLightingEnabled = self.testbedConfig.deferredLighting ~= false
     self.previousDeferredLightingEnabled = RenderCoreSystem.settings.deferredLighting
     RenderCoreSystem:setDeferredLightingEnabled(self.deferredLightingEnabled)
-    LightManager:setDiagnosticsEnabled(self.testbedConfig.pointLightDiagnostics == true)
+    --LightManager:setDiagnosticsEnabled(true) -- TEMP: verify light positions
     self.lastEffectLightCount = -1
     Log.Info(string.format(
         "WeaponSystem deferred lighting: %s",
@@ -1429,10 +1440,10 @@ function WeaponSystemTestbed:spawnBeam(mount, solution, weapon, shotSerial)
     local entity = ConstructEntities.Beam(shotSerial, {}, {
         source = mount.entity,
         target = (self.mountTargetByMount
-            and self.mountTargetEntities
-            and self.mountTargetByMount[mount.mountId]
-            and self.mountTargetEntities[self.mountTargetByMount[mount.mountId]]
-            and self.mountTargetEntities[self.mountTargetByMount[mount.mountId]].entity)
+                and self.mountTargetEntities
+                and self.mountTargetByMount[mount.mountId]
+                and self.mountTargetEntities[self.mountTargetByMount[mount.mountId]]
+                and self.mountTargetEntities[self.mountTargetByMount[mount.mountId]].entity)
             or self.weaponTargetEntity or self.target,
         effect = weapon.effect,
         visual = presentation,
@@ -1502,16 +1513,16 @@ function WeaponSystemTestbed:spawnProjectile(mount, solution, weapon, shotSerial
         scale = projectile.scale,
         guidance = projectile.guidance,
         targetBody = (self.mountTargetByMount
-            and self.mountTargetEntities
-            and self.mountTargetByMount[mount.mountId]
-            and self.mountTargetEntities[self.mountTargetByMount[mount.mountId]]
-            and self.mountTargetEntities[self.mountTargetByMount[mount.mountId]].body)
+                and self.mountTargetEntities
+                and self.mountTargetByMount[mount.mountId]
+                and self.mountTargetEntities[self.mountTargetByMount[mount.mountId]]
+                and self.mountTargetEntities[self.mountTargetByMount[mount.mountId]].body)
             or self.weaponTargetBody or self.targetBody,
         targetEntity = (self.mountTargetByMount
-            and self.mountTargetEntities
-            and self.mountTargetByMount[mount.mountId]
-            and self.mountTargetEntities[self.mountTargetByMount[mount.mountId]]
-            and self.mountTargetEntities[self.mountTargetByMount[mount.mountId]].entity)
+                and self.mountTargetEntities
+                and self.mountTargetByMount[mount.mountId]
+                and self.mountTargetEntities[self.mountTargetByMount[mount.mountId]]
+                and self.mountTargetEntities[self.mountTargetByMount[mount.mountId]].entity)
             or self.weaponTargetEntity or self.target,
         bodyMesh = nil,
     })
@@ -1625,6 +1636,12 @@ function WeaponSystemTestbed:onPreSim(data)
                 end
             end
         end
+        -- Publish per-mount engagement: this is what tracking/spawn read.
+        self.mountTargetByMount = {}
+        for mountId, contact in pairs(assigned) do
+            self.mountTargetByMount[mountId] = contact.body
+        end
+
         -- Resolve per-mount surfaces + point seeds from the contact records.
         self.mountSurfaces = {}
         self.mountTargetPointSeeds = {}

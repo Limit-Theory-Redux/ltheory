@@ -17,4 +17,19 @@ BeamDefinition {
         secondaryAmplitude = 0.45,
     },
     visual = redProfile.presentation,
+    -- Beam impact flash at the surface point, tinted by the laser profile.
+    impact = {
+        hull = {
+            color = Color(2.2, 0.4, 0.3, 1.0),
+            intensity = 5.0,
+            radius = 0.18,
+            duration = 0.20,
+        },
+        shield = {
+            color = Color(0.55, 1.4, 2.2, 1.0),
+            intensity = 7.0,
+            radius = 0.32,
+            duration = 0.26,
+        },
+    },
 }

@@ -8,6 +8,38 @@ local function speed(metersPerSecond)
     return ScaleConfig:toGameUnits(metersPerSecond, "starSystem")
 end
 
+-- Impact effect presets, keyed by damage delivery style. Consumed by the
+-- impact-effect system when a projectile or beam strikes a target.
+--   hullImpact: visual on an unshielded hull surface
+--   shieldImpact: visual on an active shield bubble (cooler, wider, shorter)
+local function energyHullImpact(color)
+    return {
+        color = color,
+        intensity = 6.0,
+        radius = 0.22,
+        duration = 0.45,
+    }
+end
+
+local function kineticHullImpact(color)
+    return {
+        color = color,
+        intensity = 8.0,
+        radius = 0.16,
+        duration = 0.28,
+    }
+end
+
+local function shieldImpact()
+    return {
+        -- Cyan-white arc: reads as energy dispersing over a barrier.
+        color = Color(0.55, 1.4, 2.2, 1.0),
+        intensity = 9.0,
+        radius = 0.38,
+        duration = 0.55,
+    }
+end
+
 ProjectileDefinition {
     id = Enums.Weapon.Projectile.Plasma,
     name = "Plasma Bolt",
@@ -32,6 +64,10 @@ ProjectileDefinition {
         headSize = 0.06,
         tailWidth = 0.03,
         tailLength = 0.30,
+        impact = {
+            hull = energyHullImpact(Color(1.6, 0.9, 2.4, 1.0)),
+            shield = shieldImpact(),
+        },
     },
 }
 
@@ -61,6 +97,10 @@ ProjectileDefinition {
         headSize = 0.0275,
         tailWidth = 0.01125,
         tailLength = 0.085,
+        impact = {
+            hull = energyHullImpact(Color(2.2, 0.5, 0.12, 1.0)),
+            shield = shieldImpact(),
+        },
     },
 }
 
@@ -88,6 +128,10 @@ ProjectileDefinition {
         headSize = 0.02,
         tailWidth = 0.009,
         tailLength = 0.06,
+        impact = {
+            hull = kineticHullImpact(Color(2.4, 1.6, 0.5, 1.0)),
+            shield = shieldImpact(),
+        },
     },
 }
 
@@ -117,5 +161,9 @@ ProjectileDefinition {
         headSize = 0.035,
         tailWidth = 0.014,
         tailLength = 0.11,
+        impact = {
+            hull = kineticHullImpact(Color(1.8, 2.2, 2.9, 1.0)),
+            shield = shieldImpact(),
+        },
     },
 }
