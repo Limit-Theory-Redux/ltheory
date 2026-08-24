@@ -636,7 +636,7 @@ impl Shader {
         // The stack revision only bumps on push/pop; camera matrices are
         // pushed once per frame, so re-applying them per draw is redundant
         // (the values - and this program's uniform state - are unchanged).
-        // SAFETY: only skip when this shader has NO *resolved* sampler
+        // Only skip when this shader has NO *resolved* sampler
         // auto-vars - samplers must re-apply every start() because their
         // texture units are reallocated per draw and can be stolen by other
         // shaders. Unresolved samplers (index == -1, uniform absent from the
@@ -682,7 +682,7 @@ impl Shader {
         Profiler::end();
     }
 
-    pub fn stop(&self, r: &mut Renderer) {
+    pub fn stop(&self, _r: &mut Renderer) {
         self.shared.as_mut().is_bound = false;
         // NOTE: deliberately do NOT emit UnbindShader. glUseProgram(0) between
         // draws is protocol noise: the next shader's start() binds its own
@@ -691,8 +691,7 @@ impl Shader {
         // command send (~2k/frame in the main menu), and the executor's
         // current_program is only consulted for uniform-location resolution
         // while a shader is bound, so leaving the last program current is
-        // safe. r is unused now but kept for signature stability.
-        let _ = r;
+        // safe.
     }
 }
 

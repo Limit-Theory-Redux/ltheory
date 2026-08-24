@@ -82,21 +82,21 @@ impl CommandExecutor {
     }
 
     pub(super) fn cmd_bind_shader(&mut self, handle: super::GpuHandle) {
-        unsafe {
-            self.shader_bind_commands_this_frame += 1;
-            if handle.0 == self.current_program {
-                self.shader_redundant_binds_this_frame += 1;
-            } else {
-                self.shader_distinct_programs_this_frame += 1;
-                // NOTE: deliberately do NOT invalidate the texture cache here.
-                // glUseProgram does not touch texture bindings; the cache keys
-                // on (slot, handle, type) and self-corrects when a different
-                // texture is bound. Invalidating on every shader switch was
-                // wiping the cache ~2k times/frame, keeping the hit rate at
-                // ~0% and forcing redundant glBindTexture calls.
+        self.shader_bind_commands_this_frame += 1;
+        if handle.0 == self.current_program {
+            self.shader_redundant_binds_this_frame += 1;
+        } else {
+            self.shader_distinct_programs_this_frame += 1;
+            // NOTE: deliberately do NOT invalidate the texture cache here.
+            // glUseProgram does not touch texture bindings; the cache keys
+            // on (slot, handle, type) and self-corrects when a different
+            // texture is bound. Invalidating on every shader switch was
+            // wiping the cache ~2k times/frame, keeping the hit rate at
+            // ~0% and forcing redundant glBindTexture calls.
+            unsafe {
                 gl::UseProgram(handle.0);
-                self.current_program = handle.0;
             }
+            self.current_program = handle.0;
         }
     }
 
@@ -140,16 +140,16 @@ impl CommandExecutor {
     }
 
     pub(super) fn cmd_unbind_shader(&mut self) {
+        // NOTE: deliberately do NOT invalidate the texture cache here.
+        // glUseProgram(0) leaves texture bindings untouched; the cache
+        // remains valid across program switches and self-corrects on any
+        // real texture change. Previously this wiped the cache on every
+        // shader stop (~2k/frame), destroying all reuse.
+        self.texture_invalidations_on_shader_unbind_this_frame += 1;
         unsafe {
-            // NOTE: deliberately do NOT invalidate the texture cache here.
-            // glUseProgram(0) leaves texture bindings untouched; the cache
-            // remains valid across program switches and self-corrects on any
-            // real texture change. Previously this wiped the cache on every
-            // shader stop (~2k/frame), destroying all reuse.
-            self.texture_invalidations_on_shader_unbind_this_frame += 1;
             gl::UseProgram(0);
-            self.current_program = 0;
         }
+        self.current_program = 0;
     }
 
     pub(super) fn cmd_set_uniform_int(&self, location: i32, value: i32) {
