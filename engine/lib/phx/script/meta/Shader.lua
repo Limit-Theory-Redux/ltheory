@@ -189,7 +189,7 @@ function Shader:iSetMatrixT(r, index, value) end
 ---@param world Matrix
 ---@param worldIt Matrix
 ---@param scale number
-function Shader:indexSetInstanceUniforms(r, worldIndex, worldItIndex, scaleIndex, world, worldIt, scale) end
+function Shader:iSetInstanceUniforms(r, worldIndex, worldItIndex, scaleIndex, world, worldIt, scale) end
 
 ---@param r Renderer
 ---@param name string

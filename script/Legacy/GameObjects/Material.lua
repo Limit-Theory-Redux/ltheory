@@ -100,7 +100,7 @@ function Material:updateState(body, entity, eye)
     -- managed Matrix allocations/frame - the main GC churn source. The
     -- _into variants write into a persistent scratch Matrix cdata owned
     -- by the material (no allocation); the values are consumed by
-    -- indexSetInstanceUniforms (which clones into the command) before the
+    -- iSetInstanceUniforms (which clones into the command) before the
     -- next mesh overwrites the scratch.
     local shader = self.state:shader()
 
@@ -126,7 +126,7 @@ function Material:updateState(body, entity, eye)
     local scale = self.iScale and body:getScale() or nil
     if world then
         if worldIT and scale ~= nil then
-            shader:indexSetInstanceUniforms(self.imWorld, self.imWorldIT, self.iScale, world, worldIT, scale)
+            shader:iSetInstanceUniforms(self.imWorld, self.imWorldIT, self.iScale, world, worldIT, scale)
         else
             -- Materials that only use some of the trio: fall back to the
             -- individual setters so each present uniform still applies.
