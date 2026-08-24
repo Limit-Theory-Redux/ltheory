@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
 #[cfg(feature = "stats-server")]
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::Arc;
 
 use glam::{ivec2, ivec3, ivec4, vec2, vec3, vec4};
 
@@ -539,6 +539,7 @@ impl Shader {
     /// values are unique per mesh (no dedup win), so the three GL uniform
     /// calls are batched on the render thread and the producer pays one
     /// command + one FFI crossing instead of three of each.
+    #[bind(name = "ISetInstanceUniforms")]
     pub fn index_set_instance_uniforms(
         &mut self,
         r: &mut Renderer,
