@@ -157,7 +157,11 @@ function renderCategories(s) {
 async function poll() {
   try {
     const r = await fetch('/stats.json');
-    const s = await r.json();
+    const raw = await r.json();
+    // Server nests render-thread stats under "render"; merge to a flat view
+    // so the field accesses below stay stable.
+    const s = Object.assign({}, raw.render || {}, raw);
+    delete s.render;
     last = s;
 
     const frameMs = s.last_frame_time_us / 1000;

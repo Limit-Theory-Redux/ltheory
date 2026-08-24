@@ -1,33 +1,42 @@
-﻿//! Tiny HTTP server for the live render-stats dashboard (feature
-//! `stats-server`).
+//! HTTP dashboard for the render stats (`stats-server` feature).
 //!
-//! Serves two endpoints from the shared [`StatsSink`]:
-//! - `GET /` — the embedded dashboard HTML page (self-contained, polls
-//!   `/stats.json` at ~2 Hz from the browser).
-//! - `GET /stats.json` — the latest [`StatsSnapshot`] as JSON.
+//! - `GET /`            — the self-contained HTML dashboard page
+//! - `GET /stats.json`  — the latest [`StatsSnapshot`] as JSON
+//! - `GET /profile.json`, `POST /profile/toggle` — producer profiler
 //!
-//! The server thread only reads the sink; it never touches GL, the render
-//! thread, or the Lua state, so it cannot perturb the measurements it shows.
+//! The sink holds the most recent [`StatsSnapshot`]; the renderer publishes
+//! one per frame when attached (see `stats_snapshot.rs`). The snapshot's
+//! `render` field is the executor's plain [`RenderStats`] verbatim.
+
+#![cfg(feature = "stats-server")]
 
 use std::sync::Arc;
 use std::time::Duration;
 
 use tracing::{error, info, warn};
 
-use super::{StatsSink, StatsSnapshot};
+use super::{CmdCategory, StatsSink, StatsSnapshot};
+use crate::render::RenderStats;
 
-/// Serialize a snapshot to JSON (no serde dependency — the field set is small
-/// and stable; hand-rolled keeps the feature's dependency footprint to just
-/// tiny_http).
-fn snapshot_to_json(s: &StatsSnapshot) -> String {
-    let cats: Vec<String> = super::CmdCategory::ALL
+/// Serialize the render-thread half of a snapshot to JSON.
+///
+/// Field set is small and stable, so this stays hand-rolled to keep the
+/// feature's dependency footprint at just tiny_http.
+fn render_stats_to_json(r: &RenderStats) -> String {
+    let cats: Vec<String> = CmdCategory::ALL
         .iter()
-        .map(|c| format!("\"{}\": {{\"count\": {}, \"time_us\": {}}}", c.name(), s.category_counts_last_frame[c.index()], s.category_time_us_last_frame[c.index()]))
+        .map(|c| {
+            format!(
+                "\"{}\": {{\"count\": {}, \"time_us\": {}}}",
+                c.name(),
+                r.category_counts_last_frame[c.index()],
+                r.category_time_us_last_frame[c.index()]
+            )
+        })
         .collect();
 
     format!(
         "{{\n\
-         \x20 \"server_time_us\": {},\n\
          \x20 \"commands_processed\": {},\n\
          \x20 \"draw_calls\": {},\n\
          \x20 \"state_changes\": {},\n\
@@ -51,59 +60,73 @@ fn snapshot_to_json(s: &StatsSnapshot) -> String {
          \x20 \"uniform_cache_hits_last_frame\": {},\n\
          \x20 \"uniform_cache_misses_last_frame\": {},\n\
          \x20 \"texture_binds_skipped\": {},\n\
-         \x20 \"main_thread_wait_us\": {},\n\
-         \x20 \"send_blocked_us_last_frame\": {},\n\
-         \x20 \"send_block_count_last_frame\": {},\n\
-         \x20 \"channel_high_water\": {},\n\
-         \x20 \"frames_in_flight\": {},\n\
          \x20 \"recv_wait_us_last_frame\": {},\n\
          \x20 \"recv_wait_count_last_frame\": {},\n\
          \x20 \"shader_bind_commands_last_frame\": {},\n\
          \x20 \"shader_redundant_binds_last_frame\": {},\n\
          \x20 \"shader_distinct_programs_last_frame\": {},\n\
-         \x20 \"uniform_dedup_skips_last_frame\": {},\n\
          \x20 \"categories\": {{\n{}\x20 }}\n\
          }}",
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map(|d| d.as_micros() as u64)
-            .unwrap_or(0),
-        s.commands_processed,
-        s.draw_calls,
-        s.state_changes,
-        s.frame_count,
-        s.last_frame_time_us,
-        s.commands_last_frame,
-        s.draw_calls_last_frame,
-        s.state_changes_last_frame,
-        s.present_wait_us,
-        s.texture_bind_calls_last_frame,
-        s.texture_binds_skipped_last_frame,
-        s.texture_cache_invalidations_last_frame,
-        s.texture_invalidations_on_shader_bind_last_frame,
-        s.texture_invalidations_on_shader_unbind_last_frame,
-        s.draw_mesh_calls_last_frame,
-        s.draw_immediate_calls_last_frame,
-        s.draw_instanced_calls_last_frame,
-        s.immediate_vertices_last_frame,
-        s.instanced_data_items_last_frame,
-        s.vertices_drawn_last_frame,
-        s.uniform_cache_hits_last_frame,
-        s.uniform_cache_misses_last_frame,
-        s.texture_binds_skipped,
+        r.commands_processed,
+        r.draw_calls,
+        r.state_changes,
+        r.frame_count,
+        r.last_frame_time_us,
+        r.commands_last_frame,
+        r.draw_calls_last_frame,
+        r.state_changes_last_frame,
+        r.present_wait_us,
+        r.texture_bind_calls_last_frame,
+        r.texture_binds_skipped_last_frame,
+        r.texture_cache_invalidations_last_frame,
+        r.texture_invalidations_on_shader_bind_last_frame,
+        r.texture_invalidations_on_shader_unbind_last_frame,
+        r.draw_mesh_calls_last_frame,
+        r.draw_immediate_calls_last_frame,
+        r.draw_instanced_calls_last_frame,
+        r.immediate_vertices_last_frame,
+        r.instanced_data_items_last_frame,
+        r.vertices_drawn_last_frame,
+        r.uniform_cache_hits_last_frame,
+        r.uniform_cache_misses_last_frame,
+        r.texture_binds_skipped,
+        r.recv_wait_us_last_frame,
+        r.recv_wait_count_last_frame,
+        r.shader_bind_commands_last_frame,
+        r.shader_redundant_binds_last_frame,
+        r.shader_distinct_programs_last_frame,
+        cats.join(",\n\x20\x20"),
+    )
+}
+
+/// Serialize a full snapshot to JSON. Render-thread fields nest under
+/// "render"; main-thread producer fields stay at the top level.
+fn snapshot_to_json(s: &StatsSnapshot) -> String {
+    let mut json = format!(
+        "{{\n\
+         \x20 \"server_time_us\": {},\n\
+         \x20 \"main_thread_wait_us\": {},\n\
+         \x20 \"send_blocked_us_last_frame\": {},\n\
+         \x20 \"send_block_count_last_frame\": {},\n\
+         \x20 \"channel_high_water\": {},\n\
+         \x20 \"frames_in_flight\": {},\n\
+         \x20 \"uniform_dedup_skips_last_frame\": {},\n",
+        s.server_time_us,
         s.main_thread_wait_us,
         s.send_blocked_us_last_frame,
         s.send_block_count_last_frame,
         s.channel_high_water,
         s.frames_in_flight,
-        s.recv_wait_us_last_frame,
-        s.recv_wait_count_last_frame,
-        s.shader_bind_commands_last_frame,
-        s.shader_redundant_binds_last_frame,
-        s.shader_distinct_programs_last_frame,
         s.uniform_dedup_skips_last_frame,
-        cats.join(",\n\x20\x20"),
-    )
+    );
+    // Embed the render-thread stats as a nested object, minus the trailing
+    // newline so the closing brace of the outer object lines up.
+    let render_json = render_stats_to_json(&s.render);
+    let trimmed = render_json.trim_end_matches('\n');
+    json.push_str("  \"render\": ");
+    json.push_str(trimmed);
+    json.push_str("\n}\n");
+    json
 }
 
 /// Run the dashboard server until the process exits.

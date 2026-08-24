@@ -11,9 +11,11 @@ use crate::render::{
     BlendMode, ClipManager, CmdPrimitiveType, CullFace, DrawState, GpuHandle, ImmVertex,
     InstanceData, PrimitiveBuilder, RenderCommand, RenderStateIntern, RenderStats,
     RenderTargetStack, RenderThreadConfig, RenderThreadError, RendererData, ResourceHandle,
-    ResourceId, ShaderErrorQueue, ShaderReloadResult, ShaderVarMap, StatsSink, TexFilter,
+    ResourceId, ShaderErrorQueue, ShaderReloadResult, ShaderVarMap, TexFilter,
     TexFormat, TexWrapMode, VertexFormat, VpStack,
 };
+#[cfg(feature = "stats-server")]
+use crate::render::StatsSink;
 use crate::window::{WindowError, WindowGlContext};
 
 /// Maximum frames in flight for triple buffering
@@ -58,11 +60,15 @@ pub struct Renderer {
     pub(super) send_block_count_last_frame: u64,
     /// Highest command-channel occupancy observed this frame
     pub(super) channel_high_water: u64,
-    /// Optional sink receiving a per-frame snapshot for the stats dashboard
+    // Optional sink receiving a per-frame snapshot for the stats dashboard.
+    // Dashboard-only state sits behind the feature so normal game builds
+    // carry none of the publishing path.
+    #[cfg(feature = "stats-server")]
     pub(super) stats_sink: Option<StatsSink>,
     /// Shared with the executor: enables per-category timing when the sink is
     /// attached (dashboard mode). Kept on the renderer so `attach_stats_sink`
     /// can flip it after the executor has moved to the render thread.
+    #[cfg(feature = "stats-server")]
     pub(super) category_timing: Arc<AtomicBool>,
     /// Generic renderer data
     pub(crate) data: RendererData,
@@ -191,7 +197,9 @@ impl Renderer {
             send_blocked_us_last_frame: 0,
             send_block_count_last_frame: 0,
             channel_high_water: 0,
+            #[cfg(feature = "stats-server")]
             stats_sink: None,
+            #[cfg(feature = "stats-server")]
             category_timing,
             data: RendererData {
                 next_resource_id: 1,
@@ -330,6 +338,7 @@ impl Renderer {
         self.main_thread_wait_us = frame_end_start.elapsed().as_micros() as u64;
 
         // Publish the combined snapshot to the dashboard sink (if attached)
+        #[cfg(feature = "stats-server")]
         self.publish_stats_snapshot();
 
         // Reset per-frame producer counters for the next frame

@@ -1,73 +1,38 @@
 //! Per-frame stats snapshot shared with the stats dashboard server.
 //!
-//! The render thread publishes a [`RenderStats`] snapshot once per frame (via
-//! the executor's `SwapBuffers` reply). The main thread combines it with its
-//! own measurements (frame-end wait, mid-frame channel send stalls, channel
-//! occupancy, frames in flight) into a single [`StatsSnapshot`] and pushes it
-//! into the sink. The HTTP dashboard server (feature `stats-server`) reads the
-//! latest snapshot from the same sink; when the feature is off the sink is
-//! `None` and the only cost is the few `u64` accumulations.
+//! The render thread publishes a per-frame [`RenderStats`] snapshot (via the
+//! executor's `SwapBuffers` reply). The main thread combines it with its own
+//! measurements into a [`StatsSnapshot`] and pushes it into the sink; the
+//! HTTP dashboard server reads the latest snapshot from the same sink. The
+//! whole publishing path exists only behind the `stats-server` feature, so
+//! normal game builds carry none of it - the executor still fills its plain
+//! `RenderStats`, which travels the existing SwapBuffers reply regardless.
+//!
+//! [`RenderStats`] is embedded verbatim instead of being copied field by
+//! field: the snapshot adds only the main-thread producer measurements and
+//! the publication timestamp on top of what the executor already produces.
 
-#[cfg(not(feature = "immediate"))]
-use std::sync::atomic::Ordering;
+#![cfg(feature = "stats-server")]
+
 use std::sync::{Arc, Mutex};
 
+use super::{RenderStats, Renderer};
 use crate::render::uniform_dedup_skips;
-use super::Renderer;
 
 /// Shared sink holding the most recent [`StatsSnapshot`].
 pub type StatsSink = Arc<Mutex<StatsSnapshot>>;
 
 /// Combined main-thread + render-thread statistics for one frame.
+///
+/// The render-thread half is embedded as [`RenderStats`] (`snapshot.render`);
+/// only the main-thread producer-side measurements live directly here.
 #[derive(Debug, Clone, Default)]
 pub struct StatsSnapshot {
-    // --- render thread (from RenderStats) ---
-    pub commands_processed: u64,
-    pub draw_calls: u64,
-    pub state_changes: u64,
-    pub frame_count: u64,
-    pub last_frame_time_us: u64,
-    pub commands_last_frame: u64,
-    pub draw_calls_last_frame: u64,
-    pub state_changes_last_frame: u64,
-    pub present_wait_us: u64,
-    pub texture_bind_calls_last_frame: u64,
-    pub texture_binds_skipped_last_frame: u64,
-    pub texture_cache_invalidations_last_frame: u64,
-    pub texture_binds_skipped: u64,
-    /// Texture-cache invalidations in the last frame, by source
-    pub texture_invalidations_on_shader_bind_last_frame: u64,
-    pub texture_invalidations_on_shader_unbind_last_frame: u64,
-    /// Draw calls in the last frame, split by kind
-    pub draw_mesh_calls_last_frame: u64,
-    pub draw_immediate_calls_last_frame: u64,
-    pub draw_instanced_calls_last_frame: u64,
-    /// Vertices submitted via DrawImmediate in the last frame
-    pub immediate_vertices_last_frame: u64,
-    /// Instance-data items submitted in the last frame
-    pub instanced_data_items_last_frame: u64,
-    /// Total vertices submitted to the GPU in the last frame (index_count,
-    /// or index_count * instance_count for instanced draws)
-    pub vertices_drawn_last_frame: u64,
-    /// Uniform-location cache hits vs driver round-trips in the last frame
-    pub uniform_cache_hits_last_frame: u64,
-    pub uniform_cache_misses_last_frame: u64,
-    /// Command counts per category in the last frame (CmdCategory order)
-    pub category_counts_last_frame: [u64; 12],
-    /// Executor time per category in the last frame, microseconds
-    /// (all zero when the dashboard isn't active; timing is opt-in)
-    pub category_time_us_last_frame: [u64; 12],
-    /// Render-thread producer-starvation (blocked in recv), last frame
-    pub recv_wait_us_last_frame: u64,
-    pub recv_wait_count_last_frame: u64,
-    /// Shader churn: binds, redundant binds (same program), distinct programs
-    pub shader_bind_commands_last_frame: u64,
-    pub shader_redundant_binds_last_frame: u64,
-    pub shader_distinct_programs_last_frame: u64,
-    /// Uniform sends skipped by the per-shader value dedup last frame - the
-    /// Lua→Rust crossings that were paid but produced no command. Shows the
-    /// hidden producer cost the command count doesn't capture.
-    pub uniform_dedup_skips_last_frame: u64,
+    /// Publication timestamp (microseconds since the UNIX epoch). The
+    /// dashboard uses it for wall-clock-accurate FPS averaging.
+    pub server_time_us: u64,
+    /// Everything measured on the render thread / GL executor.
+    pub render: RenderStats,
     // --- main thread (from Renderer) ---
     /// Time blocked in `end_frame_triple_buffered` (frame-end pacing wait)
     pub main_thread_wait_us: u64,
@@ -79,6 +44,10 @@ pub struct StatsSnapshot {
     pub channel_high_water: u64,
     /// Frames submitted but not yet rendered (triple-buffer depth)
     pub frames_in_flight: u64,
+    /// Uniform sends skipped by the per-shader value dedup last frame - the
+    /// Lua→Rust crossings that were paid but produced no command. Shows the
+    /// hidden producer cost the command count doesn't capture.
+    pub uniform_dedup_skips_last_frame: u64,
 }
 
 impl Renderer {
@@ -89,6 +58,7 @@ impl Renderer {
         // Enable per-category executor timing (dashboard mode). The executor
         // shares this flag via an Arc, so this works even though the executor
         // lives on the render thread.
+        use std::sync::atomic::Ordering;
         self.category_timing.store(true, Ordering::Relaxed);
     }
 
@@ -108,47 +78,18 @@ impl Renderer {
             return;
         };
 
-        let stats = self.get_stats();
-
         let snapshot = StatsSnapshot {
-            commands_processed: stats.commands_processed,
-            draw_calls: stats.draw_calls,
-            state_changes: stats.state_changes,
-            frame_count: stats.frame_count,
-            last_frame_time_us: stats.last_frame_time_us,
-            commands_last_frame: stats.commands_last_frame,
-            draw_calls_last_frame: stats.draw_calls_last_frame,
-            state_changes_last_frame: stats.state_changes_last_frame,
-            present_wait_us: stats.present_wait_us,
-            texture_bind_calls_last_frame: stats.texture_bind_calls_last_frame,
-            texture_binds_skipped_last_frame: stats.texture_binds_skipped_last_frame,
-            texture_cache_invalidations_last_frame: stats.texture_cache_invalidations_last_frame,
-            texture_binds_skipped: stats.texture_binds_skipped,
-            texture_invalidations_on_shader_bind_last_frame:
-                stats.texture_invalidations_on_shader_bind_last_frame,
-            texture_invalidations_on_shader_unbind_last_frame:
-                stats.texture_invalidations_on_shader_unbind_last_frame,
-            draw_mesh_calls_last_frame: stats.draw_mesh_calls_last_frame,
-            draw_immediate_calls_last_frame: stats.draw_immediate_calls_last_frame,
-            draw_instanced_calls_last_frame: stats.draw_instanced_calls_last_frame,
-            immediate_vertices_last_frame: stats.immediate_vertices_last_frame,
-            instanced_data_items_last_frame: stats.instanced_data_items_last_frame,
-            vertices_drawn_last_frame: stats.vertices_drawn_last_frame,
-            uniform_cache_hits_last_frame: stats.uniform_cache_hits_last_frame,
-            uniform_cache_misses_last_frame: stats.uniform_cache_misses_last_frame,
-            category_counts_last_frame: stats.category_counts_last_frame,
-            category_time_us_last_frame: stats.category_time_us_last_frame,
-            recv_wait_us_last_frame: stats.recv_wait_us_last_frame,
-            recv_wait_count_last_frame: stats.recv_wait_count_last_frame,
-            shader_bind_commands_last_frame: stats.shader_bind_commands_last_frame,
-            shader_redundant_binds_last_frame: stats.shader_redundant_binds_last_frame,
-            shader_distinct_programs_last_frame: stats.shader_distinct_programs_last_frame,
-            uniform_dedup_skips_last_frame: uniform_dedup_skips(),
+            server_time_us: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_micros() as u64)
+                .unwrap_or(0),
+            render: self.get_stats(),
             main_thread_wait_us: self.main_thread_wait_us,
             send_blocked_us_last_frame: self.send_blocked_us_last_frame,
             send_block_count_last_frame: self.send_block_count_last_frame,
             channel_high_water: self.channel_high_water,
             frames_in_flight: self.get_frames_in_flight(),
+            uniform_dedup_skips_last_frame: uniform_dedup_skips(),
         };
 
         if let Ok(mut guard) = sink.lock() {

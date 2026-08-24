@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+#[cfg(feature = "stats-server")]
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
@@ -17,11 +18,14 @@ const INCLUDE_PATH: &str = "include/";
 /// `ShaderShared::apply_uniform`). These are Lua→Rust FFI crossings that were
 /// paid on the main thread but produced no render command; the stats dashboard
 /// reads-and-resets this once per frame to show the hidden producer cost that
-/// the command count doesn't capture.
+/// the command count doesn't capture. Dashboard-only: gated with its only
+/// reader so normal builds carry neither.
+#[cfg(feature = "stats-server")]
 static UNIFORM_DEDUP_SKIPS: AtomicU64 = AtomicU64::new(0);
 
 /// Read-and-reset the dedup-skip counter (called once per frame by the stats
 /// snapshot publisher on the main thread).
+#[cfg(feature = "stats-server")]
 pub(crate) fn uniform_dedup_skips() -> u64 {
     UNIFORM_DEDUP_SKIPS.swap(0, Ordering::Relaxed)
 }
@@ -242,6 +246,7 @@ impl ShaderShared {
         if !is_sampler {
             if let Some(prev) = self.last_uniform_values.get(&index) {
                 if prev.same_value(data) {
+                    #[cfg(feature = "stats-server")]
                     UNIFORM_DEDUP_SKIPS.fetch_add(1, Ordering::Relaxed);
                     return;
                 }
