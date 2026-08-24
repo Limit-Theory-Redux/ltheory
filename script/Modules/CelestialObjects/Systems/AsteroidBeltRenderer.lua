@@ -1,5 +1,6 @@
 local CameraManager     = require("Modules.Cameras.Managers.CameraManager")
 local AsteroidFieldSystem = require("Modules.CelestialObjects.Systems.AsteroidFieldSystem")
+local AsteroidMeshPool  = require("Modules.CelestialObjects.Systems.AsteroidMeshPool")
 local CoreComponents = require("Modules.Core.Components")
 
 --- AsteroidBeltRenderer — performant batch renderer for asteroid belts/rings.
@@ -29,26 +30,15 @@ local benchRenderDistSq = nil
 --- Chunk count (angular sectors)
 local CHUNK_COUNT = 32
 
---- LOD distance ranges (RAW units) shared by the pool, generator and
---- belt renderer. LodMesh:add() squares these internally; get() takes
---- the squared distance. LOD 0 = highest detail (res 96, 16k verts).
-local LOD_RANGES = {
-    { 0,       2000 },
-    { 2000,    8000 },
-    { 8000,    30000 },
-    { 30000,   100000 },
-    { 100000,  500000 },
-    { 500000,  2000000 },
-    { 2000000, 10000000 },
-    { 10000000, 1e16 },
-}
+-- LOD distance ranges (RAW units) live in AsteroidMeshPool.LOD_RANGES
+-- (single source of truth shared by the pool, generator and this file).
 
 --- Expose the LOD ranges so the belt renderer can compute a stable LOD
 --- index per asteroid (the LodMesh get() returns a fresh mesh clone each
 --- call - unusable as a group key).
 ---@return table Array of { min, max } raw-unit ranges (LOD 0 first)
 function AsteroidBeltRenderer.getLodRanges()
-    return LOD_RANGES
+    return AsteroidMeshPool.getLodRanges()
 end
 
 --- Allow benchmarks/tests to raise the per-frame draw cap (module-local).

@@ -10,6 +10,29 @@ local poolSize = 0
 local MESH_DIR = "res/mesh/asteroid"
 local LOD_COUNT = 8
 
+--- LOD distance ranges (RAW units) — single source of truth shared by the
+--- pool, the generator (AsteroidMesh.lua, via getLodRanges()) and
+--- AsteroidBeltRenderer. LodMesh:add squares these internally; get()
+--- takes the squared distance. LOD 0 = highest detail, used up to 2000
+--- units from the camera.
+local LOD_RANGES = {
+    { 0,       2000 },
+    { 2000,    8000 },
+    { 8000,    30000 },
+    { 30000,   100000 },
+    { 100000,  500000 },
+    { 500000,  2000000 },
+    { 2000000, 10000000 },
+    { 10000000, 1e16 },
+}
+
+--- Expose the LOD ranges (single source of truth) for the belt renderer,
+--- benchmark tooling and the asteroid mesh generator.
+---@return table Array of { min, max } raw-unit ranges (LOD 0 first)
+function AsteroidMeshPool.getLodRanges()
+    return LOD_RANGES
+end
+
 --- Initialize the pool with N asteroid mesh variants
 ---@param count number Number of variants (default 8)
 ---@param baseSeed number Base seed for generation (default 42)
@@ -25,26 +48,12 @@ function AsteroidMeshPool:init(count, baseSeed)
         local lodMesh = LodMesh.Create()
         local allLoaded = true
 
-        -- LOD distance ranges (RAW units; LodMesh:add squares them
-        -- internally, matching AsteroidMesh.lua). LOD 0 = highest
-        -- detail, used up to 2000 units from the camera.
-        local lodRanges = {
-            { 0,       2000 },
-            { 2000,    8000 },
-            { 8000,    30000 },
-            { 30000,   100000 },
-            { 100000,  500000 },
-            { 500000,  2000000 },
-            { 2000000, 10000000 },
-            { 10000000, 1e16 },
-        }
-
         -- Try loading pre-cached LOD meshes from disk
         for lod = 0, LOD_COUNT - 1 do
             local path = string.format("%s/asteroid_%02d_lod%d.mesh", MESH_DIR, i, lod)
             if File.Exists(path) then
                 local mesh = Mesh.Load(path)
-                local r = lodRanges[lod + 1]
+                local r = LOD_RANGES[lod + 1]
                 lodMesh:add(mesh, r[1], r[2])
             else
                 allLoaded = false
@@ -60,23 +69,13 @@ function AsteroidMeshPool:init(count, baseSeed)
             Log.Info("  Variant %d: generating (first run)...", i)
             local seed = baseSeed + i * 7919
             local GenerateAsteroidMesh = require("Core.ECS.Mesh.CelestialObjects.AsteroidMesh")
-            pool[i] = GenerateAsteroidMesh(seed)
+            pool[i] = GenerateAsteroidMesh(seed, LOD_RANGES)
 
             -- Save each LOD level to disk for next time
             -- Query by the MIDPOINT of each RAW distance range, squared
             -- (get() takes squared distance; add() squares the range ends).
-            local lodRanges = {
-                { 0,       2000 },
-                { 2000,    8000 },
-                { 8000,    30000 },
-                { 30000,   100000 },
-                { 100000,  500000 },
-                { 500000,  2000000 },
-                { 2000000, 10000000 },
-                { 10000000, 1e16 },
-            }
             for lod = 0, LOD_COUNT - 1 do
-                local r = lodRanges[lod + 1]
+                local r = LOD_RANGES[lod + 1]
                 local mid = (r[1] + r[2]) * 0.5
                 local mesh = pool[i]:get(mid * mid)
                 if mesh then
