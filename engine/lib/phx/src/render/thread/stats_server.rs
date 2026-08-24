@@ -8,8 +8,6 @@
 //! one per frame when attached (see `stats_snapshot.rs`). The snapshot's
 //! `render` field is the executor's plain [`RenderStats`] verbatim.
 
-#![cfg(feature = "stats-server")]
-
 use std::sync::Arc;
 use std::time::Duration;
 

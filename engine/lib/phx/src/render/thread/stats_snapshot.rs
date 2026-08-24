@@ -12,8 +12,6 @@
 //! field: the snapshot adds only the main-thread producer measurements and
 //! the publication timestamp on top of what the executor already produces.
 
-#![cfg(feature = "stats-server")]
-
 use std::sync::{Arc, Mutex};
 
 use super::{RenderStats, Renderer};

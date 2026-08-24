@@ -16,7 +16,9 @@ mod resource_handle;
 mod shader_reload_result;
 // Both files carry an inner `#![cfg(feature = "stats-server")]`, so they
 // compile to nothing without the feature - no outer gate needed here.
+#[cfg(feature = "stats-server")]
 mod stats_server;
+#[cfg(feature = "stats-server")]
 mod stats_snapshot;
 mod ubo;
 
@@ -50,6 +52,8 @@ pub use renderer_shared::*;
 pub use renderer_threaded::*;
 pub use resource_handle::*;
 pub use shader_reload_result::*;
+#[cfg(feature = "stats-server")]
 pub use stats_server::*;
+#[cfg(feature = "stats-server")]
 pub use stats_snapshot::*;
 pub use ubo::*;
