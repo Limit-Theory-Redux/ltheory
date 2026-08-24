@@ -1,5 +1,6 @@
 mod batch_stats;
 mod camera_render_data;
+mod cmd_category;
 mod command_executor;
 mod command_executor_gl;
 mod config;
@@ -29,6 +30,7 @@ mod renderer_threaded;
 
 pub use batch_stats::*;
 pub use camera_render_data::*;
+pub use cmd_category::*;
 pub use command_executor::*;
 pub use config::*;
 pub use entity_render_data::*;
