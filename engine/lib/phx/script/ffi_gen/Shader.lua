@@ -22,6 +22,7 @@ function Loader.defineType()
             Shader*      Shader_Load                 (Renderer* r, cstr vsName, cstr fsName);
             bool         Shader_Reload               (Shader*, Renderer* r);
             cstr         Shader_Name                 (Shader const*);
+            uint64       Shader_ResourceId           (Shader const*);
             Shader*      Shader_Clone                (Shader const*);
             ShaderState* Shader_ToShaderState        (Shader const*);
             int          Shader_GetVariable          (Shader const*, Renderer* r, cstr name);
@@ -83,6 +84,7 @@ function Loader.defineType()
             __index = {
                 reload               = libphx.Shader_Reload,
                 name                 = libphx.Shader_Name,
+                resourceId           = libphx.Shader_ResourceId,
                 clone                = function(self)
                     local _instance = libphx.Shader_Clone(self)
                     return Core.ManagedObject(_instance, libphx.Shader_Free)

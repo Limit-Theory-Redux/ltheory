@@ -35,6 +35,7 @@ function Loader.defineType()
             void    Mesh_AddVertex             (Mesh*, float px, float py, float pz, float nx, float ny, float nz, float u, float v);
             void    Mesh_AddVertexRaw          (Mesh*, Vertex const* vertex);
             void    Mesh_DrawBind              (Mesh*, Renderer* r);
+            uint64  Mesh_ResourceId            (Mesh*, Renderer* r);
             void    Mesh_DrawBound             (Mesh const*, Renderer* r);
             void    Mesh_DrawUnbind            (Mesh const*, Renderer* r);
             void    Mesh_Draw                  (Mesh*, Renderer* r);
@@ -127,6 +128,7 @@ function Loader.defineType()
                 addVertex             = libphx.Mesh_AddVertex,
                 addVertexRaw          = libphx.Mesh_AddVertexRaw,
                 drawBind              = libphx.Mesh_DrawBind,
+                resourceId            = libphx.Mesh_ResourceId,
                 drawBound             = libphx.Mesh_DrawBound,
                 drawUnbind            = libphx.Mesh_DrawUnbind,
                 draw                  = libphx.Mesh_Draw,

@@ -2596,13 +2596,13 @@ impl CommandExecutor {
             .entry(program)
             .or_insert_with(|| HashMap::with_capacity(32));
 
-        if let Some(&loc) = cache.get(&name) {
+        if let Some(&loc) = cache.get(name) {
             self.uniform_cache_hits_this_frame += 1;
             return loc;
         }
 
         self.uniform_cache_misses_this_frame += 1;
-        let c_name = std::ffi::CString::new(&*name).unwrap_or_default();
+        let c_name = std::ffi::CString::new(name).unwrap_or_default();
         let loc = unsafe { gl::GetUniformLocation(program, c_name.as_ptr()) };
 
         // Store in cache (even if -1 to avoid repeated lookups for non-existent uniforms)

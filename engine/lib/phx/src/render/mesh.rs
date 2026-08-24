@@ -9,7 +9,8 @@ use super::{DataFormat, Draw, PixelFormat, RenderTarget, Tex2D, Tex3D, TexFormat
 use crate::error::Error;
 use crate::math::{Box3, Matrix, Triangle, validate_vec2, validate_vec3};
 use crate::render::{
-    CmdPrimitiveType, InstanceData, RenderState, Renderer, ResourceHandle, Shader, VertexFormat,
+    CmdPrimitiveType, InstanceData, RenderState, Renderer, ResourceHandle, ResourceId, Shader,
+    VertexFormat,
 };
 use crate::rf::Rf;
 use crate::system::*;

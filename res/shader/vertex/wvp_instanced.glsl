@@ -1,32 +1,22 @@
-/* -- Instanced World-View-Projection (asteroids) ----------------------------
-   Variant of wvp.glsl for instanced rendering: the model matrix arrives as
-   per-instance attributes (locations 4-7, set up by the executor's
-   DrawInstancedWithData path) and scale as attribute 9. mWorld/mWorldIT
-   uniforms are NOT used; for uniform-scale rigid bodies (asteroids)
-   normalize(mat3(model) * vertex_normal) == mWorldIT * vec4(n,0) because
-   the scale cancels in normalize.
+/* -- World-View-Projection (Instanced) ------------------------------------------
+   Instanced counterpart to `wvp.glsl`: same output contract (`pos`, `normal`,
+   `objPos`, and the varyings `vertex.glsl` provides), but `mWorld`/`mWorldIT`
+   come from per-instance vertex attributes (see `instanced.glsl`) instead of
+   a uniform - use with `InstanceBatch`/`DrawInstancedWithData`, never with a
+   plain `DrawMesh`.
 ----------------------------------------------------------------------------- */
 
-#include vertex
-
-#autovar mat4 mView
-#autovar mat4 mProj
-
-layout(location = 4) in mat4 modelMatrix;
-layout(location = 8) in vec4 instanceColor;
-layout(location = 9) in float instanceScale;
+#include instanced
 
 out vec3 objPos;
-out float vertScale;
 
 void main() {
-  VS_BEGIN
-  normal = normalize((mat3(modelMatrix) * vertex_normal));
+  VS_INSTANCED_BEGIN
+  normal = normalize((mWorldIT * vec4(vertex_normal, 0)).xyz);
   vec4 v = vec4(vertex_position, 1.0);
   objPos = v.xyz;
-  vec4 wp = modelMatrix * v;
+  vec4 wp = mWorld * v;
   pos = wp.xyz;
-  vertScale = instanceScale;
   gl_Position = mProj * (mView * wp);
-  VS_END
+  VS_INSTANCED_END
 }
