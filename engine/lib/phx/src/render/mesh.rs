@@ -451,7 +451,6 @@ impl Mesh {
     /// InstanceData (ffi.new("InstanceData[?]", count)); ffi_gen passes the
     /// array pointer + element count. The render thread copies the data, so
     /// the Lua array can be reused/GC'd after the call.
-    #[bind(name = "DrawInstancedWithData")]
     pub fn draw_instanced_with_data(
         &mut self,
         r: &mut Renderer,
@@ -476,7 +475,6 @@ impl Mesh {
     /// thread copies it, so the Lua array can be reused/GC'd after the call.
     /// The static data texture must be bound (setTex2D on the shader) before
     /// this call - the vertex shader texelFetches per instance.
-    #[bind(name = "DrawInstancedIndices")]
     pub fn draw_instanced_indices(&mut self, r: &mut Renderer, indices: &[u32]) {
         self.draw_bind(r);
         let this = self.shared.as_ref();

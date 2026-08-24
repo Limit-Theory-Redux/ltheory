@@ -619,7 +619,6 @@ impl RigidBody {
     /// matrix instead of allocating a new one (3 fewer managed Matrix
     /// allocations per call). The Lua side keeps a persistent scratch
     /// matrix per entity and reuses it every frame.
-    #[bind(name = "GetToWorldMatrixInto")]
     pub fn get_to_world_matrix_into(&self, camera_pos: &Position, out: &mut Matrix) {
         let m1 = Matrix::from_rp(&self.get_world_transform_unscaled(), camera_pos);
         let m2 = Matrix::from(Mat4::from_scale(Vec3::splat(self.get_scale())));
@@ -636,7 +635,6 @@ impl RigidBody {
 
     /// Like `get_to_local_matrix`, but writes into the caller-provided
     /// matrix (no allocation; inverse computed in place).
-    #[bind(name = "GetToLocalMatrixInto")]
     pub fn get_to_local_matrix_into(&self, camera_pos: &Position, out: &mut Matrix) {
         self.get_to_world_matrix_into(camera_pos, out);
         out.i_inverse();

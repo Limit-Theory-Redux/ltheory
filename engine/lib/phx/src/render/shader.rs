@@ -539,7 +539,6 @@ impl Shader {
     /// values are unique per mesh (no dedup win), so the three GL uniform
     /// calls are batched on the render thread and the producer pays one
     /// command + one FFI crossing instead of three of each.
-    #[bind(name = "ISetInstanceUniforms")]
     pub fn index_set_instance_uniforms(
         &mut self,
         r: &mut Renderer,
