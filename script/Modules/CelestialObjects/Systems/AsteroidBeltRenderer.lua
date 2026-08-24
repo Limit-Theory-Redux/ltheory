@@ -277,8 +277,8 @@ function AsteroidBeltRenderer.createRenderFn(asteroidData, lodMesh)
     -- / distSq, avoiding a sqrt + division per asteroid (113K of them).
     local lodPxMinSq = ffi.new('float[8]')
     for i = 0, 7 do lodPxMinSq[i] = lodPxMin[i] * lodPxMin[i] end
-    for i = 1, #LOD_RANGES do
-        local r = LOD_RANGES[i]
+    for i = 1, #AsteroidMeshPool.getLodRanges() do
+        local r = AsteroidMeshPool.getLodRanges()[i]
         local midRaw = (r[1] + r[2]) * 0.5
         lodMeshes[i] = lodMesh:get(midRaw * midRaw)
     end
