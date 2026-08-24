@@ -821,7 +821,8 @@ impl RenderCommand {
             | SetUniformFloat2ByName { .. }
             | SetUniformFloat3ByName { .. }
             | SetUniformFloat4ByName { .. }
-            | SetUniformMat4ByName { .. } => CmdCategory::Uniform,
+            | SetUniformMat4ByName { .. }
+            | SetUniformMat4ByGenericName { .. } => CmdCategory::Uniform,
 
             // === Texture Binding ===
             BindTexture2D { .. }

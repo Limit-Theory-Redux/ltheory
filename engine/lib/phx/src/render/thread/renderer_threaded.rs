@@ -1029,24 +1029,6 @@ impl Renderer {
         });
     }
 
-    /// Draw instanced with per-instance data. The slice comes from the
-    /// FFI facade (Lua cdata array converted by ffi_gen); the data is
-    /// copied into the command so the render thread owns it.
-    pub fn draw_instanced_with_data_intern(
-        &mut self,
-        mesh_id: ResourceId,
-        index_count: i32,
-        instances: &[InstanceData],
-        primitive: CmdPrimitiveType,
-    ) {
-        self.submit(RenderCommand::DrawInstancedWithData {
-            mesh_id,
-            index_count,
-            instances: instances.to_vec(),
-            primitive,
-        });
-    }
-
     /// Texture-fetch instancing: submit per-instance u32 indices into a
     /// static data texture. The data is copied into the command so the
     /// render thread owns it (Lua array reusable after the call).
