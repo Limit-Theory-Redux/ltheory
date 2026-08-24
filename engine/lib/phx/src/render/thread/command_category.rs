@@ -9,7 +9,7 @@
 /// discriminant.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
-pub enum CmdCategory {
+pub enum CommandCategory {
     /// Viewport/scissor/blend/depth/cull/wireframe state changes
     State,
     /// Shader bind/unbind (also what invalidates the texture cache)
@@ -36,36 +36,36 @@ pub enum CmdCategory {
     Sync,
 }
 
-impl CmdCategory {
-    pub const ALL: [CmdCategory; 12] = [
-        CmdCategory::State,
-        CmdCategory::Shader,
-        CmdCategory::Uniform,
-        CmdCategory::Texture,
-        CmdCategory::TextureData,
-        CmdCategory::Readback,
-        CmdCategory::Framebuffer,
-        CmdCategory::Mesh,
-        CmdCategory::Draw,
-        CmdCategory::Resource,
-        CmdCategory::Ubo,
-        CmdCategory::Sync,
+impl CommandCategory {
+    pub const ALL: [CommandCategory; 12] = [
+        CommandCategory::State,
+        CommandCategory::Shader,
+        CommandCategory::Uniform,
+        CommandCategory::Texture,
+        CommandCategory::TextureData,
+        CommandCategory::Readback,
+        CommandCategory::Framebuffer,
+        CommandCategory::Mesh,
+        CommandCategory::Draw,
+        CommandCategory::Resource,
+        CommandCategory::Ubo,
+        CommandCategory::Sync,
     ];
 
     pub fn name(&self) -> &'static str {
         match self {
-            CmdCategory::State => "state",
-            CmdCategory::Shader => "shader",
-            CmdCategory::Uniform => "uniform",
-            CmdCategory::Texture => "texture",
-            CmdCategory::TextureData => "texture_data",
-            CmdCategory::Readback => "readback",
-            CmdCategory::Framebuffer => "framebuffer",
-            CmdCategory::Mesh => "mesh",
-            CmdCategory::Draw => "draw",
-            CmdCategory::Resource => "resource",
-            CmdCategory::Ubo => "ubo",
-            CmdCategory::Sync => "sync",
+            CommandCategory::State => "state",
+            CommandCategory::Shader => "shader",
+            CommandCategory::Uniform => "uniform",
+            CommandCategory::Texture => "texture",
+            CommandCategory::TextureData => "texture_data",
+            CommandCategory::Readback => "readback",
+            CommandCategory::Framebuffer => "framebuffer",
+            CommandCategory::Mesh => "mesh",
+            CommandCategory::Draw => "draw",
+            CommandCategory::Resource => "resource",
+            CommandCategory::Ubo => "ubo",
+            CommandCategory::Sync => "sync",
         }
     }
 

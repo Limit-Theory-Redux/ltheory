@@ -80,7 +80,7 @@ the two back into a flat view after fetching. Keys:
 | `render.shader_bind_commands_last_frame` | BindShader commands executed |
 | `render.shader_redundant_binds_last_frame` | Binds where the program was already current (deduped) |
 | `render.shader_distinct_programs_last_frame` | Distinct GL programs used this frame |
-| `render.category_counts_last_frame` | Command counts per category (`[u64; 12]`, `CmdCategory` order) |
+| `render.category_counts_last_frame` | Command counts per category (`[u64; 12]`, `CommandCategory` order) |
 | `render.category_time_us_last_frame` | Executor time per category (µs; all zero unless the dashboard is open — timing is opt-in) |
 | `server_time_us` | Publication timestamp (µs since the UNIX epoch), used by the dashboard for wall-clock FPS averaging |
 

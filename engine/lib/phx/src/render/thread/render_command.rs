@@ -10,7 +10,7 @@ use crossbeam::channel::Sender;
 
 use crate::render::{BlendMode, CullFace, TexFilter, TexFormat, TexWrapMode, gl};
 
-use super::cmd_category::CmdCategory;
+use super::command_category::CommandCategory;
 
 /// A handle to a GPU resource (shader, texture, buffer, etc.)
 /// The actual GL handle lives on the render thread.
@@ -784,7 +784,7 @@ impl RenderCommand {
     /// category have similar per-command GPU/driver cost, so summing counts
     /// and execution time per category shows *where* the render thread's
     /// frame time actually goes (draws vs uniforms vs texture binds vs …).
-    pub fn category(&self) -> CmdCategory {
+    pub fn category(&self) -> CommandCategory {
         use RenderCommand::*;
         match self {
             // === State Management ===
@@ -797,10 +797,10 @@ impl RenderCommand {
             | SetDepthWritable(_)
             | SetWireframe(_)
             | SetLineWidth(_)
-            | SetPointSize(_) => CmdCategory::State,
+            | SetPointSize(_) => CommandCategory::State,
 
             // === Shader Operations ===
-            BindShader { .. } | BindShaderByResource { .. } | UnbindShader => CmdCategory::Shader,
+            BindShader { .. } | BindShaderByResource { .. } | UnbindShader => CommandCategory::Shader,
 
             // === Uniform Operations ===
             SetUniformInt { .. }
@@ -822,7 +822,7 @@ impl RenderCommand {
             | SetUniformFloat3ByName { .. }
             | SetUniformFloat4ByName { .. }
             | SetUniformMat4ByName { .. }
-            | SetUniformMat4ByGenericName { .. } => CmdCategory::Uniform,
+            | SetUniformMat4ByGenericName { .. } => CommandCategory::Uniform,
 
             // === Texture Binding ===
             BindTexture2D { .. }
@@ -832,7 +832,7 @@ impl RenderCommand {
             | BindTexture3DByResource { .. }
             | BindTextureCube { .. }
             | BindTextureCubeByResource { .. }
-            | UnbindTexture { .. } => CmdCategory::Texture,
+            | UnbindTexture { .. } => CommandCategory::Texture,
 
             // === Texture State / Data ===
             SetTexture2DMagFilter { .. }
@@ -854,7 +854,7 @@ impl RenderCommand {
             | UpdateTexture1DDataByResource { .. }
             | UpdateTexture3DDataByResource { .. }
             | UpdateTextureCubeFaceDataByResource { .. }
-            | CopyTexture2DFromFramebufferByResource { .. } => CmdCategory::TextureData,
+            | CopyTexture2DFromFramebufferByResource { .. } => CommandCategory::TextureData,
 
             // === Blocking Readbacks ===
             ReadTexture1DData { .. }
@@ -862,7 +862,7 @@ impl RenderCommand {
             | ReadTexture3DData { .. }
             | ReadTextureCubeFaceData { .. }
             | SamplePixel2DByResource { .. }
-            | ReadFramebufferPixels { .. } => CmdCategory::Readback,
+            | ReadFramebufferPixels { .. } => CommandCategory::Readback,
 
             // === Framebuffer Operations ===
             PushFramebuffer { .. }
@@ -876,10 +876,10 @@ impl RenderCommand {
             | SetDrawBuffers { .. }
             | BindFramebuffer { .. }
             | BindDefaultFramebuffer
-            | Clear { .. } => CmdCategory::Framebuffer,
+            | Clear { .. } => CommandCategory::Framebuffer,
 
             // === Mesh Operations ===
-            BindMesh { .. } | BindMeshByResource { .. } | UnbindMesh => CmdCategory::Mesh,
+            BindMesh { .. } | BindMeshByResource { .. } | UnbindMesh => CommandCategory::Mesh,
 
             // === Drawing Operations ===
             DrawMesh { .. }
@@ -888,7 +888,7 @@ impl RenderCommand {
             | DrawMeshInstancedByResource { .. }
             | DrawInstancedWithData { .. }
             | DrawInstancedIndices { .. }
-            | DrawImmediate { .. } => CmdCategory::Draw,
+            | DrawImmediate { .. } => CommandCategory::Draw,
 
             // === Resource Creation / Destruction ===
             CreateShader { .. }
@@ -899,7 +899,7 @@ impl RenderCommand {
             | CreateTexture3D { .. }
             | CreateTextureCube { .. }
             | CreateMesh { .. }
-            | DestroyResources { .. } => CmdCategory::Resource,
+            | DestroyResources { .. } => CommandCategory::Resource,
 
             // === Uniform Buffer Objects ===
             CreateCameraUBO
@@ -907,7 +907,7 @@ impl RenderCommand {
             | CreateMaterialUBO
             | UpdateMaterialUBO { .. }
             | CreateLightUBO
-            | UpdateLightUBO { .. } => CmdCategory::Ubo,
+            | UpdateLightUBO { .. } => CommandCategory::Ubo,
 
             // === Window / Synchronization ===
             Resize { .. }
@@ -915,7 +915,7 @@ impl RenderCommand {
             | Flush
             | Fence { .. }
             | PacingFence { .. }
-            | Shutdown => CmdCategory::Sync,
+            | Shutdown => CommandCategory::Sync,
         }
     }
 

@@ -133,9 +133,9 @@ pub struct CommandExecutor {
     pub(super) texture_bind_calls_this_frame: u64,
     pub(super) texture_binds_skipped_this_frame: u64,
     pub(super) texture_cache_invalidations_this_frame: u64,
-    /// Command counts per category this frame (indexed by CmdCategory)
+    /// Command counts per category this frame (indexed by CommandCategory)
     pub(super) category_counts_this_frame: [u64; 12],
-    /// Executor time spent per category this frame (indexed by CmdCategory).
+    /// Executor time spent per category this frame (indexed by CommandCategory).
     /// Only measured while `category_timing` is true (dashboard mode) so
     /// normal runs don't pay the clock overhead. Shared with the main-thread
     /// `Renderer` so attaching the stats sink can flip it from there.

@@ -15,7 +15,7 @@ use std::time::Duration;
 
 use tracing::{error, info, warn};
 
-use super::{CmdCategory, StatsSink, StatsSnapshot};
+use super::{CommandCategory, StatsSink, StatsSnapshot};
 use crate::render::RenderStats;
 
 /// Serialize the render-thread half of a snapshot to JSON.
@@ -23,7 +23,7 @@ use crate::render::RenderStats;
 /// Field set is small and stable, so this stays hand-rolled to keep the
 /// feature's dependency footprint at just tiny_http.
 fn render_stats_to_json(r: &RenderStats) -> String {
-    let cats: Vec<String> = CmdCategory::ALL
+    let cats: Vec<String> = CommandCategory::ALL
         .iter()
         .map(|c| {
             format!(

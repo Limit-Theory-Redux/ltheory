@@ -57,7 +57,7 @@ pub struct RenderStats {
     /// Uniform-location cache hits vs driver round-trips in the last frame
     pub uniform_cache_hits_last_frame: u64,
     pub uniform_cache_misses_last_frame: u64,
-    /// Command counts per category in the last frame (CmdCategory order)
+    /// Command counts per category in the last frame (CommandCategory order)
     pub category_counts_last_frame: [u64; 12],
     /// Executor time per category in the last frame, microseconds
     /// (all zero when the dashboard isn't active; timing is opt-in)
