@@ -3,8 +3,8 @@ use tracing::error;
 
 use crate::math::Matrix;
 use crate::render::{
-    BatchStats, BlendMode, CameraUboData, CmdPrimitiveType, CullFace, GpuHandle,
-    InstanceData, LightUboData, MaterialUboData, RenderBatch, Renderer, ResourceId,
+    BatchStats, BlendMode, CameraUboData, CmdPrimitiveType, CullFace, GpuHandle, InstanceData,
+    LightUboData, MaterialUboData, RenderBatch, Renderer, ResourceId,
 };
 
 // =============================================================================
@@ -272,12 +272,7 @@ impl Renderer {
         indices: &[u32],
         primitive: CmdPrimitiveType,
     ) {
-        self.draw_instanced_indices_intern(
-            ResourceId(mesh_id),
-            index_count,
-            indices,
-            primitive,
-        );
+        self.draw_instanced_indices_intern(ResourceId(mesh_id), index_count, indices, primitive);
     }
 
     // === Window Operations ===

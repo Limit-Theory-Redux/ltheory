@@ -8,9 +8,8 @@ use std::sync::Arc;
 
 use crossbeam::channel::Sender;
 
-use crate::render::{BlendMode, CullFace, TexFilter, TexFormat, TexWrapMode, gl};
-
 use super::command_category::CommandCategory;
+use crate::render::{BlendMode, CullFace, TexFilter, TexFormat, TexWrapMode, gl};
 
 /// A handle to a GPU resource (shader, texture, buffer, etc.)
 /// The actual GL handle lives on the render thread.
@@ -800,7 +799,9 @@ impl RenderCommand {
             | SetPointSize(_) => CommandCategory::State,
 
             // === Shader Operations ===
-            BindShader { .. } | BindShaderByResource { .. } | UnbindShader => CommandCategory::Shader,
+            BindShader { .. } | BindShaderByResource { .. } | UnbindShader => {
+                CommandCategory::Shader
+            }
 
             // === Uniform Operations ===
             SetUniformInt { .. }
@@ -910,12 +911,9 @@ impl RenderCommand {
             | UpdateLightUBO { .. } => CommandCategory::Ubo,
 
             // === Window / Synchronization ===
-            Resize { .. }
-            | SwapBuffers
-            | Flush
-            | Fence { .. }
-            | PacingFence { .. }
-            | Shutdown => CommandCategory::Sync,
+            Resize { .. } | SwapBuffers | Flush | Fence { .. } | PacingFence { .. } | Shutdown => {
+                CommandCategory::Sync
+            }
         }
     }
 

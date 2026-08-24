@@ -145,7 +145,8 @@ impl CommandExecutor {
         // remains valid across program switches and self-corrects on any
         // real texture change. Previously this wiped the cache on every
         // shader stop (~2k/frame), destroying all reuse.
-        self.this_frame_stats.texture_invalidations_on_shader_unbind_last_frame += 1;
+        self.this_frame_stats
+            .texture_invalidations_on_shader_unbind_last_frame += 1;
         unsafe {
             gl::UseProgram(0);
         }
@@ -1750,7 +1751,11 @@ impl CommandExecutor {
         }
     }
 
-    pub(super) fn cmd_draw_immediate(&mut self, primitive: CmdPrimitiveType, vertices: &[ImmVertex]) {
+    pub(super) fn cmd_draw_immediate(
+        &mut self,
+        primitive: CmdPrimitiveType,
+        vertices: &[ImmVertex],
+    ) {
         if vertices.is_empty() {
             return;
         }

@@ -451,11 +451,7 @@ impl Mesh {
     /// InstanceData (ffi.new("InstanceData[?]", count)); ffi_gen passes the
     /// array pointer + element count. The render thread copies the data, so
     /// the Lua array can be reused/GC'd after the call.
-    pub fn draw_instanced_with_data(
-        &mut self,
-        r: &mut Renderer,
-        instances: &[InstanceData],
-    ) {
+    pub fn draw_instanced_with_data(&mut self, r: &mut Renderer, instances: &[InstanceData]) {
         self.draw_bind(r);
         let this = self.shared.as_ref();
         let index_count = this.index.len() as i32;

@@ -6,16 +6,16 @@ use std::time::Duration;
 use crossbeam::channel::{Receiver, Sender, bounded, unbounded};
 use tracing::{error, info};
 
+#[cfg(feature = "stats-server")]
+use crate::render::StatsSink;
 use crate::render::thread::{RenderThread, process_batch_intern};
 use crate::render::{
     BlendMode, ClipManager, CmdPrimitiveType, CullFace, DrawState, GpuHandle, ImmVertex,
     InstanceData, PrimitiveBuilder, RenderCommand, RenderStateIntern, RenderStats,
     RenderTargetStack, RenderThreadConfig, RenderThreadError, RendererData, ResourceHandle,
-    ResourceId, ShaderErrorQueue, ShaderReloadResult, ShaderVarMap, TexFilter,
-    TexFormat, TexWrapMode, VertexFormat, VpStack,
+    ResourceId, ShaderErrorQueue, ShaderReloadResult, ShaderVarMap, TexFilter, TexFormat,
+    TexWrapMode, VertexFormat, VpStack,
 };
-#[cfg(feature = "stats-server")]
-use crate::render::StatsSink;
 use crate::window::{WindowError, WindowGlContext};
 
 /// Maximum frames in flight for triple buffering

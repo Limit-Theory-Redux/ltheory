@@ -16,8 +16,8 @@ mod resource_handle;
 mod shader_reload_result;
 // Both files carry an inner `#![cfg(feature = "stats-server")]`, so they
 // compile to nothing without the feature - no outer gate needed here.
-mod stats_snapshot;
 mod stats_server;
+mod stats_snapshot;
 mod ubo;
 
 // `Renderer`'s two backends: identical public API and FFI surface, selected
@@ -50,6 +50,6 @@ pub use renderer_shared::*;
 pub use renderer_threaded::*;
 pub use resource_handle::*;
 pub use shader_reload_result::*;
-pub use stats_snapshot::*;
 pub use stats_server::*;
+pub use stats_snapshot::*;
 pub use ubo::*;

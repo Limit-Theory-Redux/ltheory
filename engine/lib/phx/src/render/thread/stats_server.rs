@@ -148,17 +148,30 @@ pub fn run_stats_server(port: u16, sink: StatsSink) {
             Ok(Some(request)) => {
                 let url = request.url().to_string();
                 let method = request.method().clone();
-                let response: tiny_http::Response<std::io::Cursor<Vec<u8>>> = match (method, url.as_str()) {
+                let response: tiny_http::Response<std::io::Cursor<Vec<u8>>> = match (
+                    method,
+                    url.as_str(),
+                ) {
                     (tiny_http::Method::Get, "/") => {
                         let body = include_str!("stats_dashboard.html");
-                        tiny_http::Response::from_data(body.as_bytes().to_vec())
-                            .with_header(tiny_http::Header::from_bytes(&b"Content-Type"[..], &b"text/html; charset=utf-8"[..]).unwrap())
+                        tiny_http::Response::from_data(body.as_bytes().to_vec()).with_header(
+                            tiny_http::Header::from_bytes(
+                                &b"Content-Type"[..],
+                                &b"text/html; charset=utf-8"[..],
+                            )
+                            .unwrap(),
+                        )
                     }
                     (tiny_http::Method::Get, "/stats.json") => {
                         let snapshot = sink.lock().unwrap_or_else(|p| p.into_inner()).clone();
                         let body = snapshot_to_json(&snapshot);
-                        tiny_http::Response::from_data(body.into_bytes())
-                            .with_header(tiny_http::Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap())
+                        tiny_http::Response::from_data(body.into_bytes()).with_header(
+                            tiny_http::Header::from_bytes(
+                                &b"Content-Type"[..],
+                                &b"application/json"[..],
+                            )
+                            .unwrap(),
+                        )
                     }
                     // Live memory report (Lua object census). Rows are
                     // (category, count, bytes) pushed by the Lua
@@ -180,8 +193,13 @@ pub fn run_stats_server(port: u16, sink: StatsSink) {
                             ));
                         }
                         body.push_str("]}");
-                        tiny_http::Response::from_data(body.into_bytes())
-                            .with_header(tiny_http::Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap())
+                        tiny_http::Response::from_data(body.into_bytes()).with_header(
+                            tiny_http::Header::from_bytes(
+                                &b"Content-Type"[..],
+                                &b"application/json"[..],
+                            )
+                            .unwrap(),
+                        )
                     }
                     // Live producer-scope table (Lua-side profiler). Same
                     // filtering as the F10 console print, served read-only.
@@ -208,8 +226,13 @@ pub fn run_stats_server(port: u16, sink: StatsSink) {
                             ));
                         }
                         body.push_str("]}");
-                        tiny_http::Response::from_data(body.into_bytes())
-                            .with_header(tiny_http::Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap())
+                        tiny_http::Response::from_data(body.into_bytes()).with_header(
+                            tiny_http::Header::from_bytes(
+                                &b"Content-Type"[..],
+                                &b"application/json"[..],
+                            )
+                            .unwrap(),
+                        )
                     }
                     // Dashboard toggle for the producer profiler. The request
                     // is picked up on the main thread's next safe point
@@ -217,10 +240,17 @@ pub fn run_stats_server(port: u16, sink: StatsSink) {
                     // here, where disable() could panic mid-scope.
                     (tiny_http::Method::Get, "/profile/toggle") => {
                         crate::system::Profiler::request_toggle();
-                        tiny_http::Response::from_data(b"{\"ok\":true}".to_vec())
-                            .with_header(tiny_http::Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap())
+                        tiny_http::Response::from_data(b"{\"ok\":true}".to_vec()).with_header(
+                            tiny_http::Header::from_bytes(
+                                &b"Content-Type"[..],
+                                &b"application/json"[..],
+                            )
+                            .unwrap(),
+                        )
                     }
-                    _ => tiny_http::Response::from_data(b"not found".to_vec()).with_status_code(404),
+                    _ => {
+                        tiny_http::Response::from_data(b"not found".to_vec()).with_status_code(404)
+                    }
                 };
                 if let Err(e) = request.respond(response) {
                     warn!("Stats dashboard: failed to respond: {e}");

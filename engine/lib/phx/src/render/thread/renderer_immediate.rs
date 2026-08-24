@@ -558,8 +558,12 @@ impl Renderer {
         instances: &[InstanceData],
         primitive: CmdPrimitiveType,
     ) {
-        self.executor
-            .cmd_draw_instanced_with_data(mesh_id, index_count, instances.to_vec(), primitive);
+        self.executor.cmd_draw_instanced_with_data(
+            mesh_id,
+            index_count,
+            instances.to_vec(),
+            primitive,
+        );
     }
 
     pub fn draw_mesh_by_resource(
