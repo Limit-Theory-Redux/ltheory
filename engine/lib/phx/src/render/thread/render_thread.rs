@@ -87,8 +87,8 @@ impl RenderThread {
                     }
 
                     if recv_wait_us >= STARVATION_THRESHOLD_US {
-                        self.executor.recv_wait_us_this_frame += recv_wait_us;
-                        self.executor.recv_wait_count_this_frame += 1;
+                        self.executor.this_frame_stats.recv_wait_us_last_frame += recv_wait_us;
+                        self.executor.this_frame_stats.recv_wait_count_last_frame += 1;
                     }
 
                     let reply = self.executor.execute(cmd);
