@@ -1,6 +1,7 @@
 ---@type UIView
 local BackgroundView = UICore.View {
-    name = "Background"
+    name = "Background",
+    noDarken = true -- idle screensaver: keep the scene clean, no UI dim
 }
 
 ---@type UIRouter

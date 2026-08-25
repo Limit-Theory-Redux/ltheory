@@ -23,7 +23,10 @@ Enums.BufferName = {
     zBufferL = 4,  -- Lighting Depth Buffer
     -- Downsample Buffers
     dsBuffer0 = 5, -- Primary Downsample Buffer
-    dsBuffer1 = 6  -- Secondary Downsample Buffer
+    dsBuffer1 = 6, -- Secondary Downsample Buffer
+    -- Half-res Buffers (menu blur ping-pong)
+    hbBuffer0 = 7,
+    hbBuffer1 = 8
 }
 
 ---@enum RenderingPassName
