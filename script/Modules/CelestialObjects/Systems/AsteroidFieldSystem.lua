@@ -59,6 +59,80 @@ local spawnedAsteroids = {}  -- [beltEntity] = { [asteroidIndex] = entity }
 local timeSinceUpdate = 0
 local totalSpawned = 0       -- Global count across all belts/rings
 
+--- Collect in-range, not-yet-spawned candidates sorted by distance
+--- (nearest first) so the spawn cap is spent on the rocks that are
+--- actually near the player instead of whichever appear first in data.
+---@param asteroids table
+---@param beltPosX number
+---@param beltPosY number
+---@param beltPosZ number
+---@param refX number
+---@param refY number
+---@param refZ number
+---@param spawned table
+---@return table candidates { idx, distSq } sorted ascending
+local function collectNearCandidates(asteroids, beltPosX, beltPosY, beltPosZ, refX, refY, refZ, spawned)
+    local candidates = {}
+    local spawnDistSq = SPAWN_RADIUS * SPAWN_RADIUS
+    for idx, a in ipairs(asteroids) do
+        if spawned[idx] == nil then
+            local dx = beltPosX + a.px - refX
+            local dy = beltPosY + a.py - refY
+            local dz = beltPosZ + a.pz - refZ
+            local distSq = dx*dx + dy*dy + dz*dz
+            if distSq < spawnDistSq then
+                candidates[#candidates + 1] = { idx = idx, distSq = distSq }
+            end
+        end
+    end
+    table.sort(candidates, function(x, y) return x.distSq < y.distSq end)
+    return candidates
+end
+
+--- Find the currently-spawned rock farthest from the reference point
+--- (across all belts) so the cap can make room for closer candidates.
+---@param asteroids table
+---@param beltPosX number
+---@param beltPosY number
+---@param beltPosZ number
+---@param refX number
+---@param refY number
+---@param refZ number
+---@param spawned table
+---@return integer|nil idx, number farthestDistSq
+local function findFarthestSpawned(asteroids, beltPosX, beltPosY, beltPosZ, refX, refY, refZ, spawned)
+    local farthestIdx, farthestDistSq = nil, -1
+    for idx, entity in pairs(spawned) do
+        local a = asteroids[idx]
+        if a then
+            local dx = beltPosX + a.px - refX
+            local dy = beltPosY + a.py - refY
+            local dz = beltPosZ + a.pz - refZ
+            local distSq = dx*dx + dy*dy + dz*dz
+            if distSq > farthestDistSq then
+                farthestDistSq = distSq
+                farthestIdx = idx
+            end
+        end
+    end
+    return farthestIdx, farthestDistSq
+end
+
+-- Eviction gap: only evict when the candidate is at least this much
+-- closer than the farthest currently-spawned rock (avoids churn).
+local EVICT_GAP_SQ = 0.25
+
+--- Despawn a spawned asteroid entity (removes body from the world).
+---@param entity Entity
+---@param physicsWorld Physics|nil
+local function despawnAsteroid(entity, physicsWorld)
+    local rbCmp = entity:get(PhysicsComponents.RigidBody)
+    if rbCmp and rbCmp:getRigidBody() and physicsWorld then
+        physicsWorld:removeRigidBody(rbCmp:getRigidBody())
+    end
+    Registry:destroyEntity(entity, Enums.Registry.EntityDestroyMode.DestroyChildren)
+end
+
 --- Update: check distances, spawn/despawn asteroid entities
 ---@param dt number
 ---@param beltEntities table Array of belt entities with AsteroidBeltComponent
@@ -113,12 +187,7 @@ function AsteroidFieldSystem:update(dt, beltEntities, physicsWorld, refEntity)
                 local distSq = dx*dx + dy*dy + dz*dz
 
                 if distSq > DESPAWN_RADIUS * DESPAWN_RADIUS then
-                    -- Despawn
-                    local rbCmp = entity:get(PhysicsComponents.RigidBody)
-                    if rbCmp and rbCmp:getRigidBody() and physicsWorld then
-                        physicsWorld:removeRigidBody(rbCmp:getRigidBody())
-                    end
-                    Registry:destroyEntity(entity, Enums.Registry.EntityDestroyMode.DestroyChildren)
+                    despawnAsteroid(entity, physicsWorld)
                     spawned[idx] = nil
                     totalSpawned = totalSpawned - 1
                     a.spawned = false
@@ -127,67 +196,86 @@ function AsteroidFieldSystem:update(dt, beltEntities, physicsWorld, refEntity)
             end
         end
 
-        -- Spawn nearby asteroids (rate-limited, global cap)
+        -- Spawn nearby asteroids (rate-limited, global cap), nearest first:
+        -- the cap is spent on the closest candidates, and when the cap is
+        -- full the farthest spawned rock is evicted (with a hysteresis gap)
+        -- so the real-entity set tracks the player's near field instead of
+        -- leaving close rocks rendered as fake instanced ones.
+        local candidates = collectNearCandidates(asteroids, beltPosX, beltPosY, beltPosZ, refX, refY, refZ, spawned)
         local spawnedThisUpdate = 0
-        for idx, a in ipairs(asteroids) do
-            if totalSpawned >= MAX_SPAWNED_TOTAL then break end
+        for _, cand in ipairs(candidates) do
             if spawnedThisUpdate >= MAX_SPAWN_PER_UPDATE then break end
-            if spawned[idx] then goto next_asteroid end
 
-            local dx = beltPosX + a.px - refX
-            local dy = beltPosY + a.py - refY
-            local dz = beltPosZ + a.pz - refZ
-            local distSq = dx*dx + dy*dy + dz*dz
-
-            if distSq < SPAWN_RADIUS * SPAWN_RADIUS then
-                -- Simple static asteroid entity
-                local worldX = beltPosX + a.px
-                local worldY = beltPosY + a.py
-                local worldZ = beltPosZ + a.pz
-
-                local entity = Entity.Create("AsteroidEntity",
-                    CoreComponents.Seed(a.rotSeed),
-                    CoreComponents.Type("Asteroid"),
-                    PhysicsComponents.Transform()
-                )
-
-                local transform = entity:get(PhysicsComponents.Transform)
-                transform:setPos(Position(worldX, worldY, worldZ))
-                transform:setScale(a.scale)
-
-                -- Mesh from pool + asteroid material
-                local lodMesh = beltCmp:getLodMesh() or AsteroidMeshPool:getFromSeed(a.rotSeed)
-                local mesh = lodMesh and lodMesh:get(0)
-                if mesh then
-                    entity:add(RenderComp({ { mesh = mesh, material = Materials.Asteroid() } }))
-                end
-
-                -- Sphere collider
-                local rb = RigidBody.CreateSphere()
-                rb:setKinematic(true)
-                rb:setPos(Position(worldX, worldY, worldZ))
-                rb:setScale(a.scale)
-                local rbCmp = entity:add(PhysicsComponents.RigidBody())
-                rbCmp:setRigidBody(rb)
-                if physicsWorld then
-                    physicsWorld:addRigidBody(rb)
-                end
-
-                -- Attach to belt entity so map/label systems find it
-                Registry:attachEntity(beltEntity, entity)
-
-                spawned[idx] = entity
-                a.spawned = true
-                totalSpawned = totalSpawned + 1
-                spawnedThisUpdate = spawnedThisUpdate + 1
-
-                if totalSpawned <= 5 then
-                    Log.Info("AsteroidField: spawned entity %d at (%.0f, %.0f, %.0f) scale=%.1f",
-                        idx, beltPosX + a.px, beltPosY + a.py, beltPosZ + a.pz, a.scale)
+            if totalSpawned >= MAX_SPAWNED_TOTAL then
+                -- Make room: evict the farthest currently-spawned rock if
+                -- the candidate is meaningfully closer (4x in distSq).
+                local farthestIdx, farthestDistSq = findFarthestSpawned(
+                    asteroids, beltPosX, beltPosY, beltPosZ, refX, refY, refZ, spawned)
+                if farthestIdx and farthestDistSq > cand.distSq * (1.0 / EVICT_GAP_SQ) then
+                    local farEntity = spawned[farthestIdx]
+                    if farEntity then
+                        despawnAsteroid(farEntity, physicsWorld)
+                        spawned[farthestIdx] = nil
+                        totalSpawned = totalSpawned - 1
+                        local farA = asteroids[farthestIdx]
+                        if farA then farA.spawned = false end
+                    end
+                else
+                    break -- cap reached, no meaningful room: stop
                 end
             end
 
-            ::next_asteroid::
+            local idx = cand.idx
+            local a = asteroids[idx]
+            if not a then goto next_candidate end
+
+            -- Simple static asteroid entity
+            local worldX = beltPosX + a.px
+            local worldY = beltPosY + a.py
+            local worldZ = beltPosZ + a.pz
+
+            local entity = Entity.Create("AsteroidEntity",
+                CoreComponents.Seed(a.rotSeed),
+                CoreComponents.Type("Asteroid"),
+                PhysicsComponents.Transform()
+            )
+
+            local transform = entity:get(PhysicsComponents.Transform)
+            transform:setPos(Position(worldX, worldY, worldZ))
+            transform:setScale(a.scale)
+
+            -- Mesh from pool + asteroid material
+            local lodMesh = beltCmp:getLodMesh() or AsteroidMeshPool:getFromSeed(a.rotSeed)
+            local mesh = lodMesh and lodMesh:get(0)
+            if mesh then
+                entity:add(RenderComp({ { mesh = mesh, material = Materials.Asteroid() } }))
+            end
+
+            -- Sphere collider
+            local rb = RigidBody.CreateSphere()
+            rb:setKinematic(true)
+            rb:setPos(Position(worldX, worldY, worldZ))
+            rb:setScale(a.scale)
+            local rbCmp = entity:add(PhysicsComponents.RigidBody())
+            rbCmp:setRigidBody(rb)
+            if physicsWorld then
+                physicsWorld:addRigidBody(rb)
+            end
+
+            -- Attach to belt entity so map/label systems find it
+            Registry:attachEntity(beltEntity, entity)
+
+            spawned[idx] = entity
+            a.spawned = true
+            totalSpawned = totalSpawned + 1
+            spawnedThisUpdate = spawnedThisUpdate + 1
+
+            if totalSpawned <= 5 then
+                Log.Info("AsteroidField: spawned entity %d at (%.0f, %.0f, %.0f) scale=%.1f",
+                    idx, beltPosX + a.px, beltPosY + a.py, beltPosZ + a.pz, a.scale)
+            end
+
+            ::next_candidate::
         end
 
         ::next_belt::
