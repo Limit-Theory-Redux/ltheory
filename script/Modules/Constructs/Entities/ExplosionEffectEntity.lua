@@ -17,7 +17,7 @@ local explosionShader
 local function ensureAssets()
     if not explosionMesh then
         explosionMesh = Primitive.Billboard(-1, -1, 1, 1)
-        explosionShader = Cache.Shader("billboard/quadpos", "effect/explosion_volume")
+        explosionShader = Cache.Shader("billboard/explosion", "effect/explosion_volume")
     end
 end
 
@@ -65,6 +65,7 @@ local function render(entity, blendMode)
     explosionShader:setFloat("size", config.size)
     explosionShader:setFloat3("up", camUp.x, camUp.y, camUp.z)
     explosionShader:setFloat("age", config.age)
+    explosionShader:setFloat("life", config.duration)
     explosionShader:setFloat("seed", config.seed % 1024)
     explosionMesh:draw()
     explosionShader:stop()
