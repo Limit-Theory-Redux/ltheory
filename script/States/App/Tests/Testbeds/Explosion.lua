@@ -90,6 +90,9 @@ function ExplosionTestbed:onInit()
     local anchor = Registry:createEntity()
     Registry:add(anchor,
         require("Modules.Core.Components.NameComponent")("explosionAnchor"))
+    -- Transform is REQUIRED: OrbitCameraController:updateCameraPosition
+    -- early-returns without it (camera stuck at default pose).
+    Registry:add(anchor, PhysicsComponents.Transform())
     local cam = CameraEntity()
     CameraManager:registerCamera("OrbitCam", cam)
     self.controllerOrbitCam = OrbitCameraController(cam, {

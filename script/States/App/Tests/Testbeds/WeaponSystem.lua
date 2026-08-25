@@ -1144,6 +1144,11 @@ function WeaponSystemTestbed:spawnDestroyedContact()
         sizeClass = config.sizeClass or Enums.Target.SizeClass.Small,
     })
     self.targetGeneration = (self.targetGeneration or 0) + 1
+    -- Respawned contacts carry the same targeting metadata as initial ones;
+    -- omitting surface/seed silently degrades per-mount aiming after the
+    -- first destruction wave.
+    local surface = WeaponSystem:buildTargetSurface(
+        handle.shipData:getGeneratedMesh())
     table.insert(self.targets, {
         handle = handle,
         entity = handle.root,
@@ -1151,6 +1156,8 @@ function WeaponSystemTestbed:spawnDestroyedContact()
         health = handle.root:get(CoreComponents.Health),
         sizeClass = config.sizeClass or Enums.Target.SizeClass.Small,
         label = config.label or ("contact" .. self.contactCursor),
+        surface = surface,
+        targetPointSeed = self.targetSeedRng and self.targetSeedRng:getUniform() or nil,
         orbitRadius = orbitRadius,
         orbitSpeed = config.orbitSpeed or 0.15,
         phase = phase,
@@ -1668,17 +1675,10 @@ function WeaponSystemTestbed:onPreSim(data)
                     self.focusTargetEntity)
                 if not chosen then
                     -- Nothing in range: track nearest so the turret stays useful.
-                    local bestDistance = math.huge
-                    for _, contact in ipairs(self.targetCandidates) do
-                        local dx = contact.position.x - mount.body:getPos().x
-                        local dy = contact.position.y - mount.body:getPos().y
-                        local dz = contact.position.z - mount.body:getPos().z
-                        local d = math.sqrt(dx*dx + dy*dy + dz*dz)
-                        if d < bestDistance then
-                            bestDistance = d
-                            chosen = contact
-                        end
-                    end
+                    chosen = WeaponSystem:selectNearestTarget(
+                        mount.body:getPos(),
+                        self.targetCandidates,
+                        math.huge)
                 end
                 if chosen then
                     assigned[mountId] = chosen
@@ -1783,7 +1783,11 @@ function WeaponSystemTestbed:onSim(data)
     if not self.lastTargetPoint and self.weaponTargetBody then
         self.lastTargetPoint = { position = self.weaponTargetBody:getPos(), triangleIndex = -1 }
     end
-    do
+    -- Health diagnostics at 1 Hz, not per-tick: per-frame formatting and
+    -- logging can dominate the testbed's frame budget.
+    self.healthLogTime = (self.healthLogTime or 0) + dt
+    if self.healthLogTime >= 1.0 then
+        self.healthLogTime = 0
         local healthSummary = {}
         for _, target in ipairs(self.targets) do
             if target.entity:isValid() and not target.health:isDestroyed() then
