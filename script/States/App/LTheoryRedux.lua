@@ -16,6 +16,8 @@ local InitFiles = require('Legacy.Systems.Files.InitFiles')
 -- drawn by the state's onRender through the rendering systems.
 local UIRouter = require('UI.HmGui.UICore.UIRouter')
 local UIPageMainMenu = require('UI.HmGui.Pages.MainMenu')
+local UIPageGameplay = require('UI.HmGui.Pages.Gameplay')
+local ApplicationBindings = require('States.ApplicationBindings')
 
 -- ECS registry, physics/construct/celestial components, camera manager,
 -- render core, player controller, and the simulation systems the scene
@@ -117,6 +119,7 @@ function LimitTheoryRedux:initMainMenu(isAppInit)
     -- Register UI pages once
     if isAppInit then
         UIRouter:addPage(UIPageMainMenu)
+        UIRouter:addPage(UIPageGameplay)
     end
     Input:setCursorVisible(true)
 
@@ -232,6 +235,63 @@ function LimitTheoryRedux:cleanupMenuBackground()
     self.world = nil
 end
 
+--- Open the in-game pause menu (Escape). The Gameplay page's Paused view
+--- provides Return to Game / Back to Main Menu / Exit.
+function LimitTheoryRedux:openPauseMenu()
+    self.pauseMenuOpen = true
+    GameState:Pause()
+    Input:setCursorVisible(true)
+    UIRouter:setCurrentPage("Gameplay")
+    UIPageGameplay:setView("Paused")
+end
+
+--- Close the in-game pause menu and resume the sim.
+function LimitTheoryRedux:closePauseMenu()
+    self.pauseMenuOpen = false
+    UIRouter:clearCurrentPage()
+    GameState:Unpause()
+    Input:setCursorVisible(false)
+end
+
+--- Tear down the gameplay scene and return to the main menu.
+function LimitTheoryRedux:returnToMainMenu()
+    self:closePauseMenu()
+
+    if self._simTunnel then
+        EventBus:unsubscribe(self._simTunnel)
+        self._simTunnel = nil
+    end
+
+    -- Same teardown as regenerate: bodies leave the world first.
+    if self.universe then
+        Registry:destroyEntity(self.universe, Enums.Registry.EntityDestroyMode.DestroyChildren)
+    end
+    if self.playerShip then
+        local rbCmp = self.playerShip:get(PhysicsComponents.RigidBody)
+        if rbCmp and rbCmp:getRigidBody() then
+            self.world:removeRigidBody(rbCmp:getRigidBody())
+        end
+        Registry:destroyEntity(self.playerShip, Enums.Registry.EntityDestroyMode.DestroyChildren)
+    end
+    for _, station in ipairs(self.stations or {}) do
+        local rbCmp = station:get(PhysicsComponents.RigidBody)
+        if rbCmp and rbCmp:getRigidBody() then
+            self.world:removeRigidBody(rbCmp:getRigidBody())
+        end
+        Registry:destroyEntity(station, Enums.Registry.EntityDestroyMode.DestroyChildren)
+    end
+
+    self.starEntity = nil
+    self.beltEntities = {}
+    AsteroidFieldSystem:cleanup(self.world)
+
+    self.playerShip = nil
+    self.stations = {}
+    self.mapMode = 0
+
+    self:initMainMenu()
+end
+
 --- Build the scene: universe generation (ruleset-driven), materialization
 --- (planets/rings/belts via the texture-fetch renderer), player ship +
 --- stations, and all systems.
@@ -288,7 +348,7 @@ function LimitTheoryRedux:startGame(seed)
         },
     })
 
-    EventBus:subscribe(Event.Sim, self, self.onStateSim)
+    self._simTunnel = EventBus:subscribe(Event.Sim, self, self.onStateSim)
 
     -- Close the menu; in-game UI (HUD, labels) is drawn by the state's
     -- onRender through the rendering systems, not the HmGui pages.
@@ -518,6 +578,7 @@ function LimitTheoryRedux:onRender(data)
         SystemMap3D:render(self.map3DState, data)
 
         self:immediateUI(function()
+            Gui:draw()
             LensFlareSystem:draw(self.starEntity, self.labeledEntities)
             SystemMap3D:renderOverlay(self.map3DState, 0, 0, Window:width(), Window:height())
         end)
@@ -525,6 +586,7 @@ function LimitTheoryRedux:onRender(data)
         RenderCoreSystem:render(data)
 
         self:immediateUI(function()
+            Gui:draw()
             LensFlareSystem:draw(self.starEntity, self.labeledEntities)
             GameplayHUDSystem:draw(self.playerShip, self.player:getModeName(), self.player:isPiloting())
             WorldLabelRenderSystem:draw(self.labeledEntities)
@@ -574,6 +636,16 @@ end
 function LimitTheoryRedux:onInput(data)
     if not self.playerShip then return end
     local dt = data:deltaTime()
+
+    -- Escape toggles the pause menu (Return to Game / Back to Main Menu / Exit).
+    if Input:isPressed(ApplicationBindings.Escape) then
+        if self.pauseMenuOpen then
+            self:closePauseMenu()
+        else
+            self:openPauseMenu()
+        end
+    end
+    if self.pauseMenuOpen then return end
 
     GeneralActions.CycleMapMode:update(dt)
     GeneralActions.AutoPilotToggle:update(dt)
