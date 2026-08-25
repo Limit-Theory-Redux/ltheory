@@ -240,7 +240,9 @@ end
 function LimitTheoryRedux:openPauseMenu()
     self.pauseMenuOpen = true
     GameState:Pause()
-    Input:setCursorVisible(true)
+    -- Free the cursor (visible, no grab): gameplay runs FPS-style Locked,
+    -- which pins the cursor and makes the Paused view unclickable.
+    CursorManager:free()
     UIRouter:setCurrentPage("Gameplay")
     UIPageGameplay:setView("Paused")
 end
@@ -250,7 +252,11 @@ function LimitTheoryRedux:closePauseMenu()
     self.pauseMenuOpen = false
     UIRouter:clearCurrentPage()
     GameState:Unpause()
-    Input:setCursorVisible(false)
+    -- Re-apply the gameplay cursor state for the current camera mode
+    -- (Locked/Confined/Free), same pattern as the map-mode close path.
+    if self.player then
+        self.player:setMode(self.player:getMode())
+    end
 end
 
 --- Tear down the gameplay scene and return to the main menu.
@@ -288,6 +294,10 @@ function LimitTheoryRedux:returnToMainMenu()
     self.playerShip = nil
     self.stations = {}
     self.mapMode = 0
+
+    -- The menu needs a free cursor (closePauseMenu re-applied the gameplay
+    -- capture just above); Release it before switching back to the menu.
+    CursorManager:free()
 
     self:initMainMenu()
 end
