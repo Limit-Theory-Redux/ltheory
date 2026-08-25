@@ -515,6 +515,14 @@ local TESTBED_CONFIG = {
         },
     },
     targetRespawnDelay = 4.0,
+    -- Volumetric death explosions, scaled per contact size class (scene
+    -- units; impact presets for reference are ~0.2-0.4).
+    deathExplosion = {
+        small    = { size = 0.30, duration = 1.6, lightIntensity = 5.0,  lightRadius = 0.35 },
+        medium   = { size = 0.55, duration = 2.0, lightIntensity = 8.0,  lightRadius = 0.55 },
+        large    = { size = 0.95, duration = 2.4, lightIntensity = 12.0, lightRadius = 0.80 },
+        capital  = { size = 1.60, duration = 3.0, lightIntensity = 18.0, lightRadius = 1.20 },
+    },
     deferredLighting = true,
     pointLightDiagnostics = false,
     aiActive = true,
@@ -584,6 +592,7 @@ local WeaponSystem = require("Modules.Constructs.Systems.WeaponSystem")
 local AIWeaponSystem = require("Modules.Constructs.Systems.AIWeaponSystem")
 local ProjectileSystem = require("Modules.Constructs.Systems.ProjectileSystem")
 local BeamSystem = require("Modules.Constructs.Systems.BeamSystem")
+local ExplosionEffectSystem = require("Modules.Constructs.Systems.ExplosionEffectSystem")
 local WeaponTrackingSystem = require("Modules.Constructs.Systems.WeaponTrackingSystem")
 local TrackingModuleGenerator = require("Shared.Content.TrackingModuleGenerator")
 local WeaponGenerator = require("Shared.Content.WeaponGenerator")
@@ -979,6 +988,18 @@ function WeaponSystemTestbed:onTargetDestroyed(destroyedEntity)
         if matches then
             removedLabel = target.label
             Log.Info("WeaponSystem contact destroyed: " .. target.label)
+            -- Fire the volumetric death explosion BEFORE tearing down the
+            -- construct (needs the body's last live position).
+            self:spawnDeathExplosion(target)
+            -- Drop the dead contact's motion track so long sessions don't
+            -- accumulate stale track tables (unbounded heap growth).
+            if self.contactTrackKeys and self.contactTracks then
+                local key = self.contactTrackKeys[target.body]
+                if key then
+                    self.contactTracks[key] = nil
+                    self.contactTrackKeys[target.body] = nil
+                end
+            end
             self.constructManager:destroy(target.handle)
             table.remove(self.targets, index)
             self.respawnQueue[#self.respawnQueue + 1] =
@@ -987,6 +1008,34 @@ function WeaponSystemTestbed:onTargetDestroyed(destroyedEntity)
         end
     end
     self:rebuildTargetCandidates()
+end
+
+---Spawn a size-class-scaled volumetric death explosion at the contact's
+---last live position. Lifecycle is owned by ExplosionEffectSystem
+---(non-loop entities are destroyed after their duration), so this is
+---spawn-and-forget; we only track validity for pruning.
+function WeaponSystemTestbed:spawnDeathExplosion(target)
+    local presets = self.testbedConfig.deathExplosion or {}
+    local preset = presets[tostring(target.sizeClass)]
+    if not preset then
+        return
+    end
+    local ExplosionEffectEntity =
+        require("Modules.Constructs.Entities.ExplosionEffectEntity")
+    local pos = target.body:getPos()
+    local serial = (self.explosionSerial or 0) + 1
+    self.explosionSerial = serial
+    local entity = ExplosionEffectEntity(self.seed + serial * 7919, {
+        position = Position(pos.x, pos.y, pos.z),
+        size = preset.size,
+        duration = preset.duration,
+        lightIntensity = preset.lightIntensity,
+        lightRadius = preset.lightRadius,
+    })
+    self.explosionEffects[#self.explosionEffects + 1] = entity
+    Log.Info(string.format(
+        "WeaponSystem death explosion: %s (size %.2f, seed %d)",
+        target.label, preset.size, self.seed + serial * 7919))
 end
 
 function WeaponSystemTestbed:rebuildTargetCandidates()
@@ -1125,6 +1174,7 @@ function WeaponSystemTestbed:onInit()
     self.armamentManager = ShipArmamentManager()
     self.projectiles = {}
     self.beams = {}
+    self.explosionEffects = {}
     self.turrets = {}
     self.turretsById = {}
     self.mountIds = {}
@@ -1787,6 +1837,14 @@ end
 function WeaponSystemTestbed:onPostSim(data)
     ProjectileSystem:update(self, data:deltaTime())
     BeamSystem:update(self, data:deltaTime())
+    -- Advance explosion lifetimes (looping/teardown/light envelope).
+    ExplosionEffectSystem:update(data:deltaTime())
+    for index = #(self.explosionEffects or {}), 1, -1 do
+        local effect = self.explosionEffects[index]
+        if not effect or not effect:isValid() then
+            table.remove(self.explosionEffects, index)
+        end
+    end
     for index = #(self.lightEffects or {}), 1, -1 do
         local effect = self.lightEffects[index]
         if not effect or not effect:isValid() then
