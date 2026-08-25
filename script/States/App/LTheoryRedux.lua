@@ -317,8 +317,6 @@ function LimitTheoryRedux:startGame(seed)
     self.cfg = SceneConfig
     -- Static scene: bodies stay at generated positions (see onStateSim)
     self.staticStarSystem = true
-    -- Gameplay is never blurred (menu-only post pass)
-    RenderCoreSystem:setMenuBlur(nil)
     -- Random universe each game: a nil seed means "surprise me", never a
     -- fixed default (the same universe on every New Game would be stale).
     self.seed = seed or rng:get64()
@@ -575,10 +573,6 @@ function LimitTheoryRedux:onRender(data)
         if self.menuWorld then
             self:updateMenuCamera(data:deltaTime())
             CelestialLightingSystem:update(self.starEntity)
-            -- Menu darken/blur: skip when the active view opts out
-            -- (e.g. the idle screensaver keeps the scene clean).
-            local menuView = UIPageMainMenu:getCurrentView()
-            RenderCoreSystem:setMenuBlur((menuView and menuView.noDarken) and nil or 0.55)
             RenderCoreSystem:render(data)
         end
         self:immediateUI(function()
@@ -599,8 +593,6 @@ function LimitTheoryRedux:onRender(data)
             SystemMap3D:renderOverlay(self.map3DState, 0, 0, Window:width(), Window:height())
         end)
     else
-        -- Pause menu gets the menu blur treatment over the frozen scene
-        RenderCoreSystem:setMenuBlur(self.pauseMenuOpen and 0.55 or nil)
         RenderCoreSystem:render(data)
 
         self:immediateUI(function()

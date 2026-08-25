@@ -45,9 +45,6 @@ function RenderCoreSystem:registerVars()
         target  = 1.0, -- what we're adapting toward this frame
     }
 
-    -- Menu background blur strength (set per frame by the state; nil = off)
-    self.menuBlurStrength = nil
-
     local win            = Window:size()
     self.resX, self.resY = win.x, win.y
     self.ssResX          = self.resX * self.settings.superSampleRate
@@ -56,10 +53,6 @@ function RenderCoreSystem:registerVars()
     self.dsResY          = self.resY / self.settings.downSampleRate
 
     self.ds              = 4  -- downsample factor for bloom (matches old pipeline)
-
-    -- Half-res ping-pong for the menu blur (smoother than the 4x ds buffers)
-    self.hbResX          = math.floor(self.resX / 2)
-    self.hbResY          = math.floor(self.resY / 2)
 
     self.buffers         = {}
     self:initializeBuffers()
@@ -97,8 +90,6 @@ function RenderCoreSystem:initializeBuffers()
         [Enums.BufferName.zBufferL]  = create(self.ssResX, self.ssResY, TexFormat.R32F),
         [Enums.BufferName.dsBuffer0] = create(self.dsResX, self.dsResY, TexFormat.RGBA16F),
         [Enums.BufferName.dsBuffer1] = create(self.dsResX, self.dsResY, TexFormat.RGBA16F),
-        [Enums.BufferName.hbBuffer0] = create(self.hbResX, self.hbResY, TexFormat.RGBA16F),
-        [Enums.BufferName.hbBuffer1] = create(self.hbResX, self.hbResY, TexFormat.RGBA16F),
     }
 end
 
@@ -254,10 +245,6 @@ function RenderCoreSystem:render(data)
 
     Profiler.Begin('Render.Post.RadialBlur')
     self:radialBlur(dt)
-    Profiler.End()
-
-    Profiler.Begin('Render.Post.MenuBlur')
-    self:menuBlurPass(self.menuBlurStrength)
     Profiler.End()
 
     CameraManager:endDraw()
@@ -681,41 +668,6 @@ function RenderCoreSystem:blur(dst, src, dx, dy, radius, variance)
     Draw.Rect(0, 0, size.x, size.y)
     shader:stop()
     dst:pop()
-end
-
-function RenderCoreSystem:menuBlurPass(strength)
-    if not strength or strength <= 0 then return end
-
-    local A = self.buffers[Enums.BufferName.hbBuffer0]
-    local B = self.buffers[Enums.BufferName.hbBuffer1]
-    local src = self.buffers[Enums.BufferName.buffer0]
-
-    -- Downsample the scene into A (half res — keeps the gaussian smooth
-    -- when upscaled, unlike a 4x ds buffer which shows blocky edges).
-    A:push()
-    local dsShader = Cache.Shader('ui', 'filter/downsample')
-    dsShader:start()
-    dsShader:setTex2D('src', src)
-    Draw.Rect(0, 0, self.hbResX, self.hbResY)
-    dsShader:stop()
-    A:pop()
-
-    -- Tight small gaussian (2-tap radius); a wide blur reads as "bad sight".
-    self:blur(B, A, 1, 0, 2, 3)
-    self:blur(A, B, 0, 1, 2, 3)
-
-    -- Mix the sharp scene with the blurred copy.
-    self:applyFilter('menublur', function(sh)
-        sh:setTex2D('srcBlur', A)
-        sh:setFloat('strength', strength)
-    end)
-end
-
---- Enable/disable the menu background blur (nil or 0 disables).
---- The state calls this per frame based on the active menu view.
----@param strength number|nil
-function RenderCoreSystem:setMenuBlur(strength)
-    self.menuBlurStrength = (strength and strength > 0) and strength or nil
 end
 
 function RenderCoreSystem:fxaa()
