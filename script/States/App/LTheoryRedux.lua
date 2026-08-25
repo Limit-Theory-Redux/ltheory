@@ -26,6 +26,7 @@ local PhysicsComponents = require('Modules.Physics.Components')
 local ConstructComponents = require('Modules.Constructs.Components')
 local CelestialComponents = require('Modules.CelestialObjects.Components')
 local CameraManager = require('Modules.Cameras.Managers.CameraManager')
+local CameraEntity = require('Modules.Cameras.Entities').Camera
 local RenderCoreSystem = require('Modules.Rendering.Systems.RenderCoreSystem')
 local PlayerController = require('Modules.Constructs.Systems.PlayerController')
 local AutoPilotSystem = require('Modules.Constructs.Systems.AutoPilotSystem')
@@ -126,8 +127,109 @@ function LimitTheoryRedux:initMainMenu(isAppInit)
     if os.getenv("LTR_AUTOSTART") == "1" then
         self:startGame(rng:get64())
     else
+        -- Menu phase: spawn a star system behind the menu (the legacy
+        -- GameView background path is gone; the modern pipeline renders it).
+        self:createMenuBackground()
         UIRouter:setCurrentPage("Main_Menu")
     end
+end
+
+--- Spawn the menu background star system through the modern scene pipeline
+--- (UniverseManager + Rulesets + SolarSystemVisualizer) with its own camera,
+--- mirroring the camera pattern of the working testbed states.
+function LimitTheoryRedux:createMenuBackground()
+    if self.menuWorld then return end
+
+    self.world = Physics.Create()
+    self.menuWorld = self.world
+
+    -- Skybox + universe at menu scale (Config.gen scaleSystemBack etc.)
+    setMenuScale()
+    self.menuSeed = rng:get64()
+    self.seed = self.menuSeed
+    self:createSkybox()
+    self:generateUniverse()
+
+    -- Orbit camera around the first planet (same registration pattern as
+    -- PlanetTest: no controller, transform driven by updateMenuCamera).
+    local camEntity = CameraEntity()
+    CameraManager:registerCamera("MenuCamera", camEntity)
+    CameraManager:setActiveCamera("MenuCamera")
+
+    local planetPos = Position(0, 0, 0)
+    local planetRadius = 100
+    if self.planets and self.planets[1] then
+        local planet = self.planets[1]
+        local t = planet:get(PhysicsComponents.Transform)
+        if t then
+            planetPos = t:getPos()
+            planetRadius = math.max(t:getScale(), 100)
+        end
+    end
+    self.menuPlanetPos = planetPos
+    self.menuOrbitAngle = 0.0
+    self.menuOrbitSpeed = 0.02
+    self.menuOrbitPitch = 0.25
+    self.menuOrbitRadius = planetRadius * 4.0
+    self:updateMenuCamera(0)
+end
+
+--- Advance the menu camera on its orbit around the menu planet.
+---@param dt number
+function LimitTheoryRedux:updateMenuCamera(dt)
+    if not self.menuWorld then return end
+
+    self.menuOrbitAngle = self.menuOrbitAngle + (self.menuOrbitSpeed * (dt or 0))
+
+    local camEntity = CameraManager:getActiveCameraEntity()
+    if not camEntity then return end
+    local transform = camEntity:get(PhysicsComponents.Transform)
+    if not transform then return end
+
+    local r = self.menuOrbitRadius
+    local x = math.cos(self.menuOrbitAngle) * r
+    local y = math.sin(self.menuOrbitPitch) * r
+    local z = math.sin(self.menuOrbitAngle) * r
+    local targetPos = Vec3f(self.menuPlanetPos.x, self.menuPlanetPos.y, self.menuPlanetPos.z)
+    local camPos = Vec3f(targetPos.x + x, targetPos.y + y, targetPos.z + z)
+
+    transform:setPos(Position(camPos.x, camPos.y, camPos.z))
+    local lookDir = (targetPos - camPos):normalize()
+    transform:setRot(Quat.FromLook(lookDir, Vec3f(0, 1, 0)))
+end
+
+--- Tear down the menu background before the game builds its own scene.
+function LimitTheoryRedux:cleanupMenuBackground()
+    if not self.menuWorld then return end
+
+    if self.universe then
+        -- Bodies must leave the physics world before their entities die.
+        local bodies = {}
+        for entity, rbCmp in Registry:iterEntities(PhysicsComponents.RigidBody) do
+            local rb = rbCmp and rbCmp:getRigidBody()
+            if rb then
+                table.insert(bodies, { entity = entity, rb = rb })
+            end
+        end
+        for _, b in ipairs(bodies) do
+            self.menuWorld:removeRigidBody(b.rb)
+        end
+        Registry:destroyEntity(self.universe, Enums.Registry.EntityDestroyMode.DestroyChildren)
+    end
+
+    -- The skybox entity is standalone (not attached to the universe).
+    if self.skybox then
+        Registry:destroyEntity(self.skybox, Enums.Registry.EntityDestroyMode.DestroyChildren)
+        self.skybox = nil
+    end
+
+    self.universe = nil
+    self.planets = {}
+    self.labeledEntities = {}
+    self.beltEntities = {}
+    self.starEntity = nil
+    self.menuWorld = nil
+    self.world = nil
 end
 
 --- Build the scene: universe generation (ruleset-driven), materialization
@@ -137,6 +239,10 @@ end
 function LimitTheoryRedux:startGame(seed)
     setGameScale()
     GameState:SetState(Enums.GameStates.InGame)
+
+    -- Drop the menu background (its universe/world/camera) before building
+    -- the gameplay scene.
+    self:cleanupMenuBackground()
 
     self.cfg = SceneConfig
     -- Static scene: bodies stay at generated positions (see onStateSim)
@@ -392,8 +498,13 @@ end
 ---@param data EventData
 function LimitTheoryRedux:onRender(data)
     if not self.playerShip then
-        -- Menu phase: nothing 3D to render yet (the HmGui pages draw
-        -- through Gui:draw below).
+        -- Menu phase: the background star system renders through the modern
+        -- core first; the HmGui pages draw on top via Gui:draw below.
+        if self.menuWorld then
+            self:updateMenuCamera(data:deltaTime())
+            CelestialLightingSystem:update(self.starEntity)
+            RenderCoreSystem:render(data)
+        end
         self:immediateUI(function()
             Gui:draw()
         end)

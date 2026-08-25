@@ -68,26 +68,13 @@ local function newGame(seed)
     local seed = seed or rng:get64()
 
     -- Route through the app state's scene builder (UniverseManager +
-    -- Rulesets + SolarSystemVisualizer) instead of the legacy
-    -- LoadingScreen flow.
-    local DebugControl = require("Legacy.Systems.Controls.Controls.DebugControl")
-    if DebugControl.ltheory and DebugControl.ltheory.startGame then
-        DebugControl.ltheory:startGame(seed)
+    -- Rulesets + SolarSystemVisualizer) via the seam the state exposes
+    -- in onInit (GameState.startGame). The legacy LoadingScreen flow
+    -- and its DebugControl.ltheory hook are gone.
+    if GameState.startGame then
+        GameState.startGame(seed)
     end
 end
-
-local function gameProgressBar()
-    GameState.world.currentUniverse.progressBar = UIComponent.ProgressBar {
-        size = ResponsiveSize(750, 40),
-        margin = { 0, 40 },
-        minValue = 1,
-        maxValue = 100,
-        currentValue = 0,
-    }
-
-    return GameState.world.currentUniverse.progressBar
-end
-
 
 local newgameGrid = UILayout.Grid {
     align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
@@ -396,8 +383,7 @@ local newgameGrid = UILayout.Grid {
                     font = { name = "Unageo-Medium", size = 24 },
                     toolTip = function() return "Press to start a new game with a random seed." end,
                     callback = function() newGame(rng:get64()) end,
-                },
-                gameProgressBar
+                }
             }
         }
     }
