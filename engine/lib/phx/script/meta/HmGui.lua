@@ -10,11 +10,13 @@ HmGui = {}
 function HmGui:beginGui(sx, sy) end
 
 -- Finish GUI declaration, calculate hierarchy widgets sizes and layout.
+---@param r Renderer
 ---@param input Input
-function HmGui:endGui(input) end
+function HmGui:endGui(r, input) end
 
 -- Pass information about widgets to the renderer and draw them.
-function HmGui:draw() end
+---@param r Renderer
+function HmGui:draw(r) end
 
 -- Begin a whole screen new layer on top of the current one.
 -- Position of the layer (top/left corner) will be [0, 0] and size will be a size of the screen set in [`HmGui::begin_gui`].

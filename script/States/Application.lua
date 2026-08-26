@@ -1,9 +1,10 @@
 local Bindings = require('States.ApplicationBindings')
 local MainMenu = require('Legacy.Systems.Menus.MainMenu')
+local ShaderHotReload = require('Render.ShaderHotReload')
+local ShaderErrorOverlay = require('Shared.Tools.ShaderErrorOverlay')
 
+---@class Application
 local Application = Class("Application", function(self) end)
-
--- Virtual ---------------------------------------------------------------------
 
 function Application:getDefaultSize()
     return Config.render.window.defaultResX, Config.render.window.defaultResY
@@ -18,13 +19,9 @@ function Application:getWindowMode()
 end
 
 function Application:onInit() end
-
 function Application:onDraw() end
-
 function Application:onResize(sx, sy) end
-
 function Application:onUpdate(dt) end
-
 function Application:onExit() end
 
 function Application:quit()
@@ -41,17 +38,14 @@ function Application:eventLoop()
 
     local eventData, payload = EventBus:nextEvent()
     while eventData ~= nil do
-        --print("[" .. tostring(Render.ToString(eventData:getRender())) .. "]")
-        --print("- Tunnel Id: " .. tostring(eventData:tunnelId()))
-
         EventTunnels[eventData:tunnelId()](eventData, payload)
         eventData, payload = EventBus:nextEvent()
     end
 end
 
--- Application Template --------------------------------------------------------
-
 function Application:appInit()
+    ShaderHotReload:init()
+
     self.eventsRegistered = false
     self.resX, self.resY = self:getDefaultSize()
 
@@ -61,21 +55,34 @@ function Application:appInit()
 
     self.audio = Audio.Create()
     GameState.audio.manager = self.audio
-
     GameState.render.gameWindow = Window
-
     Window:setPresentMode(GameState.render.presentMode)
 
     if Config.jit.profile and Config.jit.profileInit then Jit.StartProfile() end
 
     Preload.Run()
 
-    -- Setting Application Variables prior to onInit()
+    -- Settings
     self.profilerFont = Font.Load('NovaMono', 10)
-    self.lastUpdate = TimeStamp.Now() -- TODO: was TimeStamp.GetFuture(-1.0 / 60.0)
+    self.lastUpdate = TimeStamp.Now()
     self.profiling = false
     self.toggleProfiler = false
     self.showBackgroundModeHints = true
+
+    -- GC CONTROL: Disable automatic collection
+    GC.Stop()
+    -- Threshold for the manual drain (Application:onPostRender). Fixed
+    -- 64 MB was below the game's real steady-state heap (66-90 MB), so
+    -- GC.Step ran every frame draining overshoot at a constant ~12-15 ms
+    -- tax (measured in the benchmark perf work). Instead of chasing a
+    -- magic constant, track the heap high-water mark and only start
+    -- collecting when memory GROWS beyond the previous peak: a state that
+    -- has settled (menu idle, gameplay cruise) stops paying the tax
+    -- entirely, while genuine growth (world gen, ship spawning) still
+    -- gets collected.
+    self.gcThresholdKB = Config.gc and Config.gc.thresholdKB or 0 -- 0 = adaptive
+    self.gcAdaptive = self.gcThresholdKB == 0
+    self.gcHighWaterMark = nil -- set on first onPostRender
 
     self:onInit()
     self:onResize(self.resX, self.resY)
@@ -85,8 +92,8 @@ function Application:appInit()
     if Config.jit.verbose then Jit.StartVerbose() end
 
     Window:cursor():setGrabMode(CursorGrabMode.Confined)
-    Window:setCursorPosition(Vec2f(self.resX / 2, self.resY / 2))
     Window:cursor():setGrabMode(CursorGrabMode.None)
+    Window:setCursorPosition(Vec2f(self.resX / 2, self.resY / 2))
 end
 
 function Application:registerEvents()
@@ -106,6 +113,15 @@ function Application:onSim(data) end
 function Application:onPostSim(data) end
 
 function Application:onPreRender(data)
+    ShaderHotReload:update()
+
+    -- Dashboard toggle requests are picked up here (same safe point as the
+    -- F10 binding): the profiler must only be toggled from the main thread
+    -- outside any active scope, never from the HTTP thread.
+    if Profiler.PendingToggle() then
+        self.toggleProfiler = true
+    end
+
     if self.toggleProfiler then
         self.toggleProfiler = false
         self.profiling = not self.profiling
@@ -134,7 +150,6 @@ function Application:onPreRender(data)
 
     local timeScaledDt = data:deltaTime()
 
-    --* system & canvas should probably subscribe to onPreRender themselves
     if GameState.player.humanPlayer and GameState.player.humanPlayer:getRoot().update then
         GameState.player.humanPlayer:getRoot():update(timeScaledDt)
         GameState.render.uiCanvas:update(timeScaledDt)
@@ -144,7 +159,6 @@ function Application:onPreRender(data)
         Profiler.SetValue('gcmem', GC.GetMemory())
         Profiler.Begin('App.onResize')
         local size = Window:size()
-        Window:cursor():setGrabMode(CursorGrabMode.None)
         if size.x ~= self.resX or size.y ~= self.resY then
             self.resX = size.x
             self.resY = size.y
@@ -161,104 +175,100 @@ function Application:onRender(data)
     Profiler.SetValue('gcmem', GC.GetMemory())
     Profiler.Begin('App.onRender')
 
-    Window:beginDraw()
-
-    --* should they subscribe to onRender themselves?
-    if GameState.render.uiCanvas ~= nil then
-        GameState.render.uiCanvas:draw(self.resX, self.resY)
-        Gui:draw()
-    end
-
     Profiler.End()
-
-    UI.DrawEx.TextAdditive(
-        'Unageo-Medium',
-        "WORK IN PROGRESS",
-        20,
-        self.resX / 2 - 20, 50, 40, 20,
-        0.75, 0.75, 0.75, 0.75,
-        0.5, 0.5
-    )
-
-    if GameState:GetCurrentState() ~= Enums.GameStates.MainMenu then
-        --if GameState.paused then
-        --    UI.DrawEx.TextAdditive(
-        --        'NovaRound',
-        --        "[PAUSED]",
-        --        24,
-        --        0, 0, self.resX, self.resY,
-        --        1, 1, 1, 1,
-        --        0.5, 0.99
-        --    )
-        --end
-
-        --if GameState.player.currentShip and GameState.player.currentShip:isDestroyed() then
-        --    --TODO: replace this with a general "is alive" game state here and in LTR,
-        --    -- the whole process needs to be improved
-        --    if MainMenu and not MainMenu.dialogDisplayed and
-        --        not MainMenu.seedDialogDisplayed and
-        --        not MainMenu.settingsScreenDisplayed then
-        --        do
-        --            UI.DrawEx.TextAdditive(
-        --                'NovaRound',
-        --                "[GAME OVER]",
-        --                32,
-        --                0, 0, self.resX, self.resY,
-        --                1, 1, 1, 1,
-        --                0.5, 0.5
-        --            )
-        --        end
-        --    end
-        --end
-    end
-
-    -- Take screenshot AFTER on-screen text is shown but BEFORE metrics are displayed
-    if self.doScreenshot then
-        -- Settings.set('render.superSample', 2) -- turn on mild supersampling
-        ScreenCap()
-        if self.prevSS then
-            -- Settings.set('render.superSample', self.prevSS) -- restore previous supersampling setting
-            self.prevSS = nil
-        end
-    end
-
-    Profiler.Begin('Metrics.Display')
-    do -- Metrics display
-        if GameState.debug.metricsEnabled then
-            local dt = data:deltaTime()
-
-            local s = string.format(
-                '%.2f ms / %.0f fps / %.2f MB / %.1f K tris / %d draws / %d imms / %d swaps',
-                1000.0 * dt,
-                1.0 / dt,
-                GC.GetMemory() / 1000.0,
-                Metric.Get(Metric.TrisDrawn) / 1000,
-                Metric.Get(Metric.DrawCalls),
-                Metric.Get(Metric.Immediate),
-                Metric.Get(Metric.FBOSwap))
-            RenderState.PushBlendMode(BlendMode.Alpha)
-            UI.DrawEx.SimpleRect(0, self.resY - 20, self.resX, self.resY, Color(0.1, 0.1, 0.1, 0.5))
-            self.profilerFont:draw(s, 10, self.resY - 5, Color(1, 1, 1, 1))
-
-            local y = self.resY - 5
-            if self.profiling then
-                self.profilerFont:draw('>> PROFILER ACTIVE <<', self.resX - 128, y, Color(1, 0, 0.15, 1))
-                y = y - 12
-            end
-            RenderState.PopBlendMode()
-        end
-    end
-    Profiler.End()
-    Profiler.LoopMarker()
 end
 
 function Application:onPostRender(data)
-    do -- End Draw
-        Profiler.SetValue('gcmem', GC.GetMemory())
-        Profiler.Begin('App.onPostRender')
-        Window:endDraw()
+    Profiler.SetValue('gcmem', GC.GetMemory())
+    Profiler.Begin('App.onPostRender')
+
+    local currentMem = GC.GetMemory()
+
+    -- Initialize previous memory if needed
+    if not self.prevMem then
+        self.prevMem = currentMem
+    end
+
+    -- Adaptive threshold (gcThresholdKB == 0): baseline follows the heap.
+    -- The threshold is set ONCE (first frame) from the initial heap, then
+    -- re-baselined only AFTER a completed collect (see below). It must
+    -- NOT be refreshed every frame: that would keep the threshold glued
+    -- to currentMem + margin, so the heap is always BELOW it, cleaning
+    -- never starts, GC.Step never runs, and the Lua heap grows unbounded
+    -- (measured ~30 MB/s -> 3 GB in minutes).
+    local GC_MARGIN_KB = 8192 -- 8 MB of headroom above the baseline
+    if self.gcAdaptive and self.gcThresholdKB == 0 then
+        self.gcThresholdKB = currentMem + GC_MARGIN_KB
+    end
+
+    -- Start cleaning if memory exceeds threshold
+    if not self.cleaning and currentMem > self.gcThresholdKB then
+        self.cleaning = true
+        GC.debug.spreadFrames = 0 -- reset frame counter for new cycle
+    end
+
+    if self.cleaning then
+        Profiler.Begin('GC.Step')
+
+        -- Adaptive step size (KB of GC work per frame).
+        --
+        -- Old policy: stepSize = max(1000, ceil(growth/10)) capped at
+        -- 10000 - only ~10% of the allocation rate, so the heap climbed
+        -- past the threshold until the 5x-emergency fired a synchronous
+        -- full collect (measured 303 ms pause in-game). That emergency
+        -- full GC is the frame-killing spike.
+        --
+        -- v2 (overshoot/4) drained too hard: with a large overshoot it
+        -- stepped ~32 MB/frame, a constant ~35 ms tax every frame.
+        --
+        -- v3: drain a FRACTION of the overshoot per frame (1/16, capped
+        -- at 10 MB/frame). The heap pins near the threshold, the drain is
+        -- spread over many frames at a bounded per-frame cost, and the
+        -- synchronous full collect is gone entirely.
+        local overshoot = currentMem - self.gcThresholdKB
+        local stepSize
+        if overshoot > 0 then
+            stepSize = math.ceil(overshoot / 16)
+        else
+            stepSize = 1000
+        end
+        stepSize = math.min(stepSize, 10000)
+
+        local done = GC.Step(stepSize)
+        if done then
+            self.cleaning = false
+            -- Re-baseline the adaptive threshold after a completed
+            -- collect: memory now sits at the post-collect level; the
+            -- next drain should only fire when the heap GROWS beyond
+            -- it again (by the margin), not on the very next frame.
+            if self.gcAdaptive then
+                self.gcThresholdKB = GC.GetMemory() + GC_MARGIN_KB
+            end
+        end
+
+        -- **! seems to be a bug: engine restarts GC on collect, so we stop it again**
+        GC.Stop()
+
         Profiler.End()
     end
+
+    -- Update previous memory for next frame
+    self.prevMem = currentMem
+
+    -- Expose debug values to profiler/UI
+    Profiler.SetValue('gc_debug_stepSize', GC.debug.stepSize)
+    Profiler.SetValue('gc_debug_lastMem', GC.debug.lastMem)
+    Profiler.SetValue('gc_debug_emergencyTriggered', GC.debug.emergencyTriggered and 1 or 0)
+    Profiler.SetValue('gc_debug_spreadFrames', GC.debug.spreadFrames)
+
+    self:immediateUI(function() ShaderErrorOverlay:draw() end)
+
+    Profiler.End()
+
+    -- Flush accumulated scope frame-times into the totals once per frame.
+    -- Without this, every scope's total stays 0 and the printed table is
+    -- empty (begin/end only accumulate into scope.frame).
+    Profiler.LoopMarker()
 end
 
 function Application:onPreInput(data) end
@@ -267,7 +277,11 @@ function Application:onInput(data)
     Profiler.SetValue('gcmem', GC.GetMemory())
     Profiler.Begin('App.onInput')
 
-    -- Immediately quit game without saving
+    if ShaderErrorOverlay:handleInput() then
+        Profiler.End()
+        return
+    end
+
     if Input:isKeyboardAltPressed() and Input:isPressed(Button.KeyboardQ) then self:quit() end
     if Input:isPressed(Bindings.Exit) then self:quit() end
 
@@ -284,7 +298,7 @@ function Application:onInput(data)
 
     if Input:isPressed(Bindings.ToggleFullscreen) then
         GameState.render.fullscreen = not GameState.render.fullscreen
-        Window:setFullscreen(GameState.render.fullscreen, GameState.render.fullscreenExclusive);
+        Window:setFullscreen(GameState.render.fullscreen, GameState.render.fullscreenExclusive)
     end
 
     if Input:isPressed(Bindings.Reload) then
@@ -307,12 +321,6 @@ function Application:onInput(data)
         end
     end
 
-    -- Preserving this in case we need to be able to automatically pause on window exit again
-    -- TODO: Re-enable this and connect it to a Settings option for players who want this mode
-    -- if Input:isPressed(Button.System.WindowLeave) and Config.getGameMode() ~= 1 then
-    --     GameState.paused = true
-    -- end
-
     if not Gui:hasActiveInput() then
         if Input:isPressed(Bindings.ToggleWireframe) then
             GameState.debug.physics.drawWireframe = not GameState.debug.physics.drawWireframe
@@ -327,7 +335,6 @@ function Application:onInput(data)
         end
     end
 
-    --! why is this needed for the game to render and update lol
     if GameState.render.uiCanvas ~= nil then
         GameState.render.uiCanvas:input()
     end
@@ -339,15 +346,31 @@ function Application:onPostInput(data) end
 
 function Application:doExit()
     if self.profiling then Profiler.Disable() end
-
     if Config.jit.dumpasm then Jit.StopDump() end
     if Config.jit.profile then Jit.StopProfile() end
     if Config.jit.verbose then Jit.StopVerbose() end
 
-    do -- Exit
-        self:onExit()
-        -- Window:free()
+    -- Final collection before exit
+    GC.Collect()
+
+    self:onExit()
+end
+
+---@param renderFn function render function for immediate ui
+function Application:immediateUI(renderFn)
+    -- Re-open backbuffer for immediate UI
+    Window:beginDraw()
+    RenderState.PushAllDefaults()
+    ClipRect.PushDisabled()
+
+    do
+        renderFn()
     end
+
+    -- Close again
+    ClipRect.Pop()
+    RenderState.PopAll()
+    Window:endDraw()
 end
 
 return Application

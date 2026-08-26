@@ -24,13 +24,13 @@ function Loader.defineType()
         ffi.cdef [[
             void   Quat_Free               (Quat*);
             Quat*  Quat_Create             (float x, float y, float z, float w);
+            Quat*  Quat_Identity           ();
             void   Quat_GetAxisX           (Quat const*, Vec3f* out);
             void   Quat_GetAxisY           (Quat const*, Vec3f* out);
             void   Quat_GetAxisZ           (Quat const*, Vec3f* out);
             void   Quat_GetForward         (Quat const*, Vec3f* out);
             void   Quat_GetRight           (Quat const*, Vec3f* out);
             void   Quat_GetUp              (Quat const*, Vec3f* out);
-            Quat*  Quat_Identity           ();
             Quat*  Quat_Canonicalize       (Quat const*);
             void   Quat_ICanonicalize      (Quat*);
             float  Quat_Dot                (Quat const*, Quat const* p);
@@ -49,12 +49,15 @@ function Loader.defineType()
             void   Quat_IScale             (Quat*, float scale);
             Quat*  Quat_Slerp              (Quat const*, Quat const* p, float t);
             void   Quat_ISlerp             (Quat*, Quat const* p, float t);
+            Vec3f  Quat_ToEuler            (Quat const*);
+            Quat*  Quat_FromAxisAngle      (Vec3f const* axis, float radians);
+            Quat*  Quat_FromEuler          (float yaw, float pitch, float roll);
+            Quat*  Quat_FromLook           (Vec3f const* forward, Vec3f const* up);
+            Quat*  Quat_FromLookUp         (Vec3f const* look, Vec3f const* up);
+            Quat*  Quat_LookAt             (Vec3f const* eye, Vec3f const* target, Vec3f const* up);
+            Quat*  Quat_FromRotateTo       (Vec3f const* from, Vec3f const* to);
             cstr   Quat_ToString           (Quat const*);
             Error* Quat_Validate           (Quat const*);
-            Quat*  Quat_FromAxisAngle      (Vec3f const* axis, float radians);
-            Quat*  Quat_FromBasis          (Vec3f const* x, Vec3f const* y, Vec3f const* z);
-            Quat*  Quat_FromLookUp         (Vec3f const* look, Vec3f const* up);
-            Quat*  Quat_FromRotateTo       (Vec3f const* from, Vec3f const* to);
         ]]
     end
 
@@ -72,12 +75,20 @@ function Loader.defineType()
                 local _instance = libphx.Quat_FromAxisAngle(axis, radians)
                 return Core.ManagedObject(_instance, libphx.Quat_Free)
             end,
-            FromBasis          = function(x, y, z)
-                local _instance = libphx.Quat_FromBasis(x, y, z)
+            FromEuler          = function(yaw, pitch, roll)
+                local _instance = libphx.Quat_FromEuler(yaw, pitch, roll)
+                return Core.ManagedObject(_instance, libphx.Quat_Free)
+            end,
+            FromLook           = function(forward, up)
+                local _instance = libphx.Quat_FromLook(forward, up)
                 return Core.ManagedObject(_instance, libphx.Quat_Free)
             end,
             FromLookUp         = function(look, up)
                 local _instance = libphx.Quat_FromLookUp(look, up)
+                return Core.ManagedObject(_instance, libphx.Quat_Free)
+            end,
+            LookAt             = function(eye, target, up)
+                local _instance = libphx.Quat_LookAt(eye, target, up)
                 return Core.ManagedObject(_instance, libphx.Quat_Free)
             end,
             FromRotateTo       = function(from, to)
@@ -145,6 +156,7 @@ function Loader.defineType()
                     return Core.ManagedObject(_instance, libphx.Quat_Free)
                 end,
                 iSlerp             = libphx.Quat_ISlerp,
+                toEuler            = libphx.Quat_ToEuler,
                 toString           = libphx.Quat_ToString,
                 validate           = function(self)
                     local _instance = libphx.Quat_Validate(self)

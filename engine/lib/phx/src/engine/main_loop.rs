@@ -5,7 +5,7 @@ use mlua::Function;
 use tracing::*;
 use winit::application::ApplicationHandler;
 use winit::event::{self, *};
-use winit::event_loop::ActiveEventLoop;
+use winit::event_loop::{ActiveEventLoop, ControlFlow};
 use winit::keyboard::PhysicalKey;
 use winit::window::WindowId;
 
@@ -21,36 +21,42 @@ pub struct MainLoop {
 impl ApplicationHandler for MainLoop {
     fn new_events(&mut self, event_loop: &ActiveEventLoop, start_cause: StartCause) {
         if start_cause == StartCause::Init {
+            // Run the loop continuously (poll) instead of waiting for OS
+            // events. With the default ControlFlow::Wait, Windows DWM paces
+            // redraw delivery to the monitor refresh rate, which caps the
+            // producer at the display's Hz even with PresentMode::NoVsync.
+            // Poll + NoVsync = truly unbounded FPS; Vsync apps still cap via
+            // the swap interval blocking on the render thread.
+            event_loop.set_control_flow(ControlFlow::Poll);
             // We need the Engine type to have a stable pointer, so we construct it within `MainLoop` right away.
             self.engine = Some(Engine::new(event_loop));
             let engine = self.engine.as_mut().unwrap();
 
             // Set engine pointer.
-            {
-                let lua = engine.lua.as_ref();
-                let globals = lua.globals();
 
-                globals.set("__debug__", cfg!(debug_assertions)).unwrap();
-                globals.set("__embedded__", true).unwrap();
-                globals.set("__checklevel__", 0 as u64).unwrap();
+            let lua = engine.lua.as_ref();
+            let globals = lua.globals();
 
-                if !self.app_name.is_empty() {
-                    globals.set("__app__", self.app_name.clone()).unwrap();
-                }
+            globals.set("__debug__", cfg!(debug_assertions)).unwrap();
+            globals.set("__embedded__", true).unwrap();
+            globals.set("__checklevel__", 0 as u64).unwrap();
 
-                lua.load(&*self.entry_point_path)
-                    .exec()
-                    .unwrap_or_else(|e| {
-                        panic!("Error executing the entry point script: {e}");
-                    });
-
-                let set_engine_func: Function = globals.get("SetEngine").unwrap();
-                set_engine_func
-                    .call::<()>(engine as *const Engine as usize)
-                    .unwrap_or_else(|e| {
-                        panic!("Error calling SetEngine: {e}");
-                    });
+            if !self.app_name.is_empty() {
+                globals.set("__app__", self.app_name.clone()).unwrap();
             }
+
+            lua.load(&*self.entry_point_path)
+                .exec()
+                .unwrap_or_else(|e| {
+                    panic!("Error executing the entry point script: {e}");
+                });
+
+            let set_engine_func: Function = globals.get("SetEngine").unwrap();
+            set_engine_func
+                .call::<()>(engine as *const Engine as usize)
+                .unwrap_or_else(|e| {
+                    panic!("Error calling SetEngine: {e}");
+                });
 
             engine.call_lua("InitSystem").unwrap_or_else(|e| {
                 panic!("Error calling InitSystem: {e}");
@@ -80,7 +86,9 @@ impl ApplicationHandler for MainLoop {
                     .set_physical_resolution(size.width, size.height);
                 // Update the cache immediately so we don't try to resize again at the end of the frame.
                 engine.cache.window.resolution = engine.window.resolution.clone();
-                engine.winit_window.resize(size.width, size.height);
+                // Safe to drop: another Resized event supersedes it, and the
+                // executor's GL viewport update only needs the latest size.
+                engine.renderer.try_resize(size.width, size.height);
             }
             WindowEvent::CloseRequested => {
                 // If we close the window, then abort the main loop.
@@ -188,6 +196,15 @@ impl ApplicationHandler for MainLoop {
                 inner_size_writer: _,
             } => {
                 engine.hmgui.set_scale_factor(scale_factor);
+
+                let size = engine.winit_window.window().inner_size();
+
+                engine
+                    .window
+                    .resolution
+                    .set_physical_resolution(size.width, size.height);
+
+                engine.cache.window.resolution = engine.window.resolution.clone();
             }
             WindowEvent::Focused(focused) => {
                 engine.window.focused = focused;
@@ -238,7 +255,23 @@ impl ApplicationHandler for MainLoop {
         }
     }
 
-    fn device_event(&mut self, _: &ActiveEventLoop, _: DeviceId, _: DeviceEvent) {}
+    fn device_event(&mut self, _: &ActiveEventLoop, device_id: DeviceId, event: DeviceEvent) {
+        let Some(engine) = self.engine.as_mut() else {
+            return;
+        };
+
+        match event {
+            DeviceEvent::MouseMotion { delta } => {
+                // delta is (dx, dy) in platform device coordinates — feed it directly as raw movement
+                engine.input.update_mouse(device_id, |state| {
+                    state.update_raw_delta(delta.0 as f32, delta.1 as f32)
+                });
+            }
+            _ => {
+                // ignore other device events
+            }
+        }
+    }
 
     fn resumed(&mut self, _: &ActiveEventLoop) {
         let Some(engine) = self.engine.as_mut() else {
@@ -282,8 +315,13 @@ impl ApplicationHandler for MainLoop {
         engine.changed_window();
         engine.input.reset();
 
-        // Redraw, this really just means to swap buffers.
+        // Request the next redraw at the windowing-system level.
         engine.winit_window.redraw();
+
+        // Swap buffers. WinitWindow no longer holds the GL context (Engine::new
+        // handed it to `renderer`), so frame end goes through here instead of
+        // WinitWindow's own (now-inert) swap_buffers call.
+        engine.renderer.end_frame_triple_buffered();
     }
 
     fn exiting(&mut self, _: &ActiveEventLoop) {

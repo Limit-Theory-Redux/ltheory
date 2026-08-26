@@ -34,6 +34,7 @@ mod tests {
 
     use super::*;
     use crate::input::Input;
+    use crate::render::Renderer;
 
     static mut RESOURCES_INITIALIZED: bool = false;
 
@@ -45,7 +46,7 @@ mod tests {
         Option<Vec<WidgetCheck>>, // Container widget children. None for non-container widget
     );
 
-    fn init_test() -> (HmGui, Input) {
+    fn init_test() -> (HmGui, Input, Renderer) {
         #[allow(unsafe_code)] // TODO: remove
         unsafe {
             if !RESOURCES_INITIALIZED {
@@ -62,7 +63,9 @@ mod tests {
             }
         }
 
-        (HmGui::new(1.0), Default::default())
+        let mut r = Renderer::new_headless();
+        let hmgui = HmGui::new(&mut r, 1.0);
+        (hmgui, Default::default(), r)
     }
 
     fn check_widget(widget: &Ref<'_, HmGuiWidget>, expected: &WidgetCheck) {
@@ -103,7 +106,7 @@ mod tests {
 
     #[test]
     fn test_hmgui_stack_layout_basic() {
-        let (mut gui, input) = init_test();
+        let (mut gui, input, mut r) = init_test();
 
         gui.begin_gui(300.0, 200.0);
         gui.begin_stack_container();
@@ -117,7 +120,7 @@ mod tests {
         gui.set_fixed_size(20.0, 30.0);
 
         gui.end_container();
-        gui.end_gui(&input);
+        gui.end_gui(&mut r, &input);
 
         let root_widget_rf = gui.root();
         let root_widget = root_widget_rf.as_ref();
@@ -145,7 +148,7 @@ mod tests {
 
     #[test]
     fn test_hmgui_stack_layout_stretch() {
-        let (mut gui, input) = init_test();
+        let (mut gui, input, mut r) = init_test();
 
         gui.begin_gui(300.0, 200.0);
         gui.begin_stack_container();
@@ -159,7 +162,7 @@ mod tests {
         gui.set_fixed_size(20.0, 30.0);
 
         gui.end_container();
-        gui.end_gui(&input);
+        gui.end_gui(&mut r, &input);
 
         let root_widget_rf = gui.root();
         let root_widget = root_widget_rf.as_ref();
@@ -188,7 +191,7 @@ mod tests {
     // Widget docking/stretch has priority over fixed size.
     #[test]
     fn test_hmgui_stack_layout_docking_fixed_size_priority() {
-        let (mut gui, input) = init_test();
+        let (mut gui, input, mut r) = init_test();
 
         gui.begin_gui(300.0, 200.0);
         gui.begin_stack_container();
@@ -203,7 +206,7 @@ mod tests {
         gui.set_fixed_size(20.0, 30.0);
 
         gui.end_container();
-        gui.end_gui(&input);
+        gui.end_gui(&mut r, &input);
 
         let root_widget_rf = gui.root();
         let root_widget = root_widget_rf.as_ref();
@@ -232,7 +235,7 @@ mod tests {
     // Test horizontal and vertical stretching in combination with the fixed size
     #[test]
     fn test_hmgui_stack_layout_partial_stretch() {
-        let (mut gui, input) = init_test();
+        let (mut gui, input, mut r) = init_test();
 
         gui.begin_gui(300.0, 200.0);
         gui.begin_stack_container();
@@ -248,7 +251,7 @@ mod tests {
         gui.set_horizontal_alignment(AlignHorizontal::Stretch);
 
         gui.end_container();
-        gui.end_gui(&input);
+        gui.end_gui(&mut r, &input);
 
         let root_widget_rf = gui.root();
         let root_widget = root_widget_rf.as_ref();
@@ -277,7 +280,7 @@ mod tests {
     // Sticking to the sides.
     #[test]
     fn test_hmgui_stack_layout_stick_to_sides() {
-        let (mut gui, input) = init_test();
+        let (mut gui, input, mut r) = init_test();
 
         gui.begin_gui(300.0, 200.0);
         gui.begin_stack_container();
@@ -301,7 +304,7 @@ mod tests {
         gui.set_vertical_alignment(AlignVertical::Bottom);
 
         gui.end_container();
-        gui.end_gui(&input);
+        gui.end_gui(&mut r, &input);
 
         let root_widget_rf = gui.root();
         let root_widget = root_widget_rf.as_ref();
@@ -332,7 +335,7 @@ mod tests {
     // Oversize parent widget/container.
     #[test]
     fn test_hmgui_stack_layout_oversize() {
-        let (mut gui, input) = init_test();
+        let (mut gui, input, mut r) = init_test();
 
         gui.begin_gui(300.0, 200.0);
         gui.begin_stack_container();
@@ -346,7 +349,7 @@ mod tests {
         gui.set_fixed_size(20.0, 400.0);
 
         gui.end_container();
-        gui.end_gui(&input);
+        gui.end_gui(&mut r, &input);
 
         let root_widget_rf = gui.root();
         let root_widget = root_widget_rf.as_ref();
@@ -375,7 +378,7 @@ mod tests {
     // Vertical layout
     #[test]
     fn test_hmgui_vertical_layout_stretch() {
-        let (mut gui, input) = init_test();
+        let (mut gui, input, mut r) = init_test();
 
         gui.begin_gui(300.0, 200.0);
         gui.begin_vertical_container();
@@ -401,7 +404,7 @@ mod tests {
         gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
 
         gui.end_container();
-        gui.end_gui(&input);
+        gui.end_gui(&mut r, &input);
 
         let root_widget_rf = gui.root();
         let root_widget = root_widget_rf.as_ref();
@@ -432,7 +435,7 @@ mod tests {
 
     #[test]
     fn test_hmgui_vertical_layout_stretch_secondary_dim() {
-        let (mut gui, input) = init_test();
+        let (mut gui, input, mut r) = init_test();
 
         gui.begin_gui(300.0, 200.0);
         gui.begin_vertical_container();
@@ -450,7 +453,7 @@ mod tests {
         gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
 
         gui.end_container();
-        gui.end_gui(&input);
+        gui.end_gui(&mut r, &input);
 
         let root_widget_rf = gui.root();
         let root_widget = root_widget_rf.as_ref();
@@ -479,7 +482,7 @@ mod tests {
 
     #[test]
     fn test_hmgui_vertical_layout_dock_children() {
-        let (mut gui, input) = init_test();
+        let (mut gui, input, mut r) = init_test();
 
         gui.begin_gui(300.0, 200.0);
 
@@ -511,7 +514,7 @@ mod tests {
 
         gui.end_container();
 
-        gui.end_gui(&input);
+        gui.end_gui(&mut r, &input);
 
         let root_widget_rf = gui.root();
         let root_widget = root_widget_rf.as_ref();
@@ -552,7 +555,7 @@ mod tests {
     // Horizontal layout
     #[test]
     fn test_hmgui_horizontal_layout_stretch() {
-        let (mut gui, input) = init_test();
+        let (mut gui, input, mut r) = init_test();
 
         gui.begin_gui(300.0, 200.0);
         gui.begin_horizontal_container();
@@ -578,7 +581,7 @@ mod tests {
         gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
 
         gui.end_container();
-        gui.end_gui(&input);
+        gui.end_gui(&mut r, &input);
 
         let root_widget_rf = gui.root();
         let root_widget = root_widget_rf.as_ref();
@@ -609,7 +612,7 @@ mod tests {
 
     #[test]
     fn test_hmgui_horizontal_layout_stretch_secondary_dim() {
-        let (mut gui, input) = init_test();
+        let (mut gui, input, mut r) = init_test();
 
         gui.begin_gui(300.0, 200.0);
         gui.begin_horizontal_container();
@@ -627,7 +630,7 @@ mod tests {
         gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
 
         gui.end_container();
-        gui.end_gui(&input);
+        gui.end_gui(&mut r, &input);
 
         let root_widget_rf = gui.root();
         let root_widget = root_widget_rf.as_ref();
@@ -656,7 +659,7 @@ mod tests {
 
     #[test]
     fn test_hmgui_horizontal_layout_dock_children() {
-        let (mut gui, input) = init_test();
+        let (mut gui, input, mut r) = init_test();
 
         gui.begin_gui(300.0, 200.0);
 
@@ -688,7 +691,7 @@ mod tests {
 
         gui.end_container();
 
-        gui.end_gui(&input);
+        gui.end_gui(&mut r, &input);
 
         let root_widget_rf = gui.root();
         let root_widget = root_widget_rf.as_ref();
@@ -728,7 +731,7 @@ mod tests {
 
     #[test]
     fn test_hmgui_evenly_stretching() {
-        let (mut gui, input) = init_test();
+        let (mut gui, input, mut r) = init_test();
 
         gui.begin_gui(300.0, 200.0);
 
@@ -769,7 +772,7 @@ mod tests {
 
         gui.end_container();
 
-        gui.end_gui(&input);
+        gui.end_gui(&mut r, &input);
 
         let root_widget_rf = gui.root();
         let root_widget = root_widget_rf.as_ref();
@@ -813,7 +816,7 @@ mod tests {
     // Vertical: Margin, border, padding, spacing.
     #[test]
     fn test_hmgui_vertical_layout_margin_border_padding_spacing() {
-        let (mut gui, input) = init_test();
+        let (mut gui, input, mut r) = init_test();
 
         gui.begin_gui(300.0, 200.0);
 
@@ -838,7 +841,7 @@ mod tests {
 
         gui.end_container();
 
-        gui.end_gui(&input);
+        gui.end_gui(&mut r, &input);
 
         let root_widget_rf = gui.root();
         let root_widget = root_widget_rf.as_ref();
@@ -868,7 +871,7 @@ mod tests {
     // Horizontal: Margin, border, padding, spacing.
     #[test]
     fn test_hmgui_horizontal_layout_margin_border_padding_spacing() {
-        let (mut gui, input) = init_test();
+        let (mut gui, input, mut r) = init_test();
 
         gui.begin_gui(300.0, 200.0);
 
@@ -893,7 +896,7 @@ mod tests {
 
         gui.end_container();
 
-        gui.end_gui(&input);
+        gui.end_gui(&mut r, &input);
 
         let root_widget_rf = gui.root();
         let root_widget = root_widget_rf.as_ref();
@@ -922,7 +925,7 @@ mod tests {
 
     #[test]
     fn test_hmgui_stack_percentage_size() {
-        let (mut gui, input) = init_test();
+        let (mut gui, input, mut r) = init_test();
 
         gui.begin_gui(300.0, 200.0);
 
@@ -953,7 +956,7 @@ mod tests {
 
         gui.end_container();
 
-        gui.end_gui(&input);
+        gui.end_gui(&mut r, &input);
 
         let root_widget_rf = gui.root();
         let root_widget = root_widget_rf.as_ref();
@@ -983,7 +986,7 @@ mod tests {
 
     #[test]
     fn test_hmgui_horizontal_percentage_size() {
-        let (mut gui, input) = init_test();
+        let (mut gui, input, mut r) = init_test();
 
         gui.begin_gui(300.0, 200.0);
 
@@ -1029,7 +1032,7 @@ mod tests {
 
         gui.end_container();
 
-        gui.end_gui(&input);
+        gui.end_gui(&mut r, &input);
 
         let root_widget_rf = gui.root();
         let root_widget = root_widget_rf.as_ref();
@@ -1071,7 +1074,7 @@ mod tests {
 
     #[test]
     fn test_hmgui_vertical_percentage_size() {
-        let (mut gui, input) = init_test();
+        let (mut gui, input, mut r) = init_test();
 
         gui.begin_gui(300.0, 200.0);
 
@@ -1117,7 +1120,7 @@ mod tests {
 
         gui.end_container();
 
-        gui.end_gui(&input);
+        gui.end_gui(&mut r, &input);
 
         let root_widget_rf = gui.root();
         let root_widget = root_widget_rf.as_ref();
@@ -1159,7 +1162,7 @@ mod tests {
 
     #[test]
     fn test_hmgui_alignment_combination() {
-        let (mut gui, input) = init_test();
+        let (mut gui, input, mut r) = init_test();
 
         gui.begin_gui(300.0, 200.0);
 
@@ -1195,7 +1198,7 @@ mod tests {
 
         gui.end_container();
 
-        gui.end_gui(&input);
+        gui.end_gui(&mut r, &input);
 
         let root_widget_rf = gui.root();
         let root_widget = root_widget_rf.as_ref();

@@ -4,18 +4,22 @@
 ---@class Viewport
 Viewport = {}
 
+---@param r Renderer
 ---@return number
-function Viewport.GetAspect() end
+function Viewport.GetAspect(r) end
 
+---@param r Renderer
 ---@param result Vec2i [out]
-function Viewport.GetSize(result) end
+function Viewport.GetSize(r, result) end
 
+---@param r Renderer
 ---@param x integer
 ---@param y integer
 ---@param sx integer
 ---@param sy integer
 ---@param isWindow boolean
-function Viewport.Push(x, y, sx, sy, isWindow) end
+function Viewport.Push(r, x, y, sx, sy, isWindow) end
 
-function Viewport.Pop() end
+---@param r Renderer
+function Viewport.Pop(r) end
 

@@ -2,14 +2,10 @@
 #include deferred
 #include math
 #include pbr
-
-#autovar vec3 eye
+#include light_ubo
 
 in vec3 worldOrigin;
 in vec3 worldDir;
-
-uniform vec3 lightColor;
-uniform vec3 lightPos;
 
 uniform sampler2D texNormalMat;
 uniform sampler2D texDepth;

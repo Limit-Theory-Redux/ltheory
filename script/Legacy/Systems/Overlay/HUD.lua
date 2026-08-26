@@ -1505,7 +1505,7 @@ function HUD:drawPlayerSystemIntegrity(a)
 
     -- Draw hologram of player ship on a grid background
 --    UI.DrawEx.Grid(114, sy - 180, 100, 100, Config.ui.color.meterBarLight)
-    UI.DrawEx.Hologram(playerShip.mesh, 34, sy - 260, 260, 260, Config.ui.color.hologram, playerZoom / 1.7, -1.57, 0.0)
+    UI.DrawEx.Hologram(playerShip:getVisibleMesh(), 34, sy - 260, 260, 260, Config.ui.color.hologram, playerZoom / 1.7, -1.57, 0.0)
 
     -- Draw the current percentage statuses of key player ship systems as concentric rings
     for str = floor(playerShieldPct / 10), 1, -1 do
@@ -1574,8 +1574,8 @@ function HUD:drawTargetSystemIntegrity(a)
 
             -- Draw hologram of target entity on a grid background
 --            UI.DrawEx.Grid(sx - 206, sy - 180, 100, 100, Config.ui.color.meterBarLight)
-            UI.DrawEx.Hologram(target.mesh, sx - 287, sy - 260, 260, 260, Config.ui.color.hologram, targetZoomAdj, -1.57,
-                0.0)
+            UI.DrawEx.Hologram(target:getVisibleMesh(), sx - 287, sy - 260, 260, 260, Config.ui.color.hologram,
+                targetZoomAdj, -1.57, 0.0)
 
             -- Draw the current percentage statuses of key target ship systems as concentric rings
             for str = floor(targetShieldPct / 10), 1, -1 do

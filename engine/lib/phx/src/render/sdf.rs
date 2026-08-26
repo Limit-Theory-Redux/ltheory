@@ -1,6 +1,6 @@
 use glam::{IVec3, Vec3};
 
-use super::{DataFormat, Mesh, PixelFormat, Tex3D};
+use super::{DataFormat, Mesh, PixelFormat, Renderer, Tex3D};
 use crate::math::saturate;
 
 #[derive(Clone)]
@@ -32,10 +32,10 @@ impl Sdf {
     }
 
     #[bind(name = "FromTex3D")]
-    pub fn from_tex3d(tex: &mut Tex3D) -> Self {
+    pub fn from_tex3d(r: &mut Renderer, tex: &mut Tex3D) -> Self {
         Self {
             size: tex.get_size(),
-            data: tex.get_data(PixelFormat::RGBA, DataFormat::Float),
+            data: tex.get_data(r, PixelFormat::RGBA, DataFormat::Float),
         }
     }
 

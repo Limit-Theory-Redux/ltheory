@@ -5,6 +5,7 @@
 /screenshot/
 /out/
 /target/
+/target-immediate/
 /expand.rs
 
 # Logs
@@ -16,6 +17,10 @@
 .vscode/
 .zed/
 cmake-build-*/
+
+# Agent skill/instruction projections (generated from the external workspace)
+.agents/
+.claude/
 
 ## OS Junk files
 

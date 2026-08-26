@@ -5,6 +5,14 @@
 -- is a specific 'type' of metal
 -- NOTE : Really they're just nested ShaderStates.
 
+-- TODO: Remove hardcoded textures with a list of texture definitions
+-- TODO: Allow other vertex shaders to be loaded rather than wvp
+-- TODO: Allow variables to be updated automatically from other components
+-- TODO: Update Material.Create constructor to take a vs and fs and blend mode as input.
+-- TODO: Replace Material.Create so that it takes a MaterialInfo as input
+
+-- Basically, incorporate the features of the "new" Material.lua (in Shared/Rendering/Material.lua)
+
 local Material = Class("Material", function(self) end)
 
 local allMaterials = {}
@@ -30,6 +38,7 @@ function Material.Create(name, diffuse, normal, spec)
     self.texNormal = normal
     self.texSpec = spec
     self.state = nil
+    self.blendMode = BlendMode.Disabled
 
     if diffuse then
         setTextureState(diffuse)
@@ -77,10 +86,61 @@ function Material:reload()
     self.iScale    = shader:hasVariable('scale') and shader:getVariable('scale')
 end
 
-function Material:setState(e, eye)
-    if self.imWorld then self.state:shader():iSetMatrix(self.imWorld, e:getToWorldMatrix(eye)) end
-    if self.imWorldIT then self.state:shader():iSetMatrixT(self.imWorldIT, e:getToLocalMatrix(eye)) end
-    if self.iScale then self.state:shader():iSetFloat(self.iScale, e:getScale()) end
+function Material:updateState(body, entity, eye)
+    -- Per-mesh instance uniforms are batched into ONE render command
+    -- (Shader:ISetInstanceUniforms): mWorld + mWorldIT + scale. The old
+    -- code sent three separate SetUniform commands with three FFI
+    -- crossings, and computed mWorldIT via getToLocalMatrix (which
+    -- REBUILDS the world matrix and inverts a fresh allocation). Deriving
+    -- it from the cached world matrix halves the matrix allocations.
+    --
+    -- Allocations: getToWorldMatrix / getToLocalMatrix each build 2-3
+    -- managed Matrix* (finalizer) objects. updateState runs once per
+    -- mesh per frame (~1,200 meshes in the menu), so that was ~4,800
+    -- managed Matrix allocations/frame - the main GC churn source. The
+    -- _into variants write into a persistent scratch Matrix cdata owned
+    -- by the material (no allocation); the values are consumed by
+    -- iSetInstanceUniforms (which clones into the command) before the
+    -- next mesh overwrites the scratch.
+    local shader = self.state:shader()
+
+    -- Lazy scratch matrices (plain cdata, no finalizer).
+    if not self._scratchWorld then
+        self._scratchWorld = Matrix()
+        self._scratchWorldIT = Matrix()
+    end
+
+    local world = nil
+    local worldIT = nil
+    if self.imWorld then
+        body:getToWorldMatrixInto(eye, self._scratchWorld)
+        world = self._scratchWorld
+    end
+    if self.imWorldIT then
+        -- getToLocalMatrixInto writes the world matrix into the scratch
+        -- then inverts it in place - same result as world:inverse() with
+        -- zero allocations.
+        body:getToLocalMatrixInto(eye, self._scratchWorldIT)
+        worldIT = self._scratchWorldIT
+    end
+    local scale = self.iScale and body:getScale() or nil
+    if world then
+        if worldIT and scale ~= nil then
+            shader:iSetInstanceUniforms(self.imWorld, self.imWorldIT, self.iScale, world, worldIT, scale)
+        else
+            -- Materials that only use some of the trio: fall back to the
+            -- individual setters so each present uniform still applies.
+            shader:iSetMatrix(self.imWorld, world)
+            if worldIT then shader:iSetMatrixT(self.imWorldIT, worldIT) end
+            if scale ~= nil then shader:iSetFloat(self.iScale, scale) end
+        end
+    elseif worldIT then
+        shader:iSetMatrixT(self.imWorldIT, worldIT)
+        if scale ~= nil then shader:iSetFloat(self.iScale, scale) end
+    elseif scale ~= nil then
+        shader:iSetFloat(self.iScale, scale)
+    end
+    if self.onUpdateState then self.onUpdateState(shader, entity, eye) end
 end
 
 function Material:start()
@@ -89,6 +149,7 @@ function Material:start()
 end
 
 function Material:stop()
+    if self.onStop then self.onStop() end
     self.state:stop()
 end
 

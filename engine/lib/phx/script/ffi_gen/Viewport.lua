@@ -13,10 +13,10 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            float Viewport_GetAspect ();
-            void  Viewport_GetSize   (Vec2i* out);
-            void  Viewport_Push      (int x, int y, int sx, int sy, bool isWindow);
-            void  Viewport_Pop       ();
+            float Viewport_GetAspect (Renderer const* r);
+            void  Viewport_GetSize   (Renderer const* r, Vec2i* out);
+            void  Viewport_Push      (Renderer* r, int x, int y, int sx, int sy, bool isWindow);
+            void  Viewport_Pop       (Renderer* r);
         ]]
     end
 

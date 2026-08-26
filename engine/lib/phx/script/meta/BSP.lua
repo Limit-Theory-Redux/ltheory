@@ -4,9 +4,10 @@
 ---@class BSP
 BSP = {}
 
+---@param r Renderer
 ---@param mesh Mesh
 ---@return BSP
-function BSP.Create(mesh) end
+function BSP.Create(r, mesh) end
 
 ---@param ray Ray
 ---@param tHit number
@@ -28,19 +29,23 @@ function BSP:intersectSphere(sphere, pHit) end
 ---@return BSPNodeRef
 function BSP:getNode(nodeRef, relationship) end
 
+---@param r Renderer
 ---@param nodeRef BSPNodeRef
 ---@param color Color
-function BSP:drawNode(nodeRef, color) end
+function BSP:drawNode(r, nodeRef, color) end
 
+---@param r Renderer
 ---@param nodeRef BSPNodeRef
-function BSP:drawNodeSplit(nodeRef) end
+function BSP:drawNodeSplit(r, nodeRef) end
 
+---@param r Renderer
 ---@param lineSegment LineSegment
 ---@param eye Position
-function BSP:drawLineSegment(lineSegment, eye) end
+function BSP:drawLineSegment(r, lineSegment, eye) end
 
+---@param r Renderer
 ---@param sphere Sphere
-function BSP:drawSphere(sphere) end
+function BSP:drawSphere(r, sphere) end
 
 ---@param totalTime number
 function BSP:printRayProfilingData(totalTime) end

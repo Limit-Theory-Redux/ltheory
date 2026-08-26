@@ -23,7 +23,7 @@ function Loader.defineType()
             void     BoxTree_Add          (BoxTree*, Box3f box3, uint8 const* data, uint64 data_size);
             uint64   BoxTree_GetMemory    (BoxTree const*);
             bool     BoxTree_IntersectRay (BoxTree const*, Matrix* matrix, Vec3f const* ro, Vec3f const* rd);
-            void     BoxTree_Draw         (BoxTree const*, int maxDepth);
+            void     BoxTree_Draw         (BoxTree const*, Renderer* r, int maxDepth);
         ]]
     end
 

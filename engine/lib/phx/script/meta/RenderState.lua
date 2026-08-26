@@ -4,32 +4,44 @@
 ---@class RenderState
 RenderState = {}
 
-function RenderState.PushAllDefaults() end
+---@param r Renderer
+function RenderState.PushAllDefaults(r) end
 
+---@param r Renderer
 ---@param value BlendMode
-function RenderState.PushBlendMode(value) end
+function RenderState.PushBlendMode(r, value) end
 
+---@param r Renderer
 ---@param value CullFace
-function RenderState.PushCullFace(value) end
+function RenderState.PushCullFace(r, value) end
 
+---@param r Renderer
 ---@param value boolean
-function RenderState.PushDepthTest(value) end
+function RenderState.PushDepthTest(r, value) end
 
+---@param r Renderer
 ---@param value boolean
-function RenderState.PushDepthWritable(value) end
+function RenderState.PushDepthWritable(r, value) end
 
+---@param r Renderer
 ---@param value boolean
-function RenderState.PushWireframe(value) end
+function RenderState.PushWireframe(r, value) end
 
-function RenderState.PopAll() end
+---@param r Renderer
+function RenderState.PopAll(r) end
 
-function RenderState.PopBlendMode() end
+---@param r Renderer
+function RenderState.PopBlendMode(r) end
 
-function RenderState.PopWireframe() end
+---@param r Renderer
+function RenderState.PopWireframe(r) end
 
-function RenderState.PopDepthTest() end
+---@param r Renderer
+function RenderState.PopDepthTest(r) end
 
-function RenderState.PopCullFace() end
+---@param r Renderer
+function RenderState.PopCullFace(r) end
 
-function RenderState.PopDepthWritable() end
+---@param r Renderer
+function RenderState.PopDepthWritable(r) end
 

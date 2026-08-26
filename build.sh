@@ -45,37 +45,32 @@ if [[ $run_tests == true && "$OSTYPE" == "linux-gnu"* ]]; then
     run_tests=false
 fi
 
-case "$OSTYPE" in
-  darwin*)
+if [[ "$OSTYPE" == "darwin"* ]]; then
     libprefix="lib"
     libsuffix=".dylib"
     binsuffix=""
-    ;;
-  linux-gnu*)
+elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
     libprefix="lib"
     libsuffix=".so"
     binsuffix=""
-    ;;
-  msys*|cygwin*|mingw*)
+elif [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" ]]; then
     libprefix=""
     libsuffix=".dll"
     binsuffix=".exe"
     if [[ -z "$LIBCLANG_PATH" ]]; then
-      if [[ -d "/c/Program Files/LLVM/bin" ]]; then
-        export LIBCLANG_PATH="/c/Program Files/LLVM/bin"
-      elif [[ -d "/c/Program Files (x86)/LLVM/bin" ]]; then
-        export LIBCLANG_PATH="/c/Program Files (x86)/LLVM/bin"
-      else
-        echo "Set the environment variable LIBCLANG_PATH to the path containing clang.exe in your LLVM installation directory, i.e. C:\Program Files\LLVM\bin"
-        exit 1
-      fi
+        if [[ -d "/c/Program Files/LLVM/bin" ]]; then
+            export LIBCLANG_PATH="/c/Program Files/LLVM/bin"
+        elif [[ -d "/c/Program Files (x86)/LLVM/bin" ]]; then
+            export LIBCLANG_PATH="/c/Program Files (x86)/LLVM/bin"
+        else
+            echo "Set the environment variable LIBCLANG_PATH to the path containing clang.exe in your LLVM installation directory, i.e. C:\Program Files\LLVM\bin"
+            exit 1
+        fi
     fi
-    ;;
-  *)
-    echo "Unsupported platform: OSTYPE=$OSTYPE"
+else
+    echo "Unsupported OSTYPE: '$OSTYPE'"
     exit 1
-    ;;
-esac
+fi
 
 if [ -z "$PHX_VERSION" ]; then
     export PHX_VERSION
@@ -105,7 +100,7 @@ fi
 rm -rf bin && mkdir -p bin
 
 cp "${target_dir}/ltr${binsuffix}" "bin/ltr${binsuffix}"
-cp "${target_dir}/deps/${libprefix}phx${libsuffix}" "bin/${libprefix}phx${libsuffix}"
+cp "${target_dir}/${libprefix}phx${libsuffix}" "bin/${libprefix}phx${libsuffix}"
 
 if [[ $bundle == true ]]; then
     create_app_bundle bin

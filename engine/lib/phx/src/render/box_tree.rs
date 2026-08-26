@@ -1,6 +1,6 @@
 use glam::Vec3;
 
-use super::{Draw, Mesh};
+use super::{Draw, Mesh, Renderer};
 use crate::math::{Box3, Matrix};
 
 #[derive(Clone)]
@@ -66,9 +66,9 @@ impl BoxTree {
         }
     }
 
-    pub fn draw(&self, max_depth: i32) {
+    pub fn draw(&self, r: &mut Renderer, max_depth: i32) {
         if let Some(root) = &self.root {
-            root.draw_node(max_depth);
+            root.draw_node(r, max_depth);
         }
     }
 }
@@ -180,22 +180,22 @@ impl Node {
         }
     }
 
-    fn draw_node(&self, max_depth: i32) {
+    fn draw_node(&self, r: &mut Renderer, max_depth: i32) {
         if max_depth < 0 {
             return;
         }
         if self.sub[0].is_some() || self.sub[1].is_some() {
-            Draw::color(1.0f32, 1.0f32, 1.0f32, 1.0f32);
-            Draw::box3(&self.box3);
+            Draw::color(r, 1.0f32, 1.0f32, 1.0f32, 1.0f32);
+            Draw::box3(r, &self.box3);
         } else {
-            Draw::color(0.0f32, 1.0f32, 0.0f32, 1.0f32);
-            Draw::box3(&self.box3);
+            Draw::color(r, 0.0f32, 1.0f32, 0.0f32, 1.0f32);
+            Draw::box3(r, &self.box3);
         }
         if let Some(sub) = &self.sub[0] {
-            sub.draw_node(max_depth - 1);
+            sub.draw_node(r, max_depth - 1);
         }
         if let Some(sub) = &self.sub[1] {
-            sub.draw_node(max_depth - 1);
+            sub.draw_node(r, max_depth - 1);
         }
     }
 }

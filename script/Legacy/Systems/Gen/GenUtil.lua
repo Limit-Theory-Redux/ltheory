@@ -58,6 +58,8 @@ function GenUtil.ShaderToTexCube(res, fmt, fragShader, args)
         local t = type(v)
         if t == 'number' then
             state:setFloat(k, v)
+        elseif t == 'boolean' then
+            state:setFloat(k, v == true and 1.0 or v == false and 0.0)
         elseif istype('Vec2f', v) or istype('Vec2d', v) then
             state:setFloat2(k, v.x, v.y)
         elseif istype('Vec3f', v) or istype('Vec3d', v) then

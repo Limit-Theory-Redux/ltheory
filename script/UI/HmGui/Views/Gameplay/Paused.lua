@@ -3,20 +3,13 @@ local Paused = UICore.View {
     name = "Paused"
 }
 
----@type UIRouter
-local UIRouter = require("UI.HmGui.UICore.UIRouter")
 ---@type ResponsiveSize
 local ResponsiveSize = require("Types.ResponsiveSize")
----@type ApplicationBindings
-local Bindings = require('States.ApplicationBindings')
----@type ShipSocketType
-local SocketType = require('Legacy.GameObjects.Entities.Ship.SocketType')
 
-function Paused:onInput()
-    if Input:isPressed(Bindings.Escape) then
-        UIRouter:getCurrentPage():setView("In_Game")
-    end
-end
+-- NOTE: Escape handling is owned by LimitTheoryRedux:onInput (single
+-- toggle point); the Paused view only provides the button callbacks.
+
+function Paused:onInput() end
 
 function Paused:onUpdate(dt) end
 
@@ -30,19 +23,6 @@ function Paused:onViewClose(isPageClose)
 
     if not isPageClose then
         Input:setCursorVisible(false)
-    end
-end
-
-local function freezeTurrets()
-    -- When taking down a dialog, Turret:updateTurret sees the button click input and thinks it means "Fire"
-    -- So this routine adds a very brief cooldown to the player ship's turrets
-    if GameState.player.currentShip then
-        for turret in GameState.player.currentShip:iterSocketsByType(SocketType.Turret) do
-            turret:addCooldown(0.2)
-        end
-        for bay in GameState.player.currentShip:iterSocketsByType(SocketType.Bay) do
-            bay:addCooldown(0.2)
-        end
     end
 end
 
@@ -60,8 +40,7 @@ local menuContainer = UIComponent.Container {
             size = ResponsiveSize(200, 40, true),
             font = { name = "Unageo-Medium", size = 20 },
             callback = function()
-                freezeTurrets()
-                UIRouter:getCurrentPage():setView("In_Game")
+                LimitTheoryRedux:closePauseMenu()
             end
         },
         UIComponent.Button_MainMenu {
@@ -69,7 +48,7 @@ local menuContainer = UIComponent.Container {
             size = ResponsiveSize(200, 40, true),
             font = { name = "Unageo-Medium", size = 20 },
             align = { AlignHorizontal.Center, AlignVertical.Center },
-            callback = function() LimitTheoryRedux:initMainMenu() end
+            callback = function() LimitTheoryRedux:returnToMainMenu() end
         },
         UIComponent.Button_MainMenu {
             title = "Exit",

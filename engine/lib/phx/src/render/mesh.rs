@@ -3,13 +3,15 @@ use std::io::BufReader;
 use std::time::SystemTime;
 
 use glam::{Vec2, Vec3, Vec4};
-use memoffset::offset_of;
 use tobj::LoadError;
 
-use super::{DataFormat, Draw, PixelFormat, RenderTarget, Tex2D, Tex3D, TexFormat, gl};
+use super::{DataFormat, Draw, PixelFormat, RenderTarget, Tex2D, Tex3D, TexFormat};
 use crate::error::Error;
 use crate::math::{Box3, Matrix, Triangle, validate_vec2, validate_vec3};
-use crate::render::{RenderState, Shader, glcheck};
+use crate::render::{
+    CmdPrimitiveType, InstanceData, RenderState, Renderer, ResourceHandle, ResourceId, Shader,
+    VertexFormat,
+};
 use crate::rf::Rf;
 use crate::system::*;
 
@@ -19,9 +21,12 @@ pub struct Mesh {
 }
 
 struct MeshShared {
-    vbo: gl::types::GLuint,
-    ibo: gl::types::GLuint,
-    vao: gl::types::GLuint,
+    /// Executor-owned GPU resource, created lazily on first `draw_bind` and
+    /// recreated whenever `version` moves past `version_buffers` (mirrors
+    /// the old lazy VAO/VBO/IBO cache-on-first-draw behavior). `new()` has no
+    /// `Renderer` to mint a handle from, so this starts `None` and is only
+    /// populated the first time `draw_bind` runs.
+    handle: Option<ResourceHandle>,
     uuid: u64,
     version: u64,
     version_buffers: u64,
@@ -76,16 +81,6 @@ impl MeshShared {
     }
 }
 
-impl Drop for MeshShared {
-    fn drop(&mut self) {
-        if self.vbo != 0 {
-            glcheck!(gl::DeleteVertexArrays(1, &self.vao));
-            glcheck!(gl::DeleteBuffers(1, &self.vbo));
-            glcheck!(gl::DeleteBuffers(1, &self.ibo));
-        }
-    }
-}
-
 impl Mesh {
     pub fn get_cache_key(&self) -> MeshCacheKey {
         self.shared.as_ref().get_cache_key()
@@ -122,6 +117,44 @@ impl Mesh {
             }
         }
     }
+
+    /// Lazily create (or recreate, if the mesh changed since it was last
+    /// built) the executor-owned GPU resource, and return its id. Shared by
+    /// `draw_bind` (which only cares that the resource exists) and
+    /// `resource_id` (which also needs the id itself, e.g. for the batch API).
+    fn ensure_resource(&mut self, r: &mut Renderer) -> ResourceId {
+        let this = &mut *self.shared.as_mut();
+
+        /* Release the cached GPU resource if the mesh has changed since we built
+         * it. Dropping the handle enqueues the destroy; it lands at frame end
+         * rather than right now, which is harmless - the replacement below gets
+         * a fresh id, and command order is preserved either way. */
+        if this.handle.is_some() && this.version != this.version_buffers {
+            this.handle = None;
+        }
+
+        /* Create the cached GPU resource for fast drawing. */
+        if this.handle.is_none() {
+            let handle = r.create_resource();
+
+            #[allow(unsafe_code)] // TODO: refactor
+            let vertex_bytes = unsafe {
+                std::slice::from_raw_parts(
+                    this.vertex.as_ptr() as *const u8,
+                    std::mem::size_of_val(this.vertex.as_slice()),
+                )
+            }
+            .to_vec();
+            let indices: Vec<u32> = this.index.iter().map(|&i| i as u32).collect();
+
+            r.create_mesh(handle.id(), vertex_bytes, indices, VertexFormat::default());
+
+            this.handle = Some(handle);
+            this.version_buffers = this.version;
+        }
+
+        this.handle.as_ref().expect("just ensured above").id()
+    }
 }
 
 #[luajit_ffi_gen::luajit_ffi]
@@ -136,9 +169,7 @@ impl Mesh {
             .as_nanos() as u64;
         Mesh {
             shared: Rf::new(MeshShared {
-                vbo: 0,
-                ibo: 0,
-                vao: 0,
+                handle: None,
                 uuid,
                 version: 1,
                 version_buffers: 0,
@@ -161,6 +192,12 @@ impl Mesh {
 
     pub fn load(name: &str) -> Mesh {
         Self::from_bytes(&mut Resource::load_bytes(ResourceType::Mesh, name))
+    }
+
+    pub fn save(&self, path: &str) {
+        let bytes = self.to_bytes();
+        std::fs::write(path, bytes.as_slice())
+            .unwrap_or_else(|e| panic!("Failed to save mesh to '{}': {}", path, e));
     }
 
     pub fn to_bytes(&self) -> Bytes {
@@ -361,85 +398,22 @@ impl Mesh {
         self.shared.as_mut().version += 1;
     }
 
-    pub fn draw_bind(&mut self) {
-        let this = &mut *self.shared.as_mut();
-
-        /* Release cached GL buffers if the mesh has changed since we built them. */
-        if this.vbo != 0 && this.version != this.version_buffers {
-            glcheck!(gl::DeleteVertexArrays(1, &this.vao));
-            glcheck!(gl::DeleteBuffers(1, &this.vbo));
-            glcheck!(gl::DeleteBuffers(1, &this.ibo));
-            this.vao = 0;
-            this.vbo = 0;
-            this.ibo = 0;
-        }
-
-        /* Generate cached GL buffers for fast drawing. */
-        if this.vbo == 0 {
-            glcheck!(gl::GenBuffers(1, &mut this.vbo));
-            glcheck!(gl::GenBuffers(1, &mut this.ibo));
-            glcheck!(gl::BindBuffer(gl::ARRAY_BUFFER, this.vbo));
-            glcheck!(gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, this.ibo));
-            glcheck!(gl::BufferData(
-                gl::ARRAY_BUFFER,
-                (this.vertex.len() as i32 as usize).wrapping_mul(std::mem::size_of::<Vertex>())
-                    as gl::types::GLsizeiptr,
-                this.vertex.as_ptr() as *const _,
-                gl::STATIC_DRAW,
-            ));
-
-            /* TODO : 16-bit index optimization */
-            /* TODO : Check if 8-bit indices are supported by hardware. IIRC they
-             *        weren't last time I checked. */
-
-            glcheck!(gl::BufferData(
-                gl::ELEMENT_ARRAY_BUFFER,
-                (this.index.len() as i32 as usize).wrapping_mul(std::mem::size_of::<i32>())
-                    as gl::types::GLsizeiptr,
-                this.index.as_ptr() as *const _,
-                gl::STATIC_DRAW,
-            ));
-
-            glcheck!(gl::GenVertexArrays(1, &mut this.vao));
-            glcheck!(gl::BindVertexArray(this.vao));
-
-            glcheck!(gl::BindBuffer(gl::ARRAY_BUFFER, this.vbo));
-            glcheck!(gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, this.ibo));
-            glcheck!(gl::VertexAttribPointer(
-                0,
-                3,
-                gl::FLOAT,
-                gl::FALSE,
-                std::mem::size_of::<Vertex>() as gl::types::GLsizei,
-                offset_of!(Vertex, p) as *const _,
-            ));
-            glcheck!(gl::VertexAttribPointer(
-                1,
-                3,
-                gl::FLOAT,
-                gl::FALSE,
-                std::mem::size_of::<Vertex>() as gl::types::GLsizei,
-                offset_of!(Vertex, n) as *const _,
-            ));
-            glcheck!(gl::VertexAttribPointer(
-                2,
-                2,
-                gl::FLOAT,
-                gl::FALSE,
-                std::mem::size_of::<Vertex>() as gl::types::GLsizei,
-                offset_of!(Vertex, uv) as *const _,
-            ));
-
-            this.version_buffers = this.version;
-        }
-
-        glcheck!(gl::BindVertexArray(this.vao));
-        glcheck!(gl::EnableVertexAttribArray(0));
-        glcheck!(gl::EnableVertexAttribArray(1));
-        glcheck!(gl::EnableVertexAttribArray(2));
+    pub fn draw_bind(&mut self, r: &mut Renderer) {
+        self.ensure_resource(r);
     }
 
-    pub fn draw_bound(&self) {
+    /// The mesh's GPU resource id (as a plain scalar - see
+    /// `Renderer::add_entity`'s `mesh_id`/`shader_id` params for why this
+    /// isn't `ResourceId` itself), lazily creating (or recreating, if the
+    /// mesh changed) the executor-owned resource just like `draw_bind` does
+    /// - without also drawing. For code that needs to reference the mesh
+    /// instead of calling `draw`/`drawBind` itself (e.g. the batch API,
+    /// `Renderer:addEntity`).
+    pub fn resource_id(&mut self, r: &mut Renderer) -> u64 {
+        self.ensure_resource(r).0
+    }
+
+    pub fn draw_bound(&self, r: &mut Renderer) {
         let this = self.shared.as_ref();
 
         Metric::add_draw(
@@ -448,30 +422,72 @@ impl Mesh {
             this.vertex.len() as u64,
         );
 
-        glcheck!(gl::DrawElements(
-            gl::TRIANGLES,
-            this.index.len() as i32,
-            gl::UNSIGNED_INT,
-            std::ptr::null(),
-        ));
+        if let Some(handle) = &this.handle {
+            r.draw_mesh_by_resource(
+                handle.id(),
+                this.index.len() as i32,
+                CmdPrimitiveType::Triangles,
+            );
+        }
     }
 
-    pub fn draw_unbind(&self) {
-        glcheck!(gl::DisableVertexAttribArray(0));
-        glcheck!(gl::DisableVertexAttribArray(1));
-        glcheck!(gl::DisableVertexAttribArray(2));
-        glcheck!(gl::BindVertexArray(0));
+    /// No-op: `DrawMeshByResource` binds/draws/unbinds in one self-contained
+    /// command (see `draw_bound`), so there is nothing left to unbind here.
+    /// Kept as a method - and still takes `r` - so `drawBind`/`drawBound`/
+    /// `drawUnbind` stay a matched FFI triple for existing Lua call sites
+    /// that interleave shader uniform changes between multiple `drawBound`
+    /// calls (e.g. per-instance rendering without true GPU instancing).
+    pub fn draw_unbind(&self, _r: &mut Renderer) {}
+
+    pub fn draw(&mut self, r: &mut Renderer) {
+        self.draw_bind(r);
+        self.draw_bound(r);
+        self.draw_unbind(r);
     }
 
-    pub fn draw(&mut self) {
-        self.draw_bind();
-        self.draw_bound();
-        self.draw_unbind();
+    /// Instanced draw with per-instance data (triangles). Ensures the GPU
+    /// resource exists (same lazy path as draw_bind), then submits ONE
+    /// DrawInstancedWithData command. `instances` is a Lua cdata array of
+    /// InstanceData (ffi.new("InstanceData[?]", count)); ffi_gen passes the
+    /// array pointer + element count. The render thread copies the data, so
+    /// the Lua array can be reused/GC'd after the call.
+    pub fn draw_instanced_with_data(&mut self, r: &mut Renderer, instances: &[InstanceData]) {
+        self.draw_bind(r);
+        let this = self.shared.as_ref();
+        let index_count = this.index.len() as i32;
+        if let Some(handle) = &this.handle {
+            r.draw_instanced_with_data(
+                handle.id().0,
+                index_count,
+                instances,
+                CmdPrimitiveType::Triangles,
+            );
+        }
     }
 
-    pub fn draw_normals(&self, scale: f32) {
+    /// Texture-fetch instanced draw: per-instance attribute is a u32 INDEX
+    /// into a static data texture (see wvp_instanced_tex). `indices` is a
+    /// Lua cdata array of u32 (ffi.new("uint32_t[?]", count)); the render
+    /// thread copies it, so the Lua array can be reused/GC'd after the call.
+    /// The static data texture must be bound (setTex2D on the shader) before
+    /// this call - the vertex shader texelFetches per instance.
+    pub fn draw_instanced_indices(&mut self, r: &mut Renderer, indices: &[u32]) {
+        self.draw_bind(r);
+        let this = self.shared.as_ref();
+        let index_count = this.index.len() as i32;
+        if let Some(handle) = &this.handle {
+            r.draw_instanced_indices(
+                handle.id().0,
+                index_count,
+                indices,
+                CmdPrimitiveType::Triangles,
+            );
+        }
+    }
+
+    pub fn draw_normals(&self, r: &mut Renderer, scale: f32) {
         for v in &self.shared.as_ref().vertex {
-            Draw::line3(&v.p, &(v.p + scale * v.n));
+            Draw::line3(r, &v.p, &(v.p + scale * v.n));
         }
     }
 
@@ -726,7 +742,7 @@ impl Mesh {
     }
 
     #[bind(name = "ComputeAO")]
-    pub fn compute_ao(&mut self, radius: f32) {
+    pub fn compute_ao(&mut self, r: &mut Renderer, radius: f32) {
         let this = &mut *self.shared.as_mut();
 
         let s_dim = f64::ceil(f64::sqrt((this.index.len() / 3) as f64)) as usize;
@@ -755,10 +771,10 @@ impl Mesh {
             normal_buffer[i / 3] = Vec4::new(normal.x, normal.y, normal.z, 0.0f32);
         }
 
-        let mut tex_spoints = Tex2D::new(s_dim as i32, s_dim as i32, TexFormat::RGBA32F);
-        let mut tex_snormals = Tex2D::new(s_dim as i32, s_dim as i32, TexFormat::RGBA32F);
-        tex_spoints.set_data(&point_buffer, PixelFormat::RGBA, DataFormat::Float);
-        tex_snormals.set_data(&normal_buffer, PixelFormat::RGBA, DataFormat::Float);
+        let mut tex_spoints = Tex2D::new(r, s_dim as i32, s_dim as i32, TexFormat::RGBA32F);
+        let mut tex_snormals = Tex2D::new(r, s_dim as i32, s_dim as i32, TexFormat::RGBA32F);
+        tex_spoints.set_data(r, &point_buffer, PixelFormat::RGBA, DataFormat::Float);
+        tex_snormals.set_data(r, &normal_buffer, PixelFormat::RGBA, DataFormat::Float);
 
         point_buffer.clear();
         point_buffer.resize(buf_size as usize, Vec4::ZERO);
@@ -770,89 +786,76 @@ impl Mesh {
             normal_buffer[i] = Vec4::new(v.n.x, v.n.y, v.n.z, 0.0);
         }
 
-        let mut tex_vpoints = Tex2D::new(v_dim as i32, v_dim as i32, TexFormat::RGBA32F);
-        let mut tex_vnormals = Tex2D::new(v_dim as i32, v_dim as i32, TexFormat::RGBA32F);
-        tex_vpoints.set_data(&point_buffer, PixelFormat::RGBA, DataFormat::Float);
-        tex_vnormals.set_data(&normal_buffer, PixelFormat::RGBA, DataFormat::Float);
+        let mut tex_vpoints = Tex2D::new(r, v_dim as i32, v_dim as i32, TexFormat::RGBA32F);
+        let mut tex_vnormals = Tex2D::new(r, v_dim as i32, v_dim as i32, TexFormat::RGBA32F);
+        tex_vpoints.set_data(r, &point_buffer, PixelFormat::RGBA, DataFormat::Float);
+        tex_vnormals.set_data(r, &normal_buffer, PixelFormat::RGBA, DataFormat::Float);
 
-        let tex_output = Tex2D::new(v_dim as i32, v_dim as i32, TexFormat::R32F);
+        let tex_output = Tex2D::new(r, v_dim as i32, v_dim as i32, TexFormat::R32F);
 
-        // TODO: Store shader properly
-        #[allow(unsafe_code)] // TODO: remove
-        let shader = unsafe {
-            static mut SHADER: *mut Shader = std::ptr::null_mut();
-            if SHADER.is_null() {
-                SHADER = Box::into_raw(Box::new(Shader::load(
-                    "vertex/identity",
-                    "fragment/compute/occlusion",
-                )));
-            }
-            &mut *SHADER
-        };
+        let mut shader =
+            r.data.ao_shader.take().unwrap_or_else(|| {
+                Shader::load(r, "vertex/identity", "fragment/compute/occlusion")
+            });
 
-        RenderState::push_all_defaults();
-        RenderTarget::push_tex2d(&tex_output);
+        RenderState::push_all_defaults(r);
+        RenderTarget::push_tex2d(r, &tex_output);
 
-        shader.start();
-        shader.set_int("sDim", s_dim as i32);
-        shader.set_float("radius", radius);
-        shader.set_tex2d("sPointBuffer", &tex_spoints);
-        shader.set_tex2d("sNormalBuffer", &tex_snormals);
-        shader.set_tex2d("vPointBuffer", &tex_vpoints);
-        shader.set_tex2d("vNormalBuffer", &tex_vnormals);
-        Draw::rect(-1.0, -1.0, 2.0, 2.0);
-        shader.stop();
+        shader.start(r);
+        shader.set_int(r, "sDim", s_dim as i32);
+        shader.set_float(r, "radius", radius);
+        shader.set_tex2d(r, "sPointBuffer", &tex_spoints);
+        shader.set_tex2d(r, "sNormalBuffer", &tex_snormals);
+        shader.set_tex2d(r, "vPointBuffer", &tex_vpoints);
+        shader.set_tex2d(r, "vNormalBuffer", &tex_vnormals);
+        Draw::rect(r, -1.0, -1.0, 2.0, 2.0);
+        shader.stop(r);
 
-        RenderTarget::pop();
-        RenderState::pop_all();
+        RenderTarget::pop(r);
+        RenderState::pop_all(r);
 
-        let result = tex_output.get_data(PixelFormat::Red, DataFormat::Float);
+        r.data.ao_shader = Some(shader);
+
+        let result = tex_output.get_data(r, PixelFormat::Red, DataFormat::Float);
         for (i, result_uv_value) in result.iter().enumerate().take(this.vertex.len()) {
             this.vertex[i].uv.x = *result_uv_value;
         }
     }
 
-    pub fn compute_occlusion(&mut self, sdf: &mut Tex3D, radius: f32) {
+    pub fn compute_occlusion(&mut self, r: &mut Renderer, sdf: &mut Tex3D, radius: f32) {
         let this = &mut *self.shared.as_mut();
 
         let v_dim = f64::ceil(f64::sqrt(this.vertex.len() as f64)) as i32;
-        let mut tex_points = Tex2D::new(v_dim, v_dim, TexFormat::RGBA32F);
-        let tex_output = Tex2D::new(v_dim, v_dim, TexFormat::R32F);
+        let mut tex_points = Tex2D::new(r, v_dim, v_dim, TexFormat::RGBA32F);
+        let tex_output = Tex2D::new(r, v_dim, v_dim, TexFormat::R32F);
 
         let mut point_buffer = vec![Vec3::ZERO; (v_dim * v_dim) as usize];
         for (i, point) in point_buffer.iter_mut().enumerate().take(this.vertex.len()) {
             *point = this.vertex[i].p;
         }
 
-        tex_points.set_data(&point_buffer, PixelFormat::RGB, DataFormat::Float);
+        tex_points.set_data(r, &point_buffer, PixelFormat::RGB, DataFormat::Float);
 
-        // TODO: Store shader properly.
-        #[allow(unsafe_code)] // TODO: remove
-        let shader = unsafe {
-            static mut SHADER: *mut Shader = std::ptr::null_mut();
-            if SHADER.is_null() {
-                SHADER = Box::into_raw(Box::new(Shader::load(
-                    "vertex/identity",
-                    "fragment/compute/occlusion_sdf",
-                )));
-            }
-            &mut *SHADER
-        };
+        let mut shader = r.data.occlusion_shader.take().unwrap_or_else(|| {
+            Shader::load(r, "vertex/identity", "fragment/compute/occlusion_sdf")
+        });
 
-        RenderState::push_all_defaults();
-        RenderTarget::push_tex2d(&tex_output);
+        RenderState::push_all_defaults(r);
+        RenderTarget::push_tex2d(r, &tex_output);
 
-        shader.start();
-        shader.set_float("radius", radius);
-        shader.set_tex2d("points", &tex_points);
-        shader.set_tex3d("sdf", sdf);
-        Draw::rect(-1.0, -1.0, 2.0, 2.0);
-        shader.stop();
+        shader.start(r);
+        shader.set_float(r, "radius", radius);
+        shader.set_tex2d(r, "points", &tex_points);
+        shader.set_tex3d(r, "sdf", sdf);
+        Draw::rect(r, -1.0, -1.0, 2.0, 2.0);
+        shader.stop(r);
 
-        RenderTarget::pop();
-        RenderState::pop_all();
+        RenderTarget::pop(r);
+        RenderState::pop_all(r);
 
-        let result = tex_output.get_data(PixelFormat::Red, DataFormat::Float);
+        r.data.occlusion_shader = Some(shader);
+
+        let result = tex_output.get_data(r, PixelFormat::Red, DataFormat::Float);
         for (i, result_uv_value) in result.iter().enumerate().take(this.vertex.len()) {
             this.vertex[i].uv.x = *result_uv_value;
         }

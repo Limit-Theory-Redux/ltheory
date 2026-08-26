@@ -1,8 +1,6 @@
-use std::cell::RefCell;
-
 use glam::{IVec2, Mat4, vec3};
 
-use crate::render::{ShaderVar, gl, glcheck};
+use crate::render::{Renderer, ShaderVar};
 
 /* TODO : This is a low-level mechanism and probably not for use outside of
  *        RenderTarget. Should likely be folded into RenderTarget. */
@@ -11,25 +9,33 @@ pub struct Viewport;
 
 #[luajit_ffi_gen::luajit_ffi]
 impl Viewport {
-    pub fn get_aspect() -> f32 {
-        VP_STACK.with_borrow(|vs| vs.get_aspect())
+    pub fn get_aspect(r: &Renderer) -> f32 {
+        r.data.viewport.get_aspect()
     }
 
     #[bind(out_param = true)]
-    pub fn get_size() -> IVec2 {
-        VP_STACK.with_borrow(|vs| vs.get_size())
+    pub fn get_size(r: &Renderer) -> IVec2 {
+        r.data.viewport.get_size()
     }
 
-    pub fn push(x: i32, y: i32, sx: i32, sy: i32, is_window: bool) {
-        VP_STACK.with_borrow_mut(|vs| vs.push(x, y, sx, sy, is_window))
+    pub fn push(r: &mut Renderer, x: i32, y: i32, sx: i32, sy: i32, is_window: bool) {
+        let ortho_proj = r.data.viewport.push(x, y, sx, sy, is_window);
+
+        ShaderVar::push_matrix(r, "mProjUI", &ortho_proj.into());
+        ShaderVar::push_matrix(r, "mWorldViewUI", &Mat4::IDENTITY.into());
+
+        r.set_viewport(x, y, sx, sy);
     }
 
-    pub fn pop() {
-        VP_STACK.with_borrow_mut(|vs| vs.pop())
+    pub fn pop(r: &mut Renderer) {
+        ShaderVar::pop(r, "mWorldViewUI");
+        ShaderVar::pop(r, "mProjUI");
+
+        if let Some(vp) = r.data.viewport.pop() {
+            r.set_viewport(vp.x, vp.y, vp.sx, vp.sy);
+        }
     }
 }
-
-thread_local! { static VP_STACK: RefCell<VpStack> = RefCell::new(VpStack::new()); }
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -43,13 +49,15 @@ pub struct VP {
 
 const VP_STACK_DEPTH: usize = 16;
 
-struct VpStack {
+/// Viewport stack, owned by `Renderer` (was `thread_local! VP_STACK`) - GPU
+/// viewport state has to live with whatever owns the GL context.
+pub struct VpStack {
     stack: [VP; VP_STACK_DEPTH],
     stack_size: usize,
 }
 
 impl VpStack {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             stack: [VP {
                 x: 0,
@@ -78,7 +86,10 @@ impl VpStack {
         IVec2::new(vp.sx, vp.sy)
     }
 
-    pub fn push(&mut self, x: i32, y: i32, sx: i32, sy: i32, is_window: bool) {
+    /// Push a viewport onto the stack and return the UI ortho-projection
+    /// matrix for it. Pure CPU bookkeeping - the caller submits the matching
+    /// `SetViewport` command and pushes the matrix onto `ShaderVar`.
+    pub fn push(&mut self, x: i32, y: i32, sx: i32, sy: i32, is_window: bool) -> Mat4 {
         if self.stack_size >= VP_STACK_DEPTH {
             panic!("Viewport_Push: Maximum viewport stack depth exceeded");
         }
@@ -93,31 +104,29 @@ impl VpStack {
         self.stack_size += 1;
 
         // Set up the ortho projection matrix for UI elements.
-        let ortho_proj = if vp.is_window {
+        if vp.is_window {
             Mat4::from_translation(vec3(-1.0, 1.0, 0.0))
                 * Mat4::from_scale(vec3(2.0f32 / vp.sx as f32, -2.0f32 / vp.sy as f32, 1.0))
         } else {
             Mat4::from_translation(vec3(-1.0, -1.0, 0.0))
                 * Mat4::from_scale(vec3(2.0f32 / vp.sx as f32, 2.0f32 / vp.sy as f32, 1.0))
-        };
-        ShaderVar::push_matrix("mProjUI", &ortho_proj.into());
-        ShaderVar::push_matrix("mWorldViewUI", &Mat4::IDENTITY.into());
-
-        glcheck!(gl::Viewport(vp.x, vp.y, vp.sx, vp.sy));
+        }
     }
 
-    pub fn pop(&mut self) {
+    /// Pop a viewport off the stack. Returns the viewport to restore as the
+    /// active GL viewport, or `None` if the stack is now empty.
+    pub fn pop(&mut self) -> Option<VP> {
         if self.stack_size == 0 {
             panic!("Viewport_Pop: Viewport stack is empty");
         }
 
-        ShaderVar::pop("mWorldViewUI");
-        ShaderVar::pop("mProjUI");
-
         self.stack_size -= 1;
-        if self.stack_size > 0 {
-            let vp = &self.stack[self.stack_size - 1];
-            glcheck!(gl::Viewport(vp.x, vp.y, vp.sx, vp.sy));
-        }
+        (self.stack_size > 0).then(|| self.stack[self.stack_size - 1])
+    }
+}
+
+impl Default for VpStack {
+    fn default() -> Self {
+        Self::new()
     }
 }

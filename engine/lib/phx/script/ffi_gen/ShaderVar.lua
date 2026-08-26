@@ -13,20 +13,20 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            void ShaderVar_PushFloat   (cstr name, float x);
-            void ShaderVar_PushFloat2  (cstr name, float x, float y);
-            void ShaderVar_PushFloat3  (cstr name, float x, float y, float z);
-            void ShaderVar_PushFloat4  (cstr name, float x, float y, float z, float w);
-            void ShaderVar_PushInt     (cstr name, int x);
-            void ShaderVar_PushInt2    (cstr name, int x, int y);
-            void ShaderVar_PushInt3    (cstr name, int x, int y, int z);
-            void ShaderVar_PushInt4    (cstr name, int x, int y, int z, int w);
-            void ShaderVar_PushMatrix  (cstr name, Matrix const* m);
-            void ShaderVar_PushTex1D   (cstr name, Tex1D* t);
-            void ShaderVar_PushTex2D   (cstr name, Tex2D* t);
-            void ShaderVar_PushTex3D   (cstr name, Tex3D* t);
-            void ShaderVar_PushTexCube (cstr name, TexCube* t);
-            void ShaderVar_Pop         (cstr name);
+            void ShaderVar_PushFloat   (Renderer* r, cstr name, float x);
+            void ShaderVar_PushFloat2  (Renderer* r, cstr name, float x, float y);
+            void ShaderVar_PushFloat3  (Renderer* r, cstr name, float x, float y, float z);
+            void ShaderVar_PushFloat4  (Renderer* r, cstr name, float x, float y, float z, float w);
+            void ShaderVar_PushInt     (Renderer* r, cstr name, int x);
+            void ShaderVar_PushInt2    (Renderer* r, cstr name, int x, int y);
+            void ShaderVar_PushInt3    (Renderer* r, cstr name, int x, int y, int z);
+            void ShaderVar_PushInt4    (Renderer* r, cstr name, int x, int y, int z, int w);
+            void ShaderVar_PushMatrix  (Renderer* r, cstr name, Matrix const* m);
+            void ShaderVar_PushTex1D   (Renderer* r, cstr name, Tex1D* t);
+            void ShaderVar_PushTex2D   (Renderer* r, cstr name, Tex2D* t);
+            void ShaderVar_PushTex3D   (Renderer* r, cstr name, Tex3D* t);
+            void ShaderVar_PushTexCube (Renderer* r, cstr name, TexCube* t);
+            void ShaderVar_Pop         (Renderer* r, cstr name);
         ]]
     end
 

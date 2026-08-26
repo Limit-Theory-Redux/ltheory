@@ -6,6 +6,7 @@
 
 uniform vec3 color;
 uniform float seed;
+uniform vec3 genStarDir;
 
 float bgDensity(vec3 p) {
   return 0.5 + 0.5 * fSmoothNoise(p * 4 + seed, 8, 2.0);
@@ -16,7 +17,7 @@ vec4 generate(vec3 dir) {
   float dense = bgDensity(dir);
   /* Central Star. */ {
     /* Dots between normalized Vec3fs may still be > 1 due to fp precision! */
-    float d = max(0.0, 1.0 - dot(dir, starDir));
+    float d = max(0.0, 1.0 - dot(dir, genStarDir));
     float dd = 0.0;
     dd += 8.0 * exp(-sqrt(4096.0 * d));
     dd += 4.0 * exp(-sqrt(sqrt(1024.0 * d)));

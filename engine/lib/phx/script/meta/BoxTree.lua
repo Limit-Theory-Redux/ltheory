@@ -25,6 +25,7 @@ function BoxTree:getMemory() end
 ---@return boolean
 function BoxTree:intersectRay(matrix, ro, rd) end
 
+---@param r Renderer
 ---@param maxDepth integer
-function BoxTree:draw(maxDepth) end
+function BoxTree:draw(r, maxDepth) end
 

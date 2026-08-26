@@ -2,7 +2,6 @@
 #include gamma
 #include texturing
 
-uniform vec3 eye;
 uniform sampler2D texDiffuse;
 uniform sampler2D texNormal;
 uniform sampler2D texSpec;

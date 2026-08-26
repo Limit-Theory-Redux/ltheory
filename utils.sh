@@ -36,7 +36,7 @@ EOF
     cp -a "${target_dir}/ltr${binsuffix}" "$destination/Limit Theory Redux.app/Contents/MacOS/ltr"
 
     echo "Copying dynamic libraries..."
-    cp "${target_dir}/deps/${libprefix}phx${libsuffix}" "$destination/Limit Theory Redux.app/Contents/MacOS/${libprefix}phx${libsuffix}"
+    cp "${target_dir}/${libprefix}phx${libsuffix}" "$destination/Limit Theory Redux.app/Contents/MacOS/${libprefix}phx${libsuffix}"
 
     echo "Stripping binary..."
     strip -u -r "$destination/Limit Theory Redux.app/Contents/MacOS/ltr"

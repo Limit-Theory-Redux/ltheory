@@ -18,6 +18,7 @@ use super::{
     CursorGrabMode, PresentMode, Window, WindowMode, WindowPosition, WindowResolution,
     glutin_render,
 };
+use crate::window::{WindowError, WindowGlContext};
 
 // TODO: Add GlStateManager with state: Option<GlState> field to avoid std::mem::replace
 #[derive(Debug)]
@@ -70,7 +71,12 @@ impl GlState {
 
             false
         } else {
-            panic!("Context is undefined");
+            // `Undefined` is now also the steady state once the context has
+            // been permanently handed off to `Renderer` (see
+            // Engine::new/extract_gl_context) - nothing for WinitWindow to do.
+            debug!("No GL context to make current - already owned by Renderer");
+
+            false
         }
     }
 
@@ -93,7 +99,10 @@ impl GlState {
 
             true
         } else {
-            panic!("Context is undefined");
+            // See the matching branch in `make_current`.
+            debug!("No GL context to make not current - already owned by Renderer");
+
+            false
         }
     }
 }
@@ -299,6 +308,74 @@ impl WinitWindow {
         if let GlState::Current { context, surface } = &self.gl_state {
             surface.swap_buffers(context).expect("Cannot redraw");
         }
+    }
+
+    /// Extract the GL context for transfer to the render thread.
+    ///
+    /// This makes the context not-current on the main thread and returns
+    /// the data needed to initialize the context on the render thread.
+    ///
+    /// After calling this, the WinitWindow can no longer perform GL operations
+    /// directly. All GL operations must go through the render thread.
+    pub fn extract_gl_context(&mut self) -> Result<WindowGlContext, WindowError> {
+        debug!("Extracting GL context for render thread");
+
+        // Extract both context and surface from Current state
+        // We need to transfer the existing surface because macOS doesn't allow
+        // creating window surfaces from non-main threads.
+        let old_state = std::mem::replace(&mut self.gl_state, GlState::Undefined);
+        if let GlState::Current { context, surface } = old_state {
+            // Make context not current before transferring
+            let context = context.make_not_current()?;
+
+            info!("GL context extracted for render thread");
+
+            Ok(WindowGlContext { context, surface })
+        } else {
+            Err(WindowError::CurrentGlState)
+        }
+    }
+
+    /// Restore the GL context from the render thread.
+    ///
+    /// This is called when the render thread shuts down and returns the GL context
+    /// back to the main thread for direct GL rendering.
+    pub fn restore_gl_context(&mut self, context: WindowGlContext) -> Result<(), WindowError> {
+        info!(
+            "Attempting to restore GL context, current state: {:?}",
+            match &self.gl_state {
+                GlState::Current { .. } => "Current",
+                GlState::NotCurrent { .. } => "NotCurrent",
+                GlState::Undefined => "Undefined",
+            }
+        );
+
+        if !matches!(self.gl_state, GlState::Undefined) {
+            return Err(WindowError::UndefinedGlState);
+        }
+
+        // Make the context current on the main thread
+        info!("Making context current on main thread...");
+        let current_context = context.context.make_current(&context.surface)?;
+
+        // Try setting vsync
+        if let Err(err) = context
+            .surface
+            .set_swap_interval(&current_context, self.present_mode.into())
+        {
+            warn!("Error setting vsync after restoring context: {err:?}");
+        }
+
+        self.gl_state = GlState::Current {
+            context: current_context,
+            surface: context.surface,
+        };
+
+        // Clear the GL unavailable flag since context is restored
+        // TODO: clear_gl_unavailable();
+        info!("GL context restored to main thread successfully");
+
+        Ok(())
     }
 }
 

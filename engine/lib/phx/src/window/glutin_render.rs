@@ -63,7 +63,11 @@ pub fn init_renderer<D: GlDisplay>(gl_display: &D) {
         glcheck!(gl::LineWidth(2.0f32));
     }
 
-    RenderState::push_all_defaults();
+    // RenderState defaults used to be pushed here, back when this ran on the
+    // main thread before any render thread existed. `Renderer` now always
+    // owns the GL context and `CommandExecutor::init_gl()` sets the
+    // equivalent GL state unconditionally (see the "Match
+    // RenderState::push_all_defaults()" block there) - nothing left to do.
 }
 
 pub fn resize(width: i32, height: i32) {

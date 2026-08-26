@@ -1,0 +1,56 @@
+-- **This file was added manually not by FFI Gen**
+
+---@meta
+
+---@class Vec3f
+Vec3f = {}
+
+---@class Vec3f
+---@field public iadd fun(self: Vec3f, b: Vec3f)
+---@field public iadds fun(self: Vec3f, s: number)
+---@field public idiv fun(self: Vec3f, b: Vec3f)
+---@field public idivs fun(self: Vec3f, s: number)
+---@field public divs fun(self: Vec3f, s: number): Vec3f
+---@field public imadds fun(self: Vec3f, b: Vec3f, s: number)
+---@field public imul fun(self: Vec3f, b: Vec3f)
+---@field public imuls fun(self: Vec3f, s: number)
+---@field public muls fun(self: Vec3f, s: number): Vec3f
+---@field public isub fun(self: Vec3f, b: Vec3f)
+---@field public abs fun(self: Vec3f): Vec3f
+---@field public clamp fun(self: Vec3f, lower: Vec3f, upper: Vec3f): Vec3f
+---@field public iclampLength fun(self: Vec3f, clamp: number)
+---@field public clampLength fun(self: Vec3f, clamp: number): Vec3f
+---@field public icross fun(self: Vec3f, b: Vec3f, out: Vec3f)
+---@field public cross fun(self: Vec3f, b: Vec3f): Vec3f
+---@field public distance fun(self: Vec3f, b: Vec3f): number
+---@field public distanceSquared fun(self: Vec3f, b: Vec3f): number
+---@field public dot fun(self: Vec3f, b: Vec3f): number
+---@field public approximatelyEqual fun(self: Vec3f, b: Vec3f): boolean
+---@field public equal fun(self: Vec3f, b: Vec3f): boolean
+---@field public iinverse fun(self: Vec3f)
+---@field public inverse fun(self: Vec3f): Vec3f
+---@field public isZero fun(self: Vec3f): boolean
+---@field public length fun(self: Vec3f): number
+---@field public lengthSquared fun(self: Vec3f): number
+---@field public ilerp fun(self: Vec3f, b: Vec3f, t: number): Vec3f
+---@field public lerp fun(self: Vec3f, b: Vec3f, t: number): Vec3f
+---@field public lerpv fun(self: Vec3f, b: Vec3f, tv: Vec3f): Vec3f
+---@field public max fun(self: Vec3f, b: Vec3f): Vec3f
+---@field public maxComponent fun(self: Vec3f): number
+---@field public min fun(self: Vec3f, b: Vec3f): Vec3f
+---@field public minComponent fun(self: Vec3f): number
+---@field public inormalize fun(self: Vec3f)
+---@field public normalize fun(self: Vec3f): Vec3f
+---@field public pNormalize fun(self: Vec3f, p: number): Vec3f
+---@field public project fun(self: Vec3f, b: Vec3f): Vec3f
+---@field public reject fun(self: Vec3f, b: Vec3f): Vec3f
+---@field public iscale fun(self: Vec3f, s: number)
+---@field public scale fun(self: Vec3f, s: number): Vec3f
+---@field public set fun(self: Vec3f, x: number, y: number, z: number)
+---@field public setv fun(self: Vec3f, other: Vec3f)
+---@field public sqrt fun(self: Vec3f): Vec3f
+---@field public toVec3i fun(self: Vec3f): Vec3i
+---@field public toVec3d fun(self: Vec3f): Vec3d
+---@field public toPosition fun(self: Vec3f): Position
+---@field public toVec2f fun(self: Vec3f): Vec2f
+---@field public toVec4f fun(self: Vec3f): Vec4f

@@ -12,18 +12,29 @@ local function defineVec3_t(t, mt)
     local Vec3 = t
 
     function mt.__add(a, b)
-        -- Uncomment this code if you want to find places where we're accidentally converting Positions to something else.
-        -- if ffi.typeof(a) ~= ffi.typeof(b) and ffi.typeof(a) ~= ffi.typeof("Position") then
-        --     Log.Error("Mismatching type %s != %s", ffi.typeof(a), ffi.typeof(b))
-        -- end
+        if type(b) == "number" then
+            return (Vec3(a.x + b, a.y + b, a.z + b))
+        elseif type(a) == "number" then
+            return (Vec3(a + b.x, a + b.y, a + b.z))
+        end
         return (Vec3(a.x + b.x, a.y + b.y, a.z + b.z))
     end
 
     function mt.__div(a, b)
+        if type(b) == "number" then
+            return (Vec3(a.x / b, a.y / b, a.z / b))
+        elseif type(a) == "number" then
+            return (Vec3(a / b.x, a / b.y, a / b.z))
+        end
         return (Vec3(a.x / b.x, a.y / b.y, a.z / b.z))
     end
 
     function mt.__mul(a, b)
+        if type(b) == "number" then
+            return (Vec3(a.x * b, a.y * b, a.z * b))
+        elseif type(a) == "number" then
+            return (Vec3(a * b.x, a * b.y, a * b.z))
+        end
         return (Vec3(a.x * b.x, a.y * b.y, a.z * b.z))
     end
 
@@ -32,6 +43,11 @@ local function defineVec3_t(t, mt)
     end
 
     function mt.__sub(a, b)
+        if type(b) == "number" then
+            return (Vec3(a.x - b, a.y - b, a.z - b))
+        elseif type(a) == "number" then
+            return (Vec3(a - b.x, a - b.y, a - b.z))
+        end
         return (Vec3(a.x - b.x, a.y - b.y, a.z - b.z))
     end
 
@@ -43,6 +59,12 @@ local function defineVec3_t(t, mt)
         a.x = a.x + b.x
         a.y = a.y + b.y
         a.z = a.z + b.z
+    end
+
+    function mt.__index.iadds(a, s)
+        a.x = a.x + s
+        a.y = a.y + s
+        a.z = a.z + s
     end
 
     function mt.__index.idiv(a, b)

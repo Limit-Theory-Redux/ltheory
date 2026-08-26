@@ -27,6 +27,7 @@ function Loader.defineType()
             double Math_ExpMap2Signed (double x);
             double Math_PowSigned     (double x, double p);
             double Math_Round         (double x);
+            double Math_Lerp          (double a, double b, double t);
             double Math_Sign          (double x);
         ]]
     end
@@ -47,6 +48,7 @@ function Loader.defineType()
             ExpMap2Signed = libphx.Math_ExpMap2Signed,
             PowSigned     = libphx.Math_PowSigned,
             Round         = libphx.Math_Round,
+            Lerp          = libphx.Math_Lerp,
             Sign          = libphx.Math_Sign,
         }
 

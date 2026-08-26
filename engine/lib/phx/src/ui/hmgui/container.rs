@@ -4,6 +4,7 @@ use glam::Vec2;
 
 use super::*;
 use crate::input::Input;
+use crate::render::Renderer;
 use crate::rf::Rf;
 
 /// Container element layout type.
@@ -62,9 +63,9 @@ impl HmGuiContainer {
     /// Compute min size of the container widget.
     ///
     /// Go from the bottom to the top of widget's hierarchy tree to calculate widget min sizes.
-    pub fn compute_size(&self, hmgui: &mut HmGui) -> Vec2 {
+    pub fn compute_size(&self, hmgui: &mut HmGui, r: &mut Renderer) -> Vec2 {
         for widget_rf in &self.children {
-            widget_rf.as_mut().compute_size(hmgui);
+            widget_rf.as_mut().compute_size(hmgui, r);
         }
 
         let mut min_size = Vec2::ZERO;
@@ -113,6 +114,7 @@ impl HmGuiContainer {
     pub fn layout(
         &self,
         hmgui: &mut HmGui,
+        r: &mut Renderer,
         input: &Input,
         widget_hstretch: bool,
         widget_vstretch: bool,
@@ -156,14 +158,16 @@ impl HmGuiContainer {
         // 3. Recalculate widgets position and size
         let children_size = if widget_hstretch {
             if widget_vstretch {
-                self.calculate_children_layout::<true, true>(hmgui, input, pos, size, extra_size)
+                self.calculate_children_layout::<true, true>(hmgui, r, input, pos, size, extra_size)
             } else {
-                self.calculate_children_layout::<true, false>(hmgui, input, pos, size, extra_size)
+                self.calculate_children_layout::<true, false>(
+                    hmgui, r, input, pos, size, extra_size,
+                )
             }
         } else if widget_vstretch {
-            self.calculate_children_layout::<false, true>(hmgui, input, pos, size, extra_size)
+            self.calculate_children_layout::<false, true>(hmgui, r, input, pos, size, extra_size)
         } else {
-            self.calculate_children_layout::<false, false>(hmgui, input, pos, size, extra_size)
+            self.calculate_children_layout::<false, false>(hmgui, r, input, pos, size, extra_size)
         };
 
         children_size + self.padding_lower + self.padding_upper
@@ -261,6 +265,7 @@ impl HmGuiContainer {
     fn calculate_children_layout<const HSTRETCH: bool, const VSTRETCH: bool>(
         &self,
         hmgui: &mut HmGui,
+        r: &mut Renderer,
         input: &Input,
         mut pos: Vec2,
         size: Vec2,
@@ -277,7 +282,7 @@ impl HmGuiContainer {
                     self.calculate_layout::<0>(&mut widget, pos.x, size.x);
                     self.calculate_layout::<1>(&mut widget, pos.y, size.y);
 
-                    widget.layout(hmgui, input);
+                    widget.layout(hmgui, r, input);
 
                     if !HSTRETCH {
                         children_size.x = children_size.x.max(widget.size.x);
@@ -300,7 +305,7 @@ impl HmGuiContainer {
 
                     self.calculate_layout::<1>(&mut widget, pos.y, size.y);
 
-                    widget.layout(hmgui, input);
+                    widget.layout(hmgui, r, input);
 
                     if !HSTRETCH {
                         children_size.x += widget.size.x + spacing;
@@ -322,7 +327,7 @@ impl HmGuiContainer {
                     widget.size.y = widget.min_size.y + extra_size[i];
                     pos.y += widget.size.y + self.spacing; // Calculate position of the next widget
 
-                    widget.layout(hmgui, input);
+                    widget.layout(hmgui, r, input);
 
                     if !VSTRETCH {
                         children_size.y += widget.size.y + spacing;

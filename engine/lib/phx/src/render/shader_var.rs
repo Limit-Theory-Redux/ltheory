@@ -1,11 +1,11 @@
 use std::collections::HashMap;
-use std::sync::{Mutex, MutexGuard, OnceLock};
 
 use glam::{IVec2, IVec3, IVec4, Vec2, Vec3, Vec4, ivec2, ivec3, ivec4, vec2, vec3, vec4};
 use tracing::warn;
 
 use super::{Tex1D, Tex2D, Tex3D, TexCube};
 use crate::math::Matrix;
+use crate::render::Renderer;
 
 #[derive(Clone)]
 pub enum ShaderVarData {
@@ -23,10 +23,6 @@ pub enum ShaderVarData {
     Tex3D(Tex3D),
     TexCube(TexCube),
 }
-
-// SAFETY: Trust me, it's fine.
-#[allow(unsafe_code)]
-unsafe impl Send for ShaderVarData {}
 
 impl ShaderVarData {
     pub fn get_glsl_type(&self) -> &str {
@@ -46,103 +42,168 @@ impl ShaderVarData {
             ShaderVarData::TexCube(_) => "samplerCube",
         }
     }
+
+    /// Whether two values are identical for uniform-dedup purposes. Only pure
+    /// value types (float/int/matrix) can be deduplicated: sampler types have
+    /// side effects (texture-unit allocation) and are always re-sent.
+    pub fn same_value(&self, other: &ShaderVarData) -> bool {
+        match (self, other) {
+            (ShaderVarData::Float(a), ShaderVarData::Float(b)) => a == b,
+            (ShaderVarData::Float2(a), ShaderVarData::Float2(b)) => a == b,
+            (ShaderVarData::Float3(a), ShaderVarData::Float3(b)) => a == b,
+            (ShaderVarData::Float4(a), ShaderVarData::Float4(b)) => a == b,
+            (ShaderVarData::Int(a), ShaderVarData::Int(b)) => a == b,
+            (ShaderVarData::Int2(a), ShaderVarData::Int2(b)) => a == b,
+            (ShaderVarData::Int3(a), ShaderVarData::Int3(b)) => a == b,
+            (ShaderVarData::Int4(a), ShaderVarData::Int4(b)) => a == b,
+            (ShaderVarData::Matrix(a), ShaderVarData::Matrix(b)) => {
+                a.to_cols_array() == b.to_cols_array()
+            }
+            // Samplers and mismatched types: never dedup
+            _ => false,
+        }
+    }
 }
 
-pub struct ShaderVar {
+pub struct ShaderVar;
+
+/// The auto-var stack, owned by `Renderer` (was `static INST:
+/// OnceLock<Mutex<ShaderVar>>`). This is CPU-only data - a name-keyed cache
+/// that shaders consult when binding - but it's still main-thread-affine
+/// state that has no business behind a global `Mutex`, and moving it here
+/// drops the `unsafe impl Send for ShaderVarData` the old `Mutex<T: Send>`
+/// bound required (nothing sends this across threads).
+pub struct ShaderVarMap {
     var_map: HashMap<String, Vec<ShaderVarData>>,
+    /// Monotonic revision bumped on every push/pop. Shaders record the
+    /// revision at their last `start()` and skip re-applying auto-vars when
+    /// it's unchanged - camera matrices are pushed once per frame, so the
+    /// per-draw re-application loop collapses to once per (shader, revision).
+    revision: u64,
 }
 
-impl ShaderVar {
-    fn inst() -> MutexGuard<'static, ShaderVar> {
-        static INST: OnceLock<Mutex<ShaderVar>> = OnceLock::new();
-        INST.get_or_init(|| {
-            Mutex::new(ShaderVar {
-                var_map: HashMap::with_capacity(16),
-            })
-        })
-        .lock()
-        .unwrap()
+impl ShaderVarMap {
+    pub fn new() -> Self {
+        Self {
+            var_map: HashMap::with_capacity(16),
+            revision: 0,
+        }
+    }
+
+    /// Current stack revision - bumped on every push/pop.
+    pub fn revision(&self) -> u64 {
+        self.revision
     }
 
     /// Get the last element of the variable stack for this name, or None if it doesn't exist.
-    pub fn get(name: &str) -> Option<ShaderVarData> {
-        Self::inst()
-            .var_map
+    pub fn get(&self, name: &str) -> Option<ShaderVarData> {
+        self.var_map
             .get(name)
             .and_then(|stack| stack.last())
             .cloned()
     }
 
-    /// Push an element to the variable stack for this name.
-    fn push(name: &str, data: ShaderVarData) {
-        let mut this = Self::inst();
-        let stack = this.var_map.entry(name.into()).or_default();
+    fn push(&mut self, name: &str, data: ShaderVarData) {
+        let stack = self.var_map.entry(name.into()).or_default();
         stack.push(data);
-    }
-}
-
-#[luajit_ffi_gen::luajit_ffi]
-impl ShaderVar {
-    pub fn push_float(name: &str, x: f32) {
-        Self::push(name, ShaderVarData::Float(x));
+        self.revision += 1;
     }
 
-    pub fn push_float2(name: &str, x: f32, y: f32) {
-        Self::push(name, ShaderVarData::Float2(vec2(x, y)));
-    }
-
-    pub fn push_float3(name: &str, x: f32, y: f32, z: f32) {
-        Self::push(name, ShaderVarData::Float3(vec3(x, y, z)));
-    }
-
-    pub fn push_float4(name: &str, x: f32, y: f32, z: f32, w: f32) {
-        Self::push(name, ShaderVarData::Float4(vec4(x, y, z, w)));
-    }
-
-    pub fn push_int(name: &str, x: i32) {
-        Self::push(name, ShaderVarData::Int(x));
-    }
-
-    pub fn push_int2(name: &str, x: i32, y: i32) {
-        Self::push(name, ShaderVarData::Int2(ivec2(x, y)));
-    }
-
-    pub fn push_int3(name: &str, x: i32, y: i32, z: i32) {
-        Self::push(name, ShaderVarData::Int3(ivec3(x, y, z)));
-    }
-
-    pub fn push_int4(name: &str, x: i32, y: i32, z: i32, w: i32) {
-        Self::push(name, ShaderVarData::Int4(ivec4(x, y, z, w)));
-    }
-
-    pub fn push_matrix(name: &str, m: &Matrix) {
-        Self::push(name, ShaderVarData::Matrix(m.clone()));
-    }
-
-    pub fn push_tex1d(name: &str, t: &mut Tex1D) {
-        Self::push(name, ShaderVarData::Tex1D(t.clone()));
-    }
-
-    pub fn push_tex2d(name: &str, t: &mut Tex2D) {
-        Self::push(name, ShaderVarData::Tex2D(t.clone()));
-    }
-
-    pub fn push_tex3d(name: &str, t: &mut Tex3D) {
-        Self::push(name, ShaderVarData::Tex3D(t.clone()));
-    }
-
-    pub fn push_tex_cube(name: &str, t: &mut TexCube) {
-        Self::push(name, ShaderVarData::TexCube(t.clone()));
-    }
-
-    pub fn pop(name: &str) {
-        let mut this = Self::inst();
-        if let Some(stack) = this.var_map.get_mut(name) {
+    fn pop(&mut self, name: &str) {
+        self.revision += 1;
+        if let Some(stack) = self.var_map.get_mut(name) {
             if stack.pop().is_none() {
                 warn!("Attempting to pop empty stack <{:?}>", name);
             }
         } else {
             warn!("Attempting to pop nonexisting stack <{:?}>", name);
         }
+    }
+}
+
+impl Default for ShaderVarMap {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[luajit_ffi_gen::luajit_ffi]
+impl ShaderVar {
+    pub fn push_float(r: &mut Renderer, name: &str, x: f32) {
+        r.data.shader_vars.push(name, ShaderVarData::Float(x));
+    }
+
+    pub fn push_float2(r: &mut Renderer, name: &str, x: f32, y: f32) {
+        r.data
+            .shader_vars
+            .push(name, ShaderVarData::Float2(vec2(x, y)));
+    }
+
+    pub fn push_float3(r: &mut Renderer, name: &str, x: f32, y: f32, z: f32) {
+        r.data
+            .shader_vars
+            .push(name, ShaderVarData::Float3(vec3(x, y, z)));
+    }
+
+    pub fn push_float4(r: &mut Renderer, name: &str, x: f32, y: f32, z: f32, w: f32) {
+        r.data
+            .shader_vars
+            .push(name, ShaderVarData::Float4(vec4(x, y, z, w)));
+    }
+
+    pub fn push_int(r: &mut Renderer, name: &str, x: i32) {
+        r.data.shader_vars.push(name, ShaderVarData::Int(x));
+    }
+
+    pub fn push_int2(r: &mut Renderer, name: &str, x: i32, y: i32) {
+        r.data
+            .shader_vars
+            .push(name, ShaderVarData::Int2(ivec2(x, y)));
+    }
+
+    pub fn push_int3(r: &mut Renderer, name: &str, x: i32, y: i32, z: i32) {
+        r.data
+            .shader_vars
+            .push(name, ShaderVarData::Int3(ivec3(x, y, z)));
+    }
+
+    pub fn push_int4(r: &mut Renderer, name: &str, x: i32, y: i32, z: i32, w: i32) {
+        r.data
+            .shader_vars
+            .push(name, ShaderVarData::Int4(ivec4(x, y, z, w)));
+    }
+
+    pub fn push_matrix(r: &mut Renderer, name: &str, m: &Matrix) {
+        r.data
+            .shader_vars
+            .push(name, ShaderVarData::Matrix(m.clone()));
+    }
+
+    pub fn push_tex1d(r: &mut Renderer, name: &str, t: &mut Tex1D) {
+        r.data
+            .shader_vars
+            .push(name, ShaderVarData::Tex1D(t.clone()));
+    }
+
+    pub fn push_tex2d(r: &mut Renderer, name: &str, t: &mut Tex2D) {
+        r.data
+            .shader_vars
+            .push(name, ShaderVarData::Tex2D(t.clone()));
+    }
+
+    pub fn push_tex3d(r: &mut Renderer, name: &str, t: &mut Tex3D) {
+        r.data
+            .shader_vars
+            .push(name, ShaderVarData::Tex3D(t.clone()));
+    }
+
+    pub fn push_tex_cube(r: &mut Renderer, name: &str, t: &mut TexCube) {
+        r.data
+            .shader_vars
+            .push(name, ShaderVarData::TexCube(t.clone()));
+    }
+
+    pub fn pop(r: &mut Renderer, name: &str) {
+        r.data.shader_vars.pop(name);
     }
 }

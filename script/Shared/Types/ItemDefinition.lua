@@ -4,6 +4,7 @@
 ---@field name string
 ---@field mass number
 ---@field energy number
+---@field startEquilibriumPrice number|nil
 ---@overload fun(args: {name: string, mass: number, energyDensity: number}): ItemDefinition
 local ItemDefinition = Class("ItemDefinition")
 
@@ -17,6 +18,7 @@ function ItemDefinition.new(args)
     self.name = args.name
     self.mass = args.mass
     self.energy = Math.Round(math.max(0, (args.energyDensity or 1) * args.mass))
+    self.startEquilibriumPrice = args.startEquilibriumPrice or nil
     return self
 end
 

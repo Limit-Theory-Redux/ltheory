@@ -60,19 +60,18 @@ impl ImplInfo {
             .flat_map(|param| self.gen_wrapper_param(param))
             .collect();
 
-        if let Some(ret) = method
-            .ret
-            .as_ref()
-            .filter(|_| method.bind_args.gen_out_param())
+        if method.bind_args.gen_out_param()
+            && let Some(ret_ty) = &method.ret
         {
-            let return_ty_token = self.gen_wrapper_return_type(ret, true);
+            let return_ty_token = self.gen_wrapper_return_type(ret_ty, true);
             param_tokens.push(quote! { out: &mut #return_ty_token })
         }
 
-        let ret_token = if method.bind_args.gen_out_param() || method.ret.is_none() {
-            quote! {}
-        } else if let Some(ret) = method.ret.as_ref() {
-            let ty_token = self.gen_wrapper_return_type(ret, false);
+        let ret_token = if !method.bind_args.gen_out_param()
+            && let Some(ret_ty) = &method.ret
+        {
+            let ty_token = self.gen_wrapper_return_type(ret_ty, false);
+
             quote! { -> #ty_token }
         } else {
             quote! {}

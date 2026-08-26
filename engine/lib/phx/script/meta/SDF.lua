@@ -10,9 +10,10 @@ SDF = {}
 ---@return SDF
 function SDF.Create(sx, sy, sz) end
 
+---@param r Renderer
 ---@param tex Tex3D
 ---@return SDF
-function SDF.FromTex3D(tex) end
+function SDF.FromTex3D(r, tex) end
 
 ---@return Mesh
 function SDF:toMesh() end

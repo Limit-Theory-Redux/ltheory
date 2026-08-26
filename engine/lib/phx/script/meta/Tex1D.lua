@@ -4,48 +4,53 @@
 ---@class Tex1D
 Tex1D = {}
 
+---@param r Renderer
 ---@param size integer
 ---@param format TexFormat
 ---@return Tex1D
-function Tex1D.Create(size, format) end
+function Tex1D.Create(r, size, format) end
 
 ---@return Tex1D
 function Tex1D:clone() end
 
-function Tex1D:genMipmap() end
+---@param r Renderer
+function Tex1D:genMipmap(r) end
 
 ---@return TexFormat
 function Tex1D:getFormat() end
 
+---@param r Renderer
 ---@param pf PixelFormat
 ---@param df DataFormat
 ---@return Bytes
-function Tex1D:getDataBytes(pf, df) end
-
----@return integer
-function Tex1D:getHandle() end
+function Tex1D:getDataBytes(r, pf, df) end
 
 ---@return integer
 function Tex1D:getSize() end
 
+---@param r Renderer
 ---@param data Bytes
 ---@param pf PixelFormat
 ---@param df DataFormat
-function Tex1D:setDataBytes(data, pf, df) end
+function Tex1D:setDataBytes(r, data, pf, df) end
 
+---@param r Renderer
 ---@param filter TexFilter
-function Tex1D:setMagFilter(filter) end
+function Tex1D:setMagFilter(r, filter) end
 
+---@param r Renderer
 ---@param filter TexFilter
-function Tex1D:setMinFilter(filter) end
+function Tex1D:setMinFilter(r, filter) end
 
+---@param r Renderer
 ---@param x integer
----@param r number
----@param g number
----@param b number
----@param a number
-function Tex1D:setTexel(x, r, g, b, a) end
+---@param red number
+---@param green number
+---@param blue number
+---@param alpha number
+function Tex1D:setTexel(r, x, red, green, blue, alpha) end
 
+---@param r Renderer
 ---@param mode TexWrapMode
-function Tex1D:setWrapMode(mode) end
+function Tex1D:setWrapMode(r, mode) end
 

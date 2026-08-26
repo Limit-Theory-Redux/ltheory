@@ -69,6 +69,14 @@ impl MouseState {
     pub fn reset(&mut self) {
         self.button_state.reset();
         self.axis_state.reset();
+
+        // Zero per-frame delta axes so they don't persist into the next frame
+        self.axis_state.zero(MouseControl::DeltaX as _);
+        self.axis_state.zero(MouseControl::DeltaY as _);
+        self.axis_state.zero(MouseControl::ScrollX as _);
+        self.axis_state.zero(MouseControl::ScrollY as _);
+        self.axis_state.zero(MouseControl::ScrollPixelX as _);
+        self.axis_state.zero(MouseControl::ScrollPixelY as _);
     }
 
     pub fn update_button(&mut self, control: MouseControl, pressed: bool) -> bool {
@@ -108,6 +116,13 @@ impl MouseState {
         self.in_window = in_window;
 
         self.control_state.update()
+    }
+
+    pub fn update_raw_delta(&mut self, dx: f32, dy: f32) -> bool {
+        // Directly set the axis values for delta without relying on absolute position.
+        self.axis_state.update(MouseControl::DeltaX as _, dx)
+            && self.axis_state.update(MouseControl::DeltaY as _, dy)
+            && self.control_state.update()
     }
 }
 

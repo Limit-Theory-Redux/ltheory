@@ -22,7 +22,7 @@ function Input:dragAndDrop() end
 ---@return InputDevice?
 function Input:activeDevice() end
 
----@return InputDeviceType?
+---@return InputDeviceType
 function Input:activeDeviceType() end
 
 ---@return InputDeviceId?

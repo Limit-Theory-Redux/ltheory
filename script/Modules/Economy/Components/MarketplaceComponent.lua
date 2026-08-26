@@ -1,3 +1,4 @@
+local Entity = require("Core.ECS.Entity")
 local Component = require("Core.ECS.Component")
 
 ---@class MarketplaceComponent: Component
@@ -14,6 +15,7 @@ function MarketplaceComponent:init()
     SetLengthMetamethod(self.bids)
     self.asks = {}
     SetLengthMetamethod(self.asks)
+    self.marketPrices = {}
 end
 
 ---@param timestamp TimeStamp
@@ -56,46 +58,76 @@ function MarketplaceComponent:getTax()
     return self.tax
 end
 
----@param entity Entity
-function MarketplaceComponent:addBid(entity)
-    self.bids[entity] = entity
+---@param ... Entity
+function MarketplaceComponent:addBid(...)
+    local args = { ... }
+    for _, arg in ipairs(args) do
+        self.bids[arg.id] = arg.id
+    end
 end
 
----@param entity Entity
-function MarketplaceComponent:addAsk(entity)
-    self.asks[entity] = entity
+---@param ... Entity
+function MarketplaceComponent:addAsk(...)
+    local args = { ... }
+    for _, arg in ipairs(args) do
+        self.asks[arg.id] = arg.id
+    end
 end
 
 ---@param entity Entity
 ---@return boolean success
 function MarketplaceComponent:removeBid(entity)
-    if not self.bids[entity] then
+    if not self.bids[entity.id] then
         return false
     end
 
-    self.bids[entity] = nil
+    self.bids[entity.id] = nil
     return true
 end
 
 ---@param entity Entity
 ---@return boolean success
 function MarketplaceComponent:removeAsk(entity)
-    if not self.asks[entity] then
+    if not self.asks[entity.id] then
         return false
     end
 
-    self.asks[entity] = nil
+    self.asks[entity.id] = nil
     return true
 end
 
 ---@return table<Entity>
 function MarketplaceComponent:getBids()
-    return self.bids
+    local bids = {}
+    for id in Iterator(self.bids) do
+        local entity = Entity(id)
+        if entity then
+            table.insert(bids, entity)
+        end
+    end
+    return bids
 end
 
 ---@return table<Entity>
 function MarketplaceComponent:getAsks()
-    return self.asks
+    local asks = {}
+    for id in Iterator(self.asks) do
+        local entity = Entity(id)
+        if entity then
+            table.insert(asks, entity)
+        end
+    end
+    return asks
+end
+
+---@param itemType integer
+function MarketplaceComponent:setMarketPrice(itemType, price)
+    self.marketPrices[itemType] = price
+end
+
+---@param itemType integer
+function MarketplaceComponent:getMarketPrice(itemType)
+    return self.marketPrices[itemType]
 end
 
 return MarketplaceComponent

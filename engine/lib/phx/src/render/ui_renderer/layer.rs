@@ -7,7 +7,7 @@ use super::text::UIRendererText;
 use super::{
     UIRendererImageId, UIRendererLayerId, UIRendererPanelId, UIRendererRectId, UIRendererTextId,
 };
-use crate::render::{ClipRect, Draw, Shader};
+use crate::render::{ClipRect, Draw, Renderer, Shader};
 
 #[derive(Default)]
 pub struct UIRendererLayer {
@@ -26,8 +26,10 @@ pub struct UIRendererLayer {
 }
 
 impl UIRendererLayer {
+    #[allow(clippy::too_many_arguments)]
     pub fn draw(
         &self,
+        r: &mut Renderer,
         panel_shader: &mut Shader,
         image_shader: &mut Shader,
         rect_shader: &mut Shader,
@@ -40,6 +42,7 @@ impl UIRendererLayer {
         if self.clip {
             // extend clip area by 1 pixel to avoid border overlapping
             ClipRect::push_combined(
+                r,
                 self.pos.x - 1.0,
                 self.pos.y - 1.0,
                 self.size.x + 2.0,
@@ -48,10 +51,10 @@ impl UIRendererLayer {
         }
 
         if self.panel_id.is_some() {
-            panel_shader.start();
+            panel_shader.start(r);
 
             let pad: f32 = 64.0;
-            panel_shader.set_float("padding", pad);
+            panel_shader.set_float(r, "padding", pad);
 
             let mut panel_id_opt = self.panel_id;
             while let Some(panel_id) = panel_id_opt {
@@ -62,10 +65,11 @@ impl UIRendererLayer {
                 let sx = panel.size.x + 2.0 * pad;
                 let sy = panel.size.y + 2.0 * pad;
 
-                panel_shader.set_float("innerAlpha", panel.inner_alpha);
-                panel_shader.set_float("bevel", panel.bevel);
-                panel_shader.set_float2("size", sx, sy);
+                panel_shader.set_float(r, "innerAlpha", panel.inner_alpha);
+                panel_shader.set_float(r, "bevel", panel.bevel);
+                panel_shader.set_float2(r, "size", sx, sy);
                 panel_shader.set_float4(
+                    r,
                     "color",
                     panel.color.r,
                     panel.color.g,
@@ -73,23 +77,23 @@ impl UIRendererLayer {
                     panel.color.a,
                 );
 
-                Draw::rect(x, y, sx, sy);
+                Draw::rect(r, x, y, sx, sy);
 
                 panel_id_opt = panel.next;
             }
 
-            panel_shader.stop();
+            panel_shader.stop(r);
         }
 
         let mut image_id_opt = self.image_id;
         while let Some(image_id) = image_id_opt {
             let image = &images[*image_id];
 
-            image_shader.start();
+            image_shader.start(r);
             image_shader.reset_tex_index();
-            image_shader.set_tex2d("image", &image.image);
-            Draw::rect(image.pos.x, image.pos.y, image.size.x, image.size.y);
-            image_shader.stop();
+            image_shader.set_tex2d(r, "image", &image.image);
+            Draw::rect(r, image.pos.x, image.pos.y, image.size.x, image.size.y);
+            image_shader.stop(r);
             image_id_opt = image.next;
         }
 
@@ -97,8 +101,9 @@ impl UIRendererLayer {
         while let Some(rect_id) = rect_id_opt {
             let rect = &rects[*rect_id];
 
-            rect_shader.start();
+            rect_shader.start(r);
             rect_shader.set_float4(
+                r,
                 "color",
                 rect.color.r,
                 rect.color.g,
@@ -107,12 +112,12 @@ impl UIRendererLayer {
             );
 
             if let Some(s) = rect.outline {
-                Draw::border(s, rect.pos.x, rect.pos.y, rect.size.x, rect.size.y);
+                Draw::border(r, s, rect.pos.x, rect.pos.y, rect.size.x, rect.size.y);
             } else {
-                Draw::rect(rect.pos.x, rect.pos.y, rect.size.x, rect.size.y);
+                Draw::rect(r, rect.pos.x, rect.pos.y, rect.size.x, rect.size.y);
             }
 
-            rect_shader.stop();
+            rect_shader.stop(r);
 
             rect_id_opt = rect.next;
         }
@@ -123,7 +128,7 @@ impl UIRendererLayer {
 
             #[allow(unsafe_code)] // TODO: remove
             unsafe {
-                (*text.font).draw(&text.text, text.pos.x, text.pos.y, &text.color);
+                (*text.font).draw(r, &text.text, text.pos.x, text.pos.y, &text.color);
             }
 
             text_id_opt = text.next;
@@ -134,6 +139,7 @@ impl UIRendererLayer {
             let layer = &layers[*layer_id];
 
             layer.draw(
+                r,
                 panel_shader,
                 image_shader,
                 rect_shader,
@@ -148,7 +154,7 @@ impl UIRendererLayer {
         }
 
         if self.clip {
-            ClipRect::pop();
+            ClipRect::pop(r);
         }
     }
 }

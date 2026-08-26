@@ -1,203 +1,196 @@
-local Log = require("Core.Util.Log")
-local Inspect = require("Core.Util.Inspect")
-local Registry = require("Core.ECS.Registry")
-local RenderingTest = require('States.Application')
-local Materials = require("Shared.Registries.Materials")
-local CameraSystem = require("Modules.Rendering.Systems").Camera
-local CameraEntity = require("Modules.Rendering.Entities").Camera
-local BoxEntity = require("Modules.Core.Entities").Box
-local Physics = require("Modules.Physics.Components")
-local Rendering = require("Modules.Rendering.Components")
+local Application         = require('States.Application')
 
----@diagnostic disable-next-line: duplicate-set-field
+---@class RenderingTest: Application
+local RenderingTest       = Subclass("RenderingTest", Application)
+
+local Registry            = require("Core.ECS.Registry")
+local Materials           = require("Shared.Registries.Materials")
+local CameraManager       = require("Modules.Cameras.Managers.CameraManager")
+local CinematicCamera     = require("Modules.Cameras.Managers.CameraControllers.CinematicCameraController")
+local CameraEntity        = require("Modules.Cameras.Entities").Camera
+local BoxEntity           = require("Modules.Core.Entities").Box
+local Physics             = require("Modules.Physics.Components")
+local RenderComp          = require("Modules.Rendering.Components").Render
+local RenderCoreSystem    = require("Modules.Rendering.Systems.RenderCoreSystem")
+local CameraSystem        = require("Modules.Cameras.Systems.CameraSystem")
+local DeltaTimer          = require("Shared.Tools.DeltaTimer")
+local Entity              = require("Core.ECS.Entity")
+local DrawEx              = require("UI.DrawEx")
+local CameraDataComponent = require("Modules.Cameras.Components").CameraData
+
 function RenderingTest:onInit()
-    -- Mark as initialized
-    self.initialized = true
-
-    -- Set App Settings --
-    -- self.profilerFont = Font.Load('NovaMono', 20)
-    -- self.profiling = false
-
-    self.renderer = RenderPipeline()
-
-    -- Initialize Materials --
     require("Shared.Definitions.MaterialDefs")
     require("Shared.Definitions.UniformFuncDefs")
 
-    -- Set GameState --
-    GameState:SetState(Enums.GameStates.InGame)
+    Window:setPresentMode(PresentMode.NoVsync)
+    Window:setFullscreen(false, true)
 
-    -- Spawn CameraEntity
-    local camera = CameraEntity()
+    -- Timers
+    self.timer = DeltaTimer("RenderingTest")
+    self.timer:start("camLoop", 0.01, true)
 
-    CameraSystem:setCamera(camera)
-    CameraSystem.currentCameraTransform:setPosition(Position(0, 0, 0))
-    CameraSystem.currentCameraTransform:setRotation(Quat.Identity())
+    -- Camera setup
+    local cam = CameraEntity()
+    CameraManager:registerCamera("CineCam", cam)
+    self.cameraController = CinematicCamera(cam, { useFocusPoint = true })
+    cam:get(CameraDataComponent):setController(self.cameraController)
+    CameraManager:setActiveCamera("CineCam")
 
-    -- Create First RNG for Scene
-    -- local rng = RNG.Create(0)
+    -- Grid setup
+    self.boxes = {}
+    local nx, ny, nz = 6, 6, 6
+    local spacing = 7
+    local boxRes = 7
+    local zOffset = -10
+    local idCounter = 1
 
-    -- Generate Box Mesh
-    self.boxMesh = Mesh.Box(7)
-    -- Get Box Entity and Components
-    local boxMaterial = Materials.DebugColor() ---@type Material
-    boxMaterial:addStaticShaderVar("color", Enums.UniformType.Float3, function() return 1.0, 0.0, 1.0 end)
-    self.boxEntity = BoxEntity(boxMaterial)
-    self.boxRend = self.boxEntity:get(Rendering.Render)
-    -- Log.Warn(Inspect(self.boxRend:getMaterial(BlendMode.Disabled)))
-    self.boxRB = self.boxEntity:get(Physics.RigidBody)
-    -- Set RigidBody
-    self.boxRB:setRigidBody(RigidBody.CreateBoxFromMesh(self.boxMesh))
-    self.boxRB:getRigidBody():setPos(Position(0, 0, -5))
-
-    self.rotationQuaternion = Quat(0, 0, 0, 1) -- Identity quaternion
-end
-
----@diagnostic disable-next-line: duplicate-set-field
-function RenderingTest:onPreRender(data)
-    -- Initialize Profiler
-    -- Profiler.Enable()
-
-    -- Start onPreRender Profiler
-    -- Profiler.SetValue('gcmem', GC.GetMemory())
-    -- Profiler.Begin('App.onPreRender')
-
-    -- Set Timescale
-    self.timeScale = 1.0
-
-    -- Set Timescale on EventBus
-    if self.timeScale ~= EventBus:getTimeScale() then
-        EventBus:setTimeScale(self.timeScale)
-    end
-
-    -- Get Delta Time
-    local timeScaledDt = data:deltaTime()
-
-    -- Define the rotation axis
-    local rotationAxis = Vec3f(1, 1, 1)
-
-    -- Manually compute the rotation quaternion for the incremental rotation
-    --! Since Quat.FromAxisAngle && Quat.SetRotLocal do not work as intended
-    -- TODO: Fix
-    -- Probably a small refactor where passing a precreated Quat is not necessary would be nice to
-    -- e.g. local quat = Quat.FromAxisAngle(x, x)
-    local angle = math.rad(10) * timeScaledDt
-    local halfAngle = angle / 2
-    local sinHalfAngle = math.sin(halfAngle)
-    local cosHalfAngle = math.cos(halfAngle)
-    local rotateByQuaternion = Quat(
-        rotationAxis.x * sinHalfAngle,
-        rotationAxis.y * sinHalfAngle,
-        rotationAxis.z * sinHalfAngle,
-        cosHalfAngle
+    self.gridCenter = Vec3f(
+        (nx - 1) * spacing / 2,
+        (ny - 1) * spacing / 2,
+        (nz - 1) * spacing / 2 + zOffset
     )
 
-    -- Update the accumulated rotation quaternion
-    self.rotationQuaternion = self.rotationQuaternion * rotateByQuaternion
+    self.gridParentEntity = Entity.Create("Anchor")
+    local parentRB = self.gridParentEntity:add(Physics.RigidBody())
+    local parentBody = RigidBody.CreateSphere()
+    parentBody:setPos(Position(self.gridCenter.x, self.gridCenter.y, self.gridCenter.z))
+    parentBody:setKinematic(true)
+    parentBody:setCollidable(false)
+    parentRB:setRigidBody(parentBody)
 
-    -- Apply the combined rotation to the rigid body
-    -- Shouldnt setRotLocal do this?
-    self.boxRB:getRigidBody():setRot(self.rotationQuaternion)
+    self.gridRotation = Quat.Identity()
 
-    --[[
-        < Previously where Player and UI Canvas Updates were Called
-    ]] --
-
-    do -- Handle App Resizing
-        Profiler.SetValue('gcmem', GC.GetMemory())
-        Profiler.Begin('App.onResize')
-        local size = Window:size()
-        Window:cursor():setGrabMode(CursorGrabMode.None)
-        if size.x ~= self.resX or size.y ~= self.resY then
-            self.resX = size.x
-            self.resY = size.y
-            GameState.render.resX = self.resX
-            GameState.render.resY = self.resY
-            self:onResize(self.resX, self.resY)
+    -- Create boxes
+    for x = 1, nx do
+        for y = 1, ny do
+            for z = 1, nz do
+                local relativePos = Position(
+                    (x - 1) * spacing - (nx - 1) * spacing / 2,
+                    (y - 1) * spacing - (ny - 1) * spacing / 2,
+                    (z - 1) * spacing - (nz - 1) * spacing / 2
+                )
+                self:createBox(relativePos, idCounter, boxRes)
+                idCounter = idCounter + 1
+            end
         end
-        Profiler.End()
     end
 
-    -- Stop Pre Render Profiler
-    -- Profiler.End()
+    -- Camera circular path parameters
+    self.camRadius        = 40
+    self.camHeight        = 20
+    self.camSpeed         = 0.2
+    self.camZoomAmplitude = 5
+    self.camZoomSpeed     = 0.5
+
+    EventBus:subscribe(Event.PreRender, self, self.updateBoxes)
 end
 
----@diagnostic disable-next-line: duplicate-set-field
+function RenderingTest:createBox(relativePos, id, res)
+    local mesh      = Mesh.Box(res)
+    local mat       = Materials.DebugColor()
+
+    local boxEntity = BoxEntity({ { mesh = mesh, material = mat } })
+    local rbCmp     = boxEntity:get(Physics.RigidBody)
+    rbCmp:setRigidBody(RigidBody.CreateBoxFromMesh(mesh))
+    rbCmp:getRigidBody():setPos(Position(
+        self.gridCenter.x + relativePos.x,
+        self.gridCenter.y + relativePos.y,
+        self.gridCenter.z + relativePos.z
+    ))
+    rbCmp:getRigidBody():setRotLocal(Quat.Identity())
+
+    Registry:attachEntity(self.gridParentEntity, boxEntity)
+
+    -- Start delete timer
+    self.timer:start("delete_" .. id, 5 + math.random() * 10, false)
+
+    table.insert(self.boxes, {
+        id = id,
+        entity = boxEntity,
+        relativePos = relativePos,
+        rotation = Quat.Identity(),
+        rotationSpeed = 20 + math.random() * 40,
+        rotationDir = 1,
+        deleted = false,
+        deletedPos = nil
+    })
+
+    return boxEntity
+end
+
+function RenderingTest:updateBoxes(data)
+    local dt = data:deltaTime()
+    self.timer:update(dt)
+
+    -- Rotate grid
+    local gridRotationSpeed = 10
+    local gridAxis = Vec3f(0, 1, 0)
+    local gridAngle = math.rad(gridRotationSpeed) * dt
+    self.gridRotation = self.gridRotation * Quat.FromAxisAngle(gridAxis, gridAngle)
+
+    -- Update boxes
+    for _, boxData in ipairs(self.boxes) do
+        local entity = boxData.entity
+        if entity:isValid() and not boxData.deleted then
+            local rb = entity:get(Physics.RigidBody):getRigidBody()
+
+            -- Self-rotation
+            local axis = Vec3f(1, 1, 1):normalize()
+            local angle = math.rad(boxData.rotationSpeed * boxData.rotationDir) * dt
+            boxData.rotation = boxData.rotation * Quat.FromAxisAngle(axis, angle)
+            rb:setRot(self.gridRotation * boxData.rotation)
+
+            local relVec = Vec3f(boxData.relativePos.x, boxData.relativePos.y, boxData.relativePos.z)
+            local rotatedVec = self.gridRotation + relVec
+            rb:setPos(Position(
+                self.gridCenter.x + rotatedVec.x,
+                self.gridCenter.y + rotatedVec.y,
+                self.gridCenter.z + rotatedVec.z
+            ))
+        end
+    end
+
+    -- Camera circular path around grid
+    local t = self.timer:getTotal("camLoop")
+    local angle = t * self.camSpeed
+    local zoomOffset = math.sin(t * self.camZoomSpeed) * self.camZoomAmplitude
+    local camPos = self.gridCenter + Vec3f(
+        (self.camRadius + zoomOffset) * math.cos(angle),
+        self.camHeight + zoomOffset * 0.5,
+        (self.camRadius + zoomOffset) * math.sin(angle)
+    )
+
+    -- Set target position and focus for CinematicCamera
+    self.cameraController:setPositionAndFocus(camPos, self.gridCenter)
+end
+
 function RenderingTest:onRender(data)
-    -- Start onRender Profiler
-    -- Profiler.SetValue('gcmem', GC.GetMemory())
-    -- Profiler.Begin('App.onRender')
+    RenderCoreSystem:render(data)
 
-    -- Start Window Draw()
-    Window:beginDraw()
+    -- Immediate mode UI
+    self:immediateUI(function()
+        local mem = GC.GetMemory()
 
-    -- Originally in Canvas:draw
-    --RenderState.PushBlendMode(BlendMode.Alpha)
-    --Draw.PushAlpha(2)
-    --DrawEx.PushAlpha(2)
+        local infoLines = {
+            string.format("FPS: %d", RenderCoreSystem:getSmoothFPS()),
+            string.format("Frametime: %.2f ms", RenderCoreSystem:getSmoothFrameTime(true)),
+            string.format("Lua Memory: %.2f KB", mem),
+            -- GC debug info
+            string.format("GC Step Size: %d", GC.debug.stepSize),
+            string.format("GC Last Mem After Cleanup: %.2f KB", GC.debug.lastMem or 0),
+            string.format("GC Emergency: %s", GC.debug.emergencyTriggered and "YES" or "NO"),
+            string.format("GC Spread Frames: %d", GC.debug.spreadFrames)
+        }
 
-    Draw.Clear(0, 0.1, 0.2, 1)
-    Draw.ClearDepth(1)
+        local y = 40
+        for _, line in ipairs(infoLines) do
+            DrawEx.TextAdditive('Unageo-Medium', line, 11,
+                40, y, 40, 20, 0.9, 0.9, 0.9, 0.9, 0.0, 0.5)
+            y = y + 25
+        end
+    end)
 
-    -- < TEST RENDER > --
-    ClipRect.PushDisabled()
-    RenderState.PushAllDefaults()
-
-    CameraSystem:updateViewMatrix()
-    CameraSystem:updateProjectionMatrix(self.resX, self.resY)
-
-    local camEye = CameraSystem:getCurrentCameraEye()
-    CameraSystem:beginDraw(CameraSystem.currentCameraData, CameraSystem.currentCameraTransform)
-
-    -- self.renderer:start(self.resX, self.resY)
-
-    local boxMat = self.boxRend:getMaterial(BlendMode.Disabled)
-    boxMat.shaderState:start()
-    boxMat:setAllShaderVars(camEye, self.boxEntity)
-    self.boxMesh:draw()
-    boxMat.shaderState:stop()
-
-    -- self.renderer:stop()
-
-    CameraSystem:endDraw()
-
-    -- From GameView - Composited UI Pass
-    --[[
-    local ss = 1
-    Viewport.Push(0, 0, ss * self.resX, ss * self.resY, true)
-    ClipRect.PushTransform(0, 0, ss, ss)
-    ShaderVar.PushMatrix("mWorldViewUI", Matrix.Scaling(ss, ss, 1.0))
-
-    ShaderVar.Pop("mWorldViewUI")
-    ClipRect.PopTransform()
-    Viewport.Pop()
-    --]]
-    -- self.renderer:presentAll(0, 0, self.resX, self.resY, false)
-
-    RenderState.PopAll()
-    ClipRect.Pop()
-
-    -- Originally in Canvas:draw
-    -- DrawEx.PopAlpha()
-    -- Draw.PopAlpha()
-    -- RenderState.PopBlendMode()
-
-    -- Stop onRender Profiler
-    -- Profiler.End()
-    -- Profiler.LoopMarker()
+    Draw.Flush()
 end
-
----@diagnostic disable-next-line: duplicate-set-field
-function RenderingTest:onPostRender(data)
-    do -- End Draw
-        -- Profiler.SetValue('gcmem', GC.GetMemory())
-        -- Profiler.Begin('App.onPostRender')
-        Window:endDraw()
-        -- Profiler.End()
-    end
-end
-
----@diagnostic disable-next-line: duplicate-set-field
-function RenderingTest:onInput(data) end
 
 return RenderingTest

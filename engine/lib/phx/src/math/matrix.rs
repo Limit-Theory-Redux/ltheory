@@ -18,6 +18,10 @@ impl Matrix {
     pub fn transform_point3(&self, rhs: Vec3) -> Vec3 {
         self.0.transform_point3(rhs)
     }
+    /// Returns the matrix data as a flat column-major [f32; 16] array.
+    pub fn to_cols_array(&self) -> [f32; 16] {
+        self.0.to_cols_array()
+    }
 }
 
 #[luajit_ffi_gen::luajit_ffi(clone = true, typedef = "float m[16];")]
@@ -106,6 +110,13 @@ impl Matrix {
 
     pub fn product(&self, other: &Matrix) -> Self {
         Self(self.0.mul_mat4(&other.0))
+    }
+
+    /// In-place product: `self = self * other` without allocating a new
+    /// Matrix. Used by the `_into` out-param matrix writers so the Lua
+    /// side can reuse a persistent scratch matrix per entity.
+    pub fn i_product(&mut self, other: &Matrix) {
+        self.0 = self.0.mul_mat4(&other.0);
     }
 
     pub fn rotation_x(rads: f32) -> Self {

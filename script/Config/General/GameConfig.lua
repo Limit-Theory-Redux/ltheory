@@ -61,6 +61,120 @@ Config.game = {
 
     dockRange              = 50,
 
+    shipFlight = (function()
+        local ScaleConfig = require("Config.Gen.UniverseScaleConfig")
+
+        -- Define desired real-world values
+        local maxSpeedReal    = 8800     -- m/s max speed (~8.8 km/s for fighter)
+        local accelTimeReal   = 8.0      -- seconds to reach max speed
+        local lateralRatio    = 0.5      -- lateral/vertical thrust vs forward
+        local verticalRatio   = 0.25     -- vertical thrust vs forward
+
+        -- Convert to game units using ScaleConfig
+        local maxSpeedGame = ScaleConfig:toGameUnits(maxSpeedReal, "starSystem")
+        local accelGame    = maxSpeedGame / accelTimeReal
+
+        -- Derive physics values
+        -- Mass from hull config (Solo = index 1)
+        local mass = 5000
+        local drag = 2.0
+        local thrust = maxSpeedGame * mass * drag
+
+        -- Torque from mass: gives ~10 rad/s² angular acceleration (responsive but not spinny)
+        -- Torque: tuned empirically. The equilibrium turn rate is:
+        --   ω_max = torque / (I × angularDrag)
+        -- where I = 2/5 × m × r² (tiny at small globalScale).
+        -- angularDrag dominates the feel; torque sets responsiveness.
+        local torque = 50
+
+        return {
+            -- Auto-computed from desired speed/acceleration
+            thrustForward  = thrust,
+            thrustRight    = thrust * lateralRatio,
+            thrustUp       = thrust * verticalRatio,
+
+            -- Rotational torques (derived from mass × desired angular acceleration)
+            torquePitch    = torque,
+            torqueYaw      = torque,
+            torqueRoll     = torque * 0.6,
+
+            -- Auto-computed physics
+            linearDrag     = drag,
+            angularDrag    = 20.0,
+
+            -- Input inversion
+            invertYaw      = false,
+            invertPitch    = false,
+
+            -- Reference values for other systems
+            maxSpeedGame   = maxSpeedGame,
+            maxSpeedReal   = maxSpeedReal,
+        }
+    end)(),
+
+    -- Ship hull classes (from legacy, indexed by Enums.ShipHulls)
+    -- Solo=1, Small=2, Compact=3, Medium=4, Large=5, VeryLarge=6
+    shipHulls = {
+        -- Scaled for globalScale 0.0001 (1 game unit = 10km)
+        -- Solo ~50m, Small ~100m, Compact ~150m, Medium ~200m, Large ~300m, VeryLarge ~500m
+        scale  = { 0.005, 0.01, 0.015, 0.02, 0.03, 0.05 },
+        radius = { 0.003, 0.005, 0.008, 0.012, 0.018, 0.025 },
+        mass   = { 5000, 10000, 18000, 30000, 50000, 100000 },
+        drag   = { 2.0, 2.0, 2.0, 2.0, 2.0, 2.0 },
+        -- Translation speed multiplier (smaller = less lateral/vertical for big ships)
+        tranM  = { 0.8, 0.2, 0.1, 0.06, 0.03, 0.0 },
+        -- Maneuverability multiplier (pitch/yaw/roll scaling)
+        manuM  = { 0.3, 0.5, 0.2, 0.1, 0.06, 1.5 },
+    },
+
+    travelDrive = {
+        chargeRequired  = 3.0,     -- seconds holding T to activate
+        speedMultiplier = 40000,   -- adjusted for higher base thrust
+        rampUpSpeed     = 0.3,
+        rampDownSpeed   = 1.5,
+
+        -- Max speed multiplier per zone type
+        maxSpeedByZone = {
+            moon      = 200,
+            planet    = 2000,
+            star      = 8000,
+            openSpace = 40000,
+        },
+    },
+
+    autoPilot = {
+        arrivalRange      = 500,    -- distance to target to consider arrived
+        travelDriveDelay  = 5.0,    -- seconds before auto-engaging travel drive
+        enableTravelDrive = true,   -- auto-engage travel drive during autopilot
+    },
+
+    chaseCamera = {
+        minRadius      = 0.5,    -- Min zoom (multiplier on ship radius)
+        maxRadius      = 8.0,    -- Max zoom
+        defaultRadius  = 1.0,    -- Default zoom
+        zoomSpeed      = 0.15,   -- Zoom per scroll tick
+    },
+
+    -- Orbit camera (chase view of the player ship)
+    orbitCamera = {
+        distance     = 0.015,    -- Default follow distance
+        minDistance  = 0.005,
+        maxDistance  = 5.0,
+        smoothing    = 0.1,
+        zoomSpeed    = 0.01,
+    },
+
+    -- Free camera (unattached fly-around view)
+    freeCamera = {
+        moveSpeed      = 1.0,
+        fastMultiplier = 100.0,
+        mouseSensitivity = 0.003,
+    },
+
+    -- Texture quality (cube map resolution for planet/moon surfaces)
+    planetTexRes       = 1024,
+    moonTexRes         = 1024,
+
     dispoMin               = -1.0,
     dispoNeutral           = 0.0,
     dispoMax               = 1.0,

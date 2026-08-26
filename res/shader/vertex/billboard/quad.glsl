@@ -1,10 +1,6 @@
 #include vertex
 #include math
 
-#autovar vec3 eye
-#autovar mat4 mView
-#autovar mat4 mProj
-
 uniform float size;
 
 void main() {

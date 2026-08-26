@@ -1,6 +1,5 @@
 #![allow(unsafe_code)] // TODO: remove
 
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ffi::{CStr, CString};
 use std::ptr::addr_of_mut;
@@ -12,7 +11,8 @@ use freetype_sys::{
 use glam::{IVec2, IVec4, Vec4};
 
 use super::{
-    BlendMode, Color, DataFormat, Draw, PixelFormat, RenderState, Shader, Tex2D, TexFormat,
+    BlendMode, Color, DataFormat, Draw, PixelFormat, RenderState, Renderer, Shader, Tex2D,
+    TexFormat,
 };
 use crate::rf::Rf;
 use crate::system::{Profiler, Resource_GetPath, ResourceType};
@@ -36,7 +36,12 @@ impl std::fmt::Debug for Font {
 struct FontData {
     name: String,
     handle: FT_Face,
-    shader: RefCell<Shader>,
+    /// `Shader` is itself a cheap-to-clone handle onto shared, `Rf`-backed
+    /// state, so mutating it doesn't require holding a mutable borrow of
+    /// `FontData` - a clone taken from a shared borrow mutates the same
+    /// underlying data. That lets `draw` (which takes `&self`) start/stop it
+    /// without a nested `RefCell` here.
+    shader: Shader,
     glyphs: HashMap<u32, Glyph>,
 }
 
@@ -62,7 +67,7 @@ impl Font {
         font_data.name.clone()
     }
 
-    fn get_glyph(&self, code_point: u32) {
+    fn get_glyph(&self, r: &mut Renderer, code_point: u32) {
         let mut font_data = self.0.as_mut();
         let face = font_data.handle;
 
@@ -95,7 +100,7 @@ impl Font {
             let sy = bitmap.rows as i32;
             let mut glyph = Glyph {
                 index: glyph_index as _,
-                tex: Tex2D::new(sx, sy, TexFormat::RGBA8),
+                tex: Tex2D::new(r, sx, sy, TexFormat::RGBA8),
                 x0,
                 y0,
                 sx,
@@ -122,7 +127,7 @@ impl Font {
             /* Upload to texture. */
             glyph
                 .tex
-                .set_data(buffer.as_slice(), PixelFormat::RGBA, DataFormat::Float);
+                .set_data(r, buffer.as_slice(), PixelFormat::RGBA, DataFormat::Float);
 
             /* Add to glyph cache. */
             e.insert(glyph);
@@ -148,7 +153,7 @@ impl Font {
 
 #[luajit_ffi_gen::luajit_ffi]
 impl Font {
-    pub fn load(name: &str, size: u32) -> Self {
+    pub fn load(r: &mut Renderer, name: &str, size: u32) -> Self {
         let handle = unsafe {
             if FT.is_null() {
                 FT_Init_FreeType(addr_of_mut!(FT));
@@ -175,14 +180,14 @@ impl Font {
             FontData {
                 name: name.into(),
                 handle,
-                shader: RefCell::new(Shader::load("vertex/ui", "fragment/ui/text")),
+                shader: Shader::load(r, "vertex/ui", "fragment/ui/text"),
                 glyphs: Default::default(),
             }
             .into(),
         )
     }
 
-    pub fn draw(&self, text: &str, mut x: f32, mut y: f32, color: &Color) {
+    pub fn draw(&self, r: &mut Renderer, text: &str, mut x: f32, mut y: f32, color: &Color) {
         Profiler::begin("Font_Draw");
 
         let mut glyph_last = 0;
@@ -190,25 +195,27 @@ impl Font {
         x = f64::floor(x as f64) as _;
         y = f64::floor(y as f64) as _;
 
-        RenderState::push_blend_mode(BlendMode::Alpha);
+        RenderState::push_blend_mode(r, BlendMode::Alpha);
 
-        self.0.as_ref().shader.borrow_mut().start();
-        self.0
-            .as_ref()
-            .shader
-            .borrow_mut()
-            .set_float4("color", color.r, color.g, color.b, color.a);
+        // Clone the shader handle up front: `Shader` is a cheap `Rf`-backed
+        // handle, so mutating this clone (start/stop/set_*) mutates the same
+        // shared state as `font_data.shader`, without holding a borrow of
+        // `FontData` across the loop below (which itself borrows it via
+        // `get_glyph`).
+        let mut shader = self.0.as_ref().shader.clone();
+
+        shader.start(r);
+        shader.set_float4(r, "color", color.r, color.g, color.b, color.a);
 
         for c in text.chars() {
             let code_point = c as u32;
 
-            self.get_glyph(code_point);
+            self.get_glyph(r, code_point);
 
             let font_data = self.0.as_ref();
 
             let face = font_data.handle;
             let glyph = font_data.glyphs.get(&code_point);
-            let mut shader = font_data.shader.borrow_mut();
 
             if let Some(glyph) = glyph {
                 if glyph_last != 0 {
@@ -221,9 +228,9 @@ impl Font {
                 let ys = glyph.sy as f32;
 
                 shader.reset_tex_index();
-                shader.set_tex2d("glyph", &glyph.tex);
+                shader.set_tex2d(r, "glyph", &glyph.tex);
 
-                Draw::rect_ex(x0, y0, xs, ys, 0.0, 0.0, 1.0, 1.0);
+                Draw::rect_ex(r, x0, y0, xs, ys, 0.0, 0.0, 1.0, 1.0);
 
                 x += glyph.advance as f32;
                 glyph_last = glyph.index;
@@ -232,8 +239,8 @@ impl Font {
             }
         }
 
-        self.0.as_ref().shader.borrow().stop();
-        RenderState::pop_blend_mode();
+        shader.stop(r);
+        RenderState::pop_blend_mode(r);
         Profiler::end();
     }
 
@@ -243,7 +250,7 @@ impl Font {
         unsafe { ((*(*font_data.handle).size).metrics.height >> 6) as _ }
     }
 
-    pub fn get_size(&self, text: &str, out: &mut IVec4) {
+    pub fn get_size(&self, r: &mut Renderer, text: &str, out: &mut IVec4) {
         Profiler::begin("Font_GetSize");
 
         let mut x = 0;
@@ -259,7 +266,7 @@ impl Font {
             for c in text.chars() {
                 let code_point = c as u32;
 
-                self.get_glyph(code_point);
+                self.get_glyph(r, code_point);
 
                 let mut font_data = self.0.as_mut();
                 let face = font_data.handle;
@@ -298,7 +305,7 @@ impl Font {
     //           pos.y - (size.y + bound.y) / 2
     //
 
-    pub fn get_size2(&self, text: &str) -> IVec2 {
+    pub fn get_size2(&self, r: &mut Renderer, text: &str) -> IVec2 {
         Profiler::begin("Font_GetSize2");
 
         let mut res = IVec2::ZERO;
@@ -306,7 +313,7 @@ impl Font {
 
         for c in text.chars() {
             let code_point = c as u32;
-            self.get_glyph(code_point);
+            self.get_glyph(r, code_point);
 
             let mut font_data = self.0.as_mut();
             let face = font_data.handle;

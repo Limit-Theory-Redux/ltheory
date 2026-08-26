@@ -1,26 +1,17 @@
-use glam::{Mat3, Vec3};
+use glam::{Mat3, Quat as GlamQuat, Vec3};
 
 use super::{approximately_equal, validate_f64};
 use crate::error::Error;
 
 #[derive(Clone, PartialEq)]
 #[repr(C)]
-pub struct Quat(glam::Quat);
+pub struct Quat(pub GlamQuat); // made field public for direct access if needed
 
 impl Quat {
-    fn _canonicalize(&self) -> glam::Quat {
-        let value = if !approximately_equal(self.0.w, 0.0) {
-            self.0.w
-        } else if !approximately_equal(self.0.z, 0.0) {
-            self.0.z
-        } else if !approximately_equal(self.0.y, 0.0) {
-            self.0.y
-        } else if !approximately_equal(self.0.x, 0.0) {
-            self.0.x
-        } else {
-            0.0
-        };
-        if value < 0.0 { -self.0 } else { self.0 }
+    // --- Private helpers (not FFI) ---
+    fn _canonicalize(&self) -> GlamQuat {
+        let q = self.0;
+        if q.w < 0.0 { -q } else { q }
     }
 
     fn _get_axis_x(&self) -> Vec3 {
@@ -46,17 +37,58 @@ impl Quat {
             z: 1.0 - 2.0 * (self.0.x * self.0.x + self.0.y * self.0.y),
         }
     }
+
+    // --- Game-dev helpers (non-FFI) ---
+    pub fn conjugate(&self) -> Self {
+        Self(GlamQuat::from_xyzw(self.0.x, self.0.y, self.0.z, -self.0.w))
+    }
+
+    pub fn i_conjugate(&mut self) {
+        self.0.w = -self.0.w;
+    }
+
+    pub fn length_squared(&self) -> f32 {
+        self.0.length_squared()
+    }
+
+    pub fn length(&self) -> f32 {
+        self.0.length()
+    }
+
+    pub fn angle_between(&self, other: &Quat) -> f32 {
+        self.0.dot(other.0).abs().acos() * 2.0
+    }
+
+    // Static helper (not instance)
+    pub fn from_look_static(forward: &Vec3, up: &Vec3) -> Self {
+        let z = -forward.normalize();
+        let x = up.cross(z).normalize();
+        let y = z.cross(x);
+        Self(GlamQuat::from_mat3(&Mat3::from_cols(x, y, z)))
+    }
+
+    pub fn look_at_static(eye: &Vec3, target: &Vec3, up: &Vec3) -> Self {
+        let forward = (*target - *eye).normalize();
+        Self::from_look_static(&forward, up)
+    }
+
+    pub fn nlerp(&self, p: &Quat, t: f32) -> Self {
+        Self((self.0 + (p.0 - self.0) * t).normalize())
+    }
+
+    pub fn i_nlerp(&mut self, p: &Quat, t: f32) {
+        self.0 = (self.0 + (p.0 - self.0) * t).normalize();
+    }
 }
 
-impl From<glam::Quat> for Quat {
-    fn from(value: glam::Quat) -> Self {
+impl From<GlamQuat> for Quat {
+    fn from(value: GlamQuat) -> Self {
         Self(value)
     }
 }
 
 impl std::ops::Deref for Quat {
-    type Target = glam::Quat;
-
+    type Target = GlamQuat;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
@@ -73,7 +105,12 @@ impl std::ops::Deref for Quat {
 impl Quat {
     #[bind(name = "Create")]
     pub fn new(x: f32, y: f32, z: f32, w: f32) -> Self {
-        Self(glam::Quat { x, y, z, w })
+        Self(GlamQuat { x, y, z, w })
+    }
+
+    #[bind(name = "Identity")]
+    pub fn identity() -> Self {
+        Self(GlamQuat::IDENTITY)
     }
 
     #[bind(out_param = true)]
@@ -104,10 +141,6 @@ impl Quat {
     #[bind(out_param = true)]
     pub fn get_up(&self) -> Vec3 {
         self._get_axis_y()
-    }
-
-    pub fn identity() -> Self {
-        Self(glam::Quat::IDENTITY)
     }
 
     pub fn canonicalize(&self) -> Self {
@@ -196,26 +229,37 @@ impl Quat {
         self.0 = self.0.slerp(p.0, t);
     }
 
-    #[bind(role = "to_string")]
-    pub fn get_string(&self) -> String {
-        self.0.to_string()
-    }
+    pub fn to_euler(&self) -> Vec3 {
+        let q = self._canonicalize();
 
-    pub fn validate(&self) -> Error {
-        let mut e = 0 as Error;
-        e |= validate_f64(self.0.x as f64); // TODO: what is the reason to cast to f64 if there is validatef for f32?
-        e |= validate_f64(self.0.y as f64);
-        e |= validate_f64(self.0.z as f64);
-        e |= validate_f64(self.0.w as f64);
-        e
+        let sinp = 2.0 * (q.w * q.y - q.z * q.x);
+        let pitch = if sinp.abs() >= 1.0 {
+            std::f32::consts::FRAC_PI_2.copysign(sinp)
+        } else {
+            sinp.asin()
+        };
+
+        let yaw_num = 2.0 * (q.w * q.z + q.x * q.y);
+        let yaw_den = 1.0 - 2.0 * (q.y * q.y + q.z * q.z);
+        let yaw = yaw_num.atan2(yaw_den);
+
+        let roll_num = 2.0 * (q.w * q.x + q.y * q.z);
+        let roll_den = 1.0 - 2.0 * (q.x * q.x + q.y * q.y);
+        let roll = roll_num.atan2(roll_den);
+
+        Vec3::new(yaw, pitch, roll)
     }
 
     pub fn from_axis_angle(axis: &Vec3, radians: f32) -> Self {
-        Self(glam::Quat::from_axis_angle(*axis, radians))
+        Self(GlamQuat::from_axis_angle(*axis, radians))
     }
 
-    pub fn from_basis(x: &Vec3, y: &Vec3, z: &Vec3) -> Self {
-        Self(glam::Quat::from_mat3(&Mat3::from_cols(*x, *y, *z)))
+    pub fn from_euler(yaw: f32, pitch: f32, roll: f32) -> Self {
+        Self(GlamQuat::from_euler(glam::EulerRot::YXZ, yaw, pitch, roll))
+    }
+
+    pub fn from_look(forward: &Vec3, up: &Vec3) -> Self {
+        Self::from_look_static(forward, up)
     }
 
     pub fn from_look_up(look: &Vec3, up: &Vec3) -> Self {
@@ -225,9 +269,46 @@ impl Quat {
         Self(glam::Quat::from_mat3(&Mat3::from_cols(x, y, z)))
     }
 
+    pub fn look_at(eye: &Vec3, target: &Vec3, up: &Vec3) -> Self {
+        Self::look_at_static(eye, target, up)
+    }
+
     pub fn from_rotate_to(from: &Vec3, to: &Vec3) -> Self {
-        let axis = Vec3::cross(from.normalize(), to.normalize());
-        let angle = f32::asin(axis.length());
-        Self(glam::Quat::from_axis_angle(axis, angle))
+        let f = from.normalize();
+        let t = to.normalize();
+        let dot = f.dot(t);
+        if dot > 0.9999 {
+            return Self::identity();
+        }
+        if dot < -0.9999 {
+            let axis = Vec3::cross(glam::Vec3::X, f);
+            let axis = if axis.length_squared() < 1e-6 {
+                Vec3::cross(glam::Vec3::Y, f)
+            } else {
+                axis
+            }
+            .normalize();
+            return Self::from_axis_angle(&axis, std::f32::consts::PI);
+        }
+        let axis = Vec3::cross(f, t).normalize();
+        let angle = dot.acos();
+        Self::from_axis_angle(&axis, angle)
+    }
+
+    #[bind(role = "to_string")]
+    pub fn get_string(&self) -> String {
+        format!(
+            "{:.6},{:.6},{:.6},{:.6}",
+            self.0.x, self.0.y, self.0.z, self.0.w
+        )
+    }
+
+    pub fn validate(&self) -> Error {
+        let mut e = 0 as Error;
+        e |= validate_f64(self.0.x as f64); // TODO: what is the reason to cast to f64 if there is validatef for f32?
+        e |= validate_f64(self.0.y as f64);
+        e |= validate_f64(self.0.z as f64);
+        e |= validate_f64(self.0.w as f64);
+        e
     }
 }

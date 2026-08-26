@@ -1,13 +1,16 @@
 -- Generator Utilities
-local GenUtil = require('Systems.Generators.Mesh.Util.GenUtil')
+local GenUtil = require('Core.ECS.Mesh.Util.GenUtil')
 
 -- Utilities
 local QuickProfiler = require('Shared.Tools.QuickProfiler')
 local profiler = QuickProfiler("Generate Asteroid", false, false, false)
 
 ---@param seed integer
+---@param lodRanges table|nil Array of { min, max } raw-unit distance
+--- ranges (LOD 0 first); defaults to the shared AsteroidMeshPool.LOD_RANGES
+--- when omitted (lazy require avoids a load-order cycle).
 ---@return Mesh
-local function GenerateAsteroidMesh(seed)
+local function GenerateAsteroidMesh(seed, lodRanges)
     -- Start Profiler
     profiler:start()
 
@@ -27,36 +30,25 @@ local function GenerateAsteroidMesh(seed)
     shaderState:setFloat('smoothness', 2.5)
 
     local res = 96 -- resolution
-    local dMin = 0
-    local dMax = 1
     local lac = 1.5
 
+    -- LOD distances come from AsteroidMeshPool.LOD_RANGES (single source of
+    -- truth): each LOD covers a raw-unit range from the camera; LodMesh:add
+    -- squares these internally, and get() takes the squared distance.
+    lodRanges = lodRanges
+        or require("Modules.CelestialObjects.Systems.AsteroidMeshPool").getLodRanges()
+
     for i = 1, 8 do
-        -- Create Mesh from Tex3D
         local density = GenUtil.ShaderToTex3D(shaderState, floor(res), TexFormat.R32F)
-        -- Get Signed Distance Field (SDF)
         local field = SDF.FromTex3D(density)
         field:computeNormals()
-        -- Get Mesh from SDF
         local mesh = field:toMesh()
         mesh:computeOcclusion(density, 0.1)
         mesh:center()
-        -- Add Mesh to AsteroidMesh
-        asteroidMesh:add(mesh, dMin, dMax)
-        
-        -- Free Memory Used for creation of Mesh
-        field:free()
-        density:free()
-
-        --TODO: Math?
+        asteroidMesh:add(mesh, lodRanges[i][1], lodRanges[i][2])
         res = res / lac
-        dMin = dMax
-        dMax = dMax * lac * sqrt(2.0)
     end
 
-    --TODO: Replace use of RNG, If RNG Cache is created
-    -- Free RNG from memory
-    rng:free()
     -- Stop profiler
     profiler:stop()
     return asteroidMesh

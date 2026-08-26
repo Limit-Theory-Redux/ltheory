@@ -16,4 +16,14 @@ function onDef_Physics_t(t, mt)
         libphx.Physics_BoxCast(self, pos, rot, halfExtents, r)
         return r
     end
+
+    -- These now take the current Renderer as an explicit argument (see
+    -- ai/multithreaded_rendering.md); inject the global `Renderer` set by
+    -- SetEngine so call sites don't change.
+    mt.__index.drawWireframes = function(self, shader, eye)
+        libphx.Physics_DrawWireframes(self, Renderer, shader, eye)
+    end
+    mt.__index.drawWireframesInRange = function(self, shader, eye, maxRange)
+        libphx.Physics_DrawWireframesInRange(self, Renderer, shader, eye, maxRange)
+    end
 end

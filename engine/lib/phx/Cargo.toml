@@ -14,6 +14,18 @@ bench = true
 [lints]
 workspace = true
 
+[features]
+# Execute RenderCommands inline on the calling thread instead of on a
+# dedicated render thread. The dedicated render thread (feat/multithreaded_rendering)
+# is now the default; enable this feature to fall back to single-threaded
+# execution for debugging/comparison.
+default = []
+immediate = []
+# Serve a live render-stats dashboard over HTTP (embedded tiny_http server,
+# self-contained HTML page at /, JSON snapshot at /stats.json). Start with
+# the ltr `--stats-server <port>` flag; inactive unless enabled.
+stats-server = ["dep:tiny_http"]
+
 [dependencies]
 # workspace crates
 internal.workspace = true
@@ -37,6 +49,7 @@ kira = { version = "0.9", features = ["symphonia", "cpal", "serde"] }
 libc = "0.2"
 memoffset = "0.9"
 mlua = { version = "0.10", features = ["luajit52", "vendored", "error-send"] }
+notify = "6.1"
 parley = "0.1"
 swash = "0.2"
 rapier3d-f64 = { version = "0.22", features = ["simd-stable", "debug-render"] }
@@ -44,8 +57,10 @@ num_cpus = "1.15"
 raw-window-handle = "0.6"
 regex = "1.8"
 rodio = "0.20"
+serde = { version = "1", features = ["derive"] }
 serde_yaml = "0.9"
 thiserror = "2.0"
+tiny_http = { version = "0.12", optional = true }
 tracing = "0.1"
 tracing-appender = "0.2"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }

@@ -1,9 +1,8 @@
-use glam::IVec2;
+use glam::{IVec2, Vec3};
 use image::{DynamicImage, GenericImageView, ImageBuffer, ImageReader, Rgba};
 
 use super::{DataFormat, Draw, PixelFormat, RenderTarget, TexFilter, TexFormat, TexWrapMode};
-use crate::logging::warn;
-use crate::render::{Viewport, gl, glcheck};
+use crate::render::{Renderer, ResourceHandle, ResourceId, Viewport, gl};
 use crate::rf::Rf;
 use crate::system::{Bytes, Resource, ResourceType};
 
@@ -14,46 +13,22 @@ pub struct Tex2D {
 
 #[derive(Debug)]
 pub struct Tex2DShared {
-    pub handle: u32,
+    handle: ResourceHandle,
     pub size: IVec2,
     pub format: TexFormat,
 }
 
-impl Drop for Tex2DShared {
-    fn drop(&mut self) {
-        if self.handle != 0 {
-            glcheck!(gl::DeleteTextures(1, &self.handle));
-        }
-    }
-}
-
-impl Tex2DShared {
-    fn init(&self) {
-        glcheck!(gl::TexParameteri(
-            gl::TEXTURE_2D,
-            gl::TEXTURE_MAG_FILTER,
-            gl::NEAREST as i32
-        ));
-        glcheck!(gl::TexParameteri(
-            gl::TEXTURE_2D,
-            gl::TEXTURE_MIN_FILTER,
-            gl::NEAREST as i32
-        ));
-        glcheck!(gl::TexParameteri(
-            gl::TEXTURE_2D,
-            gl::TEXTURE_WRAP_S,
-            gl::CLAMP_TO_EDGE as i32
-        ));
-        glcheck!(gl::TexParameteri(
-            gl::TEXTURE_2D,
-            gl::TEXTURE_WRAP_T,
-            gl::CLAMP_TO_EDGE as i32
-        ));
-    }
-}
-
 impl Tex2D {
-    pub fn get_data<T: Clone + Default>(&self, pf: PixelFormat, df: DataFormat) -> Vec<T> {
+    pub fn resource_id(&self) -> ResourceId {
+        self.shared.as_ref().handle.id()
+    }
+
+    pub fn get_data<T: Clone + Default>(
+        &self,
+        r: &mut Renderer,
+        pf: PixelFormat,
+        df: DataFormat,
+    ) -> Vec<T> {
         let this = self.shared.as_ref();
 
         let mut size = this.size.x * this.size.y;
@@ -61,78 +36,53 @@ impl Tex2D {
         size *= PixelFormat::components(pf);
         size /= std::mem::size_of::<T>() as i32;
 
+        let bytes = r.read_texture_2d_data(this.handle.id(), pf as u32, df as u32);
+
         let mut data = vec![T::default(); size as usize];
-        glcheck!(gl::BindTexture(gl::TEXTURE_2D, this.handle));
-        glcheck!(gl::GetTexImage(
-            gl::TEXTURE_2D,
-            0,
-            pf as gl::types::GLenum,
-            df as gl::types::GLenum,
-            data.as_mut_ptr() as *mut _,
-        ));
-        glcheck!(gl::BindTexture(gl::TEXTURE_2D, 0));
+        let byte_len = (data.len() * std::mem::size_of::<T>()).min(bytes.len());
+        #[allow(unsafe_code)] // TODO: refactor
+        unsafe {
+            std::ptr::copy_nonoverlapping(bytes.as_ptr(), data.as_mut_ptr() as *mut u8, byte_len);
+        }
 
         data
     }
 
-    pub fn set_data<T>(&mut self, data: &[T], pf: PixelFormat, df: DataFormat) {
+    pub fn set_data<T>(&mut self, r: &mut Renderer, data: &[T], pf: PixelFormat, df: DataFormat) {
         let this = self.shared.as_ref();
+        let byte_len = std::mem::size_of_val(data);
+        #[allow(unsafe_code)] // TODO: refactor
+        let bytes = unsafe { std::slice::from_raw_parts(data.as_ptr() as *const u8, byte_len) };
 
-        glcheck!(gl::BindTexture(gl::TEXTURE_2D, this.handle));
-        glcheck!(gl::TexImage2D(
-            gl::TEXTURE_2D,
-            0,
-            this.format as _,
+        r.update_texture_2d_data_by_resource(
+            this.handle.id(),
             this.size.x,
             this.size.y,
-            0,
-            pf as gl::types::GLenum,
-            df as gl::types::GLenum,
-            data.as_ptr() as *const _,
-        ));
-        glcheck!(gl::BindTexture(gl::TEXTURE_2D, 0));
+            this.format as i32,
+            pf as u32,
+            df as u32,
+            bytes.to_vec(),
+        );
     }
 }
 
 #[luajit_ffi_gen::luajit_ffi]
 impl Tex2D {
     #[bind(name = "Create")]
-    pub fn new(sx: i32, sy: i32, format: TexFormat) -> Tex2D {
-        let mut this = Tex2DShared {
-            handle: 0,
-            size: IVec2::new(sx, sy),
-            format,
-        };
-
-        glcheck!(gl::GenTextures(1, &mut this.handle));
-        glcheck!(gl::ActiveTexture(gl::TEXTURE0));
-        glcheck!(gl::BindTexture(gl::TEXTURE_2D, this.handle));
-        glcheck!(gl::TexImage2D(
-            gl::TEXTURE_2D,
-            0,
-            format as _,
-            this.size.x,
-            this.size.y,
-            0,
-            if TexFormat::is_color(format) {
-                gl::RED
-            } else {
-                gl::DEPTH_COMPONENT
-            },
-            gl::UNSIGNED_BYTE,
-            std::ptr::null(),
-        ));
-
-        this.init();
-
-        glcheck!(gl::BindTexture(gl::TEXTURE_2D, 0));
+    pub fn new(r: &mut Renderer, sx: i32, sy: i32, format: TexFormat) -> Tex2D {
+        let handle = r.create_resource();
+        r.create_texture_2d(handle.id(), sx as u32, sy as u32, format, None);
 
         Tex2D {
-            shared: Rf::new(this),
+            shared: Rf::new(Tex2DShared {
+                handle,
+                size: IVec2::new(sx, sy),
+                format,
+            }),
         }
     }
 
-    pub fn load(name: &str) -> Tex2D {
+    pub fn load(r: &mut Renderer, name: &str) -> Tex2D {
         let path = Resource::get_path(ResourceType::Tex2D, name);
 
         let reader = ImageReader::open(&path)
@@ -142,39 +92,36 @@ impl Tex2D {
             .unwrap_or_else(|_| panic!("Failed to load image from '{path}', decode failed"));
         let (width, height) = img.dimensions();
 
-        let (format, buffer) = match img {
+        let (pixel_format, buffer) = match img {
             DynamicImage::ImageRgba8(buf) => (gl::RGBA, buf.into_raw()),
             DynamicImage::ImageRgb8(buf) => (gl::RGB, buf.into_raw()),
             _ => panic!("Failed to load image from '{path}', unsupported image format"),
         };
 
-        let mut this = Tex2DShared {
-            handle: 0,
-            size: IVec2::new(width as i32, height as i32),
-            format: TexFormat::RGBA8,
-        };
-
-        glcheck!(gl::GenTextures(1, &mut this.handle));
-        glcheck!(gl::ActiveTexture(gl::TEXTURE0));
-        glcheck!(gl::BindTexture(gl::TEXTURE_2D, this.handle));
-        glcheck!(gl::TexImage2D(
-            gl::TEXTURE_2D,
-            0,
-            TexFormat::RGBA8 as gl::types::GLint,
-            this.size.x,
-            this.size.y,
-            0,
-            format,
+        let size = IVec2::new(width as i32, height as i32);
+        let format = TexFormat::RGBA8;
+        let handle = r.create_resource();
+        // Create empty first, then upload with the source image's own pixel
+        // format (RGB or RGBA, whichever it decoded as) - the internal
+        // storage format (RGBA8) doesn't have to match the source layout,
+        // GL converts on upload.
+        r.create_texture_2d(handle.id(), size.x as u32, size.y as u32, format, None);
+        r.update_texture_2d_data_by_resource(
+            handle.id(),
+            size.x,
+            size.y,
+            format as i32,
+            pixel_format,
             gl::UNSIGNED_BYTE,
-            buffer.as_ptr() as *const _,
-        ));
-
-        this.init();
-
-        glcheck!(gl::BindTexture(gl::TEXTURE_2D, 0));
+            buffer,
+        );
 
         Tex2D {
-            shared: Rf::new(this),
+            shared: Rf::new(Tex2DShared {
+                handle,
+                size,
+                format,
+            }),
         }
     }
 
@@ -184,143 +131,104 @@ impl Tex2D {
         self.clone()
     }
 
-    pub fn screen_capture() -> Tex2D {
-        let size: IVec2 = Viewport::get_size();
-        let mut buf = vec![0u32; (size.x * size.y) as usize];
-        glcheck!(gl::ReadPixels(
-            0,
-            0,
-            size.x,
-            size.y,
-            gl::RGBA,
-            gl::UNSIGNED_BYTE,
-            buf.as_mut_ptr() as *mut _,
-        ));
+    pub fn screen_capture(r: &mut Renderer) -> Tex2D {
+        let size: IVec2 = Viewport::get_size(r);
 
-        for y in 0..(size.y / 2) {
-            for x in 0..size.x {
-                buf.swap(
-                    (size.x * y + x) as usize,
-                    (size.x * (size.y - y - 1) + x) as usize,
-                );
+        let raw = r.read_framebuffer_pixels(0, 0, size.x, size.y);
+
+        // Flip vertically (framebuffer readback is bottom-up).
+        let stride = (size.x * 4) as usize;
+        let mut buf = vec![0u8; raw.len()];
+        for y in 0..size.y as usize {
+            if let (Some(src), Some(dst_y)) = (
+                raw.get(y * stride..(y + 1) * stride),
+                (size.y as usize).checked_sub(1 + y),
+            ) {
+                buf[dst_y * stride..(dst_y + 1) * stride].copy_from_slice(src);
             }
         }
 
-        let mut this = Tex2DShared {
-            handle: 0,
-            size,
-            format: TexFormat::RGBA8,
-        };
-
-        glcheck!(gl::GenTextures(1, &mut this.handle));
-        glcheck!(gl::BindTexture(gl::TEXTURE_2D, this.handle));
-        glcheck!(gl::TexImage2D(
-            gl::TEXTURE_2D,
-            0,
-            TexFormat::RGBA8 as _,
-            size.x,
-            size.y,
-            0,
-            gl::RGBA,
-            gl::UNSIGNED_BYTE,
-            buf.as_ptr() as *const _,
-        ));
-        glcheck!(gl::BindTexture(gl::TEXTURE_2D, 0));
+        let handle = r.create_resource();
+        r.create_texture_2d(
+            handle.id(),
+            size.x as u32,
+            size.y as u32,
+            TexFormat::RGBA8,
+            Some(buf),
+        );
 
         Tex2D {
-            shared: Rf::new(this),
+            shared: Rf::new(Tex2DShared {
+                handle,
+                size,
+                format: TexFormat::RGBA8,
+            }),
         }
     }
 
-    pub fn save(&mut self, path: &str) {
-        let this = self.shared.as_ref();
+    pub fn save(&mut self, r: &mut Renderer, path: &str) {
+        let size = self.shared.as_ref().size;
+        let data: Vec<u8> = self.get_data(r, PixelFormat::RGBA, DataFormat::U8);
 
-        glcheck!(gl::BindTexture(gl::TEXTURE_2D, this.handle));
-
-        let mut buffer: ImageBuffer<Rgba<u8>, _> =
-            ImageBuffer::new(this.size.x as u32, this.size.y as u32);
-        glcheck!(gl::GetTexImage(
-            gl::TEXTURE_2D,
-            0,
-            gl::RGBA,
-            gl::UNSIGNED_BYTE,
-            buffer.as_mut_ptr() as *mut _,
-        ));
-        glcheck!(gl::BindTexture(gl::TEXTURE_2D, 0));
-
-        let _ = buffer.save(path);
-    }
-
-    pub fn pop(&self) {
-        RenderTarget::pop();
-    }
-
-    pub fn push(&self) {
-        RenderTarget::push_tex2d(self);
-    }
-
-    pub fn push_level(&mut self, level: i32) {
-        RenderTarget::push_tex2d_level(self, level);
-    }
-
-    pub fn clear(&mut self, r: f32, g: f32, b: f32, a: f32) {
-        RenderTarget::push_tex2d(self);
-        Draw::clear(r, g, b, a);
-        RenderTarget::pop();
-    }
-
-    pub fn deep_clone(&mut self) -> Tex2D {
-        RenderTarget::push_tex2d(self);
-
-        let this = self.shared.as_ref();
-
-        let mut clone = Tex2DShared {
-            handle: 0,
-            size: this.size,
-            format: this.format,
-        };
-
-        glcheck!(gl::GenTextures(1, &mut clone.handle));
-        glcheck!(gl::BindTexture(gl::TEXTURE_2D, clone.handle));
-        glcheck!(gl::CopyTexImage2D(
-            gl::TEXTURE_2D,
-            0,
-            this.format as gl::types::GLenum,
-            0,
-            0,
-            this.size.x,
-            this.size.y,
-            0,
-        ));
-        glcheck!(gl::BindTexture(gl::TEXTURE_2D, 0));
-
-        RenderTarget::pop();
-
-        Tex2D {
-            shared: Rf::new(clone),
+        if let Some(buffer) =
+            ImageBuffer::<Rgba<u8>, _>::from_raw(size.x as u32, size.y as u32, data)
+        {
+            let _ = buffer.save(path);
         }
     }
 
-    pub fn gen_mipmap(&mut self) {
-        let this = self.shared.as_ref();
-
-        glcheck!(gl::BindTexture(gl::TEXTURE_2D, this.handle));
-        glcheck!(gl::GenerateMipmap(gl::TEXTURE_2D));
-        glcheck!(gl::BindTexture(gl::TEXTURE_2D, 0));
+    pub fn pop(&self, r: &mut Renderer) {
+        RenderTarget::pop(r);
     }
 
-    pub fn get_data_bytes(&self, pf: PixelFormat, df: DataFormat) -> Bytes {
-        Bytes::from_vec(self.get_data(pf, df))
+    pub fn push(&self, r: &mut Renderer) {
+        RenderTarget::push_tex2d(r, self);
+    }
+
+    pub fn push_level(&mut self, r: &mut Renderer, level: i32) {
+        RenderTarget::push_tex2d_level(r, self, level);
+    }
+
+    pub fn clear(&mut self, r: &mut Renderer, red: f32, green: f32, blue: f32, alpha: f32) {
+        RenderTarget::push_tex2d(r, self);
+        Draw::clear(r, red, green, blue, alpha);
+        RenderTarget::pop(r);
+    }
+
+    pub fn deep_clone(&mut self, r: &mut Renderer) -> Tex2D {
+        RenderTarget::push_tex2d(r, self);
+
+        let this = self.shared.as_ref();
+        let size = this.size;
+        let format = this.format;
+
+        let handle = r.create_resource();
+        r.create_texture_2d(handle.id(), size.x as u32, size.y as u32, format, None);
+        r.copy_texture_2d_from_framebuffer_by_resource(handle.id(), format as i32, size.x, size.y);
+
+        RenderTarget::pop(r);
+
+        Tex2D {
+            shared: Rf::new(Tex2DShared {
+                handle,
+                size,
+                format,
+            }),
+        }
+    }
+
+    pub fn gen_mipmap(&mut self, r: &mut Renderer) {
+        let this = self.shared.as_ref();
+        r.generate_mipmap_by_resource(this.handle.id());
+    }
+
+    pub fn get_data_bytes(&self, r: &mut Renderer, pf: PixelFormat, df: DataFormat) -> Bytes {
+        Bytes::from_vec(self.get_data(r, pf, df))
     }
 
     pub fn get_format(&self) -> TexFormat {
         let this = self.shared.as_ref();
         this.format
-    }
-
-    pub fn get_handle(&self) -> u32 {
-        let this = self.shared.as_ref();
-        this.handle
     }
 
     pub fn get_size(&self) -> IVec2 {
@@ -339,44 +247,29 @@ impl Tex2D {
         out
     }
 
-    pub fn set_anisotropy(&mut self, factor: f32) {
+    pub fn set_anisotropy(&mut self, r: &mut Renderer, factor: f32) {
         let this = self.shared.as_ref();
-
-        glcheck!(gl::BindTexture(gl::TEXTURE_2D, this.handle));
-        glcheck!(gl::TexParameterf(
-            gl::TEXTURE_2D,
-            gl::TEXTURE_MAX_ANISOTROPY_EXT,
-            factor
-        ));
-        glcheck!(gl::BindTexture(gl::TEXTURE_2D, 0));
+        r.set_texture_2d_anisotropy_by_resource(this.handle.id(), factor);
     }
 
-    pub fn set_data_bytes(&mut self, data: &Bytes, pf: PixelFormat, df: DataFormat) {
-        self.set_data(data.as_slice(), pf, df);
+    pub fn set_data_bytes(
+        &mut self,
+        r: &mut Renderer,
+        data: &Bytes,
+        pf: PixelFormat,
+        df: DataFormat,
+    ) {
+        self.set_data(r, data.as_slice(), pf, df);
     }
 
-    pub fn set_mag_filter(&mut self, filter: TexFilter) {
+    pub fn set_mag_filter(&mut self, r: &mut Renderer, filter: TexFilter) {
         let this = self.shared.as_ref();
-
-        glcheck!(gl::BindTexture(gl::TEXTURE_2D, this.handle));
-        glcheck!(gl::TexParameteri(
-            gl::TEXTURE_2D,
-            gl::TEXTURE_MAG_FILTER,
-            filter as _
-        ));
-        glcheck!(gl::BindTexture(gl::TEXTURE_2D, 0));
+        r.set_texture_mag_filter_by_resource(this.handle.id(), filter);
     }
 
-    pub fn set_min_filter(&mut self, filter: TexFilter) {
+    pub fn set_min_filter(&mut self, r: &mut Renderer, filter: TexFilter) {
         let this = self.shared.as_ref();
-
-        glcheck!(gl::BindTexture(gl::TEXTURE_2D, this.handle));
-        glcheck!(gl::TexParameteri(
-            gl::TEXTURE_2D,
-            gl::TEXTURE_MIN_FILTER,
-            filter as _
-        ));
-        glcheck!(gl::BindTexture(gl::TEXTURE_2D, 0));
+        r.set_texture_min_filter_by_resource(this.handle.id(), filter);
     }
 
     /* NOTE : In general, using BASE_LEVEL, MAX_LEVEL, and MIN/MAX_LOD params is
@@ -388,61 +281,50 @@ impl Tex2D {
      *        max_level) seems to be acceptable even on bad drivers. Thus, it is
      *        strongly advised to use this function only to constrain sampling to
      *        a single mip level. */
-    pub fn set_mip_range(&mut self, min_level: i32, max_level: i32) {
+    pub fn set_mip_range(&mut self, r: &mut Renderer, min_level: i32, max_level: i32) {
         let this = self.shared.as_ref();
-
-        if min_level != max_level {
-            warn!(
-                "Tex2D_SetMipRange: Setting mip range with min != max; this may fail on old drivers with mip-handling bugs."
-            );
-        }
-        glcheck!(gl::BindTexture(gl::TEXTURE_2D, this.handle));
-        glcheck!(gl::TexParameteri(
-            gl::TEXTURE_2D,
-            gl::TEXTURE_BASE_LEVEL,
-            min_level
-        ));
-        glcheck!(gl::TexParameteri(
-            gl::TEXTURE_2D,
-            gl::TEXTURE_MAX_LEVEL,
-            max_level
-        ));
+        r.set_texture_2d_mip_range_by_resource(this.handle.id(), min_level, max_level);
     }
 
-    pub fn set_texel(&mut self, x: i32, y: i32, r: f32, g: f32, b: f32, a: f32) {
+    pub fn set_texel(
+        &mut self,
+        r: &mut Renderer,
+        x: i32,
+        y: i32,
+        red: f32,
+        green: f32,
+        blue: f32,
+        alpha: f32,
+    ) {
         let this = self.shared.as_ref();
-
-        let mut rgba: [f32; 4] = [r, g, b, a];
-
-        glcheck!(gl::BindTexture(gl::TEXTURE_2D, this.handle));
-        glcheck!(gl::TexSubImage2D(
-            gl::TEXTURE_2D,
-            0,
-            x,
-            y,
-            1,
-            1,
-            gl::RGBA,
-            gl::FLOAT,
-            rgba.as_mut_ptr() as *const _,
-        ));
-        glcheck!(gl::BindTexture(gl::TEXTURE_2D, 0));
+        r.set_texel_2d_by_resource(this.handle.id(), x, y, [red, green, blue, alpha]);
     }
 
-    pub fn set_wrap_mode(&mut self, mode: TexWrapMode) {
+    pub fn set_wrap_mode(&mut self, r: &mut Renderer, mode: TexWrapMode) {
         let this = self.shared.as_ref();
+        r.set_texture_wrap_mode_by_resource(this.handle.id(), mode);
+    }
 
-        glcheck!(gl::BindTexture(gl::TEXTURE_2D, this.handle));
-        glcheck!(gl::TexParameteri(
-            gl::TEXTURE_2D,
-            gl::TEXTURE_WRAP_S,
-            mode as _
-        ));
-        glcheck!(gl::TexParameteri(
-            gl::TEXTURE_2D,
-            gl::TEXTURE_WRAP_T,
-            mode as _
-        ));
-        glcheck!(gl::BindTexture(gl::TEXTURE_2D, 0));
+    /// Sample a single pixel at integer coordinates (x, y)
+    /// Coordinates are in OpenGL convention: (0,0) = bottom-left
+    /// Returns Vec3f with RGB in [0.0, 1.0] range
+    #[bind(name = "Sample")]
+    fn sample_pixel(&self, r: &mut Renderer, x: i32, y: i32) -> Vec3 {
+        let this = self.shared.as_ref();
+        let size = this.size;
+
+        let x = x.clamp(0, size.x - 1);
+        let y = y.clamp(0, size.y - 1);
+
+        // Flip Y for OpenGL bottom-left origin
+        let gl_y = size.y - 1 - y;
+
+        let pixel = r.sample_pixel_2d_by_resource(this.handle.id(), x, gl_y);
+
+        Vec3::new(
+            pixel[0] as f32 / 255.0,
+            pixel[1] as f32 / 255.0,
+            pixel[2] as f32 / 255.0,
+        )
     }
 }

@@ -25,7 +25,7 @@ function Loader.defineType()
             uint64  Octree_GetMemory    (Octree const*);
             bool    Octree_IntersectRay (Octree const*, Matrix const* matrix, Vec3f const* ro, Vec3f const* rd);
             void    Octree_Add          (Octree*, Box3f box0, uint64 id);
-            void    Octree_Draw         (Octree*);
+            void    Octree_Draw         (Octree*, Renderer* r);
         ]]
     end
 

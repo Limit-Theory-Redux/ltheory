@@ -1,4 +1,4 @@
-use super::Mesh;
+use super::{Mesh, Renderer};
 use crate::rf::Rf;
 
 /* TODO : Merge meshes into single IBO/VBO so that we can skip all the rebinds
@@ -44,12 +44,12 @@ impl LodMesh {
         });
     }
 
-    pub fn draw(&mut self, distance_squared: f32) {
+    pub fn draw(&mut self, r: &mut Renderer, distance_squared: f32) {
         for level in &mut *self.lod_levels.as_mut() {
             if level.distance_squared_min <= distance_squared
                 && distance_squared <= level.distance_squared_max
             {
-                level.mesh.draw();
+                level.mesh.draw(r);
                 break;
             }
         }

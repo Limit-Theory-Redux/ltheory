@@ -403,10 +403,25 @@ impl Physics {
 
     pub fn draw_bounding_boxes_world(&self) {}
 
-    pub fn draw_wireframes(&mut self, shader: &mut Shader, eye: &Position) {
+    pub fn draw_wireframes(&mut self, r: &mut Renderer, shader: &mut Shader, eye: &Position) {
+        self.draw_wireframes_in_range(r, shader, eye, f64::MAX);
+    }
+
+    pub fn draw_wireframes_in_range(
+        &mut self,
+        r: &mut Renderer,
+        shader: &mut Shader,
+        eye: &Position,
+        max_range: f64,
+    ) {
         let world = self.world.as_ref();
         self.debug_renderer.render(
-            &mut RapierDebugRenderer { shader, eye: *eye },
+            &mut RapierDebugRenderer {
+                r,
+                shader,
+                eye: *eye,
+                max_range_sq: max_range * max_range,
+            },
             &world.rigid_bodies,
             &world.colliders,
             &self.impulse_joints,
@@ -462,8 +477,10 @@ impl Physics {
 }
 
 struct RapierDebugRenderer<'a> {
+    r: &'a mut Renderer,
     shader: &'a mut Shader,
     eye: Position,
+    max_range_sq: f64,
 }
 
 impl rp::DebugRenderBackend for RapierDebugRenderer<'_> {
@@ -472,12 +489,24 @@ impl rp::DebugRenderBackend for RapierDebugRenderer<'_> {
         _object: rp::DebugRenderObject<'_>,
         start: rp::Point<rp::Real>,
         end: rp::Point<rp::Real>,
-        color: [f32; 4],
+        _color: [f32; 4],
     ) {
-        let Color { r, g, b, a } = Color::from_hsl(color[0], color[1], color[2], color[3]);
+        // Distance check: skip lines far from camera
+        let mid_x = (start.x + end.x) * 0.5;
+        let mid_y = (start.y + end.y) * 0.5;
+        let mid_z = (start.z + end.z) * 0.5;
+        let dx = mid_x - self.eye.v.x;
+        let dy = mid_y - self.eye.v.y;
+        let dz = mid_z - self.eye.v.z;
+        let dist_sq = dx * dx + dy * dy + dz * dz;
+        if dist_sq > self.max_range_sq {
+            return;
+        }
 
-        self.shader.set_float4("color", r, g, b, a);
+        // Green wireframe
+        self.shader.set_float4(self.r, "color", 0.0, 1.0, 0.3, 0.8);
         Draw::line3(
+            self.r,
             &Position::from_na_point(&start).relative_to(self.eye),
             &Position::from_na_point(&end).relative_to(self.eye),
         );

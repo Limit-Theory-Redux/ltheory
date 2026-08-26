@@ -13,18 +13,18 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            void RenderState_PushAllDefaults   ();
-            void RenderState_PushBlendMode     (BlendMode value);
-            void RenderState_PushCullFace      (CullFace value);
-            void RenderState_PushDepthTest     (bool value);
-            void RenderState_PushDepthWritable (bool value);
-            void RenderState_PushWireframe     (bool value);
-            void RenderState_PopAll            ();
-            void RenderState_PopBlendMode      ();
-            void RenderState_PopWireframe      ();
-            void RenderState_PopDepthTest      ();
-            void RenderState_PopCullFace       ();
-            void RenderState_PopDepthWritable  ();
+            void RenderState_PushAllDefaults   (Renderer* r);
+            void RenderState_PushBlendMode     (Renderer* r, BlendMode value);
+            void RenderState_PushCullFace      (Renderer* r, CullFace value);
+            void RenderState_PushDepthTest     (Renderer* r, bool value);
+            void RenderState_PushDepthWritable (Renderer* r, bool value);
+            void RenderState_PushWireframe     (Renderer* r, bool value);
+            void RenderState_PopAll            (Renderer* r);
+            void RenderState_PopBlendMode      (Renderer* r);
+            void RenderState_PopWireframe      (Renderer* r);
+            void RenderState_PopDepthTest      (Renderer* r);
+            void RenderState_PopCullFace       (Renderer* r);
+            void RenderState_PopDepthWritable  (Renderer* r);
         ]]
     end
 

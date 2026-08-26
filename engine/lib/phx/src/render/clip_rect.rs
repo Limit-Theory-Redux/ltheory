@@ -1,6 +1,6 @@
-use std::cell::RefCell;
+use glam::IVec2;
 
-use crate::render::{Viewport, gl, glcheck};
+use crate::render::{Renderer, Viewport};
 
 const MAX_STACK_DEPTH: usize = 128;
 
@@ -21,36 +21,80 @@ pub struct ClipRect {
     enabled: bool,
 }
 
-#[luajit_ffi_gen::luajit_ffi]
-impl ClipRect {
-    pub fn push(x: f32, y: f32, sx: f32, sy: f32) {
-        CLIP_MANAGER.with_borrow_mut(|cm| cm.push(x, y, sx, sy));
-    }
+/// What `ClipManager`'s CPU-side bookkeeping decided the GL scissor state
+/// should become. The caller (which holds `&mut Renderer`) turns this into
+/// the matching `submit()` calls.
+enum ScissorUpdate {
+    Disable,
+    Set {
+        x: i32,
+        y: i32,
+        width: i32,
+        height: i32,
+    },
+}
 
-    pub fn push_combined(x: f32, y: f32, sx: f32, sy: f32) {
-        CLIP_MANAGER.with_borrow_mut(|cm| cm.push_combined(x, y, sx, sy));
-    }
-
-    pub fn push_disabled() {
-        CLIP_MANAGER.with_borrow_mut(|cm| cm.push_disabled());
-    }
-
-    pub fn push_transform(tx: f32, ty: f32, sx: f32, sy: f32) {
-        CLIP_MANAGER.with_borrow_mut(|cm| cm.push_transform(tx, ty, sx, sy));
-    }
-
-    pub fn pop() {
-        CLIP_MANAGER.with_borrow_mut(|cm| cm.pop());
-    }
-
-    pub fn pop_transform() {
-        CLIP_MANAGER.with_borrow_mut(|cm| cm.pop_transform());
+fn apply(r: &mut Renderer, update: Option<ScissorUpdate>) {
+    match update {
+        None => {}
+        Some(ScissorUpdate::Disable) => r.enable_scissor(false),
+        Some(ScissorUpdate::Set {
+            x,
+            y,
+            width,
+            height,
+        }) => {
+            r.enable_scissor(true);
+            r.set_scissor(x, y, width, height);
+        }
     }
 }
 
-thread_local! { static CLIP_MANAGER: RefCell<ClipManager> = RefCell::new(ClipManager::new()); }
+#[luajit_ffi_gen::luajit_ffi]
+impl ClipRect {
+    pub fn push(r: &mut Renderer, x: f32, y: f32, sx: f32, sy: f32) {
+        let vp_size = Viewport::get_size(r);
+        let update = r.data.clip_rect.push(vp_size, x, y, sx, sy);
+        apply(r, update);
+    }
 
-struct ClipManager {
+    pub fn push_combined(r: &mut Renderer, x: f32, y: f32, sx: f32, sy: f32) {
+        let vp_size = Viewport::get_size(r);
+        let update = r.data.clip_rect.push_combined(vp_size, x, y, sx, sy);
+        apply(r, update);
+    }
+
+    pub fn push_disabled(r: &mut Renderer) {
+        let vp_size = Viewport::get_size(r);
+        let update = r.data.clip_rect.push_disabled(vp_size);
+        apply(r, update);
+    }
+
+    pub fn push_transform(r: &mut Renderer, tx: f32, ty: f32, sx: f32, sy: f32) {
+        let vp_size = Viewport::get_size(r);
+        let update = r.data.clip_rect.push_transform(vp_size, tx, ty, sx, sy);
+        apply(r, update);
+    }
+
+    pub fn pop(r: &mut Renderer) {
+        let vp_size = Viewport::get_size(r);
+        let update = r.data.clip_rect.pop(vp_size);
+        apply(r, update);
+    }
+
+    pub fn pop_transform(r: &mut Renderer) {
+        let vp_size = Viewport::get_size(r);
+        let update = r.data.clip_rect.pop_transform(vp_size);
+        apply(r, update);
+    }
+}
+
+/// Clip-rect stack, owned by `Renderer` (was `thread_local! CLIP_MANAGER`) -
+/// GPU scissor state has to live with whatever owns the GL context. Its
+/// methods are pure CPU bookkeeping: they return the scissor update to apply
+/// rather than touching GL/`Renderer` themselves, since they're called
+/// through `renderer.clip_rect`, which already holds `Renderer` borrowed.
+pub struct ClipManager {
     transforms: [ClipRectTransform; MAX_STACK_DEPTH],
     transforms_count: usize,
     rects: [ClipRect; MAX_STACK_DEPTH],
@@ -58,7 +102,7 @@ struct ClipManager {
 }
 
 impl ClipManager {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             transforms: [ClipRectTransform {
                 tx: 0.,
@@ -89,16 +133,11 @@ impl ClipManager {
         }
     }
 
-    fn activate(&mut self) {
+    fn activate(&mut self, vp_size: IVec2) -> ScissorUpdate {
         let rect = &mut self.rects[self.rects_count - 1];
         if !rect.enabled {
-            glcheck!(gl::Disable(gl::SCISSOR_TEST));
-            return;
+            return ScissorUpdate::Disable;
         }
-
-        let vp_size = Viewport::get_size();
-
-        glcheck!(gl::Enable(gl::SCISSOR_TEST));
 
         let mut x = rect.x;
         let mut y = rect.y;
@@ -107,15 +146,22 @@ impl ClipManager {
 
         self.transform_rect(&mut x, &mut y, &mut sx, &mut sy);
 
-        glcheck!(gl::Scissor(
-            x as i32,
-            vp_size.y - (y + sy) as i32,
-            sx as i32,
-            sy as i32
-        ));
+        ScissorUpdate::Set {
+            x: x as i32,
+            y: vp_size.y - (y + sy) as i32,
+            width: sx as i32,
+            height: sy as i32,
+        }
     }
 
-    fn push_rect_intern(&mut self, x: f32, y: f32, sx: f32, sy: f32) {
+    fn push_rect_intern(
+        &mut self,
+        vp_size: IVec2,
+        x: f32,
+        y: f32,
+        sx: f32,
+        sy: f32,
+    ) -> ScissorUpdate {
         if self.rects_count >= MAX_STACK_DEPTH {
             panic!("ClipRect.Push: Maximum stack depth {MAX_STACK_DEPTH} exceeded");
         }
@@ -128,7 +174,7 @@ impl ClipManager {
         rect.enabled = true;
 
         self.rects_count += 1;
-        self.activate();
+        self.activate(vp_size)
     }
 
     fn push_transform_intern(&mut self, tx: f32, ty: f32, sx: f32, sy: f32) {
@@ -145,11 +191,18 @@ impl ClipManager {
         self.transforms_count += 1;
     }
 
-    fn push(&mut self, x: f32, y: f32, sx: f32, sy: f32) {
-        self.push_rect_intern(x, y, sx, sy);
+    fn push(&mut self, vp_size: IVec2, x: f32, y: f32, sx: f32, sy: f32) -> Option<ScissorUpdate> {
+        Some(self.push_rect_intern(vp_size, x, y, sx, sy))
     }
 
-    fn push_combined(&mut self, x: f32, y: f32, sx: f32, sy: f32) {
+    fn push_combined(
+        &mut self,
+        vp_size: IVec2,
+        x: f32,
+        y: f32,
+        sx: f32,
+        sy: f32,
+    ) -> Option<ScissorUpdate> {
         if self.rects_count > 0 {
             let curr = self.rects[self.rects_count - 1];
             if curr.enabled {
@@ -160,14 +213,13 @@ impl ClipManager {
                 let sx = f32::min(max_x, curr.x + curr.sx) - x;
                 let sy = f32::min(max_y, curr.y + curr.sy) - y;
 
-                self.push_rect_intern(x, y, sx, sy);
-                return;
+                return Some(self.push_rect_intern(vp_size, x, y, sx, sy));
             }
         }
-        self.push_rect_intern(x, y, sx, sy);
+        Some(self.push_rect_intern(vp_size, x, y, sx, sy))
     }
 
-    fn push_disabled(&mut self) {
+    fn push_disabled(&mut self, vp_size: IVec2) -> Option<ScissorUpdate> {
         if self.rects_count >= MAX_STACK_DEPTH {
             panic!("ClipRect_PushDisabled: Maximum stack depth exceeded");
         }
@@ -176,38 +228,47 @@ impl ClipManager {
         rect.enabled = false;
 
         self.rects_count += 1;
-        self.activate();
+        Some(self.activate(vp_size))
     }
 
-    fn push_transform(&mut self, tx: f32, ty: f32, sx: f32, sy: f32) {
+    fn push_transform(
+        &mut self,
+        vp_size: IVec2,
+        tx: f32,
+        ty: f32,
+        sx: f32,
+        sy: f32,
+    ) -> Option<ScissorUpdate> {
         self.push_transform_intern(tx, ty, sx, sy);
 
-        if self.rects_count > 0 {
-            self.activate();
-        }
+        (self.rects_count > 0).then(|| self.activate(vp_size))
     }
 
-    fn pop(&mut self) {
+    fn pop(&mut self, vp_size: IVec2) -> Option<ScissorUpdate> {
         if self.rects_count == 0 {
             panic!("ClipRect_Pop: Attempting to pop an empty stack");
         }
         self.rects_count -= 1;
 
         if self.rects_count > 0 {
-            self.activate();
+            Some(self.activate(vp_size))
         } else {
-            glcheck!(gl::Disable(gl::SCISSOR_TEST));
+            Some(ScissorUpdate::Disable)
         }
     }
 
-    fn pop_transform(&mut self) {
+    fn pop_transform(&mut self, vp_size: IVec2) -> Option<ScissorUpdate> {
         if self.transforms_count == 0 {
             panic!("ClipRect_PopTransform: Attempting to pop an empty stack");
         }
         self.transforms_count -= 1;
 
-        if self.rects_count > 0 {
-            self.activate();
-        }
+        (self.rects_count > 0).then(|| self.activate(vp_size))
+    }
+}
+
+impl Default for ClipManager {
+    fn default() -> Self {
+        Self::new()
     }
 }

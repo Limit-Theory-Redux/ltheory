@@ -74,6 +74,12 @@ function Math.PowSigned(x, p) end
 ---@return number
 function Math.Round(x) end
 
+---@param a number
+---@param b number
+---@param t number
+---@return number
+function Math.Lerp(a, b, t) end
+
 ---@param x number
 ---@return number
 function Math.Sign(x) end

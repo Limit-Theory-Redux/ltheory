@@ -16,11 +16,18 @@ function SetEngine(engine)
     Input = Engine:input()
     Window = Engine:window()
     Gui = Engine:hmGui()
+    Renderer = Engine:renderer()
+
+    -- Must exist before any shader that #includes camera_ubo/light_ubo binds.
+    Renderer:createCameraUbo()
+    Renderer:createLightUbo()
 end
 
 function InitSystem()
     Core.Call(function()
-        local app = __app__ or 'LTheoryRedux'
+        -- Default state: LTheoryRedux. The engine passes "" (not nil) when no
+        -- --app-name is given, so an empty string must fall through too.
+        local app = (__app__ or "") ~= "" and __app__ or 'LTheoryRedux'
         Log.Debug("Application name: %s", app)
 
         GlobalRestrict.On()
@@ -35,19 +42,36 @@ function InitSystem()
         -- ensure App.lua is loaded first
         dofile('./script/Config/App.lua')
 
-        local configDir = io.listdir('./script/Config', true)
-
-        for _, fpath in ipairs(configDir) do
-            -- don´t load again
-            if fpath ~= './script/Config/App.lua' then
-                dofile(fpath)
-            end
-        end
-
         -- Load Enums
         for _, fname in ipairs(io.listdirex(Config.paths.enums)) do
             dofile(Config.paths.enums .. fname)
         end
+
+        local configDir = io.listdir('./script/Config', true)
+
+        local function loadConfigFiles(configDir)
+            -- Ensure dependencies are loaded first
+            local success, items = pcall(require, "Shared.Registries.Items")
+            if not success then
+                Log.Error("Failed to load Shared.Registries.Items: %s", tostring(items))
+            end
+
+            for _, fpath in ipairs(configDir) do
+                -- Skip App.lua, __init__.lua, and Rulesets directory
+                if fpath ~= "./script/Config/App.lua" and
+                    not string.find(fpath, "__init__") and
+                    not string.find(fpath, "Rulesets") then
+                    Log.Debug("Loading config file: %s", fpath)
+                    local success, res = pcall(dofile, fpath)
+                    if not success then
+                        Log.Warn("Config file %s could not be executed: %s", fpath, tostring(res))
+                    end
+                end
+            end
+        end
+
+        -- Load Config Files
+        loadConfigFiles(configDir)
 
         -- Load Types
         for _, fname in ipairs(io.listdirex(Config.paths.types)) do

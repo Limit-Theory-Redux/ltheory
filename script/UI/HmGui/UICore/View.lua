@@ -10,6 +10,7 @@ local meta = {
 ---@class UIView
 ---@field name string
 ---@field contents table
+---@field noDarken boolean|nil Opt out of the UIRouter scene-darken overlay
 ---@field windowCount integer
 ---@field addWindowToView fun(self: UIView, window: UIComponentWindow)
 ---@field addContent fun(self, component: UIComponent)
@@ -36,6 +37,7 @@ function View:new(args)
     local newView = {}
     newView.name = args.name
     newView.contents = args.contents or {}
+    newView.noDarken = args.noDarken == true
     newView.windowCount = 0 -- 0 on init
 
     newView.addWindowToView = function(self, window)

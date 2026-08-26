@@ -15,8 +15,9 @@ function LodMesh:clone() end
 ---@param distanceMax number
 function LodMesh:add(mesh, distanceMin, distanceMax) end
 
+---@param r Renderer
 ---@param distanceSquared number
-function LodMesh:draw(distanceSquared) end
+function LodMesh:draw(r, distanceSquared) end
 
 ---@param distanceSquared number
 ---@return Mesh?

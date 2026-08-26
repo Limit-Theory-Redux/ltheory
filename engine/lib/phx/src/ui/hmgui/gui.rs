@@ -28,9 +28,9 @@ pub struct HmGui {
 }
 
 impl HmGui {
-    pub fn new(scale_factor: f64) -> Self {
+    pub fn new(r: &mut Renderer, scale_factor: f64) -> Self {
         Self {
-            renderer: UIRenderer::new(),
+            renderer: UIRenderer::new(r),
             screen_size: Default::default(),
             scale_factor,
             layers: vec![],
@@ -175,7 +175,7 @@ impl HmGui {
 
     /// Finish GUI declaration, calculate hierarchy widgets sizes and layout.
     // TODO: do not calculate layout for the widgets that go out of the screen. If possible.
-    pub fn end_gui(&mut self, input: &Input) {
+    pub fn end_gui(&mut self, r: &mut Renderer, input: &Input) {
         Profiler::begin("HmGui_End");
 
         self.end_layer();
@@ -203,8 +203,8 @@ impl HmGui {
                 root.inner_size = root.size;
             }
 
-            root.compute_size(self);
-            root.layout(self, input);
+            root.compute_size(self, r);
+            root.layout(self, r, input);
         }
 
         self.focus_pos = input.mouse().position();
@@ -225,12 +225,12 @@ impl HmGui {
 
     /// Pass information about widgets to the renderer and draw them.
     // TODO: optimize - do not pass to the renderer widgets that are outside of the rendering region
-    pub fn draw(&mut self) {
+    pub fn draw(&mut self, r: &mut Renderer) {
         Profiler::begin("HmGui_Draw");
 
-        RenderState::push_blend_mode(BlendMode::Alpha);
+        RenderState::push_blend_mode(r, BlendMode::Alpha);
 
-        self.renderer.begin();
+        self.renderer.begin(r);
 
         let layers_root: Vec<_> = self
             .layers
@@ -246,9 +246,9 @@ impl HmGui {
 
         self.renderer.end();
 
-        RenderState::pop_blend_mode();
+        RenderState::pop_blend_mode(r);
 
-        self.renderer.draw();
+        self.renderer.draw(r);
 
         Profiler::end();
     }

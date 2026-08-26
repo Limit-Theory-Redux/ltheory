@@ -2,7 +2,7 @@ return {
     Expiry = require('Modules.Economy.Components.ExpiryComponent'),
     Inventory = require('Modules.Economy.Components.InventoryComponent'),
     Marketplace = require('Modules.Economy.Components.MarketplaceComponent'),
-    OrderItemType = require('Modules.Economy.Components.OrderItemTypeComponent'),
+    Item = require('Modules.Economy.Components.ItemComponent'),
     OrderStatus = require('Modules.Economy.Components.OrderStatusComponent'),
     Ownership = require('Modules.Economy.Components.OwnershipComponent'),
     PlayerBankAccount = require('Modules.Economy.Components.PlayerBankAccountComponent'),

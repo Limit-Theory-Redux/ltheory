@@ -1,7 +1,9 @@
 mod cursor;
+mod error;
 mod glutin_render;
 mod monitor_selection;
 mod present_mode;
+mod window_gl_context;
 mod window_mode;
 mod window_position;
 mod window_resize_constraints;
@@ -10,9 +12,11 @@ mod winit_converters;
 mod winit_window;
 
 pub use cursor::*;
+pub use error::*;
 pub use glutin_render::*;
 pub use monitor_selection::*;
 pub use present_mode::*;
+pub use window_gl_context::*;
 pub use window_mode::*;
 pub use window_position::*;
 pub use window_resize_constraints::*;
@@ -158,13 +162,13 @@ impl Default for Window {
 
 #[luajit_ffi_gen::luajit_ffi]
 impl Window {
-    pub fn begin_draw(&self) {
+    pub fn begin_draw(&self, r: &mut Renderer) {
         let size = self.size();
-        Viewport::push(0, 0, size.x as i32, size.y as i32, true);
+        Viewport::push(r, 0, 0, size.x as i32, size.y as i32, true);
     }
 
-    pub fn end_draw(&self) {
-        Viewport::pop();
+    pub fn end_draw(&self, r: &mut Renderer) {
+        Viewport::pop(r);
     }
 
     /// The window title.
@@ -368,8 +372,8 @@ impl Window {
     ///
     /// See [`WindowResolution`] for an explanation about logical/physical sizes.
     pub fn set_cursor_position(&mut self, position: Option<Vec2>) {
-        self.internal.physical_cursor_position =
-            position.map(|p| p.as_dvec2() * self.scale_factor());
+        let physical_pos = position.map(|p| p.as_dvec2() * self.scale_factor());
+        self.internal.cursor_position_request = physical_pos;
     }
 
     /// The cursor position in this window in physical pixels.
@@ -399,6 +403,7 @@ pub struct InternalWindowState {
     minimize_request: Option<bool>,
     /// If this is true then next frame we will ask to maximize/un-maximize the window depending on `maximized`.
     maximize_request: Option<bool>,
+    cursor_position_request: Option<DVec2>,
     /// Unscaled cursor position.
     physical_cursor_position: Option<DVec2>,
 }
@@ -412,6 +417,10 @@ impl InternalWindowState {
     /// Consumes the current minimize request, if it exists. This should only be called by window backends.
     pub fn take_minimize_request(&mut self) -> Option<bool> {
         self.minimize_request.take()
+    }
+
+    pub fn take_cursor_position_request(&mut self) -> Option<DVec2> {
+        self.cursor_position_request.take()
     }
 }
 

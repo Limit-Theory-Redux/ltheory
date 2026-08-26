@@ -31,5 +31,6 @@ function Octree:intersectRay(matrix, ro, rd) end
 ---@param id integer
 function Octree:add(box0, id) end
 
-function Octree:draw() end
+---@param r Renderer
+function Octree:draw(r) end
 

@@ -1,41 +1,43 @@
 local Component = require("Core.ECS.Component")
 
+---@class MeshWithMaterial
+---@field mesh Mesh
+---@field material Material
+
 ---@class RenderComponent: Component
----@overload fun(self: RenderComponent, materials: Material[], meshType: MeshType): RenderComponent subclass internal
----@overload fun(materials: Material[], meshType: MeshType): RenderComponent subclass external
-local RenderComponent = Subclass("RenderComponent", Component, function(self, materials, meshType)
+---@overload fun(self: RenderComponent, meshesOrRenderFn: MeshWithMaterial[]|function): RenderComponent subclass internal
+---@overload fun(meshesOrRenderFn: MeshWithMaterial[]|function): RenderComponent subclass external
+local RenderComponent = Subclass("RenderComponent", Component, function(self, meshesOrRenderFn)
     self:setComponentName("RenderComponent")
 
-    -- Set RenderComponent Data
-    self:setMaterials(materials)
-    self:setMeshType(meshType)
-    self:setVisible(true) -- Assume Mesh is Visible on Creation.
-
-    -- Set RenderComponent Registered Events
+    if rawtype(meshesOrRenderFn) == 'function' then
+        ---@cast meshesOrRenderFn function
+        self:setRenderFn(meshesOrRenderFn)
+    else
+        ---@cast meshesOrRenderFn MeshWithMaterial[]
+        self:setMeshes(meshesOrRenderFn)
+    end
+    self:setVisible(true)
 end)
 
----@param materials Material[]
-function RenderComponent:setMaterials(materials)
-    self.materials = {}
-    for _, v in pairs(materials) do
-        self.materials[v.blendMode] = v
-    end
+---@param meshes MeshWithMaterial[]
+function RenderComponent:setMeshes(meshes)
+    self.meshes = meshes
 end
 
----@param meshType MeshType
-function RenderComponent:setMeshType(meshType)
-    self.meshType = meshType
+---@return MeshWithMaterial[]
+function RenderComponent:getMeshes()
+    return self.meshes
 end
 
----@param blendMode BlendMode
----@return Material|nil
-function RenderComponent:getMaterial(blendMode)
-    return self.materials[blendMode]
+---@param renderFn function
+function RenderComponent:setRenderFn(renderFn)
+    self.renderFn = renderFn
 end
 
----@return MeshType
-function RenderComponent:getMeshType()
-    return self.meshType
+---@return function|nil
+function RenderComponent:getRenderFn()
+    return self.renderFn
 end
 
 ---Sets Visibility of Mesh
@@ -45,7 +47,7 @@ function RenderComponent:setVisible(isVisible)
 end
 
 ---@return boolean # Returns if Mesh is Visible
-function RenderComponent:getVisible()
+function RenderComponent:isVisible()
     return self.visibleMesh
 end
 

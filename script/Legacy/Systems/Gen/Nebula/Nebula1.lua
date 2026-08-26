@@ -1,4 +1,5 @@
 local Generator = require('Legacy.Systems.Gen.Generator')
+local ColorLUT = require('Legacy.Systems.Gen.ColorLUT')
 
 local function generateNebulaIFS(rng, res, starDir)
     Profiler.Begin('Nebula.Generate.IFS')
@@ -25,13 +26,13 @@ local function generateNebulaIFS(rng, res, starDir)
     local seed = rng:getUniformRange(1, 1000)
     ss:setFloat('seed', seed)
 
-    local lutR = Gen.ColorLUT(rng, 5, 0.30, 0.6)
-    local lutG = Gen.ColorLUT(rng, 5, 0.30, 0.6)
-    local lutB = Gen.ColorLUT(rng, 5, 0.30, 0.6)
+    local lutR = ColorLUT(rng, 5, 0.30, 0.6)
+    local lutG = ColorLUT(rng, 5, 0.30, 0.6)
+    local lutB = ColorLUT(rng, 5, 0.30, 0.6)
     ss:setTex1D('lutR', lutR)
     ss:setTex1D('lutG', lutG)
     ss:setTex1D('lutB', lutB)
-    ss:setFloat3('starDir', starDir.x, starDir.y, starDir.z)
+    ss:setFloat3('genStarDir', starDir.x, starDir.y, starDir.z)
 
     self:generate(ss)
     self:genMipmap()

@@ -11,6 +11,7 @@ local Dust = require('Legacy.GameObjects.Entities.Effects.Dust')
 local Nebula = require('Legacy.GameObjects.Entities.Objects.Nebula')
 local Words = require('Legacy.Systems.Gen.Words')
 local HUD = require('Legacy.Systems.Overlay.HUD')
+local Camera = require('Legacy.Systems.Camera.Camera')
 
 ---@class StarSystem: Entity
 local System = Subclass("System", Entity, function(self, seed)
@@ -285,20 +286,18 @@ end
 
 function System:beginRender()
     self.nebula:forceLoad()
-    ShaderVar.PushFloat3('starDir', self.starDir.x, self.starDir.y, self.starDir.z)
+    Camera.get():setStarDir(self.starDir)
     ShaderVar.PushTexCube('envMap', self.nebula.envMap)
     ShaderVar.PushTexCube('irMap', self.nebula.irMap)
 end
 
 function System:render(state)
-    self:send(OldEvent.Broadcast(state))
     self:renderProjectiles(state)
     self.dust:render(state)
     self.nebula:render(state)
 end
 
 function System:endRender()
-    ShaderVar.Pop('starDir')
     ShaderVar.Pop('envMap')
     ShaderVar.Pop('irMap')
 end
@@ -321,7 +320,10 @@ function System:update(dt)
         Profiler.End()
 
         Profiler.Begin('Physics Update')
+        Profiler.Begin('Physics.Step')
         self.physics:update(dt)
+        Profiler.End()
+        Profiler.Begin('Physics.CollisionDrain')
         local collision = Collision()
         while (self.physics:getNextCollision(collision)) do
             local entity1 = Entity.fromRigidBody(collision.body0)
@@ -333,6 +335,7 @@ function System:update(dt)
             end
             --print('', collision.index, collision.body0, collision.body1)
         end
+        Profiler.End()
         Profiler.End()
 
         -- post-physics update

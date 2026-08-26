@@ -1,6 +1,7 @@
 ---@type UIView
 local InGame = UICore.View {
-    name = "In_Game"
+    name = "In_Game",
+    noDarken = true -- in-game overlay: never dim the game view
 }
 
 ---@type UIRouter

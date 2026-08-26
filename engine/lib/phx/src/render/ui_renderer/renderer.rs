@@ -6,7 +6,7 @@ use super::layer::UIRendererLayer;
 use super::panel::UIRendererPanel;
 use super::rect::UIRendererRect;
 use super::text::UIRendererText;
-use crate::render::{BlendMode, Color, Font, RenderState, Shader, Tex2D, Viewport};
+use crate::render::{BlendMode, Color, Font, RenderState, Renderer, Shader, Tex2D, Viewport};
 
 pub struct UIRenderer {
     panel_shader: Shader,
@@ -23,11 +23,11 @@ pub struct UIRenderer {
 }
 
 impl UIRenderer {
-    pub fn new() -> UIRenderer {
+    pub fn new(r: &mut Renderer) -> UIRenderer {
         UIRenderer {
-            panel_shader: Shader::load("vertex/ui", "fragment/ui/panel"),
-            image_shader: Shader::load("vertex/ui", "fragment/simple_image"),
-            rect_shader: Shader::load("vertex/ui", "fragment/simple_color"),
+            panel_shader: Shader::load(r, "vertex/ui", "fragment/ui/panel"),
+            image_shader: Shader::load(r, "vertex/ui", "fragment/simple_image"),
+            rect_shader: Shader::load(r, "vertex/ui", "fragment/simple_color"),
             current_layer_id: None,
             layers: Vec::new(),
             images: Vec::new(),
@@ -37,7 +37,7 @@ impl UIRenderer {
         }
     }
 
-    pub fn begin(&mut self) {
+    pub fn begin(&mut self, r: &Renderer) {
         self.current_layer_id = None;
 
         self.layers.clear();
@@ -46,7 +46,7 @@ impl UIRenderer {
         self.rects.clear();
         self.texts.clear();
 
-        let vp = Viewport::get_size();
+        let vp = Viewport::get_size(r);
 
         self.begin_layer(Vec2::ZERO, Vec2::new(vp.x as f32, vp.y as f32), true);
     }
@@ -55,11 +55,12 @@ impl UIRenderer {
         self.end_layer();
     }
 
-    pub fn draw(&mut self) {
-        RenderState::push_blend_mode(BlendMode::Alpha);
+    pub fn draw(&mut self, r: &mut Renderer) {
+        RenderState::push_blend_mode(r, BlendMode::Alpha);
 
         if let Some(root) = self.layers.first() {
             root.draw(
+                r,
                 &mut self.panel_shader,
                 &mut self.image_shader,
                 &mut self.rect_shader,
@@ -73,7 +74,7 @@ impl UIRenderer {
             unreachable!("No layers defined");
         }
 
-        RenderState::pop_blend_mode();
+        RenderState::pop_blend_mode(r);
     }
 
     pub fn begin_layer(&mut self, pos: Vec2, size: Vec2, clip: bool) {
