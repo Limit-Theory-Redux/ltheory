@@ -1688,7 +1688,7 @@ impl CommandExecutor {
         self.this_frame_stats = RenderStats::default();
         self.frame_start = std::time::Instant::now();
 
-        CommandReply::Stats(self.last_stats.clone())
+        CommandReply::Stats(Box::new(self.last_stats.clone()))
     }
 
     pub(super) fn cmd_flush(&self) {

@@ -19,7 +19,7 @@ impl Bytes {
 
     /// WARNING: This only works if T is plain-old-data i.e. has no pointers!
     pub fn read<T>(&mut self, data: &mut [T]) {
-        let byte_len = data.len() * std::mem::size_of::<T>();
+        let byte_len = std::mem::size_of_val(data);
         let ptr = data.as_mut_ptr() as *mut u8;
         // SAFETY: T is POD (no pointers), so interpreting the buffer as bytes
         // for the full byte length is valid.
@@ -29,7 +29,7 @@ impl Bytes {
 
     /// WARNING: This only works if T is plain-old-data i.e. has no pointers!
     pub fn write<T>(&mut self, data: &[T]) {
-        let byte_len = data.len() * std::mem::size_of::<T>();
+        let byte_len = std::mem::size_of_val(data);
         let ptr = data.as_ptr() as *const u8;
         // SAFETY: T is POD (no pointers), so interpreting the buffer as bytes
         // for the full byte length is valid.

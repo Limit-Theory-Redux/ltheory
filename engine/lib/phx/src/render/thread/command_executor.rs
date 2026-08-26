@@ -25,7 +25,7 @@ pub enum CommandReply {
     /// `Fence` (see `RenderCommand::PacingFence`'s docs).
     PacingFence(u64),
     ShaderReload(ShaderReloadResult),
-    Stats(RenderStats),
+    Stats(Box<RenderStats>),
 }
 
 /// GPU resource stored on the render thread

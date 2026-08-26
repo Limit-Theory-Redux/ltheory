@@ -132,7 +132,7 @@ impl RenderThread {
                 // Best-effort: if the main thread hasn't drained the last
                 // snapshot yet, dropping this one is fine, the next frame's
                 // will supersede it. Only warn if the channel is gone.
-                if let Err(e) = self.stats_tx.try_send(stats) {
+                if let Err(e) = self.stats_tx.try_send(*stats) {
                     if e.is_disconnected() {
                         warn!("Failed to publish stats snapshot: {e:?}");
                     }

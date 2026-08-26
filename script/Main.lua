@@ -25,7 +25,9 @@ end
 
 function InitSystem()
     Core.Call(function()
-        local app = __app__ or 'LTheoryRedux'
+        -- Default state: LTheoryRedux. The engine passes "" (not nil) when no
+        -- --app-name is given, so an empty string must fall through too.
+        local app = (__app__ or "") ~= "" and __app__ or 'LTheoryRedux'
         Log.Debug("Application name: %s", app)
 
         GlobalRestrict.On()
