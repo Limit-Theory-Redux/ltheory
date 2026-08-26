@@ -5,7 +5,7 @@ local TitleView = UICore.View {
 
 ---@type UIRouter
 local UIRouter = require("UI.HmGui.UICore.UIRouter")
-local MusicPlayer = require('Legacy.Systems.SFX.MusicPlayer')
+local MusicPlayer = require('Shared.Audio.MusicPlayer')
 local Bindings = require('States.ApplicationBindings')
 
 local logo = Tex2D.Load("./res/images/LTR-logo-name.png")
