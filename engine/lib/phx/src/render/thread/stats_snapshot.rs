@@ -35,9 +35,9 @@ pub struct StatsSnapshot {
     /// Time blocked in `end_frame_triple_buffered` (frame-end pacing wait)
     pub main_thread_wait_us: u64,
     /// Time blocked in `submit()` on a full command channel, this frame
-    pub send_blocked_us_last_frame: u64,
+    pub send_blocked_us: u64,
     /// Number of `submit()` calls that blocked this frame
-    pub send_block_count_last_frame: u64,
+    pub send_block_count: u64,
     /// Highest command-channel occupancy observed this frame (capacity 8192)
     pub channel_high_water: u64,
     /// Frames submitted but not yet rendered (triple-buffer depth)
@@ -45,7 +45,7 @@ pub struct StatsSnapshot {
     /// Uniform sends skipped by the per-shader value dedup last frame - the
     /// Lua→Rust crossings that were paid but produced no command. Shows the
     /// hidden producer cost the command count doesn't capture.
-    pub uniform_dedup_skips_last_frame: u64,
+    pub uniform_dedup_skips: u64,
 }
 
 impl Renderer {
@@ -83,11 +83,11 @@ impl Renderer {
                 .unwrap_or(0),
             render: self.get_stats(),
             main_thread_wait_us: self.main_thread_wait_us,
-            send_blocked_us_last_frame: self.send_blocked_us_last_frame,
-            send_block_count_last_frame: self.send_block_count_last_frame,
+            send_blocked_us: self.send_blocked_us,
+            send_block_count: self.send_block_count,
             channel_high_water: self.channel_high_water,
             frames_in_flight: self.get_frames_in_flight(),
-            uniform_dedup_skips_last_frame: uniform_dedup_skips(),
+            uniform_dedup_skips: uniform_dedup_skips(),
         };
 
         if let Ok(mut guard) = sink.lock() {

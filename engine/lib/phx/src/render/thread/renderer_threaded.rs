@@ -55,9 +55,9 @@ pub struct Renderer {
     /// accumulated over the current frame (microseconds). Complements
     /// `main_thread_wait_us`: this catches mid-frame producer stalls that the
     /// end-of-frame measurement misses.
-    pub(super) send_blocked_us_last_frame: u64,
+    pub(super) send_blocked_us: u64,
     /// Number of `submit()` calls that blocked on a full channel this frame
-    pub(super) send_block_count_last_frame: u64,
+    pub(super) send_block_count: u64,
     /// Highest command-channel occupancy observed this frame
     pub(super) channel_high_water: u64,
     // Optional sink receiving a per-frame snapshot for the stats dashboard.
@@ -191,8 +191,8 @@ impl Renderer {
             stats_rx,
             last_stats: RenderStats::default(),
             main_thread_wait_us: 0,
-            send_blocked_us_last_frame: 0,
-            send_block_count_last_frame: 0,
+            send_blocked_us: 0,
+            send_block_count: 0,
             channel_high_water: 0,
             #[cfg(feature = "stats-server")]
             stats_sink: None,
@@ -226,7 +226,7 @@ impl Renderer {
         if self.running.load(Ordering::Relaxed) {
             // Fast path: non-blocking try_send. Only when the bounded channel
             // is full do we fall back to a blocking send — and only then do we
-            // time the stall, so `send_blocked_us_last_frame` measures real
+            // time the stall, so `send_blocked_us` measures real
             // mid-frame producer blocking (the thing `main_thread_wait_us`
             // misses).
             match self.command_tx.try_send(cmd) {
@@ -247,8 +247,8 @@ impl Renderer {
                         error!("Failed to send render command: {e:?}");
                     }
                     let blocked_us = start.elapsed().as_micros() as u64;
-                    self.send_blocked_us_last_frame += blocked_us;
-                    self.send_block_count_last_frame += 1;
+                    self.send_blocked_us += blocked_us;
+                    self.send_block_count += 1;
                 }
                 Err(TrySendError::Disconnected(_)) => {
                     error!("Failed to send render command: channel disconnected");
@@ -339,8 +339,8 @@ impl Renderer {
         self.publish_stats_snapshot();
 
         // Reset per-frame producer counters for the next frame
-        self.send_blocked_us_last_frame = 0;
-        self.send_block_count_last_frame = 0;
+        self.send_blocked_us = 0;
+        self.send_block_count = 0;
         self.channel_high_water = 0;
     }
 

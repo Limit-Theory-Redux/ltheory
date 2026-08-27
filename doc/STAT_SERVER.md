@@ -62,7 +62,7 @@ the two back into a flat view after fetching. Keys:
 | `render.present_wait_us` | Time blocked in the GL buffer swap (vsync/vblank wait) |
 | `render.recv_wait_us` / `render.recv_wait_count` | Producer starvation: render thread blocked waiting for commands |
 | `main_thread_wait_us` | Time the producer blocked in `end_frame_triple_buffered` (fence throttling) |
-| `send_blocked_us_last_frame` / `send_block_count_last_frame` | Producer blocked pushing commands onto the channel |
+| `send_blocked_us` / `send_block_count` | Producer blocked pushing commands onto the channel |
 | `channel_high_water` | Peak command-queue depth this frame (buffering health) |
 | `frames_in_flight` | Current triple-buffer slot occupancy (0–3) |
 | `render.commands_processed` / `render.draw_calls_cumulative` / `render.state_changes_cumulative` | Cumulative totals since launch |
@@ -76,7 +76,7 @@ the two back into a flat view after fetching. Keys:
 | `render.texture_cache_invalidations` | Cached texture evicted (by shader bind/unbind) |
 | `render.texture_binds_skipped_cumulative` | Cumulative deduped texture binds |
 | `render.uniform_cache_hits` / `render.uniform_cache_misses` | Uniform-location cache: hits avoid driver round-trips |
-| `uniform_dedup_skips_last_frame` | Uniforms skipped because the value didn't change (main-thread producer cost, top level) |
+| `uniform_dedup_skips` | Uniforms skipped because the value didn't change (main-thread producer cost, top level) |
 | `render.shader_bind_commands` | BindShader commands executed |
 | `render.shader_redundant_binds` | Binds where the program was already current (deduped) |
 | `render.shader_distinct_programs` | Distinct GL programs used this frame |

@@ -104,18 +104,18 @@ fn snapshot_to_json(s: &StatsSnapshot) -> String {
         "{{\n\
          \x20 \"server_time_us\": {},\n\
          \x20 \"main_thread_wait_us\": {},\n\
-         \x20 \"send_blocked_us_last_frame\": {},\n\
-         \x20 \"send_block_count_last_frame\": {},\n\
+         \x20 \"send_blocked_us\": {},\n\
+         \x20 \"send_block_count\": {},\n\
          \x20 \"channel_high_water\": {},\n\
          \x20 \"frames_in_flight\": {},\n\
-         \x20 \"uniform_dedup_skips_last_frame\": {},\n",
+         \x20 \"uniform_dedup_skips\": {},\n",
         s.server_time_us,
         s.main_thread_wait_us,
-        s.send_blocked_us_last_frame,
-        s.send_block_count_last_frame,
+        s.send_blocked_us,
+        s.send_block_count,
         s.channel_high_water,
         s.frames_in_flight,
-        s.uniform_dedup_skips_last_frame,
+        s.uniform_dedup_skips,
     );
     // Embed the render-thread stats as a nested object, minus the trailing
     // newline so the closing brace of the outer object lines up.

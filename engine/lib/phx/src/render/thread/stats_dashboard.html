@@ -207,7 +207,7 @@ async function poll() {
     $('c-present').querySelector('.value').textContent = fmt(s.present_wait_us);
     $('c-mainwait').querySelector('.value').textContent = fmt(s.main_thread_wait_us);
     $('c-sendblock').querySelector('.value').textContent =
-      fmt(s.send_blocked_us_last_frame) + ' / ' + fmt(s.send_block_count_last_frame);
+      fmt(s.send_blocked_us) + ' / ' + fmt(s.send_block_count);
     $('c-channel').querySelector('.value').textContent = fmt(s.channel_high_water);
     $('c-channel').className = 'card ' + (s.channel_high_water >= 8000 ? 'bad' : s.channel_high_water >= 4000 ? 'warn' : 'good');
     $('c-fif').querySelector('.value').textContent = fmt(s.frames_in_flight);
@@ -241,10 +241,10 @@ async function poll() {
     $('c-shader').className = 'card ' + (redundantPct > 60 ? 'bad' : redundantPct > 25 ? 'warn' : 'good');
     $('c-shader').querySelector('.sub').textContent =
       redundantPct.toFixed(0) + '% redundant — churn signalled but no GL state change';
-    const unifSent = s.commands > 0 ? s.uniform_dedup_skips_last_frame + s.commands : 0;
+    const unifSent = s.commands > 0 ? s.uniform_dedup_skips + s.commands : 0;
     $('c-ffi').querySelector('.value').textContent =
-      fmt(s.commands) + ' / ' + fmt(s.uniform_dedup_skips_last_frame);
-    const skipPct = unifSent > 0 ? (100 * s.uniform_dedup_skips_last_frame / unifSent) : 0;
+      fmt(s.commands) + ' / ' + fmt(s.uniform_dedup_skips);
+    const skipPct = unifSent > 0 ? (100 * s.uniform_dedup_skips / unifSent) : 0;
     $('c-ffi').className = 'card ' + (skipPct > 40 ? 'warn' : 'good');
     $('c-ffi').querySelector('.sub').textContent =
       skipPct.toFixed(0) + '% of crossings rejected — hidden producer cost';
