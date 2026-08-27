@@ -25,6 +25,102 @@ const DRAW_BUFS: [u32; 4] = [
 ];
 
 impl CommandExecutor {
+    pub(super) fn init_gl_intern(&mut self) {
+        unsafe {
+            // Reset GL state to known defaults - context may have inherited state from main thread
+            gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
+            gl::BindVertexArray(0);
+            gl::UseProgram(0);
+
+            // =================================================================
+            // CRITICAL: Match ALL GL state from glutin_render.rs init_renderer
+            // Missing any of these causes rendering differences!
+            // =================================================================
+
+            // Disable multisampling (matches main thread)
+            gl::Disable(gl::MULTISAMPLE);
+
+            // Culling defaults
+            gl::Disable(gl::CULL_FACE);
+            gl::CullFace(gl::BACK);
+
+            // Pixel store alignment (1 byte for fonts with odd widths)
+            gl::PixelStorei(gl::PACK_ALIGNMENT, 1);
+            gl::PixelStorei(gl::UNPACK_ALIGNMENT, 1);
+
+            // Depth function
+            gl::DepthFunc(gl::LEQUAL);
+
+            // Blending - MUST be enabled for fonts!
+            gl::Enable(gl::BLEND);
+            gl::BlendFunc(gl::ONE, gl::ZERO);
+
+            // Seamless cubemap filtering
+            gl::Enable(gl::TEXTURE_CUBE_MAP_SEAMLESS);
+
+            // Line rendering
+            gl::Disable(gl::LINE_SMOOTH);
+            gl::Hint(gl::LINE_SMOOTH_HINT, gl::FASTEST);
+            #[cfg(not(target_os = "macos"))]
+            gl::LineWidth(2.0f32);
+
+            // =================================================================
+            // Match RenderState::push_all_defaults() initial values
+            // =================================================================
+
+            // Depth test disabled by default (push_depth_test(false))
+            gl::Disable(gl::DEPTH_TEST);
+
+            // Depth writable true by default (push_depth_writable(true))
+            gl::DepthMask(gl::TRUE);
+
+            // Wireframe disabled by default (push_wireframe(false))
+            gl::PolygonMode(gl::FRONT_AND_BACK, gl::FILL);
+
+            // Log initial state for debugging
+            let mut current_fbo: i32 = 0;
+            let mut current_vao: i32 = 0;
+            let mut viewport: [i32; 4] = [0; 4];
+            gl::GetIntegerv(gl::DRAW_FRAMEBUFFER_BINDING, &mut current_fbo);
+            gl::GetIntegerv(gl::VERTEX_ARRAY_BINDING, &mut current_vao);
+            gl::GetIntegerv(gl::VIEWPORT, viewport.as_mut_ptr());
+            info!(
+                "Render thread GL state after reset: FBO={}, VAO={}, viewport={:?}",
+                current_fbo, current_vao, viewport
+            );
+
+            // Create VAO/VBO for immediate mode rendering
+            gl::GenVertexArrays(1, &mut self.imm_vao);
+            gl::GenBuffers(1, &mut self.imm_vbo);
+
+            gl::BindVertexArray(self.imm_vao);
+            gl::BindBuffer(gl::ARRAY_BUFFER, self.imm_vbo);
+
+            // Setup vertex attributes for ImmVertex: pos (3f), normal (3f), uv (2f), color (4f)
+            // Attribute locations must match shader.rs BindAttribLocation calls:
+            //   0 = vertex_position, 1 = vertex_normal, 2 = vertex_uv, 3 = vertex_color
+            const STRIDE: i32 = std::mem::size_of::<ImmVertex>() as i32; // 12 floats = 48 bytes
+
+            // Position attribute (location 0 = vertex_position)
+            gl::EnableVertexAttribArray(0);
+            gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, STRIDE, std::ptr::null());
+
+            // Normal attribute (location 1 = vertex_normal)
+            gl::EnableVertexAttribArray(1);
+            gl::VertexAttribPointer(1, 3, gl::FLOAT, gl::FALSE, STRIDE, (3 * 4) as *const _);
+
+            // UV attribute (location 2 = vertex_uv)
+            gl::EnableVertexAttribArray(2);
+            gl::VertexAttribPointer(2, 2, gl::FLOAT, gl::FALSE, STRIDE, (6 * 4) as *const _);
+
+            // Color attribute (location 3 = vertex_color)
+            gl::EnableVertexAttribArray(3);
+            gl::VertexAttribPointer(3, 4, gl::FLOAT, gl::FALSE, STRIDE, (8 * 4) as *const _);
+
+            gl::BindVertexArray(0);
+        }
+    }
+
     pub(super) fn cmd_set_viewport(&self, x: i32, y: i32, width: i32, height: i32) {
         unsafe {
             gl::Viewport(x, y, width, height);

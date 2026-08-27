@@ -23,7 +23,7 @@ function Loader.defineType()
             void           InstanceBatch_Draw          (InstanceBatch*, Renderer* r);
             void           InstanceBatch_Clear         (InstanceBatch*);
             void           InstanceBatch_Flush         (InstanceBatch*, Renderer* r);
-            int            InstanceBatch_InstanceCount (InstanceBatch const*);
+            uint64         InstanceBatch_InstanceCount (InstanceBatch const*);
         ]]
     end
 

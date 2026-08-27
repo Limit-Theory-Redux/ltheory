@@ -1,3 +1,6 @@
+const DEFAULT_COMMAND_BUFFER_SIZE: usize = 8192;
+const DEFAULT_FENCE_BUFFER_SIZE: usize = 64;
+
 /// Configuration for the render thread
 #[derive(Debug, Clone)]
 pub struct RenderThreadConfig {
@@ -11,8 +14,8 @@ impl Default for RenderThreadConfig {
     fn default() -> Self {
         Self {
             // Buffer for ~2-3 frames worth of commands
-            command_buffer_size: 8192,
-            fence_buffer_size: 64,
+            command_buffer_size: DEFAULT_COMMAND_BUFFER_SIZE,
+            fence_buffer_size: DEFAULT_FENCE_BUFFER_SIZE,
         }
     }
 }

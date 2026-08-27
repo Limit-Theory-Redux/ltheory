@@ -9,7 +9,9 @@ use std::sync::Arc;
 use crossbeam::channel::Sender;
 
 use super::command_category::CommandCategory;
-use crate::render::{BlendMode, CullFace, TexFilter, TexFormat, TexWrapMode, gl};
+use crate::render::{
+    BlendMode, CullFace, InstanceData, TexFilter, TexFormat, TexWrapMode, VertexFormat, gl,
+};
 
 /// A handle to a GPU resource (shader, texture, buffer, etc.)
 /// The actual GL handle lives on the render thread.
@@ -20,7 +22,7 @@ impl GpuHandle {
     pub const INVALID: GpuHandle = GpuHandle(0);
 
     pub fn is_valid(&self) -> bool {
-        self.0 != 0
+        self.0 != Self::INVALID.0
     }
 }
 
@@ -64,13 +66,13 @@ pub enum CmdPrimitiveType {
 impl CmdPrimitiveType {
     pub fn to_gl(&self) -> u32 {
         match self {
-            CmdPrimitiveType::Points => gl::POINTS,
-            CmdPrimitiveType::Lines => gl::LINES,
-            CmdPrimitiveType::LineStrip => gl::LINE_STRIP,
-            CmdPrimitiveType::Triangles => gl::TRIANGLES,
-            CmdPrimitiveType::TriangleStrip => gl::TRIANGLE_STRIP,
-            CmdPrimitiveType::TriangleFan => gl::TRIANGLE_FAN,
-            CmdPrimitiveType::Quads => gl::TRIANGLES, // Quads converted to triangles
+            Self::Points => gl::POINTS,
+            Self::Lines => gl::LINES,
+            Self::LineStrip => gl::LINE_STRIP,
+            Self::Triangles => gl::TRIANGLES,
+            Self::TriangleStrip => gl::TRIANGLE_STRIP,
+            Self::TriangleFan => gl::TRIANGLE_FAN,
+            Self::Quads => gl::TRIANGLES, // Quads converted to triangles
         }
     }
 }
@@ -83,40 +85,6 @@ pub struct ImmVertex {
     pub normal: [f32; 3],
     pub uv: [f32; 2],
     pub color: [f32; 4],
-}
-
-/// Per-instance data for instanced rendering
-/// Layout: model matrix (64 bytes) + color (16 bytes) + scale (4 bytes) = 84 bytes per instance
-/// The Lua-side cdata typedef is declared manually in ffi_ext/Mesh.lua
-/// (luajit_ffi_gen only supports impl/enum blocks, not value structs).
-#[derive(Debug, Clone, Copy)]
-#[repr(C)]
-pub struct InstanceData {
-    /// Model matrix (column-major, 4x4)
-    pub model_matrix: [f32; 16],
-    /// Per-instance color (RGBA)
-    pub color: [f32; 4],
-    /// Per-instance uniform scale (asteroid size diversity; also used by
-    /// the FDM fragment lookup via a flat varying).
-    pub scale: f32,
-}
-
-impl InstanceData {
-    pub fn new(model_matrix: [f32; 16], color: [f32; 4], scale: f32) -> Self {
-        Self {
-            model_matrix,
-            color,
-            scale,
-        }
-    }
-
-    pub fn from_transform_color(transform: &[f32; 16], r: f32, g: f32, b: f32, a: f32) -> Self {
-        Self {
-            model_matrix: *transform,
-            color: [r, g, b, a],
-            scale: 1.0,
-        }
-    }
 }
 
 /// A render command that can be executed on the render thread.
@@ -754,28 +722,6 @@ pub enum RenderCommand {
 
     /// Shutdown render thread
     Shutdown,
-}
-
-/// Vertex format description for mesh creation
-#[derive(Debug, Clone)]
-pub struct VertexFormat {
-    pub has_position: bool,
-    pub has_normal: bool,
-    pub has_uv: bool,
-    pub has_color: bool,
-    pub stride: u32,
-}
-
-impl Default for VertexFormat {
-    fn default() -> Self {
-        Self {
-            has_position: true,
-            has_normal: true,
-            has_uv: true,
-            has_color: false,
-            stride: 32, // 3 floats pos + 3 floats normal + 2 floats uv = 32 bytes
-        }
-    }
 }
 
 impl RenderCommand {

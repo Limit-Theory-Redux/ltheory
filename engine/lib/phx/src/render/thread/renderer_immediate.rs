@@ -13,7 +13,7 @@ use crate::render::{
 use crate::window::WindowGlContext;
 
 pub struct Renderer {
-    /// Executes commands inline on whichever thread calls `submit`.
+    /// Executes commands inline
     executor: CommandExecutor,
     /// Generic renderer data
     pub(crate) data: RendererData,

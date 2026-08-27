@@ -1,7 +1,6 @@
 //! Coarse cost categories for render commands.
 //!
-//! Extracted from `render_command` so the categorization table lives on
-//! its own; [`RenderCommand::category`] maps each command variant here.
+//! [`RenderCommand::category`] maps each command variant here.
 
 /// Coarse cost category for a render command, used by the stats dashboard
 /// to show where render-thread time goes. Order matters: `ALL.len()` and
@@ -37,35 +36,35 @@ pub enum CommandCategory {
 }
 
 impl CommandCategory {
-    pub const ALL: [CommandCategory; 12] = [
-        CommandCategory::State,
-        CommandCategory::Shader,
-        CommandCategory::Uniform,
-        CommandCategory::Texture,
-        CommandCategory::TextureData,
-        CommandCategory::Readback,
-        CommandCategory::Framebuffer,
-        CommandCategory::Mesh,
-        CommandCategory::Draw,
-        CommandCategory::Resource,
-        CommandCategory::Ubo,
-        CommandCategory::Sync,
+    pub const ALL: [Self; 12] = [
+        Self::State,
+        Self::Shader,
+        Self::Uniform,
+        Self::Texture,
+        Self::TextureData,
+        Self::Readback,
+        Self::Framebuffer,
+        Self::Mesh,
+        Self::Draw,
+        Self::Resource,
+        Self::Ubo,
+        Self::Sync,
     ];
 
     pub fn name(&self) -> &'static str {
         match self {
-            CommandCategory::State => "state",
-            CommandCategory::Shader => "shader",
-            CommandCategory::Uniform => "uniform",
-            CommandCategory::Texture => "texture",
-            CommandCategory::TextureData => "texture_data",
-            CommandCategory::Readback => "readback",
-            CommandCategory::Framebuffer => "framebuffer",
-            CommandCategory::Mesh => "mesh",
-            CommandCategory::Draw => "draw",
-            CommandCategory::Resource => "resource",
-            CommandCategory::Ubo => "ubo",
-            CommandCategory::Sync => "sync",
+            Self::State => "state",
+            Self::Shader => "shader",
+            Self::Uniform => "uniform",
+            Self::Texture => "texture",
+            Self::TextureData => "texture_data",
+            Self::Readback => "readback",
+            Self::Framebuffer => "framebuffer",
+            Self::Mesh => "mesh",
+            Self::Draw => "draw",
+            Self::Resource => "resource",
+            Self::Ubo => "ubo",
+            Self::Sync => "sync",
         }
     }
 
