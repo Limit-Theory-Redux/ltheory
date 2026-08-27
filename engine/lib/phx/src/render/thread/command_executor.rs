@@ -127,11 +127,10 @@ pub struct CommandExecutor {
     pub(super) frame_start: std::time::Instant,
     /// Per-frame counters, grouped in one plain `RenderStats`. Every executed
     /// command bumps its counter here; `SwapBuffers` copies the group into
-    /// `last_stats` and resets it for the next frame. Field names carry the
-    /// `_last_frame` suffix because that is how they surface once published.
+    /// `last_stats` and resets it for the next frame.
     pub(super) this_frame_stats: RenderStats,
     /// Per-category executor timing flag (dashboard mode). Timing results land
-    /// in `this_frame_stats.category_time_us_last_frame`; only measured while
+    /// in `this_frame_stats.category_time_us`; only measured while
     /// this is true so normal runs don't pay the clock overhead. Shared with
     /// the main-thread `Renderer` so attaching the stats sink can flip it.
     pub(super) category_timing: Arc<AtomicBool>,
@@ -223,21 +222,21 @@ impl CommandExecutor {
         let mut reply = CommandReply::None;
 
         self.stats.commands_processed += 1;
-        self.this_frame_stats.commands_last_frame += 1;
+        self.this_frame_stats.commands += 1;
 
         if cmd.is_draw_call() {
             self.stats.draw_calls += 1;
-            self.this_frame_stats.draw_calls_last_frame += 1;
+            self.this_frame_stats.draw_calls += 1;
         }
         if cmd.is_state_change() {
             self.stats.state_changes += 1;
-            self.this_frame_stats.state_changes_last_frame += 1;
+            self.this_frame_stats.state_changes += 1;
         }
 
         // Per-category accumulation for the stats dashboard
         let category = cmd.category();
         let cat_idx = category.index();
-        self.this_frame_stats.category_counts_last_frame[cat_idx] += 1;
+        self.this_frame_stats.category_counts[cat_idx] += 1;
         let timing_start = if self.category_timing.load(Ordering::Relaxed) {
             Some(std::time::Instant::now())
         } else {
@@ -715,7 +714,7 @@ impl CommandExecutor {
                 index_count,
                 primitive,
             } => {
-                self.this_frame_stats.draw_mesh_calls_last_frame += 1;
+                self.this_frame_stats.draw_mesh_calls += 1;
                 self.cmd_draw_mesh(vao, index_count, primitive);
             }
 
@@ -725,7 +724,7 @@ impl CommandExecutor {
                 instance_count,
                 primitive,
             } => {
-                self.this_frame_stats.draw_instanced_calls_last_frame += 1;
+                self.this_frame_stats.draw_instanced_calls += 1;
                 self.cmd_draw_mesh_instanced(vao, index_count, instance_count, primitive);
             }
 
@@ -734,7 +733,7 @@ impl CommandExecutor {
                 index_count,
                 primitive,
             } => {
-                self.this_frame_stats.draw_mesh_calls_last_frame += 1;
+                self.this_frame_stats.draw_mesh_calls += 1;
                 self.cmd_draw_mesh_by_resource(id, index_count, primitive);
             }
 
@@ -744,7 +743,7 @@ impl CommandExecutor {
                 instance_count,
                 primitive,
             } => {
-                self.this_frame_stats.draw_instanced_calls_last_frame += 1;
+                self.this_frame_stats.draw_instanced_calls += 1;
                 self.cmd_draw_mesh_instanced_by_resource(
                     id,
                     index_count,
@@ -759,8 +758,8 @@ impl CommandExecutor {
                 instances,
                 primitive,
             } => {
-                self.this_frame_stats.draw_instanced_calls_last_frame += 1;
-                self.this_frame_stats.instanced_data_items_last_frame += instances.len() as u64;
+                self.this_frame_stats.draw_instanced_calls += 1;
+                self.this_frame_stats.instanced_data_items += instances.len() as u64;
                 self.cmd_draw_instanced_with_data(mesh_id, index_count, instances, primitive);
             }
 
@@ -770,8 +769,8 @@ impl CommandExecutor {
                 indices,
                 primitive,
             } => {
-                self.this_frame_stats.draw_instanced_calls_last_frame += 1;
-                self.this_frame_stats.instanced_data_items_last_frame += indices.len() as u64;
+                self.this_frame_stats.draw_instanced_calls += 1;
+                self.this_frame_stats.instanced_data_items += indices.len() as u64;
                 self.cmd_draw_instanced_indices(mesh_id, index_count, indices, primitive);
             }
 
@@ -781,8 +780,8 @@ impl CommandExecutor {
                 primitive,
                 vertices,
             } => {
-                self.this_frame_stats.draw_immediate_calls_last_frame += 1;
-                self.this_frame_stats.immediate_vertices_last_frame += vertices.len() as u64;
+                self.this_frame_stats.draw_immediate_calls += 1;
+                self.this_frame_stats.immediate_vertices += vertices.len() as u64;
                 self.cmd_draw_immediate(primitive, &vertices);
             }
 
@@ -876,8 +875,7 @@ impl CommandExecutor {
 
         // Accumulate per-category executor time (dashboard mode only)
         if let Some(start) = timing_start {
-            self.this_frame_stats.category_time_us_last_frame[cat_idx] +=
-                start.elapsed().as_micros() as u64;
+            self.this_frame_stats.category_time_us[cat_idx] += start.elapsed().as_micros() as u64;
         }
 
         reply

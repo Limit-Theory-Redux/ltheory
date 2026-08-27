@@ -27,8 +27,8 @@ fn render_stats_to_json(r: &RenderStats) -> String {
             format!(
                 "\"{}\": {{\"count\": {}, \"time_us\": {}}}",
                 c.name(),
-                r.category_counts_last_frame[c.index()],
-                r.category_time_us_last_frame[c.index()]
+                r.category_counts[c.index()],
+                r.category_time_us[c.index()]
             )
         })
         .collect();
@@ -36,63 +36,63 @@ fn render_stats_to_json(r: &RenderStats) -> String {
     format!(
         "{{\n\
          \x20 \"commands_processed\": {},\n\
-         \x20 \"draw_calls\": {},\n\
-         \x20 \"state_changes\": {},\n\
+         \x20 \"draw_calls_cumulative\": {},\n\
+         \x20 \"state_changes_cumulative\": {},\n\
          \x20 \"frame_count\": {},\n\
          \x20 \"last_frame_time_us\": {},\n\
-         \x20 \"commands_last_frame\": {},\n\
-         \x20 \"draw_calls_last_frame\": {},\n\
-         \x20 \"state_changes_last_frame\": {},\n\
+         \x20 \"commands\": {},\n\
+         \x20 \"draw_calls\": {},\n\
+         \x20 \"state_changes\": {},\n\
          \x20 \"present_wait_us\": {},\n\
-         \x20 \"texture_bind_calls_last_frame\": {},\n\
-         \x20 \"texture_binds_skipped_last_frame\": {},\n\
-         \x20 \"texture_cache_invalidations_last_frame\": {},\n\
-         \x20 \"texture_invalidations_on_shader_bind_last_frame\": {},\n\
-         \x20 \"texture_invalidations_on_shader_unbind_last_frame\": {},\n\
-         \x20 \"draw_mesh_calls_last_frame\": {},\n\
-         \x20 \"draw_immediate_calls_last_frame\": {},\n\
-         \x20 \"draw_instanced_calls_last_frame\": {},\n\
-         \x20 \"immediate_vertices_last_frame\": {},\n\
-         \x20 \"instanced_data_items_last_frame\": {},\n\
-         \x20 \"vertices_drawn_last_frame\": {},\n\
-         \x20 \"uniform_cache_hits_last_frame\": {},\n\
-         \x20 \"uniform_cache_misses_last_frame\": {},\n\
+         \x20 \"texture_bind_calls\": {},\n\
          \x20 \"texture_binds_skipped\": {},\n\
-         \x20 \"recv_wait_us_last_frame\": {},\n\
-         \x20 \"recv_wait_count_last_frame\": {},\n\
-         \x20 \"shader_bind_commands_last_frame\": {},\n\
-         \x20 \"shader_redundant_binds_last_frame\": {},\n\
-         \x20 \"shader_distinct_programs_last_frame\": {},\n\
+         \x20 \"texture_cache_invalidations\": {},\n\
+         \x20 \"texture_invalidations_on_shader_bind\": {},\n\
+         \x20 \"texture_invalidations_on_shader_unbind\": {},\n\
+         \x20 \"draw_mesh_calls\": {},\n\
+         \x20 \"draw_immediate_calls\": {},\n\
+         \x20 \"draw_instanced_calls\": {},\n\
+         \x20 \"immediate_vertices\": {},\n\
+         \x20 \"instanced_data_items\": {},\n\
+         \x20 \"vertices_drawn\": {},\n\
+         \x20 \"uniform_cache_hits\": {},\n\
+         \x20 \"uniform_cache_misses\": {},\n\
+         \x20 \"texture_binds_skipped_cumulative\": {},\n\
+         \x20 \"recv_wait_us\": {},\n\
+         \x20 \"recv_wait_count\": {},\n\
+         \x20 \"shader_bind_commands\": {},\n\
+         \x20 \"shader_redundant_binds\": {},\n\
+         \x20 \"shader_distinct_programs\": {},\n\
          \x20 \"categories\": {{\n{}\x20 }}\n\
          }}",
         r.commands_processed,
-        r.draw_calls,
-        r.state_changes,
+        r.draw_calls_cumulative,
+        r.state_changes_cumulative,
         r.frame_count,
         r.last_frame_time_us,
-        r.commands_last_frame,
-        r.draw_calls_last_frame,
-        r.state_changes_last_frame,
+        r.commands,
+        r.draw_calls,
+        r.state_changes,
         r.present_wait_us,
-        r.texture_bind_calls_last_frame,
-        r.texture_binds_skipped_last_frame,
-        r.texture_cache_invalidations_last_frame,
-        r.texture_invalidations_on_shader_bind_last_frame,
-        r.texture_invalidations_on_shader_unbind_last_frame,
-        r.draw_mesh_calls_last_frame,
-        r.draw_immediate_calls_last_frame,
-        r.draw_instanced_calls_last_frame,
-        r.immediate_vertices_last_frame,
-        r.instanced_data_items_last_frame,
-        r.vertices_drawn_last_frame,
-        r.uniform_cache_hits_last_frame,
-        r.uniform_cache_misses_last_frame,
+        r.texture_bind_calls,
         r.texture_binds_skipped,
-        r.recv_wait_us_last_frame,
-        r.recv_wait_count_last_frame,
-        r.shader_bind_commands_last_frame,
-        r.shader_redundant_binds_last_frame,
-        r.shader_distinct_programs_last_frame,
+        r.texture_cache_invalidations,
+        r.texture_invalidations_on_shader_bind,
+        r.texture_invalidations_on_shader_unbind,
+        r.draw_mesh_calls,
+        r.draw_immediate_calls,
+        r.draw_instanced_calls,
+        r.immediate_vertices,
+        r.instanced_data_items,
+        r.vertices_drawn,
+        r.uniform_cache_hits,
+        r.uniform_cache_misses,
+        r.texture_binds_skipped_cumulative,
+        r.recv_wait_us,
+        r.recv_wait_count,
+        r.shader_bind_commands,
+        r.shader_redundant_binds,
+        r.shader_distinct_programs,
         cats.join(",\n\x20\x20"),
     )
 }

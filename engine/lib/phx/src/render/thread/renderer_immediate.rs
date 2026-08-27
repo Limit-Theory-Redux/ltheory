@@ -762,12 +762,12 @@ impl Renderer {
 
     /// Get total draw calls since start
     pub fn get_draw_calls(&mut self) -> u64 {
-        self.executor.stats_snapshot().draw_calls
+        self.executor.stats_snapshot().draw_calls_cumulative
     }
 
     /// Get total state changes since start
     pub fn get_state_changes(&mut self) -> u64 {
-        self.executor.stats_snapshot().state_changes
+        self.executor.stats_snapshot().state_changes_cumulative
     }
 
     /// Get total frames rendered
@@ -782,12 +782,12 @@ impl Renderer {
 
     /// Get commands processed in last frame
     pub fn get_commands_last_frame(&mut self) -> u64 {
-        self.executor.stats_snapshot().commands_last_frame
+        self.executor.stats_snapshot().commands
     }
 
     /// Get draw calls in last frame
     pub fn get_draw_calls_last_frame(&mut self) -> u64 {
-        self.executor.stats_snapshot().draw_calls_last_frame
+        self.executor.stats_snapshot().draw_calls
     }
 
     /// Always zero - immediate mode never blocks waiting on a render thread.
@@ -797,7 +797,9 @@ impl Renderer {
 
     /// Get total texture binds skipped due to caching
     pub fn get_texture_binds_skipped(&mut self) -> u64 {
-        self.executor.stats_snapshot().texture_binds_skipped
+        self.executor
+            .stats_snapshot()
+            .texture_binds_skipped_cumulative
     }
 
     /// Reload a shader inline and return the result directly - no channel

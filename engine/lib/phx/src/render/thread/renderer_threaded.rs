@@ -378,13 +378,13 @@ impl Renderer {
     /// Get total draw calls since start
     pub fn get_draw_calls(&mut self) -> u64 {
         self.refresh_stats();
-        self.last_stats.draw_calls
+        self.last_stats.draw_calls_cumulative
     }
 
     /// Get total state changes since start
     pub fn get_state_changes(&mut self) -> u64 {
         self.refresh_stats();
-        self.last_stats.state_changes
+        self.last_stats.state_changes_cumulative
     }
 
     /// Get total frames rendered
@@ -402,13 +402,13 @@ impl Renderer {
     /// Get commands processed in last frame
     pub fn get_commands_last_frame(&mut self) -> u64 {
         self.refresh_stats();
-        self.last_stats.commands_last_frame
+        self.last_stats.commands
     }
 
     /// Get draw calls in last frame
     pub fn get_draw_calls_last_frame(&mut self) -> u64 {
         self.refresh_stats();
-        self.last_stats.draw_calls_last_frame
+        self.last_stats.draw_calls
     }
 
     /// Get main thread wait time in microseconds (time spent waiting for render thread)
@@ -419,7 +419,7 @@ impl Renderer {
     /// Get total texture binds skipped due to caching
     pub fn get_texture_binds_skipped(&mut self) -> u64 {
         self.refresh_stats();
-        self.last_stats.texture_binds_skipped
+        self.last_stats.texture_binds_skipped_cumulative
     }
 
     /// Reload a shader on the render thread.

@@ -178,11 +178,11 @@ impl CommandExecutor {
     }
 
     pub(super) fn cmd_bind_shader(&mut self, handle: super::GpuHandle) {
-        self.this_frame_stats.shader_bind_commands_last_frame += 1;
+        self.this_frame_stats.shader_bind_commands += 1;
         if handle.0 == self.current_program {
-            self.this_frame_stats.shader_redundant_binds_last_frame += 1;
+            self.this_frame_stats.shader_redundant_binds += 1;
         } else {
-            self.this_frame_stats.shader_distinct_programs_last_frame += 1;
+            self.this_frame_stats.shader_distinct_programs += 1;
             // NOTE: deliberately do NOT invalidate the texture cache here.
             // glUseProgram does not touch texture bindings; the cache keys
             // on (slot, handle, type) and self-corrects when a different
@@ -218,11 +218,11 @@ impl CommandExecutor {
         });
 
         if let Some(p) = program {
-            self.this_frame_stats.shader_bind_commands_last_frame += 1;
+            self.this_frame_stats.shader_bind_commands += 1;
             if p == self.current_program {
-                self.this_frame_stats.shader_redundant_binds_last_frame += 1;
+                self.this_frame_stats.shader_redundant_binds += 1;
             } else {
-                self.this_frame_stats.shader_distinct_programs_last_frame += 1;
+                self.this_frame_stats.shader_distinct_programs += 1;
                 // NOTE: no texture-cache invalidation here either - see
                 // cmd_bind_shader: glUseProgram does not affect bindings.
                 unsafe {
@@ -241,8 +241,7 @@ impl CommandExecutor {
         // remains valid across program switches and self-corrects on any
         // real texture change. Previously this wiped the cache on every
         // shader stop (~2k/frame), destroying all reuse.
-        self.this_frame_stats
-            .texture_invalidations_on_shader_unbind_last_frame += 1;
+        self.this_frame_stats.texture_invalidations_on_shader_unbind += 1;
         unsafe {
             gl::UseProgram(0);
         }
@@ -1282,7 +1281,7 @@ impl CommandExecutor {
             );
             gl::BindVertexArray(0);
         }
-        self.this_frame_stats.vertices_drawn_last_frame += index_count.max(0) as u64;
+        self.this_frame_stats.vertices_drawn += index_count.max(0) as u64;
     }
 
     pub(super) fn cmd_draw_mesh_instanced(
@@ -1303,7 +1302,7 @@ impl CommandExecutor {
             );
             gl::BindVertexArray(0);
         }
-        self.this_frame_stats.vertices_drawn_last_frame +=
+        self.this_frame_stats.vertices_drawn +=
             (index_count.max(0) as u64) * (instance_count.max(0) as u64);
     }
 
@@ -1324,7 +1323,7 @@ impl CommandExecutor {
                 );
                 gl::BindVertexArray(0);
             }
-            self.this_frame_stats.vertices_drawn_last_frame += index_count.max(0) as u64;
+            self.this_frame_stats.vertices_drawn += index_count.max(0) as u64;
         } else {
             warn!("DrawMeshByResource: resource {id:?} not found");
         }
@@ -1349,7 +1348,7 @@ impl CommandExecutor {
                 );
                 gl::BindVertexArray(0);
             }
-            self.this_frame_stats.vertices_drawn_last_frame +=
+            self.this_frame_stats.vertices_drawn +=
                 (index_count.max(0) as u64) * (instance_count.max(0) as u64);
         } else {
             warn!("DrawMeshInstancedByResource: resource {id:?} not found");
@@ -1476,8 +1475,8 @@ impl CommandExecutor {
             gl::BindBuffer(gl::ARRAY_BUFFER, 0);
         }
         // Note: draw call counting is handled by is_draw_call() in execute()
-        self.this_frame_stats.instanced_data_items_last_frame += instances.len() as u64;
-        self.this_frame_stats.vertices_drawn_last_frame +=
+        self.this_frame_stats.instanced_data_items += instances.len() as u64;
+        self.this_frame_stats.vertices_drawn +=
             (index_count.max(0) as u64) * (instances.len() as u64);
     }
 
@@ -1569,8 +1568,8 @@ impl CommandExecutor {
             gl::BindBuffer(gl::ARRAY_BUFFER, 0);
         }
         // Note: draw call counting is handled by is_draw_call() in execute()
-        self.this_frame_stats.instanced_data_items_last_frame += indices.len() as u64;
-        self.this_frame_stats.vertices_drawn_last_frame +=
+        self.this_frame_stats.instanced_data_items += indices.len() as u64;
+        self.this_frame_stats.vertices_drawn +=
             (index_count.max(0) as u64) * (indices.len() as u64);
     }
 
@@ -1764,7 +1763,7 @@ impl CommandExecutor {
             frame_count: self.stats.frame_count,
             last_frame_time_us: frame_time_us,
             present_wait_us: 0,
-            texture_binds_skipped: self.texture_binds_skipped,
+            texture_binds_skipped_cumulative: self.texture_binds_skipped,
             ..self.this_frame_stats.clone()
         };
 
@@ -1883,7 +1882,7 @@ impl CommandExecutor {
 
             gl::BindVertexArray(0);
         }
-        self.this_frame_stats.vertices_drawn_last_frame += vertices.len() as u64;
+        self.this_frame_stats.vertices_drawn += vertices.len() as u64;
     }
 
     pub(super) fn create_shader(
@@ -2552,7 +2551,7 @@ impl CommandExecutor {
                 gl::BindTexture(tex_type.to_gl_target(), handle);
                 gl::ActiveTexture(gl::TEXTURE0);
             }
-            self.this_frame_stats.texture_bind_calls_last_frame += 1;
+            self.this_frame_stats.texture_bind_calls += 1;
             return true;
         }
 
@@ -2562,7 +2561,7 @@ impl CommandExecutor {
         // Check if already bound
         if current.handle == handle && current.tex_type == Some(tex_type) {
             self.texture_binds_skipped += 1;
-            self.this_frame_stats.texture_binds_skipped_last_frame += 1;
+            self.this_frame_stats.texture_binds_skipped += 1;
             return false;
         }
 
@@ -2573,7 +2572,7 @@ impl CommandExecutor {
             gl::ActiveTexture(gl::TEXTURE0);
         }
 
-        self.this_frame_stats.texture_bind_calls_last_frame += 1;
+        self.this_frame_stats.texture_bind_calls += 1;
         self.texture_bindings[slot_idx] = new_binding;
         true
     }
@@ -2586,7 +2585,7 @@ impl CommandExecutor {
             if current.handle == 0 {
                 // Already unbound
                 self.texture_binds_skipped += 1;
-                self.this_frame_stats.texture_binds_skipped_last_frame += 1;
+                self.this_frame_stats.texture_binds_skipped += 1;
                 return;
             }
 
@@ -2597,7 +2596,7 @@ impl CommandExecutor {
                     gl::BindTexture(tex_type.to_gl_target(), 0);
                     gl::ActiveTexture(gl::TEXTURE0);
                 }
-                self.this_frame_stats.texture_bind_calls_last_frame += 1;
+                self.this_frame_stats.texture_bind_calls += 1;
             }
 
             self.texture_bindings[slot_idx] = TextureBinding::unbound();
@@ -2608,7 +2607,7 @@ impl CommandExecutor {
                 gl::BindTexture(gl::TEXTURE_2D, 0);
                 gl::ActiveTexture(gl::TEXTURE0);
             }
-            self.this_frame_stats.texture_bind_calls_last_frame += 1;
+            self.this_frame_stats.texture_bind_calls += 1;
         }
     }
 
@@ -2655,11 +2654,11 @@ impl CommandExecutor {
             .or_insert_with(|| HashMap::with_capacity(32));
 
         if let Some(&loc) = cache.get(name) {
-            self.this_frame_stats.uniform_cache_hits_last_frame += 1;
+            self.this_frame_stats.uniform_cache_hits += 1;
             return loc;
         }
 
-        self.this_frame_stats.uniform_cache_misses_last_frame += 1;
+        self.this_frame_stats.uniform_cache_misses += 1;
         let c_name = std::ffi::CString::new(name).unwrap_or_default();
         let loc = unsafe { gl::GetUniformLocation(program, c_name.as_ptr()) };
 
