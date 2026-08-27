@@ -87,6 +87,26 @@ pub struct ImmVertex {
     pub color: [f32; 4],
 }
 
+/// Batched per-instance uniforms: mWorld + mWorldIT + scale in one
+/// command. The three per-mesh matrix/scale sends dominate the uniform
+/// command stream (3 commands + 3 FFI crossings per mesh); batching them
+/// cuts that to 1 command + 1 crossing. mWorldIT is derived from the
+/// already-computed mWorld (inverse) instead of a rebuild + fresh invert
+/// on the Lua side.
+///
+/// Boxed in `RenderCommand::SetInstanceUniforms` because this is by far the
+/// largest command payload (~144 bytes) and would otherwise force every
+/// other variant to pay for its size.
+#[derive(Debug, Clone)]
+pub struct InstanceUniformsCmd {
+    pub world_loc: i32,
+    pub world_it_loc: i32,
+    pub scale_loc: i32,
+    pub world: [f32; 16],
+    pub world_it: [f32; 16],
+    pub scale: f32,
+}
+
 /// A render command that can be executed on the render thread.
 ///
 /// Commands are designed to be:
@@ -176,20 +196,9 @@ pub enum RenderCommand {
     /// Set mat4 uniform
     SetUniformMat4 { location: i32, value: [f32; 16] },
 
-    /// Batched per-instance uniforms: mWorld + mWorldIT + scale in one
-    /// command. The three per-mesh matrix/scale sends dominate the uniform
-    /// command stream (3 commands + 3 FFI crossings per mesh); batching them
-    /// cuts that to 1 command + 1 crossing. mWorldIT is derived from the
-    /// already-computed mWorld (inverse) instead of a rebuild + fresh invert
-    /// on the Lua side.
-    SetInstanceUniforms {
-        world_loc: i32,
-        world_it_loc: i32,
-        scale_loc: i32,
-        world: [f32; 16],
-        world_it: [f32; 16],
-        scale: f32,
-    },
+    /// Batched per-instance uniforms: mWorld + mWorldIT + scale (see
+    /// `InstanceUniformsCmd`).
+    SetInstanceUniforms(Box<InstanceUniformsCmd>),
 
     // === Name-based Uniform Operations (for command mode) ===
     // These look up uniform location by name on the render thread,
@@ -759,7 +768,7 @@ impl RenderCommand {
             | SetUniformFloat3 { .. }
             | SetUniformFloat4 { .. }
             | SetUniformMat4 { .. }
-            | SetInstanceUniforms { .. }
+            | SetInstanceUniforms(_)
             | SetUniformIntByName { .. }
             | SetUniformInt2ByName { .. }
             | SetUniformInt3ByName { .. }

@@ -324,17 +324,10 @@ impl CommandExecutor {
                 self.cmd_set_uniform_mat4(location, value);
             }
 
-            RenderCommand::SetInstanceUniforms {
-                world_loc,
-                world_it_loc,
-                scale_loc,
-                world,
-                world_it,
-                scale,
-            } => {
-                self.cmd_set_uniform_mat4(world_loc, world);
-                self.cmd_set_uniform_mat4(world_it_loc, world_it);
-                self.cmd_set_uniform_float(scale_loc, scale);
+            RenderCommand::SetInstanceUniforms(cmd) => {
+                self.cmd_set_uniform_mat4(cmd.world_loc, cmd.world);
+                self.cmd_set_uniform_mat4(cmd.world_it_loc, cmd.world_it);
+                self.cmd_set_uniform_float(cmd.scale_loc, cmd.scale);
             }
 
             // === Name-based Uniform Operations ===

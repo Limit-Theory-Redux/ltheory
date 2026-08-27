@@ -11,10 +11,10 @@ use crate::render::StatsSink;
 use crate::render::thread::{RenderThread, process_batch_intern};
 use crate::render::{
     BlendMode, ClipManager, CmdPrimitiveType, CullFace, DrawState, GpuHandle, ImmVertex,
-    InstanceData, PrimitiveBuilder, RenderCommand, RenderStateIntern, RenderStats,
-    RenderTargetStack, RenderThreadConfig, RenderThreadError, RendererData, ResourceHandle,
-    ResourceId, ShaderErrorQueue, ShaderReloadResult, ShaderVarMap, TexFilter, TexFormat,
-    TexWrapMode, VertexFormat, VpStack,
+    InstanceData, InstanceUniformsCmd, PrimitiveBuilder, RenderCommand, RenderStateIntern,
+    RenderStats, RenderTargetStack, RenderThreadConfig, RenderThreadError, RendererData,
+    ResourceHandle, ResourceId, ShaderErrorQueue, ShaderReloadResult, ShaderVarMap, TexFilter,
+    TexFormat, TexWrapMode, VertexFormat, VpStack,
 };
 use crate::window::{WindowError, WindowGlContext};
 
@@ -670,14 +670,16 @@ impl Renderer {
         world_it: [f32; 16],
         scale: f32,
     ) {
-        self.submit(RenderCommand::SetInstanceUniforms {
-            world_loc,
-            world_it_loc,
-            scale_loc,
-            world,
-            world_it,
-            scale,
-        });
+        self.submit(RenderCommand::SetInstanceUniforms(Box::new(
+            InstanceUniformsCmd {
+                world_loc,
+                world_it_loc,
+                scale_loc,
+                world,
+                world_it,
+                scale,
+            },
+        )));
     }
 
     // === Texture Operations ===
