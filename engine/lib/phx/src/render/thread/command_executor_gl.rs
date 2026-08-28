@@ -875,8 +875,7 @@ impl CommandExecutor {
         id: ResourceId,
         pixel_format: u32,
         data_format: u32,
-        reply_tx: crossbeam::channel::Sender<Vec<u8>>,
-    ) {
+    ) -> Vec<u8> {
         let mut data = Vec::new();
         if let Some(GpuResource::Texture1D { handle }) = self.resources.get(&id) {
             unsafe {
@@ -896,7 +895,7 @@ impl CommandExecutor {
         } else {
             warn!("ReadTexture1DData: resource {:?} not found", id);
         }
-        let _ = reply_tx.send(data);
+        data
     }
 
     pub(super) fn cmd_read_texture_2d_data(
@@ -904,8 +903,7 @@ impl CommandExecutor {
         id: ResourceId,
         pixel_format: u32,
         data_format: u32,
-        reply_tx: crossbeam::channel::Sender<Vec<u8>>,
-    ) {
+    ) -> Vec<u8> {
         let mut data = Vec::new();
         if let Some(GpuResource::Texture2D { handle }) = self.resources.get(&id) {
             unsafe {
@@ -927,7 +925,7 @@ impl CommandExecutor {
         } else {
             warn!("ReadTexture2DData: resource {:?} not found", id);
         }
-        let _ = reply_tx.send(data);
+        data
     }
 
     pub(super) fn cmd_read_texture_3d_data(
@@ -935,8 +933,7 @@ impl CommandExecutor {
         id: ResourceId,
         pixel_format: u32,
         data_format: u32,
-        reply_tx: crossbeam::channel::Sender<Vec<u8>>,
-    ) {
+    ) -> Vec<u8> {
         let mut data = Vec::new();
         if let Some(GpuResource::Texture3D { handle }) = self.resources.get(&id) {
             unsafe {
@@ -961,7 +958,7 @@ impl CommandExecutor {
         } else {
             warn!("ReadTexture3DData: resource {:?} not found", id);
         }
-        let _ = reply_tx.send(data);
+        data
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -972,8 +969,7 @@ impl CommandExecutor {
         level: i32,
         pixel_format: u32,
         data_format: u32,
-        reply_tx: crossbeam::channel::Sender<Vec<u8>>,
-    ) {
+    ) -> Vec<u8> {
         let mut data = Vec::new();
         if let Some(GpuResource::TextureCube { handle }) = self.resources.get(&id) {
             unsafe {
@@ -993,7 +989,7 @@ impl CommandExecutor {
         } else {
             warn!("ReadTextureCubeFaceData: resource {:?} not found", id);
         }
-        let _ = reply_tx.send(data);
+        data
     }
 
     pub(super) fn cmd_sample_pixel_2d_by_resource(
@@ -1001,8 +997,7 @@ impl CommandExecutor {
         id: ResourceId,
         x: i32,
         y: i32,
-        reply_tx: crossbeam::channel::Sender<[u8; 4]>,
-    ) {
+    ) -> [u8; 4] {
         let mut pixel = [0u8; 4];
         if let Some(GpuResource::Texture2D { handle }) = self.resources.get(&id) {
             unsafe {
@@ -1039,7 +1034,7 @@ impl CommandExecutor {
         } else {
             warn!("SamplePixel2DByResource: resource {:?} not found", id);
         }
-        let _ = reply_tx.send(pixel);
+        pixel
     }
 
     pub(super) fn cmd_read_framebuffer_pixels(
@@ -1048,8 +1043,7 @@ impl CommandExecutor {
         y: i32,
         width: i32,
         height: i32,
-        reply_tx: crossbeam::channel::Sender<Vec<u8>>,
-    ) {
+    ) -> Vec<u8> {
         let mut data = vec![0u8; (width * height * 4) as usize];
         unsafe {
             gl::ReadPixels(
@@ -1062,7 +1056,7 @@ impl CommandExecutor {
                 data.as_mut_ptr() as *mut _,
             );
         }
-        let _ = reply_tx.send(data);
+        data
     }
 
     pub(super) fn cmd_framebuffer_attach_texture_2d(
@@ -1359,7 +1353,7 @@ impl CommandExecutor {
         &mut self,
         mesh_id: ResourceId,
         index_count: i32,
-        instances: Vec<InstanceData>,
+        instances: &[InstanceData],
         primitive: CmdPrimitiveType,
     ) {
         if instances.is_empty() {
@@ -1489,7 +1483,7 @@ impl CommandExecutor {
         &mut self,
         mesh_id: ResourceId,
         index_count: i32,
-        indices: Vec<u32>,
+        indices: &[u32],
         primitive: CmdPrimitiveType,
     ) {
         if indices.is_empty() {
@@ -1591,8 +1585,7 @@ impl CommandExecutor {
         id: ResourceId,
         vertex_src: String,
         fragment_src: String,
-        reply_tx: crossbeam::channel::Sender<Option<String>>,
-    ) {
+    ) -> Option<String> {
         let error = match self.create_shader(&vertex_src, &fragment_src) {
             Ok(program) => {
                 self.resources.insert(id, GpuResource::Shader { program });
@@ -1603,23 +1596,21 @@ impl CommandExecutor {
                 Some(e)
             }
         };
-        let _ = reply_tx.send(error);
+        error
     }
 
     pub(super) fn cmd_get_uniform_location_by_resource(
         &mut self,
         id: ResourceId,
         name: Arc<str>,
-        reply_tx: crossbeam::channel::Sender<i32>,
-    ) {
-        let loc = if let Some(GpuResource::Shader { program }) = self.resources.get(&id) {
+    ) -> i32 {
+        if let Some(GpuResource::Shader { program }) = self.resources.get(&id) {
             let program = *program;
             self.get_uniform_location_for_program(program, &name)
         } else {
             warn!("GetUniformLocationByResource: resource {:?} not found", id);
             -1
-        };
-        let _ = reply_tx.send(loc);
+        }
     }
 
     pub(super) fn cmd_create_texture_1d(

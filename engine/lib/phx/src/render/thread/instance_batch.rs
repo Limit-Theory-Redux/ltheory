@@ -44,7 +44,7 @@ impl InstanceBatch {
         r.draw_instanced_with_data_intern(
             self.mesh_id,
             self.index_count,
-            self.instances.clone(),
+            &self.instances,
             self.primitive,
         );
     }

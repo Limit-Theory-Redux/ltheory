@@ -1082,13 +1082,13 @@ impl Renderer {
         &mut self,
         mesh_id: ResourceId,
         index_count: i32,
-        instances: Vec<InstanceData>,
+        instances: &[InstanceData],
         primitive: CmdPrimitiveType,
     ) {
         self.submit(RenderCommand::DrawInstancedWithData {
             mesh_id,
             index_count,
-            instances,
+            instances: instances.to_vec(),
             primitive,
         });
     }

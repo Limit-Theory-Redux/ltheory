@@ -585,21 +585,30 @@ impl CommandExecutor {
                 pixel_format,
                 data_format,
                 reply_tx,
-            } => self.cmd_read_texture_1d_data(id, pixel_format, data_format, reply_tx),
+            } => {
+                let data = self.cmd_read_texture_1d_data(id, pixel_format, data_format);
+                let _ = reply_tx.send(data);
+            }
 
             RenderCommand::ReadTexture2DData {
                 id,
                 pixel_format,
                 data_format,
                 reply_tx,
-            } => self.cmd_read_texture_2d_data(id, pixel_format, data_format, reply_tx),
+            } => {
+                let data = self.cmd_read_texture_2d_data(id, pixel_format, data_format);
+                let _ = reply_tx.send(data);
+            }
 
             RenderCommand::ReadTexture3DData {
                 id,
                 pixel_format,
                 data_format,
                 reply_tx,
-            } => self.cmd_read_texture_3d_data(id, pixel_format, data_format, reply_tx),
+            } => {
+                let data = self.cmd_read_texture_3d_data(id, pixel_format, data_format);
+                let _ = reply_tx.send(data);
+            }
 
             RenderCommand::ReadTextureCubeFaceData {
                 id,
@@ -608,17 +617,20 @@ impl CommandExecutor {
                 pixel_format,
                 data_format,
                 reply_tx,
-            } => self.cmd_read_texture_cube_face_data(
-                id,
-                face,
-                level,
-                pixel_format,
-                data_format,
-                reply_tx,
-            ),
+            } => {
+                let data = self.cmd_read_texture_cube_face_data(
+                    id,
+                    face,
+                    level,
+                    pixel_format,
+                    data_format,
+                );
+                let _ = reply_tx.send(data);
+            }
 
             RenderCommand::SamplePixel2DByResource { id, x, y, reply_tx } => {
-                self.cmd_sample_pixel_2d_by_resource(id, x, y, reply_tx);
+                let data = self.cmd_sample_pixel_2d_by_resource(id, x, y);
+                let _ = reply_tx.send(data);
             }
 
             RenderCommand::ReadFramebufferPixels {
@@ -627,7 +639,10 @@ impl CommandExecutor {
                 width,
                 height,
                 reply_tx,
-            } => self.cmd_read_framebuffer_pixels(x, y, width, height, reply_tx),
+            } => {
+                let data = self.cmd_read_framebuffer_pixels(x, y, width, height);
+                let _ = reply_tx.send(data);
+            }
 
             // === Framebuffer Operations ===
             RenderCommand::PushFramebuffer {
@@ -753,7 +768,7 @@ impl CommandExecutor {
             } => {
                 self.this_frame_stats.draw_instanced_calls += 1;
                 self.this_frame_stats.instanced_data_items += instances.len() as u64;
-                self.cmd_draw_instanced_with_data(mesh_id, index_count, instances, primitive);
+                self.cmd_draw_instanced_with_data(mesh_id, index_count, &instances, primitive);
             }
 
             RenderCommand::DrawInstancedIndices {
@@ -764,7 +779,7 @@ impl CommandExecutor {
             } => {
                 self.this_frame_stats.draw_instanced_calls += 1;
                 self.this_frame_stats.instanced_data_items += indices.len() as u64;
-                self.cmd_draw_instanced_indices(mesh_id, index_count, indices, primitive);
+                self.cmd_draw_instanced_indices(mesh_id, index_count, &indices, primitive);
             }
 
             RenderCommand::BindMeshByResource { id } => self.cmd_bind_mesh_by_resource(id),
@@ -784,10 +799,14 @@ impl CommandExecutor {
                 vertex_src,
                 fragment_src,
                 reply_tx,
-            } => self.cmd_create_shader(id, vertex_src, fragment_src, reply_tx),
+            } => {
+                let data = self.cmd_create_shader(id, vertex_src, fragment_src);
+                let _ = reply_tx.send(data);
+            }
 
             RenderCommand::GetUniformLocationByResource { id, name, reply_tx } => {
-                self.cmd_get_uniform_location_by_resource(id, name, reply_tx);
+                let data = self.cmd_get_uniform_location_by_resource(id, name);
+                let _ = reply_tx.send(data);
             }
 
             RenderCommand::ReloadShader {

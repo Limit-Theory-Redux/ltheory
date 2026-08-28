@@ -257,7 +257,7 @@ impl Renderer {
         self.draw_instanced_with_data_intern(
             ResourceId(mesh_id),
             index_count,
-            instances.to_vec(),
+            instances,
             primitive,
         );
     }

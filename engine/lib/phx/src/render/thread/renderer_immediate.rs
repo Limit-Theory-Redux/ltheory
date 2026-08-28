@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crossbeam::channel::{bounded, unbounded};
+use crossbeam::channel::unbounded;
 use tracing::{error, info};
 
 use crate::render::thread::{CommandExecutor, CommandReply, RendererData, process_batch_intern};
@@ -412,10 +412,8 @@ impl Renderer {
         pixel_format: u32,
         data_format: u32,
     ) -> Vec<u8> {
-        let (tx, rx) = bounded(1);
         self.executor
-            .cmd_read_texture_1d_data(id, pixel_format, data_format, tx);
-        rx.recv().unwrap_or_default()
+            .cmd_read_texture_1d_data(id, pixel_format, data_format)
     }
 
     pub fn read_texture_2d_data(
@@ -424,10 +422,8 @@ impl Renderer {
         pixel_format: u32,
         data_format: u32,
     ) -> Vec<u8> {
-        let (tx, rx) = bounded(1);
         self.executor
-            .cmd_read_texture_2d_data(id, pixel_format, data_format, tx);
-        rx.recv().unwrap_or_default()
+            .cmd_read_texture_2d_data(id, pixel_format, data_format)
     }
 
     pub fn read_texture_3d_data(
@@ -436,10 +432,8 @@ impl Renderer {
         pixel_format: u32,
         data_format: u32,
     ) -> Vec<u8> {
-        let (tx, rx) = bounded(1);
         self.executor
-            .cmd_read_texture_3d_data(id, pixel_format, data_format, tx);
-        rx.recv().unwrap_or_default()
+            .cmd_read_texture_3d_data(id, pixel_format, data_format)
     }
 
     pub fn read_texture_cube_face_data(
@@ -450,29 +444,17 @@ impl Renderer {
         pixel_format: u32,
         data_format: u32,
     ) -> Vec<u8> {
-        let (tx, rx) = bounded(1);
-        self.executor.cmd_read_texture_cube_face_data(
-            id,
-            face,
-            level,
-            pixel_format,
-            data_format,
-            tx,
-        );
-        rx.recv().unwrap_or_default()
+        self.executor
+            .cmd_read_texture_cube_face_data(id, face, level, pixel_format, data_format)
     }
 
     pub fn sample_pixel_2d_by_resource(&mut self, id: ResourceId, x: i32, y: i32) -> [u8; 4] {
-        let (tx, rx) = bounded(1);
-        self.executor.cmd_sample_pixel_2d_by_resource(id, x, y, tx);
-        rx.recv().unwrap_or([0; 4])
+        self.executor.cmd_sample_pixel_2d_by_resource(id, x, y)
     }
 
     pub fn read_framebuffer_pixels(&mut self, x: i32, y: i32, width: i32, height: i32) -> Vec<u8> {
-        let (tx, rx) = bounded(1);
         self.executor
-            .cmd_read_framebuffer_pixels(x, y, width, height, tx);
-        rx.recv().unwrap_or_default()
+            .cmd_read_framebuffer_pixels(x, y, width, height)
     }
 
     // === Framebuffer Operations ===
@@ -551,21 +533,6 @@ impl Renderer {
             .cmd_draw_mesh_instanced(vao, index_count, instance_count, primitive);
     }
 
-    pub fn draw_instanced_with_data_intern(
-        &mut self,
-        mesh_id: ResourceId,
-        index_count: i32,
-        instances: &[InstanceData],
-        primitive: CmdPrimitiveType,
-    ) {
-        self.executor.cmd_draw_instanced_with_data(
-            mesh_id,
-            index_count,
-            instances.to_vec(),
-            primitive,
-        );
-    }
-
     pub fn draw_mesh_by_resource(
         &mut self,
         id: ResourceId,
@@ -580,11 +547,22 @@ impl Renderer {
         &mut self,
         mesh_id: ResourceId,
         index_count: i32,
-        instances: Vec<InstanceData>,
+        instances: &[InstanceData],
         primitive: CmdPrimitiveType,
     ) {
         self.executor
             .cmd_draw_instanced_with_data(mesh_id, index_count, instances, primitive);
+    }
+
+    pub fn draw_instanced_indices_intern(
+        &mut self,
+        mesh_id: ResourceId,
+        index_count: i32,
+        indices: &[u32],
+        primitive: CmdPrimitiveType,
+    ) {
+        self.executor
+            .cmd_draw_instanced_indices(mesh_id, index_count, indices, primitive);
     }
 
     pub fn draw_immediate(&mut self, primitive: CmdPrimitiveType, vertices: Vec<ImmVertex>) {
@@ -599,18 +577,12 @@ impl Renderer {
         vertex_src: String,
         fragment_src: String,
     ) -> Option<String> {
-        let (tx, rx) = bounded(1);
         self.executor
-            .cmd_create_shader(id, vertex_src, fragment_src, tx);
-        rx.recv()
-            .unwrap_or_else(|_| Some("Renderer channel closed".to_string()))
+            .cmd_create_shader(id, vertex_src, fragment_src)
     }
 
     pub fn get_uniform_location_by_resource(&mut self, id: ResourceId, name: Arc<str>) -> i32 {
-        let (tx, rx) = bounded(1);
-        self.executor
-            .cmd_get_uniform_location_by_resource(id, name, tx);
-        rx.recv().unwrap_or(-1)
+        self.executor.cmd_get_uniform_location_by_resource(id, name)
     }
 
     pub fn create_texture_1d(
