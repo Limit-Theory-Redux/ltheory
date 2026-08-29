@@ -11,9 +11,9 @@ use crate::render::thread::{
     FBO_STACK_DEPTH, FboEntry, GpuResource, MAX_TEXTURE_SLOTS, TextureBinding, TextureType,
 };
 use crate::render::{
-    BlendMode, CmdPrimitiveType, CommandCategory, CommandExecutor, CommandReply, CullFace,
-    GenericUniformName, ImmVertex, InstanceData, RenderStats, ResourceId, ShaderReloadResult,
-    TexFilter, TexFormat, TexWrapMode, VertexFormat,
+    BlendMode, CameraUboArray, CmdPrimitiveType, CommandCategory, CommandExecutor, CommandReply,
+    CullFace, GenericUniformName, ImmVertex, InstanceData, RenderStats, ResourceId,
+    ShaderReloadResult, TexFilter, TexFormat, TexWrapMode, VertexFormat,
 };
 use crate::window::WindowGlContext;
 
@@ -2109,7 +2109,7 @@ impl CommandExecutor {
 
     #[inline(always)]
     /// Update camera UBO data
-    pub(super) fn cmd_update_camera_ubo(&mut self, data: &[u8; 288]) {
+    pub(super) fn cmd_update_camera_ubo(&mut self, data: &CameraUboArray) {
         let _sa = self.record_command(CommandCategory::Ubo, false, false);
         if self.camera_ubo == 0 {
             self.cmd_create_camera_ubo();

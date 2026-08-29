@@ -10,11 +10,11 @@ use tracing::{error, info};
 use crate::render::StatsSink;
 use crate::render::thread::RenderThread;
 use crate::render::{
-    BlendMode, ClipManager, CmdPrimitiveType, CullFace, DrawState, GpuHandle, ImmVertex,
-    InstanceData, InstanceUniformsCmd, PrimitiveBuilder, RenderCommand, RenderStateIntern,
-    RenderStats, RenderTargetStack, RenderThreadConfig, RenderThreadError, RendererData,
-    ResourceId, ShaderErrorQueue, ShaderReloadResult, ShaderVarMap, TexFilter, TexFormat,
-    TexWrapMode, VertexFormat, VpStack,
+    BlendMode, CameraUboArray, ClipManager, CmdPrimitiveType, CullFace, DrawState, GpuHandle,
+    ImmVertex, InstanceData, InstanceUniformsCmd, PrimitiveBuilder, RenderCommand,
+    RenderStateIntern, RenderStats, RenderTargetStack, RenderThreadConfig, RenderThreadError,
+    RendererData, ResourceId, ShaderErrorQueue, ShaderReloadResult, ShaderVarMap, TexFilter,
+    TexFormat, TexWrapMode, VertexFormat, VpStack,
 };
 use crate::window::{WindowError, WindowGlContext};
 
@@ -1191,7 +1191,7 @@ impl Renderer {
         self.submit(RenderCommand::CreateCameraUBO);
     }
 
-    pub fn update_camera_ubo_intern(&mut self, data: Box<[u8; 288]>) {
+    pub fn update_camera_ubo_intern(&mut self, data: Box<CameraUboArray>) {
         self.submit(RenderCommand::UpdateCameraUBO { data });
     }
 

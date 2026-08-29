@@ -325,7 +325,7 @@ impl Renderer {
 
         // Convert to boxed array for command
         let bytes = data.as_bytes();
-        let mut boxed: Box<[u8; 288]> = Box::new([0u8; 288]);
+        let mut boxed = Box::new([0u8; CameraUboData::SIZE]);
         boxed.copy_from_slice(bytes);
 
         self.update_camera_ubo_intern(boxed);

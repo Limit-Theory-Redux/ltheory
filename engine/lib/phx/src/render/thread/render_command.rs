@@ -10,7 +10,8 @@ use crossbeam::channel::Sender;
 
 use super::command_category::CommandCategory;
 use crate::render::{
-    BlendMode, CullFace, InstanceData, TexFilter, TexFormat, TexWrapMode, VertexFormat, gl,
+    BlendMode, CameraUboArray, CullFace, InstanceData, TexFilter, TexFormat, TexWrapMode,
+    VertexFormat, gl,
 };
 
 /// A handle to a GPU resource (shader, texture, buffer, etc.)
@@ -684,9 +685,7 @@ pub enum RenderCommand {
     CreateCameraUBO,
 
     /// Update camera UBO data
-    UpdateCameraUBO {
-        data: Box<[u8; 288]>, // CameraUboData::SIZE = 288 bytes
-    },
+    UpdateCameraUBO { data: Box<CameraUboArray> },
 
     /// Create material UBO
     CreateMaterialUBO,

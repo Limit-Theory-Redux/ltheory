@@ -12,6 +12,8 @@ pub const CAMERA_UBO_BINDING: u32 = 0;
 pub const MATERIAL_UBO_BINDING: u32 = 1;
 pub const LIGHT_UBO_BINDING: u32 = 2;
 
+pub type CameraUboArray = [u8; CameraUboData::SIZE];
+
 /// Camera uniform buffer data with std140 layout.
 ///
 /// std140 layout rules:
