@@ -100,12 +100,12 @@ impl Renderer {
 
 impl Renderer {
     /// Begin a new frame
-    pub(in crate::render::thread) fn begin_frame_intern(&mut self) {
+    pub(super) fn begin_frame_intern(&mut self) {
         self.data.command_buffer.clear();
     }
 
     /// Run every buffered command (from the batch API) inline.
-    pub(in crate::render::thread) fn flush_intern(&mut self) {
+    pub(super) fn flush_intern(&mut self) {
         for cmd in self.data.command_buffer.drain(..) {
             self.executor.execute(cmd);
         }
@@ -113,7 +113,7 @@ impl Renderer {
 
     /// Immediate mode has nothing to wait for: by the time `submit` returns,
     /// the command has already executed.
-    pub(in crate::render::thread) fn sync_intern(&mut self) -> bool {
+    pub(super) fn sync_intern(&mut self) -> bool {
         true
     }
 

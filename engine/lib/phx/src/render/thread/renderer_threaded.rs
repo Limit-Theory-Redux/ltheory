@@ -498,12 +498,12 @@ impl Renderer {
 
 impl Renderer {
     /// Begin a new frame
-    pub(in crate::render::thread) fn begin_frame_intern(&mut self) {
+    pub(super) fn begin_frame_intern(&mut self) {
         self.data.command_buffer.clear();
     }
 
     /// Flush all queued commands to the render thread
-    pub(in crate::render::thread) fn flush_intern(&mut self) {
+    pub(super) fn flush_intern(&mut self) {
         if self.running.load(Ordering::Relaxed) {
             // TODO: send vector of commands instead of one by one
             for cmd in self.data.command_buffer.drain(..) {
@@ -516,7 +516,7 @@ impl Renderer {
     }
 
     /// Synchronize with the render thread (wait for all commands to complete)
-    pub(in crate::render::thread) fn sync_intern(&mut self) -> bool {
+    pub(super) fn sync_intern(&mut self) -> bool {
         if !self.running.load(Ordering::Relaxed) {
             return false;
         }
