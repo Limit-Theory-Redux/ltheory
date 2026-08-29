@@ -18,7 +18,7 @@ function onDef_Physics_t(t, mt)
     end
 
     -- These now take the current Renderer as an explicit argument (see
-    -- ai/multithreaded_rendering.md); inject the global `Renderer` set by
+    -- doc/engine/render-thread.md); inject the global `Renderer` set by
     -- SetEngine so call sites don't change.
     mt.__index.drawWireframes = function(self, shader, eye)
         libphx.Physics_DrawWireframes(self, Renderer, shader, eye)

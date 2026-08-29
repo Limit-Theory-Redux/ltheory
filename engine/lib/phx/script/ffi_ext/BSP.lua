@@ -2,7 +2,7 @@ local ffi = require('ffi')
 local libphx = require('libphx').lib
 
 -- BSP_Create now also takes the current Renderer as an explicit argument
--- (it eagerly loads a debug-draw shader - see ai/multithreaded_rendering.md).
+-- (it eagerly loads a debug-draw shader - see doc/engine/render-thread.md).
 function onDef_BSP(t, mt)
     t.Create = function(...)
         local e = libphx.Mesh_Validate(...)
@@ -16,7 +16,7 @@ function onDef_BSP(t, mt)
 end
 
 -- These now take the current Renderer as an explicit argument (see
--- ai/multithreaded_rendering.md); inject the global `Renderer` set by
+-- doc/engine/render-thread.md); inject the global `Renderer` set by
 -- SetEngine so call sites don't change.
 function onDef_BSP_t(t, mt)
     mt.__index.drawNode = function(self, nodeRef, color)

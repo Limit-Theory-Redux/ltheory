@@ -1,5 +1,5 @@
 //! `Renderer` is the single context every GL-touching type submits
-//! [`RenderCommand`]s through - see `ai/multithreaded_rendering.md`. It has
+//! [`RenderCommand`]s through - see `doc/engine/render-thread.md`. It has
 //! two compile-time bodies behind the identical type name, public API and
 //! FFI surface, declared as sibling modules in `render/thread/mod.rs`
 //! (`renderer_threaded` by default, `renderer_immediate` under the

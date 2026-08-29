@@ -1,7 +1,7 @@
 local libphx = require('libphx').lib
 
 -- These now take the current Renderer as an explicit argument (see
--- ai/multithreaded_rendering.md); inject the global `Renderer` set by
+-- doc/engine/render-thread.md); inject the global `Renderer` set by
 -- SetEngine so call sites don't change.
 function onDef_Tex3D(t, mt)
     t.Create = function(sx, sy, sz, format)

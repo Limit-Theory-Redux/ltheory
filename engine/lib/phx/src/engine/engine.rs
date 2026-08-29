@@ -108,7 +108,7 @@ impl Engine {
         let scale_factor = window.scale_factor();
 
         // Every GL-touching type submits through this renderer - see
-        // ai/multithreaded_rendering.md. Extracting the context here hands it
+        // doc/engine/render-thread.md. Extracting the context here hands it
         // off for good: WinitWindow no longer performs GL operations itself
         // (its own swap_buffers is a no-op from this point on; frame end goes
         // through `renderer.end_frame_triple_buffered()` instead, driven from
