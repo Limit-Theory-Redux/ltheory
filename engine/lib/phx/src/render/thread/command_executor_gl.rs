@@ -1650,9 +1650,8 @@ impl CommandExecutor {
     /// a static data texture (uploaded once by the producer); the vertex
     /// shader pulls the transform via texelFetch. Upload per frame is
     /// 4 bytes/instance instead of an 84-byte InstanceData - this is what
-
-    #[inline(always)]
     /// lets the producer scale to 100k+ asteroids on GL 3.3.
+    #[inline(always)]
     pub(super) fn cmd_draw_instanced_indices(
         &mut self,
         mesh_id: ResourceId,
