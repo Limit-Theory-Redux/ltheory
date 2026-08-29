@@ -1234,18 +1234,13 @@ impl Renderer {
     pub fn gl_finish(&mut self) {
         self.submit(RenderCommand::Flush);
     }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
 
     /// A `Renderer` with no GL context at all - every command becomes a
     /// no-op (see `CommandExecutor::has_gl_context`). Only for unit tests
     /// that exercise CPU-side logic (e.g. HmGui layout) and have no window
     /// to draw a real `WindowGlContext` from.
-    #[test]
-    pub fn new_headless() {
-        let _ = Renderer::create_intern(None).expect("Cannot create renderer");
+    #[cfg(test)]
+    pub fn new_headless() -> Self {
+        Renderer::create_intern(None).expect("Cannot create renderer")
     }
 }

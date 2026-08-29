@@ -787,13 +787,12 @@ impl Renderer {
     pub fn take_returned_context(&self) -> Option<WindowGlContext> {
         None
     }
-}
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
+    /// A `Renderer` with no GL context at all - every command becomes a
+    /// no-op (see `CommandExecutor::has_gl_context`). Only for unit tests
+    /// that exercise CPU-side logic (e.g. HmGui layout) and have no window
+    /// to draw a real `WindowGlContext` from.
+    #[cfg(test)]
     pub fn new_headless() -> Self {
         let (destroy_tx, destroy_rx) = unbounded();
 
