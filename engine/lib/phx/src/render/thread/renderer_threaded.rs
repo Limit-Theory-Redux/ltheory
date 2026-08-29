@@ -434,7 +434,6 @@ impl Renderer {
         if !self.running.load(Ordering::Relaxed) {
             return ShaderReloadResult {
                 shader_key: shader_key.to_string(),
-                success: false,
                 error: Some("Render thread not running".to_string()),
                 program: 0,
             };
@@ -452,7 +451,6 @@ impl Renderer {
             Ok(result) => result,
             Err(_) => ShaderReloadResult {
                 shader_key: shader_key.to_string(),
-                success: false,
                 error: Some("Channel closed while waiting for shader result".to_string()),
                 program: 0,
             },

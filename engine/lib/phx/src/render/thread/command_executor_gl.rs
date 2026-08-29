@@ -1910,7 +1910,6 @@ impl CommandExecutor {
 
                 ShaderReloadResult {
                     shader_key: shader_key.into(),
-                    success: true,
                     error: None,
                     program,
                 }
@@ -1921,7 +1920,6 @@ impl CommandExecutor {
                 // push_shader_error(&shader_key, "compile", &e);
                 ShaderReloadResult {
                     shader_key: shader_key.into(),
-                    success: false,
                     error: Some(e),
                     program: 0,
                 }
