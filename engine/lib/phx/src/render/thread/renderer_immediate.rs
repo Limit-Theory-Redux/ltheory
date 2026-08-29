@@ -6,12 +6,12 @@ use tracing::{error, info};
 
 #[cfg(feature = "stats-server")]
 use crate::render::StatsSink;
-use crate::render::thread::{CommandExecutor, CommandReply, RendererData, process_batch_intern};
+use crate::render::thread::{CommandExecutor, CommandReply, RendererData};
 use crate::render::{
     BlendMode, ClipManager, CmdPrimitiveType, CullFace, DrawState, GpuHandle, ImmVertex,
     InstanceData, PrimitiveBuilder, RenderStateIntern, RenderStats, RenderTargetStack,
-    RenderThreadError, ResourceHandle, ResourceId, ShaderErrorQueue, ShaderReloadResult,
-    ShaderVarMap, TexFilter, TexFormat, TexWrapMode, VertexFormat, VpStack,
+    RenderThreadError, ResourceId, ShaderErrorQueue, ShaderReloadResult, ShaderVarMap, TexFilter,
+    TexFormat, TexWrapMode, VertexFormat, VpStack,
 };
 use crate::window::WindowGlContext;
 
@@ -80,42 +80,6 @@ impl Renderer {
             #[cfg(feature = "stats-server")]
             category_timing,
         })
-    }
-
-    /// A `Renderer` with no GL context at all - every command becomes a
-    /// no-op (see `CommandExecutor::has_gl_context`). Only for unit tests
-    /// that exercise CPU-side logic (e.g. HmGui layout) and have no window
-    /// to draw a real `WindowGlContext` from.
-    #[cfg(test)]
-    pub fn new_headless() -> Self {
-        let (destroy_tx, destroy_rx) = unbounded();
-
-        Self {
-            executor: CommandExecutor::new(None),
-            data: RendererData {
-                next_resource_id: 1,
-                destroy_tx,
-                destroy_rx,
-                command_buffer: vec![],
-                active_batch: None,
-                viewport: VpStack::new(),
-                render_target: RenderTargetStack::new(),
-                clip_rect: ClipManager::new(),
-                render_state: RenderStateIntern::new(),
-                imm: PrimitiveBuilder::new(),
-                draw_state: DrawState::new(),
-                shader_vars: ShaderVarMap::new(),
-                shader_errors: ShaderErrorQueue::new(),
-                shader_watcher: None,
-                ao_shader: None,
-                occlusion_shader: None,
-                irmap_shader: None,
-            },
-            #[cfg(feature = "stats-server")]
-            stats_sink: None,
-            #[cfg(feature = "stats-server")]
-            category_timing: Arc::new(AtomicBool::new(false)),
-        }
     }
 
     pub fn stop(mut self) -> Option<WindowGlContext> {
@@ -714,20 +678,11 @@ impl Renderer {
         self.executor.cmd_flush();
     }
 
-    /// Mint a new GPU resource: a unique `ResourceId` bundled with the means
-    /// to destroy it (see `ResourceHandle`). This is the only way to obtain
-    /// either, so a resource can never exist without its destructor wired up.
-    pub fn create_resource(&mut self) -> ResourceHandle {
-        let id = ResourceId(self.data.next_resource_id);
-        self.data.next_resource_id += 1;
-        ResourceHandle::new(id, self.data.destroy_tx.clone())
-    }
-
     /// Submit `DestroyResource` for every resource dropped since the last drain.
     fn drain_destroy_queue(&mut self) {
         // Collect first: the `destroy_rx` borrow has to end before `submit`
         // takes `&mut self`.
-        let ids: Vec<ResourceId> = self.data.destroy_rx.try_iter().collect();
+        let ids: Vec<_> = self.data.destroy_rx.try_iter().collect();
 
         self.executor.cmd_destroy_resource(&ids);
     }
@@ -821,20 +776,52 @@ impl Renderer {
             CommandReply::ShaderReload(result) => result,
             _ => ShaderReloadResult {
                 shader_key: shader_key.to_string(),
-                success: false,
                 error: Some("Executor returned no shader reload result".to_string()),
                 program: 0,
             },
         }
     }
 
-    pub fn process_batch(&mut self) {
-        process_batch_intern(&mut self.data.active_batch, &mut self.data.command_buffer);
-    }
-
     /// Immediate mode has nothing pending to poll for - `stop()` already
     /// returns the context synchronously.
     pub fn take_returned_context(&self) -> Option<WindowGlContext> {
         None
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    pub fn new_headless() -> Self {
+        let (destroy_tx, destroy_rx) = unbounded();
+
+        Self {
+            executor: CommandExecutor::new(None),
+            data: RendererData {
+                next_resource_id: 1,
+                destroy_tx,
+                destroy_rx,
+                command_buffer: vec![],
+                active_batch: None,
+                viewport: VpStack::new(),
+                render_target: RenderTargetStack::new(),
+                clip_rect: ClipManager::new(),
+                render_state: RenderStateIntern::new(),
+                imm: PrimitiveBuilder::new(),
+                draw_state: DrawState::new(),
+                shader_vars: ShaderVarMap::new(),
+                shader_errors: ShaderErrorQueue::new(),
+                shader_watcher: None,
+                ao_shader: None,
+                occlusion_shader: None,
+                irmap_shader: None,
+            },
+            #[cfg(feature = "stats-server")]
+            stats_sink: None,
+            #[cfg(feature = "stats-server")]
+            category_timing: Arc::new(AtomicBool::new(false)),
+        }
     }
 }

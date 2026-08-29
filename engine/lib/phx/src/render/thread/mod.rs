@@ -12,6 +12,7 @@ mod render_batch;
 mod render_command;
 mod renderer_data;
 mod renderer_ffi;
+mod renderer_shared;
 mod renderer_stats;
 mod resource_handle;
 mod shader_reload_result;
