@@ -1,10 +1,16 @@
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::AtomicBool;
+#[cfg(feature = "stats-server")]
+use std::sync::atomic::Ordering;
+#[cfg(feature = "stats-server")]
+use std::time::Instant;
 
 use tracing::info;
 
-use crate::render::{RenderCommand, RenderStats, ResourceId, ShaderReloadResult, gl};
+use crate::render::{
+    CommandCategory, RenderCommand, RenderStats, ResourceId, ShaderReloadResult, gl,
+};
 use crate::window::WindowActiveGlContext;
 
 /// Result a command may hand back to whoever drove the executor.
@@ -133,6 +139,8 @@ pub struct CommandExecutor {
     /// in `this_frame_stats.category_time_us`; only measured while
     /// this is true so normal runs don't pay the clock overhead. Shared with
     /// the main-thread `Renderer` so attaching the stats sink can flip it.
+    /// Only read by `record_command` under the `stats-server` feature.
+    #[cfg(feature = "stats-server")]
     pub(super) category_timing: Arc<AtomicBool>,
     /// Per-shader cache for uniform locations: program -> (name -> location)
     /// NOT cleared on shader change - preserves locations across shader switches
@@ -157,6 +165,44 @@ pub struct CommandExecutor {
     pub(super) light_ubo: u32,
 }
 
+/// RAII guard returned by [`CommandExecutor::record_command`]. Finishes the
+/// per-category timing measurement (started when the guard was created) when
+/// it drops - i.e. at the end of the `cmd_*` method that created it. Without
+/// the `stats-server` feature this is a zero-sized no-op the compiler
+/// removes entirely, so `cmd_*` methods carry no added cost in normal builds.
+#[cfg(feature = "stats-server")]
+pub(super) struct StatsAggregator {
+    executor: *mut CommandExecutor,
+    category: CommandCategory,
+    start: Option<Instant>,
+}
+
+#[cfg(feature = "stats-server")]
+impl Drop for StatsAggregator {
+    fn drop(&mut self) {
+        #[allow(unsafe_code)]
+        if let Some(start) = self.start {
+            // SAFETY: `executor` was cast from the `&mut CommandExecutor`
+            // that produced this guard in `record_command`, and that
+            // `CommandExecutor` always outlives the guard (the guard is a
+            // local dropped before the enclosing `cmd_*` method - and thus
+            // the whole call - returns). Deliberately a raw pointer rather
+            // than a borrowed `&'a mut CommandExecutor`: the latter would
+            // make the borrow checker treat the guard as holding `self`
+            // exclusively for its entire lifetime, which would reject the
+            // `cmd_*` method's own further use of `self` after creating the
+            // guard. Single-threaded, never re-entrant, and nothing else
+            // dereferences this specific pointer while the guard is alive.
+            let executor = unsafe { &mut *self.executor };
+            let elapsed_us = start.elapsed().as_micros() as u64;
+            executor.this_frame_stats.category_time_us[self.category.index()] += elapsed_us;
+        }
+    }
+}
+
+#[cfg(not(feature = "stats-server"))]
+pub(super) struct StatsAggregator;
+
 impl CommandExecutor {
     pub fn new(gl_context: Option<WindowActiveGlContext>) -> Self {
         Self::new_with_timing(gl_context, Arc::new(AtomicBool::new(false)))
@@ -168,7 +214,7 @@ impl CommandExecutor {
     /// `new()` (timing stays off).
     pub fn new_with_timing(
         gl_context: Option<WindowActiveGlContext>,
-        category_timing: Arc<AtomicBool>,
+        _category_timing: Arc<AtomicBool>,
     ) -> Self {
         Self {
             resources: HashMap::new(),
@@ -182,7 +228,8 @@ impl CommandExecutor {
             current_program: 0,
             frame_start: std::time::Instant::now(),
             this_frame_stats: RenderStats::default(),
-            category_timing,
+            #[cfg(feature = "stats-server")]
+            category_timing: _category_timing,
             uniform_caches: HashMap::with_capacity(32), // Pre-allocate for typical shader count
             instance_vbo: 0,
             instance_vbo_capacity: 0,
@@ -210,6 +257,58 @@ impl CommandExecutor {
         self.last_stats.clone()
     }
 
+    /// Record generic per-command bookkeeping (commands_processed, draw/state
+    /// counters, category_counts) and return an RAII guard that finishes
+    /// timing this command's execution when it drops (i.e. at the end of the
+    /// enclosing `cmd_*` method).
+    /// Only elapsed-time write is deferred to `Drop`. Shared by both renderer
+    /// backends: threaded mode's `execute()` dispatch and immediate mode's
+    /// direct `cmd_*` calls both go through the same `cmd_*` methods, so
+    /// instrumenting it here (instead of at `execute()`'s dispatch layer)
+    /// gives both backends identical stats for free.
+    #[cfg(feature = "stats-server")]
+    #[inline(always)]
+    pub(super) fn record_command(
+        &mut self,
+        category: CommandCategory,
+        is_draw: bool,
+        is_state: bool,
+    ) -> StatsAggregator {
+        self.stats.commands_processed += 1;
+        self.this_frame_stats.commands += 1;
+        if is_draw {
+            self.stats.draw_calls += 1;
+            self.this_frame_stats.draw_calls += 1;
+        }
+        if is_state {
+            self.stats.state_changes += 1;
+            self.this_frame_stats.state_changes += 1;
+        }
+        self.this_frame_stats.category_counts[category.index()] += 1;
+
+        let start = self
+            .category_timing
+            .load(Ordering::Relaxed)
+            .then(Instant::now);
+
+        StatsAggregator {
+            executor: self as *mut CommandExecutor,
+            category,
+            start,
+        }
+    }
+
+    #[cfg(not(feature = "stats-server"))]
+    #[inline(always)]
+    pub(super) fn record_command(
+        &mut self,
+        _category: CommandCategory,
+        _is_draw: bool,
+        _is_state: bool,
+    ) -> StatsAggregator {
+        StatsAggregator
+    }
+
     /// Initialize GL resources needed by the render thread
     pub fn init_gl(&mut self) {
         self.init_gl_intern();
@@ -220,28 +319,6 @@ impl CommandExecutor {
     /// Main render loop
     pub fn execute(&mut self, cmd: RenderCommand) -> CommandReply {
         let mut reply = CommandReply::None;
-
-        self.stats.commands_processed += 1;
-        self.this_frame_stats.commands += 1;
-
-        if cmd.is_draw_call() {
-            self.stats.draw_calls += 1;
-            self.this_frame_stats.draw_calls += 1;
-        }
-        if cmd.is_state_change() {
-            self.stats.state_changes += 1;
-            self.this_frame_stats.state_changes += 1;
-        }
-
-        // Per-category accumulation for the stats dashboard
-        let category = cmd.category();
-        let cat_idx = category.index();
-        self.this_frame_stats.category_counts[cat_idx] += 1;
-        let timing_start = if self.category_timing.load(Ordering::Relaxed) {
-            Some(std::time::Instant::now())
-        } else {
-            None
-        };
 
         match cmd {
             // === State Management ===
@@ -722,7 +799,6 @@ impl CommandExecutor {
                 index_count,
                 primitive,
             } => {
-                self.this_frame_stats.draw_mesh_calls += 1;
                 self.cmd_draw_mesh(vao, index_count, primitive);
             }
 
@@ -732,7 +808,6 @@ impl CommandExecutor {
                 instance_count,
                 primitive,
             } => {
-                self.this_frame_stats.draw_instanced_calls += 1;
                 self.cmd_draw_mesh_instanced(vao, index_count, instance_count, primitive);
             }
 
@@ -741,7 +816,6 @@ impl CommandExecutor {
                 index_count,
                 primitive,
             } => {
-                self.this_frame_stats.draw_mesh_calls += 1;
                 self.cmd_draw_mesh_by_resource(id, index_count, primitive);
             }
 
@@ -751,7 +825,6 @@ impl CommandExecutor {
                 instance_count,
                 primitive,
             } => {
-                self.this_frame_stats.draw_instanced_calls += 1;
                 self.cmd_draw_mesh_instanced_by_resource(
                     id,
                     index_count,
@@ -766,8 +839,6 @@ impl CommandExecutor {
                 instances,
                 primitive,
             } => {
-                self.this_frame_stats.draw_instanced_calls += 1;
-                self.this_frame_stats.instanced_data_items += instances.len() as u64;
                 self.cmd_draw_instanced_with_data(mesh_id, index_count, &instances, primitive);
             }
 
@@ -777,8 +848,6 @@ impl CommandExecutor {
                 indices,
                 primitive,
             } => {
-                self.this_frame_stats.draw_instanced_calls += 1;
-                self.this_frame_stats.instanced_data_items += indices.len() as u64;
                 self.cmd_draw_instanced_indices(mesh_id, index_count, &indices, primitive);
             }
 
@@ -788,8 +857,6 @@ impl CommandExecutor {
                 primitive,
                 vertices,
             } => {
-                self.this_frame_stats.draw_immediate_calls += 1;
-                self.this_frame_stats.immediate_vertices += vertices.len() as u64;
                 self.cmd_draw_immediate(primitive, &vertices);
             }
 
@@ -883,11 +950,6 @@ impl CommandExecutor {
             RenderCommand::Shutdown => {
                 // Handled by the caller's loop
             }
-        }
-
-        // Accumulate per-category executor time (dashboard mode only)
-        if let Some(start) = timing_start {
-            self.this_frame_stats.category_time_us[cat_idx] += start.elapsed().as_micros() as u64;
         }
 
         reply

@@ -1,8 +1,11 @@
 use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 
 use crossbeam::channel::unbounded;
 use tracing::{error, info};
 
+#[cfg(feature = "stats-server")]
+use crate::render::StatsSink;
 use crate::render::thread::{CommandExecutor, CommandReply, RendererData, process_batch_intern};
 use crate::render::{
     BlendMode, ClipManager, CmdPrimitiveType, CullFace, DrawState, GpuHandle, ImmVertex,
@@ -17,6 +20,16 @@ pub struct Renderer {
     executor: CommandExecutor,
     /// Generic renderer data
     pub(crate) data: RendererData,
+    // Optional sink receiving a per-frame snapshot for the stats dashboard.
+    // Dashboard-only state sits behind the feature so normal game builds
+    // carry none of the publishing path - mirrors `renderer_threaded.rs`.
+    #[cfg(feature = "stats-server")]
+    pub(super) stats_sink: Option<StatsSink>,
+    /// Shared with the executor: enables per-category timing when the sink is
+    /// attached (dashboard mode). Kept on the renderer so `attach_stats_sink`
+    /// can flip it, same as the threaded backend.
+    #[cfg(feature = "stats-server")]
+    pub(super) category_timing: Arc<AtomicBool>,
 }
 
 impl Renderer {
@@ -27,7 +40,13 @@ impl Renderer {
         })?;
         info!("GL context made current");
 
-        let mut executor = CommandExecutor::new(Some(ctx));
+        // Always created (matches `renderer_threaded.rs::create_intern`) so
+        // `CommandExecutor` behaves identically whether or not the
+        // `stats-server` feature attaches a sink to flip it - only the
+        // `Renderer`-side field that lets `attach_stats_sink` flip it later
+        // is feature-gated.
+        let category_timing = Arc::new(AtomicBool::new(false));
+        let mut executor = CommandExecutor::new_with_timing(Some(ctx), category_timing.clone());
         executor.init_gl();
 
         info!("Renderer started (immediate mode)");
@@ -56,6 +75,10 @@ impl Renderer {
                 occlusion_shader: None,
                 irmap_shader: None,
             },
+            #[cfg(feature = "stats-server")]
+            stats_sink: None,
+            #[cfg(feature = "stats-server")]
+            category_timing,
         })
     }
 
@@ -88,6 +111,10 @@ impl Renderer {
                 occlusion_shader: None,
                 irmap_shader: None,
             },
+            #[cfg(feature = "stats-server")]
+            stats_sink: None,
+            #[cfg(feature = "stats-server")]
+            category_timing: Arc::new(AtomicBool::new(false)),
         }
     }
 
@@ -709,6 +736,10 @@ impl Renderer {
     pub fn end_frame_triple_buffered(&mut self) {
         self.drain_destroy_queue();
         self.executor.cmd_swap_buffers();
+
+        // Publish the combined snapshot to the dashboard sink (if attached)
+        #[cfg(feature = "stats-server")]
+        self.publish_stats_snapshot();
     }
 
     /// Always zero - there is no queue for a frame to be "in flight" on.

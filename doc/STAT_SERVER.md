@@ -28,6 +28,29 @@ thread publishes into each frame end.
 cargo build -p ltr --release
 ```
 
+### Immediate mode
+
+The renderer has two compile-time backends, selected by the `immediate`
+cargo feature: the default **threaded** backend (a dedicated render
+thread fed over a command channel) and the **immediate** backend (the
+same executor driven inline on the main thread, no channel/thread).
+`stats-server` works identically with either — combine both features to
+get the dashboard under immediate mode:
+
+```bash
+cargo run -p ltr --features immediate,stats-server -- --stats-server 8777
+```
+
+Every per-command counter under `render.*` (commands, draws, category
+breakdown, texture/shader/uniform cache stats, etc.) is collected inside
+the shared `cmd_*` methods in `command_executor_gl.rs`, so both backends
+report identical, real values regardless of which one is running. Only
+the channel/thread-pacing fields are backend-specific and legitimately
+stay `0` under immediate mode, since there's no second thread or command
+queue to measure: `main_thread_wait_us`, `send_blocked_us`,
+`send_block_count`, `channel_high_water`, `frames_in_flight`,
+`render.recv_wait_us`, `render.recv_wait_count`.
+
 ## Endpoints
 
 | Endpoint          | Method | Description                                                      |
@@ -158,10 +181,12 @@ change won't reach the served page.
 | File | Role |
 |------|------|
 | `engine/lib/phx/src/render/thread/stats_server.rs` | tiny_http server: endpoints, JSON serialization |
-| `engine/lib/phx/src/render/thread/stats_snapshot.rs` | `StatsSnapshot` struct + sink attachment |
+| `engine/lib/phx/src/render/thread/stats_snapshot.rs` | `StatsSnapshot` struct + sink attachment (per-backend `attach_stats_sink`/`publish_stats_snapshot`) |
 | `engine/lib/phx/src/render/thread/stats_dashboard.html` | Embedded dashboard + flame graph |
-| `engine/lib/phx/src/render/thread/command_executor_gl.rs` | Per-frame counter collection (render thread) |
-| `engine/lib/phx/src/render/thread/renderer_threaded.rs` | `end_frame_triple_buffered`, fence throttling, `main_thread_wait_us` |
+| `engine/lib/phx/src/render/thread/command_executor.rs` | `record_command`/`StatsAggregator` - the shared per-command bookkeeping both backends go through |
+| `engine/lib/phx/src/render/thread/command_executor_gl.rs` | Per-frame counter collection (one `record_command` call per `cmd_*` method, shared by both backends) |
+| `engine/lib/phx/src/render/thread/renderer_threaded.rs` | Threaded backend: `end_frame_triple_buffered`, fence throttling, `main_thread_wait_us` |
+| `engine/lib/phx/src/render/thread/renderer_immediate.rs` | Immediate backend: `end_frame_triple_buffered` publishes directly, no channel/thread-pacing fields |
 | `engine/lib/phx/src/system/profiler.rs` | Scope stack, parent tracking, snapshot |
 | `script/States/Application.lua` | Lua `Profiler.Begin/End` for frame systems (onPreRender/onRender/onPostRender) |
 | `script/Legacy/Systems/Overlay/GameView.lua` | `Opaque.BuildLists`, `DrawScene.ECS`, `DrawScene.Recursive` scopes |
