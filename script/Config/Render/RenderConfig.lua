@@ -7,6 +7,7 @@ Config.render.general = {
     fullscreen          = false,
     fullscreenExclusive = false,
     presentMode         = PresentMode.Vsync,
+    frustumCulling      = true,
 }
 
 Config.render.window = {
