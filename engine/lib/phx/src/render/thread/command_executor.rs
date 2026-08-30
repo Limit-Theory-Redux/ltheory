@@ -1,12 +1,16 @@
-#![allow(unsafe_code)]
-
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::AtomicBool;
+#[cfg(feature = "stats-server")]
+use std::sync::atomic::Ordering;
+#[cfg(feature = "stats-server")]
+use std::time::Instant;
 
 use tracing::info;
 
-use crate::render::{ImmVertex, RenderCommand, RenderStats, ResourceId, ShaderReloadResult, gl};
+use crate::render::{
+    CommandCategory, RenderCommand, RenderStats, ResourceId, ShaderReloadResult, gl,
+};
 use crate::window::WindowActiveGlContext;
 
 /// Result a command may hand back to whoever drove the executor.
@@ -129,13 +133,14 @@ pub struct CommandExecutor {
     pub(super) frame_start: std::time::Instant,
     /// Per-frame counters, grouped in one plain `RenderStats`. Every executed
     /// command bumps its counter here; `SwapBuffers` copies the group into
-    /// `last_stats` and resets it for the next frame. Field names carry the
-    /// `_last_frame` suffix because that is how they surface once published.
+    /// `last_stats` and resets it for the next frame.
     pub(super) this_frame_stats: RenderStats,
     /// Per-category executor timing flag (dashboard mode). Timing results land
-    /// in `this_frame_stats.category_time_us_last_frame`; only measured while
+    /// in `this_frame_stats.category_time_us`; only measured while
     /// this is true so normal runs don't pay the clock overhead. Shared with
     /// the main-thread `Renderer` so attaching the stats sink can flip it.
+    /// Only read by `record_command` under the `stats-server` feature.
+    #[cfg(feature = "stats-server")]
     pub(super) category_timing: Arc<AtomicBool>,
     /// Per-shader cache for uniform locations: program -> (name -> location)
     /// NOT cleared on shader change - preserves locations across shader switches
@@ -160,6 +165,44 @@ pub struct CommandExecutor {
     pub(super) light_ubo: u32,
 }
 
+/// RAII guard returned by [`CommandExecutor::record_command`]. Finishes the
+/// per-category timing measurement (started when the guard was created) when
+/// it drops - i.e. at the end of the `cmd_*` method that created it. Without
+/// the `stats-server` feature this is a zero-sized no-op the compiler
+/// removes entirely, so `cmd_*` methods carry no added cost in normal builds.
+#[cfg(feature = "stats-server")]
+pub(super) struct StatsAggregator {
+    executor: *mut CommandExecutor,
+    category: CommandCategory,
+    start: Option<Instant>,
+}
+
+#[cfg(feature = "stats-server")]
+impl Drop for StatsAggregator {
+    fn drop(&mut self) {
+        #[allow(unsafe_code)]
+        if let Some(start) = self.start {
+            // SAFETY: `executor` was cast from the `&mut CommandExecutor`
+            // that produced this guard in `record_command`, and that
+            // `CommandExecutor` always outlives the guard (the guard is a
+            // local dropped before the enclosing `cmd_*` method - and thus
+            // the whole call - returns). Deliberately a raw pointer rather
+            // than a borrowed `&'a mut CommandExecutor`: the latter would
+            // make the borrow checker treat the guard as holding `self`
+            // exclusively for its entire lifetime, which would reject the
+            // `cmd_*` method's own further use of `self` after creating the
+            // guard. Single-threaded, never re-entrant, and nothing else
+            // dereferences this specific pointer while the guard is alive.
+            let executor = unsafe { &mut *self.executor };
+            let elapsed_us = start.elapsed().as_micros() as u64;
+            executor.this_frame_stats.category_time_us[self.category.index()] += elapsed_us;
+        }
+    }
+}
+
+#[cfg(not(feature = "stats-server"))]
+pub(super) struct StatsAggregator;
+
 impl CommandExecutor {
     pub fn new(gl_context: Option<WindowActiveGlContext>) -> Self {
         Self::new_with_timing(gl_context, Arc::new(AtomicBool::new(false)))
@@ -171,7 +214,7 @@ impl CommandExecutor {
     /// `new()` (timing stays off).
     pub fn new_with_timing(
         gl_context: Option<WindowActiveGlContext>,
-        category_timing: Arc<AtomicBool>,
+        _category_timing: Arc<AtomicBool>,
     ) -> Self {
         Self {
             resources: HashMap::new(),
@@ -185,7 +228,8 @@ impl CommandExecutor {
             current_program: 0,
             frame_start: std::time::Instant::now(),
             this_frame_stats: RenderStats::default(),
-            category_timing,
+            #[cfg(feature = "stats-server")]
+            category_timing: _category_timing,
             uniform_caches: HashMap::with_capacity(32), // Pre-allocate for typical shader count
             instance_vbo: 0,
             instance_vbo_capacity: 0,
@@ -213,101 +257,61 @@ impl CommandExecutor {
         self.last_stats.clone()
     }
 
+    /// Record generic per-command bookkeeping (commands_processed, draw/state
+    /// counters, category_counts) and return an RAII guard that finishes
+    /// timing this command's execution when it drops (i.e. at the end of the
+    /// enclosing `cmd_*` method).
+    /// Only elapsed-time write is deferred to `Drop`. Shared by both renderer
+    /// backends: threaded mode's `execute()` dispatch and immediate mode's
+    /// direct `cmd_*` calls both go through the same `cmd_*` methods, so
+    /// instrumenting it here (instead of at `execute()`'s dispatch layer)
+    /// gives both backends identical stats for free.
+    #[cfg(feature = "stats-server")]
+    #[inline(always)]
+    pub(super) fn record_command(
+        &mut self,
+        category: CommandCategory,
+        is_draw: bool,
+        is_state: bool,
+    ) -> StatsAggregator {
+        self.stats.commands_processed += 1;
+        self.this_frame_stats.commands += 1;
+        if is_draw {
+            self.stats.draw_calls += 1;
+            self.this_frame_stats.draw_calls += 1;
+        }
+        if is_state {
+            self.stats.state_changes += 1;
+            self.this_frame_stats.state_changes += 1;
+        }
+        self.this_frame_stats.category_counts[category.index()] += 1;
+
+        let start = self
+            .category_timing
+            .load(Ordering::Relaxed)
+            .then(Instant::now);
+
+        StatsAggregator {
+            executor: self as *mut CommandExecutor,
+            category,
+            start,
+        }
+    }
+
+    #[cfg(not(feature = "stats-server"))]
+    #[inline(always)]
+    pub(super) fn record_command(
+        &mut self,
+        _category: CommandCategory,
+        _is_draw: bool,
+        _is_state: bool,
+    ) -> StatsAggregator {
+        StatsAggregator
+    }
+
     /// Initialize GL resources needed by the render thread
     pub fn init_gl(&mut self) {
-        unsafe {
-            // Reset GL state to known defaults - context may have inherited state from main thread
-            gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
-            gl::BindVertexArray(0);
-            gl::UseProgram(0);
-
-            // =================================================================
-            // CRITICAL: Match ALL GL state from glutin_render.rs init_renderer
-            // Missing any of these causes rendering differences!
-            // =================================================================
-
-            // Disable multisampling (matches main thread)
-            gl::Disable(gl::MULTISAMPLE);
-
-            // Culling defaults
-            gl::Disable(gl::CULL_FACE);
-            gl::CullFace(gl::BACK);
-
-            // Pixel store alignment (1 byte for fonts with odd widths)
-            gl::PixelStorei(gl::PACK_ALIGNMENT, 1);
-            gl::PixelStorei(gl::UNPACK_ALIGNMENT, 1);
-
-            // Depth function
-            gl::DepthFunc(gl::LEQUAL);
-
-            // Blending - MUST be enabled for fonts!
-            gl::Enable(gl::BLEND);
-            gl::BlendFunc(gl::ONE, gl::ZERO);
-
-            // Seamless cubemap filtering
-            gl::Enable(gl::TEXTURE_CUBE_MAP_SEAMLESS);
-
-            // Line rendering
-            gl::Disable(gl::LINE_SMOOTH);
-            gl::Hint(gl::LINE_SMOOTH_HINT, gl::FASTEST);
-            #[cfg(not(target_os = "macos"))]
-            gl::LineWidth(2.0f32);
-
-            // =================================================================
-            // Match RenderState::push_all_defaults() initial values
-            // =================================================================
-
-            // Depth test disabled by default (push_depth_test(false))
-            gl::Disable(gl::DEPTH_TEST);
-
-            // Depth writable true by default (push_depth_writable(true))
-            gl::DepthMask(gl::TRUE);
-
-            // Wireframe disabled by default (push_wireframe(false))
-            gl::PolygonMode(gl::FRONT_AND_BACK, gl::FILL);
-
-            // Log initial state for debugging
-            let mut current_fbo: i32 = 0;
-            let mut current_vao: i32 = 0;
-            let mut viewport: [i32; 4] = [0; 4];
-            gl::GetIntegerv(gl::DRAW_FRAMEBUFFER_BINDING, &mut current_fbo);
-            gl::GetIntegerv(gl::VERTEX_ARRAY_BINDING, &mut current_vao);
-            gl::GetIntegerv(gl::VIEWPORT, viewport.as_mut_ptr());
-            info!(
-                "Render thread GL state after reset: FBO={}, VAO={}, viewport={:?}",
-                current_fbo, current_vao, viewport
-            );
-
-            // Create VAO/VBO for immediate mode rendering
-            gl::GenVertexArrays(1, &mut self.imm_vao);
-            gl::GenBuffers(1, &mut self.imm_vbo);
-
-            gl::BindVertexArray(self.imm_vao);
-            gl::BindBuffer(gl::ARRAY_BUFFER, self.imm_vbo);
-
-            // Setup vertex attributes for ImmVertex: pos (3f), normal (3f), uv (2f), color (4f)
-            // Attribute locations must match shader.rs BindAttribLocation calls:
-            //   0 = vertex_position, 1 = vertex_normal, 2 = vertex_uv, 3 = vertex_color
-            let stride = std::mem::size_of::<ImmVertex>() as i32; // 12 floats = 48 bytes
-
-            // Position attribute (location 0 = vertex_position)
-            gl::EnableVertexAttribArray(0);
-            gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, stride, std::ptr::null());
-
-            // Normal attribute (location 1 = vertex_normal)
-            gl::EnableVertexAttribArray(1);
-            gl::VertexAttribPointer(1, 3, gl::FLOAT, gl::FALSE, stride, (3 * 4) as *const _);
-
-            // UV attribute (location 2 = vertex_uv)
-            gl::EnableVertexAttribArray(2);
-            gl::VertexAttribPointer(2, 2, gl::FLOAT, gl::FALSE, stride, (6 * 4) as *const _);
-
-            // Color attribute (location 3 = vertex_color)
-            gl::EnableVertexAttribArray(3);
-            gl::VertexAttribPointer(3, 4, gl::FLOAT, gl::FALSE, stride, (8 * 4) as *const _);
-
-            gl::BindVertexArray(0);
-        }
+        self.init_gl_intern();
 
         info!("Render thread GL resources initialized");
     }
@@ -315,28 +319,6 @@ impl CommandExecutor {
     /// Main render loop
     pub fn execute(&mut self, cmd: RenderCommand) -> CommandReply {
         let mut reply = CommandReply::None;
-
-        self.stats.commands_processed += 1;
-        self.this_frame_stats.commands_last_frame += 1;
-
-        if cmd.is_draw_call() {
-            self.stats.draw_calls += 1;
-            self.this_frame_stats.draw_calls_last_frame += 1;
-        }
-        if cmd.is_state_change() {
-            self.stats.state_changes += 1;
-            self.this_frame_stats.state_changes_last_frame += 1;
-        }
-
-        // Per-category accumulation for the stats dashboard
-        let category = cmd.category();
-        let cat_idx = category.index();
-        self.this_frame_stats.category_counts_last_frame[cat_idx] += 1;
-        let timing_start = if self.category_timing.load(Ordering::Relaxed) {
-            Some(std::time::Instant::now())
-        } else {
-            None
-        };
 
         match cmd {
             // === State Management ===
@@ -419,17 +401,10 @@ impl CommandExecutor {
                 self.cmd_set_uniform_mat4(location, value);
             }
 
-            RenderCommand::SetInstanceUniforms {
-                world_loc,
-                world_it_loc,
-                scale_loc,
-                world,
-                world_it,
-                scale,
-            } => {
-                self.cmd_set_uniform_mat4(world_loc, world);
-                self.cmd_set_uniform_mat4(world_it_loc, world_it);
-                self.cmd_set_uniform_float(scale_loc, scale);
+            RenderCommand::SetInstanceUniforms(cmd) => {
+                self.cmd_set_uniform_mat4(cmd.world_loc, cmd.world);
+                self.cmd_set_uniform_mat4(cmd.world_it_loc, cmd.world_it);
+                self.cmd_set_uniform_float(cmd.scale_loc, cmd.scale);
             }
 
             // === Name-based Uniform Operations ===
@@ -687,21 +662,30 @@ impl CommandExecutor {
                 pixel_format,
                 data_format,
                 reply_tx,
-            } => self.cmd_read_texture_1d_data(id, pixel_format, data_format, reply_tx),
+            } => {
+                let data = self.cmd_read_texture_1d_data(id, pixel_format, data_format);
+                let _ = reply_tx.send(data);
+            }
 
             RenderCommand::ReadTexture2DData {
                 id,
                 pixel_format,
                 data_format,
                 reply_tx,
-            } => self.cmd_read_texture_2d_data(id, pixel_format, data_format, reply_tx),
+            } => {
+                let data = self.cmd_read_texture_2d_data(id, pixel_format, data_format);
+                let _ = reply_tx.send(data);
+            }
 
             RenderCommand::ReadTexture3DData {
                 id,
                 pixel_format,
                 data_format,
                 reply_tx,
-            } => self.cmd_read_texture_3d_data(id, pixel_format, data_format, reply_tx),
+            } => {
+                let data = self.cmd_read_texture_3d_data(id, pixel_format, data_format);
+                let _ = reply_tx.send(data);
+            }
 
             RenderCommand::ReadTextureCubeFaceData {
                 id,
@@ -710,17 +694,20 @@ impl CommandExecutor {
                 pixel_format,
                 data_format,
                 reply_tx,
-            } => self.cmd_read_texture_cube_face_data(
-                id,
-                face,
-                level,
-                pixel_format,
-                data_format,
-                reply_tx,
-            ),
+            } => {
+                let data = self.cmd_read_texture_cube_face_data(
+                    id,
+                    face,
+                    level,
+                    pixel_format,
+                    data_format,
+                );
+                let _ = reply_tx.send(data);
+            }
 
             RenderCommand::SamplePixel2DByResource { id, x, y, reply_tx } => {
-                self.cmd_sample_pixel_2d_by_resource(id, x, y, reply_tx);
+                let data = self.cmd_sample_pixel_2d_by_resource(id, x, y);
+                let _ = reply_tx.send(data);
             }
 
             RenderCommand::ReadFramebufferPixels {
@@ -729,7 +716,10 @@ impl CommandExecutor {
                 width,
                 height,
                 reply_tx,
-            } => self.cmd_read_framebuffer_pixels(x, y, width, height, reply_tx),
+            } => {
+                let data = self.cmd_read_framebuffer_pixels(x, y, width, height);
+                let _ = reply_tx.send(data);
+            }
 
             // === Framebuffer Operations ===
             RenderCommand::PushFramebuffer {
@@ -809,7 +799,6 @@ impl CommandExecutor {
                 index_count,
                 primitive,
             } => {
-                self.this_frame_stats.draw_mesh_calls_last_frame += 1;
                 self.cmd_draw_mesh(vao, index_count, primitive);
             }
 
@@ -819,7 +808,6 @@ impl CommandExecutor {
                 instance_count,
                 primitive,
             } => {
-                self.this_frame_stats.draw_instanced_calls_last_frame += 1;
                 self.cmd_draw_mesh_instanced(vao, index_count, instance_count, primitive);
             }
 
@@ -828,7 +816,6 @@ impl CommandExecutor {
                 index_count,
                 primitive,
             } => {
-                self.this_frame_stats.draw_mesh_calls_last_frame += 1;
                 self.cmd_draw_mesh_by_resource(id, index_count, primitive);
             }
 
@@ -838,7 +825,6 @@ impl CommandExecutor {
                 instance_count,
                 primitive,
             } => {
-                self.this_frame_stats.draw_instanced_calls_last_frame += 1;
                 self.cmd_draw_mesh_instanced_by_resource(
                     id,
                     index_count,
@@ -853,9 +839,7 @@ impl CommandExecutor {
                 instances,
                 primitive,
             } => {
-                self.this_frame_stats.draw_instanced_calls_last_frame += 1;
-                self.this_frame_stats.instanced_data_items_last_frame += instances.len() as u64;
-                self.cmd_draw_instanced_with_data(mesh_id, index_count, instances, primitive);
+                self.cmd_draw_instanced_with_data(mesh_id, index_count, &instances, primitive);
             }
 
             RenderCommand::DrawInstancedIndices {
@@ -864,9 +848,7 @@ impl CommandExecutor {
                 indices,
                 primitive,
             } => {
-                self.this_frame_stats.draw_instanced_calls_last_frame += 1;
-                self.this_frame_stats.instanced_data_items_last_frame += indices.len() as u64;
-                self.cmd_draw_instanced_indices(mesh_id, index_count, indices, primitive);
+                self.cmd_draw_instanced_indices(mesh_id, index_count, &indices, primitive);
             }
 
             RenderCommand::BindMeshByResource { id } => self.cmd_bind_mesh_by_resource(id),
@@ -875,8 +857,6 @@ impl CommandExecutor {
                 primitive,
                 vertices,
             } => {
-                self.this_frame_stats.draw_immediate_calls_last_frame += 1;
-                self.this_frame_stats.immediate_vertices_last_frame += vertices.len() as u64;
                 self.cmd_draw_immediate(primitive, &vertices);
             }
 
@@ -886,10 +866,14 @@ impl CommandExecutor {
                 vertex_src,
                 fragment_src,
                 reply_tx,
-            } => self.cmd_create_shader(id, vertex_src, fragment_src, reply_tx),
+            } => {
+                let data = self.cmd_create_shader(id, vertex_src, fragment_src);
+                let _ = reply_tx.send(data);
+            }
 
             RenderCommand::GetUniformLocationByResource { id, name, reply_tx } => {
-                self.cmd_get_uniform_location_by_resource(id, name, reply_tx);
+                let data = self.cmd_get_uniform_location_by_resource(id, name);
+                let _ = reply_tx.send(data);
             }
 
             RenderCommand::ReloadShader {
@@ -966,12 +950,6 @@ impl CommandExecutor {
             RenderCommand::Shutdown => {
                 // Handled by the caller's loop
             }
-        }
-
-        // Accumulate per-category executor time (dashboard mode only)
-        if let Some(start) = timing_start {
-            self.this_frame_stats.category_time_us_last_frame[cat_idx] +=
-                start.elapsed().as_micros() as u64;
         }
 
         reply

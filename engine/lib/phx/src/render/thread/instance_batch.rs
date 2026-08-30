@@ -18,10 +18,9 @@ impl InstanceBatch {
     /// Binds this batch to `mesh`'s GPU resource (lazily creating it, like
     /// `Mesh::drawBind`) and its current index count. Changing which mesh a
     /// batch draws requires creating a new `InstanceBatch`.
-    #[bind(name = "Create")]
     pub fn create(mesh: &mut Mesh, r: &mut Renderer, primitive: CmdPrimitiveType) -> InstanceBatch {
         InstanceBatch {
-            mesh_id: ResourceId(mesh.resource_id(r)),
+            mesh_id: mesh.get_resource_id(r),
             index_count: mesh.get_index_count(),
             instances: Vec::new(),
             primitive,
@@ -45,7 +44,7 @@ impl InstanceBatch {
         r.draw_instanced_with_data_intern(
             self.mesh_id,
             self.index_count,
-            self.instances.clone(),
+            &self.instances,
             self.primitive,
         );
     }
@@ -61,7 +60,7 @@ impl InstanceBatch {
         self.clear();
     }
 
-    pub fn instance_count(&self) -> i32 {
-        self.instances.len() as i32
+    pub fn instance_count(&self) -> usize {
+        self.instances.len()
     }
 }

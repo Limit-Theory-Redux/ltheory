@@ -35,9 +35,9 @@ pub struct StatsSnapshot {
     /// Time blocked in `end_frame_triple_buffered` (frame-end pacing wait)
     pub main_thread_wait_us: u64,
     /// Time blocked in `submit()` on a full command channel, this frame
-    pub send_blocked_us_last_frame: u64,
+    pub send_blocked_us: u64,
     /// Number of `submit()` calls that blocked this frame
-    pub send_block_count_last_frame: u64,
+    pub send_block_count: u64,
     /// Highest command-channel occupancy observed this frame (capacity 8192)
     pub channel_high_water: u64,
     /// Frames submitted but not yet rendered (triple-buffer depth)
@@ -45,7 +45,7 @@ pub struct StatsSnapshot {
     /// Uniform sends skipped by the per-shader value dedup last frame - the
     /// Lua→Rust crossings that were paid but produced no command. Shows the
     /// hidden producer cost the command count doesn't capture.
-    pub uniform_dedup_skips_last_frame: u64,
+    pub uniform_dedup_skips: u64,
 }
 
 impl Renderer {
@@ -60,12 +60,16 @@ impl Renderer {
         self.category_timing.store(true, Ordering::Relaxed);
     }
 
-    /// Immediate mode: no render thread to publish from; the dashboard's
-    /// /profile.json endpoints (shared profiler) still work, /stats.json is
-    /// unavailable. Accepting the sink keeps the engine's stats-server wiring
-    /// uniform across both backends.
+    /// Immediate mode: no render thread, no channel - the executor lives on
+    /// the same thread as this call, so there's nothing to hand off. Same
+    /// effect as the threaded impl above: store the sink and enable
+    /// per-category executor timing.
     #[cfg(feature = "immediate")]
-    pub fn attach_stats_sink(&mut self, _sink: StatsSink) {}
+    pub fn attach_stats_sink(&mut self, sink: StatsSink) {
+        self.stats_sink = Some(sink);
+        use std::sync::atomic::Ordering;
+        self.category_timing.store(true, Ordering::Relaxed);
+    }
 
     /// Build a snapshot from the current per-frame state and push it into the
     /// sink, if one is attached.
@@ -83,11 +87,42 @@ impl Renderer {
                 .unwrap_or(0),
             render: self.get_stats(),
             main_thread_wait_us: self.main_thread_wait_us,
-            send_blocked_us_last_frame: self.send_blocked_us_last_frame,
-            send_block_count_last_frame: self.send_block_count_last_frame,
+            send_blocked_us: self.send_blocked_us,
+            send_block_count: self.send_block_count,
             channel_high_water: self.channel_high_water,
             frames_in_flight: self.get_frames_in_flight(),
-            uniform_dedup_skips_last_frame: uniform_dedup_skips(),
+            uniform_dedup_skips: uniform_dedup_skips(),
+        };
+
+        if let Ok(mut guard) = sink.lock() {
+            *guard = snapshot;
+        }
+    }
+
+    /// Immediate-mode counterpart of the threaded impl above. `render` reads
+    /// live off the executor (no channel hop needed - see `get_stats()`);
+    /// the channel/thread-pacing fields (`main_thread_wait_us`,
+    /// `send_blocked_us`, `send_block_count`, `channel_high_water`) have no
+    /// meaning without a render thread and stay `0`, same as
+    /// `get_main_thread_wait_us()`/`get_frames_in_flight()` already report.
+    #[cfg(feature = "immediate")]
+    pub(crate) fn publish_stats_snapshot(&mut self) {
+        let Some(sink) = self.stats_sink.clone() else {
+            return;
+        };
+
+        let snapshot = StatsSnapshot {
+            server_time_us: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_micros() as u64)
+                .unwrap_or(0),
+            render: self.get_stats(),
+            main_thread_wait_us: self.get_main_thread_wait_us(),
+            send_blocked_us: 0,
+            send_block_count: 0,
+            channel_high_water: 0,
+            frames_in_flight: self.get_frames_in_flight(),
+            uniform_dedup_skips: uniform_dedup_skips(),
         };
 
         if let Ok(mut guard) = sink.lock() {

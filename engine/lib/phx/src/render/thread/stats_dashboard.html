@@ -166,7 +166,7 @@ async function poll() {
 
     const frameMs = s.last_frame_time_us / 1000;
     frameTimes.push(frameMs); if (frameTimes.length > HISTORY) frameTimes.shift();
-    commandCounts.push(s.commands_last_frame); if (commandCounts.length > HISTORY) commandCounts.shift();
+    commandCounts.push(s.commands); if (commandCounts.length > HISTORY) commandCounts.shift();
 
     const fps = s.last_frame_time_us > 0 ? (1e6 / s.last_frame_time_us) : 0;
     const sorted = [...frameTimes].sort((a, b) => a - b);
@@ -198,53 +198,53 @@ async function poll() {
       ' / p99 ' + percentile(sorted, .99).toFixed(2) + ' ms · last ' + frameMs.toFixed(2);
 
     $('c-commands').querySelector('.value').textContent = fmt(avgCommands);
-    $('c-commands').querySelector('.sub').textContent = 'avg / frame · last ' + fmt(s.commands_last_frame);
-    $('c-draws').querySelector('.value').textContent = fmt(s.draw_calls_last_frame);
+    $('c-commands').querySelector('.sub').textContent = 'avg / frame · last ' + fmt(s.commands);
+    $('c-draws').querySelector('.value').textContent = fmt(s.draw_calls);
     $('c-draws').querySelector('.sub').textContent =
-      'mesh ' + fmt(s.draw_mesh_calls_last_frame) + ' / imm ' + fmt(s.draw_immediate_calls_last_frame) +
-      ' / inst ' + fmt(s.draw_instanced_calls_last_frame);
-    $('c-state').querySelector('.value').textContent = fmt(s.state_changes_last_frame);
+      'mesh ' + fmt(s.draw_mesh_calls) + ' / imm ' + fmt(s.draw_immediate_calls) +
+      ' / inst ' + fmt(s.draw_instanced_calls);
+    $('c-state').querySelector('.value').textContent = fmt(s.state_changes);
     $('c-present').querySelector('.value').textContent = fmt(s.present_wait_us);
     $('c-mainwait').querySelector('.value').textContent = fmt(s.main_thread_wait_us);
     $('c-sendblock').querySelector('.value').textContent =
-      fmt(s.send_blocked_us_last_frame) + ' / ' + fmt(s.send_block_count_last_frame);
+      fmt(s.send_blocked_us) + ' / ' + fmt(s.send_block_count);
     $('c-channel').querySelector('.value').textContent = fmt(s.channel_high_water);
     $('c-channel').className = 'card ' + (s.channel_high_water >= 8000 ? 'bad' : s.channel_high_water >= 4000 ? 'warn' : 'good');
     $('c-fif').querySelector('.value').textContent = fmt(s.frames_in_flight);
     $('c-texbind').querySelector('.value').textContent =
-      fmt(s.texture_bind_calls_last_frame) + ' / ' + fmt(s.texture_binds_skipped_last_frame);
-    $('c-texinv').querySelector('.value').textContent = fmt(s.texture_cache_invalidations_last_frame);
+      fmt(s.texture_bind_calls) + ' / ' + fmt(s.texture_binds_skipped);
+    $('c-texinv').querySelector('.value').textContent = fmt(s.texture_cache_invalidations);
     $('c-texinv').querySelector('.sub').textContent =
-      'bind ' + fmt(s.texture_invalidations_on_shader_bind_last_frame) +
-      ' / unbind ' + fmt(s.texture_invalidations_on_shader_unbind_last_frame);
+      'bind ' + fmt(s.texture_invalidations_on_shader_bind) +
+      ' / unbind ' + fmt(s.texture_invalidations_on_shader_unbind);
     $('c-uniform').querySelector('.value').textContent =
-      fmt(s.uniform_cache_hits_last_frame) + ' / ' + fmt(s.uniform_cache_misses_last_frame);
-    $('c-uniform').className = 'card ' + (s.uniform_cache_misses_last_frame > 100 ? 'warn' : 'good');
-    $('c-immvert').querySelector('.value').textContent = fmt(s.immediate_vertices_last_frame);
-    $('c-verts').querySelector('.value').textContent = fmt(s.vertices_drawn_last_frame);
-    const vertsM = (s.vertices_drawn_last_frame || 0) / 1e6;
+      fmt(s.uniform_cache_hits) + ' / ' + fmt(s.uniform_cache_misses);
+    $('c-uniform').className = 'card ' + (s.uniform_cache_misses > 100 ? 'warn' : 'good');
+    $('c-immvert').querySelector('.value').textContent = fmt(s.immediate_vertices);
+    $('c-verts').querySelector('.value').textContent = fmt(s.vertices_drawn);
+    const vertsM = (s.vertices_drawn || 0) / 1e6;
     $('c-verts').className = 'card ' + (vertsM > 100 ? 'bad' : vertsM > 40 ? 'warn' : 'good');
     $('c-verts').querySelector('.sub').textContent =
       vertsM.toFixed(1) + ' M — GPU vertex load (instanced = items × per-mesh verts)';
     $('c-starve').querySelector('.value').textContent =
-      fmt(s.recv_wait_us_last_frame) + ' / ' + fmt(s.recv_wait_count_last_frame);
-    const starvePct = s.last_frame_time_us > 0 ? (100 * s.recv_wait_us_last_frame / s.last_frame_time_us) : 0;
+      fmt(s.recv_wait_us) + ' / ' + fmt(s.recv_wait_count);
+    const starvePct = s.last_frame_time_us > 0 ? (100 * s.recv_wait_us / s.last_frame_time_us) : 0;
     $('c-starve').className = 'card ' + (starvePct > 40 ? 'bad' : starvePct > 15 ? 'warn' : 'good');
     $('c-starve').querySelector('.sub').textContent =
       starvePct.toFixed(0) + '% of frame idle waiting for commands';
     $('c-shader').querySelector('.value').textContent =
-      fmt(s.shader_bind_commands_last_frame) + ' / ' +
-      fmt(s.shader_redundant_binds_last_frame) + ' / ' +
-      fmt(s.shader_distinct_programs_last_frame);
-    const redundantPct = s.shader_bind_commands_last_frame > 0
-      ? (100 * s.shader_redundant_binds_last_frame / s.shader_bind_commands_last_frame) : 0;
+      fmt(s.shader_bind_commands) + ' / ' +
+      fmt(s.shader_redundant_binds) + ' / ' +
+      fmt(s.shader_distinct_programs);
+    const redundantPct = s.shader_bind_commands > 0
+      ? (100 * s.shader_redundant_binds / s.shader_bind_commands) : 0;
     $('c-shader').className = 'card ' + (redundantPct > 60 ? 'bad' : redundantPct > 25 ? 'warn' : 'good');
     $('c-shader').querySelector('.sub').textContent =
       redundantPct.toFixed(0) + '% redundant — churn signalled but no GL state change';
-    const unifSent = s.commands_last_frame > 0 ? s.uniform_dedup_skips_last_frame + s.commands_last_frame : 0;
+    const unifSent = s.commands > 0 ? s.uniform_dedup_skips + s.commands : 0;
     $('c-ffi').querySelector('.value').textContent =
-      fmt(s.commands_last_frame) + ' / ' + fmt(s.uniform_dedup_skips_last_frame);
-    const skipPct = unifSent > 0 ? (100 * s.uniform_dedup_skips_last_frame / unifSent) : 0;
+      fmt(s.commands) + ' / ' + fmt(s.uniform_dedup_skips);
+    const skipPct = unifSent > 0 ? (100 * s.uniform_dedup_skips / unifSent) : 0;
     $('c-ffi').className = 'card ' + (skipPct > 40 ? 'warn' : 'good');
     $('c-ffi').querySelector('.sub').textContent =
       skipPct.toFixed(0) + '% of crossings rejected — hidden producer cost';
@@ -253,8 +253,8 @@ async function poll() {
 
     $('meta').textContent =
       'frames ' + fmt(s.frame_count) + ' · total commands ' + fmt(s.commands_processed) +
-      ' · total draws ' + fmt(s.draw_calls) + ' · total state changes ' + fmt(s.state_changes) +
-      ' · binds skipped (cum) ' + fmt(s.texture_binds_skipped);
+      ' · total draws ' + fmt(s.draw_calls_cumulative) + ' · total state changes ' + fmt(s.state_changes_cumulative) +
+      ' · binds skipped (cum) ' + fmt(s.texture_binds_skipped_cumulative);
 
     drawGraph($('g-frame'), frameTimes, '#58a6ff', v => v);
     drawGraph($('g-commands'), commandCounts, '#d29922', v => v);
@@ -349,7 +349,7 @@ function renderFrameExplanation() {
     return;
   }
   const frameMs = last.last_frame_time_us / 1000;
-  const starveMs = (last.recv_wait_us_last_frame || 0) / 1000;
+  const starveMs = (last.recv_wait_us || 0) / 1000;
   const scopes = lastProfReport.scopes || [];
   if (!scopes.length) {
     body.innerHTML = '<tr><td colspan="3" style="color:#8b949e;text-align:left">No scopes recorded yet — keep the profiler running.</td></tr>';

@@ -2,7 +2,7 @@ local libphx = require('libphx').lib
 
 -- Draw's C functions (except SmoothPoints, a no-op stub) all take the
 -- current Renderer as their first argument now (see
--- ai/multithreaded_rendering.md); inject the global `Renderer` set by
+-- doc/engine/render-thread.md); inject the global `Renderer` set by
 -- SetEngine so call sites don't change.
 function onDef_Draw(t, mt)
     t.Clear = function(red, green, blue, alpha)

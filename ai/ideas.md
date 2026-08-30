@@ -3,7 +3,7 @@
 Analysis of the current state of Limit Theory Redux (branch `feat/multithreaded_rendering`,
 2026-07) with prioritized improvement ideas and a design proposal for the upcoming
 **navigation** feature. Grounded in the skills under `ai/skills/` and the roadmap in
-`ai/multithreaded_rendering.md`.
+`doc/engine/render-thread.md`.
 
 ---
 
@@ -21,7 +21,7 @@ driven by a Lua game layer over zero-overhead LuaJIT FFI. Bindings are generated
   (`render_batch.rs` references a dead earlier design: `WorkerPoolHandle`,
   `RenderBatchApi`, `RENDER_BATCH`; `renderer.rs:422` reads a nonexistent
   `RenderStats.batches_processed`). Diagnosis and a phased fix plan already exist in
-  `ai/multithreaded_rendering.md` (§2, §3).
+  `doc/engine/render-thread.md` (§2, §3).
 - **The multithreaded renderer is dormant**: complete command executor
   (`render_thread.rs`, ~1.9k lines, ~80 command variants), but nothing at runtime
   submits commands, `--render-thread` exits on startup due to an inverted return in
@@ -53,7 +53,7 @@ driven by a Lua game layer over zero-overhead LuaJIT FFI. Bindings are generated
 ### 2.1 Now — unblock and protect the build
 
 1. **Restore compilation** on this branch by executing Phase 0/1 of
-   `ai/multithreaded_rendering.md`: gut the dead half of `render_batch.rs` (keep
+   `doc/engine/render-thread.md`: gut the dead half of `render_batch.rs` (keep
    `RenderBatch`/`BatchStats`/`new`/`add_entity`), fix the `batches_processed` stat,
    invert the `Engine::start_renderer` returns, fix frustum-plane normalization and
    the location `-1` MVP uniform. These are small, fully-specified fixes.
@@ -78,7 +78,7 @@ driven by a Lua game layer over zero-overhead LuaJIT FFI. Bindings are generated
 6. **Render-thread error surfacing**: the render thread logs GL errors the main thread
    never sees. Add an error counter to `SharedRenderStats` (or a drained error
    channel) so Lua/HUD can observe failures. (Also listed in
-   `ai/multithreaded_rendering.md` §4.)
+   `doc/engine/render-thread.md` §4.)
 
 ### 2.3 Performance & quality debt
 
@@ -95,7 +95,7 @@ driven by a Lua game layer over zero-overhead LuaJIT FFI. Bindings are generated
 ### 2.4 Strategic
 
 11. **Finish the multithreaded renderer via Rust-side interception** (Option B in
-    `ai/multithreaded_rendering.md` §5.1): keep the Lua `Draw`/`RenderState`/`Tex2D`
+    `doc/engine/render-thread.md` §5.1): keep the Lua `Draw`/`RenderState`/`Tex2D`
     API and submit commands when `Engine.renderer` is active. Every existing script
     and test then works in both modes; migration is incremental. The alternative
     (porting all Lua draw code to the `Renderer` FFI) is a much larger surface with
@@ -275,7 +275,7 @@ UI:
 2. Add the fast CI gate + bindings-drift check (§2.1 items 2–3) so this can't recur.
 3. Start **Navigation Phase 1** — it's pure Lua, entirely independent of the renderer
    work, and delivers visible gameplay value immediately; renderer phases 2–3 of
-   `ai/multithreaded_rendering.md` can proceed in parallel.
+   `doc/engine/render-thread.md` can proceed in parallel.
 4. Navigation Phases 2 → 3 (docking, then inter-system + galaxy map), interleaved
    with robustness items 4–6 on the engine side.
 5. Phase 4 polish (shapecast FFI, avoidance, smoothing) once real routes expose the

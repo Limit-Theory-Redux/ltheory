@@ -3,18 +3,18 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
 
-use crossbeam::channel::{Receiver, Sender, bounded, unbounded};
+use crossbeam::channel::{Receiver, Sender, TrySendError, bounded, unbounded};
 use tracing::{error, info};
 
 #[cfg(feature = "stats-server")]
 use crate::render::StatsSink;
-use crate::render::thread::{RenderThread, process_batch_intern};
+use crate::render::thread::RenderThread;
 use crate::render::{
-    BlendMode, ClipManager, CmdPrimitiveType, CullFace, DrawState, GpuHandle, ImmVertex,
-    InstanceData, PrimitiveBuilder, RenderCommand, RenderStateIntern, RenderStats,
-    RenderTargetStack, RenderThreadConfig, RenderThreadError, RendererData, ResourceHandle,
-    ResourceId, ShaderErrorQueue, ShaderReloadResult, ShaderVarMap, TexFilter, TexFormat,
-    TexWrapMode, VertexFormat, VpStack,
+    BlendMode, CameraUboArray, ClipManager, CmdPrimitiveType, CullFace, DrawState, GpuHandle,
+    ImmVertex, InstanceData, InstanceUniformsCmd, PrimitiveBuilder, RenderCommand,
+    RenderStateIntern, RenderStats, RenderTargetStack, RenderThreadConfig, RenderThreadError,
+    RendererData, ResourceId, ShaderErrorQueue, ShaderReloadResult, ShaderVarMap, TexFilter,
+    TexFormat, TexWrapMode, VertexFormat, VpStack,
 };
 use crate::window::{WindowError, WindowGlContext};
 
@@ -55,9 +55,9 @@ pub struct Renderer {
     /// accumulated over the current frame (microseconds). Complements
     /// `main_thread_wait_us`: this catches mid-frame producer stalls that the
     /// end-of-frame measurement misses.
-    pub(super) send_blocked_us_last_frame: u64,
+    pub(super) send_blocked_us: u64,
     /// Number of `submit()` calls that blocked on a full channel this frame
-    pub(super) send_block_count_last_frame: u64,
+    pub(super) send_block_count: u64,
     /// Highest command-channel occupancy observed this frame
     pub(super) channel_high_water: u64,
     // Optional sink receiving a per-frame snapshot for the stats dashboard.
@@ -84,15 +84,6 @@ impl Renderer {
         Self::create_intern(Some(context))
     }
 
-    /// A `Renderer` with no GL context at all - every command becomes a
-    /// no-op (see `CommandExecutor::has_gl_context`). Only for unit tests
-    /// that exercise CPU-side logic (e.g. HmGui layout) and have no window
-    /// to draw a real `WindowGlContext` from.
-    #[cfg(test)]
-    pub fn new_headless() -> Self {
-        Self::create_intern(None).expect("Cannot create renderer")
-    }
-
     pub fn stop(self) -> Option<WindowGlContext> {
         // We have exclusive access - shutdown and get context
         info!("Calling shutdown...");
@@ -103,13 +94,15 @@ impl Renderer {
     }
 
     fn create_intern(context: Option<WindowGlContext>) -> Result<Self, RenderThreadError> {
+        const SHADER_RESULT_BUFFER_SIZE: usize = 16;
+
         // Spawn the render thread with the GL context
         let config = RenderThreadConfig::default();
         // Use bounded channel for backpressure - SwapBuffers will block to sync with render thread
         let (command_tx, command_rx) = bounded(config.command_buffer_size);
         let (fence_tx, fence_rx) = bounded(config.fence_buffer_size);
         let (pacing_fence_tx, pacing_fence_rx) = bounded(config.fence_buffer_size);
-        let (shader_result_tx, shader_result_rx) = bounded(16); // Buffer for shader reload results
+        let (shader_result_tx, shader_result_rx) = bounded(SHADER_RESULT_BUFFER_SIZE); // Buffer for shader reload results
         let (context_tx, context_rx) = bounded(1); // Only one context to return
         let (stats_tx, stats_rx) = bounded(1); // Only the latest snapshot matters
         // Unbounded: `ResourceHandle::drop` must never block or fail.
@@ -126,47 +119,53 @@ impl Renderer {
         let category_timing = Arc::new(AtomicBool::new(false));
         let category_timing_executor = category_timing.clone();
 
-        let thread_handle = thread::Builder::new()
-            .name("RenderThread".into())
-            .spawn(move || {
-                // Make GL context current on this thread
-                let gl_context = if let Some(active_context) = context {
-                    match active_context.make_current() {
-                        Ok(ctx) => {
-                            info!("GL context made current on render thread");
-                            let _ = ready_tx.send(Ok(()));
-                            Some(ctx)
+        let thread_handle =
+            thread::Builder::new()
+                .name("RenderThread".into())
+                .spawn(move || {
+                    // Make GL context current on this thread
+                    let gl_context = if let Some(active_context) = context {
+                        match active_context.make_current() {
+                            Ok(ctx) => {
+                                info!("GL context made current on render thread");
+                                if let Err(err) = ready_tx.send(Ok(())) {
+                                    error!("Cannot report GL contaxt activation success: {err}");
+                                }
+                                Some(ctx)
+                            }
+                            Err(e) => {
+                                error!("Failed to make GL context current on render thread: {e}");
+                                if let Err(err) = ready_tx.send(Err(e)) {
+                                    error!("Cannot report GL contaxt activation failure: {err}");
+                                }
+                                // Nothing to run without a context - exit before
+                                // constructing `RenderThread` at all.
+                                return;
+                            }
                         }
-                        Err(e) => {
-                            error!("Failed to make GL context current on render thread: {e}");
-                            let _ = ready_tx.send(Err(e));
-                            // Nothing to run without a context - exit before
-                            // constructing `RenderThread` at all.
-                            return;
+                    } else {
+                        if let Err(err) = ready_tx.send(Ok(())) {
+                            error!("Cannot report GL contaxt activation success: {err}");
                         }
-                    }
-                } else {
-                    let _ = ready_tx.send(Ok(()));
-                    None
-                };
+                        None
+                    };
 
-                // Pass GL context to render thread for buffer swapping
-                let mut render_thread = RenderThread::new(
-                    command_rx,
-                    fence_tx,
-                    pacing_fence_tx,
-                    shader_result_tx,
-                    context_tx,
-                    stats_tx,
-                    running_clone,
-                    gl_context,
-                    category_timing_executor,
-                );
-                render_thread.run();
+                    // Pass GL context to render thread for buffer swapping
+                    let mut render_thread = RenderThread::new(
+                        command_rx,
+                        fence_tx,
+                        pacing_fence_tx,
+                        shader_result_tx,
+                        context_tx,
+                        stats_tx,
+                        running_clone,
+                        gl_context,
+                        category_timing_executor,
+                    );
+                    render_thread.run();
 
-                // GL context will be returned via channel or dropped if cleanup fails
-            })
-            .expect("Failed to spawn render thread");
+                    // GL context will be returned via channel or dropped if cleanup fails
+                })?;
 
         info!("Render thread spawned");
 
@@ -175,9 +174,7 @@ impl Renderer {
         // in an otherwise fire-and-forget startup, and it's what lets a
         // context-activation failure surface as `Err` here instead of
         // silently degrading to a no-op executor down the line.
-        ready_rx
-            .recv()
-            .expect("Render thread did not report context-activation status")?;
+        ready_rx.recv()??;
 
         info!("Render thread started successfully");
 
@@ -194,8 +191,8 @@ impl Renderer {
             stats_rx,
             last_stats: RenderStats::default(),
             main_thread_wait_us: 0,
-            send_blocked_us_last_frame: 0,
-            send_block_count_last_frame: 0,
+            send_blocked_us: 0,
+            send_block_count: 0,
             channel_high_water: 0,
             #[cfg(feature = "stats-server")]
             stats_sink: None,
@@ -229,7 +226,7 @@ impl Renderer {
         if self.running.load(Ordering::Relaxed) {
             // Fast path: non-blocking try_send. Only when the bounded channel
             // is full do we fall back to a blocking send — and only then do we
-            // time the stall, so `send_blocked_us_last_frame` measures real
+            // time the stall, so `send_blocked_us` measures real
             // mid-frame producer blocking (the thing `main_thread_wait_us`
             // misses).
             match self.command_tx.try_send(cmd) {
@@ -240,20 +237,20 @@ impl Renderer {
                         self.channel_high_water = depth;
                     }
                 }
-                Err(crossbeam::channel::TrySendError::Full(cmd)) => {
+                Err(TrySendError::Full(cmd)) => {
                     let depth = self.command_tx.len() as u64;
                     if depth > self.channel_high_water {
                         self.channel_high_water = depth;
                     }
                     let start = std::time::Instant::now();
                     if let Err(e) = self.command_tx.send(cmd) {
-                        error!("Failed to send render command: {:?}", e);
+                        error!("Failed to send render command: {e:?}");
                     }
                     let blocked_us = start.elapsed().as_micros() as u64;
-                    self.send_blocked_us_last_frame += blocked_us;
-                    self.send_block_count_last_frame += 1;
+                    self.send_blocked_us += blocked_us;
+                    self.send_block_count += 1;
                 }
-                Err(crossbeam::channel::TrySendError::Disconnected(_)) => {
+                Err(TrySendError::Disconnected(_)) => {
                     error!("Failed to send render command: channel disconnected");
                 }
             }
@@ -267,11 +264,11 @@ impl Renderer {
         if self.running.load(Ordering::Relaxed) {
             match self.command_tx.try_send(cmd) {
                 Ok(()) => true,
-                Err(crossbeam::channel::TrySendError::Full(_)) => {
+                Err(TrySendError::Full(_)) => {
                     // Channel full, command dropped (will be retried next frame)
                     false
                 }
-                Err(crossbeam::channel::TrySendError::Disconnected(_)) => {
+                Err(TrySendError::Disconnected(_)) => {
                     error!("Render thread disconnected");
                     false
                 }
@@ -281,20 +278,11 @@ impl Renderer {
         }
     }
 
-    /// Mint a new GPU resource: a unique `ResourceId` bundled with the means
-    /// to destroy it (see `ResourceHandle`). This is the only way to obtain
-    /// either, so a resource can never exist without its destructor wired up.
-    pub fn create_resource(&mut self) -> ResourceHandle {
-        let id = ResourceId(self.data.next_resource_id);
-        self.data.next_resource_id += 1;
-        ResourceHandle::new(id, self.data.destroy_tx.clone())
-    }
-
     /// Submit `DestroyResource` for every resource dropped since the last drain.
     fn drain_destroy_queue(&mut self) {
         // Collect first: the `destroy_rx` borrow has to end before `submit`
         // takes `&mut self`.
-        let ids: Vec<ResourceId> = self.data.destroy_rx.try_iter().collect();
+        let ids: Vec<_> = self.data.destroy_rx.try_iter().collect();
 
         self.submit(RenderCommand::DestroyResources { ids });
     }
@@ -342,8 +330,8 @@ impl Renderer {
         self.publish_stats_snapshot();
 
         // Reset per-frame producer counters for the next frame
-        self.send_blocked_us_last_frame = 0;
-        self.send_block_count_last_frame = 0;
+        self.send_blocked_us = 0;
+        self.send_block_count = 0;
         self.channel_high_water = 0;
     }
 
@@ -381,13 +369,13 @@ impl Renderer {
     /// Get total draw calls since start
     pub fn get_draw_calls(&mut self) -> u64 {
         self.refresh_stats();
-        self.last_stats.draw_calls
+        self.last_stats.draw_calls_cumulative
     }
 
     /// Get total state changes since start
     pub fn get_state_changes(&mut self) -> u64 {
         self.refresh_stats();
-        self.last_stats.state_changes
+        self.last_stats.state_changes_cumulative
     }
 
     /// Get total frames rendered
@@ -405,13 +393,13 @@ impl Renderer {
     /// Get commands processed in last frame
     pub fn get_commands_last_frame(&mut self) -> u64 {
         self.refresh_stats();
-        self.last_stats.commands_last_frame
+        self.last_stats.commands
     }
 
     /// Get draw calls in last frame
     pub fn get_draw_calls_last_frame(&mut self) -> u64 {
         self.refresh_stats();
-        self.last_stats.draw_calls_last_frame
+        self.last_stats.draw_calls
     }
 
     /// Get main thread wait time in microseconds (time spent waiting for render thread)
@@ -422,7 +410,7 @@ impl Renderer {
     /// Get total texture binds skipped due to caching
     pub fn get_texture_binds_skipped(&mut self) -> u64 {
         self.refresh_stats();
-        self.last_stats.texture_binds_skipped
+        self.last_stats.texture_binds_skipped_cumulative
     }
 
     /// Reload a shader on the render thread.
@@ -437,7 +425,6 @@ impl Renderer {
         if !self.running.load(Ordering::Relaxed) {
             return ShaderReloadResult {
                 shader_key: shader_key.to_string(),
-                success: false,
                 error: Some("Render thread not running".to_string()),
                 program: 0,
             };
@@ -455,15 +442,10 @@ impl Renderer {
             Ok(result) => result,
             Err(_) => ShaderReloadResult {
                 shader_key: shader_key.to_string(),
-                success: false,
                 error: Some("Channel closed while waiting for shader result".to_string()),
                 program: 0,
             },
         }
-    }
-
-    pub fn process_batch(&mut self) {
-        process_batch_intern(&mut self.data.active_batch, &mut self.data.command_buffer);
     }
 
     /// Request the render thread to shutdown.
@@ -478,13 +460,17 @@ impl Renderer {
 
             // Wait for thread to finish
             if let Err(e) = &self.thread_handle.join() {
-                error!("Render thread panicked: {:?}", e);
+                error!("Render thread panicked: {e:?}");
             } else {
                 // Wait up to 5 seconds for the context to be returned
-                match self.context_rx.recv_timeout(Duration::from_secs(5)) {
+                const CONTEXT_WAIT_TIMEOUT_SEC: u64 = 5;
+                match self
+                    .context_rx
+                    .recv_timeout(Duration::from_secs(CONTEXT_WAIT_TIMEOUT_SEC))
+                {
                     Ok(ctx) => return ctx,
                     Err(e) => {
-                        error!("Timeout or error waiting for GL context return: {:?}", e);
+                        error!("Timeout or error waiting for GL context return: {e:?}");
                     }
                 }
             }
@@ -512,17 +498,17 @@ impl Renderer {
 
 impl Renderer {
     /// Begin a new frame
-    pub(in crate::render::thread) fn begin_frame_intern(&mut self) {
+    pub(super) fn begin_frame_intern(&mut self) {
         self.data.command_buffer.clear();
     }
 
     /// Flush all queued commands to the render thread
-    pub(in crate::render::thread) fn flush_intern(&mut self) {
+    pub(super) fn flush_intern(&mut self) {
         if self.running.load(Ordering::Relaxed) {
             // TODO: send vector of commands instead of one by one
             for cmd in self.data.command_buffer.drain(..) {
                 if let Err(e) = self.command_tx.send(cmd) {
-                    error!("Failed to send render command: {:?}", e);
+                    error!("Failed to send render command: {e:?}");
                     break;
                 }
             }
@@ -530,7 +516,7 @@ impl Renderer {
     }
 
     /// Synchronize with the render thread (wait for all commands to complete)
-    pub(in crate::render::thread) fn sync_intern(&mut self) -> bool {
+    pub(super) fn sync_intern(&mut self) -> bool {
         if !self.running.load(Ordering::Relaxed) {
             return false;
         }
@@ -669,14 +655,16 @@ impl Renderer {
         world_it: [f32; 16],
         scale: f32,
     ) {
-        self.submit(RenderCommand::SetInstanceUniforms {
-            world_loc,
-            world_it_loc,
-            scale_loc,
-            world,
-            world_it,
-            scale,
-        });
+        self.submit(RenderCommand::SetInstanceUniforms(Box::new(
+            InstanceUniformsCmd {
+                world_loc,
+                world_it_loc,
+                scale_loc,
+                world,
+                world_it,
+                scale,
+            },
+        )));
     }
 
     // === Texture Operations ===
@@ -1079,13 +1067,13 @@ impl Renderer {
         &mut self,
         mesh_id: ResourceId,
         index_count: i32,
-        instances: Vec<InstanceData>,
+        instances: &[InstanceData],
         primitive: CmdPrimitiveType,
     ) {
         self.submit(RenderCommand::DrawInstancedWithData {
             mesh_id,
             index_count,
-            instances,
+            instances: instances.to_vec(),
             primitive,
         });
     }
@@ -1203,7 +1191,7 @@ impl Renderer {
         self.submit(RenderCommand::CreateCameraUBO);
     }
 
-    pub fn update_camera_ubo_intern(&mut self, data: Box<[u8; 288]>) {
+    pub fn update_camera_ubo_intern(&mut self, data: Box<CameraUboArray>) {
         self.submit(RenderCommand::UpdateCameraUBO { data });
     }
 
@@ -1245,5 +1233,14 @@ impl Renderer {
     /// which drains the CPU-side batch command buffer - an unrelated concept.
     pub fn gl_finish(&mut self) {
         self.submit(RenderCommand::Flush);
+    }
+
+    /// A `Renderer` with no GL context at all - every command becomes a
+    /// no-op (see `CommandExecutor::has_gl_context`). Only for unit tests
+    /// that exercise CPU-side logic (e.g. HmGui layout) and have no window
+    /// to draw a real `WindowGlContext` from.
+    #[cfg(test)]
+    pub fn new_headless() -> Self {
+        Renderer::create_intern(None).expect("Cannot create renderer")
     }
 }

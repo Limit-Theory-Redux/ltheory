@@ -28,6 +28,29 @@ thread publishes into each frame end.
 cargo build -p ltr --release
 ```
 
+### Immediate mode
+
+The renderer has two compile-time backends, selected by the `immediate`
+cargo feature: the default **threaded** backend (a dedicated render
+thread fed over a command channel) and the **immediate** backend (the
+same executor driven inline on the main thread, no channel/thread).
+`stats-server` works identically with either — combine both features to
+get the dashboard under immediate mode:
+
+```bash
+cargo run -p ltr --features immediate,stats-server -- --stats-server 8777
+```
+
+Every per-command counter under `render.*` (commands, draws, category
+breakdown, texture/shader/uniform cache stats, etc.) is collected inside
+the shared `cmd_*` methods in `command_executor_gl.rs`, so both backends
+report identical, real values regardless of which one is running. Only
+the channel/thread-pacing fields are backend-specific and legitimately
+stay `0` under immediate mode, since there's no second thread or command
+queue to measure: `main_thread_wait_us`, `send_blocked_us`,
+`send_block_count`, `channel_high_water`, `frames_in_flight`,
+`render.recv_wait_us`, `render.recv_wait_count`.
+
 ## Endpoints
 
 | Endpoint          | Method | Description                                                      |
@@ -60,28 +83,28 @@ the two back into a flat view after fetching. Keys:
 |-----|---------|
 | `render.last_frame_time_us` | Total wall time of the last render-thread frame (recv → execute → present) |
 | `render.present_wait_us` | Time blocked in the GL buffer swap (vsync/vblank wait) |
-| `render.recv_wait_us_last_frame` / `render.recv_wait_count_last_frame` | Producer starvation: render thread blocked waiting for commands |
+| `render.recv_wait_us` / `render.recv_wait_count` | Producer starvation: render thread blocked waiting for commands |
 | `main_thread_wait_us` | Time the producer blocked in `end_frame_triple_buffered` (fence throttling) |
-| `send_blocked_us_last_frame` / `send_block_count_last_frame` | Producer blocked pushing commands onto the channel |
+| `send_blocked_us` / `send_block_count` | Producer blocked pushing commands onto the channel |
 | `channel_high_water` | Peak command-queue depth this frame (buffering health) |
 | `frames_in_flight` | Current triple-buffer slot occupancy (0–3) |
-| `render.commands_processed` / `render.draw_calls` / `render.state_changes` | Cumulative totals since launch |
-| `render.commands_last_frame` / `render.draw_calls_last_frame` / `render.state_changes_last_frame` | Per-frame values |
-| `render.draw_mesh_calls_last_frame` | DrawMeshByResource calls (mesh entities) |
-| `render.draw_immediate_calls_last_frame` | DrawImmediate calls (UI/overlay quads) |
-| `render.draw_instanced_calls_last_frame` | DrawInstancedWithData calls (asteroid groups) |
-| `render.immediate_vertices_last_frame` | Vertices submitted via DrawImmediate |
-| `render.instanced_data_items_last_frame` | Per-instance matrix/scale entries submitted |
-| `render.texture_bind_calls_last_frame` / `render.texture_binds_skipped_last_frame` | Texture binds vs deduped (same texture already bound) |
-| `render.texture_cache_invalidations_last_frame` | Cached texture evicted (by shader bind/unbind) |
-| `render.texture_binds_skipped` | Cumulative deduped texture binds |
-| `render.uniform_cache_hits_last_frame` / `render.uniform_cache_misses_last_frame` | Uniform-location cache: hits avoid driver round-trips |
-| `uniform_dedup_skips_last_frame` | Uniforms skipped because the value didn't change (main-thread producer cost, top level) |
-| `render.shader_bind_commands_last_frame` | BindShader commands executed |
-| `render.shader_redundant_binds_last_frame` | Binds where the program was already current (deduped) |
-| `render.shader_distinct_programs_last_frame` | Distinct GL programs used this frame |
-| `render.category_counts_last_frame` | Command counts per category (`[u64; 12]`, `CommandCategory` order) |
-| `render.category_time_us_last_frame` | Executor time per category (µs; all zero unless the dashboard is open — timing is opt-in) |
+| `render.commands_processed` / `render.draw_calls_cumulative` / `render.state_changes_cumulative` | Cumulative totals since launch |
+| `render.commands` / `render.draw_calls` / `render.state_changes` | Per-frame values |
+| `render.draw_mesh_calls` | DrawMeshByResource calls (mesh entities) |
+| `render.draw_immediate_calls` | DrawImmediate calls (UI/overlay quads) |
+| `render.draw_instanced_calls` | DrawInstancedWithData calls (asteroid groups) |
+| `render.immediate_vertices` | Vertices submitted via DrawImmediate |
+| `render.instanced_data_items` | Per-instance matrix/scale entries submitted |
+| `render.texture_bind_calls` / `render.texture_binds_skipped` | Texture binds vs deduped (same texture already bound) |
+| `render.texture_cache_invalidations` | Cached texture evicted (by shader bind/unbind) |
+| `render.texture_binds_skipped_cumulative` | Cumulative deduped texture binds |
+| `render.uniform_cache_hits` / `render.uniform_cache_misses` | Uniform-location cache: hits avoid driver round-trips |
+| `uniform_dedup_skips` | Uniforms skipped because the value didn't change (main-thread producer cost, top level) |
+| `render.shader_bind_commands` | BindShader commands executed |
+| `render.shader_redundant_binds` | Binds where the program was already current (deduped) |
+| `render.shader_distinct_programs` | Distinct GL programs used this frame |
+| `render.category_counts` | Command counts per category (`[u64; 12]`, `CommandCategory` order) |
+| `render.category_time_us` | Executor time per category (µs; all zero unless the dashboard is open — timing is opt-in) |
 | `server_time_us` | Publication timestamp (µs since the UNIX epoch), used by the dashboard for wall-clock FPS averaging |
 
 **Reading the frame-time budget:** the render thread's frame time is
@@ -158,10 +181,12 @@ change won't reach the served page.
 | File | Role |
 |------|------|
 | `engine/lib/phx/src/render/thread/stats_server.rs` | tiny_http server: endpoints, JSON serialization |
-| `engine/lib/phx/src/render/thread/stats_snapshot.rs` | `StatsSnapshot` struct + sink attachment |
+| `engine/lib/phx/src/render/thread/stats_snapshot.rs` | `StatsSnapshot` struct + sink attachment (per-backend `attach_stats_sink`/`publish_stats_snapshot`) |
 | `engine/lib/phx/src/render/thread/stats_dashboard.html` | Embedded dashboard + flame graph |
-| `engine/lib/phx/src/render/thread/command_executor_gl.rs` | Per-frame counter collection (render thread) |
-| `engine/lib/phx/src/render/thread/renderer_threaded.rs` | `end_frame_triple_buffered`, fence throttling, `main_thread_wait_us` |
+| `engine/lib/phx/src/render/thread/command_executor.rs` | `record_command`/`StatsAggregator` - the shared per-command bookkeeping both backends go through |
+| `engine/lib/phx/src/render/thread/command_executor_gl.rs` | Per-frame counter collection (one `record_command` call per `cmd_*` method, shared by both backends) |
+| `engine/lib/phx/src/render/thread/renderer_threaded.rs` | Threaded backend: `end_frame_triple_buffered`, fence throttling, `main_thread_wait_us` |
+| `engine/lib/phx/src/render/thread/renderer_immediate.rs` | Immediate backend: `end_frame_triple_buffered` publishes directly, no channel/thread-pacing fields |
 | `engine/lib/phx/src/system/profiler.rs` | Scope stack, parent tracking, snapshot |
 | `script/States/Application.lua` | Lua `Profiler.Begin/End` for frame systems (onPreRender/onRender/onPostRender) |
 | `script/Legacy/Systems/Overlay/GameView.lua` | `Opaque.BuildLists`, `DrawScene.ECS`, `DrawScene.Recursive` scopes |

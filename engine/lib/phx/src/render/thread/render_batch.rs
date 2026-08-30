@@ -3,6 +3,8 @@ use glam::{Mat4, Vec3};
 use crate::math::Matrix;
 use crate::render::{BatchStats, CameraRenderData, EntityRenderData, ResourceId};
 
+const ENTITIES_CAPACITY: usize = 1024;
+
 /// Render batch collector - accumulates entities for worker processing
 pub struct RenderBatch {
     /// Accumulated entities for this batch
@@ -21,7 +23,7 @@ impl RenderBatch {
         let position = Vec3::new(eye_x, eye_y, eye_z);
 
         Self {
-            entities: Vec::with_capacity(1024),
+            entities: Vec::with_capacity(ENTITIES_CAPACITY),
             camera: CameraRenderData::new(view_mat, proj_mat, position),
             stats: BatchStats::default(),
         }

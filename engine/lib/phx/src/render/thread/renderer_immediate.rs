@@ -1,22 +1,35 @@
 use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 
-use crossbeam::channel::{bounded, unbounded};
+use crossbeam::channel::unbounded;
 use tracing::{error, info};
 
-use crate::render::thread::{CommandExecutor, CommandReply, RendererData, process_batch_intern};
+#[cfg(feature = "stats-server")]
+use crate::render::StatsSink;
+use crate::render::thread::{CommandExecutor, CommandReply, RendererData};
 use crate::render::{
-    BlendMode, ClipManager, CmdPrimitiveType, CullFace, DrawState, GpuHandle, ImmVertex,
-    InstanceData, PrimitiveBuilder, RenderStateIntern, RenderStats, RenderTargetStack,
-    RenderThreadError, ResourceHandle, ResourceId, ShaderErrorQueue, ShaderReloadResult,
-    ShaderVarMap, TexFilter, TexFormat, TexWrapMode, VertexFormat, VpStack,
+    BlendMode, CameraUboArray, ClipManager, CmdPrimitiveType, CullFace, DrawState, GpuHandle,
+    ImmVertex, InstanceData, PrimitiveBuilder, RenderStateIntern, RenderStats, RenderTargetStack,
+    RenderThreadError, ResourceId, ShaderErrorQueue, ShaderReloadResult, ShaderVarMap, TexFilter,
+    TexFormat, TexWrapMode, VertexFormat, VpStack,
 };
 use crate::window::WindowGlContext;
 
 pub struct Renderer {
-    /// Executes commands inline on whichever thread calls `submit`.
+    /// Executes commands inline
     executor: CommandExecutor,
     /// Generic renderer data
     pub(crate) data: RendererData,
+    // Optional sink receiving a per-frame snapshot for the stats dashboard.
+    // Dashboard-only state sits behind the feature so normal game builds
+    // carry none of the publishing path - mirrors `renderer_threaded.rs`.
+    #[cfg(feature = "stats-server")]
+    pub(super) stats_sink: Option<StatsSink>,
+    /// Shared with the executor: enables per-category timing when the sink is
+    /// attached (dashboard mode). Kept on the renderer so `attach_stats_sink`
+    /// can flip it, same as the threaded backend.
+    #[cfg(feature = "stats-server")]
+    pub(super) category_timing: Arc<AtomicBool>,
 }
 
 impl Renderer {
@@ -27,7 +40,13 @@ impl Renderer {
         })?;
         info!("GL context made current");
 
-        let mut executor = CommandExecutor::new(Some(ctx));
+        // Always created (matches `renderer_threaded.rs::create_intern`) so
+        // `CommandExecutor` behaves identically whether or not the
+        // `stats-server` feature attaches a sink to flip it - only the
+        // `Renderer`-side field that lets `attach_stats_sink` flip it later
+        // is feature-gated.
+        let category_timing = Arc::new(AtomicBool::new(false));
+        let mut executor = CommandExecutor::new_with_timing(Some(ctx), category_timing.clone());
         executor.init_gl();
 
         info!("Renderer started (immediate mode)");
@@ -56,39 +75,11 @@ impl Renderer {
                 occlusion_shader: None,
                 irmap_shader: None,
             },
+            #[cfg(feature = "stats-server")]
+            stats_sink: None,
+            #[cfg(feature = "stats-server")]
+            category_timing,
         })
-    }
-
-    /// A `Renderer` with no GL context at all - every command becomes a
-    /// no-op (see `CommandExecutor::has_gl_context`). Only for unit tests
-    /// that exercise CPU-side logic (e.g. HmGui layout) and have no window
-    /// to draw a real `WindowGlContext` from.
-    #[cfg(test)]
-    pub fn new_headless() -> Self {
-        let (destroy_tx, destroy_rx) = unbounded();
-
-        Self {
-            executor: CommandExecutor::new(None),
-            data: RendererData {
-                next_resource_id: 1,
-                destroy_tx,
-                destroy_rx,
-                command_buffer: vec![],
-                active_batch: None,
-                viewport: VpStack::new(),
-                render_target: RenderTargetStack::new(),
-                clip_rect: ClipManager::new(),
-                render_state: RenderStateIntern::new(),
-                imm: PrimitiveBuilder::new(),
-                draw_state: DrawState::new(),
-                shader_vars: ShaderVarMap::new(),
-                shader_errors: ShaderErrorQueue::new(),
-                shader_watcher: None,
-                ao_shader: None,
-                occlusion_shader: None,
-                irmap_shader: None,
-            },
-        }
     }
 
     pub fn stop(mut self) -> Option<WindowGlContext> {
@@ -109,12 +100,12 @@ impl Renderer {
 
 impl Renderer {
     /// Begin a new frame
-    pub(in crate::render::thread) fn begin_frame_intern(&mut self) {
+    pub(super) fn begin_frame_intern(&mut self) {
         self.data.command_buffer.clear();
     }
 
     /// Run every buffered command (from the batch API) inline.
-    pub(in crate::render::thread) fn flush_intern(&mut self) {
+    pub(super) fn flush_intern(&mut self) {
         for cmd in self.data.command_buffer.drain(..) {
             self.executor.execute(cmd);
         }
@@ -122,7 +113,7 @@ impl Renderer {
 
     /// Immediate mode has nothing to wait for: by the time `submit` returns,
     /// the command has already executed.
-    pub(in crate::render::thread) fn sync_intern(&mut self) -> bool {
+    pub(super) fn sync_intern(&mut self) -> bool {
         true
     }
 
@@ -412,10 +403,8 @@ impl Renderer {
         pixel_format: u32,
         data_format: u32,
     ) -> Vec<u8> {
-        let (tx, rx) = bounded(1);
         self.executor
-            .cmd_read_texture_1d_data(id, pixel_format, data_format, tx);
-        rx.recv().unwrap_or_default()
+            .cmd_read_texture_1d_data(id, pixel_format, data_format)
     }
 
     pub fn read_texture_2d_data(
@@ -424,10 +413,8 @@ impl Renderer {
         pixel_format: u32,
         data_format: u32,
     ) -> Vec<u8> {
-        let (tx, rx) = bounded(1);
         self.executor
-            .cmd_read_texture_2d_data(id, pixel_format, data_format, tx);
-        rx.recv().unwrap_or_default()
+            .cmd_read_texture_2d_data(id, pixel_format, data_format)
     }
 
     pub fn read_texture_3d_data(
@@ -436,10 +423,8 @@ impl Renderer {
         pixel_format: u32,
         data_format: u32,
     ) -> Vec<u8> {
-        let (tx, rx) = bounded(1);
         self.executor
-            .cmd_read_texture_3d_data(id, pixel_format, data_format, tx);
-        rx.recv().unwrap_or_default()
+            .cmd_read_texture_3d_data(id, pixel_format, data_format)
     }
 
     pub fn read_texture_cube_face_data(
@@ -450,29 +435,17 @@ impl Renderer {
         pixel_format: u32,
         data_format: u32,
     ) -> Vec<u8> {
-        let (tx, rx) = bounded(1);
-        self.executor.cmd_read_texture_cube_face_data(
-            id,
-            face,
-            level,
-            pixel_format,
-            data_format,
-            tx,
-        );
-        rx.recv().unwrap_or_default()
+        self.executor
+            .cmd_read_texture_cube_face_data(id, face, level, pixel_format, data_format)
     }
 
     pub fn sample_pixel_2d_by_resource(&mut self, id: ResourceId, x: i32, y: i32) -> [u8; 4] {
-        let (tx, rx) = bounded(1);
-        self.executor.cmd_sample_pixel_2d_by_resource(id, x, y, tx);
-        rx.recv().unwrap_or([0; 4])
+        self.executor.cmd_sample_pixel_2d_by_resource(id, x, y)
     }
 
     pub fn read_framebuffer_pixels(&mut self, x: i32, y: i32, width: i32, height: i32) -> Vec<u8> {
-        let (tx, rx) = bounded(1);
         self.executor
-            .cmd_read_framebuffer_pixels(x, y, width, height, tx);
-        rx.recv().unwrap_or_default()
+            .cmd_read_framebuffer_pixels(x, y, width, height)
     }
 
     // === Framebuffer Operations ===
@@ -551,21 +524,6 @@ impl Renderer {
             .cmd_draw_mesh_instanced(vao, index_count, instance_count, primitive);
     }
 
-    pub fn draw_instanced_with_data_intern(
-        &mut self,
-        mesh_id: ResourceId,
-        index_count: i32,
-        instances: &[InstanceData],
-        primitive: CmdPrimitiveType,
-    ) {
-        self.executor.cmd_draw_instanced_with_data(
-            mesh_id,
-            index_count,
-            instances.to_vec(),
-            primitive,
-        );
-    }
-
     pub fn draw_mesh_by_resource(
         &mut self,
         id: ResourceId,
@@ -580,11 +538,22 @@ impl Renderer {
         &mut self,
         mesh_id: ResourceId,
         index_count: i32,
-        instances: Vec<InstanceData>,
+        instances: &[InstanceData],
         primitive: CmdPrimitiveType,
     ) {
         self.executor
             .cmd_draw_instanced_with_data(mesh_id, index_count, instances, primitive);
+    }
+
+    pub fn draw_instanced_indices_intern(
+        &mut self,
+        mesh_id: ResourceId,
+        index_count: i32,
+        indices: &[u32],
+        primitive: CmdPrimitiveType,
+    ) {
+        self.executor
+            .cmd_draw_instanced_indices(mesh_id, index_count, indices, primitive);
     }
 
     pub fn draw_immediate(&mut self, primitive: CmdPrimitiveType, vertices: Vec<ImmVertex>) {
@@ -599,18 +568,12 @@ impl Renderer {
         vertex_src: String,
         fragment_src: String,
     ) -> Option<String> {
-        let (tx, rx) = bounded(1);
         self.executor
-            .cmd_create_shader(id, vertex_src, fragment_src, tx);
-        rx.recv()
-            .unwrap_or_else(|_| Some("Renderer channel closed".to_string()))
+            .cmd_create_shader(id, vertex_src, fragment_src)
     }
 
     pub fn get_uniform_location_by_resource(&mut self, id: ResourceId, name: Arc<str>) -> i32 {
-        let (tx, rx) = bounded(1);
-        self.executor
-            .cmd_get_uniform_location_by_resource(id, name, tx);
-        rx.recv().unwrap_or(-1)
+        self.executor.cmd_get_uniform_location_by_resource(id, name)
     }
 
     pub fn create_texture_1d(
@@ -670,7 +633,7 @@ impl Renderer {
         self.executor.cmd_create_camera_ubo();
     }
 
-    pub fn update_camera_ubo_intern(&mut self, data: Box<[u8; 288]>) {
+    pub fn update_camera_ubo_intern(&mut self, data: Box<CameraUboArray>) {
         self.executor.cmd_update_camera_ubo(&data);
     }
 
@@ -715,20 +678,11 @@ impl Renderer {
         self.executor.cmd_flush();
     }
 
-    /// Mint a new GPU resource: a unique `ResourceId` bundled with the means
-    /// to destroy it (see `ResourceHandle`). This is the only way to obtain
-    /// either, so a resource can never exist without its destructor wired up.
-    pub fn create_resource(&mut self) -> ResourceHandle {
-        let id = ResourceId(self.data.next_resource_id);
-        self.data.next_resource_id += 1;
-        ResourceHandle::new(id, self.data.destroy_tx.clone())
-    }
-
     /// Submit `DestroyResource` for every resource dropped since the last drain.
     fn drain_destroy_queue(&mut self) {
         // Collect first: the `destroy_rx` borrow has to end before `submit`
         // takes `&mut self`.
-        let ids: Vec<ResourceId> = self.data.destroy_rx.try_iter().collect();
+        let ids: Vec<_> = self.data.destroy_rx.try_iter().collect();
 
         self.executor.cmd_destroy_resource(&ids);
     }
@@ -737,6 +691,10 @@ impl Renderer {
     pub fn end_frame_triple_buffered(&mut self) {
         self.drain_destroy_queue();
         self.executor.cmd_swap_buffers();
+
+        // Publish the combined snapshot to the dashboard sink (if attached)
+        #[cfg(feature = "stats-server")]
+        self.publish_stats_snapshot();
     }
 
     /// Always zero - there is no queue for a frame to be "in flight" on.
@@ -762,12 +720,12 @@ impl Renderer {
 
     /// Get total draw calls since start
     pub fn get_draw_calls(&mut self) -> u64 {
-        self.executor.stats_snapshot().draw_calls
+        self.executor.stats_snapshot().draw_calls_cumulative
     }
 
     /// Get total state changes since start
     pub fn get_state_changes(&mut self) -> u64 {
-        self.executor.stats_snapshot().state_changes
+        self.executor.stats_snapshot().state_changes_cumulative
     }
 
     /// Get total frames rendered
@@ -782,12 +740,12 @@ impl Renderer {
 
     /// Get commands processed in last frame
     pub fn get_commands_last_frame(&mut self) -> u64 {
-        self.executor.stats_snapshot().commands_last_frame
+        self.executor.stats_snapshot().commands
     }
 
     /// Get draw calls in last frame
     pub fn get_draw_calls_last_frame(&mut self) -> u64 {
-        self.executor.stats_snapshot().draw_calls_last_frame
+        self.executor.stats_snapshot().draw_calls
     }
 
     /// Always zero - immediate mode never blocks waiting on a render thread.
@@ -797,7 +755,9 @@ impl Renderer {
 
     /// Get total texture binds skipped due to caching
     pub fn get_texture_binds_skipped(&mut self) -> u64 {
-        self.executor.stats_snapshot().texture_binds_skipped
+        self.executor
+            .stats_snapshot()
+            .texture_binds_skipped_cumulative
     }
 
     /// Reload a shader inline and return the result directly - no channel
@@ -816,20 +776,51 @@ impl Renderer {
             CommandReply::ShaderReload(result) => result,
             _ => ShaderReloadResult {
                 shader_key: shader_key.to_string(),
-                success: false,
                 error: Some("Executor returned no shader reload result".to_string()),
                 program: 0,
             },
         }
     }
 
-    pub fn process_batch(&mut self) {
-        process_batch_intern(&mut self.data.active_batch, &mut self.data.command_buffer);
-    }
-
     /// Immediate mode has nothing pending to poll for - `stop()` already
     /// returns the context synchronously.
     pub fn take_returned_context(&self) -> Option<WindowGlContext> {
         None
+    }
+
+    /// A `Renderer` with no GL context at all - every command becomes a
+    /// no-op (see `CommandExecutor::has_gl_context`). Only for unit tests
+    /// that exercise CPU-side logic (e.g. HmGui layout) and have no window
+    /// to draw a real `WindowGlContext` from.
+    #[cfg(test)]
+    pub fn new_headless() -> Self {
+        let (destroy_tx, destroy_rx) = unbounded();
+
+        Self {
+            executor: CommandExecutor::new(None),
+            data: RendererData {
+                next_resource_id: 1,
+                destroy_tx,
+                destroy_rx,
+                command_buffer: vec![],
+                active_batch: None,
+                viewport: VpStack::new(),
+                render_target: RenderTargetStack::new(),
+                clip_rect: ClipManager::new(),
+                render_state: RenderStateIntern::new(),
+                imm: PrimitiveBuilder::new(),
+                draw_state: DrawState::new(),
+                shader_vars: ShaderVarMap::new(),
+                shader_errors: ShaderErrorQueue::new(),
+                shader_watcher: None,
+                ao_shader: None,
+                occlusion_shader: None,
+                irmap_shader: None,
+            },
+            #[cfg(feature = "stats-server")]
+            stats_sink: None,
+            #[cfg(feature = "stats-server")]
+            category_timing: Arc::new(AtomicBool::new(false)),
+        }
     }
 }
