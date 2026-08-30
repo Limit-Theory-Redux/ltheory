@@ -103,6 +103,14 @@ function RenderCoreSystem:registerVars()
     --                   walking passMeshes[bm] in full).
     self.cullBufs  = {}
     self.passOrder = {}
+
+    -- Per-pass mesh/render-fn buckets, filled by `buildPassLists` and
+    -- persisted across frames: entries and bucket tables are reused in
+    -- place (tracked via an explicit `.n` count, since a reused table can
+    -- have stale entries past the current frame's count) rather than
+    -- reallocated every frame.
+    self.passMeshes    = {}
+    self.passRenderFns = { n = 0 }
     self.cullStats = { submitted = 0, visible = 0, culled = 0 }
 
     self.postSettings    = {
@@ -415,15 +423,13 @@ function RenderCoreSystem:renderInOrder(blendMode)
     -- queryable). Mesh entities are pre-sorted into per-pass lists by
     -- buildPassLists, so this loop only touches entities that draw here.
     local fns = self.passRenderFns
-    if fns then
-        Profiler.Begin('Render.Fns')
-        for fi = 1, #fns do
-            local fnEntry = fns[fi]
-            fnEntry.fn(fnEntry.entity, blendMode)
-            lastMaterial = nil
-        end
-        Profiler.End()
+    Profiler.Begin('Render.Fns')
+    for fi = 1, fns.n do
+        local fnEntry = fns[fi]
+        fnEntry.fn(fnEntry.entity, blendMode)
+        lastMaterial = nil
     end
+    Profiler.End()
 
     local list = self.passMeshes[blendMode]
     if not list then return end
@@ -433,7 +439,7 @@ function RenderCoreSystem:renderInOrder(blendMode)
     -- 0-indexed uint32_t buffer it filled; otherwise fall back to the full,
     -- unculled list.
     local order = self.passOrder[blendMode]
-    local count = order and order.n or #list
+    local count = order and order.n or list.n
     local buf = order and order.buf
 
     for k = 1, count do
@@ -474,9 +480,16 @@ end
 --- mode. Building the lists once turns that into one iteration + three
 --- walks of only the meshes that actually draw.
 function RenderCoreSystem:buildPassLists()
-    local passMeshes = {}
-    local passRenderFns = {}
+    -- Buckets and their entry tables persist across frames (see
+    -- registerVars) and are refilled in place below, tracked via an
+    -- explicit `.n` count rather than `#list` - entries past `.n` are
+    -- last frame's leftovers and must never be read.
+    local passMeshes = self.passMeshes
+    local passRenderFns = self.passRenderFns
     local entityInstCache = {}
+
+    for bm, list in pairs(passMeshes) do list.n = 0 end
+    passRenderFns.n = 0
 
     local eye = CameraManager:getEye()
 
@@ -485,7 +498,15 @@ function RenderCoreSystem:buildPassLists()
         if not rend:isVisible() then goto next_entity end
 
         if rend:getRenderFn() then
-            table.insert(passRenderFns, { fn = rend:getRenderFn(), entity = entity })
+            local n = passRenderFns.n + 1
+            passRenderFns.n = n
+            local fnEntry = passRenderFns[n]
+            if not fnEntry then
+                fnEntry = {}
+                passRenderFns[n] = fnEntry
+            end
+            fnEntry.fn = rend:getRenderFn()
+            fnEntry.entity = entity
         elseif rend:getMeshes() then
             -- Per-entity instance-var cache. All meshes of an entity
             -- (hull/turrets/thrusters) share the same rigid-body transform,
@@ -528,33 +549,36 @@ function RenderCoreSystem:buildPassLists()
                 local bm = mat:getBlendMode() or BlendMode.Disabled
                 local list = passMeshes[bm]
                 if not list then
-                    list = {}
+                    list = { n = 0 }
                     passMeshes[bm] = list
+                end
+                local n = list.n + 1
+                list.n = n
+                local e = list[n]
+                if not e then
+                    e = {}
+                    list[n] = e
                 end
                 -- Per-mesh radius, not per-entity: an entity's meshes can
                 -- differ wildly in extent (a planet's atmosphere shell is
                 -- 1.5x its surface), and the physics collider is no guide to
                 -- either - PlanetTest's ring mesh spans hundreds of units
                 -- around a default unit-sphere body.
-                table.insert(list, {
-                    mesh = meshmat.mesh,
-                    mat = mat,
-                    sh = mat:getShaderState(),
-                    entity = entity,
-                    instCache = instCache,
-                    cx = cx,
-                    cy = cy,
-                    cz = cz,
-                    radius = scale and (meshOriginRadius(meshmat.mesh) * scale) or -1,
-                    sortKey = shaderKeyFor(mat),
-                })
+                e.mesh = meshmat.mesh
+                e.mat = mat
+                e.sh = mat:getShaderState()
+                e.entity = entity
+                e.instCache = instCache
+                e.cx = cx
+                e.cy = cy
+                e.cz = cz
+                e.radius = scale and (meshOriginRadius(meshmat.mesh) * scale) or -1
+                e.sortKey = shaderKeyFor(mat)
             end
         end
         ::next_entity::
     end
 
-    self.passMeshes = passMeshes
-    self.passRenderFns = passRenderFns
     self.entityInstCache = entityInstCache
 end
 
@@ -577,7 +601,7 @@ function RenderCoreSystem:cullPassLists()
     st.submitted, st.visible, st.culled = 0, 0, 0
 
     for bm, list in pairs(self.passMeshes) do
-        local n = #list
+        local n = list.n
         -- cullBatch asserts size > 0 across the FFI boundary - this guard is
         -- load-bearing, not defensive.
         if n > 0 then
