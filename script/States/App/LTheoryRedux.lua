@@ -48,7 +48,7 @@ local OrbitalSystem = require('Modules.CelestialObjects.Systems.OrbitalSystem')
 local SystemMap = require('Modules.CelestialObjects.Systems.SystemMap')
 local SystemMap3D = require('Modules.CelestialObjects.Systems.SystemMap3D')
 local MemoryReporter = require('Modules.Profiling.MemoryReporter')
-local ShipGenerator = require('Modules.Constructs.Managers.Generators.ShipGenerator')
+local ConstructManager = require('Modules.Constructs.Managers.ConstructManager')
 local StationGenerator = require('Modules.Constructs.Managers.Generators.StationGenerator')
 
 -- Legacy (still needed for skybox generation)
@@ -325,6 +325,7 @@ function LimitTheoryRedux:startGame(seed)
     self.seed = seed or rng:get64()
     self.rng = RNG.Create(self.seed)
     self.world = Physics.Create()
+    self.constructManager = ConstructManager(Registry, self.world)
 
     self:createSkybox()
     self:generateUniverse()
@@ -509,11 +510,16 @@ function LimitTheoryRedux:spawnPlayerShip()
         end
     end
 
-    self.playerShip = ShipGenerator:createFighter(self.rng:get31(), {
-        position = spawnPos,
-        scale = Config.game.shipHulls.scale[1],  -- Solo hull (~50m fighter)
-        isKinematic = false,
+    self.playerShipHandle = self.constructManager:createShip({
+        seed = self.rng:get31(),
+        shipType = Enums.ShipType.Fighter,
+        config = {
+            position = spawnPos,
+            scale = Config.game.shipHulls.scale[1],
+            isKinematic = false,
+        },
     })
+    self.playerShip = self.playerShipHandle.root
 
     self.playerShip:add(ConstructComponents.TravelDrive())
     self.playerShip:add(ConstructComponents.AutoPilot())
@@ -527,7 +533,6 @@ function LimitTheoryRedux:spawnPlayerShip()
     rb:setDrag(flightCfg.linearDrag, flightCfg.angularDrag)
     rb:setFriction(0)
     rb:setSleepThreshold(0, 0)
-    self.world:addRigidBody(rb)
 
     Log.Info("Player ship spawned at (%.1f, %.1f, %.1f)", spawnPos.x, spawnPos.y, spawnPos.z)
 end
@@ -772,11 +777,10 @@ function LimitTheoryRedux:regenerate()
     if self.universe then
         Registry:destroyEntity(self.universe, Enums.Registry.EntityDestroyMode.DestroyChildren)
     end
-    if self.playerShip then
-        local rbCmp = self.playerShip:get(PhysicsComponents.RigidBody)
-        if rbCmp and rbCmp:getRigidBody() then
-            self.world:removeRigidBody(rbCmp:getRigidBody())
-        end
+    if self.playerShipHandle then
+        self.constructManager:destroy(self.playerShipHandle)
+        self.playerShipHandle = nil
+    elseif self.playerShip then
         Registry:destroyEntity(self.playerShip, Enums.Registry.EntityDestroyMode.DestroyChildren)
     end
     for _, station in ipairs(self.stations or {}) do

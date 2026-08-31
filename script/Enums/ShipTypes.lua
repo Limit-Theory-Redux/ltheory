@@ -4,3 +4,8 @@ Enums.ShipType = {
     Capital = 1,
     Basic = 2,
 }
+
+---@enum ShipGeneration
+Enums.ShipGeneration = {
+    LayeredCapital = "layered-capital",
+}

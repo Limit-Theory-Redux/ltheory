@@ -20,20 +20,31 @@ void main () {
   float rough = normalMat.z;
   float mat = normalMat.w;
 
-  vec3 p = worldOrigin + depth * normalize(worldDir);
-
-  vec3 light = vec3(0.0);
-
-  if (mat == Material_Diffuse) {
-    vec3 L = lightPos - p;
-    float Lmag = 1.0 / max(kMinDistance, length(L));
-    light += lightColor * Lmag * saturate(dot(N, L * Lmag));
+  // A cleared deferred pixel has no valid world-space surface. Reject it before
+  // reconstructing p so point lights cannot paint halos into empty space.
+  if (depth <= kMinDistance) {
+    outColor = vec4(0.0);
+    return;
   }
 
-  else if (mat == Material_Metal) {
-    vec3 L = lightPos - p;
-    float Lmag = 1.0 / max(kMinDistance, length(L));
-    light += lightColor * Lmag * cookTorrance(L * Lmag, p, N, rough, 1.0);
+  vec3 p = worldOrigin + depth * normalize(worldDir);
+  vec3 L = lightPos - p;
+  float distanceToLight = length(L);
+  float Lmag = 1.0 / max(kMinDistance, distanceToLight);
+  float radiusAttenuation = lightRadius > 0.0
+    ? saturate(1.0 - distanceToLight / lightRadius)
+    : 1.0;
+
+  vec3 light = vec3(0.0);
+  if (mat == Material_Metal) {
+    light += lightColor * Lmag * cookTorrance(L * Lmag, p, N, rough, 1.0)
+      * radiusAttenuation * radiusAttenuation;
+  }
+  else if (mat != Material_NoShade) {
+    // Diffuse, ice, and future shaded environment materials all receive the
+    // same bounded point-light irradiance. Only explicit NoShade is excluded.
+    light += lightColor * Lmag * saturate(dot(N, L * Lmag))
+      * radiusAttenuation * radiusAttenuation;
   }
 
   light *= kPointLightMult;

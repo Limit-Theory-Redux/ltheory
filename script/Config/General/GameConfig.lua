@@ -6,13 +6,6 @@ Config.game = {
 
     autoTarget             = false,
 
-    pulseColorBodyR        = 0.3,
-    pulseColorBodyG        = 0.8,
-    pulseColorBodyB        = 2.0,
-    pulseColorLightR       = 0.3,
-    pulseColorLightG       = 0.9,
-    pulseColorLightB       = 3.0,
-
     droneType              = 1, -- 1 = mining drone, 2 = combat drone
     droneDamage            = 10,
     droneTarget            = nil,
