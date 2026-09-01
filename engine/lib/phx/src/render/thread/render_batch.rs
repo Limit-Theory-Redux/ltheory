@@ -78,7 +78,13 @@ impl RenderBatch {
     /// without going through the draw-emitting half of the batch (e.g. Lua's
     /// `RenderCoreSystem`, which still issues its own draws so it can apply
     /// per-entity material uniforms the batch draw path doesn't know about).
-    pub fn add_cull_entity(&mut self, bounds_center: Vec3, bounds_radius: f32, sort_key: u32, user_id: u32) {
+    pub fn add_cull_entity(
+        &mut self,
+        bounds_center: Vec3,
+        bounds_radius: f32,
+        sort_key: u32,
+        user_id: u32,
+    ) {
         self.entities.push(EntityRenderData {
             transform: Mat4::IDENTITY,
             bounds_center,
@@ -121,8 +127,7 @@ impl RenderBatch {
         }
 
         let entities = &self.entities;
-        self.visible
-            .sort_by_key(|&i| entities[i as usize].sort_key);
+        self.visible.sort_by_key(|&i| entities[i as usize].sort_key);
 
         self.stats.entities_visible = self.visible.len() as u32;
         self.stats.batches_processed += 1;
