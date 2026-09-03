@@ -242,9 +242,11 @@ impl HmGuiContainer {
 
             if total_weight > 0.0 {
                 extra_size.iter_mut().for_each(|d| *d /= total_weight);
-            }
 
-            false // Do not offset position - children can still overwhelm container size
+                false // Expandable widgets absorb the overflow - no offset needed
+            } else {
+                true // Nothing can shrink - center/end the overflowing content block
+            }
         } else {
             true // children should be centered
         };

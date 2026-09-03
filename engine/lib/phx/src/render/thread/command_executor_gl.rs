@@ -1765,6 +1765,13 @@ impl CommandExecutor {
         fragment_src: String,
     ) -> Option<String> {
         let _sa = self.record_command(CommandCategory::Resource, false, false);
+        if !self.has_gl_context() {
+            // No-op: leave the resource untracked. By-resource commands
+            // (e.g. `GetUniformLocationByResource`) already handle a
+            // missing id gracefully, so nothing downstream needs a real
+            // GL program.
+            return None;
+        }
         match self.create_shader(&vertex_src, &fragment_src) {
             Ok(program) => {
                 self.resources.insert(id, GpuResource::Shader { program });
@@ -2716,11 +2723,13 @@ impl CommandExecutor {
         info!("Immediate mode resources cleaned up");
 
         // Flush and finish all pending GL commands before releasing context
-        unsafe {
-            gl::Flush();
-            gl::Finish();
+        if self.has_gl_context() {
+            unsafe {
+                gl::Flush();
+                gl::Finish();
+            }
+            info!("GL commands flushed");
         }
-        info!("GL commands flushed");
 
         // Release GL context back to main thread (platform-specific)
         // WindowActiveGlContext::release_for_main_thread() handles:
