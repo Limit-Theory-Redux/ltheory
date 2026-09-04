@@ -130,7 +130,10 @@ function fmt(v) { return v === null || v === undefined ? '-' : v.toLocaleString(
 function renderCategories(s) {
   const body = $('t-cats').querySelector('tbody');
   body.innerHTML = '';
-  const totalUs = s.last_frame_time_us || 1;
+  // `sync` excludes the blocking present (see command_category.rs), so the
+  // denominator here is the full frame period - recv+execute time plus the
+  // present/vsync wait - not just `last_frame_time_us`.
+  const totalUs = (s.last_frame_time_us || 0) + (s.present_wait_us || 0) || 1;
   const cats = s.categories || {};
   const order = ['draw','uniform','texture','state','shader','texture_data','framebuffer','mesh','resource','ubo','sync','readback'];
   let timeSum = 0;
@@ -152,6 +155,21 @@ function renderCategories(s) {
       '<td><div class="bar ' + barCls + '" style="width:' + Math.min(100, pct) + '%"></div>' + pct.toFixed(1) + '%</td>';
     body.appendChild(tr);
   }
+  // Present isn't a command category (it's the blocking vsync wait inside
+  // SwapBuffers, deliberately excluded from `sync`'s timing) - render it as
+  // its own row, styled the same as the rest but not counted in `timeSum`.
+  const presentUs = s.present_wait_us || 0;
+  if (presentUs > 0) {
+    const tr = document.createElement('tr');
+    const pct = totalUs > 0 ? (100 * presentUs / totalUs) : 0;
+    const barCls = pct > 30 ? 'bad' : pct > 15 ? 'warn' : '';
+    tr.innerHTML =
+      '<td>present (vsync wait)</td>' +
+      '<td>—</td>' +
+      '<td>' + (presentUs / 1000).toFixed(2) + ' ms</td>' +
+      '<td><div class="bar ' + barCls + '" style="width:' + Math.min(100, pct) + '%"></div>' + pct.toFixed(1) + '%</td>';
+    body.appendChild(tr);
+  }
 }
 
 async function poll() {
@@ -164,11 +182,16 @@ async function poll() {
     delete s.render;
     last = s;
 
-    const frameMs = s.last_frame_time_us / 1000;
+    // `last_frame_time_us` is recv+execute only; the blocking present
+    // (vsync wait) is reported separately as `present_wait_us` - add it back
+    // in here so "frame time"/"last FPS" reflect the true frame period
+    // instead of reading as if the present were free.
+    const totalFrameUs = s.last_frame_time_us + (s.present_wait_us || 0);
+    const frameMs = totalFrameUs / 1000;
     frameTimes.push(frameMs); if (frameTimes.length > HISTORY) frameTimes.shift();
     commandCounts.push(s.commands); if (commandCounts.length > HISTORY) commandCounts.shift();
 
-    const fps = s.last_frame_time_us > 0 ? (1e6 / s.last_frame_time_us) : 0;
+    const fps = totalFrameUs > 0 ? (1e6 / totalFrameUs) : 0;
     const sorted = [...frameTimes].sort((a, b) => a - b);
 
     // Moving average FPS from cumulative frame_count deltas over the last
@@ -348,7 +371,11 @@ function renderFrameExplanation() {
         'Waiting for the first snapshot…') + '</td></tr>';
     return;
   }
-  const frameMs = last.last_frame_time_us / 1000;
+  // Present-inclusive, like `poll()`'s `totalFrameUs` - `last_frame_time_us`
+  // alone excludes the blocking vsync wait, which is reported separately as
+  // `present_wait_us`.
+  const presentMs = (last.present_wait_us || 0) / 1000;
+  const frameMs = last.last_frame_time_us / 1000 + presentMs;
   const starveMs = (last.recv_wait_us || 0) / 1000;
   const scopes = lastProfReport.scopes || [];
   if (!scopes.length) {
@@ -394,6 +421,7 @@ function renderFrameExplanation() {
   }
   row('Frame time (render thread)', frameMs, 0, '#f85149');
   row('  render thread starved (recv wait)', starveMs, 1, '#8b949e');
+  row('  present wait (vsync)', presentMs, 1, '#8b949e');
   // Depth-first walk: children under parents, sorted biggest-first.
   let depth = 1;
   const stack = roots.slice().sort((a, b) => b.mean_ms - a.mean_ms);
@@ -405,7 +433,8 @@ function renderFrameExplanation() {
     for (let i = kids.length - 1; i >= 0; i--) stack.unshift(kids[i]);
   }
   $('ft-status').textContent = 'frame ' + frameMs.toFixed(1) + ' ms · starve ' +
-    starveMs.toFixed(1) + ' ms · ' + scopes.length + ' scopes (mean ms / frame)';
+    starveMs.toFixed(1) + ' ms · present ' + presentMs.toFixed(1) +
+    ' ms · ' + scopes.length + ' scopes (mean ms / frame)';
 }
 
 setInterval(pollProfile, 1000);

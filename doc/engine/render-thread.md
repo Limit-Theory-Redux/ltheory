@@ -52,7 +52,7 @@ name), texture binds and updates, framebuffer push/pop, mesh draws (plain,
 instanced, `DrawInstancedWithData`, `DrawImmediate`), resource lifecycle
 (`CreateShader`/`CreateTexture2D`/`CreateMesh`/`DestroyResources` and their
 `*ByResource` bind/draw counterparts), UBO updates, `Resize`,
-`SwapBuffers`, `Fence`, `PacingFence`, `Shutdown`.
+`SetPresentMode`, `SwapBuffers`, `Fence`, `PacingFence`, `Shutdown`.
 
 `GpuHandle(u32)` identifies a raw GL object for the handful of call sites
 that still bind by raw handle; `ResourceId(u64)` identifies a
@@ -106,6 +106,13 @@ carry the not-yet-current GL context and surface across the thread boundary;
 `make_current`/`release_for_main_thread` mediate context ownership at
 startup/shutdown (macOS cannot cleanly release the context back to the main
 thread — see that file's `release_for_main_thread`).
+
+Because the handoff is unconditional, anything that needs the context
+current - not just draws, but calls like `set_swap_interval` - has to go
+through a `RenderCommand` rather than a direct `WinitWindow` call. That's
+why runtime vsync changes (`Window:setPresentMode`) are routed as
+`RenderCommand::SetPresentMode` instead of being applied in
+`Engine::changed_window` directly.
 
 ## Stats
 

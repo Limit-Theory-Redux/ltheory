@@ -1,6 +1,6 @@
 use std::ffi::CString;
 
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 
 #[cfg(target_os = "windows")]
 #[allow(unsafe_code)]
@@ -14,6 +14,25 @@ pub static AmdPowerXpressRequestHighPerformance: std::os::raw::c_int = 1;
 
 const BUILD_TIME: &str = build_time::build_time_utc!("%Y-%m-%d / %H:%M:%S UTC");
 const GIT_VERSION: &str = git_version::git_version!(args = ["--tags", "--always", "--dirty=M"]);
+
+/// CLI-facing mirror of `phx::window::PresentMode` - `phx` is linked as a
+/// dylib through `Engine_Entry`, not a normal crate dependency, so its enum
+/// isn't reachable here. Passed down via `PHX_PRESENT_MODE` and parsed back
+/// into the real `PresentMode` in `Engine::new`.
+#[derive(Clone, Copy, ValueEnum)]
+enum PresentModeArg {
+    Vsync,
+    NoVsync,
+}
+
+impl PresentModeArg {
+    fn as_env_str(self) -> &'static str {
+        match self {
+            Self::Vsync => "vsync",
+            Self::NoVsync => "no-vsync",
+        }
+    }
+}
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -34,6 +53,11 @@ struct Cli {
     /// `stats-server` cargo feature; open http://127.0.0.1:<port> in a browser)
     #[arg(long)]
     stats_server: Option<u16>,
+    /// Force the swap interval, overriding whatever the Lua state requests
+    /// via `Window:setPresentMode`. Useful for A/B'ing benchmark runs
+    /// without editing scripts.
+    #[arg(long, value_enum)]
+    present_mode: Option<PresentModeArg>,
     /// Optional application name
     app_name: Option<String>,
 }
@@ -81,6 +105,10 @@ pub fn main() {
 
         if let Some(port) = cli.stats_server {
             std::env::set_var("PHX_STATS_PORT", port.to_string());
+        }
+
+        if let Some(mode) = cli.present_mode {
+            std::env::set_var("PHX_PRESENT_MODE", mode.as_env_str());
         }
 
         Engine_Entry(

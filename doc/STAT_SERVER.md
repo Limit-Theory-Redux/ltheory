@@ -81,7 +81,7 @@ the two back into a flat view after fetching. Keys:
 
 | Key | Meaning |
 |-----|---------|
-| `render.last_frame_time_us` | Total wall time of the last render-thread frame (recv → execute → present) |
+| `render.last_frame_time_us` | Render-thread recv + execute time for the last frame. **Excludes** the blocking buffer swap - that's `present_wait_us`, reported separately; the true frame period is the sum of the two |
 | `render.present_wait_us` | Time blocked in the GL buffer swap (vsync/vblank wait) |
 | `render.recv_wait_us` / `render.recv_wait_count` | Producer starvation: render thread blocked waiting for commands |
 | `main_thread_wait_us` | Time the producer blocked in `end_frame_triple_buffered` (fence throttling) |
@@ -104,15 +104,16 @@ the two back into a flat view after fetching. Keys:
 | `render.shader_redundant_binds` | Binds where the program was already current (deduped) |
 | `render.shader_distinct_programs` | Distinct GL programs used this frame |
 | `render.category_counts` | Command counts per category (`[u64; 12]`, `CommandCategory` order) |
-| `render.category_time_us` | Executor time per category (µs; all zero unless the dashboard is open — timing is opt-in) |
+| `render.category_time_us` | Executor time per category (µs; all zero unless the dashboard is open — timing is opt-in). The present/vsync wait inside `SwapBuffers` is **not** in any category (not even `sync`) - see `present_wait_us` |
 | `server_time_us` | Publication timestamp (µs since the UNIX epoch), used by the dashboard for wall-clock FPS averaging |
 
-**Reading the frame-time budget:** the render thread's frame time is
-roughly `recv_wait + execute + present`. If `recv_wait` dominates, the
+**Reading the frame-time budget:** the true frame period is
+`last_frame_time_us + present_wait_us` - the first is `recv_wait + execute`,
+the second is the separate, blocking present. If `recv_wait` dominates, the
 producer (Lua) is the bottleneck — look at `/profile.json`. If
-`present_wait` is large, the frame end blocks in the buffer swap. If
-`main_thread_wait` is large, the producer is being throttled by the
-triple-buffer fence, which is the healthy state.
+`present_wait` is large, the frame end blocks in the buffer swap (usually
+vsync). If `main_thread_wait` is large, the producer is being throttled by
+the triple-buffer fence, which is the healthy state.
 
 ## `/profile.json` — producer (Lua) scopes
 

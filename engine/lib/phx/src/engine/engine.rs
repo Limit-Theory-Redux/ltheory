@@ -28,6 +28,28 @@ pub struct Engine {
     pub task_queue: TaskQueue,
     pub renderer: Renderer,
     pub lua: Rf<Lua>,
+    /// Set from `PHX_PRESENT_MODE` (the `ltr --present-mode` flag), which
+    /// forces the swap interval regardless of what Lua requests via
+    /// `Window:setPresentMode`. `None` means scripts control it normally.
+    present_mode_override: Option<PresentMode>,
+    /// Whether `changed_window` has already logged that a script's present
+    /// mode request was overridden - logged once, not every frame.
+    present_mode_override_logged: bool,
+}
+
+/// Parse `PHX_PRESENT_MODE` ("vsync" / "no-vsync") set by the `ltr
+/// --present-mode` flag (see `engine/bin/ltr/src/main.rs`). Absent or
+/// unrecognised means no override - falls through to script control.
+fn present_mode_override_from_env() -> Option<PresentMode> {
+    match std::env::var("PHX_PRESENT_MODE").ok().as_deref() {
+        Some("vsync") => Some(PresentMode::Vsync),
+        Some("no-vsync") => Some(PresentMode::NoVsync),
+        Some(other) => {
+            warn!("Unrecognized PHX_PRESENT_MODE '{other}', ignoring - expected vsync/no-vsync");
+            None
+        }
+        None => None,
+    }
 }
 
 // This thread local variable contains a ref counted instance of the current Lua VM.
@@ -99,7 +121,12 @@ impl Engine {
         }));
 
         // Create window.
-        let window = Window::default();
+        let present_mode_override = present_mode_override_from_env();
+        let mut window = Window::default();
+        if let Some(mode) = present_mode_override {
+            info!("Present mode forced to {mode:?} by PHX_PRESENT_MODE");
+            window.present_mode = mode;
+        }
         let cache = CachedWindow {
             window: window.clone(),
         };
@@ -142,6 +169,8 @@ impl Engine {
             task_queue: TaskQueue::new(),
             lua,
             renderer,
+            present_mode_override,
+            present_mode_override_logged: false,
         }
     }
 
@@ -396,8 +425,25 @@ impl Engine {
 
         // === Present mode / IME / themes ===
         if self.window.present_mode != self.cache.window.present_mode {
-            warn!("Unable to change present mode after window creation!");
-            self.window.present_mode = self.cache.window.present_mode;
+            if let Some(forced_mode) = self.present_mode_override {
+                // CLI (`ltr --present-mode`) wins over the script - restore
+                // the forced mode so this branch doesn't keep re-firing, and
+                // let the operator know their script's request was ignored.
+                self.window.present_mode = forced_mode;
+                if !self.present_mode_override_logged {
+                    info!(
+                        "Ignoring script's present mode request - overridden by PHX_PRESENT_MODE ({forced_mode:?})"
+                    );
+                    self.present_mode_override_logged = true;
+                }
+            } else {
+                // The GL context lives on the render thread (see
+                // Engine::new's extract_gl_context handoff), and
+                // set_swap_interval needs it current, so this goes through a
+                // command instead of being applied here directly.
+                self.renderer.set_present_mode(self.window.present_mode);
+                self.winit_window.set_present_mode(self.window.present_mode);
+            }
         }
 
         if self.window.ime_enabled != self.cache.window.ime_enabled {

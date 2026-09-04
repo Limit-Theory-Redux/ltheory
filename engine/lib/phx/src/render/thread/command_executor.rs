@@ -932,6 +932,8 @@ impl CommandExecutor {
             // === Window Operations ===
             RenderCommand::Resize { width, height } => self.cmd_resize(width, height),
 
+            RenderCommand::SetPresentMode { mode } => self.cmd_set_present_mode(mode),
+
             RenderCommand::SwapBuffers => {
                 reply = self.cmd_swap_buffers();
             }

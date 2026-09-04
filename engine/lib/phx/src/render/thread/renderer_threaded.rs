@@ -16,7 +16,7 @@ use crate::render::{
     RendererData, ResourceId, ShaderErrorQueue, ShaderReloadResult, ShaderVarMap, TexFilter,
     TexFormat, TexWrapMode, VertexFormat, VpStack,
 };
-use crate::window::{WindowError, WindowGlContext};
+use crate::window::{PresentMode, WindowError, WindowGlContext};
 
 /// Maximum frames in flight for triple buffering
 const MAX_FRAMES_IN_FLIGHT: u64 = 3;
@@ -1226,6 +1226,14 @@ impl Renderer {
 
     pub fn swap_buffers_intern(&mut self) {
         self.submit(RenderCommand::SwapBuffers);
+    }
+
+    /// Change vsync at runtime. Blocking `submit`, not `try_submit`:
+    /// `Engine::changed_window` only calls this on an actual delta, so a
+    /// dropped command would leave the requested mode permanently unapplied
+    /// instead of just being retried next frame like a dropped resize is.
+    pub fn set_present_mode(&mut self, mode: PresentMode) {
+        self.submit(RenderCommand::SetPresentMode { mode });
     }
 
     /// Block until every previously-submitted GL command has completed

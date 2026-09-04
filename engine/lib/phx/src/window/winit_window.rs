@@ -261,6 +261,17 @@ impl WinitWindow {
         &self.window
     }
 
+    /// Keep the main thread's copy of the present mode in sync with runtime
+    /// changes, so `restore_gl_context` re-applies the *current* mode rather
+    /// than the one captured at window construction. The actual GL call
+    /// lives on the render thread (`CommandExecutor::cmd_set_present_mode`);
+    /// after `Engine::new`'s `extract_gl_context`, `gl_state` is `Undefined`
+    /// here and this window owns no context to set an interval on, so this
+    /// is deliberately field-only.
+    pub fn set_present_mode(&mut self, present_mode: PresentMode) {
+        self.present_mode = present_mode;
+    }
+
     pub fn resume(&mut self) {
         debug!("WinitWindow::resume");
 
