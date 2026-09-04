@@ -27,7 +27,7 @@
   .bad .value { color: #f85149; }
   .good .value { color: #3fb950; }
   .graphs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  canvas { width: 100%; height: 90px; background: #161b22; border: 1px solid #30363d; border-radius: 6px; }
+  canvas { width: 100%; height: 110px; background: #161b22; border: 1px solid #30363d; border-radius: 6px; }
   .meta { font-size: 11px; color: #8b949e; margin-top: 12px; }
   #status { color: #8b949e; font-size: 12px; }
   table { width: 100%; border-collapse: collapse; font-size: 12px; }
@@ -89,6 +89,7 @@
 <div class="meta" id="meta">waiting for first snapshot…</div>
 
 <script>
+const POLL_MS = 500;
 const HISTORY = 240; // ~120 s at 2 Hz
 const frameTimes = [], commandCounts = [], samples = [];
 let last = null;
@@ -107,22 +108,88 @@ function percentile(sorted, p) {
   return sorted[idx];
 }
 
-function drawGraph(canvas, series, color, scaleFn) {
+// Picks the smallest interval (in seconds) from a fixed candidate list such
+// that labels spaced that far apart won't crowd the available plot width.
+function niceInterval(totalSeconds, plotWidthPx, minLabelPx) {
+  const candidates = [1, 2, 5, 10, 15, 20, 30, 60, 90, 120, 180, 300, 600];
+  for (const c of candidates) {
+    if ((totalSeconds / c) * minLabelPx <= plotWidthPx) return c;
+  }
+  return candidates[candidates.length - 1];
+}
+
+function drawGraph(canvas, series, color, scaleFn, title, valueFmt) {
   const ctx = canvas.getContext('2d');
-  const w = canvas.width = canvas.clientWidth * (window.devicePixelRatio || 1);
-  const h = canvas.height = canvas.clientHeight * (window.devicePixelRatio || 1);
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.width = canvas.clientWidth * dpr;
+  const h = canvas.height = canvas.clientHeight * dpr;
   ctx.clearRect(0, 0, w, h);
-  ctx.strokeStyle = color; ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  let max = 1;
-  for (const v of series) max = Math.max(max, scaleFn(v));
+
+  const padL = 38 * dpr, padR = 38 * dpr, padT = 14 * dpr, padB = 16 * dpr;
+  const plotW = Math.max(1, w - padL - padR);
+  const plotH = Math.max(1, h - padT - padB);
   const n = series.length;
+
+  const values = series.map(scaleFn);
+  let max = values.length ? Math.max(...values) : 1;
+  let min = values.length ? Math.min(...values) : 0;
+  if (max === min) max = min + 1;
+
+  ctx.font = (10 * dpr) + 'px ui-monospace, Consolas, monospace';
+
+  // Title.
+  ctx.fillStyle = '#c9d1d9';
+  ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  ctx.fillText(title, padL, 1 * dpr);
+
+  // X axis: tick marks only (no labels - redundant given a fixed, known
+  // poll cadence). Spacing adapts to canvas width and uses the same fixed
+  // px-per-second as the line itself (derived from HISTORY/POLL_MS, not
+  // from how many samples have arrived yet), anchored to the line's actual
+  // rightmost point - so while the buffer is still warming up (fewer than
+  // HISTORY samples) the marks track the visible line instead of spreading
+  // across the full, still partly-empty canvas.
+  const totalSeconds = HISTORY * POLL_MS / 1000;
+  const interval = niceInterval(totalSeconds, plotW, 40 * dpr);
+  const pxPerSecond = plotW / totalSeconds;
+  const xNow = padL + plotW * Math.max(0, n - 1) / HISTORY;
+  const elapsedSeconds = Math.max(0, n - 1) * POLL_MS / 1000;
+  ctx.strokeStyle = '#30363d'; ctx.lineWidth = 1 * dpr;
+  for (let t = 0; t <= elapsedSeconds; t += interval) {
+    const x = xNow - t * pxPerSecond;
+    ctx.beginPath();
+    ctx.moveTo(x, padT + plotH);
+    ctx.lineTo(x, padT + plotH + 4 * dpr);
+    ctx.stroke();
+  }
+
+  // Y axis: top/bottom values and a vertically-oriented unit label, kept
+  // in the left margin (left of the plot) instead of over the line.
+  ctx.fillStyle = '#8b949e';
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'top';
+  ctx.fillText(valueFmt(max), padL - 3 * dpr, padT);
+  ctx.textBaseline = 'bottom';
+  ctx.fillText(valueFmt(min), padL - 3 * dpr, padT + plotH);
+
+  // Series line.
+  ctx.strokeStyle = color; ctx.lineWidth = 1.5 * dpr;
+  ctx.beginPath();
+  let yNow = padT + plotH;
   for (let i = 0; i < n; i++) {
-    const x = w * (i / HISTORY);
-    const y = h - (h * scaleFn(series[i]) / max) - 1;
+    const x = padL + plotW * (i / HISTORY);
+    const y = padT + plotH - (plotH * (values[i] - min) / (max - min));
     i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    if (i === n - 1) yNow = y;
   }
   ctx.stroke();
+
+  // Current value, in the right margin, tracking the line's last point.
+  if (n > 0) {
+    ctx.fillStyle = color;
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText(valueFmt(values[n - 1]), xNow + 5 * dpr, yNow);
+  }
 }
 
 function fmt(v) { return v === null || v === undefined ? '-' : v.toLocaleString(); }
@@ -279,15 +346,21 @@ async function poll() {
       ' · total draws ' + fmt(s.draw_calls_cumulative) + ' · total state changes ' + fmt(s.state_changes_cumulative) +
       ' · binds skipped (cum) ' + fmt(s.texture_binds_skipped_cumulative);
 
-    drawGraph($('g-frame'), frameTimes, '#58a6ff', v => v);
-    drawGraph($('g-commands'), commandCounts, '#d29922', v => v);
+    drawGraphs();
     $('status').textContent = '● live';
   } catch (e) {
     $('status').textContent = '● offline';
   }
 }
 
-setInterval(poll, 500);
+function drawGraphs() {
+  drawGraph($('g-frame'), frameTimes, '#58a6ff', v => v, 'Frame time (ms)', v => v.toFixed(1));
+  drawGraph($('g-commands'), commandCounts, '#d29922', v => v, 'Commands / frame', v => Math.round(v).toLocaleString());
+}
+
+window.addEventListener('resize', () => { if (frameTimes.length) drawGraphs(); });
+
+setInterval(poll, POLL_MS);
 poll();
 
 // ---- Producer profiler (main-thread Lua scopes) ----
