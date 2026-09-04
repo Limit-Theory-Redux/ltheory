@@ -125,7 +125,14 @@ function drawGraph(canvas, series, color, scaleFn, title, valueFmt) {
   const h = canvas.height = canvas.clientHeight * dpr;
   ctx.clearRect(0, 0, w, h);
 
-  const padL = 38 * dpr, padR = 38 * dpr, padT = 14 * dpr, padB = 16 * dpr;
+  // Equal blank margin above the title and below the tick marks, so the
+  // graph reads as vertically centered instead of cramped at the top with
+  // leftover space at the bottom.
+  const marginV = 6 * dpr;
+  const titleH = 11 * dpr; // space reserved for the title text
+  const tickH = 6 * dpr;   // tick mark length (4dpr) plus a small gap
+  const padL = 38 * dpr, padR = 38 * dpr;
+  const padT = marginV + titleH, padB = marginV + tickH;
   const plotW = Math.max(1, w - padL - padR);
   const plotH = Math.max(1, h - padT - padB);
   const n = series.length;
@@ -140,7 +147,7 @@ function drawGraph(canvas, series, color, scaleFn, title, valueFmt) {
   // Title.
   ctx.fillStyle = '#c9d1d9';
   ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-  ctx.fillText(title, padL, 1 * dpr);
+  ctx.fillText(title, padL, marginV);
 
   // X axis: tick marks only (no labels - redundant given a fixed, known
   // poll cadence). Spacing adapts to canvas width and uses the same fixed
