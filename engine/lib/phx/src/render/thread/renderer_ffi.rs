@@ -1,4 +1,4 @@
-use glam::Mat4;
+use glam::{Mat4, Vec3};
 use tracing::error;
 
 use crate::math::Matrix;
@@ -39,48 +39,84 @@ impl Renderer {
 
     // === Batch rendering ===
 
-    pub fn begin_batch(
-        &mut self,
-        view: &Matrix,
-        projection: &Matrix,
-        eye_x: f32,
-        eye_y: f32,
-        eye_z: f32,
-    ) {
-        self.data.active_batch = Some(RenderBatch::new(view, projection, eye_x, eye_y, eye_z));
+    pub fn begin_batch(&mut self, view: &Matrix, projection: &Matrix, eye: &Vec3) {
+        match &mut self.data.active_batch {
+            Some(batch) => batch.reset(view, projection, *eye),
+            None => self.data.active_batch = Some(RenderBatch::new(view, projection, *eye)),
+        }
     }
 
     /// `mesh_id`/`shader_id` are `ResourceId`s as plain scalars - obtain them
     /// from `Mesh::resource_id`/`Shader::resource_id` (`mesh:resourceId(r)` /
-    /// `shader:resourceId()` in Lua).
+    /// `shader:resourceId()` in Lua). `user_id` is an opaque caller tag
+    /// echoed back by `cull_batch`.
     #[allow(clippy::too_many_arguments)]
     pub fn add_entity(
         &mut self,
         transform: &Matrix,
-        bounds_center_x: f32,
-        bounds_center_y: f32,
-        bounds_center_z: f32,
+        bounds_center: &Vec3,
         bounds_radius: f32,
         mesh_id: u64,
         index_count: i32,
         shader_id: u64,
         sort_key: u32,
+        user_id: u32,
     ) {
         if let Some(batch) = &mut self.data.active_batch {
             batch.add_entity(
                 transform,
-                bounds_center_x,
-                bounds_center_y,
-                bounds_center_z,
+                *bounds_center,
                 bounds_radius,
                 ResourceId(mesh_id),
                 index_count,
                 ResourceId(shader_id),
                 sort_key,
+                user_id,
             );
         } else {
             error!("There is no active batch started. Use begin_batch() to start it.");
         }
+    }
+
+    /// Add a cull-only entity to the active batch: bounds + sort key, no
+    /// mesh/shader to draw. For callers that want frustum culling and sort
+    /// ordering from `cull_batch` without going through the (unused) batch
+    /// draw path - see `RenderCoreSystem` in Lua, which still applies its
+    /// own per-entity material uniforms and issues its own draws.
+    ///
+    /// `radius < 0.0` is a sentinel meaning "never cull" (e.g. no bounds
+    /// source available for this entity).
+    pub fn add_cull_entity(
+        &mut self,
+        bounds_center: &Vec3,
+        bounds_radius: f32,
+        sort_key: u32,
+        user_id: u32,
+    ) {
+        if let Some(batch) = &mut self.data.active_batch {
+            batch.add_cull_entity(*bounds_center, bounds_radius, sort_key, user_id);
+        } else {
+            error!("There is no active batch started. Use begin_batch() to start it.");
+        }
+    }
+
+    /// Frustum-cull and sort the active batch, writing survivors' `user_id`s
+    /// into `out_indices` in sort-key order. Returns the number written
+    /// (never more than `out_indices`'s length). Emits no draw commands and
+    /// does not clear the batch - `flush_batch` still works afterward.
+    pub fn cull_batch(&mut self, out_indices: &mut [u32]) -> u32 {
+        let Some(batch) = &mut self.data.active_batch else {
+            error!("There is no active batch started. Use begin_batch() to start it.");
+            return 0;
+        };
+
+        batch.cull_and_sort();
+        let visible = batch.visible();
+        let n = visible.len().min(out_indices.len());
+        for (dst, &i) in out_indices[..n].iter_mut().zip(visible.iter()) {
+            *dst = batch.entities[i as usize].user_id;
+        }
+        n as u32
     }
 
     pub fn flush_batch(&mut self) {

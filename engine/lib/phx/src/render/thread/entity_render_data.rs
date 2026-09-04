@@ -19,4 +19,6 @@ pub struct EntityRenderData {
     pub shader_id: ResourceId,
     /// Sort key for render ordering (lower = render first)
     pub sort_key: u32,
+    /// Opaque caller tag, echoed back by `cull_batch`. Unused by the draw path.
+    pub user_id: u32,
 }

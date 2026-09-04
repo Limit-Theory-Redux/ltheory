@@ -21,8 +21,10 @@ function Loader.defineType()
             void              Renderer_BeginFrame             (Renderer*);
             void              Renderer_Flush                  (Renderer*);
             bool              Renderer_Sync                   (Renderer*);
-            void              Renderer_BeginBatch             (Renderer*, Matrix const* view, Matrix const* projection, float eyeX, float eyeY, float eyeZ);
-            void              Renderer_AddEntity              (Renderer*, Matrix const* transform, float boundsCenterX, float boundsCenterY, float boundsCenterZ, float boundsRadius, uint64 meshId, int indexCount, uint64 shaderId, uint32 sortKey);
+            void              Renderer_BeginBatch             (Renderer*, Matrix const* view, Matrix const* projection, Vec3f const* eye);
+            void              Renderer_AddEntity              (Renderer*, Matrix const* transform, Vec3f const* boundsCenter, float boundsRadius, uint64 meshId, int indexCount, uint64 shaderId, uint32 sortKey, uint32 userId);
+            void              Renderer_AddCullEntity          (Renderer*, Vec3f const* boundsCenter, float boundsRadius, uint32 sortKey, uint32 userId);
+            uint32            Renderer_CullBatch              (Renderer*, uint32* outIndices, uint64 outIndices_size);
             void              Renderer_FlushBatch             (Renderer*);
             BatchStats const* Renderer_GetBatchStats          (Renderer const*);
             void              Renderer_SetViewport            (Renderer*, int x, int y, int width, int height);
@@ -81,6 +83,8 @@ function Loader.defineType()
                 sync                   = libphx.Renderer_Sync,
                 beginBatch             = libphx.Renderer_BeginBatch,
                 addEntity              = libphx.Renderer_AddEntity,
+                addCullEntity          = libphx.Renderer_AddCullEntity,
+                cullBatch              = libphx.Renderer_CullBatch,
                 flushBatch             = libphx.Renderer_FlushBatch,
                 getBatchStats          = libphx.Renderer_GetBatchStats,
                 setViewport            = libphx.Renderer_SetViewport,

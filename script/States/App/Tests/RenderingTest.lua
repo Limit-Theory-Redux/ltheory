@@ -171,9 +171,12 @@ function RenderingTest:onRender(data)
     self:immediateUI(function()
         local mem = GC.GetMemory()
 
+        local cullStats = RenderCoreSystem:getCullStats()
+
         local infoLines = {
             string.format("FPS: %d", RenderCoreSystem:getSmoothFPS()),
             string.format("Frametime: %.2f ms", RenderCoreSystem:getSmoothFrameTime(true)),
+            string.format("Culled: %d / %d", cullStats.culled, cullStats.submitted),
             string.format("Lua Memory: %.2f KB", mem),
             -- GC debug info
             string.format("GC Step Size: %d", GC.debug.stepSize),

@@ -598,9 +598,12 @@ function PlanetTest:onRender(data)
         local camTransform = camEntity and camEntity:get(PhysicsComponents.Transform)
         local camPos = camTransform and camTransform:getPos() or Position(0, 0, 0)
 
+        local cullStats = RenderCoreSystem:getCullStats()
+
         local infoLines = {
             string.format("FPS: %d", RenderCoreSystem:getSmoothFPS()),
             string.format("Frametime: %.2f ms", RenderCoreSystem:getSmoothFrameTime(true)),
+            string.format("Culled: %d / %d", cullStats.culled, cullStats.submitted),
             string.format("Seed: %d", self.seed),
             string.format("Camera: (%.1f, %.1f, %.1f)", camPos.x, camPos.y, camPos.z),
             string.format("Orbit: Angle=%.1f° Pitch=%.1f° Radius=%.1f",

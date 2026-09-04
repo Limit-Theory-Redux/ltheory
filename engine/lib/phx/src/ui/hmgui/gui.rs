@@ -59,9 +59,19 @@ impl HmGui {
         self.scale_factor = scale_factor;
     }
 
+    /// The base layer's root widget. Usable both mid-construction (where it
+    /// matches the current layer while no nested layer has been begun) and
+    /// after `end_gui` (where `layer_index` has been reset to
+    /// [`UNDEFINED_LAYER_INDEX`] but the base layer at index 0 still holds
+    /// the fully laid-out tree).
     #[inline]
     pub fn root(&self) -> Rf<HmGuiWidget> {
-        self.layers[self.layer_index].root.clone()
+        let index = if self.layer_index == UNDEFINED_LAYER_INDEX {
+            0
+        } else {
+            self.layer_index
+        };
+        self.layers[index].root.clone()
     }
 
     #[inline]
