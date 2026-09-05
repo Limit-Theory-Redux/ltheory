@@ -1,6 +1,31 @@
-use std::ffi::CString;
-
 use clap::{Parser, ValueEnum};
+use internal::{EngineSettings, PresentMode};
+
+/// clap-facing mirror of `internal::PresentMode`.
+///
+/// Not strictly needed for the type itself (`internal::PresentMode` could
+/// derive `ValueEnum` directly), but `ltr` must never reference anything
+/// defined in `phx`: `phx` is release-built with `codegen-units = 1` plus
+/// LTO, so its rlib is a single object containing the whole engine
+/// (`Engine_Entry` included), and naming even a bare enum from it would make
+/// phx a "used" dependency, pulling that entire object statically into
+/// `ltr`. Keeping `internal` (a tiny, engine-free crate) as the only type
+/// shared between the two sidesteps that. This CLI-only enum just keeps
+/// clap's `ValueEnum` derive (and the `internal` crate) decoupled.
+#[derive(Clone, Copy, ValueEnum)]
+enum PresentModeArg {
+    Vsync,
+    NoVsync,
+}
+
+impl From<PresentModeArg> for PresentMode {
+    fn from(value: PresentModeArg) -> Self {
+        match value {
+            PresentModeArg::Vsync => PresentMode::Vsync,
+            PresentModeArg::NoVsync => PresentMode::NoVsync,
+        }
+    }
+}
 
 #[cfg(target_os = "windows")]
 #[allow(unsafe_code)]
@@ -14,25 +39,6 @@ pub static AmdPowerXpressRequestHighPerformance: std::os::raw::c_int = 1;
 
 const BUILD_TIME: &str = build_time::build_time_utc!("%Y-%m-%d / %H:%M:%S UTC");
 const GIT_VERSION: &str = git_version::git_version!(args = ["--tags", "--always", "--dirty=M"]);
-
-/// CLI-facing mirror of `phx::window::PresentMode` - `phx` is linked as a
-/// dylib through `Engine_Entry`, not a normal crate dependency, so its enum
-/// isn't reachable here. Passed down via `PHX_PRESENT_MODE` and parsed back
-/// into the real `PresentMode` in `Engine::new`.
-#[derive(Clone, Copy, ValueEnum)]
-enum PresentModeArg {
-    Vsync,
-    NoVsync,
-}
-
-impl PresentModeArg {
-    fn as_env_str(self) -> &'static str {
-        match self {
-            Self::Vsync => "vsync",
-            Self::NoVsync => "no-vsync",
-        }
-    }
-}
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -51,8 +57,9 @@ struct Cli {
     log_dir: Option<String>,
     /// Serve the live render-stats dashboard on this port (requires the
     /// `stats-server` cargo feature; open http://127.0.0.1:<port> in a browser)
-    #[arg(long)]
-    stats_server: Option<u16>,
+    #[arg(long, default_value_t = 8777)]
+    #[cfg(feature = "stats-server")]
+    stats_server: u16,
     /// Force the swap interval, overriding whatever the Lua state requests
     /// via `Window:setPresentMode`. Useful for A/B'ing benchmark runs
     /// without editing scripts.
@@ -64,14 +71,9 @@ struct Cli {
 
 #[cfg_attr(not(windows), link(name = "phx", kind = "dylib"))]
 #[cfg_attr(windows, link(name = "phx.dll", kind = "dylib"))]
-#[allow(unsafe_code)]
-unsafe extern "C" {
-    fn Engine_Entry(
-        entry_point: *const libc::c_char,
-        app_name: *const libc::c_char,
-        console_log: bool,
-        log_dir: *const libc::c_char,
-    );
+#[allow(unsafe_code, improper_ctypes)]
+unsafe extern "C-unwind" {
+    fn Engine_Entry(settings: &'static EngineSettings);
 }
 
 pub fn main() {
@@ -85,37 +87,21 @@ pub fn main() {
 
     let cli = Cli::parse();
 
-    let entry_point = CString::new(cli.entry_point)
-        .expect("Failed to convert entry_point argument into CString.")
-        .into_raw();
-    let app_name_str = cli.app_name.clone().unwrap_or("".into());
-    let app_name = CString::new(app_name_str)
-        .expect("Failed to convert app_name argument into CString.")
-        .into_raw();
-    let log_dir_str = cli.log_dir.clone().unwrap_or("".into());
-    let log_dir = CString::new(log_dir_str)
-        .expect("Failed to convert log_dir argument into CString.")
-        .into_raw();
+    // Leaked on purpose: the engine borrows this for the whole run, and nothing
+    // allocated here may be freed on the library side of the boundary.
+    let settings: &'static EngineSettings = Box::leak(Box::new(EngineSettings {
+        entry_point: cli.entry_point.into(),
+        app_name: cli.app_name.unwrap_or_default(),
+        log_dir: cli.log_dir.unwrap_or_default(),
+        console_log: cli.console_log,
+        no_color: cli.no_color,
+        #[cfg(feature = "stats-server")]
+        stats_port: cli.stats_server,
+        present_mode: cli.present_mode.map(PresentMode::from),
+    }));
 
-    #[allow(unsafe_code)] // TODO: remove
+    #[allow(unsafe_code)]
     unsafe {
-        if cli.no_color {
-            std::env::set_var("NO_COLOR", "1");
-        }
-
-        if let Some(port) = cli.stats_server {
-            std::env::set_var("PHX_STATS_PORT", port.to_string());
-        }
-
-        if let Some(mode) = cli.present_mode {
-            std::env::set_var("PHX_PRESENT_MODE", mode.as_env_str());
-        }
-
-        Engine_Entry(
-            entry_point as *const libc::c_char,
-            app_name as *const libc::c_char,
-            cli.console_log,
-            log_dir as *const libc::c_char,
-        );
-    }
+        Engine_Entry(settings)
+    };
 }

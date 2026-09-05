@@ -1,5 +1,6 @@
 use std::io::Write;
 
+use internal::EngineSettings;
 use regex::Regex;
 pub use tracing::{error, info, warn};
 use tracing_appender::non_blocking::WorkerGuard;
@@ -38,16 +39,16 @@ impl Write for MessageCleaner {
     }
 }
 
-pub fn init_log(console_log: bool, log_dir: &str) -> Option<WorkerGuard> {
+pub fn init_log(settings: &EngineSettings) -> Option<WorkerGuard> {
     // Use either RUST_LOG environment variable or 'info' log level directives
     let filter_layer = EnvFilter::try_from_default_env()
         .or_else(|_| EnvFilter::try_new("debug,symphonia=error"))
         .expect("Cannot create log env filter layer");
     let registry = tracing_subscriber::registry().with(filter_layer);
 
-    if !log_dir.is_empty() {
+    let (file_layer, guard) = if !settings.log_dir.is_empty() {
         // Create a log files in the specified directory with the 'ltr' prefix
-        let file_appender = tracing_appender::rolling::daily(log_dir, "ltr");
+        let file_appender = tracing_appender::rolling::daily(&settings.log_dir, "ltr");
         // Remove ASCII coloring commands from the message (used to color text in the console) before writing it to the file
         let message_cleaner = MessageCleaner::new(file_appender);
         // Do not block main thread while generating and writing log messages
@@ -58,38 +59,34 @@ pub fn init_log(console_log: bool, log_dir: &str) -> Option<WorkerGuard> {
             .with_target(false)
             .with_writer(non_blocking);
 
-        if console_log {
-            let console_output_layer = tracing_subscriber::fmt::layer()
-                .without_time()
-                .with_target(false);
-
-            registry
-                .with(file_output_layer)
-                .with(console_output_layer)
-                .try_init()
-                .expect("Cannot init log registry");
-        } else {
-            registry
-                .with(file_output_layer)
-                .try_init()
-                .expect("Cannot init log registry");
-        }
-
-        Some(guard)
+        (Some(file_output_layer), Some(guard))
     } else {
-        if console_log {
-            let console_output_layer = tracing_subscriber::fmt::layer()
-                .without_time()
-                .with_target(false);
+        (None, None)
+    };
 
-            registry
-                .with(console_output_layer)
-                .try_init()
-                .expect("Cannot init log registry");
+    let console_layer = if settings.console_log {
+        let layer = tracing_subscriber::fmt::layer()
+            .without_time()
+            .with_target(false);
+        // Honor the explicit `--no-color` flag; otherwise leave ANSI
+        // detection to tracing-subscriber's default, which already respects
+        // an ambient `NO_COLOR` in the environment.
+        let layer = if settings.no_color {
+            layer.with_ansi(false)
         } else {
-            registry.try_init().expect("Cannot init log registry");
-        }
+            layer
+        };
 
+        Some(layer)
+    } else {
         None
-    }
+    };
+
+    registry
+        .with(file_layer)
+        .with(console_layer)
+        .try_init()
+        .expect("Cannot init log registry");
+
+    guard
 }

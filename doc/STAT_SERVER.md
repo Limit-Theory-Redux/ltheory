@@ -15,8 +15,10 @@ activated at runtime with `--stats-server <port>`:
 cargo run -p ltr --features stats-server -- --stats-server 8777
 ```
 
-The flag sets `PHX_STATS_PORT`, which the engine reads at startup and
-spawns the server on (see `engine/lib/phx/src/engine/engine.rs`). The
+The flag is threaded into `EngineSettings::stats_port`, which the `ltr`
+launcher builds once and passes to `Engine_Entry`; `Engine::new` reads
+it at startup and spawns the server on (see
+`engine/lib/phx/src/engine/engine.rs`). The
 server is `start_stats_server(port)` in
 `engine/lib/phx/src/render/thread/stats_server.rs` — it returns the
 shared snapshot sink (`Arc<Mutex<StatsSnapshot>>`) that the render
