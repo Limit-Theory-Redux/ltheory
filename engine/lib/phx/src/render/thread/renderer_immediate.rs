@@ -13,7 +13,7 @@ use crate::render::{
     RenderThreadError, ResourceId, ShaderErrorQueue, ShaderReloadResult, ShaderVarMap, TexFilter,
     TexFormat, TexWrapMode, VertexFormat, VpStack,
 };
-use crate::window::WindowGlContext;
+use crate::window::{PresentMode, WindowGlContext};
 
 pub struct Renderer {
     /// Executes commands inline
@@ -669,6 +669,13 @@ impl Renderer {
 
     pub fn swap_buffers_intern(&mut self) {
         self.executor.cmd_swap_buffers();
+    }
+
+    /// Change vsync at runtime. Immediate mode has no thread to hop to, so
+    /// this calls straight into the executor - see the threaded backend's
+    /// `set_present_mode` for why the API is the same shape on both.
+    pub fn set_present_mode(&mut self, mode: PresentMode) {
+        self.executor.cmd_set_present_mode(mode);
     }
 
     /// Block until every previously-submitted GL command has completed

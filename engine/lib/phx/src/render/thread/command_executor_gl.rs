@@ -15,7 +15,7 @@ use crate::render::{
     CullFace, GenericUniformName, ImmVertex, InstanceData, RenderStats, ResourceId,
     ShaderReloadResult, TexFilter, TexFormat, TexWrapMode, VertexFormat,
 };
-use crate::window::WindowGlContext;
+use crate::window::{PresentMode, WindowGlContext};
 
 const DRAW_BUFS: [u32; 4] = [
     gl::COLOR_ATTACHMENT0,
@@ -1887,6 +1887,18 @@ impl CommandExecutor {
     }
 
     #[inline(always)]
+    pub(super) fn cmd_set_present_mode(&mut self, mode: PresentMode) {
+        let _sa = self.record_command(CommandCategory::Sync, false, false);
+        let Some(ref ctx) = self.gl_context else {
+            return;
+        };
+        match ctx.set_swap_interval(mode) {
+            Ok(()) => info!("Present mode set to {mode:?}"),
+            Err(e) => warn!("Unable to set present mode {mode:?}: {e}"),
+        }
+    }
+
+    #[inline(always)]
     pub(super) fn cmd_reload_shader(
         &mut self,
         shader_key: &str,
@@ -1937,7 +1949,6 @@ impl CommandExecutor {
 
     #[inline(always)]
     pub(super) fn cmd_swap_buffers(&mut self) -> CommandReply {
-        let _sa = self.record_command(CommandCategory::Sync, false, false);
         // Calculate frame time before swap
         let frame_time = self.frame_start.elapsed();
         let frame_time_us = frame_time.as_micros() as u64;

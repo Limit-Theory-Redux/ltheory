@@ -19,3 +19,15 @@ impl From<PresentMode> for glutin::surface::SwapInterval {
         }
     }
 }
+
+/// Converts the `ltr --present-mode` value carried in `EngineSettings`
+/// (`internal::PresentMode`, not this type - see its doc comment for why)
+/// into the real present mode.
+impl From<internal::PresentMode> for PresentMode {
+    fn from(value: internal::PresentMode) -> Self {
+        match value {
+            internal::PresentMode::Vsync => Self::Vsync,
+            internal::PresentMode::NoVsync => Self::NoVsync,
+        }
+    }
+}

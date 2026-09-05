@@ -13,6 +13,7 @@ use crate::render::{
     BlendMode, CameraUboArray, CullFace, InstanceData, TexFilter, TexFormat, TexWrapMode,
     VertexFormat, gl,
 };
+use crate::window::PresentMode;
 
 /// A handle to a GPU resource (shader, texture, buffer, etc.)
 /// The actual GL handle lives on the render thread.
@@ -707,6 +708,11 @@ pub enum RenderCommand {
     /// Resize the GL surface
     Resize { width: u32, height: u32 },
 
+    /// Change the swap interval (vsync on/off). Must go through the render
+    /// thread because `set_swap_interval` requires the GL context current,
+    /// and the context lives there - see `Engine::changed_window`.
+    SetPresentMode { mode: PresentMode },
+
     /// Swap buffers (present frame)
     SwapBuffers,
 
@@ -865,9 +871,13 @@ impl RenderCommand {
             | UpdateLightUBO { .. } => CommandCategory::Ubo,
 
             // === Window / Synchronization ===
-            Resize { .. } | SwapBuffers | Flush | Fence { .. } | PacingFence { .. } | Shutdown => {
-                CommandCategory::Sync
-            }
+            Resize { .. }
+            | SetPresentMode { .. }
+            | SwapBuffers
+            | Flush
+            | Fence { .. }
+            | PacingFence { .. }
+            | Shutdown => CommandCategory::Sync,
         }
     }
 
