@@ -118,8 +118,9 @@ why runtime vsync changes (`Window:setPresentMode`) are routed as
 
 `Renderer` publishes a `RenderStats` snapshot once per frame over `stats_rx`
 (`renderer_stats.rs`); `Renderer::get_stats()`/related getters expose it to
-Lua. With the `stats-server` cargo feature and `--stats-server <port>`, a
-live HTTP dashboard is also available — see `doc/STAT_SERVER.md`.
+Lua. With the `stats-server` cargo feature, a live HTTP dashboard is also
+available (on by default at port 8777, `--stats-server <port>` to
+override) — see `doc/STAT_SERVER.md`.
 
 ## Quick Reference
 

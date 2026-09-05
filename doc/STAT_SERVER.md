@@ -8,16 +8,26 @@ used for profiling sessions, not shipped builds.
 
 ## Enabling
 
-The feature is compiled in with the `stats-server` cargo feature and
-activated at runtime with `--stats-server <port>`:
+The feature is compiled in with the `stats-server` cargo feature. Once
+built with the feature, the dashboard starts **automatically** on port
+`8777`:
 
 ```bash
-cargo run -p ltr --features stats-server -- --stats-server 8777
+cargo run -p ltr --features stats-server
 ```
 
-The flag is threaded into `EngineSettings::stats_port`, which the `ltr`
+Use `--stats-server <port>` to serve on a different port instead:
+
+```bash
+cargo run -p ltr --features stats-server -- --stats-server 9000
+```
+
+There is no way to build with the feature and have the server stay off
+for a given run — the feature gate is the on/off switch; the flag only
+picks the port. `EngineSettings::stats_port` (cfg-gated on `stats-server`)
+carries the port from the `ltr` CLI into `EngineSettings`, which the
 launcher builds once and passes to `Engine_Entry`; `Engine::new` reads
-it at startup and spawns the server on (see
+it at startup and spawns the server on it (see
 `engine/lib/phx/src/engine/engine.rs`). The
 server is `start_stats_server(port)` in
 `engine/lib/phx/src/render/thread/stats_server.rs` — it returns the
@@ -166,10 +176,15 @@ inside `App.onPostRender`).
 ## Dashboard
 
 `GET /` serves the self-contained dashboard. It polls `/stats.json` and
-`/profile.json` every second and renders:
+`/profile.json` every 500ms (`POLL_MS` in the HTML) and renders:
 
 - live frame time + starve/present rows
 - per-frame counters (commands, draws, shader/texture binds)
+- **Frame time** and **Commands / frame** history graphs, each ~120s
+  (`HISTORY` samples at the poll cadence) with a title, Y-axis min/max
+  labels, X-axis tick marks at a "nice" interval that adapts to the
+  canvas width (`niceInterval` in the HTML), and the current value
+  tracking the line's rightmost point. Graphs redraw on window resize.
 - category breakdown table
 - **Frame time explanation**: flame graph of the producer scopes overlaid
   with the render-thread frame budget (the "where does the ms go" view)
