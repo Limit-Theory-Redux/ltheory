@@ -1,12 +1,11 @@
 use std::cell::RefCell;
 
 use glam::*;
+use internal::EngineSettings;
 use mlua::{Function, Lua};
 use tracing::*;
 use winit::dpi::*;
 use winit::event_loop::*;
-
-use internal::EngineSettings;
 
 use super::{EventBus, MainLoop, TaskQueue};
 use crate::input::*;
