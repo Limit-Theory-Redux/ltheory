@@ -129,10 +129,11 @@ function drawGraph(canvas, series, color, scaleFn, title, valueFmt) {
   // graph reads as vertically centered instead of cramped at the top with
   // leftover space at the bottom.
   const marginV = 6 * dpr;
-  const titleH = 11 * dpr; // space reserved for the title text
-  const tickH = 6 * dpr;   // tick mark length (4dpr) plus a small gap
+  const titleH = 11 * dpr;  // space reserved for the title text
+  const titleGap = 6 * dpr; // breathing room between title and plot
+  const tickH = 6 * dpr;    // tick mark length (4dpr) plus a small gap
   const padL = 38 * dpr, padR = 38 * dpr;
-  const padT = marginV + titleH, padB = marginV + tickH;
+  const padT = marginV + titleH + titleGap, padB = marginV + tickH;
   const plotW = Math.max(1, w - padL - padR);
   const plotH = Math.max(1, h - padT - padB);
   const n = series.length;
