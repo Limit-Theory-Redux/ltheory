@@ -53,7 +53,7 @@ notify = "6.1"
 parley = "0.1"
 swash = "0.2"
 rapier3d-f64 = { version = "0.22", features = ["simd-stable", "debug-render"] }
-num_cpus = "1.15"
+num_cpus = "1.17"
 raw-window-handle = "0.6"
 regex = "1.8"
 rodio = "0.20"
