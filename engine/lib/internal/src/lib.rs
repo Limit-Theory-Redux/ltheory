@@ -1,7 +1,9 @@
 mod convert;
+mod engine_settings;
 mod memory;
 
 pub use convert::*;
+pub use engine_settings::*;
 pub use memory::*;
 
 /// Store C string in the static thread local storage.

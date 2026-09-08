@@ -8,15 +8,27 @@ used for profiling sessions, not shipped builds.
 
 ## Enabling
 
-The feature is compiled in with the `stats-server` cargo feature and
-activated at runtime with `--stats-server <port>`:
+The feature is compiled in with the `stats-server` cargo feature. Once
+built with the feature, the dashboard starts **automatically** on port
+`8777`:
 
 ```bash
-cargo run -p ltr --features stats-server -- --stats-server 8777
+cargo run -p ltr --features stats-server
 ```
 
-The flag sets `PHX_STATS_PORT`, which the engine reads at startup and
-spawns the server on (see `engine/lib/phx/src/engine/engine.rs`). The
+Use `--stats-server <port>` to serve on a different port instead:
+
+```bash
+cargo run -p ltr --features stats-server -- --stats-server 9000
+```
+
+There is no way to build with the feature and have the server stay off
+for a given run — the feature gate is the on/off switch; the flag only
+picks the port. `EngineSettings::stats_port` (cfg-gated on `stats-server`)
+carries the port from the `ltr` CLI into `EngineSettings`, which the
+launcher builds once and passes to `Engine_Entry`; `Engine::new` reads
+it at startup and spawns the server on it (see
+`engine/lib/phx/src/engine/engine.rs`). The
 server is `start_stats_server(port)` in
 `engine/lib/phx/src/render/thread/stats_server.rs` — it returns the
 shared snapshot sink (`Arc<Mutex<StatsSnapshot>>`) that the render
@@ -81,7 +93,7 @@ the two back into a flat view after fetching. Keys:
 
 | Key | Meaning |
 |-----|---------|
-| `render.last_frame_time_us` | Total wall time of the last render-thread frame (recv → execute → present) |
+| `render.last_frame_time_us` | Render-thread recv + execute time for the last frame. **Excludes** the blocking buffer swap - that's `present_wait_us`, reported separately; the true frame period is the sum of the two |
 | `render.present_wait_us` | Time blocked in the GL buffer swap (vsync/vblank wait) |
 | `render.recv_wait_us` / `render.recv_wait_count` | Producer starvation: render thread blocked waiting for commands |
 | `main_thread_wait_us` | Time the producer blocked in `end_frame_triple_buffered` (fence throttling) |
@@ -104,15 +116,16 @@ the two back into a flat view after fetching. Keys:
 | `render.shader_redundant_binds` | Binds where the program was already current (deduped) |
 | `render.shader_distinct_programs` | Distinct GL programs used this frame |
 | `render.category_counts` | Command counts per category (`[u64; 12]`, `CommandCategory` order) |
-| `render.category_time_us` | Executor time per category (µs; all zero unless the dashboard is open — timing is opt-in) |
+| `render.category_time_us` | Executor time per category (µs; all zero unless the dashboard is open — timing is opt-in). The present/vsync wait inside `SwapBuffers` is **not** in any category (not even `sync`) - see `present_wait_us` |
 | `server_time_us` | Publication timestamp (µs since the UNIX epoch), used by the dashboard for wall-clock FPS averaging |
 
-**Reading the frame-time budget:** the render thread's frame time is
-roughly `recv_wait + execute + present`. If `recv_wait` dominates, the
+**Reading the frame-time budget:** the true frame period is
+`last_frame_time_us + present_wait_us` - the first is `recv_wait + execute`,
+the second is the separate, blocking present. If `recv_wait` dominates, the
 producer (Lua) is the bottleneck — look at `/profile.json`. If
-`present_wait` is large, the frame end blocks in the buffer swap. If
-`main_thread_wait` is large, the producer is being throttled by the
-triple-buffer fence, which is the healthy state.
+`present_wait` is large, the frame end blocks in the buffer swap (usually
+vsync). If `main_thread_wait` is large, the producer is being throttled by
+the triple-buffer fence, which is the healthy state.
 
 ## `/profile.json` — producer (Lua) scopes
 
@@ -163,10 +176,15 @@ inside `App.onPostRender`).
 ## Dashboard
 
 `GET /` serves the self-contained dashboard. It polls `/stats.json` and
-`/profile.json` every second and renders:
+`/profile.json` every 500ms (`POLL_MS` in the HTML) and renders:
 
 - live frame time + starve/present rows
 - per-frame counters (commands, draws, shader/texture binds)
+- **Frame time** and **Commands / frame** history graphs, each ~120s
+  (`HISTORY` samples at the poll cadence) with a title, Y-axis min/max
+  labels, X-axis tick marks at a "nice" interval that adapts to the
+  canvas width (`niceInterval` in the HTML), and the current value
+  tracking the line's rightmost point. Graphs redraw on window resize.
 - category breakdown table
 - **Frame time explanation**: flame graph of the producer scopes overlaid
   with the render-thread frame budget (the "where does the ms go" view)

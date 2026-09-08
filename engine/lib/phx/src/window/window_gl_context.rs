@@ -4,7 +4,7 @@ use glutin::context::{NotCurrentContext, PossiblyCurrentContext};
 use glutin::prelude::{NotCurrentGlContext, PossiblyCurrentGlContext};
 use glutin::surface::{GlSurface, Surface, WindowSurface};
 
-use crate::window::WindowError;
+use crate::window::{PresentMode, WindowError};
 
 /// Data needed to initialize GL context on the render thread.
 /// This is extracted from WinitWindow and sent to the render thread.
@@ -40,6 +40,20 @@ impl WindowActiveGlContext {
     /// Swap buffers
     pub fn swap_buffers(&self) -> Result<(), WindowError> {
         self.surface.swap_buffers(&self.context)?;
+        Ok(())
+    }
+
+    /// Change the swap interval (vsync on/off). Must be called on the
+    /// thread where this context is current - on the threaded backend
+    /// that's the render thread, which is why this is only ever reached
+    /// through `RenderCommand::SetPresentMode`. May legitimately fail or
+    /// silently clamp: not every GL platform exposes swap control (GLX
+    /// without an EXT/MESA/SGI_swap_control extension), and EGL can report
+    /// success while clamping to the config's minimum interval. Callers
+    /// should treat `Err` as "stayed on the previous mode", not a fatal error.
+    pub fn set_swap_interval(&self, present_mode: PresentMode) -> Result<(), WindowError> {
+        self.surface
+            .set_swap_interval(&self.context, present_mode.into())?;
         Ok(())
     }
 

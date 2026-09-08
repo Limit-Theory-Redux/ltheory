@@ -1,7 +1,7 @@
 use std::cell::RefCell;
-use std::path::PathBuf;
 
 use glam::*;
+use internal::EngineSettings;
 use mlua::{Function, Lua};
 use tracing::*;
 use winit::dpi::*;
@@ -28,6 +28,13 @@ pub struct Engine {
     pub task_queue: TaskQueue,
     pub renderer: Renderer,
     pub lua: Rf<Lua>,
+    /// Set from `settings.present_mode` (the `ltr --present-mode` flag),
+    /// which forces the swap interval regardless of what Lua requests via
+    /// `Window:setPresentMode`. `None` means scripts control it normally.
+    present_mode_override: Option<PresentMode>,
+    /// Whether `changed_window` has already logged that a script's present
+    /// mode request was overridden - logged once, not every frame.
+    present_mode_override_logged: bool,
 }
 
 // This thread local variable contains a ref counted instance of the current Lua VM.
@@ -53,7 +60,7 @@ fn build_event_loop() -> EventLoop<()> {
 }
 
 impl Engine {
-    pub fn new(event_loop: &ActiveEventLoop) -> Self {
+    pub fn new(event_loop: &ActiveEventLoop, settings: &'static EngineSettings) -> Self {
         Metric::reset();
 
         // Unsafe is required for FFI and JIT libs
@@ -99,7 +106,12 @@ impl Engine {
         }));
 
         // Create window.
-        let window = Window::default();
+        let present_mode_override = settings.present_mode.map(PresentMode::from);
+        let mut window = Window::default();
+        if let Some(mode) = present_mode_override {
+            info!("Present mode forced to {mode:?} by --present-mode");
+            window.present_mode = mode;
+        }
         let cache = CachedWindow {
             window: window.clone(),
         };
@@ -119,13 +131,11 @@ impl Engine {
         let mut renderer = Renderer::start(context).expect("Failed to start renderer");
 
         // Optional live stats dashboard (feature `stats-server`, activated by
-        // the ltr `--stats-server <port>` flag which sets PHX_STATS_PORT).
+        // the ltr `--stats-server <port>` flag).
         #[cfg(feature = "stats-server")]
-        if let Ok(port_str) = std::env::var("PHX_STATS_PORT") {
-            if let Ok(port) = port_str.parse::<u16>() {
-                let sink = crate::render::start_stats_server(port);
-                renderer.attach_stats_sink(sink);
-            }
+        {
+            let sink = crate::render::start_stats_server(settings.stats_port);
+            renderer.attach_stats_sink(sink);
         }
 
         let hmgui = HmGui::new(&mut renderer, scale_factor);
@@ -142,6 +152,38 @@ impl Engine {
             task_queue: TaskQueue::new(),
             lua,
             renderer,
+            present_mode_override,
+            present_mode_override_logged: false,
+        }
+    }
+
+    pub fn entry(settings: &'static EngineSettings) {
+        // Keep log till the end of the execution
+        let _log = init_log(settings);
+
+        if !settings.entry_point.exists() {
+            // If we can't find it, set the current dir to one above the executable path and try that instead.
+            let mut dir = std::env::current_exe().expect("Cannot get the path to the executable");
+            dir.pop();
+            dir.pop();
+            debug!("Changing working directory to {:?}", dir);
+            std::env::set_current_dir(dir).expect("Cannot change folder to parent");
+
+            if !settings.entry_point.exists() {
+                panic!(
+                    "Can't find script entrypoint: {}",
+                    settings.entry_point.display()
+                );
+            }
+        }
+
+        let mut app_state = MainLoop {
+            engine: None,
+            settings,
+        };
+
+        if let Err(err) = build_event_loop().run_app(&mut app_state) {
+            error!("Event loop error: {err}");
         }
     }
 
@@ -396,8 +438,25 @@ impl Engine {
 
         // === Present mode / IME / themes ===
         if self.window.present_mode != self.cache.window.present_mode {
-            warn!("Unable to change present mode after window creation!");
-            self.window.present_mode = self.cache.window.present_mode;
+            if let Some(forced_mode) = self.present_mode_override {
+                // CLI (`ltr --present-mode`) wins over the script - restore
+                // the forced mode so this branch doesn't keep re-firing, and
+                // let the operator know their script's request was ignored.
+                self.window.present_mode = forced_mode;
+                if !self.present_mode_override_logged {
+                    info!(
+                        "Ignoring script's present mode request - overridden by --present-mode ({forced_mode:?})"
+                    );
+                    self.present_mode_override_logged = true;
+                }
+            } else {
+                // The GL context lives on the render thread (see
+                // Engine::new's extract_gl_context handoff), and
+                // set_swap_interval needs it current, so this goes through a
+                // command instead of being applied here directly.
+                self.renderer.set_present_mode(self.window.present_mode);
+                self.winit_window.set_present_mode(self.window.present_mode);
+            }
         }
 
         if self.window.ime_enabled != self.cache.window.ime_enabled {
@@ -428,36 +487,18 @@ impl Engine {
     }
 }
 
+/// Engine entry point called by the `ltr` launcher.
+///
+/// `settings` points at a leaked [`EngineSettings`] owned by the launcher;
+/// the engine borrows it for the whole run and never drops it.
+#[allow(unsafe_code, improper_ctypes_definitions)]
+#[unsafe(no_mangle)]
+pub unsafe extern "C-unwind" fn Engine_Entry(settings: &'static EngineSettings) {
+    Engine::entry(settings)
+}
+
 #[luajit_ffi_gen::luajit_ffi]
 impl Engine {
-    #[bind(lua_ffi = false)]
-    pub fn entry(entry_point: &str, app_name: &str, console_log: bool, log_dir: &str) {
-        let app_name = app_name.to_string();
-        // Keep log till the end of the execution
-        let _log = init_log(console_log, log_dir);
-
-        let entry_point_path = PathBuf::from(entry_point);
-        if !entry_point_path.exists() {
-            // If we can't find it, set the current dir to one above the executable path and try that instead.
-            let mut dir = std::env::current_exe().expect("Cannot get the path to the executable");
-            dir.pop();
-            dir.pop();
-            debug!("Changing working directory to {:?}", dir);
-            std::env::set_current_dir(dir).expect("Cannot change folder to parent");
-
-            if !entry_point_path.exists() {
-                panic!("Can't find script entrypoint: {entry_point}");
-            }
-        }
-
-        let mut app_state = MainLoop {
-            engine: None,
-            app_name,
-            entry_point_path,
-        };
-        let _ = build_event_loop().run_app(&mut app_state);
-    }
-
     pub fn window(&mut self) -> &mut Window {
         &mut self.window
     }

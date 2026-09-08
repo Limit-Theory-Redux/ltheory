@@ -1,6 +1,5 @@
-use std::path::PathBuf;
-
 use glam::*;
+use internal::EngineSettings;
 use mlua::Function;
 use tracing::*;
 use winit::application::ApplicationHandler;
@@ -14,8 +13,7 @@ use crate::window::*;
 
 pub struct MainLoop {
     pub engine: Option<Engine>,
-    pub app_name: String,
-    pub entry_point_path: PathBuf,
+    pub settings: &'static EngineSettings,
 }
 
 impl ApplicationHandler for MainLoop {
@@ -29,7 +27,7 @@ impl ApplicationHandler for MainLoop {
             // the swap interval blocking on the render thread.
             event_loop.set_control_flow(ControlFlow::Poll);
             // We need the Engine type to have a stable pointer, so we construct it within `MainLoop` right away.
-            self.engine = Some(Engine::new(event_loop));
+            self.engine = Some(Engine::new(event_loop, self.settings));
             let engine = self.engine.as_mut().unwrap();
 
             // Set engine pointer.
@@ -41,11 +39,13 @@ impl ApplicationHandler for MainLoop {
             globals.set("__embedded__", true).unwrap();
             globals.set("__checklevel__", 0 as u64).unwrap();
 
-            if !self.app_name.is_empty() {
-                globals.set("__app__", self.app_name.clone()).unwrap();
+            if !self.settings.app_name.is_empty() {
+                globals
+                    .set("__app__", self.settings.app_name.clone())
+                    .unwrap();
             }
 
-            lua.load(&*self.entry_point_path)
+            lua.load(&*self.settings.entry_point)
                 .exec()
                 .unwrap_or_else(|e| {
                     panic!("Error executing the entry point script: {e}");

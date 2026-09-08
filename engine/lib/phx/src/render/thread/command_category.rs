@@ -31,7 +31,10 @@ pub enum CommandCategory {
     Resource,
     /// Camera/material/light UBO updates
     Ubo,
-    /// SwapBuffers, fences, flush, resize, shutdown
+    /// SwapBuffers, fences, flush, resize, shutdown. `SwapBuffers`'s own
+    /// blocking present (vsync/vblank wait) is deliberately excluded from
+    /// this category's timing and reported separately as
+    /// `RenderStats::present_wait_us` - see the comment in `cmd_swap_buffers`.
     Sync,
 }
 

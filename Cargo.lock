@@ -1997,6 +1997,7 @@ dependencies = [
  "build-time",
  "clap",
  "git-version",
+ "internal",
  "libc",
  "phx",
  "winres",

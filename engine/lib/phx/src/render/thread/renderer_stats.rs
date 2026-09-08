@@ -17,7 +17,10 @@ pub struct RenderStats {
     pub draw_calls_cumulative: u64,
     pub state_changes_cumulative: u64,
     pub frame_count: u64,
-    /// Last frame render time in microseconds
+    /// Last frame render time in microseconds: render-thread receive +
+    /// execute only. Deliberately excludes the blocking buffer swap
+    /// (vsync/vblank wait), which is reported separately as
+    /// `present_wait_us` - the true frame period is the sum of the two.
     pub last_frame_time_us: u64,
     /// Commands processed in the last frame
     pub commands: u64,
