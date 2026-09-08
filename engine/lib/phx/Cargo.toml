@@ -67,7 +67,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 winit = "0.30"
 walkdir = "2.4"
 strum = "0.28"
-strum_macros = "0.27"
+strum_macros = "0.28"
 tobj = "4.0"
 byteorder = "1.5"
 
