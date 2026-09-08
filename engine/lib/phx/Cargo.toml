@@ -55,7 +55,7 @@ swash = "0.2"
 rapier3d-f64 = { version = "0.22", features = ["simd-stable", "debug-render"] }
 num_cpus = "1.17"
 raw-window-handle = "0.6"
-regex = "1.8"
+regex = "1.13"
 rodio = "0.20"
 serde = { version = "1", features = ["derive"] }
 serde_yaml = "0.9"
