@@ -32,7 +32,7 @@ internal.workspace = true
 luajit-ffi-gen.workspace = true
 
 # external crates
-arboard = "3.5"
+arboard = "3.6"
 chrono = "0.4"
 cli-table = { version = "0.4", default-features = false }
 crossbeam = "0.8"
