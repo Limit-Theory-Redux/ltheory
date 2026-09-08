@@ -34,7 +34,7 @@ luajit-ffi-gen.workspace = true
 # external crates
 arboard = "3.6"
 chrono = "0.4"
-cli-table = { version = "0.4", default-features = false }
+cli-table = { version = "0.5", default-features = false }
 crossbeam = "0.8"
 directories = "6.0"
 flate2 = "1.0"
