@@ -57,7 +57,7 @@ num_cpus = "1.17"
 raw-window-handle = "0.6"
 regex = "1.13"
 rodio = "0.20"
-serde = { version = "1", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.9"
 thiserror = "2.0"
 tiny_http = { version = "0.12", optional = true }
@@ -66,7 +66,7 @@ tracing-appender = "0.2"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 winit = "0.30"
 walkdir = "2.4"
-strum = "0.27"
+strum = "0.28"
 strum_macros = "0.27"
 tobj = "4.0"
 byteorder = "1.5"
