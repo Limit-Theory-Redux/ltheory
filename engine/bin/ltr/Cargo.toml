@@ -23,7 +23,7 @@ phx.workspace = true
 
 # external crates
 build-time = "0.1"
-clap = { version = "4.4", features = ["derive"] }
+clap = { version = "4.6", features = ["derive"] }
 git-version = "0.3"
 libc = "0.2"
 
