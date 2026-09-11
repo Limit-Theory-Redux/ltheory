@@ -39,12 +39,6 @@ while test $# -gt 0; do
   esac
 done
 
-# Tests are currently not working correctly on Linux.
-if [[ $run_tests == true && "$OSTYPE" == "linux-gnu"* ]]; then
-    echo "Tests are currently not working correctly on Linux, disabling."
-    run_tests=false
-fi
-
 if [[ "$OSTYPE" == "darwin"* ]]; then
     libprefix="lib"
     libsuffix=".dylib"
