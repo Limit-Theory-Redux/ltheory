@@ -1,7 +1,6 @@
 use std::borrow::BorrowMut;
 
 use glam::Vec2;
-use tracing::warn;
 
 use super::{Alignment, FocusType, HmGui, HmGuiContainer, HmGuiImage, HmGuiText, IDENT, TEXT_CTX};
 use crate::input::Input;
@@ -265,7 +264,7 @@ impl HmGuiWidget {
                 data.pos = self.pos;
             }
             WidgetItem::TextView(image) => {
-                let mut clipboard = hmgui.clipboard().get_text().unwrap_or_default();
+                let mut clipboard = hmgui.clipboard_get_text();
                 let scale_factor = hmgui.scale_factor() as f32;
                 let data = hmgui.data_mut(self.hash);
                 let text_view = data.text_view.as_mut().expect("Text view data was not set");
@@ -292,9 +291,7 @@ impl HmGuiWidget {
                     });
 
                 if !clipboard.is_empty() {
-                    if let Err(err) = hmgui.clipboard().set_text(clipboard) {
-                        warn!("Cannot set clipboard text. Error: {err}");
-                    }
+                    hmgui.clipboard_set_text(clipboard);
                 }
             }
             _ => {}
