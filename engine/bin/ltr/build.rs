@@ -39,11 +39,17 @@ fn main() {
     // `target` directory, so we need to add that to the linker search path.
     //
     // OUT_DIR is set to <src>/target/<cfg>/build/ltr-<hash>/out, so we need to move up 3
-    // directories from there.
+    // directories from there to reach e.g. `target/debug`, where `cargo build` uplifts libphx
+    // to. `cargo test` doesn't uplift it there since phx is only a dependency in that case, so
+    // we also add `target/debug/deps`, where the library is always placed.
     let dir = env::var("OUT_DIR").unwrap();
     println!(
         "cargo::rustc-link-search={}",
         Path::new(&dir).join("../../..").display()
+    );
+    println!(
+        "cargo::rustc-link-search={}",
+        Path::new(&dir).join("../../../deps").display()
     );
 
     // If we don't specify rerun-if-changed, then Cargo will always rerun build.rs, causing phx to

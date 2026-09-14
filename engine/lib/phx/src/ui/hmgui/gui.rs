@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use arboard::Clipboard;
 use glam::*;
+use tracing::warn;
 
 use super::*;
 use crate::input::*;
@@ -24,7 +25,9 @@ pub struct HmGui {
     focus_pos: Vec2,
     active_widget: Option<u64>,
 
-    clipboard: Clipboard,
+    /// `None` when no clipboard backend is available, e.g. on a headless Linux CI runner
+    /// without an X11/Wayland connection.
+    clipboard: Option<Clipboard>,
 }
 
 impl HmGui {
@@ -39,12 +42,25 @@ impl HmGui {
             mouse_over_widget_hash: [0; 2],
             focus_pos: Vec2::ZERO,
             active_widget: None,
-            clipboard: Clipboard::new().expect("Cannot create clipboard"),
+            clipboard: Clipboard::new()
+                .inspect_err(|err| warn!("Cannot create clipboard. Error: {err}"))
+                .ok(),
         }
     }
 
-    pub fn clipboard(&mut self) -> &mut Clipboard {
-        &mut self.clipboard
+    pub fn clipboard_get_text(&mut self) -> String {
+        self.clipboard
+            .as_mut()
+            .and_then(|clipboard| clipboard.get_text().ok())
+            .unwrap_or_default()
+    }
+
+    pub fn clipboard_set_text(&mut self, text: String) {
+        if let Some(clipboard) = self.clipboard.as_mut() {
+            if let Err(err) = clipboard.set_text(text) {
+                warn!("Cannot set clipboard text. Error: {err}");
+            }
+        }
     }
 
     pub fn screen_size(&self) -> Vec2 {
