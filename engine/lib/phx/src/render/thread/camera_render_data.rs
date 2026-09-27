@@ -49,7 +49,7 @@ impl CameraRenderData {
     /// Test if a bounding sphere is inside the frustum
     pub fn sphere_in_frustum(&self, center: Vec3, radius: f32) -> bool {
         for plane in &self.frustum_planes {
-            let distance = plane.x * center.x + plane.y * center.y + plane.z * center.z + plane.w;
+            let distance = distance(plane, center);
             if distance < -radius {
                 return false;
             }
@@ -74,13 +74,13 @@ fn normalize_plane(plane: Vec4) -> Vec4 {
     if len > 0.0 { plane / len } else { plane }
 }
 
+fn distance(plane: &Vec4, center: Vec3) -> f32 {
+    plane.x * center.x + plane.y * center.y + plane.z * center.z + plane.w
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    fn distance(plane: Vec4, center: Vec3) -> f32 {
-        plane.x * center.x + plane.y * center.y + plane.z * center.z + plane.w
-    }
 
     #[test]
     fn plane_normalization_uses_normal_length_not_full_vector_length() {
@@ -103,8 +103,8 @@ mod tests {
         let center = Vec3::new(8.0, 0.0, 0.0);
         let radius = 1.0;
 
-        let correct_distance = distance(correct, center);
-        let buggy_distance = distance(buggy, center);
+        let correct_distance = distance(&correct, center);
+        let buggy_distance = distance(&buggy, center);
 
         assert!(
             correct_distance < -radius,

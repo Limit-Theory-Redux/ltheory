@@ -16,24 +16,45 @@ function Renderer:sync() end
 
 ---@param view Matrix
 ---@param projection Matrix
----@param eyeX number
----@param eyeY number
----@param eyeZ number
-function Renderer:beginBatch(view, projection, eyeX, eyeY, eyeZ) end
+---@param eye Vec3f
+function Renderer:beginBatch(view, projection, eye) end
 
 -- `mesh_id`/`shader_id` are `ResourceId`s as plain scalars - obtain them
 -- from `Mesh::resource_id`/`Shader::resource_id` (`mesh:resourceId(r)` /
--- `shader:resourceId()` in Lua).
+-- `shader:resourceId()` in Lua). `user_id` is an opaque caller tag
+-- echoed back by `cull_batch`.
 ---@param transform Matrix
----@param boundsCenterX number
----@param boundsCenterY number
----@param boundsCenterZ number
+---@param boundsCenter Vec3f
 ---@param boundsRadius number
 ---@param meshId integer
 ---@param indexCount integer
 ---@param shaderId integer
 ---@param sortKey integer
-function Renderer:addEntity(transform, boundsCenterX, boundsCenterY, boundsCenterZ, boundsRadius, meshId, indexCount, shaderId, sortKey) end
+---@param userId integer
+function Renderer:addEntity(transform, boundsCenter, boundsRadius, meshId, indexCount, shaderId, sortKey, userId) end
+
+-- Add a cull-only entity to the active batch: bounds + sort key, no
+-- mesh/shader to draw. For callers that want frustum culling and sort
+-- ordering from `cull_batch` without going through the (unused) batch
+-- draw path - see `RenderCoreSystem` in Lua, which still applies its
+-- own per-entity material uniforms and issues its own draws.
+-- 
+-- `radius < 0.0` is a sentinel meaning "never cull" (e.g. no bounds
+-- source available for this entity).
+---@param boundsCenter Vec3f
+---@param boundsRadius number
+---@param sortKey integer
+---@param userId integer
+function Renderer:addCullEntity(boundsCenter, boundsRadius, sortKey, userId) end
+
+-- Frustum-cull and sort the active batch, writing survivors' `user_id`s
+-- into `out_indices` in sort-key order. Returns the number written
+-- (never more than `out_indices`'s length). Emits no draw commands and
+-- does not clear the batch - `flush_batch` still works afterward.
+---@param outIndices integer[]
+---@param outIndices_size integer
+---@return integer
+function Renderer:cullBatch(outIndices, outIndices_size) end
 
 function Renderer:flushBatch() end
 

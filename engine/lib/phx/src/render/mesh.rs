@@ -102,6 +102,10 @@ impl Mesh {
         RefMut::map(self.shared.as_mut(), |shared| shared.index.as_mut_slice())
     }
 
+    pub fn get_resource_id(&mut self, r: &mut Renderer) -> ResourceId {
+        self.ensure_resource(r)
+    }
+
     fn add_plane(&mut self, origin: Vec3, du: Vec3, dv: Vec3, res_u: i32, res_v: i32) {
         let n = Vec3::cross(du, dv).normalize();
         for iu in 0..res_u {

@@ -1,7 +1,7 @@
 local libphx = require('libphx').lib
 
 -- RenderTarget's C functions all take the current Renderer as their first
--- argument now (see ai/multithreaded_rendering.md); inject the global
+-- argument now (see doc/engine/render-thread.md); inject the global
 -- `Renderer` set by SetEngine so call sites don't change.
 function onDef_RenderTarget(t, mt)
     t.Push = function(sx, sy)

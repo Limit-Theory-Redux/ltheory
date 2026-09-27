@@ -2,7 +2,7 @@ local libphx = require('libphx').lib
 
 -- Tex2D is now executor-owned (ResourceId, not a raw GL handle); every
 -- GL-touching method takes the current Renderer as an explicit argument
--- (see ai/multithreaded_rendering.md). Inject the global `Renderer` set by
+-- (see doc/engine/render-thread.md). Inject the global `Renderer` set by
 -- SetEngine so call sites don't change.
 
 function onDef_Tex2D(t, mt)

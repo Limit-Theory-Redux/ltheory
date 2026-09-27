@@ -29,6 +29,7 @@ pub struct RenderThread {
     /// Channel to publish a stats snapshot to the main thread on every frame
     stats_tx: Sender<RenderStats>,
     running: Arc<AtomicBool>,
+    /// Executes commands in thread
     executor: CommandExecutor,
 }
 
@@ -75,6 +76,7 @@ impl RenderThread {
             // waits hundreds of µs+. Only waits above the threshold count as
             // starvation, so fast-path scheduling noise stays out.
             const STARVATION_THRESHOLD_US: u64 = 20;
+
             let recv_start = std::time::Instant::now();
             let cmd = self.command_rx.recv();
             let recv_wait_us = recv_start.elapsed().as_micros() as u64;
@@ -87,8 +89,8 @@ impl RenderThread {
                     }
 
                     if recv_wait_us >= STARVATION_THRESHOLD_US {
-                        self.executor.this_frame_stats.recv_wait_us_last_frame += recv_wait_us;
-                        self.executor.this_frame_stats.recv_wait_count_last_frame += 1;
+                        self.executor.this_frame_stats.recv_wait_us += recv_wait_us;
+                        self.executor.this_frame_stats.recv_wait_count += 1;
                     }
 
                     let reply = self.executor.execute(cmd);

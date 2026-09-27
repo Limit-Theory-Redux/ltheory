@@ -3,22 +3,16 @@
 //! UBOs allow sharing uniform data across multiple shaders with a single buffer update,
 //! reducing per-draw glUniform calls significantly.
 
-// use std::cell::RefCell;
-
 use glam::{Mat4, Vec3};
 
 use crate::render::{gl, glcheck};
-
-// Thread-local global UBOs for direct GL mode
-// thread_local! {
-//     static CAMERA_UBO: RefCell<Option<CameraUbo>> = const { RefCell::new(None) };
-//     static LIGHT_UBO: RefCell<Option<LightUbo>> = const { RefCell::new(None) };
-// }
 
 /// Binding points for standard UBOs
 pub const CAMERA_UBO_BINDING: u32 = 0;
 pub const MATERIAL_UBO_BINDING: u32 = 1;
 pub const LIGHT_UBO_BINDING: u32 = 2;
+
+pub type CameraUboArray = [u8; CameraUboData::SIZE];
 
 /// Camera uniform buffer data with std140 layout.
 ///
@@ -94,7 +88,7 @@ pub struct MaterialUboData {
 }
 
 impl MaterialUboData {
-    pub const SIZE: usize = 32;
+    pub const SIZE: usize = std::mem::size_of::<Self>();
 
     pub fn new() -> Self {
         Self {
@@ -141,7 +135,7 @@ pub struct LightUboData {
 }
 
 impl LightUboData {
-    pub const SIZE: usize = 32;
+    pub const SIZE: usize = std::mem::size_of::<Self>();
 
     pub fn new() -> Self {
         Self {
@@ -371,80 +365,6 @@ impl Default for LightUbo {
         Self::new()
     }
 }
-
-// /// Initialize the global camera UBO for direct GL mode.
-// /// Called automatically on first use, but can be called explicitly.
-// pub fn init_global_camera_ubo() {
-//     CAMERA_UBO.with(|ubo| {
-//         let mut ubo = ubo.borrow_mut();
-//         if ubo.is_none() {
-//             *ubo = Some(CameraUbo::new());
-//         }
-//     });
-// }
-
-// /// Update the global camera UBO (for direct GL mode).
-// /// Creates the UBO if it doesn't exist yet.
-// pub fn update_global_camera_ubo(
-//     view: &Mat4,
-//     view_inv: &Mat4,
-//     proj: &Mat4,
-//     eye: Vec3,
-//     star_dir: Vec3,
-// ) {
-//     CAMERA_UBO.with(|ubo| {
-//         let mut ubo = ubo.borrow_mut();
-//         if ubo.is_none() {
-//             *ubo = Some(CameraUbo::new());
-//         }
-//         if let Some(ref mut camera_ubo) = *ubo {
-//             camera_ubo.set_view(view);
-//             camera_ubo.set_view_inv(view_inv);
-//             camera_ubo.set_proj(proj);
-//             camera_ubo.set_eye(eye);
-//             camera_ubo.set_star_dir(star_dir);
-//             camera_ubo.force_upload();
-//         }
-//     });
-// }
-
-// /// Initialize the global light UBO for direct GL mode.
-// /// Called automatically on first use, but can be called explicitly.
-// pub fn init_global_light_ubo() {
-//     LIGHT_UBO.with(|ubo| {
-//         let mut ubo = ubo.borrow_mut();
-//         if ubo.is_none() {
-//             *ubo = Some(LightUbo::new());
-//         }
-//     });
-// }
-
-// /// Update the global light UBO (for direct GL mode).
-// /// Creates the UBO if it doesn't exist yet.
-// pub fn update_global_light_ubo(
-//     pos_x: f32,
-//     pos_y: f32,
-//     pos_z: f32,
-//     radius: f32,
-//     r: f32,
-//     g: f32,
-//     b: f32,
-//     intensity: f32,
-// ) {
-//     LIGHT_UBO.with(|ubo| {
-//         let mut ubo = ubo.borrow_mut();
-//         if ubo.is_none() {
-//             *ubo = Some(LightUbo::new());
-//         }
-//         if let Some(ref mut light_ubo) = *ubo {
-//             light_ubo.set_position(pos_x, pos_y, pos_z);
-//             light_ubo.set_radius(radius);
-//             light_ubo.set_color(r, g, b);
-//             light_ubo.set_intensity(intensity);
-//             light_ubo.upload();
-//         }
-//     });
-// }
 
 #[cfg(test)]
 mod tests {

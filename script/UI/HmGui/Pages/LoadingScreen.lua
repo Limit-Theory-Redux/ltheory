@@ -6,7 +6,7 @@ local LoadingScreen = UICore.Page {
 ---@type UIRouter
 local UIRouter = require("UI.HmGui.UICore.UIRouter")
 ---@type MusicPlayer
-local MusicPlayer = require("Legacy.Systems.SFX.MusicPlayer")
+local MusicPlayer = require("Shared.Audio.MusicPlayer")
 
 local logo = Tex2D.Load("./res/images/LTR-logo-name.png")
 

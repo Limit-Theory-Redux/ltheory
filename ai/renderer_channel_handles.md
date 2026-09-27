@@ -1,6 +1,6 @@
 # Replacing `&mut Renderer` parameters with a cloneable command-queue handle
 
-Companion doc: `ai/multithreaded_rendering.md` (the render-thread architecture this builds
+Companion doc: `doc/engine/render-thread.md` (the render-thread architecture this builds
 on) and `ai/skills/rendering` (day-to-day conventions for `Renderer`/`RenderCommand`).
 
 ## Problem
@@ -136,7 +136,7 @@ blocking-readback helpers that build their own `bounded(1)` reply channel exactl
 `renderer_threaded.rs:735+` does now.
 
 (Note: the upstream fork this branch was ported from already has a type named
-`RenderQueue` — a global FFI singleton, see `ai/multithreaded_rendering.md` §0. This proposal
+`RenderQueue` — a global FFI singleton, see `doc/engine/render-thread.md` §0. This proposal
 is a different, non-global design: an owned handle stored per-resource. Pick a non-colliding
 name if porting further fork code later.)
 
@@ -150,7 +150,7 @@ name if porting further fork code later.)
    `irmap_shader`) so `Mesh` and `TexCube` can convert too.
 4. **Stop there.** Leave `Shader` (auto-var stack), `Draw`, `RenderState`, `ClipRect`,
    `Viewport`, `RenderTarget`, `ShaderVar` on `&mut Renderer`. Document the split rule in
-   `ai/multithreaded_rendering.md` so the two idioms read as intentional, not inconsistent.
+   `doc/engine/render-thread.md` so the two idioms read as intentional, not inconsistent.
 
 Expected outcome: ~60 of ~240 Lua injection sites gone after step 2, ~85 after step 3, no
 change to the immediate-mode hot path, no new interior mutability.

@@ -132,9 +132,11 @@ function ShipTest:onRender(data)
 
     self:immediateUI(function()
         local camPos = CameraManager:getActiveCameraEntity():get(CameraDataComponent):getController():getPosition()
+        local cullStats = RenderCoreSystem:getCullStats()
         local infoLines = {
             string.format("FPS: %d", RenderCoreSystem:getSmoothFPS()),
             string.format("Frametime: %.2f ms", RenderCoreSystem:getSmoothFrameTime(true)),
+            string.format("Culled: %d / %d", cullStats.culled, cullStats.submitted),
             string.format("Camera: (%.1f, %.1f, %.1f)", camPos.x, camPos.y, camPos.z),
             string.format("Seed: %d", self.seed)
         }

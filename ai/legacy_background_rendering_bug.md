@@ -7,7 +7,7 @@ background (nebula/stars) renders correctly. After starting a new game, the
 background becomes completely black with oversaturated red/blue/etc regions.
 
 This was found while validating the batch-rendering port
-(`ai/batch_rendering_port.md`), but is **confirmed unrelated to it**:
+(`doc/engine/batch-rendering.md`), but is **confirmed unrelated to it**:
 `RenderCoreSystem.lua` (the only file touched by that work) is never invoked
 by `Main`'s actual gameplay path. Traced the real path:
 
@@ -147,8 +147,9 @@ to whenever this regression actually started (unknown — not yet bisected).
    `SetUniformMat4`/`SetUniformMat4ByName`, and draw commands) to capture the
    actual GL command sequence spanning the menu→new-game transition, since
    screenshot-based visual debugging proved unreliable in this environment
-   (see `ai/batch_rendering_port.md` Phase 4's verification notes) — remove
-   before landing any fix, per that same session's precedent.
+   when this same technique was used to validate the batch rendering port
+   (see `doc/engine/batch-rendering.md`) — remove before landing any fix, per
+   that same session's precedent.
 
 ## Out of scope
 

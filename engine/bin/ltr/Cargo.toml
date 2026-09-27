@@ -10,19 +10,20 @@ edition.workspace = true
 workspace = true
 
 [features]
-# Forward the phx stats-server feature so `cargo run -p ltr --features stats-server` works.
-stats-server = ["phx/stats-server"]
+# Forward the internal and phx stats-server feature so `cargo run -p ltr --features stats-server` works.
+stats-server = ["internal/stats-server", "phx/stats-server"]
 # Forward phx's single-threaded fallback (executes RenderCommands inline on
 # the calling thread) for A/B comparison against the threaded pipeline.
 immediate = ["phx/immediate"]
 
 [dependencies]
 # workspace crates
+internal.workspace = true
 phx.workspace = true
 
 # external crates
 build-time = "0.1"
-clap = { version = "4.4", features = ["derive"] }
+clap = { version = "4.6", features = ["derive"] }
 git-version = "0.3"
 libc = "0.2"
 

@@ -9,7 +9,7 @@ LimitTheoryRedux = require('States.Application')
 
 -- Sound / persistence
 local SoundManager = require('Legacy.Systems.SFX.SoundManager')
-local MusicPlayer = require('Legacy.Systems.SFX.MusicPlayer')
+local MusicPlayer = require('Shared.Audio.MusicPlayer')
 local InitFiles = require('Legacy.Systems.Files.InitFiles')
 
 -- UI pages (HmGui). The main menu is the only HmGui page; in-game UI is
@@ -309,6 +309,9 @@ end
 function LimitTheoryRedux:startGame(seed)
     setGameScale()
     GameState:SetState(Enums.GameStates.InGame)
+
+    -- In-game soundtrack: queue every non-menu track and play one.
+    MusicPlayer:playAmbient()
 
     -- Drop the menu background (its universe/world/camera) before building
     -- the gameplay scene.

@@ -18,7 +18,7 @@ function onDef_Window_t(t, mt)
     end
 
     -- These now take the current Renderer as an explicit argument (see
-    -- ai/multithreaded_rendering.md); inject the global `Renderer` set by
+    -- doc/engine/render-thread.md); inject the global `Renderer` set by
     -- SetEngine so call sites don't change.
     mt.__index.beginDraw = function(self)
         libphx.Window_BeginDraw(self, Renderer)

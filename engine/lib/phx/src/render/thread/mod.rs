@@ -7,11 +7,13 @@ mod config;
 mod entity_render_data;
 mod error;
 mod instance_batch;
+mod instance_data;
 mod render_batch;
 mod render_command;
 mod renderer_data;
 mod renderer_ffi;
 mod renderer_shared;
+mod renderer_stats;
 mod resource_handle;
 mod shader_reload_result;
 // Both files carry an inner `#![cfg(feature = "stats-server")]`, so they
@@ -21,6 +23,7 @@ mod stats_server;
 #[cfg(feature = "stats-server")]
 mod stats_snapshot;
 mod ubo;
+mod vertex_format;
 
 // `Renderer`'s two backends: identical public API and FFI surface, selected
 // at compile time. See `renderer_shared.rs` for the shared pieces.
@@ -39,6 +42,7 @@ pub use config::*;
 pub use entity_render_data::*;
 pub use error::*;
 pub use instance_batch::*;
+pub use instance_data::*;
 pub use render_batch::*;
 pub use render_command::*;
 #[cfg(not(feature = "immediate"))]
@@ -47,7 +51,7 @@ pub use renderer_data::*;
 pub use renderer_ffi::*;
 #[cfg(feature = "immediate")]
 pub use renderer_immediate::*;
-pub use renderer_shared::*;
+pub use renderer_stats::*;
 #[cfg(not(feature = "immediate"))]
 pub use renderer_threaded::*;
 pub use resource_handle::*;
@@ -57,3 +61,4 @@ pub use stats_server::*;
 #[cfg(feature = "stats-server")]
 pub use stats_snapshot::*;
 pub use ubo::*;
+pub use vertex_format::*;

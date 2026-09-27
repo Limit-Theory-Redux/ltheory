@@ -59,9 +59,29 @@ local spawnedAsteroids = {}  -- [beltEntity] = { [asteroidIndex] = entity }
 local timeSinceUpdate = 0
 local totalSpawned = 0       -- Global count across all belts/rings
 
---- Collect in-range, not-yet-spawned candidates sorted by distance
---- (nearest first) so the spawn cap is spent on the rocks that are
---- actually near the player instead of whichever appear first in data.
+-- Reused across calls (and across belts within one `update()`, since each
+-- belt's collect immediately follows the previous belt's fully-drained
+-- consumer loop below - never concurrent): holds the `n` nearest
+-- candidates found by the most recent `collectNearCandidates` call,
+-- ascending by distance, in candidateIdx[1..n]/candidateDistSq[1..n].
+local candidateIdx = {}
+local candidateDistSq = {}
+
+--- Find the `MAX_SPAWN_PER_UPDATE` nearest in-range, not-yet-spawned
+--- candidates, via a bounded insertion sort, so the spawn cap is spent on
+--- the rocks actually near the player instead of whichever appear first in
+--- data - without collecting or sorting the full in-range set first.
+---
+--- The consumer loop below never uses more than `MAX_SPAWN_PER_UPDATE`
+--- candidates, but the belt itself can hold ~100k asteroids; collecting
+--- every in-range one into a fresh `{idx, distSq}` table and running
+--- `table.sort` over all of them (the previous approach) cost ~60ms and
+--- ~100k throwaway tables per call on a 100k-asteroid belt, once per
+--- second (UPDATE_INTERVAL) - a visible stutter, to pick 5. Keeping only
+--- the current best `MAX_SPAWN_PER_UPDATE` via insertion is O(1) amortized
+--- per candidate once the window fills (insertion only fires when a
+--- candidate beats the current worst, which gets rare fast), so this is a
+--- single allocation-free O(n) scan instead.
 ---@param asteroids table
 ---@param beltPosX number
 ---@param beltPosY number
@@ -70,23 +90,33 @@ local totalSpawned = 0       -- Global count across all belts/rings
 ---@param refY number
 ---@param refZ number
 ---@param spawned table
----@return table candidates { idx, distSq } sorted ascending
+---@return integer n candidateIdx[1..n]/candidateDistSq[1..n] are valid, ascending by distance
 local function collectNearCandidates(asteroids, beltPosX, beltPosY, beltPosZ, refX, refY, refZ, spawned)
-    local candidates = {}
+    local k = MAX_SPAWN_PER_UPDATE
     local spawnDistSq = SPAWN_RADIUS * SPAWN_RADIUS
+    local n = 0
+
     for idx, a in ipairs(asteroids) do
         if spawned[idx] == nil then
             local dx = beltPosX + a.px - refX
             local dy = beltPosY + a.py - refY
             local dz = beltPosZ + a.pz - refZ
-            local distSq = dx*dx + dy*dy + dz*dz
-            if distSq < spawnDistSq then
-                candidates[#candidates + 1] = { idx = idx, distSq = distSq }
+            local distSq = dx * dx + dy * dy + dz * dz
+            if distSq < spawnDistSq and (n < k or distSq < candidateDistSq[n]) then
+                -- Insert into the sorted window, dropping the current
+                -- worst (position n) when it's already full.
+                local i = n < k and n + 1 or n
+                while i > 1 and candidateDistSq[i - 1] > distSq do
+                    candidateIdx[i], candidateDistSq[i] = candidateIdx[i - 1], candidateDistSq[i - 1]
+                    i = i - 1
+                end
+                candidateIdx[i], candidateDistSq[i] = idx, distSq
+                if n < k then n = n + 1 end
             end
         end
     end
-    table.sort(candidates, function(x, y) return x.distSq < y.distSq end)
-    return candidates
+
+    return n
 end
 
 --- Find the currently-spawned rock farthest from the reference point
@@ -201,9 +231,9 @@ function AsteroidFieldSystem:update(dt, beltEntities, physicsWorld, refEntity)
         -- full the farthest spawned rock is evicted (with a hysteresis gap)
         -- so the real-entity set tracks the player's near field instead of
         -- leaving close rocks rendered as fake instanced ones.
-        local candidates = collectNearCandidates(asteroids, beltPosX, beltPosY, beltPosZ, refX, refY, refZ, spawned)
+        local candidateCount = collectNearCandidates(asteroids, beltPosX, beltPosY, beltPosZ, refX, refY, refZ, spawned)
         local spawnedThisUpdate = 0
-        for _, cand in ipairs(candidates) do
+        for c = 1, candidateCount do
             if spawnedThisUpdate >= MAX_SPAWN_PER_UPDATE then break end
 
             if totalSpawned >= MAX_SPAWNED_TOTAL then
@@ -211,7 +241,7 @@ function AsteroidFieldSystem:update(dt, beltEntities, physicsWorld, refEntity)
                 -- the candidate is meaningfully closer (4x in distSq).
                 local farthestIdx, farthestDistSq = findFarthestSpawned(
                     asteroids, beltPosX, beltPosY, beltPosZ, refX, refY, refZ, spawned)
-                if farthestIdx and farthestDistSq > cand.distSq * (1.0 / EVICT_GAP_SQ) then
+                if farthestIdx and farthestDistSq > candidateDistSq[c] * (1.0 / EVICT_GAP_SQ) then
                     local farEntity = spawned[farthestIdx]
                     if farEntity then
                         despawnAsteroid(farEntity, physicsWorld)
@@ -225,7 +255,7 @@ function AsteroidFieldSystem:update(dt, beltEntities, physicsWorld, refEntity)
                 end
             end
 
-            local idx = cand.idx
+            local idx = candidateIdx[c]
             local a = asteroids[idx]
             if not a then goto next_candidate end
 
