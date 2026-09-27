@@ -1,3 +1,9 @@
+---Creates one TurretEntity per installed mount.
+---Resolves the mount's weapon identity through WeaponRegistry, builds the
+---turret mesh/presentation for it, attaches the entity to the parent ship
+---and returns the mount/turret records (position, arc, tracking refs) that
+---the weapon systems tick each frame. Mounts are lifted off the hull surface
+---by ShipArmamentManager before this runs.
 local Registry = require("Core.ECS.Registry")
 local Materials = require("Shared.Registries.Materials")
 local WeaponRegistry = require("Shared.Registries.WeaponRegistry")

@@ -1,3 +1,8 @@
+---Identity of one piece of procedural content.
+---canonicalKey = domain + generator id/version + universe/content seeds +
+---ordinal. The key both deduplicates catalog lookups and seeds the
+---generator's RNG stream (RNG.FromStr(canonicalKey)), which is what makes
+---generation reproducible.
 ---@class ProceduralContentIdentity
 local ProceduralContentIdentity = {}
 

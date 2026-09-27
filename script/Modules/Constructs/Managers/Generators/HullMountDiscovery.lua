@@ -1,3 +1,10 @@
+---Places weapon mounts on a generated hull mesh.
+---Matches ordered mount specs (zone, side, surface band, size class, role)
+---against either the hull's structural sockets or sampled surface
+---candidates, keeping port/starboard pairs mirrored, sufficiently spaced
+---and inside their longitudinal zone. Returns mount records (local position,
+---surface normal, rotation, arc, socket id) consumed by LoadoutGenerator and
+---ShipArmamentManager.
 ---@class HullMountDiscovery
 ---@overload fun(): HullMountDiscovery
 local HullMountDiscovery = Class("HullMountDiscovery", function() end)

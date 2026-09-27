@@ -1,3 +1,9 @@
+---Base weapon definitions and the entry point for the definition chain.
+---Ranges are authored in meters and compressed to game units once, here;
+---each weapon links a laser profile and/or a beam or projectile effect,
+---plus capacitor cost, cooldown, damage and mount size class. Registers into
+---WeaponRegistry and pulls in LaserProfile/Projectile/Beam definitions.
+---Loaded from Config/Weapons/WeaponConfig.lua during config load.
 -- Types --
 local WeaponDefinition = require("Shared.Types.WeaponDefinition")
 local LaserProfileRegistry = require("Shared.Registries.LaserProfileRegistry")

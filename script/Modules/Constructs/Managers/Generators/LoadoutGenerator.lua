@@ -1,3 +1,9 @@
+---Assigns weapons to discovered mounts.
+---expand() walks explicit per-mount entries first, then policy rules
+---(selector match, per-size-class assignment tables, fallback), mirroring
+---entries across mount pairs. build() resolves each identity through a
+---resolver, enforces mount/weapon size compatibility and role/identity
+---quotas, and returns the loadout keyed by mount id.
 local WeaponMountSizing = require("Shared.Helpers.WeaponMountSizing")
 
 ---@class LoadoutGenerator

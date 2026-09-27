@@ -1,3 +1,6 @@
+---Registry of laser profile definitions (id -> definition).
+---Filled by Shared/Definitions/LaserProfileDefs.lua; read by BeamDefs,
+---WeaponDefs and WeaponGenerator for color, strength and DPS.
 ---@class LaserProfileRegistry
 local LaserProfileRegistry = {
     _definitions = {},

@@ -1,3 +1,7 @@
+---Registry of base and procedural weapon definitions.
+---resolveIdentity() maps a numeric enum id or a procedural canonical key to
+---its definition (via ProceduralCatalog); also exposes laser profile,
+---presentation and DPS lookups used by the loadout and weapon systems.
 local ProceduralCatalog = require("Shared.Content.ProceduralCatalog")
 
 ---@class WeaponDefinition

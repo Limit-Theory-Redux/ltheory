@@ -1,3 +1,9 @@
+---Transaction around one construct build.
+---Tracks every entity and rigid body the build creates. commit(metadata)
+---returns a handle carrying those resources plus a destroy() that tears the
+---whole build down; rollback() is commit's failure path. destroy() detaches
+---parent/child links before removing rigid bodies and entities so a build
+---never leaves half-registered state behind.
 local Registry = require("Core.ECS.Registry")
 local CoreComponents = require("Modules.Core.Components")
 

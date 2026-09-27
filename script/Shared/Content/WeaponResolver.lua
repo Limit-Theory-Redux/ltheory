@@ -1,3 +1,7 @@
+---Weapon identity normalization and lookup.
+---Accepts exactly one of weaponId (numeric enum) or weaponRef (procedural
+---canonical key) and resolves it through WeaponRegistry: the single entry
+---point used whenever a mount carries only an identity.
 local WeaponRegistry = require("Shared.Registries.WeaponRegistry")
 
 ---@class WeaponResolver

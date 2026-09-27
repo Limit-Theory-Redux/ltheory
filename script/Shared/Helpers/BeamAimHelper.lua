@@ -1,3 +1,8 @@
+---Beam aiming math shared by WeaponSystem and BeamSystem.
+---Builds a stable right/up basis along source->target (reusing the previous
+---basis so it cannot flip mid-frame) and computes the beam endpoint from aim
+---angles plus optional per-effect sway, so a beam tracks its solved target
+---point each frame.
 local BeamAimHelper = {}
 
 local ROOT_EPSILON = 0.000001

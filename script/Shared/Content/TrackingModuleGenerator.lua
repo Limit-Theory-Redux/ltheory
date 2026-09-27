@@ -1,3 +1,8 @@
+---Deterministic tracking-module equipment generator.
+---Derives quality-driven stats (sample rate, velocity/acceleration response,
+---prediction horizon and damping, turn-rate floor) from the identity RNG and
+---returns the ProceduralCatalog record for that identity, cached across
+---calls.
 local ProceduralContentIdentity = require("Shared.Content.ProceduralContentIdentity")
 local ProceduralCatalog = require("Shared.Content.ProceduralCatalog")
 

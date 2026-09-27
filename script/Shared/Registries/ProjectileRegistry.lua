@@ -1,3 +1,6 @@
+---Registry of projectile definitions (id -> definition).
+---Filled by Shared/Definitions/ProjectileDefs.lua; definitions are linked
+---onto base weapons by WeaponDefs.
 ---@class ProjectileRegistry
 local ProjectileRegistry = {
     _definitions = {},

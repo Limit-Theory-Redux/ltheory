@@ -1,3 +1,12 @@
+---Weapon firing: fire planning, capacitor budgets, aim and shot spawning.
+---
+---Consumes the targets and aim solutions produced by AIWeaponSystem and
+---WeaponTrackingSystem, then decides what fires when: fire modes and burst
+---sequences, capacitor reservation/commit per shot, line-of-sight and range
+---gates, turret slew limits, and target choice (battery focus vs per-mount).
+---Shots are handed to the host state through its spawnProjectile/spawnBeam
+---callbacks, which must run ProjectileSystem/BeamSystem afterwards (tick
+---order is owned by the host state; see AIWeaponSystem.lua).
 ---@class WeaponSystem
 ---@overload fun(): WeaponSystem
 local WeaponSystem = Class("WeaponSystem", function() end)

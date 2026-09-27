@@ -1,3 +1,7 @@
+---Projectile definitions: flight speeds authored in m/s and compressed to
+---game units once, here, plus lifetime/scale and impact-effect presets keyed
+---by damage delivery style (consumed when a shot lands). Registers into
+---ProjectileRegistry (loaded via WeaponDefs).
 -- Types --
 local ProjectileDefinition = require("Shared.Types.ProjectileDefinition")
 local ScaleConfig = require("Config.Gen.UniverseScaleConfig")

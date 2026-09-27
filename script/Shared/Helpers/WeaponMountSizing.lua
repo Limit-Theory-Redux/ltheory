@@ -1,3 +1,6 @@
+---Mount and weapon size-class rules.
+---Normalizes aliases (small -> sm, ...), orders the classes (sm < m < l < xl)
+---and decides whether a weapon's size class physically fits a mount.
 ---@class WeaponMountSizing
 local WeaponMountSizing = {}
 

@@ -1,3 +1,9 @@
+---Dispatches ship mesh/entity creation by Enums.ShipType.
+---Fighter and Basic use the legacy generators; Capital uses
+---CapitalHullGenerator when config.generation.id is LayeredCapital and the
+---legacy capital generator otherwise. Every path returns a ShipEntity with
+---ShipData (generated mesh + mount sockets) and, when placement config is
+---given, a rigid body positioned/scaled accordingly.
 local Registry = require("Core.ECS.Registry")
 local ShipEntity = require('Modules.Constructs.Entities.SpaceshipEntity')
 local ShipComponents = require("Modules.Constructs.Components")

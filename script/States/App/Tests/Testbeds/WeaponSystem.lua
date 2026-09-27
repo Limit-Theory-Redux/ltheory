@@ -1,3 +1,21 @@
+-- WeaponSystem testbed: interactive AI-vs-AI weapon proving ground.
+--
+-- Builds a layered capital through ConstructManager + ShipArmamentManager
+-- (hull, discovered mounts, procedural loadout, turrets), spawns target
+-- contacts, then runs the weapon tick chain each frame: AIWeaponSystem
+-- (target choice + trigger), WeaponTrackingSystem (aim solutions),
+-- WeaponSystem (fire planning + capacitor), ProjectileSystem/BeamSystem
+-- (shot simulation), plus impact effects and effect lights.
+--
+-- Launch: ./bin/ltr.exe Testbeds/WeaponSystem
+--         (or: cargo run -- Testbeds/WeaponSystem)
+-- Camera: right mouse drag orbits, scroll zooms.
+-- Keys:   LMB fire | 1 volley | 2 sequence | A toggle AI | R reset
+--         O cycle target orbit mode | P advance orbit phase
+-- Config: TESTBED_CONFIG further down (seed, mount-deck recipe, loadout
+--         policy, target motion/health). Shared definitions and procedural
+--         generation stay in script/Shared; this file only holds testbed
+--         recipe data and state wiring.
 Namespace.LoadInline("Legacy")
 Namespace.LoadInline("Legacy.Systems")
 

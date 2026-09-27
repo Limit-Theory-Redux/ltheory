@@ -1,3 +1,6 @@
+---Constructor and validation for beam definitions.
+---Builds a normalized definition table from a spec and registers it with
+---BeamRegistry; Shared/Definitions/BeamDefs.lua is the data source.
 local BeamRegistry = require("Shared.Registries.BeamRegistry")
 
 ---@class BeamDefinitionConstructor

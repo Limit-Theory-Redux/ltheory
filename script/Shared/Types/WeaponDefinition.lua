@@ -1,3 +1,6 @@
+---Constructor and validation for weapon definitions.
+---Builds a normalized definition table from a spec and registers it with
+---WeaponRegistry; Shared/Definitions/WeaponDefs.lua is the data source.
 local WeaponRegistry = require("Shared.Registries.WeaponRegistry")
 
 ---@class WeaponDefinitionConstructor

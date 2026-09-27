@@ -1,3 +1,10 @@
+---Armament pipeline for a constructed ship: discover mounts, plan the
+---loadout, install turrets.
+---discoverMounts runs HullMountDiscovery over the handle's generated mesh
+---(using its structural sockets when present), planLoadout runs
+---LoadoutGenerator with a WeaponResolver, and installLoadout lifts the mounts
+---off the surface by a hull-relative clearance, stamps weapon/tracking data
+---onto them, then spawns the turret entities.
 local PhysicsComponents = require("Modules.Physics.Components")
 local ConstructComponents = require("Modules.Constructs.Components")
 local HullMountDiscovery = require("Modules.Constructs.Managers.Generators.HullMountDiscovery")

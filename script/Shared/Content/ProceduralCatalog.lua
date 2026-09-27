@@ -1,3 +1,7 @@
+---Deduplicated store for procedurally generated content records.
+---Records are keyed by ProceduralContentIdentity.canonicalKey, so a generator
+---run twice for the same identity returns the first record; snapshot() and
+---restoreSnapshot() support replaying catalog state (tests, saves).
 ---@class ProceduralCatalog
 local ProceduralCatalog = {
     _records = {},

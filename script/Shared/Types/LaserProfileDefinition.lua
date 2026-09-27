@@ -1,3 +1,7 @@
+---Constructor and validation for laser profile definitions.
+---Builds a normalized definition table from a spec and registers it with
+---LaserProfileRegistry; Shared/Definitions/LaserProfileDefs.lua is the data
+---source.
 local LaserProfileRegistry = require("Shared.Registries.LaserProfileRegistry")
 
 ---@class LaserProfileDefinitionConstructor

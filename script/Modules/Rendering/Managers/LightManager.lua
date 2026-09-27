@@ -1,3 +1,6 @@
+---Holds the point-light list shared between simulation and rendering.
+---PointLightSystem publishes the collected lights each update; RenderCoreSystem
+---and the weapon testbed read them back through getPointLights().
 ---@class LightManager
 ---@overload fun(): LightManager
 local LightManager = Class("LightManager", function(self)

@@ -1,3 +1,6 @@
+-- Input bindings for the WeaponSystem testbed (States/App/Tests/Testbeds).
+-- LMB fire, 1 volley, 2 sequence, A toggle AI, R reset, O orbit mode,
+-- P orbit phase.
 local ActionBinding = require("Input.ActionBinding")
 local Control = require("Input.Control")
 

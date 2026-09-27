@@ -1,3 +1,6 @@
+---Registry of beam definitions (id -> definition) with ordered id listing.
+---Filled by Shared/Definitions/BeamDefs.lua; definitions are linked onto base
+---weapons by WeaponDefs.
 ---@class BeamRegistry
 local BeamRegistry = {
     _definitions = {},

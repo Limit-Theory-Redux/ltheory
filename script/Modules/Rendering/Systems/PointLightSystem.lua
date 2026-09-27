@@ -1,3 +1,8 @@
+---Point-light lifecycle for the current frame.
+---advance() ages LightEffect entities (fade-out, then expiry), collect()
+---gathers enabled PointLight components (including multi-source lights)
+---and update() publishes them to LightManager for RenderCoreSystem and
+---shaders. renderDiagnostics() draws debug markers when diagnostics are on.
 local Registry = require("Core.ECS.Registry")
 local Physics = require("Modules.Physics.Components")
 local Rendering = require("Modules.Rendering.Components")

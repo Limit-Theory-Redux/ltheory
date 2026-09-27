@@ -1,3 +1,9 @@
+---Layered capital hull mesh generator (Enums.ShipGeneration.LayeredCapital).
+---From a seed plus a recipe it builds the tapered core hull, stacked deck
+---layers and bilateral structural mount sockets, then returns
+---{mesh, sockets, generator}. The sockets are the contract
+---HullMountDiscovery validates against when placing mounts. Deterministic:
+---each recipe section draws from its own child RNG stream.
 ---@class CapitalHullGenerator
 local CapitalHullGenerator = {}
 

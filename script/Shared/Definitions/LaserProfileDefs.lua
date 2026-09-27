@@ -1,3 +1,7 @@
+---Laser profile definitions: visible-light bands (wavelength, photon energy,
+---family) with an optical strength multiplier relative to the red profile.
+---Strength scales beam DPS; presentation data drives beam color. Registers
+---into LaserProfileRegistry (loaded first via WeaponDefs).
 -- Types --
 local LaserProfileDefinition = require("Shared.Types.LaserProfileDefinition")
 

@@ -1,3 +1,6 @@
+---Beam definitions: tick interval, sway and visual data for beam effects.
+---Registers into BeamRegistry and binds the red laser profile, so it loads
+---after LaserProfileDefs (pulled in by WeaponDefs).
 -- Types --
 local BeamDefinition = require("Shared.Types.BeamDefinition")
 local LaserProfileRegistry = require("Shared.Registries.LaserProfileRegistry")

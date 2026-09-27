@@ -1,3 +1,9 @@
+---Builds target/dummy contacts for combat tests and scenarios.
+---Wraps ShipGenerator and adds the target-facing data: Targetable team and
+---size class, optional Defense (shield/armor/regen), collidability, and the
+---target-point seed used by weapon surface sampling. Returns
+---{entity, body, health, shipData, radius, targetPointSeed} for
+---ConstructManager:createTarget.
 local PhysicsComponents = require("Modules.Physics.Components")
 local CoreComponents = require("Modules.Core.Components")
 local ConstructComponents = require("Modules.Constructs.Components")

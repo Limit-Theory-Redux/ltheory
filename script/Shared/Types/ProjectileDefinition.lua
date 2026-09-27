@@ -1,3 +1,7 @@
+---Constructor and validation for projectile definitions.
+---Builds a normalized definition table from a spec and registers it with
+---ProjectileRegistry; Shared/Definitions/ProjectileDefs.lua is the data
+---source.
 local ProjectileRegistry = require("Shared.Registries.ProjectileRegistry")
 
 ---@class ProjectileDefinitionConstructor

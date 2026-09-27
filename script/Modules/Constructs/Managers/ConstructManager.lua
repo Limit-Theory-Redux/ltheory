@@ -1,3 +1,9 @@
+---Factory and lifetime manager for constructs (ships and targets).
+---Each create runs inside a ConstructionScope: on success it commits a
+---handle (root entity, rigid body, generated mesh, structural sockets, plus
+---health/size data for targets) that ShipArmamentManager and the weapon
+---systems consume; on failure the scope rolls back. destroy()/destroyAll()
+---tear handles down through their scope.
 local Registry = require("Core.ECS.Registry")
 local PhysicsComponents = require("Modules.Physics.Components")
 local ConstructComponents = require("Modules.Constructs.Components")

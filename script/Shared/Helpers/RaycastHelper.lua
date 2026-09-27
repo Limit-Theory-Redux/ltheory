@@ -1,3 +1,8 @@
+---Segment raycast wrapper over the physics world.
+---Casts origin->target, skips ignored and NULL bodies by advancing past them
+---(bounded by maxIgnoredHits), and returns a normalized hit record
+---{position, normal, body, t, rayOrigin}. Used for line-of-sight and impact
+---checks.
 local ffi = require("ffi")
 
 local NULL_RIGID_BODY = ffi.cast("RigidBody*", nil)

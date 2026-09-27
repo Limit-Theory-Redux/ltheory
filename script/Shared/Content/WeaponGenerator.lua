@@ -1,3 +1,9 @@
+---Deterministic procedural weapon generator.
+---Takes a registered base weapon plus family/variant args, rolls variant
+---stats, effect and visual overrides from the identity's RNG stream, and
+---registers the result in ProceduralCatalog so WeaponRegistry can resolve it
+---later by canonical key. Identities that already exist are returned
+---untouched.
 local ProceduralContentIdentity = require("Shared.Content.ProceduralContentIdentity")
 local ProceduralCatalog = require("Shared.Content.ProceduralCatalog")
 local WeaponRegistry = require("Shared.Registries.WeaponRegistry")
