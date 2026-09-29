@@ -1,0 +1,29 @@
+-- Input bindings for the WeaponSystem testbed (States/App/Tests/Testbeds).
+-- LMB fire, 1 volley, 2 sequence, A toggle AI, R reset, O orbit mode,
+-- P orbit phase.
+local ActionBinding = require("Input.ActionBinding")
+local Control = require("Input.Control")
+
+return {
+    Fire = ActionBinding({
+        mouse = { Control.Single(Button.MouseLeft) },
+    }),
+    Volley = ActionBinding({
+        keyboard = { Control.Single(Button.KeyboardKey1) },
+    }),
+    Sequence = ActionBinding({
+        keyboard = { Control.Single(Button.KeyboardKey2) },
+    }),
+    AI = ActionBinding({
+        keyboard = { Control.Single(Button.KeyboardA) },
+    }),
+    Reset = ActionBinding({
+        keyboard = { Control.Single(Button.KeyboardR) },
+    }),
+    Orbit = ActionBinding({
+        keyboard = { Control.Single(Button.KeyboardO) },
+    }),
+    OrbitPhase = ActionBinding({
+        keyboard = { Control.Single(Button.KeyboardP) },
+    }),
+}

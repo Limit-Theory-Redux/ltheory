@@ -53,4 +53,18 @@ function DefenseComponent:setShieldRegen(value)
     self._shieldRegen = value
 end
 
+-- REGEN
+---Advance shield recharge. Minimal per-tick state transition owned by the
+---component; host states call this from their defense/regen update stage.
+---@param dt number
+function DefenseComponent:update(dt)
+    if self._maxShield <= 0 or self._shieldRegen <= 0 then
+        return
+    end
+    if self._currentShield < self._maxShield then
+        self:setCurrentShield(self._currentShield + self._shieldRegen * dt)
+    end
+end
+
+
 return DefenseComponent

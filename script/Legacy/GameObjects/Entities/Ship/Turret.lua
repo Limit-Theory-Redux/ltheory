@@ -111,9 +111,6 @@ function Turret:fire()
     self:getParent().projColorG = Config.gen.compTurretPulseStats.colorBodyG
     self:getParent().projColorB = Config.gen.compTurretPulseStats.colorBodyB
 
-    Config.game.pulseColorBodyR = Config.gen.compTurretPulseStats.colorBodyR
-    Config.game.pulseColorBodyG = Config.gen.compTurretPulseStats.colorBodyG
-    Config.game.pulseColorBodyB = Config.gen.compTurretPulseStats.colorBodyB
 
     local projectile = self:getRoot():addProjectile(self:getParent())
     local effect = projectile:getEffect()

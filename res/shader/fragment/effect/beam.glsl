@@ -8,17 +8,28 @@ uniform vec2 size;
 uniform float seed;
 
 void main() {
-  float u = uv.x;
-  float v = uv.y;
-  float a = 0.0;
-  vec2 offset = seed * 137.0 + vec2(33.0);
-  // u += 0.1 * (2.0 * fSmoothNoise(vec3(uv * size / 8.0 + offset, 4.0 * alpha), 8, 2.0 - alpha) - 1.0);
-  u = max(0.0, abs(u) - 0.01);
-  a += exp(-sqrt(256.0 * u));
-  a += exp(-sqrt(128.0 * u));
-  a += exp(-sqrt(64.0 * u));
-  a += 0.5 * exp(-sqrt(32.0 * u));
-  // a *= 1.0 + 4.0 * fSmoothNoise(uv * size / 8.0 + offset, 4, 2.0);
-  a *= saturate(pow2(32.0 * v)) * pow8(1.0 - v);
-  outColor = vec4(a * pow2(alpha) * pow2(color), 1.0);
+  float radial = abs(uv.x);
+  float travel = saturate(uv.y);
+  float radialAA = max(fwidth(radial), 0.0015);
+  float longitudinal = smoothstep(0.0, 0.025, travel) *
+                       (1.0 - smoothstep(0.965, 1.0, travel));
+  float boundary = 1.0 - smoothstep(0.72 - radialAA, 1.0 + radialAA, radial);
+  float halo = exp(-pow2(3.25 * radial));
+  float core = exp(-pow2(10.0 * radial));
+  float filament = exp(-pow2(18.0 * (radial - 0.30)));
+
+  float noiseScale = max(4.0, min(48.0, size.y * 2.0));
+  float broadNoise = fSmoothNoise(
+      vec2(travel * noiseScale + seed * 7.0, seed + 19.0), 3, 1.7);
+  float fineNoise = fSmoothNoise(
+      vec2(travel * noiseScale * 2.7 - seed * 11.0, seed * 3.0 + 5.0), 2, 2.1);
+  float variation = mix(0.82, 1.18, broadNoise);
+  variation *= mix(0.92, 1.08, fineNoise);
+
+  vec3 hotCore = mix(color, vec3(1.0, 0.90, 0.84), 0.78);
+  vec3 emission = color * (0.42 * halo * boundary + 0.20 * filament)
+      + hotCore * (1.55 * core);
+  emission *= alpha * longitudinal * variation;
+  outColor = vec4(emission, 1.0);
+  FRAGMENT_CORRECT_DEPTH;
 }

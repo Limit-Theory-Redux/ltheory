@@ -4,6 +4,7 @@ Config.render.general = {
     downSampleRate      = 4,
     thrusterLights      = false,
     pulseLights         = false,
+    deferredLighting    = true,
     fullscreen          = false,
     fullscreenExclusive = false,
     presentMode         = PresentMode.Vsync,
