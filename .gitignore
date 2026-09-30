@@ -21,6 +21,8 @@ cmake-build-*/
 # Agent skill/instruction projections (generated from the external workspace)
 .agents/
 .claude/
+ai/plan
+CLAUDE.md
 
 ## OS Junk files
 
