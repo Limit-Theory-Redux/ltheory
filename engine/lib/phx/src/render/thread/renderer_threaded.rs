@@ -16,7 +16,7 @@ use crate::render::{
     RendererData, ResourceId, ShaderErrorQueue, ShaderReloadResult, ShaderVarMap, TexFilter,
     TexFormat, TexWrapMode, VertexFormat, VpStack,
 };
-use crate::window::{PresentMode, WindowError, WindowGlContext};
+use crate::window::{PresentMode, WgpuStartupBundle, WindowError, WindowGlContext};
 
 /// Maximum frames in flight for triple buffering
 const MAX_FRAMES_IN_FLIGHT: u64 = 3;
@@ -79,9 +79,23 @@ pub struct Renderer {
     last_shader_bind: Option<u64>,
 }
 
+/// What the render thread drives: chosen once at startup.
+enum RenderBackend {
+    Gl(Option<WindowGlContext>),
+    Wgpu(Box<WgpuStartupBundle>),
+}
+
 impl Renderer {
     pub fn start(context: WindowGlContext) -> Result<Self, RenderThreadError> {
-        Self::create_intern(Some(context))
+        Self::create_intern(RenderBackend::Gl(Some(context)))
+    }
+
+    /// Start the render thread with the wgpu backend (selected at runtime by
+    /// `LTHEORY_WGPU`): the surface bundle (device/queue/surface) moves to the
+    /// render thread, where `WgpuCommandExecutor` runs the same command loop
+    /// as the GL path. No GL context is involved.
+    pub fn start_wgpu(bundle: WgpuStartupBundle) -> Result<Self, RenderThreadError> {
+        Self::create_intern(RenderBackend::Wgpu(Box::new(bundle)))
     }
 
     pub fn stop(self) -> Option<WindowGlContext> {
@@ -93,7 +107,7 @@ impl Renderer {
         returned_ctx
     }
 
-    fn create_intern(context: Option<WindowGlContext>) -> Result<Self, RenderThreadError> {
+    fn create_intern(backend: RenderBackend) -> Result<Self, RenderThreadError> {
         const SHADER_RESULT_BUFFER_SIZE: usize = 16;
 
         // Spawn the render thread with the GL context
@@ -118,6 +132,13 @@ impl Renderer {
         // sink is attached (dashboard mode), enabling per-category timing.
         let category_timing = Arc::new(AtomicBool::new(false));
         let category_timing_executor = category_timing.clone();
+
+        // The wgpu bundle needs no activation handshake: with no GL context the
+        // thread below reports ready immediately and builds the wgpu executor.
+        let (context, wgpu_bundle) = match backend {
+            RenderBackend::Gl(context) => (context, None),
+            RenderBackend::Wgpu(bundle) => (None, Some(*bundle)),
+        };
 
         let thread_handle =
             thread::Builder::new()
@@ -151,17 +172,31 @@ impl Renderer {
                     };
 
                     // Pass GL context to render thread for buffer swapping
-                    let mut render_thread = RenderThread::new(
-                        command_rx,
-                        fence_tx,
-                        pacing_fence_tx,
-                        shader_result_tx,
-                        context_tx,
-                        stats_tx,
-                        running_clone,
-                        gl_context,
-                        category_timing_executor,
-                    );
+                    let mut render_thread = if let Some(bundle) = wgpu_bundle {
+                        RenderThread::new_wgpu(
+                            command_rx,
+                            fence_tx,
+                            pacing_fence_tx,
+                            shader_result_tx,
+                            context_tx,
+                            stats_tx,
+                            running_clone,
+                            bundle,
+                            category_timing_executor,
+                        )
+                    } else {
+                        RenderThread::new(
+                            command_rx,
+                            fence_tx,
+                            pacing_fence_tx,
+                            shader_result_tx,
+                            context_tx,
+                            stats_tx,
+                            running_clone,
+                            gl_context,
+                            category_timing_executor,
+                        )
+                    };
                     render_thread.run();
 
                     // GL context will be returned via channel or dropped if cleanup fails
@@ -1249,6 +1284,6 @@ impl Renderer {
     /// to draw a real `WindowGlContext` from.
     #[cfg(test)]
     pub fn new_headless() -> Self {
-        Renderer::create_intern(None).expect("Cannot create renderer")
+        Renderer::create_intern(RenderBackend::Gl(None)).expect("Cannot create renderer")
     }
 }

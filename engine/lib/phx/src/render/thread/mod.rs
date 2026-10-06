@@ -3,6 +3,7 @@ mod camera_render_data;
 mod command_category;
 mod command_executor;
 mod command_executor_gl;
+mod command_executor_wgpu;
 mod config;
 mod entity_render_data;
 mod error;

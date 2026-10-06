@@ -1,7 +1,7 @@
 use crate::render::Renderer;
 
 #[luajit_ffi_gen::luajit_ffi]
-#[derive(Default, Debug, Copy, Clone)]
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum BlendMode {
     #[default]
     Disabled,
@@ -11,7 +11,7 @@ pub enum BlendMode {
 }
 
 #[luajit_ffi_gen::luajit_ffi]
-#[derive(Default, Debug, Copy, Clone)]
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum CullFace {
     #[default]
     None,

@@ -4,9 +4,10 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use crossbeam::channel::{Receiver, Sender};
 use tracing::{debug, error, info, warn};
 
+use crate::render::thread::command_executor_wgpu::WgpuCommandExecutor;
 use crate::render::thread::{CommandExecutor, CommandReply};
 use crate::render::{RenderCommand, RenderStats, ShaderReloadResult};
-use crate::window::{WindowActiveGlContext, WindowGlContext};
+use crate::window::{WgpuStartupBundle, WindowActiveGlContext, WindowGlContext};
 
 /// Drives a [`CommandExecutor`] on a dedicated thread.
 ///
@@ -31,6 +32,9 @@ pub struct RenderThread {
     running: Arc<AtomicBool>,
     /// Executes commands in thread
     executor: CommandExecutor,
+    /// Parallel wgpu backend; when set, commands go to it instead of the GL
+    /// executor (which then has no context). Exactly one of the two is active.
+    wgpu_executor: Option<WgpuCommandExecutor>,
 }
 
 impl RenderThread {
@@ -55,6 +59,38 @@ impl RenderThread {
             stats_tx,
             running,
             executor: CommandExecutor::new_with_timing(gl_context, category_timing),
+            wgpu_executor: None,
+        }
+    }
+
+    /// wgpu flavor: the executor is built from the surface bundle (device,
+    /// queue, surface and initial size all move here; no GL anywhere).
+    #[allow(clippy::too_many_arguments)]
+    pub fn new_wgpu(
+        command_rx: Receiver<RenderCommand>,
+        fence_tx: Sender<u64>,
+        pacing_fence_tx: Sender<u64>,
+        shader_result_tx: Sender<ShaderReloadResult>,
+        context_tx: Sender<Option<WindowGlContext>>,
+        stats_tx: Sender<RenderStats>,
+        running: Arc<AtomicBool>,
+        bundle: WgpuStartupBundle,
+        category_timing: Arc<AtomicBool>,
+    ) -> Self {
+        let (width, height) = (bundle.surface_config.width, bundle.surface_config.height);
+        let executor = WgpuCommandExecutor::with_device(Some(bundle.device), Some(bundle.queue))
+            .with_surface(bundle.surface, bundle.surface_config, width, height);
+        executor.set_category_timing(category_timing.clone());
+        Self {
+            command_rx,
+            fence_tx,
+            pacing_fence_tx,
+            shader_result_tx,
+            context_tx,
+            stats_tx,
+            running,
+            executor: CommandExecutor::new_with_timing(None, category_timing),
+            wgpu_executor: Some(executor),
         }
     }
 
@@ -63,7 +99,9 @@ impl RenderThread {
         info!("Render thread started");
 
         // Only initialize GL resources if we have a valid context
-        if self.executor.has_gl_context() {
+        if self.wgpu_executor.is_some() {
+            info!("Render thread running the wgpu backend");
+        } else if self.executor.has_gl_context() {
             self.executor.init_gl();
         } else {
             warn!("Render thread running without GL context - commands will be no-ops");
@@ -88,12 +126,16 @@ impl RenderThread {
                         break;
                     }
 
-                    if recv_wait_us >= STARVATION_THRESHOLD_US {
+                    if self.wgpu_executor.is_none() && recv_wait_us >= STARVATION_THRESHOLD_US {
                         self.executor.this_frame_stats.recv_wait_us += recv_wait_us;
                         self.executor.this_frame_stats.recv_wait_count += 1;
                     }
 
-                    let reply = self.executor.execute(cmd);
+                    let reply = if let Some(wgpu) = self.wgpu_executor.as_mut() {
+                        wgpu.execute(cmd)
+                    } else {
+                        self.executor.execute(cmd)
+                    };
                     self.dispatch(reply);
                 }
                 Err(_) => {
@@ -103,12 +145,18 @@ impl RenderThread {
             }
         }
 
-        let context = self.executor.cleanup();
+        let context = if let Some(wgpu) = self.wgpu_executor.as_ref() {
+            // wgpu: nothing to hand back (no GL context exists).
+            info!("Render thread stopped. wgpu stats: {:?}", wgpu.stats());
+            None
+        } else {
+            let context = self.executor.cleanup();
+            info!("Render thread stopped. Stats: {:?}", self.executor.stats());
+            context
+        };
         if let Err(e) = self.context_tx.send(context) {
             error!("Failed to signal main thread on shutdown: {e:?}");
         }
-
-        info!("Render thread stopped. Stats: {:?}", self.executor.stats());
     }
 
     /// Forward an executor answer over the channel it belongs to.
