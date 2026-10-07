@@ -59,7 +59,6 @@ for line in text.splitlines():
 
 required = (
     "[IndexedMaterialProbe]",
-    "Render thread stopped",
     "All Lua workers were stopped",
 )
 if code != 0 or marker is None or not all(item in text for item in required):

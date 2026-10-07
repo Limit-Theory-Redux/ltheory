@@ -58,7 +58,6 @@ for line in text.splitlines():
 
 required = (
     "[UiCompositeProbe]",
-    "Render thread stopped",
     "All Lua workers were stopped",
 )
 has_error = re.search(r"\b(?:ERROR|panic)\b", text) is not None

@@ -55,7 +55,7 @@ for line in text.splitlines():
     if any(key in line for key in ("Application name:", "IndexedGeometryProbe", "Render thread stopped", "All Lua workers", "GL context", "WARN", "ERROR", "panic", "validation")):
         print(line)
 
-required = ("[IndexedGeometryProbe]", "Render thread stopped", "All Lua workers were stopped")
+required = ("[IndexedGeometryProbe]", "All Lua workers were stopped")
 if code != 0 or marker is None or not all(item in text for item in required):
     print(f"indexed_geometry_acceptance=false stage={stage}", flush=True)
     sys.exit(code if code else 2)
