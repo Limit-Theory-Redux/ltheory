@@ -114,6 +114,9 @@ pub fn wanted_features(available: wgpu::Features) -> wgpu::Features {
             | wgpu::Features::FLOAT32_BLENDABLE
             | wgpu::Features::TEXTURE_FORMAT_16BIT_NORM
             | wgpu::Features::POLYGON_MODE_LINE)
+        // Timestamps at the pass boundaries (GPU time per pass), unless
+        // LTHEORY_GPU_TIMING=0.
+        | crate::render::wgpu_timing_features(available)
 }
 
 /// Create instance → adapter → device/queue → surface (owned) from the winit

@@ -88,6 +88,8 @@ pub(super) struct AttachRt {
 /// it closed) and the state the commands have set.
 pub(super) struct PassRt {
     pub label: Arc<str>,
+    /// GPU timing id of the label.
+    pub label_id: u32,
     pub colors: Vec<AttachRt>,
     pub depth: Option<AttachRt>,
     pub extent: [u32; 2],
@@ -344,8 +346,10 @@ impl WgpuCommandExecutor {
             // later passes may sample the attachment.
             let _ = StoreOp::Discard;
         }
+        let label_id = self.timer_label(&desc.label);
         let mut pass = PassRt {
             label: desc.label.clone(),
+            label_id,
             colors,
             depth,
             extent,
@@ -445,12 +449,20 @@ impl WgpuCommandExecutor {
                     }),
                     stencil_ops: None,
                 });
+        let timing = self.timer_alloc(pass.label_id);
         let encoder = self.encoder();
         let rpass = encoder
             .begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some(&pass.label),
                 color_attachments: &color_attachments,
                 depth_stencil_attachment,
+                timestamp_writes: timing.as_ref().map(|(set, first)| {
+                    wgpu::RenderPassTimestampWrites {
+                        query_set: set,
+                        beginning_of_pass_write_index: Some(*first),
+                        end_of_pass_write_index: Some(*first + 1),
+                    }
+                }),
                 ..Default::default()
             })
             .forget_lifetime();

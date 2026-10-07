@@ -161,6 +161,8 @@ pub struct CommandExecutor {
     /// Only read by `record_command` under the `stats-server` feature.
     #[cfg(feature = "stats-server")]
     pub(super) category_timing: Arc<AtomicBool>,
+    /// GPU time per render pass (timestamp queries).
+    pub(super) gpu_timer: super::command_executor_gl_timing::GlTimer,
     /// Texture binding cache: tracks which texture is bound to each slot
     /// Avoids redundant glBindTexture calls
     pub(super) texture_bindings: [TextureBinding; MAX_TEXTURE_SLOTS],
@@ -237,6 +239,7 @@ impl CommandExecutor {
             this_frame_stats: RenderStats::default(),
             #[cfg(feature = "stats-server")]
             category_timing: _category_timing,
+            gpu_timer: super::command_executor_gl_timing::GlTimer::new(),
             texture_bindings: [TextureBinding::default(); MAX_TEXTURE_SLOTS],
             texture_binds_skipped: 0,
             binding: GlBindingState::new(),

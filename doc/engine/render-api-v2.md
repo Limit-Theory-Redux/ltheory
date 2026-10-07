@@ -1648,6 +1648,35 @@ match the pre-refactor `RenderBatch` exactly at every Benchmark phase. The captu
 halfway to the first capture frame and fails a scene whose log reports a missing texture; `BenchmarkPhases`
 (frames 600 to 2100, all camera phases) and `Benchmark1080` joined the capture set.
 
+### GPU timing per pass (parallel-recording.md, G1)
+
+Every render pass is timed on the GPU, keyed by its `RenderPassDesc` label, plus the frame total.
+
+- **GL** (`command_executor_gl_timing.rs`): `glQueryCounter(GL_TIMESTAMP)` at `BeginRenderPass` and
+  `EndRenderPass`, `2 * 128` query objects per frame slot (`MAX_FRAMES_IN_FLIGHT` slots). A slot's results are read at
+  its next `BeginFrame` (after the slot fence, so they are normally ready), and only when
+  `GL_QUERY_RESULT_AVAILABLE` says so for the last query: nothing waits. The immediate renderer uses the same code.
+- **wgpu** (`command_executor_wgpu/gpu_timing.rs`): `Features::TIMESTAMP_QUERY` is requested when the adapter has it
+  (`TIMESTAMP_QUERY_INSIDE_ENCODERS` is not needed: `timestamp_writes` on the pass), one query set per slot, resolved
+  and copied into a mappable buffer in the frame's last submit, `map_async` right after, read at the slot's next
+  `BeginFrame` if the map callback has run (if not, that slot skips timing for one frame). A pass a flush point
+  interrupts is several wgpu passes, each timed, added up under its label. Without the feature: n/a.
+- **Reading it**: the results are of a frame `MAX_FRAMES_IN_FLIGHT` frames (or a few more) old. `RenderStats.gpu`
+  (`GpuTimings`, fixed arrays, no per-frame allocation): `total_us` (first pass start to last pass end: includes gaps
+  between passes), `busy_us` (sum of the passes), and up to 32 labels heaviest first with `us` (last measured frame)
+  and `smooth_us` (exponential average, 8% per frame). Lua: `Renderer:statsGpuAvailable()`, `statsGpuFrames()` (changes
+  with each new measurement), `statsGpuTotalUs()`, `statsGpuTotalSmoothUs()`, `statsGpuBusyUs()`,
+  `statsGpuPassCount()`, `statsGpuPassLabel(i)`, `statsGpuPassUs(i)`, `statsGpuPassSmoothUs(i)`,
+  `statsGpuSummary(n)` (`label=ms,...`). The stats server snapshot has them as `render.gpu`.
+- **Overlay** (Ctrl+Shift+F3): the Threads section ends with `Limit`, the largest of main / render-thread exec / GPU
+  ms (`main-bound`, `render-bound`, `GPU-bound`; `capped` when none fills 60% of the frame, i.e. vsync). The GPU
+  section shows total avg / max, and the five heaviest passes.
+- **Capture**: the `CAPTURE` line (and the JSON of `capture.py`) has `gpu_ms` (median of the measured frames, `-1` if
+  n/a) and `gpu_top=label=ms,...` (the three heaviest, smoothed). Timing does not change any pixel.
+- **Opt out**: `LTHEORY_GPU_TIMING=0` (no queries are issued; the getters report n/a).
+- **Caveat**: the GPU clock covers the passes only; copies, mip generation and uploads between passes show up in
+  `total_us - busy_us`. Time-slicing with other GPU users (the compositor) is included in the passes.
+
 ---
 
 ## 6. Open questions for a human

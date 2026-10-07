@@ -326,7 +326,7 @@ function Application:captureTick()
     local half = math.floor(self.captureFrame / 2)
     if self.frameCount == half then
         self.captureStart = TimeStamp.Now()
-        self.captureAcc = { lastFrame = -1, recv = {}, present = {}, busy = {}, commands = {}, draws = {}, mainWait = {} }
+        self.captureAcc = { lastFrame = -1, recv = {}, present = {}, busy = {}, commands = {}, draws = {}, mainWait = {}, gpu = {}, gpuFrame = -1 }
     elseif self.frameCount > half and self.captureAcc then
         -- Per-frame render-thread stats (of the previous completed frame), averaged below
         local acc = self.captureAcc
@@ -339,6 +339,11 @@ function Application:captureTick()
             table.insert(acc.commands, tonumber(Renderer:statsCommands()))
             table.insert(acc.draws, tonumber(Renderer:statsDrawCalls()))
             table.insert(acc.mainWait, tonumber(Renderer:statsMainWaitUs()))
+        end
+        local gpuFrame = tonumber(Renderer:statsGpuFrames()) -- GPU timings arrive a few frames late
+        if gpuFrame ~= acc.gpuFrame then
+            acc.gpuFrame = gpuFrame
+            table.insert(acc.gpu, tonumber(Renderer:statsGpuTotalUs()))
         end
     end
     if self.frameCount == self.captureGcFrame then
@@ -371,10 +376,17 @@ function Application:captureTick()
     local execMs = median(acc.busy) / 1000 - recvMs -- render-thread time spent executing commands
     local presentMs = median(acc.present) / 1000
     local idlePct = ft > 0 and math.max(0, 100 * (1 - (execMs + presentMs) / ft)) or 0
-    Log.Info('CAPTURE frame=%d fps=%.1f frametime_ms=%.2f render_thread_ms=%.2f render_recv_wait_ms=%.2f render_idle_pct=%.1f render_exec_ms=%.2f render_present_ms=%.2f main_wait_ms=%.2f commands_per_frame=%d draw_calls=%.0f vertices=%d bound=%s path=%s',
+    -- GPU time (median of the measured frames; -1 / none when the backend has no timestamps)
+    local gpuMs, gpuTop = -1, 'none'
+    if Renderer:statsGpuAvailable() and #acc.gpu > 0 then
+        gpuMs = median(acc.gpu) / 1000
+        gpuTop = ffi.string(Renderer:statsGpuSummary(3))
+        if gpuTop == '' then gpuTop = 'none' end
+    end
+    Log.Info('CAPTURE frame=%d fps=%.1f frametime_ms=%.2f render_thread_ms=%.2f render_recv_wait_ms=%.2f render_idle_pct=%.1f render_exec_ms=%.2f render_present_ms=%.2f main_wait_ms=%.2f commands_per_frame=%d draw_calls=%.0f vertices=%d bound=%s gpu_ms=%.2f gpu_top=%s path=%s',
         self.frameCount, fps, ft, tonumber(Renderer:statsFrameTimeUs()) / 1000,
         recvMs, idlePct, execMs, presentMs, mainWaitMs, median(acc.commands), median(acc.draws),
-        tonumber(Renderer:statsVertices()), idlePct >= 15 and 'producer' or 'consumer', self.capturePath)
+        tonumber(Renderer:statsVertices()), idlePct >= 15 and 'producer' or 'consumer', gpuMs, gpuTop, self.capturePath)
     self:quit()
 end
 

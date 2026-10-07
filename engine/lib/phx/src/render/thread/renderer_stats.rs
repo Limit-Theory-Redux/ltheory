@@ -85,6 +85,10 @@ pub struct RenderStats {
     pub meshes: u64,
     /// Approximate GPU memory of all live textures (from their descriptors)
     pub texture_bytes: u64,
+    /// GPU time per render pass of a completed frame a few frames back
+    /// (timestamp queries). `gpu.available` is false when the backend cannot
+    /// provide it or `LTHEORY_GPU_TIMING=0`.
+    pub gpu: super::GpuTimings,
 }
 
 /// Value of a [`RenderStats`] field the backend cannot provide.

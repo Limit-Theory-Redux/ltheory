@@ -38,6 +38,16 @@ function Loader.defineType()
             uint64          Renderer_StatsTextures          (Renderer*);
             uint64          Renderer_StatsMeshes            (Renderer*);
             uint64          Renderer_StatsTextureBytes      (Renderer*);
+            bool            Renderer_StatsGpuAvailable      (Renderer*);
+            uint64          Renderer_StatsGpuFrames         (Renderer*);
+            uint32          Renderer_StatsGpuTotalUs        (Renderer*);
+            uint32          Renderer_StatsGpuTotalSmoothUs  (Renderer*);
+            uint32          Renderer_StatsGpuBusyUs         (Renderer*);
+            uint32          Renderer_StatsGpuPassCount      (Renderer*);
+            cstr            Renderer_StatsGpuPassLabel      (Renderer*, uint32 i);
+            uint32          Renderer_StatsGpuPassUs         (Renderer*, uint32 i);
+            uint32          Renderer_StatsGpuPassSmoothUs   (Renderer*, uint32 i);
+            cstr            Renderer_StatsGpuSummary        (Renderer*, uint32 n);
             uint64          Renderer_StatsUniformBytes      (Renderer const*);
             uint64          Renderer_StatsVertexBytes       (Renderer const*);
             cstr            Renderer_BackendInfo            (Renderer const*);
@@ -84,6 +94,16 @@ function Loader.defineType()
                 statsTextures          = libphx.Renderer_StatsTextures,
                 statsMeshes            = libphx.Renderer_StatsMeshes,
                 statsTextureBytes      = libphx.Renderer_StatsTextureBytes,
+                statsGpuAvailable      = libphx.Renderer_StatsGpuAvailable,
+                statsGpuFrames         = libphx.Renderer_StatsGpuFrames,
+                statsGpuTotalUs        = libphx.Renderer_StatsGpuTotalUs,
+                statsGpuTotalSmoothUs  = libphx.Renderer_StatsGpuTotalSmoothUs,
+                statsGpuBusyUs         = libphx.Renderer_StatsGpuBusyUs,
+                statsGpuPassCount      = libphx.Renderer_StatsGpuPassCount,
+                statsGpuPassLabel      = libphx.Renderer_StatsGpuPassLabel,
+                statsGpuPassUs         = libphx.Renderer_StatsGpuPassUs,
+                statsGpuPassSmoothUs   = libphx.Renderer_StatsGpuPassSmoothUs,
+                statsGpuSummary        = libphx.Renderer_StatsGpuSummary,
                 statsUniformBytes      = libphx.Renderer_StatsUniformBytes,
                 statsVertexBytes       = libphx.Renderer_StatsVertexBytes,
                 backendInfo            = libphx.Renderer_BackendInfo,

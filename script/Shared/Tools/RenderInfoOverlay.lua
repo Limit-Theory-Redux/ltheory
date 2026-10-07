@@ -9,7 +9,7 @@
         RenderInfoOverlay:draw()     -- inside Application:immediateUI
 
     Cost: the frame history is a ring of numbers; the text is rebuilt 4x per
-    second and only while visible; no GPU queries, only the renderer's stats
+    second and only while visible; GPU times come from the renderer's stats
     snapshot (already produced every frame) and a cached startup description.
 ]]
 
@@ -27,6 +27,10 @@ local RenderInfoOverlay = {
     lines = {}, -- cached text lines { text, colorKey }
     nextText = 0,
     fontSize = 12,
+    gpuHist = {}, -- ring of GPU frame times (ms), see tick
+    gpuHead = 0,
+    gpuCount = 0,
+    gpuFrame = -1,
 }
 
 local colors = {
@@ -67,6 +71,19 @@ function RenderInfoOverlay:tick()
     self.head = self.head % HISTORY + 1
     self.frames[self.head] = ms
     if self.count < HISTORY then self.count = self.count + 1 end
+
+    -- GPU frame times (one per new measurement, only while the panel shows)
+    if self.visible then
+        local gf = tonumber(Renderer:statsGpuFrames())
+        if gf ~= self.gpuFrame then
+            self.gpuFrame = gf
+            if gf > 0 then
+                self.gpuHead = (self.gpuHead or 0) % HISTORY + 1
+                self.gpuHist[self.gpuHead] = tonumber(Renderer:statsGpuTotalUs()) / 1000
+                if self.gpuCount < HISTORY then self.gpuCount = self.gpuCount + 1 end
+            end
+        end
+    end
 end
 
 local function parseInfo(s)
@@ -151,6 +168,20 @@ function RenderInfoOverlay:buildLines()
     local execMs = math.max(0, frameUs - recvUs) / 1000
     local presentMs = presentUs / 1000
     local mainMs = math.max(0, avg - mainWaitUs / 1000)
+    -- GPU (timestamp queries; a few frames old, smoothed)
+    local gpuOn = Renderer:statsGpuAvailable() and tonumber(Renderer:statsGpuFrames()) > 0
+    local gpuMs = gpuOn and tonumber(Renderer:statsGpuTotalSmoothUs()) / 1000 or nil
+
+    -- Which of main / render thread / GPU limits the frame: the largest of
+    -- the three, unless none of them fills the frame (vsync / frame cap).
+    local function limiter(mainT, renderT, gpuT)
+        local best, name = mainT, "main-bound"
+        if renderT and renderT > best then best, name = renderT, "render-bound" end
+        if gpuT and gpuT > best then best, name = gpuT, "GPU-bound" end
+        if avg > 0 and best < 0.6 * avg then return "capped (vsync/idle)", 'good' end
+        return name, 'warn'
+    end
+
     add("Threads", 'section')
     if threaded then
         local idle = avg > 0 and math.max(0, 100 * (1 - (execMs + presentMs) / avg)) or 0
@@ -158,10 +189,34 @@ function RenderInfoOverlay:buildLines()
         add(string.format("Main       %6.2f ms  (waited %.2f)", mainMs, mainWaitUs / 1000))
         add(string.format("Render     %6.2f ms exec  %5.2f present", execMs, presentMs))
         add(string.format("Idle       %5.1f %%  %s", idle, bound), idle >= 15 and 'warn' or 'good')
+        local name, c = limiter(mainMs, execMs, gpuMs)
+        add(string.format("Limit      %s", name), c)
     else
         add(string.format("Main       %6.2f ms  (render inline)", avg))
         add(string.format("Present    %6.2f ms", presentMs))
         add("Idle       n/a")
+        local name, c = limiter(mainMs, nil, gpuMs)
+        add(string.format("Limit      %s", name), c)
+    end
+
+    add("GPU", 'section')
+    if gpuOn then
+        local sum, mxg = 0, 0
+        for i = 1, self.gpuCount do
+            local g = self.gpuHist[i]
+            sum = sum + g
+            if g > mxg then mxg = g end
+        end
+        local avgG = self.gpuCount > 0 and sum / self.gpuCount or gpuMs
+        add(string.format("Total  avg %5.2f ms  max %5.2f ms  (busy %.2f)",
+            avgG, mxg, tonumber(Renderer:statsGpuBusyUs()) / 1000), avgG <= 16.7 and "good" or (avgG <= 33 and "warn" or "bad"))
+        local n = math.min(5, tonumber(Renderer:statsGpuPassCount()))
+        for i = 0, n - 1 do
+            add(string.format("%-28s %6.2f ms", ffi.string(Renderer:statsGpuPassLabel(i)):sub(1, 28),
+                tonumber(Renderer:statsGpuPassSmoothUs(i)) / 1000))
+        end
+    else
+        add(Renderer:statsGpuAvailable() and "Total  (measuring...)" or "n/a (no timestamp queries / LTHEORY_GPU_TIMING=0)")
     end
 
     -- Work

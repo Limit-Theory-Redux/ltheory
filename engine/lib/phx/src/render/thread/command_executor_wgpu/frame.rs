@@ -307,6 +307,7 @@ impl WgpuCommandExecutor {
             }
         }
         self.poll_readbacks();
+        self.timer_begin_frame(slot);
         self.diag_poll_checks();
         if self.frame_index % 64 == 0 {
             self.sweep_bind_groups();
@@ -319,7 +320,9 @@ impl WgpuCommandExecutor {
         // Render time of the frame: receive plus execute, not the present wait.
         let frame_time_us = self.frame_start.elapsed().as_micros() as u64;
         self.pass = None;
+        self.timer_resolve();
         self.submit_frame();
+        self.timer_map();
         self.diag_save_dumps();
         self.ensure_backbuffer();
 
@@ -440,6 +443,7 @@ impl WgpuCommandExecutor {
             textures,
             meshes,
             texture_bytes,
+            gpu: self.timer_timings(),
             ..self.last_stats.clone()
         };
         self.stats.state_changes += c.state_changes;

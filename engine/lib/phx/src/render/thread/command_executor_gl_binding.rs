@@ -626,9 +626,14 @@ impl CommandExecutor {
         // Readbacks that finished since the last frame (never waits).
         self.poll_readbacks();
         let fence = std::mem::take(&mut self.binding.slot_fences[slot]);
-        if fence == 0 {
-            return;
+        if fence != 0 {
+            self.wait_slot_fence(slot, fence);
         }
+        // The slot's previous frame has finished: read its GPU timestamps.
+        self.gpu_timer_begin_frame(slot);
+    }
+
+    fn wait_slot_fence(&mut self, slot: usize, fence: usize) {
         unsafe {
             let sync = fence as gl::types::GLsync;
             let mut status = gl::ClientWaitSync(sync, gl::SYNC_FLUSH_COMMANDS_BIT, 0);

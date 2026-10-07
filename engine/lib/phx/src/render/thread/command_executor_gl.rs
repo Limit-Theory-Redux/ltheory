@@ -539,6 +539,7 @@ glsl_version={}
     pub(super) fn cmd_begin_render_pass(&mut self, desc: &RenderPassDesc) {
         let _sa = self.record_command(CommandCategory::Framebuffer, false, false);
         self.this_frame_stats.passes += 1;
+        self.gpu_timer_begin_pass(&desc.label);
 
         // If a texture is missing or the FBO is incomplete the error was
         // logged at creation; fall back to the default framebuffer so the
@@ -614,6 +615,7 @@ glsl_version={}
 
     pub(super) fn cmd_end_render_pass(&mut self) {
         let _sa = self.record_command(CommandCategory::Framebuffer, false, false);
+        self.gpu_timer_end_pass();
         self.bound_fbo = 0;
         unsafe {
             gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
@@ -925,6 +927,7 @@ glsl_version={}
             texture_bytes: crate::render::STAT_NA,
             ..self.this_frame_stats.clone()
         };
+        self.last_stats.gpu = self.gpu_timer.state.timings().clone();
 
         // Fence the frame's commands (uniform ring slot reuse waits on this).
         self.insert_slot_fence();

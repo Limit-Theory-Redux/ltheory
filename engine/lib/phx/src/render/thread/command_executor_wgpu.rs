@@ -70,6 +70,7 @@ mod bind;
 mod diag;
 mod formats;
 mod frame;
+mod gpu_timing;
 mod pass;
 mod readback;
 mod shader;
@@ -174,6 +175,8 @@ pub struct WgpuCommandExecutor {
     mip_blit: tex::MipBlit,
 
     // === Stats ===
+    /// GPU time per pass (`None`: the device cannot, or `LTHEORY_GPU_TIMING=0`).
+    timer: Option<gpu_timing::WgpuTimer>,
     stats: ExecutorStats,
     last_stats: RenderStats,
     frame_counters: FrameCounters,
@@ -221,6 +224,7 @@ impl WgpuCommandExecutor {
             error!("wgpu device lost ({reason:?}): {message}");
         });
         let features = device.features();
+        let timer = gpu_timing::WgpuTimer::new(&device, &queue);
         Self {
             device,
             queue,
@@ -259,6 +263,7 @@ impl WgpuCommandExecutor {
             pending_reads: Vec::new(),
             mip_blit: tex::MipBlit::default(),
             stats: ExecutorStats::default(),
+            timer,
             last_stats: RenderStats::default(),
             frame_counters: FrameCounters::default(),
             frame_start: Instant::now(),

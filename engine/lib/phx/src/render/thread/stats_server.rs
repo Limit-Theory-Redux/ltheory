@@ -63,6 +63,7 @@ fn render_stats_to_json(r: &RenderStats) -> String {
          \x20 \"shader_bind_commands\": {},\n\
          \x20 \"shader_redundant_binds\": {},\n\
          \x20 \"shader_distinct_programs\": {},\n\
+         \x20 \"gpu\": {},\n\
          \x20 \"categories\": {{\n{}\x20 }}\n\
          }}",
         r.commands_processed,
@@ -93,7 +94,31 @@ fn render_stats_to_json(r: &RenderStats) -> String {
         r.shader_bind_commands,
         r.shader_redundant_binds,
         r.shader_distinct_programs,
+        gpu_to_json(&r.gpu),
         cats.join(",\n\x20\x20"),
+    )
+}
+
+/// GPU timings as a JSON object (`available: false` when n/a), times in
+/// microseconds, passes heaviest first.
+fn gpu_to_json(g: &super::GpuTimings) -> String {
+    let passes: Vec<String> = (0..g.count as usize)
+        .map(|i| {
+            format!(
+                "{{\"label\": \"{}\", \"us\": {}, \"smooth_us\": {}}}",
+                super::gpu_label(g.label[i]).replace(['\\', '"'], "_"),
+                g.us[i],
+                g.smooth_us[i]
+            )
+        })
+        .collect();
+    format!(
+        "{{\"available\": {}, \"total_us\": {}, \"total_smooth_us\": {}, \"busy_us\": {}, \"passes\": [{}]}}",
+        g.available,
+        g.total_us,
+        g.total_smooth_us,
+        g.busy_us,
+        passes.join(", ")
     )
 }
 

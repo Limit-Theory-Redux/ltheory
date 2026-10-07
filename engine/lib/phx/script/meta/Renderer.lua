@@ -82,6 +82,52 @@ function Renderer:statsMeshes() end
 ---@return integer
 function Renderer:statsTextureBytes() end
 
+-- The backend times render passes (and `LTHEORY_GPU_TIMING` is not 0).
+---@return boolean
+function Renderer:statsGpuAvailable() end
+
+-- Frames of GPU timing measured so far (changes when a new one arrives).
+---@return integer
+function Renderer:statsGpuFrames() end
+
+-- GPU time of the last measured frame, first pass start to last pass
+-- end, microseconds.
+---@return integer
+function Renderer:statsGpuTotalUs() end
+
+-- Exponential average of `stats_gpu_total_us`.
+---@return integer
+function Renderer:statsGpuTotalSmoothUs() end
+
+-- Sum of the GPU time of all passes of the last measured frame (no gaps).
+---@return integer
+function Renderer:statsGpuBusyUs() end
+
+-- Number of passes in the per-pass list, heaviest first (at most 32).
+---@return integer
+function Renderer:statsGpuPassCount() end
+
+-- Label of the `i`-th heaviest pass (0-based), empty if out of range.
+---@param i integer
+---@return string
+function Renderer:statsGpuPassLabel(i) end
+
+-- GPU time of the `i`-th heaviest pass in the last measured frame, microseconds.
+---@param i integer
+---@return integer
+function Renderer:statsGpuPassUs(i) end
+
+-- Exponential average of the GPU time of the `i`-th heaviest pass, microseconds.
+---@param i integer
+---@return integer
+function Renderer:statsGpuPassSmoothUs(i) end
+
+-- The `n` heaviest passes (smoothed ms) as `label=ms` pairs separated by `,`
+-- (for logs and capture output); empty when n/a.
+---@param n integer
+---@return string
+function Renderer:statsGpuSummary(n) end
+
 -- Uniform ring bytes allocated in the last completed frame.
 ---@return integer
 function Renderer:statsUniformBytes() end

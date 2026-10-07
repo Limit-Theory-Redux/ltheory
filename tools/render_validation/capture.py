@@ -105,8 +105,8 @@ def capture(backend, scene):
     stats = {}
     for kv in m.group(1).split():
         k, _, v = kv.partition("=")
-        if k in ("path", "bound"):
-            stats[k] = v if k == "bound" else None
+        if k in ("path", "bound", "gpu_top"):
+            stats[k] = None if k == "path" else v
         else:
             stats[k] = float(v) if "." in v else int(v)
     stats.pop("path", None)

@@ -3,11 +3,13 @@ mod command_category;
 mod command_executor;
 mod command_executor_gl;
 mod command_executor_gl_binding;
+mod command_executor_gl_timing;
 // The wgpu executor is driven by `RenderThread` only; the immediate renderer is GL-only.
 #[cfg(any(not(feature = "immediate"), test))]
 mod command_executor_wgpu;
 mod config;
 mod error;
+mod gpu_timing;
 mod instance_data;
 #[cfg(test)]
 mod layout_parity;
@@ -39,6 +41,7 @@ pub use command_category::*;
 pub use command_executor::*;
 pub use config::*;
 pub use error::*;
+pub use gpu_timing::*;
 pub use instance_data::*;
 pub use render_command::*;
 #[cfg(not(feature = "immediate"))]
