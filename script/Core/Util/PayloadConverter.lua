@@ -10,6 +10,12 @@ if not hasNewTable then
     newTable = function() return {} end
 end
 
+-- The generated Payload.From*Array wrappers drop the length argument, so call the C functions directly.
+local function arrayPayload(fn, array, count)
+    local libphx = require('libphx').lib
+    return Core.ManagedObject(libphx[fn](array, count), libphx.Payload_Free)
+end
+
 -- payload type -> element access description (built lazily: PayloadType is a runtime global)
 PayloadConverter.ArrayTypes = nil
 local function initArrayTypes()
@@ -102,18 +108,18 @@ function PayloadConverter:valueToPayload(value, rustPayload)
             local kind, count = PayloadConverter.SequenceKind(value)
             if kind == "boolean" then
                 local array = ffi.new("bool[?]", count, value)
-                return Payload.FromBoolArray(array, count)
+                return arrayPayload("Payload_FromBoolArray", array, count)
             end
             if kind == "number" then
                 local array = ffi.new("double[?]", count, value)
-                return Payload.FromF64Array(array, count)
+                return arrayPayload("Payload_FromF64Array", array, count)
             end
             if kind == "string" then
                 local array = ffi.new("cstr[?]", count, value)
-                return Payload.FromStringArray(array, count)
+                return arrayPayload("Payload_FromStringArray", array, count)
             end
             if kind == "mixed" then
-                Log.Error("Unsupported payload: array with mixed or unsupported element types")
+                Log.Warn("Unsupported payload: array with mixed or unsupported element types")
                 return nil
             end
             -- kind == nil: not a sequence (empty or has other keys): send as a table

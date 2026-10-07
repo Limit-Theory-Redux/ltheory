@@ -34,7 +34,7 @@ function onDef_TaskQueue_t(t, mt)
 
         local workerId = WorkerId[workerName]
         if not libphx.TaskQueue_StartWorker(self, workerId, workerName, scriptPath, instancesCount) then
-            Log.Error("Cannot start worker '" .. tostring(workerName) .. "' (script: " .. tostring(scriptPath) ..
+            Log.Warn("Cannot start worker '" .. tostring(workerName) .. "' (script: " .. tostring(scriptPath) ..
                 "). See the log above for the reason.")
             return nil
         end
@@ -44,19 +44,19 @@ function onDef_TaskQueue_t(t, mt)
     ---@return integer? taskId nil if the task could not be sent
     mt.__index.sendTask = function(self, workerId, data)
         if workerId == nil then
-            Log.Error("Cannot send task: worker id is nil (was the worker started successfully?)")
+            Log.Warn("Cannot send task: worker id is nil (was the worker started successfully?)")
             return nil
         end
         local payload = PayloadConverter:valueToPayload(data, true)
         if payload == nil then
-            Log.Error("Cannot send task to worker " .. tostring(workerId) .. ": unsupported or nil task data")
+            Log.Warn("Cannot send task to worker " .. tostring(workerId) .. ": unsupported or nil task data")
             return nil
         end
         -- Call ffi.gc here to avoid double free issue. See conversation here:
         -- https://discord.com/channels/695088786702336000/1265576869856542760/1280255882038607972
         local taskIdPtr = libphx.TaskQueue_SendTask(self, workerId, ffi.gc(payload, nil))
         if taskIdPtr == nil then
-            Log.Error("Cannot send task to worker " .. tostring(workerId))
+            Log.Warn("Cannot send task to worker " .. tostring(workerId))
             return nil
         end
         return tonumber(taskIdPtr[0])
