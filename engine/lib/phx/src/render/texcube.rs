@@ -2,16 +2,15 @@ use glam::{Vec2, Vec3};
 use image::{DynamicImage, GenericImageView, ImageBuffer, ImageReader, Rgba};
 
 use super::{
-    CUBE_FACES, ClipRect, CubeFace, DataFormat, Draw, PassCmd, PipelineDesc, PixelFormat, Samplers,
-    ShaderState, Tex2D, TexFilter, TexFormat, VertexLayout,
+    CUBE_FACES, CubeFace, DataFormat, PassCmd, PipelineDesc, PixelFormat, Samplers, Tex2D,
+    TexFilter, TexFormat, VertexLayout,
 };
 use crate::math::Rng;
 use crate::render::{
-    LoadOp, RenderPassDesc, RenderState, Renderer, ResourceHandle, ResourceId, Shader, TexView,
-    ViewDim, gl,
+    LoadOp, RenderPassDesc, Renderer, ResourceHandle, ResourceId, Shader, TexView, ViewDim, gl,
 };
 use crate::rf::Rf;
-use crate::system::{Bytes, TimeStamp};
+use crate::system::Bytes;
 
 /// See `TexCube::gen_ir_map`.
 const CONVOLVE_IRMAP: bool = false;
@@ -303,62 +302,6 @@ impl TexCube {
     pub fn get_size(&self) -> i32 {
         let this = self.shared.as_ref();
         this.size
-    }
-
-    pub fn generate(&mut self, r: &mut Renderer, state: &mut ShaderState) {
-        let this = self.shared.as_ref();
-
-        RenderState::push_all_defaults(r);
-
-        for i in 0..6 {
-            let face = K_FACES[i as usize];
-            let size = this.size;
-            let size_f = this.size as f32;
-
-            let desc = RenderPassDesc::with_color(
-                "TexCube.generate",
-                self.face_view(face.face),
-                LoadOp::Clear,
-                [0.0, 0.0, 0.0, 1.0],
-            );
-            r.begin_pass_intern(&desc);
-
-            state
-                .shader()
-                .set_float3(r, "cubeLook", face.look.x, face.look.y, face.look.z);
-            state
-                .shader()
-                .set_float3(r, "cubeUp", face.up.x, face.up.y, face.up.z);
-            state.shader().set_float(r, "cubeSize", size_f);
-
-            state.start(r);
-
-            let mut j: i32 = 1;
-            let mut job_size: i32 = 1;
-            while j <= size {
-                let time = TimeStamp::now();
-
-                ClipRect::push(r, 0.0f32, (j - 1) as f32, size as f32, job_size as f32);
-                Draw::rect(r, 0.0f32, 0.0f32, size_f, size_f);
-                Draw::flush(r);
-                ClipRect::pop(r);
-
-                j += job_size;
-                let elapsed = time.get_elapsed();
-
-                job_size = f64::max(
-                    1.0,
-                    f64::floor(0.25f64 * job_size as f64 / elapsed + 0.5f64) as i32 as f64,
-                ) as i32;
-                job_size = i32::min(job_size, size - j + 1);
-            }
-
-            state.stop(r);
-
-            r.end_pass_intern();
-        }
-
-        RenderState::pop_all(r);
     }
 
     pub fn gen_mipmap(&mut self, r: &mut Renderer) {

@@ -61,10 +61,6 @@ function TexCube:getFormat() end
 function TexCube:getSize() end
 
 ---@param r Renderer
----@param state ShaderState
-function TexCube:generate(r, state) end
-
----@param r Renderer
 function TexCube:genMipmap(r) end
 
 ---@param r Renderer

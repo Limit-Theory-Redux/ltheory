@@ -189,17 +189,3 @@ function Renderer:setEnvironment(envMap, irMap) end
 ---@return integer
 function Renderer:createBindGroup(desc) end
 
--- Create the light UBO on the render thread
-function Renderer:createLightUbo() end
-
--- Update the light UBO with light properties
----@param posX number
----@param posY number
----@param posZ number
----@param radius number
----@param r number
----@param g number
----@param b number
----@param intensity number
-function Renderer:updateLightUbo(posX, posY, posZ, radius, r, g, b, intensity) end
-

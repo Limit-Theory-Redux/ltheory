@@ -570,16 +570,6 @@ impl Renderer {
             .cmd_create_mesh(id, vertices, indices, vertex_format);
     }
 
-    // === Uniform Buffer Objects ===
-
-    pub fn create_light_ubo_intern(&mut self) {
-        self.ex().cmd_create_light_ubo();
-    }
-
-    pub fn update_light_ubo_intern(&mut self, data: [u8; 32]) {
-        self.ex().cmd_update_light_ubo(&data);
-    }
-
     // === Window Operations ===
 
     /// Blocking resize - immediate mode has nothing to block on, so this is

@@ -1227,17 +1227,6 @@ impl CommandExecutor {
         }
         out
     }
-
-    /// Which GL block binding points the legacy executor still sets by name.
-    /// (`LightUBO` is declared without a `#group` until S5.) // S6: remove
-    pub(super) fn bind_legacy_blocks(program: u32) {
-        unsafe {
-            let light = gl::GetUniformBlockIndex(program, c"LightUBO".as_ptr() as *const _);
-            if light != gl::INVALID_INDEX {
-                gl::UniformBlockBinding(program, light, crate::render::LIGHT_UBO_BINDING);
-            }
-        }
-    }
 }
 
 fn glsl_type(gl_type: u32) -> GlslType {

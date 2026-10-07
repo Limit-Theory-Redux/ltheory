@@ -29,7 +29,6 @@ function Loader.defineType()
             Bytes*    TexCube_GetDataBytes (TexCube*, Renderer* r, CubeFace face, int level, TexFormat tf, DataFormat df);
             TexFormat TexCube_GetFormat    (TexCube const*);
             int       TexCube_GetSize      (TexCube const*);
-            void      TexCube_Generate     (TexCube*, Renderer* r, ShaderState* state);
             void      TexCube_GenMipmap    (TexCube*, Renderer* r);
             void      TexCube_SetDataBytes (TexCube*, Renderer* r, Bytes const* data, CubeFace face, int level, TexFormat tf, DataFormat df);
             void      TexCube_SetMagFilter (TexCube*, Renderer* r, TexFilter filter);
@@ -79,7 +78,6 @@ function Loader.defineType()
                 end,
                 getFormat    = libphx.TexCube_GetFormat,
                 getSize      = libphx.TexCube_GetSize,
-                generate     = libphx.TexCube_Generate,
                 genMipmap    = libphx.TexCube_GenMipmap,
                 setDataBytes = libphx.TexCube_SetDataBytes,
                 setMagFilter = libphx.TexCube_SetMagFilter,

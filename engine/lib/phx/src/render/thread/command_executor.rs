@@ -167,8 +167,6 @@ pub struct CommandExecutor {
     /// Binding model state: pipelines, samplers, bind groups, GL state cache,
     /// uniform ring buffers.
     pub(super) binding: GlBindingState,
-    /// Light UBO handle (0 if not created yet)
-    pub(super) light_ubo: u32,
 }
 
 /// RAII guard returned by [`CommandExecutor::record_command`]. Finishes the
@@ -242,7 +240,6 @@ impl CommandExecutor {
             texture_bindings: [TextureBinding::default(); MAX_TEXTURE_SLOTS],
             texture_binds_skipped: 0,
             binding: GlBindingState::new(),
-            light_ubo: 0,
         }
     }
 
@@ -842,8 +839,6 @@ impl CommandExecutor {
             RenderCommand::DestroyResources { ids } => self.cmd_destroy_resource(&ids),
 
             // === Uniform Buffer Objects ===
-            RenderCommand::CreateLightUBO => self.cmd_create_light_ubo(),
-            RenderCommand::UpdateLightUBO { data } => self.cmd_update_light_ubo(&data),
 
             // === Window Operations ===
             RenderCommand::Resize { width, height } => self.cmd_resize(width, height),

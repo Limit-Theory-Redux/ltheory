@@ -1856,41 +1856,6 @@ impl CommandExecutor {
         self.this_frame_stats.vertices_drawn += vertices.len() as u64;
     }
 
-    #[inline(always)]
-    /// Create light UBO
-    pub(super) fn cmd_create_light_ubo(&mut self) {
-        let _sa = self.record_command(CommandCategory::Ubo, false, false);
-        if self.light_ubo != 0 {
-            return; // Already created
-        }
-
-        unsafe {
-            gl::GenBuffers(1, &mut self.light_ubo);
-            gl::BindBuffer(gl::UNIFORM_BUFFER, self.light_ubo);
-            // Allocate 32 bytes (LightUboData::SIZE)
-            gl::BufferData(gl::UNIFORM_BUFFER, 32, std::ptr::null(), gl::DYNAMIC_DRAW);
-            // Bind to binding point 2 (LIGHT_UBO_BINDING)
-            gl::BindBufferBase(gl::UNIFORM_BUFFER, 2, self.light_ubo);
-            gl::BindBuffer(gl::UNIFORM_BUFFER, 0);
-        }
-        debug!("Created light UBO with handle {}", self.light_ubo);
-    }
-
-    #[inline(always)]
-    /// Update light UBO data
-    pub(super) fn cmd_update_light_ubo(&mut self, data: &[u8; 32]) {
-        let _sa = self.record_command(CommandCategory::Ubo, false, false);
-        if self.light_ubo == 0 {
-            self.cmd_create_light_ubo();
-        }
-
-        unsafe {
-            gl::BindBuffer(gl::UNIFORM_BUFFER, self.light_ubo);
-            gl::BufferSubData(gl::UNIFORM_BUFFER, 0, 32, data.as_ptr() as *const _);
-            gl::BindBuffer(gl::UNIFORM_BUFFER, 0);
-        }
-    }
-
     fn create_shader(
         &self,
         vertex_src: &str,
@@ -1977,10 +1942,8 @@ impl CommandExecutor {
                 ));
             }
 
-            // Block binding points and sampler units from the `#group`
-            // layout, then the legacy by-name block bindings.
+            // Block binding points and sampler units from the `#group` layout.
             Self::apply_layout(program, layout);
-            Self::bind_legacy_blocks(program);
             let blocks = Self::reflect_blocks(program);
 
             gl::DeleteShader(vs);

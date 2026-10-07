@@ -47,10 +47,6 @@ function onDef_TexCube_t(t, mt)
         return Core.ManagedObject(_instance, libphx.Bytes_Free)
     end
 
-    mt.__index.generate = function(self, state)
-        libphx.TexCube_Generate(self, Renderer, state)
-    end
-
     mt.__index.genMipmap = function(self)
         libphx.TexCube_GenMipmap(self, Renderer)
     end

@@ -1146,16 +1146,6 @@ impl Renderer {
         });
     }
 
-    // === Uniform Buffer Objects ===
-
-    pub fn create_light_ubo_intern(&mut self) {
-        self.submit(RenderCommand::CreateLightUBO);
-    }
-
-    pub fn update_light_ubo_intern(&mut self, data: [u8; 32]) {
-        self.submit(RenderCommand::UpdateLightUBO { data });
-    }
-
     // === Window Operations ===
 
     /// Blocking resize - waits for the command to be queued (see `submit`).

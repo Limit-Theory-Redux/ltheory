@@ -2,7 +2,7 @@ use glam::Vec3;
 
 use crate::math::Matrix;
 use crate::render::{
-    BindGroupDesc, BlendMode, CmdPrimitiveType, CullFace, GpuHandle, LightUboData, RenderPass,
+    BindGroupDesc, BlendMode, CmdPrimitiveType, CullFace, GpuHandle, RenderPass,
     RenderPassDesc, Renderer, TexCube,
 };
 
@@ -233,32 +233,5 @@ impl Renderer {
     /// `pass:setBindGroup(group, id)`.
     pub fn create_bind_group(&mut self, desc: &BindGroupDesc) -> u32 {
         self.create_bind_group_from_desc(desc).0
-    }
-
-    /// Create the light UBO on the render thread
-    pub fn create_light_ubo(&mut self) {
-        self.create_light_ubo_intern();
-    }
-
-    /// Update the light UBO with light properties
-    #[allow(clippy::too_many_arguments)]
-    pub fn update_light_ubo(
-        &mut self,
-        pos_x: f32,
-        pos_y: f32,
-        pos_z: f32,
-        radius: f32,
-        r: f32,
-        g: f32,
-        b: f32,
-        intensity: f32,
-    ) {
-        let mut data = LightUboData::new();
-        data.set_position(pos_x, pos_y, pos_z);
-        data.set_radius(radius);
-        data.set_color(r, g, b);
-        data.set_intensity(intensity);
-
-        self.update_light_ubo_intern(*data.as_bytes());
     }
 }

@@ -29,8 +29,6 @@ pub enum CommandCategory {
     Draw,
     /// Shader/texture/mesh creation, destroy, reload
     Resource,
-    /// Camera/material/light UBO updates
-    Ubo,
     /// SwapBuffers, fences, flush, resize, shutdown. `SwapBuffers`'s own
     /// blocking present (vsync/vblank wait) is deliberately excluded from
     /// this category's timing and reported separately as
@@ -39,7 +37,7 @@ pub enum CommandCategory {
 }
 
 impl CommandCategory {
-    pub const ALL: [Self; 12] = [
+    pub const ALL: [Self; 11] = [
         Self::State,
         Self::Shader,
         Self::Uniform,
@@ -50,7 +48,6 @@ impl CommandCategory {
         Self::Mesh,
         Self::Draw,
         Self::Resource,
-        Self::Ubo,
         Self::Sync,
     ];
 
@@ -66,7 +63,6 @@ impl CommandCategory {
             Self::Mesh => "mesh",
             Self::Draw => "draw",
             Self::Resource => "resource",
-            Self::Ubo => "ubo",
             Self::Sync => "sync",
         }
     }

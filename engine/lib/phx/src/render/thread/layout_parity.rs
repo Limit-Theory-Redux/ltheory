@@ -206,7 +206,7 @@ fn recorded_layout_matches_naga_for_every_shader() {
         for (name, _) in &view.block_bindings {
             let known = layout.block(name).is_some()
                 || name.starts_with("_phx")
-                || matches!(name.as_str(), "LightUBO" | "MaterialUBO");
+                || matches!(name.as_str(), "MaterialUBO");
             if !known {
                 problems.push(format!(
                     "{rel}: naga sees block {name} the preprocessor did not record"

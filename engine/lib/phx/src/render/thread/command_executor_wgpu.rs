@@ -269,7 +269,6 @@ pub struct WgpuCommandExecutor {
 
     // === UBO staging (raw bytes; uploaded at draw time) ===
     view_ubo: Option<Vec<u8>>,
-    light_ubo: Option<Vec<u8>>,
 
     // === Binding model (S3): objects and the uniform ring ===
     pipeline_descs: HashMap<PipelineId, PipelineDesc>,
@@ -381,7 +380,6 @@ impl WgpuCommandExecutor {
             bound_textures: vec![None; 16],
             named_uniforms: HashMap::new(),
             view_ubo: None,
-            light_ubo: None,
             pipeline_descs: HashMap::new(),
             sampler_descs: HashMap::new(),
             bind_groups: HashMap::new(),
@@ -522,10 +520,9 @@ impl WgpuCommandExecutor {
         offset: u32,
         layout: &ShaderLayout,
     ) -> String {
-        use crate::render::thread::ubo::LIGHT_UBO_BINDING;
         let mut out = code.replace("#version 330", "#version 440");
-        // Legacy fixed blocks, and the frame group's view block.
-        let injections = [("ViewBlock", 0), ("LightUBO", LIGHT_UBO_BINDING)];
+        // The frame group's view block.
+        let injections = [("ViewBlock", 0)];
         for (name, binding) in injections {
             let pattern = format!("layout(std140) uniform {name}");
             let replacement = format!("layout(std140, binding={binding}) uniform {name}");
@@ -4000,13 +3997,7 @@ impl WgpuCommandExecutor {
             let size = match binding {
                 0 => 288u64,
                 1 => 32,
-                // LightUBO: size to the engine's actual payload (192 bytes;
-                // the old hardcoded 32 overran on write_buffer).
-                _ => self
-                    .light_ubo
-                    .as_ref()
-                    .map(|b| b.len() as u64)
-                    .unwrap_or(192),
+                _ => 192,
             };
             let Some(buf) = self.ensure_ubo_buffer(binding, size) else {
                 return None;
@@ -4142,10 +4133,7 @@ impl WgpuCommandExecutor {
         let Some(queue) = self.queue.clone() else {
             return;
         };
-        for (binding, data) in [
-            (0u32, self.view_ubo.as_deref()),
-            (2u32, self.light_ubo.as_deref()),
-        ] {
+        for (binding, data) in [(0u32, self.view_ubo.as_deref())] {
             if let Some(bytes) = data {
                 if !bytes.is_empty() {
                     if let Some(buf) = self.ubo_buffers.get(&binding) {
@@ -5230,22 +5218,7 @@ impl WgpuCommandExecutor {
         }
     }
 
-    pub(super) fn cmd_create_light_ubo(&mut self) {
-        self.light_ubo = Some(Vec::new());
-    }
-
-    pub(super) fn cmd_update_light_ubo(&mut self, data: &[u8]) {
-        if let Some(ubo) = self.light_ubo.as_mut() {
-            ubo.clear();
-            ubo.extend_from_slice(data);
-        } else {
-            warn!("wgpu: UpdateLightUBO before CreateLightUBO");
-        }
-    }
-
-    // --- Window operations / synchronization (device-bound) ---
-
-    pub(super) fn cmd_resize(&mut self, width: u32, height: u32) {
+pub(super) fn cmd_resize(&mut self, width: u32, height: u32) {
         let new_size = (width.max(1), height.max(1));
         if new_size == self.surface_size {
             return;
@@ -5846,8 +5819,6 @@ impl WgpuCommandExecutor {
             RenderCommand::DestroyResources { ids } => self.cmd_destroy_resource(&ids),
 
             // === Uniform Buffer Objects ===
-            RenderCommand::CreateLightUBO => self.cmd_create_light_ubo(),
-            RenderCommand::UpdateLightUBO { data } => self.cmd_update_light_ubo(&data),
 
             // === Window Operations ===
             RenderCommand::Resize { width, height } => self.cmd_resize(width, height),
@@ -6151,9 +6122,6 @@ mod tests {
             }],
         })));
         assert_eq!(ex.view_ubo.as_deref(), Some(&[7u8; 448][..]));
-        // update before create warns but does not panic
-        ex.execute(RenderCommand::UpdateLightUBO { data: [1u8; 32] });
-        assert!(ex.light_ubo.is_none());
     }
 
     #[test]

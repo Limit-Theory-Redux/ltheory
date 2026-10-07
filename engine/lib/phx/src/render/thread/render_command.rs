@@ -581,15 +581,6 @@ pub enum RenderCommand {
     /// Destroy multiple resources
     DestroyResources { ids: Vec<ResourceId> },
 
-    // === Uniform Buffer Objects ===
-    /// Create light UBO
-    CreateLightUBO,
-
-    /// Update light UBO data
-    UpdateLightUBO {
-        data: [u8; 32], // LightUboData::SIZE = 32 bytes
-    },
-
     // === Window Operations ===
     /// Resize the GL surface
     Resize { width: u32, height: u32 },
@@ -741,7 +732,6 @@ impl RenderCommand {
             | DestroyResources { .. } => CommandCategory::Resource,
 
             // === Uniform Buffer Objects ===
-            CreateLightUBO | UpdateLightUBO { .. } => CommandCategory::Ubo,
 
             // === Window / Synchronization ===
             Resize { .. }

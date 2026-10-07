@@ -22,7 +22,6 @@ mod shader_reload_result;
 mod stats_server;
 #[cfg(feature = "stats-server")]
 mod stats_snapshot;
-mod ubo;
 mod vertex_format;
 
 // `Renderer`'s two backends: identical public API and FFI surface, selected
@@ -56,5 +55,4 @@ pub use shader_reload_result::*;
 pub use stats_server::*;
 #[cfg(feature = "stats-server")]
 pub use stats_snapshot::*;
-pub use ubo::*;
 pub use vertex_format::*;

@@ -55,8 +55,6 @@ function Loader.defineType()
             void        Renderer_SetCamera          (Renderer*, Matrix const* view, Matrix const* proj, Vec3f const* starDir);
             void        Renderer_SetEnvironment     (Renderer*, TexCube const* envMap, TexCube const* irMap);
             uint32      Renderer_CreateBindGroup    (Renderer*, BindGroupDesc const* desc);
-            void        Renderer_CreateLightUbo     (Renderer*);
-            void        Renderer_UpdateLightUbo     (Renderer*, float posX, float posY, float posZ, float radius, float r, float g, float b, float intensity);
         ]]
     end
 
@@ -117,8 +115,6 @@ function Loader.defineType()
                 setCamera          = libphx.Renderer_SetCamera,
                 setEnvironment     = libphx.Renderer_SetEnvironment,
                 createBindGroup    = libphx.Renderer_CreateBindGroup,
-                createLightUbo     = libphx.Renderer_CreateLightUbo,
-                updateLightUbo     = libphx.Renderer_UpdateLightUbo,
             },
         }
 
