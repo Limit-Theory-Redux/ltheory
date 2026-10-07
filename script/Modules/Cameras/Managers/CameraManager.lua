@@ -292,6 +292,12 @@ function CameraManager:updateProjectionMatrix(resX, resY, fov, zNear, zFar)
         return
     end
 
+    -- A minimized window reports a zero size; keep the last valid projection
+    -- instead of building one from a NaN aspect ratio.
+    if not resX or not resY or resX <= 0 or resY <= 0 then
+        return
+    end
+
     fov = fov or Config.render.camera.fov
     zNear = zNear or Config.render.camera.zNear
     zFar = zFar or Config.render.camera.zFar
@@ -337,7 +343,8 @@ function CameraManager:screenToRay(screenPos, length)
 
     -- Calculate ray direction
     local dir = farPoint - nearPoint
-    if dir:length() < 1e-6 then
+    -- `not (>=)` also catches NaN from a degenerate projection
+    if not (dir:length() >= 1e-6) then
         dir = self.activeCameraTransform:getRot():getForward()
     else
         dir = dir:normalize()
