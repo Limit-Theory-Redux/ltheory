@@ -30,13 +30,16 @@ void main() {
   diff *= mix(vec3(1.0 - edgeDarkness), vec3(1.0), exp(-sqrt(1024.0 * length(N - normal)));
 #endif
 
-  float gloss = 1.0 - sampleTriplanar(texSpec, uvw).x;
+  float gloss = 1.0 - texture(texSpec, triplanarCoords(uvw)).x;
 
 #if 0
   vec3 vn = normalize(vertNormal);
   vec3 blend = vn * vn;
   vec2 uvt = vec2(uv.x, uv.y);
-  vec3 bump = sampleTriplanarBumpmap(texNormal, uvw).xyz;
+  vec3 bump = triplanarBumpmap(
+      texture(texNormal, uvw.yz).xyz,
+      texture(texNormal, uvw.zx).xyz,
+      texture(texNormal, uvw.xy).xyz).xyz;
   vec3 Q1  = dFdx(pos), Q2 = dFdy(pos);
   vec2 st1 = dFdx(uvt), st2 = dFdy(uvt);
   vec3 T = normalize(Q1 * st2.y - Q2 * st1.y);

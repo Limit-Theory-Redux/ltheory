@@ -6,7 +6,7 @@ uniform vec2 p2;
 uniform vec2 origin;
 uniform vec2 size;
 uniform vec4 color;
-uniform bool fade;
+uniform int fade;
 
 void main() {
   vec2 uvp = uv;
@@ -30,7 +30,7 @@ void main() {
   alpha += 0.8 * exp(-2.0 * max(0.0, d - 0.5));
   alpha += 0.2 * exp(-pow(0.2 * d, 0.75));
 
-  if (fade) {
+  if (fade != 0) {
     /* decrease opacity toward end of line */
     alpha *= exp(-2.0 * (1.0 - t));
   }

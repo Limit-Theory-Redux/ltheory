@@ -9,34 +9,17 @@ float getFDMFrequency() {
   return kDefaultMaxFreq / pow(length(pos - eye), 0.75);
 }
 
-vec4 sampleFDM(sampler2D sampler, vec3 pos) {
+/* Frequency-domain-mixing parameters. Call sites sample the texture at both
+   frequencies and blend (sampler parameters are avoided for wgpu/naga):
+     float fLo, fHi, fT;
+     getFDMParams(fLo, fHi, fT);
+     vec4 c = mix(texture(tex, triplanarCoords(fLo * p)),
+                  texture(tex, triplanarCoords(fHi * p)), fT); */
+void getFDMParams(out float freqLo, out float freqHi, out float t) {
   float frequency = getFDMFrequency();
-  float freqHi = pow(2.0, ceil(log2(frequency)));
-  float freqLo = freqHi * 0.5;
-  return mix(
-    sampleTriplanar(sampler, freqLo * pos),
-    sampleTriplanar(sampler, freqHi * pos),
-    frequency / freqLo - 1.0);
-}
-
-vec4 sampleFDMTexture(sampler2D sampler, vec2 uv) {
-  float frequency = getFDMFrequency();
-  float freqHi = pow(2.0, ceil(log2(frequency)));
-  float freqLo = freqHi * 0.5;
-  return mix(
-    texture(sampler, uv * freqLo),
-    texture(sampler, uv * freqHi),
-    frequency / freqLo - 1.0);
-}
-
-vec3 sampleFDMBumpmap(sampler2D sampler, vec3 pos) {
-  float frequency = getFDMFrequency();
-  float freqHi = pow(2.0, ceil(log2(frequency)));
-  float freqLo = freqHi * 0.5;
-  return mix(
-    sampleTriplanarBumpmap(sampler, freqLo * pos),
-    sampleTriplanarBumpmap(sampler, freqHi * pos),
-    frequency / freqLo - 1.0);
+  freqHi = pow(2.0, ceil(log2(frequency)));
+  freqLo = freqHi * 0.5;
+  t = frequency / freqLo - 1.0;
 }
 
 #endif

@@ -35,8 +35,8 @@ void main() {
     float depthDiff = abs(centerDepth - sampleDepth);
     float depthWeight = exp(-depthDiff * 100.0);  // Reject samples far in depth
     
-    vec3 sample = texture(src, uvp).xyz;
-    c += w * depthWeight * sample * sample;
+    vec3 smp = texture(src, uvp).xyz;
+    c += w * depthWeight * smp * smp;
     tw += w * depthWeight;
   }
   

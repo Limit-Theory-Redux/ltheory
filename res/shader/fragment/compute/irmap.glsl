@@ -30,9 +30,9 @@ void main() {
 
   for (int i = 0; i < samples; ++i) {
     float u = float(i + 1) / float(samples + 1);
-    vec2 sample = textureLod(sampleBuffer, vec2(u, 0.5), 0.0).xy;
-    float pitch = sample.x;
-    float yaw = sample.y;
+    vec2 smp = textureLod(sampleBuffer, vec2(u, 0.5), 0.0).xy;
+    float pitch = smp.x;
+    float yaw = smp.y;
     vec3 L =
       cos(pitch) * N +
       sin(pitch) * sin(yaw) * T +

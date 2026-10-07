@@ -38,13 +38,13 @@ float heightFn(float h, int octaves, float roughness) {
 }
 
 // Shadow visibility along ray to sun
-float visibility(samplerCube map, vec3 p, int octaves, float roughness, float offset, float radius, float strength) {
+float visibility(vec3 p, int octaves, float roughness, float offset, float radius, float strength) {
     vec3 toStar = -starDir;
     const float samples = 8.0;
     float v = 0.0;
     for (float i = 0.0; i < samples; ++i) {
         vec3 sp = normalize(mix(p, toStar, radius * (i + 1.0) / samples));
-        float h = heightFn(texture(map, sp).x, octaves, roughness);
+        float h = heightFn(texture(surface, sp).x, octaves, roughness);
         float rh = h - (offset + (length(sp) - 1.0));
         v += exp(-strength * heightMult * max(0.0, rh));
     }
@@ -93,7 +93,7 @@ void main() {
     // Base terrain color
     vec3 color = mix(color1, color2, h1);
     color = 1.0 - exp(-pow2(4.0 * color));
-    color *= visibility(surface, vertPos, 9, 0.70, h1, 0.002, 2.0);
+    color *= visibility(vertPos, 9, 0.70, h1, 0.002, 2.0);
     color = mix(color, kOceanColor, 1.0 - exp(-sqrt(16.0 * max(0.0, h2 - 0.8))));
 
     // Multi-layer clouds

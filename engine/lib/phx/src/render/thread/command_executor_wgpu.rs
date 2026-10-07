@@ -502,216 +502,7 @@ impl WgpuCommandExecutor {
         Self::split_mat4_attributes(&mut out);
         Self::inject_varying_locations(&mut out);
         Self::inject_plain_uniform_bindings_with_offset(&mut out, offset);
-        Self::rewrite_sampler_params(&mut out);
-        Self::ensure_missing_fn_shims(&mut out);
-        Self::rename_sample_identifier(&mut out);
         out
-    }
-
-    /// naga 30 cannot type `sampler*D` function parameters, and helper
-    /// functions taking samplers are widespread (sampleTriplanar & friends in
-    /// include/texturing.glsl, FXAA, moon/planet detail helpers). For every
-    /// function with sampler params: split each param into the texture+sampler
-    /// pair, rewrite the body's texture() calls into the sampler<D>(tex, samp)
-    /// constructor form, and expand the matching argument at every call site
-    /// (the argument is a sampler uniform, renamed to <name>_tex/_samp by the
-    /// uniform split). Must run AFTER inject_plain_uniform_bindings.
-    fn rewrite_sampler_params(code: &mut String) {
-        // Pass 1: collect (fn_name, param_name, dim, param_index) for every
-        // sampler-typed function parameter.
-        let text: Vec<char> = code.chars().collect();
-        let mut sigs: Vec<(String, String, String, usize)> = Vec::new();
-        let mut i = 0usize;
-        while i < text.len() {
-            if text[i..].starts_with(&['s', 'a', 'm', 'p', 'l', 'e', 'r'][..]) && i > 0 {
-                // whitespace-tolerant: "pos, sampler2D tex" has a space
-                // between the comma and the type
-                let mut prev_pos = i - 1;
-                while prev_pos > 0 && text[prev_pos] == ' ' {
-                    prev_pos -= 1;
-                }
-                let prev_ok = prev_pos == 0 || text[prev_pos] == '(' || text[prev_pos] == ',';
-                if !prev_ok {
-                    i += 1;
-                    continue;
-                }
-                let mut j = i + 7;
-                while j < text.len() && text[j].is_ascii_alphanumeric() {
-                    j += 1;
-                }
-                let dim: String = text[i + 7..j].iter().collect();
-                let mut k = j;
-                while k < text.len() && text[k] == ' ' {
-                    k += 1;
-                }
-                let mut m = k;
-                while m < text.len() && (text[m].is_ascii_alphanumeric() || text[m] == '_') {
-                    m += 1;
-                }
-                let pname: String = text[k..m].iter().collect();
-                if !dim.is_empty() && !pname.is_empty() {
-                    // Enclosing fn '(' via back-scan with paren depth.
-                    let mut depth = 0usize;
-                    let mut b = i - 1;
-                    while b > 0 {
-                        match text[b] {
-                            ')' => depth += 1,
-                            '(' => {
-                                if depth == 0 {
-                                    break;
-                                }
-                                depth -= 1;
-                            }
-                            _ => {}
-                        }
-                        b -= 1;
-                    }
-                    // fn name = identifier before b
-                    let mut f = b;
-                    while f > 0 && (text[f - 1].is_ascii_alphanumeric() || text[f - 1] == '_') {
-                        f -= 1;
-                    }
-                    let fname: String = text[f..b].iter().collect();
-                    // param index = top-level commas between b and i-1
-                    // (empty range = the sampler is the first parameter)
-                    let mut idx = 0usize;
-                    let mut d2 = 0usize;
-                    if b + 1 < i {
-                        for c in &text[b + 1..i - 1] {
-                            match c {
-                                '(' => d2 += 1,
-                                ')' => d2 -= 1,
-                                ',' if d2 == 0 => idx += 1,
-                                _ => {}
-                            }
-                        }
-                    }
-                    if !fname.is_empty() && !fname.starts_with("sampler") {
-                        sigs.push((fname, pname, dim, idx));
-                    }
-                }
-            }
-            i += 1;
-        }
-        if sigs.is_empty() {
-            return;
-        }
-        sigs.sort();
-        sigs.dedup();
-
-        // Pass 2: signature + body use-site rewrites.
-        for (_, pname, dim, _) in &sigs {
-            // A param literally named `sampler`/`texture` would collide with
-            // naga's type names: rename the texture side to <P>_tex then.
-            let tex_param = if pname == "sampler" || pname == "texture" {
-                format!("{pname}_tex")
-            } else {
-                pname.clone()
-            };
-            // signature: sampler<D> <P> -> texture<D> <P>, sampler <P>_s
-            let sig_old = format!("sampler{dim} {pname}");
-            let sig_new = format!("texture{dim} {tex_param}, sampler {pname}_s");
-            *code = code.replace(&sig_old, &sig_new);
-            // body: texture(<P>, -> texture(sampler<D>(<P>[, <P>_tex], <P>_s),
-            let use_old = format!("texture({pname},");
-            let use_new = format!("texture(sampler{dim}({tex_param}, {pname}_s),");
-            *code = code.replace(&use_old, &use_new);
-        }
-
-        // FXAA texture macros take the sampler as a macro argument; rewrite
-        // the definitions to build the combined sampler from the function's
-        // split params (the macro is only ever expanded inside FxaaPixelShader,
-        // where tex_s is in scope).
-        if code.contains("FxaaTexTop") {
-            *code = code.replace(
-                "#define FxaaTexTop(t, p) texture(t, p)",
-                "#define FxaaTexTop(t, p) texture(sampler2D(t, tex_s), p)",
-            );
-            *code = code.replace(
-                "#define FxaaTexOff(t, p, o) texture(t, p + o)",
-                "#define FxaaTexOff(t, p, o) texture(sampler2D(t, tex_s), p + o)",
-            );
-        }
-
-        // Pass 3: call sites — expand the sampler argument at its index.
-        for (fname, _pname, _dim, idx) in &sigs {
-            let needle = format!("{fname}(");
-            let mut out = String::with_capacity(code.len());
-            let mut cursor = 0usize;
-            while let Some(rel) = code[cursor..].find(&needle) {
-                let start = cursor + rel;
-                out.push_str(&code[cursor..start + needle.len()]);
-                // walk to the matching ')'
-                let mut depth = 1usize;
-                let mut p = start + needle.len();
-                while p < code.len() && depth > 0 {
-                    match code.as_bytes()[p] {
-                        b'(' => depth += 1,
-                        b')' => depth -= 1,
-                        _ => {}
-                    }
-                    p += 1;
-                }
-                let args_text = &code[start + needle.len()..p - 1];
-                let mut args: Vec<String> = Vec::new();
-                let mut cur = String::new();
-                let mut d = 0usize;
-                for ch in args_text.chars() {
-                    match ch {
-                        '(' => {
-                            d += 1;
-                            cur.push(ch);
-                        }
-                        ')' => {
-                            d -= 1;
-                            cur.push(ch);
-                        }
-                        ',' if d == 0 => {
-                            args.push(cur.trim().to_string());
-                            cur.clear();
-                        }
-                        _ => cur.push(ch),
-                    }
-                }
-                if !cur.trim().is_empty() {
-                    args.push(cur.trim().to_string());
-                }
-                // the signature itself? its arg at the sampler index is a
-                // TYPE + NAME pair ("texture2D s" — contains a space), while
-                // real call args are plain identifiers (a uniform may even be
-                // literally named "sampler").
-                let is_sig = args
-                    .get(*idx)
-                    .map(|a| a.contains(' ') || a.starts_with("texture"))
-                    .unwrap_or(false);
-                if !is_sig && *idx < args.len() {
-                    let arg = args[*idx].clone();
-                    // Plain identifier? (the signature's own args contain a
-                    // space after the type name and are excluded by this)
-                    if !arg.is_empty() && arg.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
-                    {
-                        // The arg is either a sampler UNIFORM (split by the
-                        // uniform pass into <X>_tex/<X>_samp) or a sampler
-                        // FUNCTION PARAM (rewritten by pass 2 into
-                        // <X>_tex/<X>_s, visible in a rewritten signature as
-                        // "sampler <X>_s," or "sampler <X>_s)"). The trailing
-                        // boundary keeps "_s" from matching inside "_samp".
-                        let param_style = code.contains(&format!("{arg}_s,"))
-                            || code.contains(&format!("{arg}_s)"));
-                        if param_style {
-                            args[*idx] = format!("{arg}_tex, {arg}_s");
-                        } else {
-                            args[*idx] = format!("{arg}_tex, {arg}_samp");
-                        }
-                    }
-                }
-                out.push_str(&args.join(", "));
-                out.push(')');
-                cursor = p;
-            }
-            out.push_str(&code[cursor..]);
-            *code = out;
-        }
     }
 
     /// Split `in mat4` vertex attributes into four vec4 attributes.
@@ -812,7 +603,6 @@ impl WgpuCommandExecutor {
 
         let mut binding = 10u32 + offset;
         let mut samplers: Vec<(String, String)> = Vec::new(); // (name, dim)
-        let mut bools: Vec<String> = Vec::new(); // bool plain-uniform names
         let mut plains: Vec<(String, String)> = Vec::new(); // (ty, name)
         let mut out_lines: Vec<String> = Vec::with_capacity(code.lines().count() + 8);
         for line in code.lines() {
@@ -852,19 +642,13 @@ impl WgpuCommandExecutor {
                         samplers.push((name.to_string(), dim));
                         continue;
                     }
-                    if ty == "bool" {
-                        // naga validation rejects bool members in uniform
-                        // blocks; store as float and rewrite if() uses below.
-                        bools.push(name.to_string());
-                        continue;
-                    }
                     plains.push((ty.to_string(), name.to_string()));
                     continue;
                 }
             }
             out_lines.push(line.to_string());
         }
-        // Pack ALL plain uniforms (and float-ified bools) into ONE shared
+        // Pack ALL plain uniforms into ONE shared
         // std140 block: wgpu limits uniform buffers per stage to
         // max_uniform_buffers_per_shader_stage (12 on the default limits) and
         // the engine's shaders can declare 4+ plains (e.g. gen/planet: seed,
@@ -874,13 +658,10 @@ impl WgpuCommandExecutor {
         // declaration-before-use and the naga frontend rejects a bare member
         // reference before its block (probe-verified: appending the block at
         // the end fails every shader with UnknownVariable("<member>")).
-        if !plains.is_empty() || !bools.is_empty() {
+        if !plains.is_empty() {
             let mut block = format!("layout(std140, binding={binding}) uniform _phx_plain_UBO {{");
             for (ty, name) in &plains {
                 block.push_str(&format!("\n    {ty} {name};"));
-            }
-            for name in &bools {
-                block.push_str(&format!("\n    float {name};"));
             }
             block.push_str("};");
             // Insert AFTER the first #version line (it can sit after a
@@ -914,92 +695,10 @@ impl WgpuCommandExecutor {
             }
             joined = rewritten;
         }
-        // bool uniforms: `if (x)` / `if (!x)` -> float comparisons
-        for name in &bools {
-            joined = joined.replace(&format!("if ({name})"), &format!("if ({name} != 0.0)"));
-            joined = joined.replace(&format!("if (!{name})"), &format!("if ({name} == 0.0)"));
-        }
         *code = joined;
     }
 
-    /// naga 30 has no `saturate` builtin and the engine uses it in float form
-    /// (radialminmax defines its own vec2 overload, which coexists). Also
-    /// patch missing helper definitions: invGamma is USED by
-    /// tonemap_limittheory.glsl but never defined anywhere in the shader set.
-    /// Pure convenience shims, inserted after the #version line, only when
-    /// used-but-missing.
-    fn ensure_missing_fn_shims(code: &mut String) {
-        let mut shims = String::new();
-        if code.contains("saturate(") {
-            // naga 30 has no saturate builtin; emit every overload the shader
-            // does not already define (radialminmax defines its own vec2 form).
-            for (ty, zero, one) in [
-                ("float", "0.0", "1.0"),
-                ("vec2", "vec2(0.0)", "vec2(1.0)"),
-                ("vec3", "vec3(0.0)", "vec3(1.0)"),
-                ("vec4", "vec4(0.0)", "vec4(1.0)"),
-            ] {
-                let def = format!("{ty} saturate({ty} x)");
-                if !code.contains(&def) {
-                    shims.push_str(&format!("{def} {{ return clamp(x, {zero}, {one}); }}\n"));
-                }
-            }
-        }
-        if code.contains("invGamma(")
-            && !(code.contains("vec3 invGamma(") || code.contains("float invGamma("))
-        {
-            shims.push_str("vec3 invGamma(vec3 c) { return pow(c, vec3(0.45454545)); }\n");
-        }
-        if shims.is_empty() {
-            return;
-        }
-        let nl = if code.contains("\r\n") { "\r\n" } else { "\n" };
-        let mut lines: Vec<&str> = code.split(nl).collect();
-        let mut insert_at = 0usize;
-        for (idx, line) in lines.iter().enumerate() {
-            if line.trim_start().starts_with("#version") {
-                insert_at = idx + 1;
-                break;
-            }
-        }
-        let mut shim_lines: Vec<&str> = shims.split('\n').filter(|s| !s.is_empty()).collect();
-        let mut tail: Vec<&str> = lines.split_off(insert_at);
-        lines.push("");
-        lines.append(&mut shim_lines);
-        lines.append(&mut tail);
-        *code = lines.join(nl);
-    }
-
-    /// naga 30 reserves `sample` (sampling qualifier); the engine uses it as
-    /// a plain local variable name in a few shaders. Rename whole-word
-    /// `sample` -> `sample_` (identifier-boundary aware: `sampleBuffer`,
-    /// `sampler2D`, `_samp` etc. are untouched).
-    fn rename_sample_identifier(code: &mut String) {
-        let mut out = String::with_capacity(code.len());
-        let text: Vec<char> = code.chars().collect();
-        let mut i = 0usize;
-        while i < text.len() {
-            if text[i].is_ascii_alphanumeric() || text[i] == '_' {
-                let mut j = i;
-                while j < text.len() && (text[j].is_ascii_alphanumeric() || text[j] == '_') {
-                    j += 1;
-                }
-                let word: String = text[i..j].iter().collect();
-                if word == "sample" {
-                    out.push_str("sample_");
-                } else {
-                    out.push_str(&word);
-                }
-                i = j;
-            } else {
-                out.push(text[i]);
-                i += 1;
-            }
-        }
-        *code = out;
-    }
-
-    /// Inject explicit `layout(location=N)` on varyings and vertex attributes.    /// Inject explicit `layout(location=N)` on varyings and vertex attributes.
+    /// Inject explicit `layout(location=N)` on varyings and vertex attributes.
     ///
     /// naga 30's GLSL frontend auto-assigns location 0 to EVERY varying
     /// (probe-verified: two inputs both got location 0 -> validation

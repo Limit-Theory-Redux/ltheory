@@ -26,8 +26,8 @@ uniform sampler2D texSpec;
 void main() {
   vec3 N = normalize(normal);
   vec3 uvw = sqrt(scale / 16.0) * abs(vertPos.xyz);
-  vec3 diff = linear(sampleTriplanar(texDiffuse, uvw).xyz);
-  float gloss = 1.0 - sampleTriplanar(texSpec, uvw).x;
+  vec3 diff = linear(texture(texDiffuse, triplanarCoords(uvw)).xyz);
+  float gloss = 1.0 - texture(texSpec, triplanarCoords(uvw)).x;
 
 #if ENABLE_BUMPMAP
   {
@@ -38,7 +38,10 @@ void main() {
       blend.y * uvw.zx +
       blend.z * uvw.xy;
 
-    vec3 bump = sampleTriplanarBumpmap(texNormal, uvw).xyz;
+    vec3 bump = triplanarBumpmap(
+      texture(texNormal, uvw.yz).xyz,
+      texture(texNormal, uvw.zx).xyz,
+      texture(texNormal, uvw.xy).xyz).xyz;
     vec3 Q1  = dFdx(pos), Q2 = dFdy(pos);
     vec2 st1 = dFdx(uvt), st2 = dFdy(uvt);
     vec3 T = normalize(Q1 * st2.y - Q2 * st1.y);

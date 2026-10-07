@@ -5,6 +5,8 @@
 #define jSteps 1
 #define CLOUDS_ENABLED 0
 
+#include math
+
 uniform samplerCube cloudCube;
 uniform sampler3D cloudNoise;
 uniform float rPlanet;

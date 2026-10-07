@@ -1,5 +1,6 @@
 #include brush
 #include color
+#include math
 #include noise
 
 void main() {

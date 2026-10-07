@@ -3,7 +3,7 @@
 uniform float radius;
 uniform vec2 size;
 uniform vec4 color;
-uniform bool glow;
+uniform int glow;
 
 void main() {
   vec2 uvp = uv - 0.5;
