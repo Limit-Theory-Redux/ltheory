@@ -49,6 +49,8 @@ pub(super) struct WgpuPendingRead {
     layout: ReadLayout,
     /// Async reads only: where the pixels go.
     slot: Option<Arc<ReadbackSlot>>,
+    /// The submission that holds the copy.
+    submission: wgpu::SubmissionIndex,
 }
 
 impl WgpuPendingRead {
@@ -195,7 +197,7 @@ impl WgpuCommandExecutor {
                 depth_or_array_layers: depth,
             },
         );
-        queue.submit([encoder.finish()]);
+        let submission = queue.submit([encoder.finish()]);
 
         let done = Arc::new(Mutex::new(None));
         let callback_done = done.clone();
@@ -220,6 +222,7 @@ impl WgpuCommandExecutor {
                 format,
             },
             slot: None,
+            submission,
         })
     }
 
@@ -234,20 +237,34 @@ impl WgpuCommandExecutor {
         let Some(job) = self.begin_read(src, region, format) else {
             return Vec::new();
         };
+        let what = format!("{src:?} {region:?} as {format:?}");
         let device = self.device.clone();
-        let deadline = Instant::now() + Duration::from_secs(5);
-        loop {
+        let started = Instant::now();
+        // Wait for the GPU in the driver (no spinning): a heavy pass before the
+        // read (the occlusion bake takes seconds) is not a failure.
+        if let Err(e) = device.poll(wgpu::PollType::Wait {
+            submission_index: Some(job.submission.clone()),
+            timeout: Some(Duration::from_secs(120)),
+        }) {
+            warn!("wgpu: readback of {what} did not complete in {:?}: {e:?}", started.elapsed());
+            return Vec::new();
+        }
+        // The map callback runs from a poll once the copy is done.
+        for _ in 0..1000 {
             match job.state() {
                 Some(true) => return job.finish().unwrap_or_default(),
-                Some(false) => return Vec::new(),
-                None => {}
+                Some(false) => {
+                    warn!("wgpu: readback of {what} failed (map error)");
+                    return Vec::new();
+                }
+                None => {
+                    let _ = device.poll(wgpu::PollType::Poll);
+                    std::thread::yield_now();
+                }
             }
-            if Instant::now() >= deadline || device.poll(wgpu::PollType::Poll).is_err() {
-                warn!("wgpu: readback did not complete");
-                return Vec::new();
-            }
-            std::thread::yield_now();
         }
+        warn!("wgpu: readback of {what} was never mapped");
+        Vec::new()
     }
 
     /// `ReadbackAsync`: copy and map, then leave the job for `poll_readbacks`.

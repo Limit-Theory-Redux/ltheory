@@ -150,10 +150,9 @@ pub(super) fn adapt_stage(code: &str, layout: &ShaderLayout) -> Result<String, S
 
         // Loose uniforms and samplers.
         if trimmed.starts_with("uniform ") && !trimmed.contains('{') {
-            let mut tokens = trimmed["uniform ".len()..]
-                .trim_end()
-                .trim_end_matches(';')
-                .split_whitespace();
+            // Up to the `;` (a comment may follow it).
+            let declaration = trimmed["uniform ".len()..].split(';').next().unwrap_or("");
+            let mut tokens = declaration.split_whitespace();
             let ty = tokens.next().unwrap_or("");
             let name = tokens.next().unwrap_or("");
             if ty.is_empty() || name.is_empty() {
@@ -165,8 +164,14 @@ pub(super) fn adapt_stage(code: &str, layout: &ShaderLayout) -> Result<String, S
                 .or_else(|| ty.strip_prefix("isampler"))
                 .or_else(|| ty.strip_prefix("usampler"));
             if let Some(dim) = dim {
+                // A sampler outside any `#group` has no binding (GL gives all of
+                // them unit 0, so such a shader never sampled correctly there
+                // either). The declaration goes; a shader that reads it fails
+                // to compile with an unknown identifier, one that does not
+                // compiles as on GL.
                 let Some(decl) = layout.texture(name) else {
-                    return Err(format!("sampler '{name}' is not declared under a #group"));
+                    out_lines.push(format!("{indent}// {declaration}: not declared under a #group"));
+                    continue;
                 };
                 out_lines.push(format!(
                     "{indent}layout(set={}, binding={}) uniform texture{dim} {name}_tex;",

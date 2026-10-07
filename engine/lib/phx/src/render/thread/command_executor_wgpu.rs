@@ -371,11 +371,7 @@ impl WgpuCommandExecutor {
         let pair = shader::compile_pair(&vertex_src, &fragment_src, layout)
             .inspect_err(|e| error!("wgpu: failed to create shader {id:?}: {e}"))?;
         let module = |label: &'static str, module: wgpu::naga::Module| {
-            self.device
-                .create_shader_module(wgpu::ShaderModuleDescriptor {
-                    label: Some(label),
-                    source: wgpu::ShaderSource::Naga(std::borrow::Cow::Owned(module)),
-                })
+            self.shader_module(label, module)
         };
         let vs = module("phx-vertex", pair.vs);
         let fs = module("phx-fragment", pair.fs);
@@ -405,6 +401,30 @@ impl WgpuCommandExecutor {
         );
         self.bump_generation(id);
         Ok(blocks)
+    }
+
+    /// A shader module from a validated naga module of the engine's own shaders.
+    ///
+    /// Created without wgpu's runtime checks: the engine's shaders are trusted
+    /// (they go through naga's validator here and run on GL unchecked), and
+    /// the checks cost real time. Forced loop bounding in particular turns
+    /// every loop into a counted one, which made the occlusion bake of
+    /// generated ships several times slower than on GL.
+    pub(super) fn shader_module(
+        &self,
+        label: &'static str,
+        module: wgpu::naga::Module,
+    ) -> wgpu::ShaderModule {
+        let descriptor = wgpu::ShaderModuleDescriptor {
+            label: Some(label),
+            source: wgpu::ShaderSource::Naga(std::borrow::Cow::Owned(module)),
+        };
+        #[allow(unsafe_code)]
+        // SAFETY: see above; the shader sources are the engine's own.
+        unsafe {
+            self.device
+                .create_shader_module_trusted(descriptor, wgpu::ShaderRuntimeChecks::unchecked())
+        }
     }
 
     pub(super) fn cmd_create_mesh(

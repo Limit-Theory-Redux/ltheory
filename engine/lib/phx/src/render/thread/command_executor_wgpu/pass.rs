@@ -141,7 +141,12 @@ impl WgpuCommandExecutor {
     ) -> Option<(wgpu::TextureView, [u64; 6])> {
         use crate::render::TexDim;
         let (texture, desc) = self.texture_and_desc(tv.tex)?;
-        if desc.dim != dim {
+        // One face of a cube can be sampled as a 2D texture.
+        let face = match (desc.dim, dim, tv.dim) {
+            (TexDim::Cube, TexDim::D2, ViewDim::CubeFace(face)) => Some(face_layer(face)),
+            _ => None,
+        };
+        if desc.dim != dim && face.is_none() {
             self.warn_once(format!(
                 "texture {:?} is a {:?} texture but is bound to a {:?} sampler",
                 tv.tex, desc.dim, dim
@@ -155,12 +160,12 @@ impl WgpuCommandExecutor {
         } else {
             (tv.mip_count as u32).min(levels - base)
         };
-        // A face view of a cube sampled as 2D: that face.
-        let (view_dimension, layer, layers, kind) = match (dim, tv.dim) {
-            (TexDim::Cube, _) => (wgpu::TextureViewDimension::Cube, 0, None, 3u8),
+        let (view_dimension, layer, layers, kind) = match (dim, face) {
+            (TexDim::D2, Some(face)) => (wgpu::TextureViewDimension::D2, face, Some(1), 4u8),
+            (TexDim::Cube, _) => (wgpu::TextureViewDimension::Cube, 0, None, 3),
             (TexDim::D1, _) => (wgpu::TextureViewDimension::D1, 0, None, 0),
             (TexDim::D3, _) => (wgpu::TextureViewDimension::D3, 0, None, 2),
-            (TexDim::D2, _) => (wgpu::TextureViewDimension::D2, 0, None, 1),
+            (TexDim::D2, None) => (wgpu::TextureViewDimension::D2, 0, None, 1),
         };
         let key = ViewKey {
             tex: tv.tex.0,
@@ -804,12 +809,7 @@ impl WgpuCommandExecutor {
         let wrapped = shader::wrap_fragment_clamp(&shader.fs_code, &shader.fs_named_outputs, mask)
             .and_then(|code| shader::parse_stage(wgpu::naga::ShaderStage::Fragment, &code));
         let module = match wrapped {
-            Ok(module) => self
-                .device
-                .create_shader_module(wgpu::ShaderModuleDescriptor {
-                    label: Some("phx-fragment-clamped"),
-                    source: wgpu::ShaderSource::Naga(std::borrow::Cow::Owned(module)),
-                }),
+            Ok(module) => self.shader_module("phx-fragment-clamped", module),
             Err(e) => {
                 error!("wgpu: clamped fragment variant of {shader_id:?} failed: {e}");
                 return None;

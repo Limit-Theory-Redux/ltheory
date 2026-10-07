@@ -75,6 +75,19 @@ fn preprocess(root: &Path, file: &Path) -> GLSLCode {
     GLSLCode::preprocess_with(&src, None, &mut loader)
 }
 
+/// Does `code` declare a sampler the layout does not know (outside any `#group`)?
+fn has_loose_sampler(code: &str, layout: &ShaderLayout) -> bool {
+    code.lines().any(|line| {
+        let t = line.trim_start();
+        let Some(rest) = t.strip_prefix("uniform ") else {
+            return false;
+        };
+        let mut tokens = rest.split(';').next().unwrap_or("").split_whitespace();
+        let (ty, name) = (tokens.next().unwrap_or(""), tokens.next().unwrap_or(""));
+        ty.contains("sampler") && layout.texture(name).is_none()
+    })
+}
+
 struct NagaView {
     blocks: Vec<BlockLayout>,
     /// `(block name, set, binding)` of every uniform-space global with a binding.
@@ -146,6 +159,7 @@ fn recorded_layout_matches_naga_for_every_shader() {
     let mut checked_blocks = 0;
     let mut checked_textures = 0;
     let mut grouped_shaders = 0;
+    let mut unported = 0;
     let mut problems: Vec<String> = Vec::new();
 
     for file in &files {
@@ -173,6 +187,13 @@ fn recorded_layout_matches_naga_for_every_shader() {
         let view = match naga_view(&pre.code, stage, &layout) {
             Ok(view) => view,
             Err(e) => {
+                // Unported shaders declare samplers outside any `#group` (GL gives
+                // them all unit 0, and `create_shader` rejects their loose
+                // uniforms): they cannot compile on wgpu either.
+                if has_loose_sampler(&pre.code, &layout) {
+                    unported += 1;
+                    continue;
+                }
                 problems.push(format!("{rel}: naga {e}"));
                 continue;
             }
@@ -223,7 +244,7 @@ fn recorded_layout_matches_naga_for_every_shader() {
     }
 
     println!(
-        "layout parity: {grouped_shaders} grouped shader stages, {checked_blocks} blocks, {checked_textures} samplers"
+        "layout parity: {grouped_shaders} grouped shader stages, {checked_blocks} blocks, {checked_textures} samplers ({unported} unported shaders with loose samplers skipped)"
     );
     assert!(
         problems.is_empty(),
