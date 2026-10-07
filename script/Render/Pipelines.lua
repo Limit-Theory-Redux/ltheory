@@ -40,9 +40,13 @@ local function buildSceneStates()
         Opaque = opaque,
         Additive = additive,
         Alpha = alpha,
-        --- Opaque pass, but no culling and no depth writes (skyboxes).
+        --- Opaque pass, but no culling and no depth writes (skyboxes). The box is
+        --- drawn through the immediate batcher (`Imm.Box3`).
         ---@type PipelineState
-        OpaqueBackdrop = { blend = BlendMode.Disabled, cull = CullFace.None, depthTest = true, depthWrite = false },
+        OpaqueBackdrop = {
+            blend = BlendMode.Disabled, cull = CullFace.None, depthTest = true, depthWrite = false,
+            vertex = VertexLayout.Imm3D,
+        },
         --- The scene state of a blend mode.
         ---@type table<BlendMode, PipelineState>
         Scene = {

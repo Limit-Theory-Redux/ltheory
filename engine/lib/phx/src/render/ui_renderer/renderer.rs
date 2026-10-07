@@ -6,13 +6,9 @@ use super::layer::UIRendererLayer;
 use super::panel::UIRendererPanel;
 use super::rect::UIRendererRect;
 use super::text::UIRendererText;
-use crate::render::{BlendMode, Color, Font, RenderState, Renderer, Shader, Tex2D};
+use crate::render::{BlendMode, Color, Font, RenderState, Renderer, Tex2D};
 
 pub struct UIRenderer {
-    panel_shader: Shader,
-    image_shader: Shader,
-    rect_shader: Shader,
-
     current_layer_id: Option<UIRendererLayerId>,
 
     layers: Vec<UIRendererLayer>,
@@ -23,11 +19,8 @@ pub struct UIRenderer {
 }
 
 impl UIRenderer {
-    pub fn new(r: &mut Renderer) -> UIRenderer {
+    pub fn new(_r: &mut Renderer) -> UIRenderer {
         UIRenderer {
-            panel_shader: Shader::load(r, "vertex/ui", "fragment/ui/panel"),
-            image_shader: Shader::load(r, "vertex/ui", "fragment/simple_image"),
-            rect_shader: Shader::load(r, "vertex/ui", "fragment/simple_color"),
             current_layer_id: None,
             layers: Vec::new(),
             images: Vec::new(),
@@ -61,9 +54,6 @@ impl UIRenderer {
         if let Some(root) = self.layers.first() {
             root.draw(
                 r,
-                &mut self.panel_shader,
-                &mut self.image_shader,
-                &mut self.rect_shader,
                 &self.layers,
                 &self.images,
                 &self.panels,

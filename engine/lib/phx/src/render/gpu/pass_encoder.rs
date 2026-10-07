@@ -9,7 +9,8 @@
 use std::sync::Arc;
 
 use super::{
-    BindGroupId, CameraState, PipelineId, RingChunk, RingOffset, SamplerId, TexView, ViewBlock,
+    BindGroupId, CameraState, ImmLayout, PipelineId, RingChunk, RingOffset, SamplerId, TexView,
+    ViewBlock,
 };
 use crate::render::ResourceId;
 
@@ -72,6 +73,13 @@ pub enum PassCmd {
         indices: RingOffset,
         count: u32,
     },
+    /// `count` vertices of `layout` from the vertex ring at `vertices`, drawn
+    /// with the current pipeline's topology (see `ImmBatcher`).
+    DrawImm {
+        layout: ImmLayout,
+        vertices: RingOffset,
+        count: u32,
+    },
 }
 
 impl PassCmd {
@@ -82,6 +90,7 @@ impl PassCmd {
                 | PassCmd::DrawFullscreen
                 | PassCmd::DrawMeshInstanced { .. }
                 | PassCmd::DrawInstancedIndices { .. }
+                | PassCmd::DrawImm { .. }
         )
     }
 }
@@ -154,6 +163,11 @@ pub struct PassState {
     pub viewport: [i32; 4],
     /// The pass's current group-0 block; re-allocated when it changes.
     pub view: ViewBlock,
+    /// The pipeline the caller set with `pass:setPipeline`, and the one the
+    /// executor will have bound once the recorded commands run (the batcher
+    /// binds its own shape pipelines in between).
+    pub user_pipeline: Option<PipelineId>,
+    pub bound_pipeline: Option<PipelineId>,
 }
 
 impl Default for PassState {
@@ -164,6 +178,8 @@ impl Default for PassState {
             is_window: false,
             viewport: [0, 0, 0, 0],
             view: ViewBlock::new(&CameraState::default(), [0, 0, 1, 1], false),
+            user_pipeline: None,
+            bound_pipeline: None,
         }
     }
 }

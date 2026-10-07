@@ -1,6 +1,8 @@
 #include fragment
 
-uniform vec4 color;
+#include imm
+
+#define color imm_color
 
 void main() {
   // Circle: discard outside radius

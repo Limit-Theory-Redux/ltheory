@@ -47,6 +47,10 @@ void main() {
 
 ]]
 
+local white = Color(1, 1, 1, 1)
+local light = Color(0.8, 0.8, 0.8, 1)
+local dark = Color(0.5, 0.5, 0.5, 1)
+
 function GenTex2D:onGenerate()
     do -- Free old texture
         if self.texture ~= nil then
@@ -58,7 +62,6 @@ function GenTex2D:onGenerate()
     do -- Generate new texture
         local tex = Tex2D.Create(kTexSize, kTexSize, TexFormat.RGBA16F)
 
-        RenderState.PushAllDefaults()
         local desc = RenderPassDesc.Create('GenTex2D')
         desc:color(0, tex:view(), LoadOp.Clear, 0, 0, 0, 1)
         local pass = Renderer:beginPass(desc)
@@ -66,8 +69,6 @@ function GenTex2D:onGenerate()
         self:DrawWorn(tex)
 
         pass:finish()
-        Draw.Color(1, 1, 1, 1)
-        RenderState.PopAll()
 
         tex:genMipmap()
         tex:setMagFilter(TexFilter.Linear)
@@ -78,25 +79,22 @@ end
 
 function GenTex2D:DrawWorn(tex)
     -- blank grey texture
-    Draw.Color(0.8, 0.8, 0.8, 1)
-    Draw.Rect(0, 0, kTexSize, kTexSize)
+    Imm.Rect(0, 0, kTexSize, kTexSize, light)
 
-    Draw.Color(0.5, 0.5, 0.5, 1)
-    Draw.LineWidth(2)
     -- rect plates with line details
     local n = 10
     local w = kTexSize / n
     for i = 0, n - 1 do
         -- outer rect
         local x = i * w
-        Draw.Border(5, x, 0, x + w, kTexSize)
+        Imm.Border(5, x, 0, x + w, kTexSize, dark)
         -- inner detail lines
         local nd = rng:getInt(1, 3)
         local dist = MathUtil.GenerateNumsThatAddToSum(nd, w, rng)
         local dx = x
         for j = 0, nd - 1 do
             local y = rng:getUniformRange(0, kTexSize)
-            Draw.Line(dx, 0, dx, y)
+            Imm.Line(dx, 0, dx, y, dark, 2)
             dx = dx + dist[j + 1]
         end
     end
@@ -117,13 +115,10 @@ function GenTex2D:DrawRect1(tex)
     local kHalfTS = kTexSize * 0.5
 
     -- blank grey texture
-    Draw.Color(0.8, 0.8, 0.8, 1)
-    Draw.Rect(0, 0, kTexSize, kTexSize)
+    Imm.Rect(0, 0, kTexSize, kTexSize, light)
 
     -- buncha random dark grey boxes
-    Draw.Color(0.5, 0.5, 0.5, 1)
     local lineWidth = 2
-    Draw.LineWidth(lineWidth)
     local numRows = 10
     local rowHeight = kTexSize / numRows
     local numCols = 0
@@ -135,12 +130,12 @@ function GenTex2D:DrawRect1(tex)
         numCols = rng:getInt(5, 20)
         columnWidths = MathUtil.GenerateNumsThatAddToSum(numCols, kTexSize, rng)
         for j = 1, numCols do
-            Draw.Border(lineWidth, x, y, columnWidths[j], rowHeight)
+            Imm.Border(lineWidth, x, y, columnWidths[j], rowHeight, dark)
             -- vertical box subdivision
             local sub = rng:choose({ 0, 0, 0, 1, 2, 3, 4, 5 })
             local subHeight = rowHeight / sub
             for k = 0, sub - 1 do
-                Draw.Line(x, y + k * subHeight, x + columnWidths[j], y + k * subHeight)
+                Imm.Line(x, y + k * subHeight, x + columnWidths[j], y + k * subHeight, dark, lineWidth)
             end
             -- increment x-pos
             x = x + columnWidths[j]
@@ -149,7 +144,6 @@ function GenTex2D:DrawRect1(tex)
 
     -- buncha random small boxes
     --[[
-  Draw.Color(0.2, 0.2, 0.2, 1)
   local numBoxes = rng:getInt(50, 100)
   local width, length
   for i = 0, numBoxes do
@@ -157,7 +151,7 @@ function GenTex2D:DrawRect1(tex)
     length = rng:getUniformRange(kTexSize/100, kTexSize/50)
     x = rng:getUniformRange(0, kTexSize)
     y = rng:getUniformRange(0, kTexSize)
-    Draw.Rect(x, y, width, length)
+    Imm.Rect(x, y, width, length, Color(0.2, 0.2, 0.2, 1))
   end--]]
 end
 
@@ -191,7 +185,7 @@ function GenTex2D:onDraw()
     local desc = RenderPassDesc.Create('GenTex2D.draw')
     desc:backbuffer(self.resX, self.resY, LoadOp.Clear, 0.1, 0.1, 0.1, 1.0)
     local pass = Renderer:beginPass(desc)
-    self.texture:draw(x, y, sx, sy)
+    Imm.Image(self.texture, Samplers.LinearMipClamp, x, y, sx, sy, 0, 0, 1, 1, white)
     pass:finish()
 end
 

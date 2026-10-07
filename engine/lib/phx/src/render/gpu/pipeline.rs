@@ -75,6 +75,11 @@ pub enum VertexLayout {
     Mesh,
     /// The built-in unit quad of `pass:drawFullscreen`.
     Fullscreen,
+    /// UI vertices of the immediate batcher (`Imm2DVertex`).
+    Imm2D,
+    /// Position, uv and color vertices of the immediate batcher
+    /// (`Imm3DVertex`): debug geometry and the backdrop box.
+    Imm3D,
 }
 
 #[luajit_ffi_gen::luajit_ffi(repr = "u32")]

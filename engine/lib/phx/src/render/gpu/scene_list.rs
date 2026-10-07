@@ -230,6 +230,7 @@ impl SceneList {
     /// Emit the draws of the last `prepare`.
     pub fn emit(&mut self, r: &mut Renderer) {
         r.pass_require_open("submit");
+        r.imm_flush();
         self.world_it_ready.clear();
         self.world_it_ready.resize(self.transforms.len(), false);
         self.world_it.resize(self.transforms.len(), [0.0; 16]);
@@ -244,6 +245,8 @@ impl SceneList {
                 pipeline = Some(item.pipeline);
                 // The pipeline resets nothing else; the material's bind group
                 // is set for every material change below.
+                r.data.pass.user_pipeline = Some(item.pipeline);
+                r.data.pass.bound_pipeline = Some(item.pipeline);
                 r.data.encoder.push(PassCmd::SetPipeline(item.pipeline));
             }
             if bind_group != Some(item.bind_group) {

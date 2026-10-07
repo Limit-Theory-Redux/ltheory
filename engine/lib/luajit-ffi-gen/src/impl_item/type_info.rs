@@ -82,6 +82,7 @@ const COPY_TYPES: &[&str] = &[
     "PolygonMode",
     "SamplerFilter",
     "MipFilter",
+    "Shape",
 ];
 
 #[derive(Debug, PartialEq)]

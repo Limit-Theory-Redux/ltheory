@@ -1919,6 +1919,9 @@ impl CommandExecutor {
             gl::BindAttribLocation(program, 6, c"instance_matrix_col2".as_ptr() as *const _);
             gl::BindAttribLocation(program, 7, c"instance_matrix_col3".as_ptr() as *const _);
             gl::BindAttribLocation(program, 8, c"instance_color".as_ptr() as *const _);
+            // Shape parameters of `Imm2DVertex` (`vertex/imm2d.glsl`).
+            gl::BindAttribLocation(program, 11, c"imm_params".as_ptr() as *const _);
+            gl::BindAttribLocation(program, 12, c"imm_params2".as_ptr() as *const _);
 
             gl::LinkProgram(program);
 
@@ -2314,6 +2317,11 @@ impl CommandExecutor {
             if self.binding.fullscreen_vao != 0 {
                 gl::DeleteVertexArrays(1, &self.binding.fullscreen_vao);
                 gl::DeleteBuffers(1, &self.binding.fullscreen_vbo);
+            }
+            for vao in [self.binding.imm2d_vao, self.binding.imm3d_vao] {
+                if vao != 0 {
+                    gl::DeleteVertexArrays(1, &vao);
+                }
             }
         }
 

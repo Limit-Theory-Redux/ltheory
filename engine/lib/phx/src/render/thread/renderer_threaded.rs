@@ -254,6 +254,9 @@ impl Renderer {
     /// execute in order.
     fn submit(&mut self, cmd: RenderCommand) {
         self.flush_pass_encoder();
+        // A legacy command may have changed the program behind the pipeline
+        // the batcher thinks is bound. // S6: remove
+        self.data.pass.bound_pipeline = None;
         self.send(cmd);
     }
 

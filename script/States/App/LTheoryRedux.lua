@@ -152,7 +152,8 @@ function LimitTheoryRedux:createMenuBackground()
 
     -- Skybox + universe at menu scale (Config.gen scaleSystemBack etc.)
     setMenuScale()
-    self.menuSeed = rng:get64()
+    -- Capture variant (render validation): LTHEORY_CAPTURE_SEED fixes the menu scene, only under LTHEORY_CAPTURE.
+    self.menuSeed = os.getenv('LTHEORY_CAPTURE') and tonumber(os.getenv('LTHEORY_CAPTURE_SEED')) or rng:get64()
     self.seed = self.menuSeed
     self:createSkybox()
     self:generateUniverse()

@@ -192,7 +192,7 @@ function RenderingTest:onRender(data)
         end
     end)
 
-    Draw.Flush()
+    Renderer:sync()
 end
 
 return RenderingTest

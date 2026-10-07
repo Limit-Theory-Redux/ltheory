@@ -236,6 +236,7 @@ impl RenderPass {
     /// staged inputs are bound together before the next draw.
     pub fn set_input(&self, r: &mut Renderer, slot: i32, view: &TexView, sampler: u32) {
         r.pass_require_open("setInput");
+        r.imm_flush();
         r.data
             .encoder
             .set_input(slot as usize, Some((*view, SamplerId(sampler as u16))));
@@ -244,6 +245,7 @@ impl RenderPass {
     /// Unbind pass input `slot`.
     pub fn clear_input(&self, r: &mut Renderer, slot: i32) {
         r.pass_require_open("clearInput");
+        r.imm_flush();
         r.data.encoder.set_input(slot as usize, None);
     }
 
@@ -394,6 +396,8 @@ impl Renderer {
         pass.extent = desc.extent;
         pass.is_window = desc.backbuffer;
         pass.viewport = viewport;
+        pass.user_pipeline = None;
+        pass.bound_pipeline = None;
         pass.view = ViewBlock::new(&camera, viewport, desc.backbuffer);
 
         self.pass_emit_view();
@@ -454,12 +458,26 @@ impl Renderer {
     /// Record `cmd` into the open pass.
     pub(crate) fn pass_record(&mut self, what: &str, cmd: PassCmd) {
         self.pass_require_open(what);
+        self.imm_flush();
+        if let PassCmd::SetPipeline(id) = &cmd {
+            self.data.pass.user_pipeline = Some(*id);
+            self.data.pass.bound_pipeline = Some(*id);
+        }
         self.data.encoder.push(cmd);
     }
 
     /// Record a draw: pending inputs go out first, and a full buffer flushes.
     pub(crate) fn pass_draw(&mut self, cmd: PassCmd) {
         self.pass_require_open("draw");
+        self.imm_flush();
+        // The batcher binds its own pipelines in between: the caller's comes
+        // back before their draw.
+        if let Some(user) = self.data.pass.user_pipeline {
+            if self.data.pass.bound_pipeline != Some(user) {
+                self.data.pass.bound_pipeline = Some(user);
+                self.data.encoder.push(PassCmd::SetPipeline(user));
+            }
+        }
         let encoder = &mut self.data.encoder;
         if encoder.inputs_dirty {
             encoder.inputs_dirty = false;
@@ -474,6 +492,7 @@ impl Renderer {
 
     pub(crate) fn pass_alloc(&mut self, size: u32) -> *mut u8 {
         self.pass_require_open("alloc");
+        self.imm_flush();
         if self.data.encoder.len() >= PASS_FLUSH_LIMIT {
             self.flush_pass_encoder();
         }
@@ -485,6 +504,7 @@ impl Renderer {
     /// Send everything recorded so far, plus the uniform bytes it
     /// references, to the executor.
     pub(crate) fn flush_pass_encoder(&mut self) {
+        self.imm_flush();
         if self.data.encoder.is_empty()
             && !self.data.ring.has_pending()
             && !self.data.vertex_ring.has_pending()
@@ -543,6 +563,7 @@ impl Renderer {
 
     fn pass_set_viewport(&mut self, viewport: [i32; 4]) {
         self.pass_require_open("setViewport");
+        self.imm_flush();
         let is_window = self.data.pass.is_window;
         self.data.pass.viewport = viewport;
         self.data.pass.view.set_viewport(viewport, is_window);
@@ -553,6 +574,7 @@ impl Renderer {
 
     fn pass_set_ui_transform(&mut self, m: [f32; 16]) {
         self.pass_require_open("setUiTransform");
+        self.imm_flush();
         self.data.pass.view.m_world_view_ui = m;
         self.pass_emit_view();
     }
@@ -567,6 +589,7 @@ impl Renderer {
         camera.proj = glam::Mat4::from_cols_array(&proj.to_cols_array());
         camera.star_dir = star_dir;
         if self.data.pass.open.is_some() {
+            self.imm_flush();
             let pass = &mut self.data.pass;
             let rebuilt = ViewBlock::new(&self.data.camera, pass.viewport, pass.is_window);
             let ui = pass.view.m_world_view_ui;
@@ -588,6 +611,7 @@ impl Renderer {
         self.data.environment.env_map = Some(env_map.clone());
         self.data.environment.ir_map = Some(ir_map.clone());
         if self.data.pass.open.is_some() {
+            self.imm_flush();
             self.pass_emit_environment();
         }
     }

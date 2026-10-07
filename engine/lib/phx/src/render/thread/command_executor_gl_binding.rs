@@ -13,7 +13,7 @@ use super::{AttachKey, GpuResource, MAX_TEXTURE_SLOTS, TextureBinding, TextureTy
 use crate::render::{
     BindEntry, BindGroupId, BlendMode, BlockLayout, BlockMember, BufferId, CHUNK_SIZE,
     CommandCategory, CommandExecutor, CompareFn, CullFace, GROUP_COUNT, GROUP_DRAW, GROUP_FRAME,
-    GROUP_INPUTS, GlslType, InstanceData, MAX_FRAMES_IN_FLIGHT, MAX_INPUTS, PassCmd, PassCommands,
+    GROUP_INPUTS, GlslType, ImmLayout, InstanceData, MAX_FRAMES_IN_FLIGHT, MAX_INPUTS, PassCmd, PassCommands,
     PipelineDesc, PipelineId, PolygonMode, ResourceId, ReturnedChunk, RingChunk, SamplerDesc,
     SamplerId, Samplers, ShaderLayout, TexView, UNIFORM_ALIGN, VERTEX_CHUNK_SIZE, ViewDim,
     block_binding, entry_unit, gl, texture_unit,
@@ -23,6 +23,10 @@ use crate::render::{
 const VIEW_BINDING: u32 = block_binding(GROUP_FRAME, 0);
 const DRAW_BINDING: u32 = block_binding(GROUP_DRAW, 0);
 const UBO_BINDINGS: usize = 16;
+/// Vertex attribute locations of the shape parameters of `Imm2DVertex`
+/// (`imm_params`, `imm_params2` in `vertex/imm2d.glsl`).
+pub(super) const IMM_PARAMS_LOCATION: u32 = 11;
+pub(super) const IMM_PARAMS2_LOCATION: u32 = 12;
 /// Texture units of the group-0 environment maps (`envMap`, `irMap`).
 const ENV_UNIT: u32 = texture_unit(GROUP_FRAME, 0);
 const IR_UNIT: u32 = texture_unit(GROUP_FRAME, 1);
@@ -87,6 +91,10 @@ pub(super) struct GlBindingState {
     /// Unit quad for `DrawFullscreen`.
     pub fullscreen_vao: u32,
     pub fullscreen_vbo: u32,
+    /// Vertex arrays of the immediate batcher (`DrawImm`): attribute
+    /// pointers are set per draw at the ring offset.
+    pub imm2d_vao: u32,
+    pub imm3d_vao: u32,
     /// Scratch read and draw framebuffers of `CopyTexture` (0 until first use).
     pub copy_fbos: [u32; 2],
 }
@@ -111,6 +119,8 @@ impl GlBindingState {
             mip_ranges: HashMap::new(),
             fullscreen_vao: 0,
             fullscreen_vbo: 0,
+            imm2d_vao: 0,
+            imm3d_vao: 0,
             copy_fbos: [0; 2],
         }
     }
@@ -187,6 +197,22 @@ impl CommandExecutor {
             }
             gl::BindVertexArray(0);
             gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+
+            // Immediate batcher layouts: which attributes are enabled is
+            // fixed per VAO; the pointers follow the ring buffer per draw.
+            // 2D: 0 position, 2 uv, 3 color, 11 and 12 shape parameters.
+            gl::GenVertexArrays(1, &mut b.imm2d_vao);
+            gl::BindVertexArray(b.imm2d_vao);
+            for location in [0u32, 2, 3, IMM_PARAMS_LOCATION, IMM_PARAMS2_LOCATION] {
+                gl::EnableVertexAttribArray(location);
+            }
+            // 3D: 0 position, 2 uv, 3 color.
+            gl::GenVertexArrays(1, &mut b.imm3d_vao);
+            gl::BindVertexArray(b.imm3d_vao);
+            for location in [0u32, 2, 3] {
+                gl::EnableVertexAttribArray(location);
+            }
+            gl::BindVertexArray(0);
         }
     }
 
@@ -909,6 +935,65 @@ impl CommandExecutor {
                     }
                     self.this_frame_stats.draw_immediate_calls += 1;
                     self.this_frame_stats.vertices_drawn += 4;
+                    #[cfg(feature = "stats-server")]
+                    self.count_draw();
+                }
+                PassCmd::DrawImm {
+                    layout,
+                    vertices,
+                    count,
+                } => {
+                    let buffer = self.ring_buffer(slot, vertices.buffer as usize, true);
+                    let base = vertices.offset as usize;
+                    let stride = layout.stride() as i32;
+                    unsafe {
+                        gl::BindBuffer(gl::ARRAY_BUFFER, buffer);
+                        let float_at = |i: usize| (base + i * 4) as *const _;
+                        match layout {
+                            ImmLayout::D2 => {
+                                // `Imm2DVertex`: pos (2), uv (2), color (4), p (4), q (4).
+                                gl::BindVertexArray(self.binding.imm2d_vao);
+                                for (location, components, at) in [
+                                    (0u32, 2, 0usize),
+                                    (2, 2, 2),
+                                    (3, 4, 4),
+                                    (IMM_PARAMS_LOCATION, 4, 8),
+                                    (IMM_PARAMS2_LOCATION, 4, 12),
+                                ] {
+                                    gl::VertexAttribPointer(
+                                        location,
+                                        components,
+                                        gl::FLOAT,
+                                        gl::FALSE,
+                                        stride,
+                                        float_at(at),
+                                    );
+                                }
+                            }
+                            ImmLayout::D3 => {
+                                // `Imm3DVertex`: pos (3), uv (2), color (4).
+                                gl::BindVertexArray(self.binding.imm3d_vao);
+                                for (location, components, at) in
+                                    [(0u32, 3, 0usize), (2, 2, 3), (3, 4, 5)]
+                                {
+                                    gl::VertexAttribPointer(
+                                        location,
+                                        components,
+                                        gl::FLOAT,
+                                        gl::FALSE,
+                                        stride,
+                                        float_at(at),
+                                    );
+                                }
+                            }
+                        }
+                        gl::DrawArrays(self.binding.topology, 0, *count as i32);
+                        gl::BindVertexArray(0);
+                        gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+                    }
+                    self.this_frame_stats.draw_immediate_calls += 1;
+                    self.this_frame_stats.immediate_vertices += *count as u64;
+                    self.this_frame_stats.vertices_drawn += *count as u64;
                     #[cfg(feature = "stats-server")]
                     self.count_draw();
                 }

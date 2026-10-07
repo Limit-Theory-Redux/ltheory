@@ -154,12 +154,10 @@ end
 
 function Container:draw(focus, active)
     if self.enabled > 0 then
-        Draw.PushAlpha(self.enabled)
         DrawEx.PushAlpha(self.enabled)
         self:onDraw(focus, active)
         self:onDrawChildren(focus, active)
         DrawEx.PopAlpha()
-        Draw.PopAlpha()
     end
 end
 
@@ -175,9 +173,11 @@ function Container:drawDebug(focus, active)
 end
 
 function Container:onDrawDebug(focus, active)
-    Draw.Rect(self:getRectGlobal())
+    local x, y, sx, sy = self:getRectGlobal()
+    DrawEx.SimpleRect(x, y, sx, sy, Config.ui.color.debugRect)
     if self.padSumX > 0 or self.padSumY > 0 then
-        Draw.Rect(self:getRectPadGlobal())
+        x, y, sx, sy = self:getRectPadGlobal()
+        DrawEx.SimpleRect(x, y, sx, sy, Config.ui.color.debugRect)
     end
 end
 

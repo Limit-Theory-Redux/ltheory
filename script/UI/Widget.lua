@@ -210,7 +210,8 @@ function Widget:drawDebug(focus, active)
 end
 
 function Widget:onDrawDebug(focus, active)
-    Draw.Rect(self:getRectGlobal())
+    local x, y, sx, sy = self:getRectGlobal()
+    UI.DrawEx.SimpleRect(x, y, sx, sy, Config.ui.color.debugRect)
 end
 
 --[[ Convenience Method List ---------------------------------------------------

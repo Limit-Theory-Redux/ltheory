@@ -427,7 +427,6 @@ end
 function Application:immediateUI(renderFn)
     -- Re-open backbuffer for immediate UI
     Window:beginDraw()
-    RenderState.PushAllDefaults()
     ClipRect.PushDisabled()
 
     do
@@ -436,7 +435,6 @@ function Application:immediateUI(renderFn)
 
     -- Close again
     ClipRect.Pop()
-    RenderState.PopAll()
     Window:endDraw()
 end
 

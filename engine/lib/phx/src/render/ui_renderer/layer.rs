@@ -7,7 +7,7 @@ use super::text::UIRendererText;
 use super::{
     UIRendererImageId, UIRendererLayerId, UIRendererPanelId, UIRendererRectId, UIRendererTextId,
 };
-use crate::render::{ClipRect, Draw, Renderer, Shader};
+use crate::render::{ClipRect, Color, Renderer, Samplers, Shape};
 
 #[derive(Default)]
 pub struct UIRendererLayer {
@@ -30,9 +30,6 @@ impl UIRendererLayer {
     pub fn draw(
         &self,
         r: &mut Renderer,
-        panel_shader: &mut Shader,
-        image_shader: &mut Shader,
-        rect_shader: &mut Shader,
         layers: &Vec<UIRendererLayer>,
         images: &Vec<UIRendererImage>,
         panels: &Vec<UIRendererPanel>,
@@ -50,50 +47,43 @@ impl UIRendererLayer {
             );
         }
 
-        if self.panel_id.is_some() {
-            panel_shader.start(r);
+        let mut panel_id_opt = self.panel_id;
+        while let Some(panel_id) = panel_id_opt {
+            let panel = &panels[*panel_id];
 
             let pad: f32 = 64.0;
-            panel_shader.set_float(r, "padding", pad);
+            let x = panel.pos.x - pad;
+            let y = panel.pos.y - pad;
+            let sx = panel.size.x + 2.0 * pad;
+            let sy = panel.size.y + 2.0 * pad;
 
-            let mut panel_id_opt = self.panel_id;
-            while let Some(panel_id) = panel_id_opt {
-                let panel = &panels[*panel_id];
+            r.imm_shape(
+                Shape::Panel,
+                x,
+                y,
+                sx,
+                sy,
+                &panel.color,
+                [panel.inner_alpha, panel.bevel, 0.0, 0.0],
+            );
 
-                let x = panel.pos.x - pad;
-                let y = panel.pos.y - pad;
-                let sx = panel.size.x + 2.0 * pad;
-                let sy = panel.size.y + 2.0 * pad;
-
-                panel_shader.set_float(r, "innerAlpha", panel.inner_alpha);
-                panel_shader.set_float(r, "bevel", panel.bevel);
-                panel_shader.set_float2(r, "size", sx, sy);
-                panel_shader.set_float4(
-                    r,
-                    "color",
-                    panel.color.r,
-                    panel.color.g,
-                    panel.color.b,
-                    panel.color.a,
-                );
-
-                Draw::rect(r, x, y, sx, sy);
-
-                panel_id_opt = panel.next;
-            }
-
-            panel_shader.stop(r);
+            panel_id_opt = panel.next;
         }
 
         let mut image_id_opt = self.image_id;
         while let Some(image_id) = image_id_opt {
             let image = &images[*image_id];
 
-            image_shader.start(r);
-            image_shader.reset_tex_index();
-            image_shader.set_tex2d(r, "image", &image.image);
-            Draw::rect(r, image.pos.x, image.pos.y, image.size.x, image.size.y);
-            image_shader.stop(r);
+            // UI images were sampled with the texture's own state: nearest
+            // filtering, clamped (`Tex2D::load`).
+            r.imm_textured(
+                Shape::Image,
+                image.image.view(),
+                Samplers::Point.id(),
+                [image.pos.x, image.pos.y, image.size.x, image.size.y],
+                [0.0, 0.0, 1.0, 1.0],
+                &Color::WHITE,
+            );
             image_id_opt = image.next;
         }
 
@@ -101,23 +91,15 @@ impl UIRendererLayer {
         while let Some(rect_id) = rect_id_opt {
             let rect = &rects[*rect_id];
 
-            rect_shader.start(r);
-            rect_shader.set_float4(
-                r,
-                "color",
-                rect.color.r,
-                rect.color.g,
-                rect.color.b,
-                rect.color.a,
-            );
-
             if let Some(s) = rect.outline {
-                Draw::border(r, s, rect.pos.x, rect.pos.y, rect.size.x, rect.size.y);
+                let (x, y, w, h) = (rect.pos.x, rect.pos.y, rect.size.x, rect.size.y);
+                r.imm_rect(x, y, w, s, &rect.color);
+                r.imm_rect(x, y + h - s, w, s, &rect.color);
+                r.imm_rect(x, y + s, s, h - 2.0 * s, &rect.color);
+                r.imm_rect(x + w - s, y + s, s, h - 2.0 * s, &rect.color);
             } else {
-                Draw::rect(r, rect.pos.x, rect.pos.y, rect.size.x, rect.size.y);
+                r.imm_rect(rect.pos.x, rect.pos.y, rect.size.x, rect.size.y, &rect.color);
             }
-
-            rect_shader.stop(r);
 
             rect_id_opt = rect.next;
         }
@@ -140,9 +122,6 @@ impl UIRendererLayer {
 
             layer.draw(
                 r,
-                panel_shader,
-                image_shader,
-                rect_shader,
                 layers,
                 images,
                 panels,

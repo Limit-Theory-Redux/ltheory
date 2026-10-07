@@ -17,14 +17,14 @@ function Backdrop.draw(placeholder, blendMode)
         local shader = Cache.Shader('farplane', 'skybox')
         local pass = Renderer:currentPass()
         pass:setPipeline(Pipelines.get(shader, Pipelines.OpaqueBackdrop))
-        Draw.Box3(Box3f(-1, -1, -1, 1, 1, 1))
+        Imm.Box3(Box3f(-1, -1, -1, 1, 1, 1))
     elseif blendMode == BlendMode.Additive then
         local shader = Cache.Shader('farplane', 'starbg')
         local pass = Renderer:currentPass()
         pass:setPipeline(Pipelines.get(shader, Pipelines.Additive))
         starParamsType = starParamsType or shader:blockType('StarBackgroundParams')
         pass:alloc(starParamsType).brightnessScale = 3
-        placeholder.stars:draw()
+        pass:drawMesh(placeholder.stars)
     end
 end
 

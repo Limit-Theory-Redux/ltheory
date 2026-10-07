@@ -250,7 +250,6 @@ function RenderCoreSystem:render(data)
     self.currentPass = Enums.RenderingPasses.Opaque
     do
         local pass = self:beginScenePass(self.currentPass)
-        Draw.Color(1, 1, 1, 1)
         self:renderInOrder(pass, BlendMode.Disabled)
         pass:finish()
     end

@@ -73,6 +73,9 @@ impl Renderer {
     /// one pass execute in order. // S6: remove
     fn ex(&mut self) -> &mut CommandExecutor {
         self.flush_pass_encoder();
+        // A legacy command may have changed the program behind the pipeline
+        // the batcher thinks is bound. // S6: remove
+        self.data.pass.bound_pipeline = None;
         &mut self.executor
     }
 

@@ -25,6 +25,8 @@ function Loader.defineType()
         VertexLayout = {
             Mesh       = 0,
             Fullscreen = 1,
+            Imm2D      = 2,
+            Imm3D      = 3,
 
             ToString   = libphx.VertexLayout_ToString,
         }

@@ -25,7 +25,7 @@ use tracing::warn;
 use crate::render::thread::{ExecutorStats, GpuHandle};
 use crate::render::{
     BindEntry, BindGroupId, BlendMode, BlockLayout, BufferId, CmdPrimitiveType, CommandReply,
-    CullFace, ImmVertex, InstanceData, LoadOp, PassCmd, PassCommands, PipelineDesc, PipelineId,
+    CullFace, ImmLayout, ImmVertex, InstanceData, LoadOp, PassCmd, PassCommands, PipelineDesc, PipelineId,
     PolygonMode, RenderCommand, RenderPassDesc, RenderStats, ResourceId, SamplerDesc, SamplerId,
     ShaderLayout, ShaderReloadResult, TexFilter, TexFormat, TexView, TexWrapMode, VertexFormat,
     ViewDim, blocks_from_naga, entry_unit,
@@ -5134,6 +5134,44 @@ impl WgpuCommandExecutor {
                         *index_count as i32,
                         CmdPrimitiveType::Triangles,
                     );
+                }
+                PassCmd::DrawImm {
+                    layout,
+                    vertices,
+                    count,
+                } => {
+                    let stride = layout.stride();
+                    let start = vertices.offset as usize;
+                    let Some(bytes) = self
+                        .vertex_ring_bytes
+                        .get(&(commands.slot, vertices.buffer))
+                        .and_then(|b| b.get(start..start + *count as usize * stride))
+                    else {
+                        warn!("wgpu: DrawImm data missing");
+                        continue;
+                    };
+                    let f = |chunk: &[u8]| f32::from_le_bytes(chunk.try_into().unwrap());
+                    let verts: Vec<ImmVertex> = bytes
+                        .chunks_exact(stride)
+                        .map(|v| match layout {
+                            // `Imm2DVertex`: pos (2), uv (2), color (4), ...
+                            ImmLayout::D2 => ImmVertex {
+                                pos: [f(&v[0..4]), f(&v[4..8]), 0.0],
+                                normal: [0.0; 3],
+                                uv: [f(&v[8..12]), f(&v[12..16])],
+                                color: [f(&v[16..20]), f(&v[20..24]), f(&v[24..28]), f(&v[28..32])],
+                            },
+                            // `Imm3DVertex`: pos (3), uv (2), color (4).
+                            ImmLayout::D3 => ImmVertex {
+                                pos: [f(&v[0..4]), f(&v[4..8]), f(&v[8..12])],
+                                normal: [0.0; 3],
+                                uv: [f(&v[12..16]), f(&v[16..20])],
+                                color: [f(&v[20..24]), f(&v[24..28]), f(&v[28..32]), f(&v[32..36])],
+                            },
+                        })
+                        .collect();
+                    self.draw_immediate_calls_this_frame += 1;
+                    self.cmd_draw_immediate(CmdPrimitiveType::Triangles, &verts);
                 }
                 PassCmd::DrawMeshInstanced {
                     mesh,
