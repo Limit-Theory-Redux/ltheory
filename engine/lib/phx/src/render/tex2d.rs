@@ -1,7 +1,7 @@
 use glam::{IVec2, Vec3};
 use image::{DynamicImage, GenericImageView, ImageBuffer, ImageReader, Rgba};
 
-use super::{DataFormat, PixelFormat, TexFilter, TexFormat, TexWrapMode};
+use super::{DataFormat, PixelFormat, TexFormat};
 use crate::render::{
     LoadOp, RenderPassDesc, Renderer, ResourceHandle, ResourceId, TexView, ViewDim, gl,
 };
@@ -301,11 +301,6 @@ impl Tex2D {
         out
     }
 
-    pub fn set_anisotropy(&mut self, r: &mut Renderer, factor: f32) {
-        let this = self.shared.as_ref();
-        r.set_texture_2d_anisotropy_by_resource(this.handle.id(), factor);
-    }
-
     pub fn set_data_bytes(
         &mut self,
         r: &mut Renderer,
@@ -314,16 +309,6 @@ impl Tex2D {
         df: DataFormat,
     ) {
         self.set_data(r, data.as_slice(), pf, df);
-    }
-
-    pub fn set_mag_filter(&mut self, r: &mut Renderer, filter: TexFilter) {
-        let this = self.shared.as_ref();
-        r.set_texture_mag_filter_by_resource(this.handle.id(), filter);
-    }
-
-    pub fn set_min_filter(&mut self, r: &mut Renderer, filter: TexFilter) {
-        let this = self.shared.as_ref();
-        r.set_texture_min_filter_by_resource(this.handle.id(), filter);
     }
 
     /* NOTE : In general, using BASE_LEVEL, MAX_LEVEL, and MIN/MAX_LOD params is
@@ -335,11 +320,6 @@ impl Tex2D {
      *        max_level) seems to be acceptable even on bad drivers. Thus, it is
      *        strongly advised to use this function only to constrain sampling to
      *        a single mip level. */
-    pub fn set_mip_range(&mut self, r: &mut Renderer, min_level: i32, max_level: i32) {
-        let this = self.shared.as_ref();
-        r.set_texture_2d_mip_range_by_resource(this.handle.id(), min_level, max_level);
-    }
-
     pub fn set_texel(
         &mut self,
         r: &mut Renderer,
@@ -352,11 +332,6 @@ impl Tex2D {
     ) {
         let this = self.shared.as_ref();
         r.set_texel_2d_by_resource(this.handle.id(), x, y, [red, green, blue, alpha]);
-    }
-
-    pub fn set_wrap_mode(&mut self, r: &mut Renderer, mode: TexWrapMode) {
-        let this = self.shared.as_ref();
-        r.set_texture_wrap_mode_by_resource(this.handle.id(), mode);
     }
 
     /// Sample a single pixel at integer coordinates (x, y)

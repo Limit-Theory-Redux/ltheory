@@ -26,10 +26,7 @@ function Loader.defineType()
             Bytes*    Tex1D_GetDataBytes (Tex1D*, Renderer* r, PixelFormat pf, DataFormat df);
             uint32    Tex1D_GetSize      (Tex1D const*);
             void      Tex1D_SetDataBytes (Tex1D*, Renderer* r, Bytes const* data, PixelFormat pf, DataFormat df);
-            void      Tex1D_SetMagFilter (Tex1D*, Renderer* r, TexFilter filter);
-            void      Tex1D_SetMinFilter (Tex1D*, Renderer* r, TexFilter filter);
             void      Tex1D_SetTexel     (Tex1D*, Renderer* r, int x, float red, float green, float blue, float alpha);
-            void      Tex1D_SetWrapMode  (Tex1D*, Renderer* r, TexWrapMode mode);
         ]]
     end
 
@@ -65,10 +62,7 @@ function Loader.defineType()
                 end,
                 getSize      = libphx.Tex1D_GetSize,
                 setDataBytes = libphx.Tex1D_SetDataBytes,
-                setMagFilter = libphx.Tex1D_SetMagFilter,
-                setMinFilter = libphx.Tex1D_SetMinFilter,
                 setTexel     = libphx.Tex1D_SetTexel,
-                setWrapMode  = libphx.Tex1D_SetWrapMode,
             },
         }
 

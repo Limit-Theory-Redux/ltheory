@@ -72,14 +72,6 @@ function TexCube:genMipmap(r) end
 function TexCube:setDataBytes(r, data, face, level, tf, df) end
 
 ---@param r Renderer
----@param filter TexFilter
-function TexCube:setMagFilter(r, filter) end
-
----@param r Renderer
----@param filter TexFilter
-function TexCube:setMinFilter(r, filter) end
-
----@param r Renderer
 ---@param sampleCount integer
 ---@return TexCube
 function TexCube:genIRMap(r, sampleCount) end

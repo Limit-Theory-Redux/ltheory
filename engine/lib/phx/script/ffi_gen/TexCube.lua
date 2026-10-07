@@ -31,8 +31,6 @@ function Loader.defineType()
             int       TexCube_GetSize      (TexCube const*);
             void      TexCube_GenMipmap    (TexCube*, Renderer* r);
             void      TexCube_SetDataBytes (TexCube*, Renderer* r, Bytes const* data, CubeFace face, int level, TexFormat tf, DataFormat df);
-            void      TexCube_SetMagFilter (TexCube*, Renderer* r, TexFilter filter);
-            void      TexCube_SetMinFilter (TexCube*, Renderer* r, TexFilter filter);
             TexCube*  TexCube_GenIRMap     (TexCube*, Renderer* r, int sampleCount);
         ]]
     end
@@ -80,8 +78,6 @@ function Loader.defineType()
                 getSize      = libphx.TexCube_GetSize,
                 genMipmap    = libphx.TexCube_GenMipmap,
                 setDataBytes = libphx.TexCube_SetDataBytes,
-                setMagFilter = libphx.TexCube_SetMagFilter,
-                setMinFilter = libphx.TexCube_SetMinFilter,
                 genIRMap     = function(self, r, sampleCount)
                     local _instance = libphx.TexCube_GenIRMap(self, r, sampleCount)
                     return Core.ManagedObject(_instance, libphx.TexCube_Free)

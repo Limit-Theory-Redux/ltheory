@@ -1,6 +1,6 @@
 # Render API v2 — wgpu-shaped interface on the GL renderer
 
-Status: design. S2 (render passes and attachment views), S3 (binding model, pipelines, samplers, views, frame group), S4 (materials, scene list, uniform ring), S5 (fullscreen, post-processing, offscreen generation) and S6 (immediate batching, UI, glyph atlas, and the removal of the legacy API) are implemented; later steps are not. Companion to `wgpu-migration-gaps.md`,
+Status: design. S2 (render passes and attachment views), S3 (binding model, pipelines, samplers, views, frame group), S4 (materials, scene list, uniform ring), S5 (fullscreen, post-processing, offscreen generation) S6 (immediate batching, UI, glyph atlas, and the removal of the legacy API) and S7 (sampler/view completion) are implemented; later steps are not. Companion to `wgpu-migration-gaps.md`,
 `render-thread.md`, `batch-rendering.md` and `shader-system.md`.
 
 **Strategy, already decided.** First the GL renderer and the Lua render
@@ -1226,6 +1226,31 @@ not render correctly there yet.
   regenerate its ctype, copy fields by name from the old cdata, reallocate its
   arena slice and `commit()`. GL relinks through the same `create_shader`
   path, so block bindings and units are reapplied.
+
+#### S7/S9/S10 notes
+
+##### S7 (implemented)
+
+Texture-level sampler state is gone. Removed: `setMagFilter`, `setMinFilter`, `setWrapMode`, `setAnisotropy` on
+`Tex1D/2D/3D/Cube` (Lua and Rust), `Tex2D:setMipRange`, the commands `SetTexture2DAnisotropyByResource`,
+`SetTexture2DMipRangeByResource`, `SetTexture{Mag,Min}FilterByResource` and `SetTextureWrapModeByResource` with their
+GL and wgpu handlers, the `Renderer` methods in both renderer files, the executor's `note_mip_range` and the wgpu
+executor's per-texture filter state (`recreate_sampler`, `texture_filter_modes`). The view binding keeps its own
+`TEXTURE_BASE_LEVEL/MAX_LEVEL` cache (`mip_ranges`), which is now the only writer of those parameters.
+
+*Nothing had to be folded.* Every sampled texture already went through an explicit sampler (S3 to S6: `Samplers.*`
+presets, `MaterialType.textures`, `pass:setInputs`, `Imm.Image`), and a GL sampler object overrides the texture's own
+parameters, so all 35 Lua call sites (15 files, 11 of them active) were dead. They were deleted, not translated, and
+the effective filters are the ones the samplers already name: that keeps the accidents of S5 (nebula LUTs sample
+`Samplers.Point`; `gen/moon`'s `baseMoonTex` is black) as they were. `Cache.Texture(name, true)` now only generates the
+mip chain. The environment, moon, planet and generated cube textures are sampled with `LinearMipClamp`, 2D material
+textures with `LinearMipRepeatAniso`, as before.
+
+*Auto-exposure.* `tonemap` set the mip range of `buffer0` before its 128 `sample()` calls, but `sample()` reads level 0
+through a framebuffer, so the range never reached it; the call is deleted and the mip chain is still generated for S8.
+Auto-exposure is off in the default config, which is also why the captures do not depend on it.
+
+*Verification.* All six capture scenes RMSE 0 and 13/13 supervisors, on both builds.
 
 ---
 

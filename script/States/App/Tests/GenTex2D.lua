@@ -71,8 +71,6 @@ function GenTex2D:onGenerate()
         pass:finish()
 
         tex:genMipmap()
-        tex:setMagFilter(TexFilter.Linear)
-        tex:setMinFilter(TexFilter.LinearMipLinear)
         self.texture = tex
     end
 end

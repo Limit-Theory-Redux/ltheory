@@ -1,4 +1,4 @@
-use super::{DataFormat, PixelFormat, TexFilter, TexFormat, TexWrapMode};
+use super::{DataFormat, PixelFormat, TexFormat};
 use crate::render::{Renderer, ResourceHandle, ResourceId, TexView, ViewDim};
 use crate::rf::Rf;
 use crate::system::Bytes;
@@ -121,16 +121,6 @@ impl Tex1D {
         self.set_data(r, data.as_slice(), pf, df);
     }
 
-    pub fn set_mag_filter(&mut self, r: &mut Renderer, filter: TexFilter) {
-        let this = self.shared.as_ref();
-        r.set_texture_mag_filter_by_resource(this.handle.id(), filter);
-    }
-
-    pub fn set_min_filter(&mut self, r: &mut Renderer, filter: TexFilter) {
-        let this = self.shared.as_ref();
-        r.set_texture_min_filter_by_resource(this.handle.id(), filter);
-    }
-
     pub fn set_texel(
         &mut self,
         r: &mut Renderer,
@@ -144,8 +134,4 @@ impl Tex1D {
         r.set_texel_1d_by_resource(this.handle.id(), x, [red, green, blue, alpha]);
     }
 
-    pub fn set_wrap_mode(&mut self, r: &mut Renderer, mode: TexWrapMode) {
-        let this = self.shared.as_ref();
-        r.set_texture_wrap_mode_by_resource(this.handle.id(), mode);
-    }
 }

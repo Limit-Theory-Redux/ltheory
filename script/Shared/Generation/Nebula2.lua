@@ -4,10 +4,6 @@ local function generateNebulaLightTransport(rng, res, starDir)
     Profiler.Begin('Nebula.Generate.LightTransport')
     local buffDst = TexCube.Create(res, TexFormat.RGBA16F)
     local buffSrc = TexCube.Create(res, TexFormat.RGBA16F)
-    buffDst:setMagFilter(TexFilter.Linear)
-    buffDst:setMinFilter(TexFilter.Linear)
-    buffSrc:setMagFilter(TexFilter.Linear)
-    buffSrc:setMinFilter(TexFilter.Linear)
     buffSrc:clear(0.05, 0.05, 0.05, 0)
 
     local emit   = Cache.Shader('fullscreen_ndc', 'gen/nebula_emit')
@@ -50,7 +46,6 @@ local function generateNebulaLightTransport(rng, res, starDir)
         end
     end
 
-    buffSrc:setMinFilter(TexFilter.LinearMipLinear)
     buffSrc:genMipmap()
     Profiler.End()
     return buffSrc

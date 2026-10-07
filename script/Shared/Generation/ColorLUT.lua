@@ -1,7 +1,5 @@
 local function GenerateColorLUT(rng, iterations, variation, rough)
     local self = Tex1D.Create(256, TexFormat.RGB8)
-    self:setMagFilter(TexFilter.Linear);
-    self:setMinFilter(TexFilter.Linear);
 
     -- Use midpoint displacement to generate an interesting curve
     local cPoints = List()

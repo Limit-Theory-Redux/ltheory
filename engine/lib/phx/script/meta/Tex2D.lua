@@ -68,27 +68,10 @@ function Tex2D:getSize() end
 function Tex2D:getSizeLevel(level) end
 
 ---@param r Renderer
----@param factor number
-function Tex2D:setAnisotropy(r, factor) end
-
----@param r Renderer
 ---@param data Bytes
 ---@param pf PixelFormat
 ---@param df DataFormat
 function Tex2D:setDataBytes(r, data, pf, df) end
-
----@param r Renderer
----@param filter TexFilter
-function Tex2D:setMagFilter(r, filter) end
-
----@param r Renderer
----@param filter TexFilter
-function Tex2D:setMinFilter(r, filter) end
-
----@param r Renderer
----@param minLevel integer
----@param maxLevel integer
-function Tex2D:setMipRange(r, minLevel, maxLevel) end
 
 ---@param r Renderer
 ---@param x integer
@@ -98,10 +81,6 @@ function Tex2D:setMipRange(r, minLevel, maxLevel) end
 ---@param blue number
 ---@param alpha number
 function Tex2D:setTexel(r, x, y, red, green, blue, alpha) end
-
----@param r Renderer
----@param mode TexWrapMode
-function Tex2D:setWrapMode(r, mode) end
 
 -- Sample a single pixel at integer coordinates (x, y)
 -- Coordinates are in OpenGL convention: (0,0) = bottom-left

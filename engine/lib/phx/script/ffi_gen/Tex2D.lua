@@ -32,13 +32,8 @@ function Loader.defineType()
             TexFormat Tex2D_GetFormat     (Tex2D const*);
             Vec2i     Tex2D_GetSize       (Tex2D const*);
             Vec2i     Tex2D_GetSizeLevel  (Tex2D const*, int level);
-            void      Tex2D_SetAnisotropy (Tex2D*, Renderer* r, float factor);
             void      Tex2D_SetDataBytes  (Tex2D*, Renderer* r, Bytes const* data, PixelFormat pf, DataFormat df);
-            void      Tex2D_SetMagFilter  (Tex2D*, Renderer* r, TexFilter filter);
-            void      Tex2D_SetMinFilter  (Tex2D*, Renderer* r, TexFilter filter);
-            void      Tex2D_SetMipRange   (Tex2D*, Renderer* r, int minLevel, int maxLevel);
             void      Tex2D_SetTexel      (Tex2D*, Renderer* r, int x, int y, float red, float green, float blue, float alpha);
-            void      Tex2D_SetWrapMode   (Tex2D*, Renderer* r, TexWrapMode mode);
             Vec3f     Tex2D_Sample        (Tex2D const*, Renderer* r, int x, int y);
         ]]
     end
@@ -67,40 +62,35 @@ function Loader.defineType()
         local t  = ffi.typeof('Tex2D')
         local mt = {
             __index = {
-                clone         = function(self)
+                clone        = function(self)
                     local _instance = libphx.Tex2D_Clone(self)
                     return Core.ManagedObject(_instance, libphx.Tex2D_Free)
                 end,
-                save          = libphx.Tex2D_Save,
-                view          = function(self)
+                save         = libphx.Tex2D_Save,
+                view         = function(self)
                     local _instance = libphx.Tex2D_View(self)
                     return Core.ManagedObject(_instance, libphx.TexView_Free)
                 end,
-                mipView       = function(self, level)
+                mipView      = function(self, level)
                     local _instance = libphx.Tex2D_MipView(self, level)
                     return Core.ManagedObject(_instance, libphx.TexView_Free)
                 end,
-                clear         = libphx.Tex2D_Clear,
-                deepClone     = function(self, r)
+                clear        = libphx.Tex2D_Clear,
+                deepClone    = function(self, r)
                     local _instance = libphx.Tex2D_DeepClone(self, r)
                     return Core.ManagedObject(_instance, libphx.Tex2D_Free)
                 end,
-                genMipmap     = libphx.Tex2D_GenMipmap,
-                getDataBytes  = function(self, r, pf, df)
+                genMipmap    = libphx.Tex2D_GenMipmap,
+                getDataBytes = function(self, r, pf, df)
                     local _instance = libphx.Tex2D_GetDataBytes(self, r, pf, df)
                     return Core.ManagedObject(_instance, libphx.Bytes_Free)
                 end,
-                getFormat     = libphx.Tex2D_GetFormat,
-                getSize       = libphx.Tex2D_GetSize,
-                getSizeLevel  = libphx.Tex2D_GetSizeLevel,
-                setAnisotropy = libphx.Tex2D_SetAnisotropy,
-                setDataBytes  = libphx.Tex2D_SetDataBytes,
-                setMagFilter  = libphx.Tex2D_SetMagFilter,
-                setMinFilter  = libphx.Tex2D_SetMinFilter,
-                setMipRange   = libphx.Tex2D_SetMipRange,
-                setTexel      = libphx.Tex2D_SetTexel,
-                setWrapMode   = libphx.Tex2D_SetWrapMode,
-                sample        = libphx.Tex2D_Sample,
+                getFormat    = libphx.Tex2D_GetFormat,
+                getSize      = libphx.Tex2D_GetSize,
+                getSizeLevel = libphx.Tex2D_GetSizeLevel,
+                setDataBytes = libphx.Tex2D_SetDataBytes,
+                setTexel     = libphx.Tex2D_SetTexel,
+                sample       = libphx.Tex2D_Sample,
             },
         }
 

@@ -160,8 +160,6 @@ function MoonTest:createMoon(seed)
     })
 
     texSurface:genMipmap()
-    texSurface:setMagFilter(TexFilter.Linear)
-    texSurface:setMinFilter(TexFilter.LinearMipLinear)
 
     local matPlanet = Materials.MoonSurface:instance()
     matPlanet:setTexture("surface", texSurface)

@@ -10,7 +10,7 @@ use crate::render::thread::{CommandExecutor, CommandReply, RendererData};
 use crate::render::{
     BindEntry, BindGroupId, BlockLayout, BufferId, PassCommands, PipelineDesc, PipelineId,
     RenderPassDesc, RenderStats, RenderThreadError, ResourceId, SamplerCache, SamplerDesc,
-    SamplerId, ShaderLayout, ShaderReloadResult, TexFilter, TexFormat, TexView, TexWrapMode,
+    SamplerId, ShaderLayout, ShaderReloadResult, TexFormat, TexView,
     VertexFormat,
 };
 use crate::window::{PresentMode, WindowGlContext};
@@ -149,39 +149,12 @@ impl Renderer {
         );
     }
 
-    pub fn set_texture_2d_anisotropy_by_resource(&mut self, id: ResourceId, factor: f32) {
-        self.ex()
-            .cmd_set_texture_2d_anisotropy_by_resource(id, factor);
-    }
-
-    pub fn set_texture_2d_mip_range_by_resource(
-        &mut self,
-        id: ResourceId,
-        min_level: i32,
-        max_level: i32,
-    ) {
-        self.ex()
-            .cmd_set_texture_2d_mip_range_by_resource(id, min_level, max_level);
-    }
-
     pub fn set_texel_1d_by_resource(&mut self, id: ResourceId, x: i32, color: [f32; 4]) {
         self.ex().cmd_set_texel_1d_by_resource(id, x, color);
     }
 
     pub fn set_texel_2d_by_resource(&mut self, id: ResourceId, x: i32, y: i32, color: [f32; 4]) {
         self.ex().cmd_set_texel_2d_by_resource(id, x, y, color);
-    }
-
-    pub fn set_texture_mag_filter_by_resource(&mut self, id: ResourceId, filter: TexFilter) {
-        self.ex().cmd_set_texture_mag_filter_by_resource(id, filter);
-    }
-
-    pub fn set_texture_min_filter_by_resource(&mut self, id: ResourceId, filter: TexFilter) {
-        self.ex().cmd_set_texture_min_filter_by_resource(id, filter);
-    }
-
-    pub fn set_texture_wrap_mode_by_resource(&mut self, id: ResourceId, mode: TexWrapMode) {
-        self.ex().cmd_set_texture_wrap_mode_by_resource(id, mode);
     }
 
     pub fn generate_mipmap_by_resource(&mut self, id: ResourceId) {

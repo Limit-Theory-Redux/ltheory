@@ -103,9 +103,7 @@ function Cache.Texture(name, filtered)
     self = Tex2D.Load(name)
     textures[name] = self
     if filtered then
-        self:setMagFilter(TexFilter.Linear)
-        self:setMinFilter(TexFilter.LinearMipLinear)
-        self:setWrapMode(TexWrapMode.Clamp)
+        -- Mip chain only: the filter and wrap mode belong to the sampler the user binds.
         self:genMipmap()
     end
     return self

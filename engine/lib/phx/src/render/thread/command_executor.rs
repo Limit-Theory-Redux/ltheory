@@ -371,36 +371,12 @@ impl CommandExecutor {
                 );
             }
 
-            RenderCommand::SetTexture2DAnisotropyByResource { id, factor } => {
-                self.cmd_set_texture_2d_anisotropy_by_resource(id, factor);
-            }
-
-            RenderCommand::SetTexture2DMipRangeByResource {
-                id,
-                min_level,
-                max_level,
-            } => {
-                self.cmd_set_texture_2d_mip_range_by_resource(id, min_level, max_level);
-            }
-
             RenderCommand::SetTexel1DByResource { id, x, color } => {
                 self.cmd_set_texel_1d_by_resource(id, x, color);
             }
 
             RenderCommand::SetTexel2DByResource { id, x, y, color } => {
                 self.cmd_set_texel_2d_by_resource(id, x, y, color);
-            }
-
-            RenderCommand::SetTextureMagFilterByResource { id, filter } => {
-                self.cmd_set_texture_mag_filter_by_resource(id, filter);
-            }
-
-            RenderCommand::SetTextureMinFilterByResource { id, filter } => {
-                self.cmd_set_texture_min_filter_by_resource(id, filter);
-            }
-
-            RenderCommand::SetTextureWrapModeByResource { id, mode } => {
-                self.cmd_set_texture_wrap_mode_by_resource(id, mode);
             }
 
             RenderCommand::GenerateMipmapByResource { id } => {

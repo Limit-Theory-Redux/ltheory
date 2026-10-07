@@ -55,14 +55,6 @@ function onDef_TexCube_t(t, mt)
         libphx.TexCube_SetDataBytes(self, Renderer, data, face, level, tf, df)
     end
 
-    mt.__index.setMagFilter = function(self, filter)
-        libphx.TexCube_SetMagFilter(self, Renderer, filter)
-    end
-
-    mt.__index.setMinFilter = function(self, filter)
-        libphx.TexCube_SetMinFilter(self, Renderer, filter)
-    end
-
     mt.__index.genIRMap = function(self, sampleCount)
         local _instance = libphx.TexCube_GenIRMap(self, Renderer, sampleCount)
         return Core.ManagedObject(_instance, libphx.TexCube_Free)

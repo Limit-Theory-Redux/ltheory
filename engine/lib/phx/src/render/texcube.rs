@@ -3,7 +3,7 @@ use image::{DynamicImage, GenericImageView, ImageBuffer, ImageReader, Rgba};
 
 use super::{
     CUBE_FACES, CubeFace, DataFormat, PassCmd, PipelineDesc, PixelFormat, Samplers, Tex2D,
-    TexFilter, TexFormat, VertexLayout,
+    TexFormat, VertexLayout,
 };
 use crate::math::Rng;
 use crate::render::{
@@ -321,16 +321,6 @@ impl TexCube {
         self.set_data(r, data.as_slice(), face, level, tf, df);
     }
 
-    pub fn set_mag_filter(&mut self, r: &mut Renderer, filter: TexFilter) {
-        let this = self.shared.as_ref();
-        r.set_texture_mag_filter_by_resource(this.handle.id(), filter);
-    }
-
-    pub fn set_min_filter(&mut self, r: &mut Renderer, filter: TexFilter) {
-        let this = self.shared.as_ref();
-        r.set_texture_min_filter_by_resource(this.handle.id(), filter);
-    }
-
     #[bind(name = "GenIRMap")]
     pub fn gen_ir_map(&mut self, r: &mut Renderer, sample_count: i32) -> TexCube {
         let mut size = self.get_size();
@@ -470,9 +460,6 @@ impl TexCube {
         }
 
         r.data.irmap_shader = Some(shader);
-
-        result.set_mag_filter(r, TexFilter::Linear);
-        result.set_min_filter(r, TexFilter::LinearMipLinear);
 
         result
     }

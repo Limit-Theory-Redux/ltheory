@@ -41,8 +41,6 @@ local function generateNebulaIFS(rng, res, starDir)
         },
         mips   = true,
     }
-    self:setMagFilter(TexFilter.Linear)
-    self:setMinFilter(TexFilter.LinearMipLinear)
 
     Profiler.End()
     return self

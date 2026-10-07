@@ -120,8 +120,6 @@ function GenUtil.ShaderToTexCube(res, fmt, fragShader, args)
         mips   = true,
         inputs = defaultInputs[fragShader] and defaultInputs[fragShader](),
     }
-    self:setMagFilter(TexFilter.Linear)
-    self:setMinFilter(TexFilter.LinearMipLinear)
     Profiler.End()
     return self
 end

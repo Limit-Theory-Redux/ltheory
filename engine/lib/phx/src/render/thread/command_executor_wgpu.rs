@@ -1318,107 +1318,6 @@ impl WgpuCommandExecutor {
         );
     }
 
-    /// Re-create a texture's sampler from the stored filter state. Filter
-    /// state is tracked per texture (GL texture params); wgpu samplers are
-    /// immutable, so filter changes rebuild the sampler.
-    fn recreate_sampler(
-        &mut self,
-        handle: ResourceId,
-        mag: Option<TexFilter>,
-        min: Option<TexFilter>,
-    ) {
-        let Some(device) = self.device.clone() else {
-            return;
-        };
-        let resource_id = handle;
-        let filters = self
-            .texture_filter_modes
-            .entry(resource_id)
-            .or_insert((wgpu::FilterMode::Linear, wgpu::FilterMode::Linear));
-        if let Some(filter) = mag {
-            filters.0 = Self::filter_mode(filter);
-        }
-        if let Some(filter) = min {
-            filters.1 = Self::filter_mode(filter);
-        }
-        let (requested_mag, requested_min) = *filters;
-        let Some(resource) = self.resources.get_mut(&handle) else {
-            return;
-        };
-        // 32F formats are NOT filterable in WebGPU: clamp the requested
-        // filter to Nearest for them (the engine's setMagFilter(Linear) on
-        // the Rgba32Float instance-data texture would otherwise fail
-        // bind-group validation).
-        let non_filterable = match resource {
-            WgpuGpuResource::Texture2D { texture, .. }
-            | WgpuGpuResource::Texture1D { texture, .. }
-            | WgpuGpuResource::Texture3D { texture, .. }
-            | WgpuGpuResource::TextureCube { texture, .. } => matches!(
-                texture.format(),
-                wgpu::TextureFormat::Rgba32Float | wgpu::TextureFormat::R32Float
-            ),
-            _ => false,
-        };
-        let sampler = match resource {
-            WgpuGpuResource::Texture2D { sampler, .. }
-            | WgpuGpuResource::Texture1D { sampler, .. }
-            | WgpuGpuResource::Texture3D { sampler, .. }
-            | WgpuGpuResource::TextureCube { sampler, .. } => sampler,
-            _ => return,
-        };
-        let new_filter = if non_filterable {
-            wgpu::FilterMode::Nearest
-        } else {
-            requested_mag
-        };
-        let min_filter = if non_filterable {
-            wgpu::FilterMode::Nearest
-        } else {
-            requested_min
-        };
-        *sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-            label: Some("phx-sampler-updated"),
-            mag_filter: new_filter,
-            min_filter,
-            address_mode_u: wgpu::AddressMode::ClampToEdge,
-            address_mode_v: wgpu::AddressMode::ClampToEdge,
-            address_mode_w: wgpu::AddressMode::ClampToEdge,
-            mipmap_filter: wgpu::MipmapFilterMode::Nearest,
-            lod_min_clamp: 0.0,
-            lod_max_clamp: 0.0,
-            compare: None,
-            anisotropy_clamp: 1,
-            border_color: None,
-        });
-        // Bind groups own the sampler handle; rebuild them before the next
-        // draw so a filter mutation cannot reuse a stale sampler.
-        self.bind_group_cache.clear();
-    }
-
-    pub(crate) fn filter_mode(filter: TexFilter) -> wgpu::FilterMode {
-        match filter {
-            TexFilter::Point | TexFilter::PointMipLinear | TexFilter::PointMipPoint => {
-                wgpu::FilterMode::Nearest
-            }
-            _ => wgpu::FilterMode::Linear,
-        }
-    }
-
-    pub(super) fn cmd_set_texture_2d_anisotropy_by_resource(
-        &mut self,
-        _id: ResourceId,
-        _factor: f32,
-    ) {
-    }
-
-    pub(super) fn cmd_set_texture_2d_mip_range_by_resource(
-        &mut self,
-        _id: ResourceId,
-        _min_level: i32,
-        _max_level: i32,
-    ) {
-    }
-
     pub(super) fn cmd_set_texel_1d_by_resource(
         &mut self,
         _id: ResourceId,
@@ -1568,29 +1467,6 @@ impl WgpuCommandExecutor {
                 depth_or_array_layers: 1,
             },
         );
-    }
-
-    pub(super) fn cmd_set_texture_mag_filter_by_resource(
-        &mut self,
-        id: ResourceId,
-        filter: TexFilter,
-    ) {
-        self.recreate_sampler(id, Some(filter), None);
-    }
-
-    pub(super) fn cmd_set_texture_min_filter_by_resource(
-        &mut self,
-        id: ResourceId,
-        filter: TexFilter,
-    ) {
-        self.recreate_sampler(id, None, Some(filter));
-    }
-
-    pub(super) fn cmd_set_texture_wrap_mode_by_resource(
-        &mut self,
-        _id: ResourceId,
-        _mode: TexWrapMode,
-    ) {
     }
 
     /// The texture, mip level and array layer a 2D or cube-face view addresses.
@@ -5168,30 +5044,11 @@ impl WgpuCommandExecutor {
                 data_format,
                 data,
             ),
-            RenderCommand::SetTexture2DAnisotropyByResource { id, factor } => {
-                self.cmd_set_texture_2d_anisotropy_by_resource(id, factor);
-            }
-            RenderCommand::SetTexture2DMipRangeByResource {
-                id,
-                min_level,
-                max_level,
-            } => {
-                self.cmd_set_texture_2d_mip_range_by_resource(id, min_level, max_level);
-            }
             RenderCommand::SetTexel1DByResource { id, x, color } => {
                 self.cmd_set_texel_1d_by_resource(id, x, color);
             }
             RenderCommand::SetTexel2DByResource { id, x, y, color } => {
                 self.cmd_set_texel_2d_by_resource(id, x, y, color);
-            }
-            RenderCommand::SetTextureMagFilterByResource { id, filter } => {
-                self.cmd_set_texture_mag_filter_by_resource(id, filter);
-            }
-            RenderCommand::SetTextureMinFilterByResource { id, filter } => {
-                self.cmd_set_texture_min_filter_by_resource(id, filter);
-            }
-            RenderCommand::SetTextureWrapModeByResource { id, mode } => {
-                self.cmd_set_texture_wrap_mode_by_resource(id, mode);
             }
             RenderCommand::GenerateMipmapByResource { id } => {
                 self.cmd_generate_mipmap_by_resource(id)

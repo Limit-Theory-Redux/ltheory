@@ -52,15 +52,3 @@ function Tex3D:getSizeLevel(level) end
 ---@param df DataFormat
 function Tex3D:setDataBytes(r, data, pf, df) end
 
----@param r Renderer
----@param filter TexFilter
-function Tex3D:setMagFilter(r, filter) end
-
----@param r Renderer
----@param filter TexFilter
-function Tex3D:setMinFilter(r, filter) end
-
----@param r Renderer
----@param mode TexWrapMode
-function Tex3D:setWrapMode(r, mode) end
-

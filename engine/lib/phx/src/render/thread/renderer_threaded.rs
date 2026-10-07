@@ -13,7 +13,7 @@ use crate::render::{
     BindEntry, BindGroupId, BlockLayout, BufferId, PassCommands, PipelineDesc, PipelineId,
     RenderCommand, RenderPassDesc, RenderStats, RenderThreadConfig, RenderThreadError,
     RendererData, ResourceId, ReturnedChunk, SamplerCache, SamplerDesc, SamplerId, ShaderLayout,
-    ShaderReloadResult, TexFilter, TexFormat, TexView, TexWrapMode, VertexFormat,
+    ShaderReloadResult, TexFormat, TexView, VertexFormat,
 };
 use crate::window::{PresentMode, WgpuStartupBundle, WindowError, WindowGlContext};
 
@@ -607,41 +607,12 @@ impl Renderer {
         });
     }
 
-    pub fn set_texture_2d_anisotropy_by_resource(&mut self, id: ResourceId, factor: f32) {
-        self.submit(RenderCommand::SetTexture2DAnisotropyByResource { id, factor });
-    }
-
-    pub fn set_texture_2d_mip_range_by_resource(
-        &mut self,
-        id: ResourceId,
-        min_level: i32,
-        max_level: i32,
-    ) {
-        self.submit(RenderCommand::SetTexture2DMipRangeByResource {
-            id,
-            min_level,
-            max_level,
-        });
-    }
-
     pub fn set_texel_1d_by_resource(&mut self, id: ResourceId, x: i32, color: [f32; 4]) {
         self.submit(RenderCommand::SetTexel1DByResource { id, x, color });
     }
 
     pub fn set_texel_2d_by_resource(&mut self, id: ResourceId, x: i32, y: i32, color: [f32; 4]) {
         self.submit(RenderCommand::SetTexel2DByResource { id, x, y, color });
-    }
-
-    pub fn set_texture_mag_filter_by_resource(&mut self, id: ResourceId, filter: TexFilter) {
-        self.submit(RenderCommand::SetTextureMagFilterByResource { id, filter });
-    }
-
-    pub fn set_texture_min_filter_by_resource(&mut self, id: ResourceId, filter: TexFilter) {
-        self.submit(RenderCommand::SetTextureMinFilterByResource { id, filter });
-    }
-
-    pub fn set_texture_wrap_mode_by_resource(&mut self, id: ResourceId, mode: TexWrapMode) {
-        self.submit(RenderCommand::SetTextureWrapModeByResource { id, mode });
     }
 
     pub fn generate_mipmap_by_resource(&mut self, id: ResourceId) {

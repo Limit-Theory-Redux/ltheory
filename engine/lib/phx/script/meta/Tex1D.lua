@@ -39,22 +39,10 @@ function Tex1D:getSize() end
 function Tex1D:setDataBytes(r, data, pf, df) end
 
 ---@param r Renderer
----@param filter TexFilter
-function Tex1D:setMagFilter(r, filter) end
-
----@param r Renderer
----@param filter TexFilter
-function Tex1D:setMinFilter(r, filter) end
-
----@param r Renderer
 ---@param x integer
 ---@param red number
 ---@param green number
 ---@param blue number
 ---@param alpha number
 function Tex1D:setTexel(r, x, red, green, blue, alpha) end
-
----@param r Renderer
----@param mode TexWrapMode
-function Tex1D:setWrapMode(r, mode) end
 

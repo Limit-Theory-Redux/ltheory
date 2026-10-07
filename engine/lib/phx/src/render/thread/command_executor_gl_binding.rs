@@ -1130,16 +1130,6 @@ impl CommandExecutor {
         self.this_frame_stats.state_changes += 1;
     }
 
-    // -----------------------------------------------------------------
-    // Texture state commands that bypass views (until S7)
-    // -----------------------------------------------------------------
-
-    /// `SetTexture2DMipRangeByResource` set `id`'s mip range directly: the
-    /// view binding must know, or it would not reapply its own.
-    pub(super) fn note_mip_range(&mut self, id: ResourceId, min_level: i32, max_level: i32) {
-        self.binding.mip_ranges.insert(id, (min_level, max_level));
-    }
-
     /// Texture destroyed: forget its caches and unbind it from the units.
     pub(super) fn forget_texture(&mut self, id: ResourceId) {
         self.binding.mip_ranges.remove(&id);

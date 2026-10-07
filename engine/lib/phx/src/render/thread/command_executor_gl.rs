@@ -6,8 +6,8 @@ use crate::render::gl::{self};
 use crate::render::thread::{AttachKey, FboKey, GpuResource};
 use crate::render::{
     BlockLayout, CommandCategory, CommandExecutor, CommandReply, LoadOp, MAX_COLOR_ATTACHMENTS,
-    RenderPassDesc, RenderStats, ResourceId, ShaderLayout, ShaderReloadResult, TexFilter,
-    TexFormat, TexWrapMode, VertexFormat, ViewDim,
+    RenderPassDesc, RenderStats, ResourceId, ShaderLayout, ShaderReloadResult,
+    TexFormat, VertexFormat, ViewDim,
 };
 use crate::window::{PresentMode, WindowGlContext};
 
@@ -152,51 +152,6 @@ impl CommandExecutor {
     }
 
     #[inline(always)]
-    pub(super) fn cmd_set_texture_2d_anisotropy_by_resource(
-        &mut self,
-        id: ResourceId,
-        factor: f32,
-    ) {
-        let _sa = self.record_command(CommandCategory::TextureData, false, false);
-        if let Some((target, handle)) = self.texture_target_and_handle(id) {
-            unsafe {
-                gl::BindTexture(target, handle);
-                gl::TexParameterf(target, gl::TEXTURE_MAX_ANISOTROPY_EXT, factor);
-            }
-            self.restore_active_unit_binding();
-        } else {
-            warn!(
-                "SetTexture2DAnisotropyByResource: resource {:?} not found",
-                id
-            );
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_set_texture_2d_mip_range_by_resource(
-        &mut self,
-        id: ResourceId,
-        min_level: i32,
-        max_level: i32,
-    ) {
-        let _sa = self.record_command(CommandCategory::TextureData, false, false);
-        if let Some((target, handle)) = self.texture_target_and_handle(id) {
-            unsafe {
-                gl::BindTexture(target, handle);
-                gl::TexParameteri(target, gl::TEXTURE_BASE_LEVEL, min_level);
-                gl::TexParameteri(target, gl::TEXTURE_MAX_LEVEL, max_level);
-            }
-            self.note_mip_range(id, min_level, max_level);
-            self.restore_active_unit_binding();
-        } else {
-            warn!(
-                "SetTexture2DMipRangeByResource: resource {:?} not found",
-                id
-            );
-        }
-    }
-
-    #[inline(always)]
     pub(super) fn cmd_set_texel_1d_by_resource(&mut self, id: ResourceId, x: i32, color: [f32; 4]) {
         let _sa = self.record_command(CommandCategory::TextureData, false, false);
         if let Some((target, handle)) = self.texture_target_and_handle(id) {
@@ -245,66 +200,6 @@ impl CommandExecutor {
             self.restore_active_unit_binding();
         } else {
             warn!("SetTexel2DByResource: resource {:?} not found", id);
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_set_texture_mag_filter_by_resource(
-        &mut self,
-        id: ResourceId,
-        filter: TexFilter,
-    ) {
-        let _sa = self.record_command(CommandCategory::TextureData, false, false);
-        if let Some((target, handle)) = self.texture_target_and_handle(id) {
-            unsafe {
-                gl::BindTexture(target, handle);
-                gl::TexParameteri(target, gl::TEXTURE_MAG_FILTER, filter as i32);
-            }
-            self.restore_active_unit_binding();
-        } else {
-            warn!("SetTextureMagFilterByResource: resource {:?} not found", id);
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_set_texture_min_filter_by_resource(
-        &mut self,
-        id: ResourceId,
-        filter: TexFilter,
-    ) {
-        let _sa = self.record_command(CommandCategory::TextureData, false, false);
-        if let Some((target, handle)) = self.texture_target_and_handle(id) {
-            unsafe {
-                gl::BindTexture(target, handle);
-                gl::TexParameteri(target, gl::TEXTURE_MIN_FILTER, filter as i32);
-            }
-            self.restore_active_unit_binding();
-        } else {
-            warn!("SetTextureMinFilterByResource: resource {:?} not found", id);
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_set_texture_wrap_mode_by_resource(
-        &mut self,
-        id: ResourceId,
-        mode: TexWrapMode,
-    ) {
-        let _sa = self.record_command(CommandCategory::TextureData, false, false);
-        if let Some((target, handle)) = self.texture_target_and_handle(id) {
-            unsafe {
-                gl::BindTexture(target, handle);
-                gl::TexParameteri(target, gl::TEXTURE_WRAP_S, mode as i32);
-                if target != gl::TEXTURE_1D {
-                    gl::TexParameteri(target, gl::TEXTURE_WRAP_T, mode as i32);
-                }
-                if target == gl::TEXTURE_3D {
-                    gl::TexParameteri(target, gl::TEXTURE_WRAP_R, mode as i32);
-                }
-            }
-            self.restore_active_unit_binding();
-        } else {
-            warn!("SetTextureWrapModeByResource: resource {:?} not found", id);
         }
     }
 

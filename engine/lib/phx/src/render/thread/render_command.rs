@@ -11,8 +11,7 @@ use crossbeam::channel::Sender;
 use super::command_category::CommandCategory;
 use crate::render::{
     BindEntry, BindGroupId, BlockLayout, BufferId, PassCommands, PipelineDesc, PipelineId,
-    RenderPassDesc, SamplerDesc, SamplerId, ShaderLayout, TexFilter, TexFormat, TexView,
-    TexWrapMode, VertexFormat, gl,
+    RenderPassDesc, SamplerDesc, SamplerId, ShaderLayout, TexFormat, TexView, VertexFormat, gl,
 };
 use crate::window::PresentMode;
 
@@ -89,16 +88,6 @@ pub enum RenderCommand {
         data: Vec<u8>,
     },
 
-    /// Set anisotropy filter for a 2D texture by resource ID
-    SetTexture2DAnisotropyByResource { id: ResourceId, factor: f32 },
-
-    /// Set mip level range for a 2D texture by resource ID
-    SetTexture2DMipRangeByResource {
-        id: ResourceId,
-        min_level: i32,
-        max_level: i32,
-    },
-
     /// Set a single texel of a 1D texture by resource ID
     SetTexel1DByResource {
         id: ResourceId,
@@ -114,20 +103,7 @@ pub enum RenderCommand {
         color: [f32; 4],
     },
 
-    /// Set magnification filter for a texture by resource ID.
-    /// Dispatches on the resource's own kind (1D/2D/3D/Cube) to pick the GL
-    /// target, so callers don't need to know it.
-    SetTextureMagFilterByResource { id: ResourceId, filter: TexFilter },
-
-    /// Set minification filter for a texture by resource ID (see above)
-    SetTextureMinFilterByResource { id: ResourceId, filter: TexFilter },
-
-    /// Set wrap mode for a texture by resource ID (see above). Applies to
-    /// every wrap axis the resource's target has (S only for 1D; S+T for
-    /// 2D/Cube; S+T+R for 3D).
-    SetTextureWrapModeByResource { id: ResourceId, mode: TexWrapMode },
-
-    /// Generate mipmaps for a texture by resource ID (see above)
+    /// Generate mipmaps for a texture by resource ID
     GenerateMipmapByResource { id: ResourceId },
 
     /// Copy a `size[0]` x `size[1]` rectangle (`size[2]` layers, always 1 on
@@ -405,13 +381,8 @@ impl RenderCommand {
             // === Texture State / Data ===
             UpdateTexture2DDataByResource { .. }
             | UpdateTexture2DRect { .. }
-            | SetTexture2DAnisotropyByResource { .. }
-            | SetTexture2DMipRangeByResource { .. }
             | SetTexel1DByResource { .. }
             | SetTexel2DByResource { .. }
-            | SetTextureMagFilterByResource { .. }
-            | SetTextureMinFilterByResource { .. }
-            | SetTextureWrapModeByResource { .. }
             | GenerateMipmapByResource { .. }
             | CopyTexture { .. }
             | UpdateTexture1DDataByResource { .. }

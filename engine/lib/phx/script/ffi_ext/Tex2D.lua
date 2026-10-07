@@ -57,32 +57,12 @@ function onDef_Tex2D_t(t, mt)
         return Core.ManagedObject(_instance, libphx.Bytes_Free)
     end
 
-    mt.__index.setAnisotropy = function(self, factor)
-        libphx.Tex2D_SetAnisotropy(self, Renderer, factor)
-    end
-
     mt.__index.setDataBytes = function(self, data, pf, df)
         libphx.Tex2D_SetDataBytes(self, Renderer, data, pf, df)
     end
 
-    mt.__index.setMagFilter = function(self, filter)
-        libphx.Tex2D_SetMagFilter(self, Renderer, filter)
-    end
-
-    mt.__index.setMinFilter = function(self, filter)
-        libphx.Tex2D_SetMinFilter(self, Renderer, filter)
-    end
-
-    mt.__index.setMipRange = function(self, minLevel, maxLevel)
-        libphx.Tex2D_SetMipRange(self, Renderer, minLevel, maxLevel)
-    end
-
     mt.__index.setTexel = function(self, x, y, red, green, blue, alpha)
         libphx.Tex2D_SetTexel(self, Renderer, x, y, red, green, blue, alpha)
-    end
-
-    mt.__index.setWrapMode = function(self, mode)
-        libphx.Tex2D_SetWrapMode(self, Renderer, mode)
     end
 
     mt.__index.sample = function(self, x, y)

@@ -28,9 +28,6 @@ function Loader.defineType()
             Vec3i     Tex3D_GetSize      (Tex3D const*);
             Vec3i     Tex3D_GetSizeLevel (Tex3D const*, int level);
             void      Tex3D_SetDataBytes (Tex3D*, Renderer* r, Bytes* data, PixelFormat pf, DataFormat df);
-            void      Tex3D_SetMagFilter (Tex3D*, Renderer* r, TexFilter filter);
-            void      Tex3D_SetMinFilter (Tex3D*, Renderer* r, TexFilter filter);
-            void      Tex3D_SetWrapMode  (Tex3D*, Renderer* r, TexWrapMode mode);
         ]]
     end
 
@@ -71,9 +68,6 @@ function Loader.defineType()
                 getSize      = libphx.Tex3D_GetSize,
                 getSizeLevel = libphx.Tex3D_GetSizeLevel,
                 setDataBytes = libphx.Tex3D_SetDataBytes,
-                setMagFilter = libphx.Tex3D_SetMagFilter,
-                setMinFilter = libphx.Tex3D_SetMinFilter,
-                setWrapMode  = libphx.Tex3D_SetWrapMode,
             },
         }
 

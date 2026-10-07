@@ -37,19 +37,7 @@ function onDef_Tex1D_t(t, mt)
         libphx.Tex1D_SetDataBytes(self, Renderer, data, pf, df)
     end
 
-    mt.__index.setMagFilter = function(self, filter)
-        libphx.Tex1D_SetMagFilter(self, Renderer, filter)
-    end
-
-    mt.__index.setMinFilter = function(self, filter)
-        libphx.Tex1D_SetMinFilter(self, Renderer, filter)
-    end
-
     mt.__index.setTexel = function(self, x, red, green, blue, alpha)
         libphx.Tex1D_SetTexel(self, Renderer, x, red, green, blue, alpha)
-    end
-
-    mt.__index.setWrapMode = function(self, mode)
-        libphx.Tex1D_SetWrapMode(self, Renderer, mode)
     end
 end

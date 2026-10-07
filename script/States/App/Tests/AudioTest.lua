@@ -54,8 +54,6 @@ function AudioTest:onInit()
         local e = self.emitters[i]
         e.tex = Tex2D.Load(e.image)
         e.tex:genMipmap()
-        e.tex:setMagFilter(TexFilter.Linear)
-        e.tex:setMinFilter(TexFilter.LinearMipLinear)
 
         e.sound = Sound.Load(e.file, true)
         e.sound:set3DPos(Vec3f(e.x, 0, e.y), Vec3f(0, 0, 0))

@@ -35,16 +35,4 @@ function onDef_Tex3D_t(t, mt)
     mt.__index.setDataBytes = function(self, data, pf, df)
         libphx.Tex3D_SetDataBytes(self, Renderer, data, pf, df)
     end
-
-    mt.__index.setMagFilter = function(self, filter)
-        libphx.Tex3D_SetMagFilter(self, Renderer, filter)
-    end
-
-    mt.__index.setMinFilter = function(self, filter)
-        libphx.Tex3D_SetMinFilter(self, Renderer, filter)
-    end
-
-    mt.__index.setWrapMode = function(self, mode)
-        libphx.Tex3D_SetWrapMode(self, Renderer, mode)
-    end
 end

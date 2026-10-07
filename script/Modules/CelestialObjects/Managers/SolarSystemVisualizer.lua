@@ -239,8 +239,6 @@ function SolarSystemVisualizer:_materializeMoon(entity, physicsWorld)
         brightRayStrength = moonOptions.brightRayStrength,
     })
     texSurface:genMipmap()
-    texSurface:setMagFilter(TexFilter.Linear)
-    texSurface:setMinFilter(TexFilter.LinearMipLinear)
 
     -- Add gen component for shader var lookups
     entity:add(CelestialComponents.Gen.Moon(moonOptions))

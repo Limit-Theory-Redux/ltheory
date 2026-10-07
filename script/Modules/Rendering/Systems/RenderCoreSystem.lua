@@ -118,9 +118,6 @@ end
 function RenderCoreSystem:initializeBuffers()
     local function create(x, y, fmt)
         local t = Tex2D.Create(x, y, fmt)
-        t:setMagFilter(TexFilter.Linear)
-        t:setMinFilter(TexFilter.Linear)
-        t:setWrapMode(TexWrapMode.Clamp)
         -- A depth buffer has nothing to clear here (the opaque pass clears it).
         if not TexFormat.IsDepth(fmt) then t:clear(0, 0, 0, 0) end
         t:genMipmap()
@@ -781,7 +778,6 @@ function RenderCoreSystem:tonemap(dt)
     -- Space-game optimized auto-exposure: extremely stable, ignores bright stars/sun, very slow adaptation
     if settings.autoExpose.enable then
         local src = self.buffers[Enums.BufferName.buffer0]
-        src:setMinFilter(TexFilter.Linear)
         src:genMipmap()
 
         -- Strong downsampling
@@ -795,8 +791,9 @@ function RenderCoreSystem:tonemap(dt)
         end
         mip = math.max(mip, 2)
 
-        src:setMipRange(mip, mip)
-
+        -- `src:sample` reads level 0 of the texture (it always did: the mip range
+        -- this code used to set never reached the framebuffer read); S8 replaces
+        -- the sampling with an async read of this mip.
         local smallSize = src:getSizeLevel(mip)
         local w, h = smallSize.x, smallSize.y
 
@@ -864,9 +861,6 @@ function RenderCoreSystem:tonemap(dt)
 
         -- Optional extra safety floor (can keep or remove)
         -- exposure = math.max(exposure, settings.exposure * 0.05)
-
-        -- Restore
-        src:setMipRange(0, 0)
     end
 
     -- Legacy path
