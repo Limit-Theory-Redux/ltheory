@@ -194,6 +194,8 @@ pub(super) struct FrameCounters {
     pipeline_binds: u64,
     pipeline_redundant: u64,
     submits: u64,
+    passes: u64,
+    bind_group_switches: u64,
     recv_wait_us: u64,
     recv_wait_count: u64,
 }

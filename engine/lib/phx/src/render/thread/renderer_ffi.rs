@@ -78,6 +78,67 @@ impl Renderer {
         self.get_stats().vertices_drawn
     }
 
+    /// Render passes begun in the last frame.
+    pub fn stats_passes(&mut self) -> u64 {
+        self.get_stats().passes
+    }
+
+    /// Pipeline (program) switches in the last frame: binds that changed the program.
+    pub fn stats_pipeline_switches(&mut self) -> u64 {
+        let s = self.get_stats();
+        s.shader_bind_commands.saturating_sub(s.shader_redundant_binds)
+    }
+
+    /// Bind groups bound in the last frame.
+    pub fn stats_bind_group_switches(&mut self) -> u64 {
+        self.get_stats().bind_group_switches
+    }
+
+    /// Immediate-mode (UI) vertices in the last frame.
+    pub fn stats_imm_vertices(&mut self) -> u64 {
+        self.get_stats().immediate_vertices
+    }
+
+    /// Resource census: pipelines, samplers, bind groups, textures, meshes
+    /// (`u64::MAX` = n/a on this backend).
+    pub fn stats_pipelines(&mut self) -> u64 {
+        self.get_stats().pipelines_cached
+    }
+    pub fn stats_samplers(&mut self) -> u64 {
+        self.get_stats().samplers
+    }
+    pub fn stats_bind_groups(&mut self) -> u64 {
+        self.get_stats().bind_groups
+    }
+    pub fn stats_textures(&mut self) -> u64 {
+        self.get_stats().textures
+    }
+    pub fn stats_meshes(&mut self) -> u64 {
+        self.get_stats().meshes
+    }
+
+    /// Approximate GPU memory of all live textures, bytes (`u64::MAX` = n/a).
+    pub fn stats_texture_bytes(&mut self) -> u64 {
+        self.get_stats().texture_bytes
+    }
+
+    /// Uniform ring bytes allocated in the last completed frame.
+    pub fn stats_uniform_bytes(&self) -> u64 {
+        self.data.ring.last_frame_bytes()
+    }
+
+    /// Vertex ring bytes allocated in the last completed frame.
+    pub fn stats_vertex_bytes(&self) -> u64 {
+        self.data.vertex_ring.last_frame_bytes()
+    }
+
+    /// Startup backend description as `key=value` lines: `backend`
+    /// (`OpenGL 3.3` or `wgpu`), then GL strings or the wgpu adapter info.
+    /// Empty until the render thread is up; query once and cache.
+    pub fn backend_info(&self) -> String {
+        self.backend_info_intern()
+    }
+
     // === Readback ===
 
     /// Read the `w` x `h` texels at `x`, `y` of `view` (its mip level, face or

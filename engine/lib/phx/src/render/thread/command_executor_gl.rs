@@ -21,6 +21,31 @@ const DRAW_BUFS: [u32; 4] = [
 ];
 
 impl CommandExecutor {
+    /// The `key=value` lines `Renderer::backend_info` returns for the GL
+    /// backend. Needs the context current on this thread, after `init_gl`.
+    pub fn gl_backend_info(&self) -> String {
+        let get = |name: u32| unsafe {
+            let p = gl::GetString(name);
+            if p.is_null() {
+                "n/a".to_string()
+            } else {
+                std::ffi::CStr::from_ptr(p as *const _).to_string_lossy().into_owned()
+            }
+        };
+        format!(
+            "backend=OpenGL 3.3
+gl_renderer={}
+gl_vendor={}
+gl_version={}
+glsl_version={}
+",
+            get(gl::RENDERER),
+            get(gl::VENDOR),
+            get(gl::VERSION),
+            get(gl::SHADING_LANGUAGE_VERSION)
+        )
+    }
+
     pub(super) fn init_gl_intern(&mut self) {
         unsafe {
             // Reset GL state to known defaults - context may have inherited state from main thread
@@ -513,6 +538,7 @@ impl CommandExecutor {
 
     pub(super) fn cmd_begin_render_pass(&mut self, desc: &RenderPassDesc) {
         let _sa = self.record_command(CommandCategory::Framebuffer, false, false);
+        self.this_frame_stats.passes += 1;
 
         // If a texture is missing or the FBO is incomplete the error was
         // logged at creation; fall back to the default framebuffer so the
@@ -891,6 +917,12 @@ impl CommandExecutor {
             last_frame_time_us: frame_time_us,
             present_wait_us: 0,
             texture_binds_skipped_cumulative: self.texture_binds_skipped,
+            pipelines_cached: self.binding.pipelines.len() as u64,
+            samplers: self.binding.samplers.len() as u64,
+            bind_groups: self.binding.bind_groups.len() as u64,
+            textures: self.resources.values().filter(|r| !matches!(r, GpuResource::Shader { .. } | GpuResource::Mesh { .. })).count() as u64,
+            meshes: self.resources.values().filter(|r| matches!(r, GpuResource::Mesh { .. })).count() as u64,
+            texture_bytes: crate::render::STAT_NA,
             ..self.this_frame_stats.clone()
         };
 

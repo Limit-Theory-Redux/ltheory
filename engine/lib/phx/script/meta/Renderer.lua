@@ -45,6 +45,57 @@ function Renderer:statsMainWaitUs() end
 ---@return integer
 function Renderer:statsVertices() end
 
+-- Render passes begun in the last frame.
+---@return integer
+function Renderer:statsPasses() end
+
+-- Pipeline (program) switches in the last frame: binds that changed the program.
+---@return integer
+function Renderer:statsPipelineSwitches() end
+
+-- Bind groups bound in the last frame.
+---@return integer
+function Renderer:statsBindGroupSwitches() end
+
+-- Immediate-mode (UI) vertices in the last frame.
+---@return integer
+function Renderer:statsImmVertices() end
+
+-- Resource census: pipelines, samplers, bind groups, textures, meshes
+-- (`u64::MAX` = n/a on this backend).
+---@return integer
+function Renderer:statsPipelines() end
+
+---@return integer
+function Renderer:statsSamplers() end
+
+---@return integer
+function Renderer:statsBindGroups() end
+
+---@return integer
+function Renderer:statsTextures() end
+
+---@return integer
+function Renderer:statsMeshes() end
+
+-- Approximate GPU memory of all live textures, bytes (`u64::MAX` = n/a).
+---@return integer
+function Renderer:statsTextureBytes() end
+
+-- Uniform ring bytes allocated in the last completed frame.
+---@return integer
+function Renderer:statsUniformBytes() end
+
+-- Vertex ring bytes allocated in the last completed frame.
+---@return integer
+function Renderer:statsVertexBytes() end
+
+-- Startup backend description as `key=value` lines: `backend`
+-- (`OpenGL 3.3` or `wgpu`), then GL strings or the wgpu adapter info.
+-- Empty until the render thread is up; query once and cache.
+---@return string
+function Renderer:backendInfo() end
+
 -- Read the `w` x `h` texels at `x`, `y` of `view` (its mip level, face or
 -- layer) as `fmt` and wait for them: rows from the first up, tightly
 -- packed, in the layout of `fmt` (the texture is converted if it is

@@ -316,6 +316,12 @@ impl Renderer {
         true
     }
 
+    /// `key=value` lines describing the backend.
+    pub fn backend_info_intern(&self) -> String {
+        format!("{}renderer_mode=immediate
+", self.executor.gl_backend_info())
+    }
+
     /// Get current render stats snapshot
     pub fn get_stats(&mut self) -> RenderStats {
         self.executor.stats_snapshot()

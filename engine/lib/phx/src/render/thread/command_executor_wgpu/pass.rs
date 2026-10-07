@@ -271,6 +271,7 @@ impl WgpuCommandExecutor {
     // =====================================================================
 
     pub(super) fn cmd_begin_render_pass(&mut self, desc: &RenderPassDesc) {
+        self.frame_counters.passes += 1;
         self.pass = None;
         let mut colors = Vec::new();
         let mut depth = None;
@@ -480,6 +481,7 @@ impl WgpuCommandExecutor {
                 self.frame_counters.state_changes += 1;
             }
             PassCmd::SetBindGroup { group, id } => {
+                self.frame_counters.bind_group_switches += 1;
                 let Some(stored) = self.bind_groups.get(id) else {
                     warn!("wgpu: SetBindGroup: bind group {id:?} was never created");
                     return;

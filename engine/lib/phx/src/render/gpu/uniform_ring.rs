@@ -81,6 +81,9 @@ pub struct StagingRing {
     spare: Vec<Vec<u8>>,
     /// Recycled small buffers for partial runs.
     runs: Vec<Vec<u8>>,
+    /// Bytes allocated since `begin_frame`, and in the frame before (stats).
+    frame_bytes: u64,
+    prev_frame_bytes: u64,
 }
 
 impl StagingRing {
@@ -95,7 +98,14 @@ impl StagingRing {
             closed: Vec::new(),
             spare: Vec::new(),
             runs: Vec::new(),
+            frame_bytes: 0,
+            prev_frame_bytes: 0,
         }
+    }
+
+    /// Bytes allocated during the last completed frame.
+    pub fn last_frame_bytes(&self) -> u64 {
+        self.prev_frame_bytes
     }
 
     pub fn chunk_size(&self) -> usize {
@@ -116,6 +126,8 @@ impl StagingRing {
             "StagingRing::begin_frame with unsent data"
         );
         self.slot = (frame_index % MAX_FRAMES_IN_FLIGHT as u64) as usize;
+        self.prev_frame_bytes = self.frame_bytes;
+        self.frame_bytes = 0;
         self.open.clear();
         self.chunk = 0;
         self.sent = 0;
@@ -132,6 +144,7 @@ impl StagingRing {
             "staging allocation of {size} bytes exceeds the {} byte ring chunk",
             self.chunk_size
         );
+        self.frame_bytes += size as u64;
         let mut start = self.open.len().next_multiple_of(self.align);
         if start + size > self.chunk_size {
             self.close_chunk();

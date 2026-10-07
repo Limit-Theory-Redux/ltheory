@@ -2,6 +2,8 @@ local Bindings = require('States.ApplicationBindings')
 local MainMenu = require('Legacy.Systems.Menus.MainMenu')
 local ShaderHotReload = require('Render.ShaderHotReload')
 local ShaderErrorOverlay = require('Shared.Tools.ShaderErrorOverlay')
+local RenderInfoOverlay = require('Shared.Tools.RenderInfoOverlay')
+local GeneralActions = require('Input.ActionBindings.GeneralActions')
 
 ---@class Application
 local Application = Class("Application", function(self) end)
@@ -75,6 +77,7 @@ function Application:appInit()
 
     -- Settings
     self.profilerFont = Font.Load('NovaMono', 10)
+    RenderInfoOverlay:init()
     self.lastUpdate = TimeStamp.Now()
     self.profiling = false
     self.toggleProfiler = false
@@ -273,6 +276,15 @@ function Application:onPostRender(data)
     Profiler.SetValue('gc_debug_spreadFrames', GC.debug.spreadFrames)
 
     self:immediateUI(function() ShaderErrorOverlay:draw() end)
+
+    -- Render info overlay: drawn last, on top. Hidden in capture mode unless
+    -- LTHEORY_OVERLAY=1 (so validation captures stay identical).
+    RenderInfoOverlay:tick()
+    GeneralActions.RenderInfoOverlay:update(data:deltaTime())
+    if GeneralActions.RenderInfoOverlay:isPressed() then RenderInfoOverlay:toggle() end
+    if RenderInfoOverlay.visible and (not self.captureMode or RenderInfoOverlay.forced) then
+        self:immediateUI(function() RenderInfoOverlay:draw() end)
+    end
 
     Profiler.End()
 

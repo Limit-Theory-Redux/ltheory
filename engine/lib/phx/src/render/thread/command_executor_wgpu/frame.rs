@@ -379,6 +379,19 @@ impl WgpuCommandExecutor {
         self.frame_index += 1;
         self.stats.frame_count += 1;
         let c = std::mem::take(&mut self.frame_counters);
+        let (mut textures, mut meshes, mut texture_bytes) = (0u64, 0u64, 0u64);
+        for r in self.resources.values() {
+            match r {
+                WgpuResource::Texture { desc, .. } => {
+                    textures += 1;
+                    let faces = if matches!(desc.dim, crate::render::TexDim::Cube) { 6 } else { 1 };
+                    texture_bytes += faces
+                        * (0..desc.mips.max(1)).map(|l| desc.level_bytes(l) as u64).sum::<u64>();
+                }
+                WgpuResource::Mesh(_) => meshes += 1,
+                WgpuResource::Shader(_) => {}
+            }
+        }
         self.last_stats = RenderStats {
             commands_processed: self.stats.commands_processed,
             draw_calls_cumulative: self.stats.draw_calls,
@@ -400,6 +413,14 @@ impl WgpuCommandExecutor {
             shader_bind_commands: c.pipeline_binds + c.pipeline_redundant,
             shader_redundant_binds: c.pipeline_redundant,
             shader_distinct_programs: c.pipeline_binds,
+            passes: c.passes,
+            bind_group_switches: c.bind_group_switches,
+            pipelines_cached: self.variants.len() as u64,
+            samplers: self.samplers.len() as u64,
+            bind_groups: self.bind_groups.len() as u64,
+            textures,
+            meshes,
+            texture_bytes,
             ..self.last_stats.clone()
         };
         self.stats.state_changes += c.state_changes;

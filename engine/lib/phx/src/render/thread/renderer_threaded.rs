@@ -69,6 +69,8 @@ pub struct Renderer {
     /// can flip it after the executor has moved to the render thread.
     #[cfg(feature = "stats-server")]
     pub(super) category_timing: Arc<AtomicBool>,
+    /// Startup backend description, filled by the render thread once up.
+    backend_info: Arc<std::sync::Mutex<String>>,
     /// Generic renderer data
     pub(crate) data: RendererData,
     /// Last shader bind submitted, so identical consecutive binds can skip
@@ -130,6 +132,8 @@ impl Renderer {
         // sink is attached (dashboard mode), enabling per-category timing.
         let category_timing = Arc::new(AtomicBool::new(false));
         let category_timing_executor = category_timing.clone();
+        let backend_info = Arc::new(std::sync::Mutex::new(String::new()));
+        let backend_info_thread = backend_info.clone();
 
         // The wgpu bundle needs no activation handshake: with no GL context the
         // thread below reports ready immediately and builds the wgpu executor.
@@ -170,7 +174,9 @@ impl Renderer {
                     };
 
                     // Pass GL context to render thread for buffer swapping
-                    let mut render_thread = if let Some(bundle) = wgpu_bundle {
+                    let render_thread = if let Some(bundle) = wgpu_bundle {
+                        let info = super::render_thread::wgpu_backend_info(&bundle.adapter, &bundle.surface_config);
+                        *backend_info_thread.lock().unwrap() = info;
                         RenderThread::new_wgpu(
                             command_rx,
                             fence_tx,
@@ -195,6 +201,7 @@ impl Renderer {
                             category_timing_executor,
                         )
                     };
+                    let mut render_thread = render_thread.with_backend_info(backend_info_thread);
                     render_thread.run();
 
                     // GL context will be returned via channel or dropped if cleanup fails
@@ -231,6 +238,7 @@ impl Renderer {
             stats_sink: None,
             #[cfg(feature = "stats-server")]
             category_timing,
+            backend_info,
             data: RendererData::new(destroy_tx, destroy_rx),
             last_shader_bind: None,
         };
@@ -384,6 +392,18 @@ impl Renderer {
     fn refresh_stats(&mut self) {
         while let Ok(stats) = self.stats_rx.try_recv() {
             self.last_stats = stats;
+        }
+    }
+
+    /// `key=value` lines describing the backend (empty until the render
+    /// thread is up).
+    pub fn backend_info_intern(&self) -> String {
+        let info = self.backend_info.lock().map(|s| s.clone()).unwrap_or_default();
+        if info.is_empty() {
+            info
+        } else {
+            format!("{info}renderer_mode=threaded
+")
         }
     }
 

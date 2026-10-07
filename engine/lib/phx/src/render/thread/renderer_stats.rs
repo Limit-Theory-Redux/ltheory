@@ -72,4 +72,20 @@ pub struct RenderStats {
     pub shader_distinct_programs: u64,
     /// Texture binds skipped due to caching (cumulative)
     pub texture_binds_skipped_cumulative: u64,
+    /// Render passes begun in the last frame
+    pub passes: u64,
+    /// `SetBindGroup` commands executed in the last frame
+    pub bind_group_switches: u64,
+    /// Resource census at the last frame end. [`STAT_NA`] when the backend
+    /// cannot provide it.
+    pub pipelines_cached: u64,
+    pub samplers: u64,
+    pub bind_groups: u64,
+    pub textures: u64,
+    pub meshes: u64,
+    /// Approximate GPU memory of all live textures (from their descriptors)
+    pub texture_bytes: u64,
 }
+
+/// Value of a [`RenderStats`] field the backend cannot provide.
+pub const STAT_NA: u64 = u64::MAX;

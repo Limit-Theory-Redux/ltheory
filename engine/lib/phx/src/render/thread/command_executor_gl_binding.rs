@@ -833,6 +833,7 @@ impl CommandExecutor {
                     self.count_state_change();
                 }
                 PassCmd::SetBindGroup { group, id } => {
+                    self.this_frame_stats.bind_group_switches += 1;
                     let Some(bg) = self.binding.bind_groups.get(id) else {
                         error!("SetBindGroup: bind group {id:?} was never created");
                         return;

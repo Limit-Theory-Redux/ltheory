@@ -35,9 +35,17 @@ pub struct RenderThread {
     /// Parallel wgpu backend; when set, commands go to it instead of the GL
     /// executor (which then has no context). Exactly one of the two is active.
     wgpu_executor: Option<WgpuCommandExecutor>,
+    /// Where the startup backend description goes (see `Renderer::backend_info`).
+    backend_info: Option<std::sync::Arc<std::sync::Mutex<String>>>,
 }
 
 impl RenderThread {
+    /// Publish the backend description to `cell` once the backend is up.
+    pub fn with_backend_info(mut self, cell: std::sync::Arc<std::sync::Mutex<String>>) -> Self {
+        self.backend_info = Some(cell);
+        self
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         command_rx: Receiver<RenderCommand>,
@@ -60,6 +68,7 @@ impl RenderThread {
             running,
             executor: CommandExecutor::new_with_timing(gl_context, category_timing),
             wgpu_executor: None,
+            backend_info: None,
         }
     }
 
@@ -94,6 +103,7 @@ impl RenderThread {
             running,
             executor: CommandExecutor::new_with_timing(None, category_timing),
             wgpu_executor: Some(executor),
+            backend_info: None,
         }
     }
 
@@ -106,6 +116,9 @@ impl RenderThread {
             info!("Render thread running the wgpu backend");
         } else if self.executor.has_gl_context() {
             self.executor.init_gl();
+            if let Some(cell) = &self.backend_info {
+                *cell.lock().unwrap() = self.executor.gl_backend_info();
+            }
         } else {
             warn!("Render thread running without GL context - commands will be no-ops");
         }
@@ -231,4 +244,16 @@ impl RenderThread {
             }
         }
     }
+}
+
+/// The `key=value` lines `Renderer::backend_info` returns for a wgpu backend.
+pub(super) fn wgpu_backend_info(
+    adapter: &wgpu::Adapter,
+    config: &wgpu::SurfaceConfiguration,
+) -> String {
+    let i = adapter.get_info();
+    format!(
+        "backend=wgpu\nwgpu_backend={:?}\nadapter={}\ndevice_type={:?}\ndriver={}\ndriver_info={}\nvendor_id=0x{:04x}\ndevice_id=0x{:04x}\nsurface_format={:?}\npresent_mode={:?}\n",
+        i.backend, i.name, i.device_type, i.driver, i.driver_info, i.vendor, i.device, config.format, config.present_mode
+    )
 }
