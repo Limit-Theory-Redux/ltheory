@@ -402,7 +402,6 @@ impl Renderer {
 
         self.pass_emit_view();
         self.pass_emit_environment();
-        self.sync_scissor();
         Profiler::end();
 
         RenderPass {
@@ -478,6 +477,8 @@ impl Renderer {
                 self.data.encoder.push(PassCmd::SetPipeline(user));
             }
         }
+        let want = self.imm_scissor();
+        self.pass_apply_scissor(want);
         let encoder = &mut self.data.encoder;
         if encoder.inputs_dirty {
             encoder.inputs_dirty = false;
@@ -569,7 +570,6 @@ impl Renderer {
         self.data.pass.view.set_viewport(viewport, is_window);
         self.data.encoder.push(PassCmd::SetViewport(viewport));
         self.pass_emit_view();
-        self.sync_scissor();
     }
 
     fn pass_set_ui_transform(&mut self, m: [f32; 16]) {
@@ -616,31 +616,24 @@ impl Renderer {
         }
     }
 
-    /// Re-apply the `ClipRect` scissor to the open pass if it differs from
-    /// what the GPU currently has. The GL scissor is global state, so this
-    /// compares against the last update sent, not against the pass.
-    pub fn sync_scissor(&mut self) {
-        if self.data.pass.open.is_none() {
-            return;
-        }
-        let size = self.target_size();
-        let want = self.data.clip_rect.desired(size);
+    /// Send `want` (the `ClipRect` scissor) to the open pass if the GPU does
+    /// not have it yet. The GL scissor is global state, so this compares
+    /// against the last update sent, not against the pass.
+    pub(crate) fn pass_apply_scissor(&mut self, want: ScissorUpdate) {
         if self.data.clip_emitted == Some(want) {
             return;
         }
         self.data.clip_emitted = Some(want);
-        match want {
-            ScissorUpdate::Disable => self.enable_scissor_intern(false),
+        let rect = match want {
+            ScissorUpdate::Disable => None,
             ScissorUpdate::Set {
                 x,
                 y,
                 width,
                 height,
-            } => {
-                self.enable_scissor_intern(true);
-                self.set_scissor_intern(x, y, width, height);
-            }
-        }
+            } => Some([x, y, width, height]),
+        };
+        self.data.encoder.push(PassCmd::SetScissor(rect));
     }
 
     /// Frame boundary: the uniform ring moves on to the next slot.

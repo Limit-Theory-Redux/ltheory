@@ -50,6 +50,50 @@ impl Tex2D {
         data
     }
 
+    /// A texture of `format` created with `bytes` (tightly packed rows).
+    pub fn new_with_bytes(
+        r: &mut Renderer,
+        sx: i32,
+        sy: i32,
+        format: TexFormat,
+        bytes: Vec<u8>,
+    ) -> Tex2D {
+        let handle = r.create_resource();
+        r.create_texture_2d(handle.id(), sx as u32, sy as u32, format, Some(bytes));
+
+        Tex2D {
+            shared: Rf::new(Tex2DShared {
+                handle,
+                size: IVec2::new(sx, sy),
+                format,
+            }),
+        }
+    }
+
+    /// Replace a rectangle of a one-byte-per-texel texture (tightly packed rows).
+    pub fn update_rect_bytes(
+        &self,
+        r: &mut Renderer,
+        x: i32,
+        y: i32,
+        width: i32,
+        height: i32,
+        bytes: Vec<u8>,
+    ) {
+        let this = self.shared.as_ref();
+        debug_assert_eq!(this.format, TexFormat::R8);
+        r.update_texture_2d_rect(
+            this.handle.id(),
+            x,
+            y,
+            width,
+            height,
+            gl::RED,
+            gl::UNSIGNED_BYTE,
+            bytes,
+        );
+    }
+
     pub fn set_data<T>(&mut self, r: &mut Renderer, data: &[T], pf: PixelFormat, df: DataFormat) {
         let this = self.shared.as_ref();
         let byte_len = std::mem::size_of_val(data);

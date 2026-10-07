@@ -18,7 +18,6 @@
 ---@field Solid integer 
 ---@field Image integer 
 ---@field Text integer 
----@field TextAdditive integer 
 ---@field Box integer 
 ---@field Circle integer 
 ---@field Grid integer 
@@ -39,22 +38,21 @@ Shape = {
     Solid = 0,
     Image = 1,
     Text = 2,
-    TextAdditive = 3,
-    Box = 4,
-    Circle = 5,
-    Grid = 6,
-    Hex = 7,
-    Icon = 8,
-    Panel = 9,
-    PanelGlow = 10,
-    Point = 11,
-    PointGlow = 12,
-    Ring = 13,
-    RingGlow = 14,
-    RingDim = 15,
-    Triangle = 16,
-    Wedge = 17,
-    Annulus = 18,
-    LineGlow = 19,
+    Box = 3,
+    Circle = 4,
+    Grid = 5,
+    Hex = 6,
+    Icon = 7,
+    Panel = 8,
+    PanelGlow = 9,
+    Point = 10,
+    PointGlow = 11,
+    Ring = 12,
+    RingGlow = 13,
+    RingDim = 14,
+    Triangle = 15,
+    Wedge = 16,
+    Annulus = 17,
+    LineGlow = 18,
 }
 

@@ -266,6 +266,19 @@ pub enum RenderCommand {
         data: Vec<u8>,
     },
 
+    /// Replace the `width` x `height` rectangle at (`x`, `y`) of a 2D texture
+    /// with tightly packed `data` (the glyph atlas upload).
+    UpdateTexture2DRect {
+        id: ResourceId,
+        x: i32,
+        y: i32,
+        width: i32,
+        height: i32,
+        pixel_format: u32,
+        data_format: u32,
+        data: Vec<u8>,
+    },
+
     /// Set anisotropy filter for a 2D texture
     SetTexture2DAnisotropy { handle: GpuHandle, factor: f32 },
 
@@ -678,6 +691,7 @@ impl RenderCommand {
             | GenerateMipmap2D { .. }
             | UpdateTexture2DData { .. }
             | UpdateTexture2DDataByResource { .. }
+            | UpdateTexture2DRect { .. }
             | SetTexture2DAnisotropy { .. }
             | SetTexture2DAnisotropyByResource { .. }
             | SetTexture2DMipRangeByResource { .. }

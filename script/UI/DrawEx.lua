@@ -209,24 +209,20 @@ local function drawText(font, text, size, x, y, sx, sy, cr, cg, cb, ca, alignX, 
     local ay = alignY or 1.0
     local font = Cache.Font(font, size)
     local bound = font:getSize(text)
-    local alpha = alphaStack:last() or 1
-    font:draw(text,
-        x + ax * (sx - bound.z) - bound.x,
-        y + ay * (sy - bound.w) + bound.w,
-        Color(cr, cg, cb, ca * alpha)
-    )
+    tmp.r, tmp.g, tmp.b, tmp.a = cr, cg, cb, ca * (alphaStack:last() or 1)
+    local tx = x + ax * (sx - bound.z) - bound.x
+    local ty = y + ay * (sy - bound.w) + bound.w
+    font:draw(text, tx, ty, tmp)
 end
 
-function DrawEx.TextAdditive(...)
-    RenderState.PushBlendMode(BlendMode.Additive)
-    drawText(...)
-    RenderState.PopBlendMode()
+--- `Font:draw` always blended with alpha, whatever state surrounded it, so the
+--- text of the "additive" HUD was never additive; this keeps its pixels.
+function DrawEx.TextAdditive(font, text, size, x, y, sx, sy, cr, cg, cb, ca, alignX, alignY)
+    drawText(font, text, size, x, y, sx, sy, cr, cg, cb, ca, alignX, alignY)
 end
 
-function DrawEx.TextAlpha(...)
-    RenderState.PushBlendMode(BlendMode.Alpha)
-    drawText(...)
-    RenderState.PopBlendMode()
+function DrawEx.TextAlpha(font, text, size, x, y, sx, sy, cr, cg, cb, ca, alignX, alignY)
+    drawText(font, text, size, x, y, sx, sy, cr, cg, cb, ca, alignX, alignY)
 end
 
 return DrawEx

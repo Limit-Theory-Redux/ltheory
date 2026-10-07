@@ -6,7 +6,7 @@ use super::layer::UIRendererLayer;
 use super::panel::UIRendererPanel;
 use super::rect::UIRendererRect;
 use super::text::UIRendererText;
-use crate::render::{BlendMode, Color, Font, RenderState, Renderer, Tex2D};
+use crate::render::{Color, Font, Renderer, Tex2D};
 
 pub struct UIRenderer {
     current_layer_id: Option<UIRendererLayerId>,
@@ -49,8 +49,6 @@ impl UIRenderer {
     }
 
     pub fn draw(&mut self, r: &mut Renderer) {
-        RenderState::push_blend_mode(r, BlendMode::Alpha);
-
         if let Some(root) = self.layers.first() {
             root.draw(
                 r,
@@ -63,8 +61,6 @@ impl UIRenderer {
         } else {
             unreachable!("No layers defined");
         }
-
-        RenderState::pop_blend_mode(r);
     }
 
     pub fn begin_layer(&mut self, pos: Vec2, size: Vec2, clip: bool) {

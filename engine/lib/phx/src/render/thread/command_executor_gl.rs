@@ -668,6 +668,43 @@ impl CommandExecutor {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn cmd_update_texture_2d_rect(
+        &mut self,
+        id: ResourceId,
+        x: i32,
+        y: i32,
+        width: i32,
+        height: i32,
+        pixel_format: u32,
+        data_format: u32,
+        data: Vec<u8>,
+    ) {
+        let _sa = self.record_command(CommandCategory::TextureData, false, false);
+        if let Some(GpuResource::Texture2D { handle }) = self.resources.get(&id) {
+            unsafe {
+                gl::BindTexture(gl::TEXTURE_2D, *handle);
+                // Rows are tightly packed (R8 atlas rows are not 4-byte aligned in general).
+                gl::PixelStorei(gl::UNPACK_ALIGNMENT, 1);
+                gl::TexSubImage2D(
+                    gl::TEXTURE_2D,
+                    0,
+                    x,
+                    y,
+                    width,
+                    height,
+                    pixel_format,
+                    data_format,
+                    data.as_ptr() as *const _,
+                );
+                gl::PixelStorei(gl::UNPACK_ALIGNMENT, 4);
+            }
+            self.restore_active_unit_binding();
+        } else {
+            warn!("UpdateTexture2DRect: resource {:?} not found", id);
+        }
+    }
+
     #[inline(always)]
     pub(super) fn cmd_set_texture_2d_anisotropy(&mut self, handle: super::GpuHandle, factor: f32) {
         let _sa = self.record_command(CommandCategory::TextureData, false, false);

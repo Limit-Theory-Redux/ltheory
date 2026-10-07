@@ -1393,7 +1393,7 @@ impl WgpuCommandExecutor {
         data_format: u32,
         data: Vec<u8>,
     ) {
-        self.update_texture_2d_impl(handle, width, height, pixel_format, data_format, &data);
+        self.update_texture_2d_impl(handle, [0, 0], width, height, pixel_format, data_format, &data);
     }
 
     pub(super) fn cmd_update_texture_2d_data_by_resource(
@@ -1408,6 +1408,30 @@ impl WgpuCommandExecutor {
     ) {
         self.update_texture_2d_impl(
             GpuHandle(id.0 as u32),
+            [0, 0],
+            width,
+            height,
+            pixel_format,
+            data_format,
+            &data,
+        );
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn cmd_update_texture_2d_rect(
+        &mut self,
+        id: ResourceId,
+        x: i32,
+        y: i32,
+        width: i32,
+        height: i32,
+        pixel_format: u32,
+        data_format: u32,
+        data: Vec<u8>,
+    ) {
+        self.update_texture_2d_impl(
+            GpuHandle(id.0 as u32),
+            [x.max(0) as u32, y.max(0) as u32],
             width,
             height,
             pixel_format,
@@ -1457,6 +1481,7 @@ impl WgpuCommandExecutor {
     fn update_texture_2d_impl(
         &mut self,
         handle: GpuHandle,
+        origin: [u32; 2],
         width: i32,
         height: i32,
         pixel_format: u32,
@@ -1488,7 +1513,7 @@ impl WgpuCommandExecutor {
         };
         let w = width.max(1) as u32;
         let h = height.max(1) as u32;
-        if w > tex_width || h > tex_height {
+        if origin[0] + w > tex_width || origin[1] + h > tex_height {
             warn!("wgpu: texture update larger than texture ({w}x{h} vs {tex_width}x{tex_height})");
             return;
         }
@@ -1542,7 +1567,11 @@ impl WgpuCommandExecutor {
             wgpu::TexelCopyTextureInfo {
                 texture: &texture,
                 mip_level: 0,
-                origin: wgpu::Origin3d::ZERO,
+                origin: wgpu::Origin3d {
+                    x: origin[0],
+                    y: origin[1],
+                    z: 0,
+                },
                 aspect: wgpu::TextureAspect::All,
             },
             &padded,
@@ -5583,6 +5612,25 @@ pub(super) fn cmd_resize(&mut self, width: u32, height: u32) {
                 width,
                 height,
                 internal_format,
+                pixel_format,
+                data_format,
+                data,
+            ),
+            RenderCommand::UpdateTexture2DRect {
+                id,
+                x,
+                y,
+                width,
+                height,
+                pixel_format,
+                data_format,
+                data,
+            } => self.cmd_update_texture_2d_rect(
+                id,
+                x,
+                y,
+                width,
+                height,
                 pixel_format,
                 data_format,
                 data,

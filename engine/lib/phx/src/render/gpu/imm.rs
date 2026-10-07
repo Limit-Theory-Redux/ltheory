@@ -84,7 +84,6 @@ pub enum Shape {
     Solid,
     Image,
     Text,
-    TextAdditive,
     Box,
     Circle,
     Grid,
@@ -104,7 +103,7 @@ pub enum Shape {
 }
 
 impl Shape {
-    const COUNT: usize = 20;
+    const COUNT: usize = 19;
 
     /// Fragment shader, blend mode and whether it samples a texture.
     fn info(self) -> (&'static str, BlendMode, bool) {
@@ -113,7 +112,6 @@ impl Shape {
             Shape::Solid => ("fragment/ui/solidcolor", Alpha, false),
             Shape::Image => ("fragment/ui/image", Alpha, true),
             Shape::Text => ("fragment/ui/text", Alpha, true),
-            Shape::TextAdditive => ("fragment/ui/text", Additive, true),
             Shape::Box => ("fragment/ui/box", Additive, false),
             Shape::Circle => ("fragment/ui/circle", Additive, false),
             Shape::Grid => ("fragment/ui/grid", Additive, false),
@@ -317,7 +315,7 @@ impl Renderer {
     }
 
     /// The scissor the clip stack asks for now.
-    fn imm_scissor(&mut self) -> ScissorUpdate {
+    pub(crate) fn imm_scissor(&mut self) -> ScissorUpdate {
         let size = self.target_size();
         self.data.clip_rect.desired(size)
     }
@@ -397,6 +395,7 @@ impl Renderer {
             self.data.pass.bound_pipeline = Some(key.pipeline);
             self.data.encoder.push(PassCmd::SetPipeline(key.pipeline));
         }
+        self.pass_apply_scissor(key.scissor);
         if let Some(tex) = key.tex {
             let mut inputs = [None; super::MAX_INPUTS];
             inputs[0] = Some(tex);

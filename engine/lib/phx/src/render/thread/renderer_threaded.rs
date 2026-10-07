@@ -729,6 +729,30 @@ impl Renderer {
         });
     }
 
+    #[allow(clippy::too_many_arguments)]
+    pub fn update_texture_2d_rect(
+        &mut self,
+        id: ResourceId,
+        x: i32,
+        y: i32,
+        width: i32,
+        height: i32,
+        pixel_format: u32,
+        data_format: u32,
+        data: Vec<u8>,
+    ) {
+        self.submit(RenderCommand::UpdateTexture2DRect {
+            id,
+            x,
+            y,
+            width,
+            height,
+            pixel_format,
+            data_format,
+            data,
+        });
+    }
+
     pub fn set_texture_2d_anisotropy_by_resource(&mut self, id: ResourceId, factor: f32) {
         self.submit(RenderCommand::SetTexture2DAnisotropyByResource { id, factor });
     }

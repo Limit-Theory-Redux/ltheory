@@ -532,6 +532,28 @@ impl CommandExecutor {
                 );
             }
 
+            RenderCommand::UpdateTexture2DRect {
+                id,
+                x,
+                y,
+                width,
+                height,
+                pixel_format,
+                data_format,
+                data,
+            } => {
+                self.cmd_update_texture_2d_rect(
+                    id,
+                    x,
+                    y,
+                    width,
+                    height,
+                    pixel_format,
+                    data_format,
+                    data,
+                );
+            }
+
             RenderCommand::SetTexture2DAnisotropy { handle, factor } => {
                 self.cmd_set_texture_2d_anisotropy(handle, factor);
             }

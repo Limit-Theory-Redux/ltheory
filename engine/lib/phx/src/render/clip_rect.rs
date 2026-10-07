@@ -21,8 +21,9 @@ pub struct ClipRect {
     enabled: bool,
 }
 
-/// What the scissor state should become. `Renderer::sync_scissor` turns it
-/// into the matching commands.
+/// What the scissor state should become. The pass records it lazily: a draw
+/// (or an immediate batch) emits `SetScissor` when the wanted scissor differs
+/// from the one last sent.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ScissorUpdate {
     Disable,
@@ -34,44 +35,39 @@ pub enum ScissorUpdate {
     },
 }
 
-// Every operation re-syncs the open pass's scissor (a no-op outside a pass:
-// the next `beginPass` applies the stack).
+// The operations only edit the stack. The open pass applies the resulting
+// scissor lazily, right before the next draw that needs it (see
+// `Renderer::pass_apply_scissor`, and `ImmBatcher` whose runs are keyed by it).
 #[luajit_ffi_gen::luajit_ffi]
 impl ClipRect {
     pub fn push(r: &mut Renderer, x: f32, y: f32, sx: f32, sy: f32) {
         let vp_size = r.target_size();
         r.data.clip_rect.push(vp_size, x, y, sx, sy);
-        r.sync_scissor();
     }
 
     pub fn push_combined(r: &mut Renderer, x: f32, y: f32, sx: f32, sy: f32) {
         let vp_size = r.target_size();
         r.data.clip_rect.push_combined(vp_size, x, y, sx, sy);
-        r.sync_scissor();
     }
 
     pub fn push_disabled(r: &mut Renderer) {
         let vp_size = r.target_size();
         r.data.clip_rect.push_disabled(vp_size);
-        r.sync_scissor();
     }
 
     pub fn push_transform(r: &mut Renderer, tx: f32, ty: f32, sx: f32, sy: f32) {
         let vp_size = r.target_size();
         r.data.clip_rect.push_transform(vp_size, tx, ty, sx, sy);
-        r.sync_scissor();
     }
 
     pub fn pop(r: &mut Renderer) {
         let vp_size = r.target_size();
         r.data.clip_rect.pop(vp_size);
-        r.sync_scissor();
     }
 
     pub fn pop_transform(r: &mut Renderer) {
         let vp_size = r.target_size();
         r.data.clip_rect.pop_transform(vp_size);
-        r.sync_scissor();
     }
 }
 
