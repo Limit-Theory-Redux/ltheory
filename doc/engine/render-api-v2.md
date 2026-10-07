@@ -1,6 +1,6 @@
 # Render API v2 — wgpu-shaped interface on the GL renderer
 
-Status: design. S2 (render passes and attachment views) is implemented; later steps are not. Companion to `wgpu-migration-gaps.md`,
+Status: design. S2 (render passes and attachment views) and S3 (binding model, pipelines, samplers, views, frame group) are implemented; later steps are not. Companion to `wgpu-migration-gaps.md`,
 `render-thread.md`, `batch-rendering.md` and `shader-system.md`.
 
 **Strategy, already decided.** First the GL renderer and the Lua render
@@ -704,6 +704,104 @@ Original plan:
   and `ShaderVarCache.lua`.
 - **Immediate renderer.** Shared code only. Pipelines and bind groups are
   executor state.
+
+#### S3 notes
+
+**Status: implemented.** Differences from the plan above, and what shipped:
+
+*Shader layout.*
+- `#group N` applies to the uniform blocks and samplers that follow it. An include inherits the includer's group,
+  and a `#group` inside an include does not leak out of it. Declarations outside any `#group` are legacy loose
+  declarations and are not recorded. Vertex and fragment layouts are merged per program, numbered by first
+  appearance (vertex first); a layout error (more than 4 blocks or the unit count of a group, one name in two
+  groups or with two dimensions, `#group` outside 0..3) fails the compile and falls back to the error shader.
+- `CreateShader` carries the merged `ShaderLayout` and replies with the reflected `Vec<BlockLayout>` (GL:
+  `glGetActiveUniformBlockiv/glGetActiveUniformsiv`; wgpu: naga). At link the GL executor applies
+  `glUniformBlockBinding` and, with the program current, `glUniform1i` per declared sampler. `ViewBlock` is asserted
+  against its reflected block at link (size, offsets, types; a mismatch panics, hot reload included).
+- `shader:blockType(name)` is in already (it was only implied for S4): `BlockLayout::lua_struct` builds the
+  anonymous `ffi.typeof` struct with `_padN` holes; arrays become raw 4-byte lanes (`float name[count*stride/4]`),
+  `mat3` is `float[12]`. `pass:alloc(T)` is the hand-written export `RenderPass_Alloc` (the FFI generator cannot
+  return pointers) plus a Lua cast.
+- Parity test (`render/thread/layout_parity.rs`): every vertex and fragment shader in `res/shader` goes through the
+  preprocessor and through naga with the recorded block bindings injected; blocks (name, binding, std140 member
+  offsets and types, `ViewBlock` against the Rust struct) and samplers (name, dimension) must agree. It cannot
+  compare against GL reflection without a context; that side is asserted at link time and exercised by the
+  validation scenes. Two documented dead shaders (`uv_metal`, `ptracer`) are excluded, as in the wgpu compile test.
+
+*Pipelines, samplers, views, bind groups.*
+- `PipelineDesc` uses `[Option<TexFormat>; 4]` and `Option<TexFormat>` instead of `ArrayVec`, and
+  `VertexLayout` is `Mesh | Fullscreen` (no `VertexFormat` payload until wgpu needs it). Lua:
+  `PipelineDesc.Create(shader)` with `:blend/:cull/:depth(test, write, compare)/:topology/:vertex/:polygon/
+  :colorFormat/:depthFormat`, then `Pipeline.Get(desc)` returns the `PipelineId` as a plain integer. The GL executor
+  diffs each state field against a `GlStateCache`; there is no main-thread `SetPipeline` dedupe (the executor skips an
+  unchanged pipeline, and the main thread cannot know when legacy commands invalidate it).
+- Samplers: `Sampler.Get(SamplerDesc)` returns a plain integer id. `Samplers.*` is a Rust enum whose value is the
+  id: `Point, PointRepeat, LinearClamp, LinearRepeat, LinearMipClamp, LinearMipRepeat`, created at renderer start.
+  The environment maps use `LinearMipClamp` (what the nebula cubes had as texture state). Texture-level filter and
+  wrap state is untouched until S7.
+- `TexView`: `ViewDim::D1` added. `tex:view()` now spans every mip (for sampling; as an attachment it is level 0),
+  `mipView(l)` is one level, `tex:view{ baseMip = , mipCount = }` narrows it (`TexView:mips`). On bind the GL executor
+  sets `TEXTURE_BASE_LEVEL/MAX_LEVEL` only when they differ from a per-texture cache; `D2Layer`/`CubeFace` views sample
+  the whole texture on GL 3.3.
+- `CreateBindGroup` holds textures with samplers only. Uniform entries arrive with the material arenas (S4). Bind
+  groups are never freed until S4 gives `Material` ownership. `BindGroupDesc.Create(shader, group):texture(name, view,
+  sampler)` + `Renderer:createBindGroup(desc)` + `pass:setBindGroup(group, id)`; `IndexedTexture` uses it for group 1.
+
+*Passes.*
+- `PassCmd` as built: `SetPipeline, SetBindGroup, SetView, SetEnvironment (added), SetDraw, SetInputs, SetViewport,
+  SetScissor, DrawMesh, DrawFullscreen`. `DrawMeshInstanced`, `DrawInstancedIndices` and `DrawImm` come with S4/S6;
+  until then those draws are legacy commands issued inside the pass (`IndexedBatch` does this and draws with the
+  pass's pipeline). `PassCommands { slot, uniforms, cmds }` has no vertex chunks yet, and there is no `BeginFrame`
+  command: the frame slot rides in `PassCommands`.
+- Lua: `pass:setPipeline`, `setInputs(view, sampler, ...)` (staged, sent as one `SetInputs` before the next draw),
+  `setBindGroup`, `alloc(T)`, `drawMesh`, `drawFullscreen`, `setViewport` (also resizes the UI projection, like the
+  old `Viewport.Push`), `setScissor`/`clearScissor`, `setUiTransform`. `Renderer:currentPass()` gives non-owning
+  access to the open pass (UI widgets; it cannot `finish`).
+- Flush points: 512 recorded commands (checked after a draw and at `alloc` entry), `finish`, and any non-pass command
+  (threaded: `Renderer::submit`; immediate: `Renderer::ex()`). A pointer from `alloc` is valid until the next draw is
+  recorded or the next flush; write the block, then draw.
+- `ViewBlock` is 448 bytes (`ViewBlock::SIZE`): the 288 bytes of the old camera UBO plus `mProjUI`, `mWorldViewUI`,
+  `viewport` and a reserved `time`. It is ring-allocated per pass, and passes of a frame with an identical block share
+  one upload. `Renderer:setCamera(view, proj, starDir)` and `setEnvironment(env, ir)` are state; an open pass
+  re-emits. The environment is bound at every `beginPass` (the executor's unit cache makes that cheap).
+- Uniform ring: 256 KiB chunks, one GL uniform buffer per chunk and frame slot, orphaned at its first use in a
+  frame. No fences yet (S4).
+- `vertex/fullscreen.glsl` draws a unit quad scaled by `ubo_viewport.zw` through `mProjUI`, so it reproduces
+  `Draw.Rect(0, 0, w, h)` bit for bit (`fullscreen_flip.glsl` reproduces `Draw.Rect(0, h, w, -h)`). The NDC quad
+  of S5 replaces it. `fragment/blit.glsl`, `color_block.glsl` and the `indexed_*` shaders declare their
+  samplers and `Params` blocks under `#group`.
+
+*Viewport and ClipRect.* The `Viewport` Lua type and `VpStack` are gone. `Renderer::target_size()` is the viewport of
+the open pass (or the last pass's extent). `ClipRect` keeps its stack and re-syncs the scissor from it at `beginPass`
+and after every operation, sending commands only when the wanted scissor differs from the last one sent. Outside a
+pass it only edits the stack, so `RenderCoreSystem` no longer needs a base viewport.
+
+*Coexistence hooks* (all marked `S6: remove`): the pass-encoder flush before any non-pass command; the executor's
+write-through of the state commands into `GlStateCache` and `invalidate_pipeline` in every shader-bind or state
+command; `drop_unit_sampler` in the legacy texture bind (a sampler object a pass left on the unit would override the
+texture's own parameters); `note_mip_range` in the legacy mip-range command; `last_shader_bind` reset on
+`PassCommands`. One deviation from the §4 text: the legacy unit allocator hands out units from 3 up (not "above
+the program's fixed units"), skipping the units of the program's layout. Units 0..2 belong to group 0, and every
+pass rebinds the environment maps there, so a legacy bind on unit 0 to 2 would be clobbered by the next
+`beginPass`. (Found the hard way: `gen_ir_map` binds its source cube on unit 1.)
+
+*Lua call sites.* 22 `ShaderVar.Push*` migrated (CameraManager 5 plus `updateCameraUbo` to `Renderer:setCamera`,
+16 `envMap`/`irMap` pushes in 8 files to `Renderer:setEnvironment`, `UI/Graph.lua` to `pass:setUiTransform`). All
+16 files in `States/App/Rendering` (the 13 supervised scenes plus Clear, Upscale, ViewportScissor) are ported;
+`Application:immediateUI` and `RenderCoreSystem` lost their `Viewport` calls. `ShaderVar`, `ShaderVarMap`, the
+auto-var code in `Shader::start`, `Viewport`, `CreateCameraUBO/UpdateCameraUBO`, `Renderer:createCameraUbo/
+updateCameraUbo`, `CameraUbo*` and `script/Render/ShaderVarCache.lua` are deleted in both renderer files. The
+legacy effect objects (`Pulse`, `Explosion`, `Bay`, `Drone`, `Turret`) used `ShaderVarCache` for uniform
+locations; they now use `script/Legacy/Util/ShaderLocations.lua` (the same eight lines, Legacy-owned). Legacy files that
+still mention removed APIs but are not loaded by any active state: `GameObjects/Entities/StarSystem.lua`,
+`Systems/Camera/Camera.lua` (and `Overlay/GameView` through it).
+
+*wgpu executor.* It compiles and implements the new commands 1:1 on its existing GL-shaped state (pipelines set
+shader, blend, cull, depth and wireframe; the view block and draw block are staged as plain-uniform bytes; samplers
+are matched to units through the shader layout). It does not render these paths correctly yet; its block
+reflection is built from naga, with grouped block bindings injected by `adapt_glsl_for_naga_with_layout`.
+
 
 ### S4. Materials, scene list, uniform ring
 - **Engine.** Full `UniformRing`/`VertexRing` with chunk recycling in both

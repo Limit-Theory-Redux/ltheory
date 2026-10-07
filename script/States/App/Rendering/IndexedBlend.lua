@@ -24,6 +24,10 @@ function RenderingIndexedBlend:onInit()
     self.passDesc:color(0, self.target:view(), LoadOp.Clear, 0.0, 0.0, 0.0, 1.0)
     self.mesh = makeQuad()
     self.shader = Cache.Shader("indexed_blend", "indexed_blend")
+    self.Params = self.shader:blockType("Params")
+    local desc = PipelineDesc.Create(self.shader)
+    desc:blend(BlendMode.Alpha)
+    self.pipeline = Pipeline.Get(desc)
     self.backend = os.getenv("LTHEORY_WGPU") and "wgpu" or "opengl"
     self.frames = 0
     self.probed = false
@@ -40,28 +44,15 @@ end
 function RenderingIndexedBlend:onRender()
     if self.probed then return end
 
-    Viewport.Push(0, 0, TARGET_W, TARGET_H, true)
-    RenderState.PushAllDefaults()
-    RenderState.PushBlendMode(BlendMode.Alpha)
-    RenderState.PushCullFace(CullFace.None)
-    RenderState.PushDepthTest(false)
-    RenderState.PushDepthWritable(false)
-
     local pass = Renderer:beginPass(self.passDesc)
-    self.shader:start()
-    self.shader:setFloat4("color", 0.0, 0.0, 1.0, 1.0)
-    self.mesh:draw()
-    self.shader:setFloat4("color", 1.0, 0.0, 0.0, 0.5)
-    self.mesh:draw()
-    self.shader:stop()
+    pass:setPipeline(self.pipeline)
+    local p = pass:alloc(self.Params)
+    p.color.x, p.color.y, p.color.z, p.color.w = 0.0, 0.0, 1.0, 1.0
+    pass:drawMesh(self.mesh)
+    p = pass:alloc(self.Params)
+    p.color.x, p.color.y, p.color.z, p.color.w = 1.0, 0.0, 0.0, 0.5
+    pass:drawMesh(self.mesh)
     pass:finish()
-
-    RenderState.PopDepthWritable()
-    RenderState.PopDepthTest()
-    RenderState.PopCullFace()
-    RenderState.PopBlendMode()
-    RenderState.PopAll()
-    Viewport.Pop()
 
     local center = self.target:sample(math.floor(TARGET_W / 2), math.floor(TARGET_H / 2))
     local path = ProbePaths.file("indexed-blend-" .. self.backend .. ".png")

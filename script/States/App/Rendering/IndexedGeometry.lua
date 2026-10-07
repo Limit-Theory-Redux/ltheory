@@ -1,3 +1,4 @@
+local ffi = require("ffi")
 local Application = require("States.Application")
 local ProbePaths = require("States.App.Rendering.ProbePaths")
 
@@ -15,6 +16,10 @@ function RenderingIndexedGeometry:onInit()
     self.stage = os.getenv("INDEXED_GEOMETRY_STAGE") or "baseline"
     local shaderName = self.stage == "canonical" and "indexed_canonical" or "indexed_baseline"
     self.shader = Cache.Shader(shaderName, "indexed_baseline")
+    self.pipeline = Pipeline.Get(PipelineDesc.Create(self.shader))
+    if self.stage == "canonical" then
+        self.Params = self.shader:blockType("Params")
+    end
     self.mProj = Matrix.Scaling(0.75, 0.75, 0.25)
     self.mView = Matrix.Identity()
     self.mWorld = Matrix.Identity()
@@ -34,30 +39,16 @@ end
 function RenderingIndexedGeometry:onRender()
     if self.probed then return end
 
-    Viewport.Push(0, 0, TARGET_W, TARGET_H, true)
-    RenderState.PushAllDefaults()
-    RenderState.PushBlendMode(BlendMode.Disabled)
-    RenderState.PushCullFace(CullFace.None)
-    RenderState.PushDepthTest(false)
-    RenderState.PushDepthWritable(false)
-
     local pass = Renderer:beginPass(self.passDesc)
-    self.shader:start()
+    pass:setPipeline(self.pipeline)
     if self.stage == "canonical" then
-        self.shader:setMatrix("mProj", self.mProj)
-        self.shader:setMatrix("mView", self.mView)
-        self.shader:setMatrix("mWorld", self.mWorld)
+        local p = pass:alloc(self.Params)
+        ffi.copy(p.mProj, self.mProj, ffi.sizeof(p.mProj))
+        ffi.copy(p.mView, self.mView, ffi.sizeof(p.mView))
+        ffi.copy(p.mWorld, self.mWorld, ffi.sizeof(p.mWorld))
     end
-    self.mesh:draw()
-    self.shader:stop()
+    pass:drawMesh(self.mesh)
     pass:finish()
-
-    RenderState.PopDepthWritable()
-    RenderState.PopDepthTest()
-    RenderState.PopCullFace()
-    RenderState.PopBlendMode()
-    RenderState.PopAll()
-    Viewport.Pop()
 
     local tl = self.target:sample(0, 0)
     local center = self.target:sample(math.floor(TARGET_W / 2), math.floor(TARGET_H / 2))

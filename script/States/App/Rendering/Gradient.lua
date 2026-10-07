@@ -5,7 +5,10 @@ local ProbePaths = require("States.App.Rendering.ProbePaths")
 local RenderingGradient = Subclass("RenderingGradient", Gradient)
 
 function RenderingGradient:onInit()
-    self.shader = Cache.Shader("ui", "gradient")
+    self.shader = Cache.Shader("fullscreen", "gradient")
+    local desc = PipelineDesc.Create(self.shader)
+    desc:vertex(VertexLayout.Fullscreen)
+    self.pipeline = Pipeline.Get(desc)
     self.readbackPath = ProbePaths.file("gradient-readback.png")
     self.frames = 0
 end
@@ -14,15 +17,12 @@ function RenderingGradient:eventLoop()
     Gradient.eventLoop(self)
     self.frames = self.frames + 1
     if self.frames == 30 then
-        Viewport.Push(0, 0, self.resX, self.resY, true)
-        RenderState.PushAllDefaults()
         local probe = Tex2D.Create(self.resX, self.resY, TexFormat.RGBA8)
         local probeDesc = RenderPassDesc.Create("Gradient.probe")
         probeDesc:color(0, probe:view(), LoadOp.Clear, 0, 0, 0, 1)
         local probePass = Renderer:beginPass(probeDesc)
-        self.shader:start()
-        Draw.Rect(0, 0, self.resX, self.resY)
-        self.shader:stop()
+        probePass:setPipeline(self.pipeline)
+        probePass:drawFullscreen()
         probePass:finish()
         local tl = probe:sample(0, 0)
         local tr = probe:sample(self.resX - 1, 0)
@@ -35,8 +35,6 @@ function RenderingGradient:eventLoop()
             center.x, center.y, center.z, br.x, br.y, br.z
         ))
         probe:save(self.readbackPath)
-        Viewport.Pop()
-        RenderState.PopAll()
         Log.Info("[GradientProbe] offscreen renderer readback saved to %s", self.readbackPath)
     end
     if self.frames >= 300 then
@@ -45,19 +43,14 @@ function RenderingGradient:eventLoop()
 end
 
 function RenderingGradient:onRender()
-    RenderState.PushAllDefaults()
-
     if not self.passDesc then
         self.passDesc = RenderPassDesc.Create("Gradient")
         self.passDesc:backbuffer(self.resX, self.resY, LoadOp.Clear, 0, 0, 0, 1)
     end
     local pass = Renderer:beginPass(self.passDesc)
-    self.shader:start()
-    Draw.Rect(0, 0, self.resX, self.resY)
-    self.shader:stop()
+    pass:setPipeline(self.pipeline)
+    pass:drawFullscreen()
     pass:finish()
-
-    RenderState.PopAll()
 end
 
 return RenderingGradient

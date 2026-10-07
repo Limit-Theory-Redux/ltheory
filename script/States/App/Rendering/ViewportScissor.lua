@@ -8,7 +8,10 @@ local OUTER = {x = 160, y = 90, w = 960, h = 540}
 local INNER = {x = 240, y = 150, w = 800, h = 420}
 
 function RenderingViewportScissor:onInit()
-    self.shader = Cache.Shader("ui", "gradient")
+    self.shader = Cache.Shader("fullscreen", "gradient")
+    local desc = PipelineDesc.Create(self.shader)
+    desc:vertex(VertexLayout.Fullscreen)
+    self.pipeline = Pipeline.Get(desc)
     self.frames = 0
 end
 
@@ -26,7 +29,6 @@ function RenderingViewportScissor:eventLoop()
 end
 
 function RenderingViewportScissor:onRender()
-    RenderState.PushAllDefaults()
     if not self.passDesc then
         self.passDesc = RenderPassDesc.Create("ViewportScissor")
         self.passDesc:backbuffer(self.resX, self.resY, LoadOp.Clear,
@@ -34,26 +36,19 @@ function RenderingViewportScissor:onRender()
     end
     local pass = Renderer:beginPass(self.passDesc)
 
+    pass:setPipeline(self.pipeline)
     if self.frames <= 30 then
-        Viewport.Push(OUTER.x, OUTER.y, OUTER.w, OUTER.h, true)
+        pass:setViewport(OUTER.x, OUTER.y, OUTER.w, OUTER.h)
         ClipRect.PushDisabled()
-        self.shader:start()
-        Draw.Rect(0, 0, OUTER.w, OUTER.h)
-        self.shader:stop()
+        pass:drawFullscreen()
         ClipRect.Pop()
-        Viewport.Pop()
     else
-        Viewport.Push(0, 0, self.resX, self.resY, true)
         ClipRect.Push(INNER.x, INNER.y, INNER.w, INNER.h)
-        self.shader:start()
-        Draw.Rect(0, 0, self.resX, self.resY)
-        self.shader:stop()
+        pass:drawFullscreen()
         ClipRect.Pop()
-        Viewport.Pop()
     end
 
     pass:finish()
-    RenderState.PopAll()
 end
 
 return RenderingViewportScissor

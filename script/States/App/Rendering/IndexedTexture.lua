@@ -23,9 +23,6 @@ function RenderingIndexedTexture:onInit()
     self.passDesc = RenderPassDesc.Create("IndexedTexture")
     self.passDesc:color(0, self.target:view(), LoadOp.Clear, 0.0, 0.0, 0.0, 1.0)
     self.texture = Tex2D.Create(2, 2, TexFormat.RGBA8)
-    self.texture:setMinFilter(TexFilter.Linear)
-    self.texture:setMagFilter(TexFilter.Linear)
-    self.texture:setWrapMode(TexWrapMode.Clamp)
 
     -- A uniform 2x2 payload isolates upload and sampling. Filtering is tested
     -- separately by the Upscale/downsample rung, not by this state.
@@ -37,6 +34,11 @@ function RenderingIndexedTexture:onInit()
 
     self.mesh = makeQuad()
     self.shader = Cache.Shader("indexed_texture", "indexed_texture")
+    self.pipeline = Pipeline.Get(PipelineDesc.Create(self.shader))
+    -- The texture is a material-style (group 1) binding: a bind group.
+    local group = BindGroupDesc.Create(self.shader, 1)
+    group:texture("tex", self.texture:view(), Samplers.LinearClamp)
+    self.bindGroup = Renderer:createBindGroup(group)
     self.backend = os.getenv("LTHEORY_WGPU") and "wgpu" or "opengl"
     self.frames = 0
     self.probed = false
@@ -53,26 +55,11 @@ end
 function RenderingIndexedTexture:onRender()
     if self.probed then return end
 
-    Viewport.Push(0, 0, TARGET_W, TARGET_H, true)
-    RenderState.PushAllDefaults()
-    RenderState.PushBlendMode(BlendMode.Disabled)
-    RenderState.PushCullFace(CullFace.None)
-    RenderState.PushDepthTest(false)
-    RenderState.PushDepthWritable(false)
-
     local pass = Renderer:beginPass(self.passDesc)
-    self.shader:start()
-    self.shader:setTex2D("tex", self.texture)
-    self.mesh:draw()
-    self.shader:stop()
+    pass:setPipeline(self.pipeline)
+    pass:setBindGroup(1, self.bindGroup)
+    pass:drawMesh(self.mesh)
     pass:finish()
-
-    RenderState.PopDepthWritable()
-    RenderState.PopDepthTest()
-    RenderState.PopCullFace()
-    RenderState.PopBlendMode()
-    RenderState.PopAll()
-    Viewport.Pop()
 
     local tl = self.target:sample(0, 0)
     local center = self.target:sample(math.floor(TARGET_W / 2), math.floor(TARGET_H / 2))

@@ -11,27 +11,25 @@ local SOURCE_H = OUTPUT_H
 local TARGET_W = 320
 local TARGET_H = 180
 
-local function configureTexture(texture, filter)
-    texture:setMagFilter(filter)
-    texture:setMinFilter(filter)
-    texture:setWrapMode(TexWrapMode.Clamp)
-end
-
 function RenderingDownsample:onInit()
     self.source = Tex2D.Create(SOURCE_W, SOURCE_H, TexFormat.RGBA8)
     self.linear = Tex2D.Create(TARGET_W, TARGET_H, TexFormat.RGBA8)
     self.nearest = Tex2D.Create(TARGET_W, TARGET_H, TexFormat.RGBA8)
     self.upscaled = Tex2D.Create(OUTPUT_W, OUTPUT_H, TexFormat.RGBA8)
 
-    configureTexture(self.source, TexFilter.Linear)
-    configureTexture(self.linear, TexFilter.Linear)
-    configureTexture(self.nearest, TexFilter.Point)
-    configureTexture(self.upscaled, TexFilter.Linear)
-
     self.backend = os.getenv("LTHEORY_WGPU") and "wgpu" or "opengl"
-    self.pattern = Cache.Shader("ui", "downsample_pattern")
-    self.downsample = Cache.Shader("ui", self.backend == "wgpu" and "downsample_filter_wgpu" or "downsample_filter")
-    self.identity = Cache.Shader("ui", "filter/identity")
+    self.pattern = Cache.Shader("fullscreen", "downsample_pattern")
+    self.downsample = Cache.Shader("fullscreen", self.backend == "wgpu" and "downsample_filter_wgpu" or "downsample_filter")
+    self.blit = Cache.Shader("fullscreen_flip", "blit")
+    local function pipelineFor(shader)
+        local desc = PipelineDesc.Create(shader)
+        desc:vertex(VertexLayout.Fullscreen)
+        desc:colorFormat(0, TexFormat.RGBA8)
+        return Pipeline.Get(desc)
+    end
+    self.patternPipeline = pipelineFor(self.pattern)
+    self.downsamplePipeline = pipelineFor(self.downsample)
+    self.blitPipeline = pipelineFor(self.blit)
     self.frames = 0
     self.rendered = false
     self.probed = false
@@ -83,80 +81,38 @@ end
 function RenderingDownsample:onRender()
     if self.rendered then return end
 
-    RenderState.PushAllDefaults()
-    RenderState.PushDepthTest(false)
-    RenderState.PushDepthWritable(false)
-    local logicalW, logicalH = self.resX, self.resY
-    local function drawExtent(width, height)
-        if os.getenv("LTHEORY_WGPU") then
-            return logicalW, logicalH
-        end
-        return width, height
-    end
-
     local pass = Renderer:beginPass(self.passDescs.source)
-    Viewport.Push(0, 0, SOURCE_W, SOURCE_H, false)
-    self.pattern:start()
-    local sourceDrawW, sourceDrawH = drawExtent(SOURCE_W, SOURCE_H)
-    Draw.Rect(0, 0, sourceDrawW, sourceDrawH)
-    self.pattern:stop()
-    Viewport.Pop()
+    pass:setPipeline(self.patternPipeline)
+    pass:drawFullscreen()
     pass:finish()
 
-    configureTexture(self.source, TexFilter.Linear)
     pass = Renderer:beginPass(self.passDescs.linear)
-    Viewport.Push(0, 0, TARGET_W, TARGET_H, false)
-    self.downsample:start()
-    self.downsample:setTex2D("src", self.source)
-    local linearDrawW, linearDrawH = drawExtent(TARGET_W, TARGET_H)
-    Draw.Rect(0, 0, linearDrawW, linearDrawH)
-    self.downsample:stop()
-    Viewport.Pop()
+    pass:setPipeline(self.downsamplePipeline)
+    pass:setInputs(self.source:view(), Samplers.LinearClamp)
+    pass:drawFullscreen()
     pass:finish()
 
-    configureTexture(self.source, TexFilter.Point)
     pass = Renderer:beginPass(self.passDescs.nearest)
-    Viewport.Push(0, 0, TARGET_W, TARGET_H, false)
-    self.downsample:start()
-    self.downsample:setTex2D("src", self.source)
-    local nearestDrawW, nearestDrawH = drawExtent(TARGET_W, TARGET_H)
-    Draw.Rect(0, 0, nearestDrawW, nearestDrawH)
-    self.downsample:stop()
-    Viewport.Pop()
+    pass:setPipeline(self.downsamplePipeline)
+    pass:setInputs(self.source:view(), Samplers.Point)
+    pass:drawFullscreen()
     pass:finish()
 
-    configureTexture(self.linear, TexFilter.Linear)
     pass = Renderer:beginPass(self.passDescs.upscaled)
-    Viewport.Push(0, 0, OUTPUT_W, OUTPUT_H, false)
-    self.identity:start()
-    self.identity:setTex2D("src", self.linear)
-    local upscaleDrawW, upscaleDrawH = drawExtent(OUTPUT_W, OUTPUT_H)
-    Draw.Rect(0, 0, upscaleDrawW, upscaleDrawH)
-    self.identity:stop()
-    Viewport.Pop()
+    pass:setPipeline(self.blitPipeline)
+    pass:setInputs(self.linear:view(), Samplers.LinearClamp)
+    pass:drawFullscreen()
     pass:finish()
-
-    -- The WGPU surface path owns a Depth24Plus attachment. Keep the
-    -- renderer-owned color targets depth-free, then match the surface
-    -- attachment for this final presentation pass.
-    RenderState.PopDepthWritable()
-    RenderState.PopDepthTest()
-    RenderState.PushDepthTest(true)
-    RenderState.PushDepthWritable(true)
 
     -- Keep the presentation path explicit and separate from renderer-owned
     -- readback: the target-local texture is flipped into window coordinates.
     self.presentDesc:backbuffer(self.resX, self.resY, LoadOp.Load, 0, 0, 0, 1)
     pass = Renderer:beginPass(self.presentDesc)
-    self.identity:start()
-    self.identity:setTex2D("src", self.linear)
-    Draw.Rect(0, self.resY, self.resX, -self.resY)
-    self.identity:stop()
+    pass:setPipeline(self.blitPipeline)
+    pass:setInputs(self.linear:view(), Samplers.LinearClamp)
+    pass:drawFullscreen()
     pass:finish()
 
-    RenderState.PopDepthWritable()
-    RenderState.PopDepthTest()
-    RenderState.PopAll()
     self.rendered = true
 end
 
@@ -166,7 +122,7 @@ function RenderingDownsample:onExit()
     self.nearest = nil
     self.upscaled = nil
     self.pattern = nil
-    self.identity = nil
+    self.blit = nil
     self.downsample = nil
     Log.Info("[DownsampleProbe] resources released")
 end

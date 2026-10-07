@@ -15,6 +15,7 @@ function RenderingIndexedBatch:onInit()
     self.mesh = Mesh.Box(2)
     self.indices = ffi.new("uint32_t[3]", {0, 1, 2})
     self.shader = Cache.Shader("indexed_batch", "indexed_batch")
+    self.pipeline = Pipeline.Get(PipelineDesc.Create(self.shader))
     self.backend = os.getenv("LTHEORY_WGPU") and "wgpu" or "opengl"
     self.frames = 0
     self.probed = false
@@ -31,25 +32,13 @@ end
 function RenderingIndexedBatch:onRender()
     if self.probed then return end
 
-    Viewport.Push(0, 0, TARGET_W, TARGET_H, true)
-    RenderState.PushAllDefaults()
-    RenderState.PushBlendMode(BlendMode.Disabled)
-    RenderState.PushCullFace(CullFace.None)
-    RenderState.PushDepthTest(false)
-    RenderState.PushDepthWritable(false)
-
     local pass = Renderer:beginPass(self.passDesc)
-    self.shader:start()
+    pass:setPipeline(self.pipeline)
+    -- Texture-fetch instancing still goes through the legacy draw command
+    -- (it moves into the pass encoder with the instance ring, S4); it draws
+    -- with the pipeline's program and state.
     self.mesh:drawInstancedIndices(self.indices, 3)
-    self.shader:stop()
     pass:finish()
-
-    RenderState.PopDepthWritable()
-    RenderState.PopDepthTest()
-    RenderState.PopCullFace()
-    RenderState.PopBlendMode()
-    RenderState.PopAll()
-    Viewport.Pop()
 
     local left = self.target:sample(32, math.floor(TARGET_H / 2))
     local center = self.target:sample(math.floor(TARGET_W / 2), math.floor(TARGET_H / 2))

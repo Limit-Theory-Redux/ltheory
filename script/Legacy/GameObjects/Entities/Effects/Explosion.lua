@@ -1,3 +1,4 @@
+local ShaderLocations = require('Legacy.Util.ShaderLocations')
 local Entity = require('Legacy.GameObjects.Entity')
 
 local rng = RNG.Create(50123)
@@ -20,7 +21,7 @@ Preload.Add(function()
     mesh = Gen.Primitive.Billboard(-1, -1, 1, 1)
     rng = RNG.FromTime()
     shader = Cache.Shader('billboard/quadpos', 'effect/explosion')
-    cache = ShaderVarCache(shader, { 'color', 'origin', 'up', 'age', 'seed', 'size' })
+    cache = ShaderLocations(shader, { 'color', 'origin', 'up', 'age', 'seed', 'size' })
 end)
 
 function Explosion:render(state)

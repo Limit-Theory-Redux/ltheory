@@ -24,18 +24,17 @@ end
 ---@param mode CullFace
 ---@param name string
 local function drawPair(self, mode, name)
-    RenderState.PushCullFace(mode)
     local pass = Renderer:beginPass(self.passDesc)
 
-    self.shader:start()
-    self.shader:setFloat4("color", 0.0, 1.0, 0.0, 1.0)
-    self.front:draw()
-    self.shader:setFloat4("color", 1.0, 0.125, 0.0, 1.0)
-    self.back:draw()
-    self.shader:stop()
+    pass:setPipeline(self.pipelines[mode])
+    local p = pass:alloc(self.Params)
+    p.color.x, p.color.y, p.color.z, p.color.w = 0.0, 1.0, 0.0, 1.0
+    pass:drawMesh(self.front)
+    p = pass:alloc(self.Params)
+    p.color.x, p.color.y, p.color.z, p.color.w = 1.0, 0.125, 0.0, 1.0
+    pass:drawMesh(self.back)
 
     pass:finish()
-    RenderState.PopCullFace()
     self.target:save(ProbePaths.file("indexed-cull-" .. self.backend .. "-" .. name .. ".png"))
     return self.target:sample(math.floor(TARGET_W / 2), math.floor(TARGET_H / 2))
 end
@@ -47,6 +46,13 @@ function RenderingIndexedCull:onInit()
     self.front = triangle(false)
     self.back = triangle(true)
     self.shader = Cache.Shader("indexed_cull", "indexed_cull")
+    self.Params = self.shader:blockType("Params")
+    self.pipelines = {}
+    for _, mode in ipairs({ CullFace.Back, CullFace.Front, CullFace.None }) do
+        local desc = PipelineDesc.Create(self.shader)
+        desc:cull(mode)
+        self.pipelines[mode] = Pipeline.Get(desc)
+    end
     self.backend = os.getenv("LTHEORY_WGPU") and "wgpu" or "opengl"
     self.frames = 0
     self.probed = false
@@ -63,21 +69,9 @@ end
 function RenderingIndexedCull:onRender()
     if self.probed then return end
 
-    Viewport.Push(0, 0, TARGET_W, TARGET_H, true)
-    RenderState.PushAllDefaults()
-    RenderState.PushBlendMode(BlendMode.Disabled)
-    RenderState.PushDepthTest(false)
-    RenderState.PushDepthWritable(false)
-
     local backCull = drawPair(self, CullFace.Back, "back")
     local frontCull = drawPair(self, CullFace.Front, "front")
     local noCull = drawPair(self, CullFace.None, "none")
-
-    RenderState.PopDepthWritable()
-    RenderState.PopDepthTest()
-    RenderState.PopBlendMode()
-    RenderState.PopAll()
-    Viewport.Pop()
 
     Log.Info(string.format(
         "[IndexedCullProbe] backend=%s target=%dx%d samples back=(%.3f,%.3f,%.3f) front=(%.3f,%.3f,%.3f) none=(%.3f,%.3f,%.3f)",

@@ -13,11 +13,19 @@ function RenderingUiComposite:onInit()
     self.passDesc = RenderPassDesc.Create("UiComposite")
     self.passDesc:color(0, self.target:view(), LoadOp.Clear, 0.0, 0.0, 0.0, 1.0)
     self.presentDesc = RenderPassDesc.Create("UiComposite.present")
-    self.target:setMinFilter(TexFilter.Linear)
-    self.target:setMagFilter(TexFilter.Linear)
-    self.target:setWrapMode(TexWrapMode.Clamp)
-    self.shader = Cache.Shader("ui", "simple_color")
-    self.identity = Cache.Shader("ui", "filter/identity")
+    self.shader = Cache.Shader("fullscreen", "color_block")
+    self.Params = self.shader:blockType("Params")
+    local opaque = PipelineDesc.Create(self.shader)
+    opaque:vertex(VertexLayout.Fullscreen)
+    self.opaquePipeline = Pipeline.Get(opaque)
+    local alpha = PipelineDesc.Create(self.shader)
+    alpha:vertex(VertexLayout.Fullscreen)
+    alpha:blend(BlendMode.Alpha)
+    self.alphaPipeline = Pipeline.Get(alpha)
+    self.blit = Cache.Shader("fullscreen_flip", "blit")
+    local blit = PipelineDesc.Create(self.blit)
+    blit:vertex(VertexLayout.Fullscreen)
+    self.blitPipeline = Pipeline.Get(blit)
     self.backend = os.getenv("LTHEORY_WGPU") and "wgpu" or "opengl"
     self.frames = 0
     self.probed = false
@@ -34,57 +42,30 @@ end
 function RenderingUiComposite:onRender()
     if self.probed then return end
 
-    Viewport.Push(0, 0, TARGET_W, TARGET_H, true)
-    RenderState.PushAllDefaults()
-    RenderState.PushCullFace(CullFace.None)
-    RenderState.PushDepthTest(false)
-    RenderState.PushDepthWritable(false)
-    RenderState.PushBlendMode(BlendMode.Disabled)
-
     local pass = Renderer:beginPass(self.passDesc)
 
-    local logicalW, logicalH = self.resX, self.resY
-    local drawW, drawH = logicalW, logicalH
-    if self.backend == "opengl" then
-        drawW, drawH = TARGET_W, TARGET_H
-    end
+    pass:setPipeline(self.opaquePipeline)
+    local p = pass:alloc(self.Params)
+    p.color.x, p.color.y, p.color.z, p.color.w = 0.0, 0.0, 1.0, 1.0
+    pass:drawFullscreen()
 
-    self.shader:start()
-    self.shader:setFloat4("color", 0.0, 0.0, 1.0, 1.0)
-    Draw.Rect(0, 0, drawW, drawH)
-
-    RenderState.PushBlendMode(BlendMode.Alpha)
-    self.shader:setFloat4("color", 1.0, 0.0, 0.0, 0.5)
-    Draw.Rect(
-        OVERLAY.x,
-        OVERLAY.y,
-        OVERLAY.w,
-        OVERLAY.h
-    )
-    RenderState.PopBlendMode()
-    self.shader:stop()
+    -- The overlay quad is a sub-viewport of the pass: the UI projection
+    -- follows the viewport, so the same fullscreen draw covers the rect.
+    pass:setViewport(OVERLAY.x, OVERLAY.y, OVERLAY.w, OVERLAY.h)
+    pass:setPipeline(self.alphaPipeline)
+    p = pass:alloc(self.Params)
+    p.color.x, p.color.y, p.color.z, p.color.w = 1.0, 0.0, 0.0, 0.5
+    pass:drawFullscreen()
 
     pass:finish()
-    Viewport.Pop()
 
     -- Present the renderer-owned composite through the normal surface path.
-    RenderState.PopDepthWritable()
-    RenderState.PopDepthTest()
-    RenderState.PushDepthTest(true)
-    RenderState.PushDepthWritable(true)
     self.presentDesc:backbuffer(self.resX, self.resY, LoadOp.Load, 0.0, 0.0, 0.0, 1.0)
     pass = Renderer:beginPass(self.presentDesc)
-    self.identity:start()
-    self.identity:setTex2D("src", self.target)
-    Draw.Rect(0, self.resY, self.resX, -self.resY)
-    self.identity:stop()
+    pass:setPipeline(self.blitPipeline)
+    pass:setInputs(self.target:view(), Samplers.LinearClamp)
+    pass:drawFullscreen()
     pass:finish()
-    RenderState.PopDepthWritable()
-    RenderState.PopDepthTest()
-
-    RenderState.PopBlendMode()
-    RenderState.PopCullFace()
-    RenderState.PopAll()
 
     local outside = self.target:sample(16, 64)
     local inside = self.target:sample(64, 64)
@@ -104,7 +85,7 @@ end
 function RenderingUiComposite:onExit()
     self.target = nil
     self.shader = nil
-    self.identity = nil
+    self.blit = nil
     Log.Info("[UiCompositeProbe] resources released")
 end
 

@@ -110,7 +110,8 @@ function Graph:onDraw(focus, active)
         local vMin     = self.rangeMin.value
         local dydv     = usableSY / range
 
-        ShaderVar.PushMatrix("mWorldViewUI", Matrix.Translation(0, y + sy - self.padMaxY, 0) * Matrix.Scaling(1, -(sy / usableSY), 1))
+        local pass = Renderer:currentPass()
+        pass:setUiTransform(Matrix.Translation(0, y + sy - self.padMaxY, 0) * Matrix.Scaling(1, -(sy / usableSY), 1))
 
         do -- Draw Bars
             local color = Config.ui.color.focused
@@ -178,7 +179,7 @@ function Graph:onDraw(focus, active)
             end
         end
 
-        ShaderVar.Pop("mWorldViewUI")
+        pass:setUiTransform(Matrix.Identity())
     end
 
     do -- Draw Ruler Labels

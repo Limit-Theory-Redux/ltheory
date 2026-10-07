@@ -260,9 +260,7 @@ function RenderCoreSystem:render(data)
 
     self:handleResize()
 
-    -- Base of the viewport stack for the frame (ClipRect needs one). Only the
-    -- final present draws to the window, in its own backbuffer pass.
-    Viewport.Push(0, 0, self.resX, self.resY, true)
+    -- Only the final present draws to the window, in its own backbuffer pass.
     ClipRect.PushDisabled()
     RenderState.PushAllDefaults()
 
@@ -378,8 +376,6 @@ function RenderCoreSystem:render(data)
     self:radialBlur(dt)
     Profiler.End()
 
-    CameraManager:endDraw()
-
     Window:beginDraw()
     if self.settings.showBuffers then
         self:presentAll(0, 0, self.resX, self.resY)
@@ -390,7 +386,6 @@ function RenderCoreSystem:render(data)
 
     RenderState.PopAll()
     ClipRect.Pop()
-    Viewport.Pop()
 
     self.currentPass = nil
 

@@ -27,16 +27,16 @@ function RenderingIndexedPostProcess:onInit()
     self.postDesc = RenderPassDesc.Create("IndexedPostProcess.post")
     self.postDesc:color(0, self.post:view(), LoadOp.Clear, 0.0, 0.0, 0.0, 1.0)
     self.presentDesc = RenderPassDesc.Create("IndexedPostProcess.present")
-    self.source:setMinFilter(TexFilter.Linear)
-    self.source:setMagFilter(TexFilter.Linear)
-    self.source:setWrapMode(TexWrapMode.Clamp)
-    self.post:setMinFilter(TexFilter.Linear)
-    self.post:setMagFilter(TexFilter.Linear)
-    self.post:setWrapMode(TexWrapMode.Clamp)
     self.mesh = makeQuad()
     self.material = Cache.Shader("indexed_material", "indexed_material")
     self.postShader = Cache.Shader("indexed_postprocess", "indexed_postprocess")
-    self.identity = Cache.Shader("ui", "filter/identity")
+    self.blit = Cache.Shader("fullscreen_flip", "blit")
+    self.Params = self.material:blockType("Params")
+    self.materialPipeline = Pipeline.Get(PipelineDesc.Create(self.material))
+    self.postPipeline = Pipeline.Get(PipelineDesc.Create(self.postShader))
+    local blitDesc = PipelineDesc.Create(self.blit)
+    blitDesc:vertex(VertexLayout.Fullscreen)
+    self.blitPipeline = Pipeline.Get(blitDesc)
     self.backend = os.getenv("LTHEORY_WGPU") and "wgpu" or "opengl"
     self.frames = 0
     self.probed = false
@@ -53,48 +53,25 @@ end
 function RenderingIndexedPostProcess:onRender()
     if self.probed then return end
 
-    Viewport.Push(0, 0, TARGET_W, TARGET_H, true)
-    RenderState.PushAllDefaults()
-    RenderState.PushBlendMode(BlendMode.Disabled)
-    RenderState.PushCullFace(CullFace.None)
-    RenderState.PushDepthTest(false)
-    RenderState.PushDepthWritable(false)
-
     local pass = Renderer:beginPass(self.sourceDesc)
-    self.material:start()
-    self.material:setFloat3("color", SOURCE_COLOR[1], SOURCE_COLOR[2], SOURCE_COLOR[3])
-    self.mesh:draw()
-    self.material:stop()
+    pass:setPipeline(self.materialPipeline)
+    local p = pass:alloc(self.Params)
+    p.color.x, p.color.y, p.color.z = SOURCE_COLOR[1], SOURCE_COLOR[2], SOURCE_COLOR[3]
+    pass:drawMesh(self.mesh)
     pass:finish()
 
     pass = Renderer:beginPass(self.postDesc)
-    self.postShader:start()
-    self.postShader:setTex2D("src", self.source)
-    self.mesh:draw()
-    self.postShader:stop()
+    pass:setPipeline(self.postPipeline)
+    pass:setInputs(self.source:view(), Samplers.LinearClamp)
+    pass:drawMesh(self.mesh)
     pass:finish()
-
-    Viewport.Pop()
-    -- Renderer-owned targets are color-only; the WGPU surface carries its
-    -- own depth attachment. Match that surface only for the final composite.
-    RenderState.PopDepthWritable()
-    RenderState.PopDepthTest()
-    RenderState.PushDepthTest(true)
-    RenderState.PushDepthWritable(true)
 
     self.presentDesc:backbuffer(self.resX, self.resY, LoadOp.Load, 0.0, 0.0, 0.0, 1.0)
     pass = Renderer:beginPass(self.presentDesc)
-    self.identity:start()
-    self.identity:setTex2D("src", self.post)
-    Draw.Rect(0, self.resY, self.resX, -self.resY)
-    self.identity:stop()
+    pass:setPipeline(self.blitPipeline)
+    pass:setInputs(self.post:view(), Samplers.LinearClamp)
+    pass:drawFullscreen()
     pass:finish()
-
-    RenderState.PopDepthWritable()
-    RenderState.PopDepthTest()
-    RenderState.PopCullFace()
-    RenderState.PopBlendMode()
-    RenderState.PopAll()
 
     local source = self.source:sample(math.floor(TARGET_W / 2), math.floor(TARGET_H / 2))
     local post = self.post:sample(math.floor(TARGET_W / 2), math.floor(TARGET_H / 2))
@@ -118,7 +95,7 @@ function RenderingIndexedPostProcess:onExit()
     self.mesh = nil
     self.material = nil
     self.postShader = nil
-    self.identity = nil
+    self.blit = nil
     Log.Info("[IndexedPostProcessProbe] resources released")
 end
 

@@ -15,6 +15,10 @@ function RenderingIndexedDepth:onInit()
     self.passDesc:depth(self.depth:view(), LoadOp.Clear, 1.0)
     self.mesh = Mesh.Box(2)
     self.shader = Cache.Shader("indexed_depth", "indexed_depth")
+    self.Params = self.shader:blockType("Params")
+    local desc = PipelineDesc.Create(self.shader)
+    desc:depth(true, true, CompareFn.LessEqual)
+    self.pipeline = Pipeline.Get(desc)
     self.backend = os.getenv("LTHEORY_WGPU") and "wgpu" or "opengl"
     self.frames = 0
     self.probed = false
@@ -31,32 +35,20 @@ end
 function RenderingIndexedDepth:onRender()
     if self.probed then return end
 
-    Viewport.Push(0, 0, TARGET_W, TARGET_H, true)
-    RenderState.PushAllDefaults()
-    RenderState.PushBlendMode(BlendMode.Disabled)
-    RenderState.PushCullFace(CullFace.None)
-    RenderState.PushDepthTest(true)
-    RenderState.PushDepthWritable(true)
-
     local pass = Renderer:beginPass(self.passDesc)
 
-    self.shader:start()
+    pass:setPipeline(self.pipeline)
     -- Near orange is written first; farther blue must be rejected by depth.
-    self.shader:setFloat("depthValue", 0.25)
-    self.shader:setFloat4("color", 1.0, 0.125, 0.0, 1.0)
-    self.mesh:draw()
-    self.shader:setFloat("depthValue", 0.75)
-    self.shader:setFloat4("color", 0.0, 0.125, 1.0, 1.0)
-    self.mesh:draw()
-    self.shader:stop()
+    local p = pass:alloc(self.Params)
+    p.depthValue = 0.25
+    p.color.x, p.color.y, p.color.z, p.color.w = 1.0, 0.125, 0.0, 1.0
+    pass:drawMesh(self.mesh)
+    p = pass:alloc(self.Params)
+    p.depthValue = 0.75
+    p.color.x, p.color.y, p.color.z, p.color.w = 0.0, 0.125, 1.0, 1.0
+    pass:drawMesh(self.mesh)
 
     pass:finish()
-    RenderState.PopDepthWritable()
-    RenderState.PopDepthTest()
-    RenderState.PopCullFace()
-    RenderState.PopBlendMode()
-    RenderState.PopAll()
-    Viewport.Pop()
 
     local tl = self.color:sample(0, 0)
     local center = self.color:sample(math.floor(TARGET_W / 2), math.floor(TARGET_H / 2))

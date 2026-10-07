@@ -390,8 +390,7 @@ function LimitTheoryRedux:createSkybox()
             placeholder.irMap   = placeholder.envMap:genIRMap(256)
             placeholder.stars   = Starfield(nebulaRNG, Config.gen.nStars(nebulaRNG))
             CameraManager:setStarDir(placeholder.starDir)
-            ShaderVar.PushTexCube('envMap', placeholder.envMap)
-            ShaderVar.PushTexCube('irMap', placeholder.irMap)
+            Renderer:setEnvironment(placeholder.envMap, placeholder.irMap)
         end
 
         if blendMode == BlendMode.Disabled then

@@ -309,7 +309,7 @@ function Application:captureTick()
     self.captureDone = true
 
     Renderer:sync()
-    Window:beginDraw() -- ScreenCapture needs a viewport on the stack
+    Window:beginDraw() -- ScreenCapture measures and reads the open pass target
     local tex = Tex2D.ScreenCapture()
     Window:endDraw()
     tex:save(self.capturePath)

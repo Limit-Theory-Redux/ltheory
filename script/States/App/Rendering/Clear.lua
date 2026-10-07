@@ -29,14 +29,12 @@ function RenderingClear:onRender()
     if self.renderFrames == 1 then
         Log.Info("[ClearProbe] onRender callback submitted")
     end
-    RenderState.PushAllDefaults()
     if not self.passDesc then
         self.passDesc = RenderPassDesc.Create("Clear")
         self.passDesc:backbuffer(self.resX, self.resY, LoadOp.Clear,
             CLEAR_COLOR[1], CLEAR_COLOR[2], CLEAR_COLOR[3], CLEAR_COLOR[4])
     end
     Renderer:beginPass(self.passDesc):finish()
-    RenderState.PopAll()
 end
 
 return RenderingClear

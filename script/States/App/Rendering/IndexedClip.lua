@@ -17,6 +17,8 @@ function RenderingIndexedClip:onInit()
     self.passDesc:color(0, self.color:view(), LoadOp.Clear, 0.0, 0.0, 0.0, 1.0)
     self.mesh = Mesh.Box(2)
     self.shader = Cache.Shader("indexed_material", "indexed_material")
+    self.Params = self.shader:blockType("Params")
+    self.pipeline = Pipeline.Get(PipelineDesc.Create(self.shader))
     self.backend = os.getenv("LTHEORY_WGPU") and "wgpu" or "opengl"
     self.frames = 0
     self.probed = false
@@ -33,31 +35,18 @@ end
 function RenderingIndexedClip:onRender()
     if self.probed then return end
 
-    Viewport.Push(0, 0, TARGET_W, TARGET_H, true)
-    RenderState.PushAllDefaults()
-    RenderState.PushBlendMode(BlendMode.Disabled)
-    RenderState.PushCullFace(CullFace.None)
-    RenderState.PushDepthTest(false)
-    RenderState.PushDepthWritable(false)
-
     local pass = Renderer:beginPass(self.passDesc)
 
     -- ClipRect converts the target-local rectangle to the backend scissor
     -- convention. The full primitive must be visible only inside this rect.
     ClipRect.Push(CLIP_X, CLIP_Y, CLIP_W, CLIP_H)
-    self.shader:start()
-    self.shader:setFloat3("color", 1.0, 0.125, 0.0)
-    self.mesh:draw()
-    self.shader:stop()
+    pass:setPipeline(self.pipeline)
+    local p = pass:alloc(self.Params)
+    p.color.x, p.color.y, p.color.z = 1.0, 0.125, 0.0
+    pass:drawMesh(self.mesh)
     ClipRect.Pop()
 
     pass:finish()
-    RenderState.PopDepthWritable()
-    RenderState.PopDepthTest()
-    RenderState.PopCullFace()
-    RenderState.PopBlendMode()
-    RenderState.PopAll()
-    Viewport.Pop()
 
     local outside = self.color:sample(16, 64)
     local inside = self.color:sample(64, 64)

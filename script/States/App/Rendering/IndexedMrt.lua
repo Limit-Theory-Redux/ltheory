@@ -19,6 +19,13 @@ function RenderingIndexedMrt:onInit()
     self.passDesc:depth(self.zBuffer:view(), LoadOp.Clear, 1.0)
     self.mesh = Mesh.Box(2)
     self.shader = Cache.Shader("indexed_mrt", "indexed_mrt")
+    local desc = PipelineDesc.Create(self.shader)
+    desc:depth(true, true, CompareFn.LessEqual)
+    desc:colorFormat(0, TexFormat.RGBA16F)
+    desc:colorFormat(1, TexFormat.RGBA16F)
+    desc:colorFormat(2, TexFormat.R32F)
+    desc:depthFormat(TexFormat.Depth32F)
+    self.pipeline = Pipeline.Get(desc)
     self.backend = os.getenv("LTHEORY_WGPU") and "wgpu" or "opengl"
     self.frames = 0
     self.probed = false
@@ -35,25 +42,10 @@ end
 function RenderingIndexedMrt:onRender()
     if self.probed then return end
 
-    Viewport.Push(0, 0, TARGET_W, TARGET_H, true)
-    RenderState.PushAllDefaults()
-    RenderState.PushBlendMode(BlendMode.Disabled)
-    RenderState.PushCullFace(CullFace.None)
-    RenderState.PushDepthTest(true)
-    RenderState.PushDepthWritable(true)
-
     local pass = Renderer:beginPass(self.passDesc)
-    self.shader:start()
-    self.mesh:draw()
-    self.shader:stop()
+    pass:setPipeline(self.pipeline)
+    pass:drawMesh(self.mesh)
     pass:finish()
-
-    RenderState.PopDepthWritable()
-    RenderState.PopDepthTest()
-    RenderState.PopCullFace()
-    RenderState.PopBlendMode()
-    RenderState.PopAll()
-    Viewport.Pop()
 
     local p0 = self.buffer0:sample(math.floor(TARGET_W / 2), math.floor(TARGET_H / 2))
     local p1 = self.buffer1:sample(math.floor(TARGET_W / 2), math.floor(TARGET_H / 2))

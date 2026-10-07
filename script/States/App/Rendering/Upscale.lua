@@ -9,14 +9,17 @@ local SOURCE_H = 180
 
 function RenderingUpscale:onInit()
     self.source = Tex2D.Create(SOURCE_W, SOURCE_H, TexFormat.RGBA8)
-    self.source:setMagFilter(TexFilter.Linear)
-    self.source:setMinFilter(TexFilter.Linear)
-    self.source:setWrapMode(TexWrapMode.Clamp)
     self.passDesc = RenderPassDesc.Create("Upscale.source")
     self.passDesc:color(0, self.source:view(), LoadOp.Clear, 0, 0, 0, 1)
     self.presentDesc = RenderPassDesc.Create("Upscale.present")
-    self.gradient = Cache.Shader("ui", "gradient")
-    self.identity = Cache.Shader("ui", "filter/identity")
+    self.gradient = Cache.Shader("fullscreen", "gradient")
+    self.blit = Cache.Shader("fullscreen_flip", "blit")
+    local gradient = PipelineDesc.Create(self.gradient)
+    gradient:vertex(VertexLayout.Fullscreen)
+    self.gradientPipeline = Pipeline.Get(gradient)
+    local blit = PipelineDesc.Create(self.blit)
+    blit:vertex(VertexLayout.Fullscreen)
+    self.blitPipeline = Pipeline.Get(blit)
     self.sourceArtifactPath = ProbePaths.file("upscale-source.png")
     self.frames = 0
     self.holdFrames = tonumber(os.getenv("UPSCALE_HOLD_FRAMES")) or 40
@@ -52,39 +55,23 @@ function RenderingUpscale:eventLoop()
 end
 
 function RenderingUpscale:onRender()
-    RenderState.PushAllDefaults()
-
     local pass = Renderer:beginPass(self.passDesc)
-    Viewport.Push(0, 0, SOURCE_W, SOURCE_H, false)
-    self.gradient:start()
-    -- The legacy GL target push uses target-local UI coordinates. The current
-    -- wgpu immediate path preserves the logical compositor extent for this
-    -- diagnostic, so choose the geometry that covers the active projection
-    -- instead of changing renderer-wide matrix semantics mid-rung.
-    local sourceDrawW, sourceDrawH = SOURCE_W, SOURCE_H
-    if os.getenv("LTHEORY_WGPU") then
-        sourceDrawW, sourceDrawH = self.resX, self.resY
-    end
-    Draw.Rect(0, 0, sourceDrawW, sourceDrawH)
-    self.gradient:stop()
-    Viewport.Pop()
+    pass:setPipeline(self.gradientPipeline)
+    pass:drawFullscreen()
     pass:finish()
 
     self.presentDesc:backbuffer(self.resX, self.resY, LoadOp.Load, 0, 0, 0, 1)
     pass = Renderer:beginPass(self.presentDesc)
-    self.identity:start()
-    self.identity:setTex2D("src", self.source)
-    Draw.Rect(0, self.resY, self.resX, -self.resY)
-    self.identity:stop()
+    pass:setPipeline(self.blitPipeline)
+    pass:setInputs(self.source:view(), Samplers.LinearClamp)
+    pass:drawFullscreen()
     pass:finish()
-
-    RenderState.PopAll()
 end
 
 function RenderingUpscale:onExit()
     self.source = nil
     self.gradient = nil
-    self.identity = nil
+    self.blit = nil
     Log.Info("[UpscaleProbe] source and composite resources released")
 end
 
