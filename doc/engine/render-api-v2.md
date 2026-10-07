@@ -1566,6 +1566,17 @@ Differences found on the way and what they were (each is fixed, not tolerated, u
    difference moves a gap by tens of pixels). Without the forced loop bounding the ring matches (RMSE 0.062). The hash is
    as fragile as before: any compiler difference in `sin` or in the contraction of the arguments reshuffles it. The moon's
    craters are the same kind of fragile and differ by up to 45.
+5. *The ring flake (fixed).* `BenchmarkPhases` on wgpu failed in about a third of the runs, at a random capture frame
+   (f600, f1600 or f2100; same on Vulkan and DX12), each time with the same alternate image (RMSE 12.8 at f1600, 16.8 at
+   f600, 11.7 at f2100): the ring's minor gaps sat elsewhere, everything else was identical. The diagnostics
+   (`command_executor_wgpu/diag.rs`) showed it was not ordering: the CPU stream was identical between good and bad runs,
+   the GPU-side copies of the view, draw and material blocks and the ring's vertices taken right before the draw matched
+   the upload (`check`), no pipeline was rebuilt, and the per-pass dumps of a bad frame first differ at the output of the
+   alpha pass, whose inputs were identical. The gap parameters came from `noise(seed * k)`, an expression of uniforms only
+   with `sin` of arguments near 2e5 amplified by `* 4137`, which the driver did not evaluate the same way on every draw.
+   `planetring.glsl` now takes its per-ring random numbers (gaps, streak width and height, density offset) from an integer
+   hash of the seed's bits, which is exact however it is evaluated; the ring scenes were re-blessed on GL (their gap
+   layout changed). Ten consecutive runs after the fix: identical gaps, f1600 RMSE 0.166 to 0.173.
 4. *Not a wgpu difference.* In scenes that never clear the window (Downsample, UiShapes, UiMaps) the GL capture has a 13 x 19
    pixel orange glyph at the top left that wgpu does not draw (RMSE contribution about 3.5 on UiMaps). It is not drawn by
    the engine (it appears at frame 2 of an empty scene and no draw produces it); it looks like the GPU vendor's frame
