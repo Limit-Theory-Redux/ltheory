@@ -29,7 +29,7 @@ impl Wake for StartupWaker {
 /// Poll a wgpu startup future with an application-level deadline. Dropping a
 /// pending future bounds Rust-owned startup state; it cannot interrupt a
 /// foreign driver call that is already executing inside one `poll`.
-fn poll_startup_future<F: Future>(future: F) -> Result<F::Output, &'static str> {
+pub(crate) fn poll_startup_future<F: Future>(future: F) -> Result<F::Output, &'static str> {
     let mut future = Box::pin(future);
     let waker: Waker = Arc::new(StartupWaker).into();
     let mut context = Context::from_waker(&waker);

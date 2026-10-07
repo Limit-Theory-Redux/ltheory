@@ -26,8 +26,7 @@ use std::collections::HashMap;
 use wgpu::naga;
 
 use crate::render::{
-    BlockLayout, ShaderLayout, TexDim, blocks_from_naga, wgpu_sampler_binding,
-    wgpu_texture_binding,
+    BlockLayout, ShaderLayout, TexDim, blocks_from_naga, wgpu_sampler_binding, wgpu_texture_binding,
 };
 
 /// Fixed vertex attribute locations (what `glBindAttribLocation` does in the GL
@@ -170,7 +169,9 @@ pub(super) fn adapt_stage(code: &str, layout: &ShaderLayout) -> Result<String, S
                 // to compile with an unknown identifier, one that does not
                 // compiles as on GL.
                 let Some(decl) = layout.texture(name) else {
-                    out_lines.push(format!("{indent}// {declaration}: not declared under a #group"));
+                    out_lines.push(format!(
+                        "{indent}// {declaration}: not declared under a #group"
+                    ));
                     continue;
                 };
                 out_lines.push(format!(
@@ -324,7 +325,10 @@ pub(super) fn assign_interface(vs: &str, fs: &str) -> Result<(String, String), S
                 fs_out.push(format!(
                     "{}layout(location = {}) {}in {} {};",
                     decl.indent,
-                    varyings.get(decl.name).copied().unwrap_or(decl.location.unwrap_or(0)),
+                    varyings
+                        .get(decl.name)
+                        .copied()
+                        .unwrap_or(decl.location.unwrap_or(0)),
                     decl.qualifier,
                     decl.ty,
                     decl.name
@@ -413,10 +417,12 @@ pub(super) fn wrap_fragment_clamp(
     mask: u32,
 ) -> Result<String, String> {
     let mut out = rename_main(code, "_phx_fs_main").ok_or("fragment shader has no main()")?;
-    out.push_str("
+    out.push_str(
+        "
 void main() {
   _phx_fs_main();
-");
+",
+    );
     for o in outputs.iter().filter(|o| mask & (1 << o.location) != 0) {
         out.push_str(&format!(
             "  {} = clamp({}, 0.0, 1.0);
@@ -424,8 +430,10 @@ void main() {
             o.name, o.name
         ));
     }
-    out.push_str("}
-");
+    out.push_str(
+        "}
+",
+    );
     Ok(out)
 }
 
@@ -567,7 +575,12 @@ pub(super) fn parse_stage(stage: naga::ShaderStage, source: &str) -> Result<naga
         naga::valid::Capabilities::all(),
     )
     .validate(&module)
-    .map_err(|e| format!("naga GLSL {stage:?} validation failed: {}", e.emit_to_string(source)))?;
+    .map_err(|e| {
+        format!(
+            "naga GLSL {stage:?} validation failed: {}",
+            e.emit_to_string(source)
+        )
+    })?;
     Ok(module)
 }
 
@@ -650,9 +663,15 @@ mod tests {
     #[test]
     fn io_lines_parse() {
         let d = parse_io("  flat out vec4 imm_color;").unwrap();
-        assert_eq!((d.qualifier, d.dir, d.ty, d.name), ("flat ", Dir::Out, "vec4", "imm_color"));
+        assert_eq!(
+            (d.qualifier, d.dir, d.ty, d.name),
+            ("flat ", Dir::Out, "vec4", "imm_color")
+        );
         let d = parse_io("layout(location = 10) in uint instanceIndex;").unwrap();
-        assert_eq!((d.location, d.dir, d.name), (Some(10), Dir::In, "instanceIndex"));
+        assert_eq!(
+            (d.location, d.dir, d.name),
+            (Some(10), Dir::In, "instanceIndex")
+        );
         let d = parse_io("layout (location = 0) out vec4 outColor;").unwrap();
         assert_eq!(d.location, Some(0));
         assert!(parse_io("void main() {").is_none());
@@ -661,7 +680,8 @@ mod tests {
 
     #[test]
     fn wrapper_renames_main() {
-        let wrapped = wrap_vertex_main("void  main (void) {\n gl_Position = vec4(0.0);\n}\n").unwrap();
+        let wrapped =
+            wrap_vertex_main("void  main (void) {\n gl_Position = vec4(0.0);\n}\n").unwrap();
         assert!(wrapped.contains("void  _phx_vs_main (void)"));
         assert!(wrapped.contains("void main() {\n  _phx_vs_main();"));
         assert!(wrap_vertex_main("int x;").is_err());

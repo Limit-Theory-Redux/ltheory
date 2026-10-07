@@ -109,7 +109,11 @@ impl WgpuCommandExecutor {
             };
             while buffers.len() <= chunk.at.buffer as usize {
                 buffers.push(self.device.create_buffer(&wgpu::BufferDescriptor {
-                    label: Some(if vertex { "phx-vertex-ring" } else { "phx-uniform-ring" }),
+                    label: Some(if vertex {
+                        "phx-vertex-ring"
+                    } else {
+                        "phx-uniform-ring"
+                    }),
                     size: size as u64,
                     usage,
                     mapped_at_creation: false,
@@ -307,16 +311,17 @@ impl WgpuCommandExecutor {
         self.ensure_backbuffer();
 
         let present_started = Instant::now();
-        let frame = self.surface.as_ref().and_then(|surface| {
-            match surface.get_current_texture() {
+        let frame = self
+            .surface
+            .as_ref()
+            .and_then(|surface| match surface.get_current_texture() {
                 wgpu::CurrentSurfaceTexture::Success(frame)
                 | wgpu::CurrentSurfaceTexture::Suboptimal(frame) => Some(frame),
                 wgpu::CurrentSurfaceTexture::Outdated | wgpu::CurrentSurfaceTexture::Lost => {
                     Some(None).flatten()
                 }
                 _ => None,
-            }
-        });
+            });
         // An outdated or lost swapchain is reconfigured and the frame skipped.
         if frame.is_none() && self.surface.is_some() {
             self.reconfigure_surface();

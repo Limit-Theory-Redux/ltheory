@@ -349,7 +349,8 @@ impl WgpuCommandExecutor {
             View(wgpu::TextureView),
             Sampler(wgpu::Sampler),
         }
-        let mut key: Vec<u64> = Vec::with_capacity(4 + layout.blocks.len() * 4 + layout.textures.len() * 8);
+        let mut key: Vec<u64> =
+            Vec::with_capacity(4 + layout.blocks.len() * 4 + layout.textures.len() * 8);
         key.push(layout.id as u64);
         // (binding, resource) in layout order.
         let mut resources: Vec<(u32, Res)> = Vec::new();
@@ -358,16 +359,15 @@ impl WgpuCommandExecutor {
         for block in &layout.blocks {
             let binding = wgpu_block_binding(block.index);
             if block.dynamic {
-                match gs
-                    .ring
-                    .and_then(|(slot, chunk)| self.ring_uniform[slot as usize].get(chunk as usize).map(|b| ((slot, chunk), b)))
-                {
+                match gs.ring.and_then(|(slot, chunk)| {
+                    self.ring_uniform[slot as usize]
+                        .get(chunk as usize)
+                        .map(|b| ((slot, chunk), b))
+                }) {
                     Some(((slot, chunk), buffer)) => {
                         key.extend([1, slot as u64, chunk as u64, block.size as u64]);
-                        resources.push((
-                            binding,
-                            Res::Buffer(buffer.clone(), 0, block.size as u64),
-                        ));
+                        resources
+                            .push((binding, Res::Buffer(buffer.clone(), 0, block.size as u64)));
                         continue;
                     }
                     None => {}

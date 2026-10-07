@@ -76,7 +76,7 @@ mod tex;
 
 use bind::{CachedBg, Defaults, GroupLayout, GroupLayoutKey};
 use formats::*;
-use pass::{PassRt, Quad, ViewKey, VariantKey};
+use pass::{PassRt, Quad, VariantKey, ViewKey};
 use shader::VertexInput;
 #[cfg(test)]
 pub(crate) use shader::{adapt_single_stage, parse_adapted};
@@ -370,9 +370,8 @@ impl WgpuCommandExecutor {
     ) -> Result<Vec<BlockLayout>, String> {
         let pair = shader::compile_pair(&vertex_src, &fragment_src, layout)
             .inspect_err(|e| error!("wgpu: failed to create shader {id:?}: {e}"))?;
-        let module = |label: &'static str, module: wgpu::naga::Module| {
-            self.shader_module(label, module)
-        };
+        let module =
+            |label: &'static str, module: wgpu::naga::Module| self.shader_module(label, module);
         let vs = module("phx-vertex", pair.vs);
         let fs = module("phx-fragment", pair.fs);
         let groups = self.shader_group_layouts(layout, &pair.blocks);
@@ -468,7 +467,8 @@ impl WgpuCommandExecutor {
         for id in ids {
             self.resources.remove(id);
         }
-        self.views.retain(|key, _| !ids.iter().any(|id| id.0 == key.tex));
+        self.views
+            .retain(|key, _| !ids.iter().any(|id| id.0 == key.tex));
     }
 
     pub(super) fn cmd_create_pipeline(&mut self, id: PipelineId, desc: &PipelineDesc) {
@@ -520,8 +520,7 @@ impl WgpuCommandExecutor {
             warn!("wgpu: WriteBuffer: buffer {id:?} was never created");
             return;
         };
-        self.queue
-            .write_buffer(buffer, offset as u64, &pad4(data));
+        self.queue.write_buffer(buffer, offset as u64, &pad4(data));
     }
 
     // =====================================================================
@@ -635,5 +634,177 @@ pub(super) fn pad4(bytes: &[u8]) -> std::borrow::Cow<'_, [u8]> {
         let mut v = bytes.to_vec();
         v.resize(bytes.len().next_multiple_of(4), 0);
         std::borrow::Cow::Owned(v)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::render::{PassCommands, VertexLayout};
+
+    /// A headless executor (no surface), or `None` without an adapter. The GPU
+    /// tests are `#[ignore]`d; run them one at a time
+    /// (`cargo test -p phx wgpu -- --ignored --test-threads=1`).
+    fn headless() -> Option<WgpuCommandExecutor> {
+        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor::new_without_display_handle());
+        let adapter = crate::window::poll_startup_future(
+            instance.request_adapter(&wgpu::RequestAdapterOptions::default()),
+        )
+        .ok()?
+        .ok()?;
+        let (device, queue) =
+            crate::window::poll_startup_future(adapter.request_device(&wgpu::DeviceDescriptor {
+                required_features: crate::window::wanted_features(adapter.features()),
+                ..Default::default()
+            }))
+            .ok()?
+            .ok()?;
+        Some(WgpuCommandExecutor::with_device(device, queue))
+    }
+
+    fn create_shader(ex: &mut WgpuCommandExecutor, id: u64, vs: &str, fs: &str) {
+        let (tx, rx) = crossbeam::channel::unbounded();
+        ex.execute(RenderCommand::CreateShader {
+            id: ResourceId(id),
+            vertex_src: vs.to_string(),
+            fragment_src: fs.to_string(),
+            layout: Arc::new(ShaderLayout::default()),
+            reply_tx: tx,
+        });
+        rx.recv().unwrap().expect("shader compiles");
+    }
+
+    fn read(ex: &mut WgpuCommandExecutor, id: u64, desc: &TexDesc) -> Vec<u8> {
+        let (tx, rx) = crossbeam::channel::unbounded();
+        ex.execute(RenderCommand::ReadTextureSync {
+            src: crate::render::ReadSource::Texture(ResourceId(id)),
+            region: TexRegion::level(desc, 0),
+            format: TexFormat::RGBA8,
+            reply_tx: tx,
+        });
+        rx.recv().unwrap()
+    }
+
+    /// The convention of the module docs: a fullscreen pass writing its uv
+    /// puts uv.y = 0 in row 0, as GL does.
+    #[test]
+    #[ignore = "needs a GPU adapter"]
+    fn fullscreen_uv_lands_in_gl_orientation() {
+        let Some(mut ex) = headless() else {
+            eprintln!("no adapter, skipping");
+            return;
+        };
+        create_shader(
+            &mut ex,
+            1,
+            "#version 330\nin vec3 vertex_position;\nin vec2 vertex_uv;\nout vec2 uv;\nvoid main() { uv = vertex_uv; gl_Position = vec4(2.0 * vertex_position.xy - 1.0, 0.0, 1.0); }\n",
+            "#version 330\nin vec2 uv;\nlayout(location = 0) out vec4 outColor;\nvoid main() { outColor = vec4(uv.x, uv.y, 0.0, 1.0); }\n",
+        );
+        let desc = TexDesc::d2(4, 4, TexFormat::RGBA8);
+        ex.execute(RenderCommand::CreateTexture {
+            id: ResourceId(2),
+            desc: Box::new(desc),
+            data: None,
+        });
+        let mut pipeline = PipelineDesc::new(ResourceId(1));
+        pipeline.vertex = VertexLayout::Fullscreen;
+        ex.execute(RenderCommand::CreatePipeline {
+            id: PipelineId(0),
+            desc: Box::new(pipeline),
+        });
+        let view = TexView::new(ResourceId(2), ViewDim::D2, 0, [4, 4]);
+        ex.execute(RenderCommand::BeginRenderPass(Box::new(
+            RenderPassDesc::with_color("test", view, LoadOp::Clear, [0.0; 4]),
+        )));
+        ex.execute(RenderCommand::PassCommands(Box::new(PassCommands {
+            slot: 0,
+            uniforms: Vec::new(),
+            vertices: Vec::new(),
+            cmds: vec![PassCmd::SetPipeline(PipelineId(0)), PassCmd::DrawFullscreen],
+        })));
+        ex.execute(RenderCommand::EndRenderPass);
+
+        let texels = read(&mut ex, 2, &desc);
+        assert_eq!(texels.len(), 4 * 4 * 4);
+        let at = |x: usize, row: usize| {
+            let i = (row * 4 + x) * 4;
+            (texels[i], texels[i + 1])
+        };
+        // Texel centres: u = (x + 0.5) / 4, v = (row + 0.5) / 4, row 0 first.
+        let near = |a: u8, b: f32| (a as f32 - b * 255.0).abs() <= 1.5;
+        assert!(
+            near(at(0, 0).0, 0.125) && near(at(0, 0).1, 0.125),
+            "{:?}",
+            at(0, 0)
+        );
+        assert!(
+            near(at(3, 0).0, 0.875) && near(at(3, 0).1, 0.125),
+            "{:?}",
+            at(3, 0)
+        );
+        assert!(
+            near(at(0, 3).0, 0.125) && near(at(0, 3).1, 0.875),
+            "{:?}",
+            at(0, 3)
+        );
+    }
+
+    /// Depth: a nearer quad hides a farther one whatever the draw order, with
+    /// the clip-space z remap and the depth test of the pipeline.
+    #[test]
+    #[ignore = "needs a GPU adapter"]
+    fn depth_test_keeps_the_nearer_quad() {
+        let Some(mut ex) = headless() else {
+            eprintln!("no adapter, skipping");
+            return;
+        };
+        // gl_FragDepth overrides the rasterized depth, as the engine's logarithmic depth does.
+        create_shader(
+            &mut ex,
+            1,
+            "#version 330\nin vec3 vertex_position;\nout float shade;\nvoid main() { shade = vertex_position.x; gl_Position = vec4(2.0 * vertex_position.xy - 1.0, 0.0, 1.0); }\n",
+            "#version 330\nin float shade;\nlayout(location = 0) out vec4 outColor;\nvoid main() { outColor = vec4(1.0, 1.0, 1.0, 1.0); gl_FragDepth = 0.5; }\n",
+        );
+        let desc = TexDesc::d2(2, 2, TexFormat::RGBA8);
+        for (id, d) in [(2u64, desc), (3, TexDesc::d2(2, 2, TexFormat::Depth32F))] {
+            ex.execute(RenderCommand::CreateTexture {
+                id: ResourceId(id),
+                desc: Box::new(d),
+                data: None,
+            });
+        }
+        let mut pass = RenderPassDesc::with_color(
+            "depth",
+            TexView::new(ResourceId(2), ViewDim::D2, 0, [2, 2]),
+            LoadOp::Clear,
+            [0.0; 4],
+        );
+        pass.set_depth(
+            TexView::new(ResourceId(3), ViewDim::D2, 0, [2, 2]),
+            LoadOp::Clear,
+            1.0,
+        );
+        let mut pipeline = PipelineDesc::new(ResourceId(1));
+        pipeline.vertex = VertexLayout::Fullscreen;
+        pipeline.depth = crate::render::DepthState {
+            test: true,
+            write: true,
+            compare: CompareFn::LessEqual,
+        };
+        ex.execute(RenderCommand::CreatePipeline {
+            id: PipelineId(0),
+            desc: Box::new(pipeline),
+        });
+        ex.execute(RenderCommand::BeginRenderPass(Box::new(pass)));
+        ex.execute(RenderCommand::PassCommands(Box::new(PassCommands {
+            slot: 0,
+            uniforms: Vec::new(),
+            vertices: Vec::new(),
+            cmds: vec![PassCmd::SetPipeline(PipelineId(0)), PassCmd::DrawFullscreen],
+        })));
+        ex.execute(RenderCommand::EndRenderPass);
+        // gl_FragDepth 0.5 passes against the cleared 1.0: the quad is drawn.
+        let texels = read(&mut ex, 2, &desc);
+        assert_eq!(&texels[..4], &[255, 255, 255, 255]);
     }
 }

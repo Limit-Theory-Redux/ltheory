@@ -1,6 +1,6 @@
 # Render API v2 — wgpu-shaped interface on the GL renderer
 
-Status: design. S2 (render passes and attachment views), S3 (binding model, pipelines, samplers, views, frame group), S4 (materials, scene list, uniform ring), S5 (fullscreen, post-processing, offscreen generation), S6 (immediate batching, UI, glyph atlas, and the removal of the legacy API), S7 (sampler/view completion), S8 (async readback), S9 (mip chains and texture kinds) and S10 (hot reload) are implemented. Companion to `wgpu-migration-gaps.md`,
+Status: design. S2 (render passes and attachment views), S3 (binding model, pipelines, samplers, views, frame group), S4 (materials, scene list, uniform ring), S5 (fullscreen, post-processing, offscreen generation), S6 (immediate batching, UI, glyph atlas, and the removal of the legacy API), S7 (sampler/view completion), S8 (async readback), S9 (mip chains and texture kinds), S10 (hot reload) and S11 (the wgpu executor) are implemented. Companion to `wgpu-migration-gaps.md`,
 `render-thread.md`, `batch-rendering.md` and `shader-system.md`.
 
 **Strategy, already decided.** First the GL renderer and the Lua render
@@ -593,6 +593,8 @@ latency can't be seen. Validation probes and `Tex2D.ScreenCapture` use
 | Readback | `GL_PIXEL_PACK_BUFFER` per ticket: `glReadPixels` into the PBO from a read FBO on the view, `glFenceSync`, poll with timeout 0 each `BeginFrame`, map and copy into `ReadbackSlot` (`Arc<{state: AtomicU8, data: Mutex<Vec<u8>>}>`) | `copy_texture_to_buffer` + `map_async` (gap 1) |
 | Mips | `glGenerateMipmap` | Blit chain, one pass per level (gap 4) |
 
+The wgpu column is what S11 built; its deviations (the one orientation convention, the dynamic-offset blocks, formats) are in the S11 notes.
+
 **Coexistence between S3 and S6.** This is not a shim. Old commands stay
 exactly as they are until the step that deletes their last caller. The
 executor keeps one `GlStateCache`. Any old state, shader or bind command
@@ -624,6 +626,7 @@ with bind groups in S3, and S7 only deletes the dead texture-level state.
 | S8 Async readback | S8 | `tex:sample()`, `SamplePixel2D`, `ReadFramebufferPixels`, sync reads in engine paths |
 | S9 Mips and texture kinds | S9 | GL-enum upload payloads, placeholder 1D/3D on wgpu |
 | S10 Hot reload | S10 | stale-pipeline and stale-bind-group behaviour |
+| S11 wgpu executor | S11 | the 1:1 translation executor: plain-uniform packing, per-draw encoder and submit, pending-clear framebuffer emulation, string rewrites |
 
 **Verification gate for every step.** Run `tools/render_validation/run_all.py gl` with
 both the default and `--features immediate` builds. The supervised scenes
@@ -797,10 +800,8 @@ locations; they now use `script/Legacy/Util/ShaderLocations.lua` (the same eight
 still mention removed APIs but are not loaded by any active state: `GameObjects/Entities/StarSystem.lua`,
 `Systems/Camera/Camera.lua` (and `Overlay/GameView` through it).
 
-*wgpu executor.* It compiles and implements the new commands 1:1 on its existing GL-shaped state (pipelines set
-shader, blend, cull, depth and wireframe; the view block and draw block are staged as plain-uniform bytes; samplers
-are matched to units through the shader layout). It does not render these paths correctly yet; its block
-reflection is built from naga, with grouped block bindings injected by `adapt_glsl_for_naga_with_layout`.
+*wgpu executor.* It compiled and implemented the new commands 1:1 on its old GL-shaped state, and did not render
+these paths correctly. S11 replaced it (see the S11 notes).
 
 
 ### S4. Materials, scene list, uniform ring
@@ -938,9 +939,8 @@ resource and state table) through `Renderer:currentPass()`: the skybox and star 
 testbed's `Pulse.Render` (still on `shader:start()`); the testbed wraps the call in the additive pass's
 `RenderState` pushes, marked `S6`.
 
-*wgpu executor.* It handles `BeginFrame` (nothing to wait for), the buffer commands (CPU copies, staged as plain
-uniform blocks when a bind group with a uniform entry is set) and both instanced pass commands (reading the vertex
-ring bytes back into the old instanced paths). Like in S3 it does not render these paths correctly yet.
+*wgpu executor.* Handled these commands on the old GL-shaped state and rendered none of them correctly. S11
+replaced it.
 
 ### S5. Fullscreen, post-processing and offscreen generation
 - **Engine.** Add `DrawFullscreen` and `vertex/fullscreen.glsl` (NDC quad,
@@ -1186,9 +1186,8 @@ shape above (`UiShapes`: RMSE 0.010, max 12, 0.0001% of pixels over 8) and the m
 views match their pre-S6 captures (RMSE <= 0.03). The 3D debug lines and points have no previous output to match (they
 were 1 or 2 pixel GL lines).
 
-*wgpu executor.* `DrawImm` reads the vertices back from the vertex-ring bytes and draws them through the old immediate
-path of that executor, and the rect upload goes through its texture write; like the other pass commands since S3 these do
-not render correctly there yet.
+*wgpu executor.* `DrawImm` went through the old immediate path of that executor and did not render correctly there. S11
+replaced it.
 
 ### S7. Samplers and views, finishing up
 - After S6 every sample goes through a bind group with an explicit sampler,
@@ -1382,8 +1381,8 @@ filter (nearest for 32F formats), pipelines cached per target format. A texture 
 fill: `GenerateMips` warns and does nothing, so the sites above ask for mips at creation. Samplers
 (`CreateSampler`) are real `wgpu::Sampler`s now, bound with the texture of the unit they came with (`SetInputs`,
 `SetBindGroup`) unless the format is 32F: filters, wrap, anisotropy and LOD clamps reach the GPU (gaps 5, 6 and 18).
-These paths run (`TexKinds` under `LTHEORY_WGPU=1` creates 2D, 3D, 1D and cube textures, uploads, and generates mips
-without a validation error) but, like everything the wgpu executor does since S3, they do not render scenes correctly.
+These paths ran (`TexKinds` under `LTHEORY_WGPU=1` creates 2D, 3D, 1D and cube textures, uploads, and generates mips
+without a validation error) before the executor could render scenes; S11 moved them onto the frame encoder.
 
 *Probe.* `States/App/Tests/TexKinds` creates one texture of each kind with mips, uploads in layouts that differ from
 the texture's format (RGB float into RGBA8, RG8, R32F, per cube face), reads everything back and logs a PASS/FAIL line.
@@ -1431,6 +1430,191 @@ by 16 bytes (identical to the reference, so the copy by name worked; the log sho
 plain run without `LTHEORY_CAPTURE` for 20 s with four edits in a row (a comment, the tint, the new member, the revert)
 reloaded four times without an `ERROR` or panic line, `added=hotProbe` after the third and `dropped=hotProbe` after the
 fourth.
+
+### S11. The wgpu executor
+
+**Status: implemented.** `command_executor_wgpu.rs` and its modules (about 4.6k lines) replace the 4.9k-line executor
+that translated the GL command stream one command at a time. `LTHEORY_WGPU=1` (threaded renderer only; the immediate
+build stays GL-only and does not compile the executor) renders the 13 validation scenes, the six capture scenes, `TexKinds`
+and the auto-exposure test. Of the gaps in `wgpu-migration-gaps.md`, 1 to 15 and 18 are closed, 16 is improved and 17 is open.
+
+#### Structure
+
+| File | Contents |
+|---|---|
+| `command_executor_wgpu.rs` | the executor struct, resources (shaders, textures, meshes, samplers, arenas), the command dispatch |
+| `frame.rs` | the frame encoder and its flush points, ring buffers, backbuffer and present, frame slots and pacing, resize |
+| `pass.rs` | `BeginRenderPass`/`EndRenderPass`, pass commands and draws, texture views, pipeline variants |
+| `bind.rs` | group layouts (interned), the state of the four groups per pass, bind groups made from it and cached by content |
+| `shader.rs` | GLSL 330 to naga: the adaptations, the pair compile, reflection |
+| `tex.rs`, `readback.rs` | textures, updates, mip chains, copies; readbacks (S8/S9, now on the frame encoder) |
+| `formats.rs` | pure mappings (blend, cull, topology, samplers, vertex layouts) |
+
+**Frames.** One `CommandEncoder` per frame. It is submitted at `SwapBuffers`, at `Flush`, before a readback, and before
+any `queue.write_*` that recorded work could read the old contents of (`write_texture` and `write_buffer` are ordered
+before the *whole next submission*, so `UpdateTexture`, `WriteBuffer` and texel writes submit first when the encoder holds
+passes). Ring uploads need no such flush: a frame slot is written once per frame (the main thread never reuses a region
+within a frame, `last_view` only re-uses an earlier one), and `write_buffer` is ordered after every earlier submission, so
+frame N+3 overwriting frame N's slot cannot overtake it. `CopyTexture` and `GenerateMips` record into the encoder
+between passes.
+
+**Passes.** `BeginRenderPass` opens one `wgpu::RenderPass` with the real load ops (`Clear` clears, `Load` loads,
+`DontCare` loads: GL kept the old contents too; store is always `Store`, `Discard` is informational as on GL). A flush
+point that needs the encoder (a copy, a mip chain) closes the pass; its next draw reopens it with `LoadOp::Load`,
+re-applying viewport, scissor, pipeline and bind groups, which live in the executor's pass state and not in the wgpu pass.
+Attachment views honour `base_mip`, cube face (`face_layer`) and 3D slice (`depth_slice`); sampling views honour
+`base_mip`/`mip_count` and the declared dimension (a cube face can be sampled as 2D; a 3D slice cannot, WebGPU has no such view).
+
+**Pipelines.** Built lazily per `(PipelineId, shader generation, pass color/depth formats, vertex flavor)`. The flavor is
+what the draw command says: `Mesh(stride, attributes)`, `MeshInstanced`, `MeshIndices`, `Fullscreen`, `Imm2D`, `Imm3D`.
+Vertex buffers: the mesh (or ring) at slot 0, the instance data at slot 1, and a 32-byte zero buffer with stride 0 for
+every shader input nothing supplies (GL's constant attribute, so a shader that declares `vertex_color` draws a mesh without
+color; the old executor padded every mesh to make room). A color target the shader does not write masks all channels
+(GL leaves it undefined). GL semantics kept: depth test off means no depth writes; `front_face` is `Cw` because of the
+y flip below; strips get `strip_index_format`; fan quads of `DrawFullscreen` are two indexed triangles.
+
+**Bind groups.** `#group N` is `set N`. Blocks are bindings `0..3` of a group (the `k`-th block), the `i`-th sampler is a
+texture at `4 + 2i` and its sampler object at `5 + 2i` (`gpu/layout.rs`: `wgpu_*_binding`). The first block of groups 0 and 2
+(`ViewBlock`, the draw/params block) is a dynamic-offset binding of a uniform ring chunk; every other block comes from a
+material arena slice (`BindEntry::Uniform`); an unbound block binds 64 KiB of zeros and an unbound sampler a 1x1 white
+texture of the declared dimension. Two shaders that declare the same things in a group share one wgpu layout, so a bind
+group made for one is valid for the other; a pipeline change re-sets the groups from the first group whose layout changed.
+Bind groups are cached by content (layout, ring chunk, arena range, texture/view/sampler ids and generations) and swept
+after four unused frames. Samplers are real `wgpu::Sampler`s (S9).
+
+**Shaders** (`shader.rs`): `#version 330` to `440`; `set`/`binding` from the recorded layout; combined samplers split into
+`texture`/`sampler` with the use sites rewritten; attribute locations by name (the fixed table that `glBindAttribLocation`
+uses); varyings by their order in the vertex stage, matched by name in the fragment stage (a fragment input the vertex stage
+never writes becomes a zero global); fragment outputs without a location numbered; `in mat4` split; loose uniforms nothing
+reads become zero globals; a sampler outside any `#group` drops its declaration (such shaders never worked on GL). Nothing
+else is rewritten: the plain-uniform packing, the 10+ binding scheme, the per-shader reflection tables and the string
+rewrites of the old executor are gone. The layout-parity test now runs the same adaptation as the executor (it skips the 18
+unported shaders that declare loose samplers). Modules are created with `create_shader_module_trusted(unchecked())`: the
+shaders are the engine's own and validated by naga here, and wgpu's forced loop bounding made the occlusion bake of generated
+ships several times slower than on GL.
+
+**One convention for GL and wgpu** (the module docs of `command_executor_wgpu.rs`): GL's framebuffer row 0 is at NDC
+`y = -1`, wgpu's at `y = +1`, while textures are indexed identically. Every vertex shader is wrapped (`main` renamed, then
+`gl_Position.y = -y; z = (z + w) / 2`), so **every render target, the window included, is a GL-convention texture**: row 0 is
+the bottom, uv `v = 0` is the bottom, viewports and scissors need no conversion (rows count from the same origin),
+`gl_FragCoord` and `dFdy` keep their GL meaning, and logarithmic depth works unchanged (`gl_FragDepth` is a `0..1` window
+value in both APIs; the clip-space z remap keeps `z/w = 1` of the far plane at depth 1). The backbuffer is an `RGBA8`
+texture with a `Depth32Float` buffer; `SwapBuffers` flips it onto the swapchain with a blit (`textureLoad`, one texel per
+pixel), and `ReadSource::Backbuffer` reads the same rows GL does. The surface uses the linear twin of the
+default sRGB format (the GL default framebuffer is not sRGB). A fragment output that goes to a fixed-point target is clamped
+to `0..1` before blending (`wrap_fragment_clamp`, one variant per output mask): GL clamps there, wgpu blends the raw value.
+
+**Formats.** `R32F`, `RG32F`, `RGBA32F` are native when the adapter has `FLOAT32_FILTERABLE` and `FLOAT32_BLENDABLE` (the
+device asks for them, plus `TEXTURE_FORMAT_16BIT_NORM` and `POLYGON_MODE_LINE` where available); otherwise they fall back
+to the old 16F storage (lossy: linear depth in `zBufferL` and the asteroid instance texture need the native path). Depth
+formats are `Depth16Unorm`, `Depth24Plus` and `Depth32Float` as GL's 16/24/32F. A texture created with one level that is
+asked to `GenerateMips` is grown: a new texture with the whole chain, level 0 copied over (GL allocates levels when it
+generates them; wgpu cannot).
+
+**Frame pacing and errors.** `PacingFence` answers from `queue.on_submitted_work_done` (the render thread polls the device
+whenever its command channel is idle and after each frame, so a waiting main thread never starves its own callback);
+`BeginFrame { slot }` waits for the callback of the frame that last used the slot. The device's uncaptured-error handler
+logs; with `LTHEORY_WGPU_FATAL=1` it panics. All validation scripts set it (`setdefault`, so a caller can override).
+`ReadTextureSync` waits for its submission in the driver (up to 120 s).
+
+**Deleted.** The framebuffer stack and pending clears, the per-draw encoder and submit, the plain-uniform staging and
+location tables, the 16F-everywhere texture creation, the mesh padding for color and `instanceIndex`, the per-binding UBO
+buffers and the whole `UniformValue`/`SamplerRefl`/`ShaderReflection` machinery, `downsample_filter_wgpu.glsl` (its `uv *
+4.006` was a workaround for the old executor; the plain shader passes), and the unit tests of all of it (kept: blend, cull,
+attribute, format and blit tests, rewritten against the new functions).
+
+#### Verification
+
+`run_all.py` on the default GL build, the immediate GL build and wgpu (fatal mode), one run each:
+
+- GL (default and immediate): supervisors 13/13, six captures RMSE 0 against the re-blessed baseline; the two builds are
+  bit-identical to each other.
+- wgpu: supervisors 13/13, `TexKinds` 23/23, auto-exposure test PASS, no validation error and no panic in the frame-40
+  smoke of ShipTest, StationTest, CameraTest, the LTheoryRedux menu, WeaponSystem, PlanetTest, MoonTest,
+  SolarSystemPlayable, GenTex2D, UiShapes and UiMaps.
+
+wgpu against the baseline (`compare.py`, default thresholds):
+
+| scene | RMSE | max | % > 8 | what remains |
+|---|---|---|---|---|
+| PlanetTest | 0.089 | 11 | 0.000 | rounding |
+| Benchmark | 0.147 | 42 | 0.002 | rounding, a few asteroid edge pixels |
+| SolarSystemPlayable | 0.085 | 2 | 0.000 | rounding |
+| MoonTest | 0.934 | 45 | 0.254 | crater rims of the procedural moon (hash noise; most likely float differences, not investigated further) |
+| PlanetTestRing | 0.062 | 8 | 0.000 | rounding |
+| WeaponSystem | 0.088 | 19 | 0.000 | rounding |
+
+Differences found on the way and what they were (each is fixed, not tolerated, unless said so):
+
+1. *The baseline depended on a NaN.* `filter/tonemap` (the Illustris curve) raises the saturation, which leaves channels
+   below zero, and `pow()` of a negative is NaN: about 45% of the dark pixels had NaN red or green. `present` sampled the
+   frame with a linear filter, and on GL a filtered fetch at a texel centre is not an exact copy: it blurred every pixel a
+   little (stars lost peak brightness) and a NaN neighbour poisoned the result (stars lost their red channel; the baseline
+   stars were cyan). wgpu fetches exactly. `present` samples with `Samplers.Point` now and the tonemap clamps at 0 before
+   the gamma. GL changed by RMSE 1.84, 2.94, 1.29, 1.61, 1.89, 2.99 on the six captures, all of it stars and the box below,
+   and the baseline was re-blessed for that reason (separate commit).
+2. *Unwritten MRT outputs.* `material/solidcolor` (`DebugColor`, the turret boxes of the WeaponSystem testbed) wrote only
+   `outColor` into a three-attachment pass. GL drivers copy that colour into the other attachments, so the G-buffer
+   material read 1.0 and the lighting pass shaded the boxes black; wgpu leaves the attachments alone. It writes an unlit
+   material and its depth explicitly now. The other shaders that write only `outColor` in scene passes (effects, debug
+   lines) behave the same way: GL fills the G-buffer and linear depth under them, wgpu leaves them. They draw after the
+   lighting pass, and no capture shows a difference.
+3. *Runtime checks.* With wgpu's default shader checks the procedural ring (`planetring.glsl`) differed from GL by RMSE
+   12.4 (its gap positions come from `fract(sin(x) * 4137)` of `sin(x)`'s with x in the hundreds, and nested: a one-ulp
+   difference moves a gap by tens of pixels). Without the forced loop bounding the ring matches (RMSE 0.062). The hash is
+   as fragile as before: any compiler difference in `sin` or in the contraction of the arguments reshuffles it. The moon's
+   craters are the same kind of fragile and differ by up to 45.
+4. *Not a wgpu difference.* In scenes that never clear the window (Downsample, UiShapes, UiMaps) the GL capture has a 13 x 19
+   pixel orange glyph at the top left that wgpu does not draw (RMSE contribution about 3.5 on UiMaps). It is not drawn by
+   the engine (it appears at frame 2 of an empty scene and no draw produces it); it looks like the GPU vendor's frame
+   counter overlay hooking the GL swap, which scenes that redraw the whole window overwrite.
+
+`UiShapes` (RMSE 3.8) and `UiMaps` (4.3 with the glyph, 3.9 without) against GL: the glows of `UiShapes` are overlapping
+256-pixel quads of low alpha, so the rounding of many 8-bit blends accumulates (a single hexagon on a plain background
+differs by RMSE 0.09, max 14); `UiMaps` differs on the edge pixels of triangles and of the dots (tie-breaking where a pixel
+centre sits exactly on `r = 0.25` or on an edge).
+
+#### Cost
+
+Frame 120 (400 for the menu), median of three runs, debug build, dev machine (GTX 1070); fps / frame ms / render-thread ms
+(receive plus execute, per frame):
+
+| scene | GL | wgpu |
+|---|---|---|
+| PlanetTest | 291 / 3.43 / 2.15 | 279 / 3.59 / 1.92 |
+| Benchmark | 221 / 4.52 / 4.90 | 224 / 4.46 / 5.50 |
+| SolarSystemPlayable | 333 / 3.01 / 1.89 | 308 / 3.25 / 1.71 |
+| MoonTest | 339 / 2.95 / 1.65 | 338 / 2.96 / 1.54 |
+| PlanetTestRing | 162 / 6.16 / 3.80 | 164 / 6.08 / 4.30 |
+| WeaponSystem | 28.8 / 34.8 / 22.1 | 29.3 / 34.1 / 21.7 |
+| Menu | 138 / 7.25 / 6.12 | 147 / 6.81 / 5.40 |
+
+Release build, same method:
+
+| scene | GL | wgpu |
+|---|---|---|
+| PlanetTest | 310 / 3.23 / 2.08 | 301 / 3.33 / 2.22 |
+| Benchmark | 232 / 4.30 / 5.21 | 240 / 4.17 / 5.60 |
+| SolarSystemPlayable | 471 / 2.12 / 0.79 | 462 / 2.16 / 0.90 |
+| MoonTest | 366 / 2.73 / 1.63 | 367 / 2.73 / 1.23 |
+| PlanetTestRing | 170 / 5.88 / 4.16 | 172 / 5.83 / 4.25 |
+| WeaponSystem | 37.3 / 26.8 / 20.3 | 34.9 / 28.7 / 19.4 |
+| Menu | 141 / 7.09 / 6.01 | 154 / 6.48 / 5.20 |
+
+wgpu is within 7% of GL on every scene (the old translation layer was about 5x slower), and most scenes are bound by the
+main thread, not by the render thread, on both. The render-thread time per frame is the same order on both
+(receive plus execute; the wgpu executor records one encoder per frame and submits twice, once for the frame and once for
+the present blit).
+
+#### What is not covered
+
+`CopyTexture2DFromFramebuffer` (`Tex2D::deep_clone`, nothing active calls it) is a logged no-op; depth textures cannot be
+read back; `TexWrapMode::MirrorClamp` becomes clamp-to-edge; wireframe needs `POLYGON_MODE_LINE`; there is no multisampling
+(neither is there on GL); the stats dashboard's per-category timing is not collected (gap 17). Least tested: a lost
+or outdated swapchain (reconfigured, the frame skipped, never provoked), resizing while a pass is open, adapters without
+`FLOAT32_FILTERABLE` (the 16F fallback exists and is unit tested for conversion, but no run used it), hot reload of a
+shader under wgpu (pipelines and bind groups are keyed by generation, but `hot_reload_probe.py` was not run under wgpu), and the
+`GenerateMips` grow path on cube and 3D textures (planet and nebula cubes use it; no capture uses a grown 3D texture).
 
 ---
 

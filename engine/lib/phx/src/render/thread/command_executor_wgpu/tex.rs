@@ -364,7 +364,9 @@ impl WgpuCommandExecutor {
     ) -> Option<(wgpu::Texture, TexDesc)> {
         let needed = TexUsages::COPY_SRC | TexUsages::COPY_DST;
         if desc.usage.0 & needed != needed {
-            warn!("wgpu: GenerateMips of {id:?}: it was created without copy usage, so it cannot get a mip chain");
+            warn!(
+                "wgpu: GenerateMips of {id:?}: it was created without copy usage, so it cannot get a mip chain"
+            );
             return None;
         }
         let grown_desc = desc.with_mips(0);

@@ -79,40 +79,55 @@ could be modernized now that wgpu is in the picture. Appended as found.
    attaches one face. Rendering into a cube face (shadow maps, environment
    updates) writes all faces. Fix: per-face views via
    `TextureViewDescriptor { base_array_layer, array_layer_count }`.
+    **Closed (S11):** attachments are one mip level of one cube face (`base_array_layer`) or one 3D slice
+    (`depth_slice`); `TexGen.Cube`, `gen_ir_map` and the mip chain render into them.
 
 10. **Fences reply immediately** (`cmd_fence`/`cmd_pacing_fence`): the pacing
     protocol counts in-flight frames but wgpu never paces the GPU queue — a
     slow GPU can accumulate unbounded queued work. Fix: reply after
     `queue.on_submitted_work_done` for real pacing.
-    **Still open after S8:** the asynchronous readbacks of S8 do not need it (they poll their own `map_async` state at
+    *Still open after S8:* the asynchronous readbacks of S8 do not need it (they poll their own `map_async` state at
     `BeginFrame`), so frame pacing remains the only user of this fix.
+    **Closed (S11):** `PacingFence` is answered from `queue.on_submitted_work_done` and `BeginFrame { slot }` waits for the
+    frame that last used its ring slot; the render thread polls the device while its command channel is idle so the
+    callbacks run even when the main thread is blocked on them.
 
 11. **Line width / point size are dropped**: wgpu renders 1px lines and
     point sprites; GL honored `glLineWidth`/`glPointSize`. `line_width` is
     tracked but unused. Feature loss, documented.
+    **Closed (S6):** `glLineWidth`/`glPointSize` are gone from both backends; lines and points are quads.
 
 12. **Unbounded CPU upload churn**: camera/material/light UBOs are written to
     the GPU on EVERY draw (no per-frame dirty check); instance/immediate
     scratch buffers are grow-only single buffers. A ring of per-frame buffers
     (or dynamic offsets) is the modern pattern.
+    **Closed (S4/S11):** the uniform and vertex rings are per-frame-slot buffers written once per run; groups 0 and 2 bind
+    them with dynamic offsets; bind groups are cached by content.
 
 13. **One command encoder per draw**: each draw submits its own encoder +
     render pass (LOAD). Batching all draws for a framebuffer into one pass
     would cut submission overhead (the GL path's draw-call stats exist
     precisely because batching matters there).
+    **Closed (S11):** one encoder per frame, one `wgpu::RenderPass` per `BeginRenderPass`/`EndRenderPass`.
 
 14. **`instance`/`adapter` fields on WgpuCommandExecutor are dead**: nothing
     reads them. Remove or use for device-info logging.
+    **Closed (S11):** the executor was rewritten; it keeps no adapter or instance.
 
 15. **No device error callback**: wgpu validation failures currently land in
     the engine's panic hook (the run died on the first bad `write_texture`).
     `device.set_uncaptured_error_callback` (or `on_uncaptured_error`) +
     logging would surface errors without killing the app.
+    **Closed (S11):** the handler logs; `LTHEORY_WGPU_FATAL=1` makes the first error panic, and every validation script
+    sets it.
 
 16. **Unbound sampler slots sample a 1x1 white texture**: GL would sample
     whatever was last bound. The white fallback is deterministic (good), but
     a missing `BindTexture` for a shader's sampler is invisible — a warn-once
     per (shader, sampler) would aid debugging.
+    **Improved (S11):** a slot nothing is bound to gets a white texture of the declared dimension (cube, 1D, 3D too), a
+    texture of the wrong dimension is replaced the same way with a logged warning; an empty slot is still silent
+    (the environment slots are legitimately empty in some scenes), `Material` warns about samplers without a texture.
 
 17. **Stats dashboard category timing is a no-op on wgpu**
     (`set_category_timing` accepted for interface parity): the dashboard's
@@ -124,6 +139,8 @@ could be modernized now that wgpu is in the picture. Appended as found.
     **Partly closed (S9):** the command is deleted (S7) and a sampler carries the LOD clamps (`lod_min_clamp`/`lod_max_clamp` are set
     from `SamplerDesc`). Restricting a sampled view to `base_mip`/`mip_count` is not applied on wgpu yet (it binds the
     whole texture), so only the sampler half is closed.
+    **Closed (S11):** sampling views honour `base_mip`/`mip_count` (and the declared dimension; a cube face can be
+    sampled as 2D), attachment views are one level.
 
 ## Engine-side modernization opportunities (found during the port)
 
@@ -157,11 +174,13 @@ could be modernized now that wgpu is in the picture. Appended as found.
     engine's Lua-facing `Shader:SetFloat(name, ...)` resolves through cached
     locations — a name-based command path would remove the -1/1000+ index
     games entirely.
+    **Closed (S6):** the protocol and the setters are deleted.
 
 24. **Benchmark scene caps**: `BENCH_BELT_COUNT = 100000` instanced asteroids
     is the parity stress test; the wgpu instance buffer upload (84 B/instance
     = 8.4 MB/frame) is the bottleneck candidate — ring-buffer + reuse (item
     12) is the lever.
+    **Addressed (S4/S11):** instance data goes through the vertex ring; `Benchmark` runs at the speed of GL on wgpu.
 
 25. **`present_mode` mapping is done twice** (engine `PresentMode` →
     wgpu): once in `present_mode.rs` (`into()`), once implicitly via
@@ -170,3 +189,27 @@ could be modernized now that wgpu is in the picture. Appended as found.
 26. **naga GLSL version adaptation (330→440) is a documented workaround**:
     naga 30 accepts only 440/450/460. If the engine ever bumps its GLSL
     baseline to 440 on the GL side too, the adaptation layer shrinks.
+
+## Left after S11
+
+27. **`CopyTexture2DFromFramebufferByResource`** (`Tex2D::deep_clone`) is a logged no-op on wgpu. Nothing active calls
+    it; `CopyTexture` covers the copies the engine makes.
+28. **Depth textures cannot be read back** (nothing active asks).
+29. **No multisampling**, `TexWrapMode::MirrorClamp` is clamp-to-edge, wireframe needs `POLYGON_MODE_LINE` (requested
+    when the adapter has it, solid otherwise).
+30. **Without `FLOAT32_FILTERABLE`/`FLOAT32_BLENDABLE`** the 32-bit float textures fall back to 16F (lossy; the asteroid
+    instance texture and the linear depth need the native path). The adapter used for the runs has both; the fallback was
+    not run.
+31. **GL behaviour the shaders relied on** is not reproduced on wgpu, by design: undefined fragment outputs (an MRT pass
+    whose shader writes only `outColor` leaves the other attachments alone on wgpu and has the color copied into them on
+    GL drivers) and the NaN the Illustris tonemap used to write. The shaders where it showed (`solidcolor`, `tonemap`) and
+    `present` were fixed for both backends in S11; other effect shaders still write only `outColor` and differ in
+    G-buffer contents nothing reads.
+32. **Procedural shaders built on `fract(sin(x) * 4137)`** (planet ring, moon craters, nebulae) are only as portable as the
+    compiler's `sin` and operation order: a one-ulp difference reshuffles the pattern. wgpu matches GL on the captures
+    (moon craters differ by up to 45/255), but a driver or shader-module option can change that: forced loop bounding
+    moved the ring by RMSE 12.
+33. **The window goes through an offscreen backbuffer** and a blit at present (one extra full-screen copy per frame) so
+    that every target has one orientation. Rendering straight to the swapchain would need a second vertex-shader variant
+    per pipeline.
+34. **`LTHEORY_WGPU` stays threaded-only**; the immediate build does not compile the executor.

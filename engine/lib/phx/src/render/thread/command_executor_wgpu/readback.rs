@@ -246,7 +246,10 @@ impl WgpuCommandExecutor {
             submission_index: Some(job.submission.clone()),
             timeout: Some(Duration::from_secs(120)),
         }) {
-            warn!("wgpu: readback of {what} did not complete in {:?}: {e:?}", started.elapsed());
+            warn!(
+                "wgpu: readback of {what} did not complete in {:?}: {e:?}",
+                started.elapsed()
+            );
             return Vec::new();
         }
         // The map callback runs from a poll once the copy is done.

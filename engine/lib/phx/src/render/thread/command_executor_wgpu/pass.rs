@@ -108,7 +108,12 @@ pub(super) struct PassRt {
 }
 
 impl PassRt {
-    fn formats(&self) -> ([Option<wgpu::TextureFormat>; MAX_COLOR_ATTACHMENTS], Option<wgpu::TextureFormat>) {
+    fn formats(
+        &self,
+    ) -> (
+        [Option<wgpu::TextureFormat>; MAX_COLOR_ATTACHMENTS],
+        Option<wgpu::TextureFormat>,
+    ) {
         let mut colors = [None; MAX_COLOR_ATTACHMENTS];
         for (i, c) in self.colors.iter().enumerate() {
             colors[i] = Some(c.format);
@@ -247,7 +252,11 @@ impl WgpuCommandExecutor {
                     base_mip_level: base,
                     mip_level_count: Some(1),
                     base_array_layer: layer,
-                    array_layer_count: if desc.dim == TexDim::D3 { None } else { Some(1) },
+                    array_layer_count: if desc.dim == TexDim::D3 {
+                        None
+                    } else {
+                        Some(1)
+                    },
                     ..Default::default()
                 });
                 self.views.insert(key, v.clone());
@@ -289,7 +298,10 @@ impl WgpuCommandExecutor {
             for attachment in desc.color.iter().flatten() {
                 let Some((view, depth_slice, format)) = self.attachment_view(&attachment.view)
                 else {
-                    warn!("wgpu: pass '{}' has a color attachment that is not available", desc.label);
+                    warn!(
+                        "wgpu: pass '{}' has a color attachment that is not available",
+                        desc.label
+                    );
                     return;
                 };
                 colors.push(AttachRt {
@@ -302,7 +314,10 @@ impl WgpuCommandExecutor {
             }
             if let Some(d) = &desc.depth {
                 let Some((view, _, format)) = self.attachment_view(&d.view) else {
-                    warn!("wgpu: pass '{}' has a depth attachment that is not available", desc.label);
+                    warn!(
+                        "wgpu: pass '{}' has a depth attachment that is not available",
+                        desc.label
+                    );
                     return;
                 };
                 depth = Some(AttachRt {
@@ -368,20 +383,21 @@ impl WgpuCommandExecutor {
                 })
             })
             .collect();
-        let depth_stencil_attachment = pass.depth.as_ref().map(|d| {
-            wgpu::RenderPassDepthStencilAttachment {
-                view: &d.view,
-                depth_ops: Some(wgpu::Operations {
-                    load: if first && d.load == LoadOp::Clear {
-                        wgpu::LoadOp::Clear(d.clear[0])
-                    } else {
-                        wgpu::LoadOp::Load
-                    },
-                    store: wgpu::StoreOp::Store,
-                }),
-                stencil_ops: None,
-            }
-        });
+        let depth_stencil_attachment =
+            pass.depth
+                .as_ref()
+                .map(|d| wgpu::RenderPassDepthStencilAttachment {
+                    view: &d.view,
+                    depth_ops: Some(wgpu::Operations {
+                        load: if first && d.load == LoadOp::Clear {
+                            wgpu::LoadOp::Clear(d.clear[0])
+                        } else {
+                            wgpu::LoadOp::Load
+                        },
+                        store: wgpu::StoreOp::Store,
+                    }),
+                    stencil_ops: None,
+                });
         let encoder = self.encoder();
         let rpass = encoder
             .begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -529,7 +545,12 @@ impl WgpuCommandExecutor {
                 }
                 self.ensure_quad();
                 let quad = self.quad.as_ref().expect("quad");
-                let defaults = self.defaults.as_ref().expect("defaults").vertex_zero.clone();
+                let defaults = self
+                    .defaults
+                    .as_ref()
+                    .expect("defaults")
+                    .vertex_zero
+                    .clone();
                 let rp = pass.rpass.as_mut().expect("prepared");
                 rp.set_vertex_buffer(0, quad.vertices.slice(..));
                 rp.set_vertex_buffer(1, defaults.slice(..32));
@@ -548,14 +569,25 @@ impl WgpuCommandExecutor {
                     ImmLayout::D2 => Flavor::Imm2D,
                     ImmLayout::D3 => Flavor::Imm3D,
                 };
-                let Some(buffer) = self.ring_vertex[pass.slot].get(vertices.buffer as usize).cloned() else {
-                    warn!("wgpu: DrawImm: vertex ring chunk {} is missing", vertices.buffer);
+                let Some(buffer) = self.ring_vertex[pass.slot]
+                    .get(vertices.buffer as usize)
+                    .cloned()
+                else {
+                    warn!(
+                        "wgpu: DrawImm: vertex ring chunk {} is missing",
+                        vertices.buffer
+                    );
                     return;
                 };
                 if !self.prepare_draw(pass, flavor) {
                     return;
                 }
-                let defaults = self.defaults.as_ref().expect("defaults").vertex_zero.clone();
+                let defaults = self
+                    .defaults
+                    .as_ref()
+                    .expect("defaults")
+                    .vertex_zero
+                    .clone();
                 let rp = pass.rpass.as_mut().expect("prepared");
                 let start = vertices.offset as u64;
                 let end = start + *count as u64 * layout.stride() as u64;
@@ -580,14 +612,25 @@ impl WgpuCommandExecutor {
                 let (vb, ib) = (m.vertex_buffer.clone(), m.index_buffer.clone());
                 let flavor =
                     Flavor::MeshInstanced(m.vertex_format.stride, format_flags(&m.vertex_format));
-                let Some(buffer) = self.ring_vertex[pass.slot].get(instances.buffer as usize).cloned() else {
-                    warn!("wgpu: DrawMeshInstanced: vertex ring chunk {} is missing", instances.buffer);
+                let Some(buffer) = self.ring_vertex[pass.slot]
+                    .get(instances.buffer as usize)
+                    .cloned()
+                else {
+                    warn!(
+                        "wgpu: DrawMeshInstanced: vertex ring chunk {} is missing",
+                        instances.buffer
+                    );
                     return;
                 };
                 if !self.prepare_draw(pass, flavor) {
                     return;
                 }
-                let defaults = self.defaults.as_ref().expect("defaults").vertex_zero.clone();
+                let defaults = self
+                    .defaults
+                    .as_ref()
+                    .expect("defaults")
+                    .vertex_zero
+                    .clone();
                 let rp = pass.rpass.as_mut().expect("prepared");
                 let start = instances.offset as u64;
                 let end = start + *count as u64 * std::mem::size_of::<InstanceData>() as u64;
@@ -614,14 +657,25 @@ impl WgpuCommandExecutor {
                 let (vb, ib) = (m.vertex_buffer.clone(), m.index_buffer.clone());
                 let flavor =
                     Flavor::MeshIndices(m.vertex_format.stride, format_flags(&m.vertex_format));
-                let Some(buffer) = self.ring_vertex[pass.slot].get(indices.buffer as usize).cloned() else {
-                    warn!("wgpu: DrawInstancedIndices: vertex ring chunk {} is missing", indices.buffer);
+                let Some(buffer) = self.ring_vertex[pass.slot]
+                    .get(indices.buffer as usize)
+                    .cloned()
+                else {
+                    warn!(
+                        "wgpu: DrawInstancedIndices: vertex ring chunk {} is missing",
+                        indices.buffer
+                    );
                     return;
                 };
                 if !self.prepare_draw(pass, flavor) {
                     return;
                 }
-                let defaults = self.defaults.as_ref().expect("defaults").vertex_zero.clone();
+                let defaults = self
+                    .defaults
+                    .as_ref()
+                    .expect("defaults")
+                    .vertex_zero
+                    .clone();
                 let rp = pass.rpass.as_mut().expect("prepared");
                 let start = indices.offset as u64;
                 let end = start + *count as u64 * INSTANCE_INDEX_SIZE;
@@ -651,7 +705,12 @@ impl WgpuCommandExecutor {
             [x, y, 0.0, 0.0, 0.0, 0.0, x, y, 1.0, 1.0, 1.0, 1.0]
         };
         let mut bytes: Vec<u8> = Vec::new();
-        for v in [vertex(0.0, 0.0), vertex(0.0, 1.0), vertex(1.0, 1.0), vertex(1.0, 0.0)] {
+        for v in [
+            vertex(0.0, 0.0),
+            vertex(0.0, 1.0),
+            vertex(1.0, 1.0),
+            vertex(1.0, 0.0),
+        ] {
             bytes.extend(v.iter().flat_map(|f| f.to_le_bytes()));
         }
         let vertices = self.device.create_buffer(&wgpu::BufferDescriptor {
@@ -726,10 +785,7 @@ impl WgpuCommandExecutor {
                 pass.set[g] = None;
             }
             pass.layouts = std::array::from_fn(|g| groups[g].id);
-            pass.rpass
-                .as_mut()
-                .expect("open")
-                .set_pipeline(&variant);
+            pass.rpass.as_mut().expect("open").set_pipeline(&variant);
             pass.variant = Some(key);
             self.frame_counters.pipeline_binds += 1;
         } else {
@@ -739,7 +795,10 @@ impl WgpuCommandExecutor {
         for g in 0..4u8 {
             let layout = &groups[g as usize];
             let gi = g as usize;
-            if pass.groups[gi].dirty || pass.groups[gi].bound_layout != layout.id || pass.groups[gi].bound.is_none() {
+            if pass.groups[gi].dirty
+                || pass.groups[gi].bound_layout != layout.id
+                || pass.groups[gi].bound.is_none()
+            {
                 let bound = self.resolve_group(g, &pass.groups[gi], layout);
                 let gs = &mut pass.groups[gi];
                 gs.bound = Some(bound);
@@ -754,7 +813,11 @@ impl WgpuCommandExecutor {
                 0
             };
             if pass.set[gi] != Some((bound.serial, offset)) {
-                let offsets: &[u32] = if layout.has_dynamic() { &[offset][..] } else { &[] };
+                let offsets: &[u32] = if layout.has_dynamic() {
+                    &[offset][..]
+                } else {
+                    &[]
+                };
                 pass.rpass
                     .as_mut()
                     .expect("open")
@@ -819,12 +882,19 @@ impl WgpuCommandExecutor {
         Some(module)
     }
 
-    fn build_variant(&mut self, key: &VariantKey, desc: &PipelineDesc) -> Option<wgpu::RenderPipeline> {
+    fn build_variant(
+        &mut self,
+        key: &VariantKey,
+        desc: &PipelineDesc,
+    ) -> Option<wgpu::RenderPipeline> {
         let fs_module = self.fragment_module(desc.shader, &key.colors)?;
         let shader = match self.resources.get(&desc.shader) {
             Some(WgpuResource::Shader(s)) => s,
             _ => {
-                warn!("wgpu: pipeline {:?}: shader {:?} not found", key.pipeline, desc.shader);
+                warn!(
+                    "wgpu: pipeline {:?}: shader {:?} not found",
+                    key.pipeline, desc.shader
+                );
                 return None;
             }
         };
@@ -938,7 +1008,11 @@ impl WgpuCommandExecutor {
             .map(|(i, format)| {
                 Some(wgpu::ColorTargetState {
                     format,
-                    blend: if is_float32(format) && !can_blend_f32 { None } else { blend },
+                    blend: if is_float32(format) && !can_blend_f32 {
+                        None
+                    } else {
+                        blend
+                    },
                     write_mask: if shader.fs_outputs.contains(&(i as u32)) {
                         wgpu::ColorWrites::ALL
                     } else {
