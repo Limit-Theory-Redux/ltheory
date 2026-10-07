@@ -95,7 +95,7 @@ impl ViewBlock {
             m_view: camera.view.to_cols_array(),
             m_proj: camera.proj.to_cols_array(),
             // Derived rather than passed in: both Lua camera paths agree on
-            // the rotation of mViewInv, which is all `worldray.glsl` needs.
+            // the rotation of mViewInv, which is all `fullscreen_ray.glsl` needs.
             m_view_inv: camera.view.inverse().to_cols_array(),
             m_proj_inv: camera.proj.inverse().to_cols_array(),
             eye: [0.0, 0.0, 0.0, 1.0],

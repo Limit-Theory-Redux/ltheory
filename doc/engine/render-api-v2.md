@@ -1,6 +1,6 @@
 # Render API v2 — wgpu-shaped interface on the GL renderer
 
-Status: design. S2 (render passes and attachment views), S3 (binding model, pipelines, samplers, views, frame group) and S4 (materials, scene list, uniform ring) are implemented; later steps are not. Companion to `wgpu-migration-gaps.md`,
+Status: design. S2 (render passes and attachment views), S3 (binding model, pipelines, samplers, views, frame group), S4 (materials, scene list, uniform ring) and S5 (fullscreen, post-processing, offscreen generation) are implemented; later steps are not. Companion to `wgpu-migration-gaps.md`,
 `render-thread.md`, `batch-rendering.md` and `shader-system.md`.
 
 **Strategy, already decided.** First the GL renderer and the Lua render
@@ -959,6 +959,96 @@ ring bytes back into the old instanced paths). Like in S3 it does not render the
   UBO (now a group 2 block), `RenderingPass.lua`, and `ImageFilter.lua`/`RenderPipeline.lua`
   (pending §6).
 - **Immediate renderer.** No backend-specific work.
+
+#### S5 notes
+
+**Status: implemented.** Differences from the plan above, and what shipped:
+
+*Fullscreen draws.*
+- `vertex/fullscreen_ndc.glsl` is the NDC path: the unit quad of `pass:drawFullscreen` goes to `2 * pos - 1`, so
+  uv.y = 0 is the bottom row of whatever the pass renders to. In a texture pass that is what `Draw.Rect(0, 0, w, h)`
+  gave; in the (y-up) window it is what the flipped `Draw.Rect(0, h, w, -h)` gave, so present needs **no `flipY`
+  parameter**. `vertex/fullscreen_ray.glsl` adds the camera-relative world ray of the deferred-lighting shaders and
+  replaces `worldray.glsl`. The quad is the same four-vertex fan as before (not a triangle: its diagonal would change
+  the interpolation), so every post and lighting pass is bit-identical to the `ui`-vertex rectangles.
+- `fullscreen.glsl` and `fullscreen_flip.glsl` (S3, the UI-projection path) stay: the validation scenes use them to
+  keep that path covered, and `fullscreen` in a window pass is y-down, which the NDC shader deliberately is not.
+- Filter, lighting, `ui/composite` and generation shaders declare their `Params` block under `#group 2` and their
+  samplers under `#group 3`. **The group-3 slots are the declaration order** (`texNormalMat` = slot 0, `texDepth` =
+  slot 1, ...): `pass:setInputs` callers follow the order in the shader. `include/filter.glsl` only declares `src`
+  now (a loose `size` there collided with the filters that declare it in their block).
+- `light_ubo.glsl` is `light_block.glsl`: a group-2 `PointLight` block (`positionRadius`, `colorIntensity`) written
+  with `pass:alloc` per light. The directional light has its own `Params` block.
+
+*Deferred lighting and post.*
+- The global term and the additive directional and point lights draw in **one** pass (the lights use a pipeline with
+  `blend = Additive` and share the `texNormalMat`/`texDepth` inputs); the composite is a second pass. Four passes
+  became two.
+- `applyFilter(name, fill, extra)` is the helper of section 3c: the sampled input is `buffer0:mipView(level)` with
+  `Samplers.LinearClamp` (what the old per-buffer `setMipRange(level, level)` plus Linear filters meant) and the target
+  is `buffer1:mipView(level)`. The per-frame mip-range and min-filter reset loop of `handleResize` is gone, and with
+  it its commands. Auto-exposure still uses the legacy mip-range and `sample()` calls (S8).
+- Present is one backbuffer pass with `LoadOp.Load`. `presentAll` (the `showBuffers` debug view) uses one viewport per
+  quadrant and now really shows four quadrants: the old y-down code drew the bottom two off the top of the window.
+- `radialblur` binds the linear depth it always declared (`depthBuffer`, slot 1; it used to read whatever unit 0
+  held). The Legacy tonemapper runs `filter/tonemap_limittheory` (`filter/tonemap_legacy` never existed). The
+  `downsample` chain draws the whole target level; for levels of 2 and up the old rectangle was twice the viewport (a
+  quarter of the image), which only mattered for super-sampling of 4 or more.
+- `LensFlareSystem` draws an additive fullscreen quad into the open scene pass (`Renderer:currentPass()`).
+- `RenderingPass.lua` is gone: `RenderCoreSystem:scenePassDesc` caches the scene descriptors itself.
+
+*Generation (`render/gpu/gen.rs`).*
+- The Lua namespace is `TexGen`, not `Gen`: `Gen` is the global the Legacy generator namespace injects (`Gen.Primitive`
+  in three active files, `Gen.ShapeLib` 101 times in the ship generators), and the loader never overrides a global.
+  `TexGen.Cube { shader, size, format, params, inputs, mips }`, `TexGen.CubeInto(cube, { ... })` (ping-pong) and
+  `TexGen.Volume { ... }`; `GenDesc` (shader, `Params` bytes, up to four `{ view, sampler }` inputs) is the Rust object
+  behind them. `GenUtil.ShaderToTexCube/ShaderToTex3D` are thin wrappers that fill the typed `Params` from a table
+  (undeclared names are ignored, as the old `ShaderState` only warned).
+- **No separate `GenFaceBlock`.** One draw has one group-2 block, so the face (`genLook`, `genUp`, `genSize`) or the
+  slice (`genOrigin`, `genDu`, `genDv`) are the first three `vec4` members of the shader's own `Params` block.
+  `texcube.glsl` defines `cubeLook`/`cubeUp`/`cubeSize` over them and is included after the block. The engine checks
+  the member names and offsets against the reflected block when a generation starts.
+- `generate_cube` keeps the adaptive slicing (scissored rows through `ClipRect`, a quarter of a second per slice) and
+  clears each face to (0, 0, 0, 1); `generate_volume` clears nothing (`LoadOp.DontCare`). A planet cube (2048^2
+  RGBA16F, six passes, with a face read back) takes about 365 ms on the dev machine against about 395 ms before: the
+  GPU time dominates, and the main thread only records for 0.3 ms either way.
+- `CopyTexture { src, dst, size }` (both backends): GL blits through two scratch framebuffers with `NEAREST`, restoring
+  the pass framebuffer and scissor; wgpu uses `copy_texture_to_texture` for 2D and cube-face views. `gen_ir_map` copies
+  level 0 with it and filters the other levels in passes over `CubeFace` views: no CPU round trip any more.
+- **Found while porting `gen_ir_map`:** its `sampleBuffer` sampler was never bound (the code set `sample_buffer`), so
+  every GGX sample read (pitch, yaw) = (0, 0) and each irradiance level was a plain resample of the source. The port
+  reproduces that exactly with a one-texel zero texture; `CONVOLVE_IRMAP` in `texcube.rs` switches to the real, time
+  seeded samples. Doing so changes the ambient light of every scene by a little (and makes captures differ from run
+  to run), so it needs a decision and a re-bless.
+- Also kept bit-exact on purpose: the nebula colour LUTs sample with `Samplers.Point` (uploading a `Tex1D` resets its
+  filters to nearest, so ColorLUT's linear filters never applied), and `gen/moon` still declares `baseMoonTex` and
+  gets a black texture (`GenUtil` defaults): with the sampler folded away into a constant the compiler rounded twelve
+  moon pixels differently.
+
+*Legacy modules.* `Generator`, `Starfield`, `ColorLUT`, `Nebula1` and `Nebula2` moved to `script/Shared/Generation/`
+(Nebula1/2 are ported to `TexGen`; the requirers in the states, the Legacy nebula object and `SystemBasic-unused` are
+updated). Nebula2 registered itself through the `Namespace.LoadInline('Legacy')` of LTheoryRedux, so that state
+requires it explicitly now. `Legacy.Systems.Gen.GenUtil` keeps `FindMountPoint` and forwards `ShaderToTexCube`; its
+`ShaderToTex3D` is gone (the unreferenced Legacy `Asteroid.lua` called it). `Primitive` and `MathUtil` stay in Legacy
+(pure Lua, no GL). `GenTex2D` starts again (it needed the `Gen` global; it requires `MathUtil` now, and its inline
+shader repeated `#version`), but its `Draw.*` based output looks wrong (a black texture with one white quadrant);
+that is the immediate-draw path of S6 and was not triaged.
+
+*Removed.* `TexCube::generate`, `LightUboData`/`LightUbo`/`UniformBuffer` (`ubo.rs`), the `CreateLightUBO` and
+`UpdateLightUBO` commands (both renderer backends, GL and wgpu executors), `Renderer:createLightUbo/updateLightUbo`,
+the by-name `LightUBO` block binding, the `ubo` command category, `worldray.glsl`, `light_ubo.glsl`,
+`RenderingPass.lua` and the `RenderState` pushes of `RenderCoreSystem`. (`ImageFilter.lua` and `RenderPipeline.lua`
+went in S2.) The first-pass GL error log at startup lost its `GL_INVALID_ENUM` (the by-name light block lookup); the
+`GL_INVALID_OPERATION` next to it is older and was left alone.
+
+*Cost.* Commands sent to the render thread per frame (median of three captures at frame 120): PlanetTest, Benchmark,
+MoonTest and PlanetTestRing 220 -> 90, SolarSystemPlayable 893 -> 754, WeaponSystem 4258 -> 3784 (the point-light
+passes and the per-frame mip-range resets are gone). Frame times, draw calls and render idle time are unchanged within
+noise (the post chain is the same draws through passes).
+
+*Capture baseline.* `PlanetTestRing` (PlanetTest with `LTHEORY_CAPTURE_SEED=27`, a seed that rolls a ring; the
+variable is read only under `LTHEORY_CAPTURE`) and `WeaponSystem` (the testbed, with deferred point lights) joined the
+four scenes. All six are bit-identical to their baselines after S5 on both builds.
 
 ### S6. Immediate batching, UI and glyph atlas (the removal gate)
 - **Engine.** `ImmBatcher` (Imm2D/Imm3D), the `Shape` pipelines, `ClipRect`

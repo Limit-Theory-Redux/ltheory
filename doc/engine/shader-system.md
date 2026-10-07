@@ -297,7 +297,7 @@ declares `envMap` and `irMap` in group 0 (units 0 and 1); `Renderer:setEnvironme
 every pass binds them. There are no per-shader environment variables any more.
 
 Rendering is camera-relative: `eye` is always `(0,0,0)`, and
-`vertex/worldray.glsl` (used by every deferred-lighting fullscreen pass) reconstructs ray
+`vertex/fullscreen_ray.glsl` (used by every deferred-lighting fullscreen pass) reconstructs ray
 direction as `mat3(mViewInv) * ...` with `worldOrigin = vec3(0)` rather than a world-space
 point far from the origin — avoiding the precision loss that would come from reconstructing
 and then subtracting back out a large coordinate.
@@ -306,7 +306,7 @@ and then subtracting back out a large coordinate.
 projection matrices and the star direction; `ViewBlock::new` computes `mViewInv` as `view.inverse()`
 in Rust rather than accepting an explicit value. This is deliberate: the two Lua camera paths
 historically disagreed on whether a "real" `mViewInv` should carry the camera's true world-space
-translation or zero translation, and the only consumer (`worldray.glsl`) only ever uses the *rotation*
+translation or zero translation, and the only consumer (`fullscreen_ray.glsl`) only ever uses the *rotation*
 part via `mat3(mViewInv)` — so deriving it sidesteps the inconsistency instead of picking one
 convention. If a future shader needs `mViewInv`'s translation, this will need to become an
 explicit parameter instead.
@@ -347,32 +347,30 @@ macros after the includes (a macro would also rewrite identifiers inside an incl
 with its own pipeline (`Render/Pipelines.lua`) allocates a `DrawBlock` per draw with `pass:alloc` and uses
 `drawUser` the same way (see `vertex/billboard/quad_draw.glsl`).
 
-### Light UBO (binding 2)
+### Point light block (group 2)
 
-`res/shader/include/light_ubo.glsl`, included only by `fragment/light/point.glsl`:
+`res/shader/include/light_block.glsl`, included only by `fragment/light/point.glsl`. It is the shader's
+group-2 block (binding 8), written with `pass:alloc` before each light's `drawFullscreen`:
 
 ```glsl
-layout(std140) uniform LightUBO {
-    vec4 ubo_positionRadius;    // xyz = position, w = radius (currently unused)
-    vec4 ubo_colorIntensity;    // rgb = color, w = intensity
+#group 2
+layout(std140) uniform PointLight {
+    vec4 positionRadius;    // xyz = position, w = radius (0 = no falloff)
+    vec4 colorIntensity;    // rgb = color, w = intensity
 };
 
-#define lightPos ubo_positionRadius.xyz
-#define lightRadius ubo_positionRadius.w
-#define lightColor (ubo_colorIntensity.rgb * ubo_colorIntensity.w)
-#define lightIntensity ubo_colorIntensity.w
+#define lightPos positionRadius.xyz
+#define lightRadius positionRadius.w
+#define lightColor (colorIntensity.rgb * colorIntensity.w)
+#define lightIntensity colorIntensity.w
 ```
 
-`fragment/light/directional.glsl` (this repo's, not present in the fork this was ported
-from) intentionally stays on plain `uniform vec3 lightDir/lightColor` — a directional light
-has no position or radius, so it doesn't fit the point-light UBO's shape.
+`fragment/light/directional.glsl` has its own group-2 `Params { vec3 lightDir; vec3 lightColor; }`: a
+directional light has no position or radius, so it does not fit the point-light block's shape.
 
 ### Lua Usage
 
 ```lua
--- Once at startup (script/Main.lua, right after Renderer = Engine:renderer()):
-Renderer:createLightUbo()
-
 -- Camera: once per frame, from CameraManager:beginDraw(). Every pass that
 -- begins afterwards renders with it.
 Renderer:setCamera(mView, mProj, starDir)
@@ -384,10 +382,12 @@ Renderer:setCamera(mView, mProj, starDir)
 -- Environment maps (group 0): when the skybox's nebula is generated.
 Renderer:setEnvironment(envMap, irMap)
 
--- Light: once per point light in the deferred pass (both
--- RenderCoreSystem:deferredLighting() and GameView:draw() call this in
--- their point-light loop, immediately before drawing that light's pass):
-Renderer:updateLightUbo(posX, posY, posZ, radius, r, g, b, intensity)
+-- Light: once per point light in the deferred lighting pass
+-- (RenderCoreSystem:deferredLighting()), immediately before its drawFullscreen:
+local p = pass:alloc(pointShader:blockType('PointLight'))
+p.positionRadius.x, p.positionRadius.y, p.positionRadius.z, p.positionRadius.w = x, y, z, radius
+p.colorIntensity.x, p.colorIntensity.y, p.colorIntensity.z, p.colorIntensity.w = r, g, b, intensity
+pass:drawFullscreen()
 ```
 
 ### Nebula Generation — `genStarDir`, Not `starDir`
@@ -397,4 +397,4 @@ direction" that's semantically a *generation parameter*, unrelated to the live c
 `starDir`. Before the UBO migration this worked by accident (both were the same plain
 `uniform vec3 starDir`); now that `starDir` is a `#define` resolving to the view block, the
 nebula generators use a distinctly-named `uniform vec3 genStarDir` instead, set by
-`script/Legacy/Systems/Gen/Nebula/Nebula1.lua` via `ss:setFloat3('genStarDir', ...)`.
+`script/Shared/Generation/Nebula1.lua` through the shader's `Params` block (`p.genStarDir`).
