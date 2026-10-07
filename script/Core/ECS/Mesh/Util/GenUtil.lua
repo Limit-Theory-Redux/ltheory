@@ -49,14 +49,16 @@ function GenUtil.ShaderToTex3D(shaderState, res, fmt)
     shader:setFloat3('du', 2, 0, 0)
     shader:setFloat3('dv', 0, 2, 0)
 
-    --TODO: Figure this out
+    -- One pass per z-slice. The shader writes every texel, so no load is needed.
+    local desc = RenderPassDesc.Create('GenUtil.ShaderToTex3D')
     for i = 0, res - 1 do
         local z = (2.0 * (i / (res - 1)) - 1.0)
         shader:setFloat3('origin', -1, -1, z)
-        RenderTarget.PushTex3D(tex3D, i)
+        desc:color(0, tex3D:layerView(i), LoadOp.DontCare, 0, 0, 0, 0)
+        local pass = Renderer:beginPass(desc)
         Draw.Rect(-1, -1, 2, 2)
         Draw.Flush()
-        RenderTarget.Pop()
+        pass:finish()
     end
 
     -- Stop ShaderState

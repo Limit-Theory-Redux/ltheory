@@ -25,7 +25,7 @@ threaded backend.
 Both backends drive the same `CommandExecutor` (`command_executor.rs`,
 GL implementation in `command_executor_gl.rs`), which owns all GL state:
 `resources: HashMap<ResourceId, GpuResource>`, per-program uniform-location
-caches, cached texture bindings, the FBO stack, UBO handles. `RenderThread`
+caches, cached texture bindings, the FBO cache (framebuffers keyed by attachment set, evicted when a texture is destroyed), UBO handles. `RenderThread`
 (`render_thread.rs`) is only the plumbing around it for the threaded
 backend — it pulls `RenderCommand`s off a channel, hands them to the
 executor, and forwards whatever the executor replies (`CommandReply`) back
@@ -48,7 +48,7 @@ Renderer (renderer_threaded.rs)
 `render_command.rs` defines the command enum sent across the channel (or
 executed inline, in immediate mode): viewport/scissor/blend/cull/depth
 state, uniform sets (by GL location or, for the batch path, by name/generic
-name), texture binds and updates, framebuffer push/pop, mesh draws (plain,
+name), texture binds and updates, render passes (`BeginRenderPass`/`EndRenderPass`), mesh draws (plain,
 instanced, `DrawInstancedWithData`, `DrawImmediate`), resource lifecycle
 (`CreateShader`/`CreateTexture2D`/`CreateMesh`/`DestroyResources` and their
 `*ByResource` bind/draw counterparts), UBO updates, `Resize`,

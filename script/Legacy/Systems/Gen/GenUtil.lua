@@ -36,13 +36,15 @@ function GenUtil.ShaderToTex3D(shaderState, res, fmt)
     shader:setFloat3('du', 2, 0, 0)
     shader:setFloat3('dv', 0, 2, 0)
 
+    local desc = RenderPassDesc.Create('GenUtil.ShaderToTex3D')
     for i = 0, res - 1 do
         local z = (2.0 * (i / (res - 1)) - 1.0)
         shader:setFloat3('origin', -1, -1, z)
-        RenderTarget.PushTex3D(self, i)
+        desc:color(0, self:layerView(i), LoadOp.DontCare, 0, 0, 0, 0)
+        local pass = Renderer:beginPass(desc)
         Draw.Rect(-1, -1, 2, 2)
         Draw.Flush()
-        RenderTarget.Pop()
+        pass:finish()
     end
 
     shaderState:stop()

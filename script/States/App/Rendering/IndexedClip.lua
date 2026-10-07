@@ -13,6 +13,8 @@ local CLIP_H = 80
 
 function RenderingIndexedClip:onInit()
     self.color = Tex2D.Create(TARGET_W, TARGET_H, TexFormat.RGBA8)
+    self.passDesc = RenderPassDesc.Create("IndexedClip")
+    self.passDesc:color(0, self.color:view(), LoadOp.Clear, 0.0, 0.0, 0.0, 1.0)
     self.mesh = Mesh.Box(2)
     self.shader = Cache.Shader("indexed_material", "indexed_material")
     self.backend = os.getenv("LTHEORY_WGPU") and "wgpu" or "opengl"
@@ -38,9 +40,7 @@ function RenderingIndexedClip:onRender()
     RenderState.PushDepthTest(false)
     RenderState.PushDepthWritable(false)
 
-    RenderTarget.Push(TARGET_W, TARGET_H)
-    RenderTarget.BindTex2D(self.color)
-    Draw.Clear(0.0, 0.0, 0.0, 1.0)
+    local pass = Renderer:beginPass(self.passDesc)
 
     -- ClipRect converts the target-local rectangle to the backend scissor
     -- convention. The full primitive must be visible only inside this rect.
@@ -51,7 +51,7 @@ function RenderingIndexedClip:onRender()
     self.shader:stop()
     ClipRect.Pop()
 
-    RenderTarget.Pop()
+    pass:finish()
     RenderState.PopDepthWritable()
     RenderState.PopDepthTest()
     RenderState.PopCullFace()

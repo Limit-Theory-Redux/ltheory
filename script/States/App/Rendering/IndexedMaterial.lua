@@ -9,6 +9,8 @@ local TARGET_H = 128
 
 function RenderingIndexedMaterial:onInit()
     self.target = Tex2D.Create(TARGET_W, TARGET_H, TexFormat.RGBA8)
+    self.passDesc = RenderPassDesc.Create("IndexedMaterial")
+    self.passDesc:color(0, self.target:view(), LoadOp.Clear, 0.0, 0.0, 0.0, 1.0)
     self.mesh = Mesh.Box(2)
     self.shader = Cache.Shader("indexed_material", "indexed_material")
     self.backend = os.getenv("LTHEORY_WGPU") and "wgpu" or "opengl"
@@ -34,13 +36,12 @@ function RenderingIndexedMaterial:onRender()
     RenderState.PushDepthTest(false)
     RenderState.PushDepthWritable(false)
 
-    self.target:push()
-    Draw.Clear(0.0, 0.0, 0.0, 1.0)
+    local pass = Renderer:beginPass(self.passDesc)
     self.shader:start()
     self.shader:setFloat3("color", 0.25, 0.75, 0.125)
     self.mesh:draw()
     self.shader:stop()
-    self.target:pop()
+    pass:finish()
 
     RenderState.PopDepthWritable()
     RenderState.PopDepthTest()

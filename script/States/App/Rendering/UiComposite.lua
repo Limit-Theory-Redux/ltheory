@@ -10,6 +10,9 @@ local OVERLAY = {x = 32, y = 32, w = 64, h = 64}
 
 function RenderingUiComposite:onInit()
     self.target = Tex2D.Create(TARGET_W, TARGET_H, TexFormat.RGBA8)
+    self.passDesc = RenderPassDesc.Create("UiComposite")
+    self.passDesc:color(0, self.target:view(), LoadOp.Clear, 0.0, 0.0, 0.0, 1.0)
+    self.presentDesc = RenderPassDesc.Create("UiComposite.present")
     self.target:setMinFilter(TexFilter.Linear)
     self.target:setMagFilter(TexFilter.Linear)
     self.target:setWrapMode(TexWrapMode.Clamp)
@@ -38,9 +41,7 @@ function RenderingUiComposite:onRender()
     RenderState.PushDepthWritable(false)
     RenderState.PushBlendMode(BlendMode.Disabled)
 
-    RenderTarget.Push(TARGET_W, TARGET_H)
-    RenderTarget.BindTex2D(self.target)
-    Draw.Clear(0.0, 0.0, 0.0, 1.0)
+    local pass = Renderer:beginPass(self.passDesc)
 
     local logicalW, logicalH = self.resX, self.resY
     local drawW, drawH = logicalW, logicalH
@@ -63,7 +64,7 @@ function RenderingUiComposite:onRender()
     RenderState.PopBlendMode()
     self.shader:stop()
 
-    RenderTarget.Pop()
+    pass:finish()
     Viewport.Pop()
 
     -- Present the renderer-owned composite through the normal surface path.
@@ -71,12 +72,13 @@ function RenderingUiComposite:onRender()
     RenderState.PopDepthTest()
     RenderState.PushDepthTest(true)
     RenderState.PushDepthWritable(true)
-    Viewport.Push(0, 0, self.resX, self.resY, true)
+    self.presentDesc:backbuffer(self.resX, self.resY, LoadOp.Load, 0.0, 0.0, 0.0, 1.0)
+    pass = Renderer:beginPass(self.presentDesc)
     self.identity:start()
     self.identity:setTex2D("src", self.target)
     Draw.Rect(0, self.resY, self.resX, -self.resY)
     self.identity:stop()
-    Viewport.Pop()
+    pass:finish()
     RenderState.PopDepthWritable()
     RenderState.PopDepthTest()
 

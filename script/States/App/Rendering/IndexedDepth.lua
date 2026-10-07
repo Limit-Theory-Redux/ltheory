@@ -10,6 +10,9 @@ local TARGET_H = 128
 function RenderingIndexedDepth:onInit()
     self.color = Tex2D.Create(TARGET_W, TARGET_H, TexFormat.RGBA8)
     self.depth = Tex2D.Create(TARGET_W, TARGET_H, TexFormat.Depth32F)
+    self.passDesc = RenderPassDesc.Create("IndexedDepth")
+    self.passDesc:color(0, self.color:view(), LoadOp.Clear, 0.0, 0.0, 0.0, 1.0)
+    self.passDesc:depth(self.depth:view(), LoadOp.Clear, 1.0)
     self.mesh = Mesh.Box(2)
     self.shader = Cache.Shader("indexed_depth", "indexed_depth")
     self.backend = os.getenv("LTHEORY_WGPU") and "wgpu" or "opengl"
@@ -35,11 +38,7 @@ function RenderingIndexedDepth:onRender()
     RenderState.PushDepthTest(true)
     RenderState.PushDepthWritable(true)
 
-    RenderTarget.Push(TARGET_W, TARGET_H)
-    RenderTarget.BindTex2D(self.color)
-    RenderTarget.BindTex2D(self.depth)
-    Draw.Clear(0.0, 0.0, 0.0, 1.0)
-    Draw.ClearDepth(1.0)
+    local pass = Renderer:beginPass(self.passDesc)
 
     self.shader:start()
     -- Near orange is written first; farther blue must be rejected by depth.
@@ -51,7 +50,7 @@ function RenderingIndexedDepth:onRender()
     self.mesh:draw()
     self.shader:stop()
 
-    RenderTarget.Pop()
+    pass:finish()
     RenderState.PopDepthWritable()
     RenderState.PopDepthTest()
     RenderState.PopCullFace()

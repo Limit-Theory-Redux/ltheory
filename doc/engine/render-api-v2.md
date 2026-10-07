@@ -1,6 +1,6 @@
 # Render API v2 — wgpu-shaped interface on the GL renderer
 
-Status: design, not implemented. Companion to `wgpu-migration-gaps.md`,
+Status: design. S2 (render passes and attachment views) is implemented; later steps are not. Companion to `wgpu-migration-gaps.md`,
 `render-thread.md`, `batch-rendering.md` and `shader-system.md`.
 
 **Strategy, already decided.** First the GL renderer and the Lua render
@@ -34,7 +34,7 @@ deletion, not porting.
 | `ShaderLayout` | at link, from directives + reflection | owned by the shader and bumped on reload (`generation`) | `shader:blockType(name)` returns an FFI ctype | `#autovar`, uniform-location caches |
 | `Pipeline` | `Pipeline.Get(desc)`, hashed and cached | immortal (bounded set), `PipelineId(u32)` | `PipelineId` value | `RenderState.Push*`, `shader:start()` |
 | `Sampler` | `Sampler.Get(desc)`, hashed and cached | immortal, `SamplerId(u16)` | `SamplerId` value + `Samplers.*` presets | `tex:setMinFilter/setWrapMode/setAnisotropy` |
-| `TexView` | value type, no GPU object on GL | `Copy` struct `{tex, base_mip, mip_count, layer/face}` | `tex:view{...}` / `tex:mipView(l)` / `cube:faceView(f)` | `setMipRange`, `pushLevel`, `PushTex3D(layer)`, `bind_tex_cube(face)` |
+| `TexView` | value type, no GPU object on GL | `Copy` struct `{tex, dim, base_mip, mip_count, extent}` | S2 (attachment views): `tex:view()` / `tex:mipView(l)` / `vol:layerView(z)` / `vol:layerMipView(z, l)` / `cube:faceView(f)` / `cube:faceMipView(f, l)`. S3 adds sampling views (`tex:view{...}`). | `setMipRange`, `pushLevel`, `PushTex3D(layer)`, `bind_tex_cube(face)` |
 | `BindGroup` (group 1) | `Material` creation | `ResourceHandle` held by `Material` | inside `Material` | `ShaderState` elems, material `setTex` replay |
 | Transient bind groups (0, 2, 3) | per pass/draw from ring offsets + inline views | one frame | `pass:setInputs{...}`, `pass:alloc(T)` | `ShaderVar` stack, per-draw `setFloat`, `setTex2D('src')` |
 | `RenderPassDesc` | once per pass kind, updated on resize | Lua-owned cdata | `RenderPassDesc` | `RenderTarget.Push`+`BindTex2D`+`Draw.Clear` |
@@ -85,6 +85,7 @@ pub struct TexView {
     pub dim: ViewDim,                     // D1 | D2 | D3 | Cube | D2Layer(u16) | CubeFace(CubeFace)
     pub base_mip: u8,
     pub mip_count: u8,                    // 0 = all remaining
+    pub extent: [u32; 2],                 // width, height of base_mip (added in S2 so a pass can size its viewport)
 }
 
 pub enum BindEntry {
@@ -92,16 +93,21 @@ pub enum BindEntry {
     Texture { view: TexView, sampler: SamplerId },
 }
 
-pub struct ColorAttachment { pub view: TexView, pub load: LoadOp<[f32; 4]>, pub store: StoreOp }
-pub struct DepthAttachment { pub view: TexView, pub load: LoadOp<f32>, pub store: StoreOp }
-pub enum LoadOp<T> { Load, Clear(T), DontCare }
+// As built in S2: `LoadOp` is a plain C-like enum so it can be a Lua enum (`LoadOp.Clear`);
+// the clear value lives in the attachment next to it.
+pub struct ColorAttachment { pub view: TexView, pub load: LoadOp, pub clear: [f32; 4], pub store: StoreOp }
+pub struct DepthAttachment { pub view: TexView, pub load: LoadOp, pub clear: f32, pub store: StoreOp }
+pub enum LoadOp { Load, Clear, DontCare }
 pub enum StoreOp { Store, Discard }
 
 pub struct RenderPassDesc {
-    pub label: &'static str,              // profiler + stats category
-    pub color: ArrayVec<ColorAttachment, MAX_COLOR_ATTACHMENTS>,  // empty + no depth = backbuffer
+    pub label: Arc<str>,                  // profiler + stats category
+    pub color: [Option<ColorAttachment>; MAX_COLOR_ATTACHMENTS],  // contiguous from 0
     pub depth: Option<DepthAttachment>,
-    pub backbuffer: bool,
+    pub backbuffer: bool,                 // S2: explicit (`desc:backbuffer(w, h, load, r, g, b, a)`), no attachments
+    pub back_color: (LoadOp, [f32; 4]),   // backbuffer load ops (`desc:backbufferDepth` sets back_depth)
+    pub back_depth: (LoadOp, f32),
+    pub extent: [u32; 2],                 // pass size, taken from the attachments (or given for the backbuffer)
 }
 
 /// Fixed per-draw block (group 2) for scene meshes. Other shaders declare their own group-2 block.
@@ -630,6 +636,25 @@ S3 on). A step is done when baseline RMSE is unchanged within tolerance and
 re-blessed with a written reason, as S8's auto-exposure step will need.
 
 ### S2. Render passes and attachment views
+
+**Status: implemented.** Differences from the plan below:
+
+- `LoadOp` is a C-like enum (see §1.2); `TexView` carries the mip `extent`; `RenderPassDesc` has an explicit
+  `backbuffer(w, h, load, r, g, b, a)` / `backbufferDepth(load, d)` instead of "no attachments means backbuffer".
+- Lua view names: `view()`, `mipView(l)` on `Tex2D`, `layerView(z)`/`layerMipView(z, l)` on `Tex3D`,
+  `faceView(f)`/`faceMipView(f, l)` on `TexCube`. `Tex3D` has no `clear()`, so none was ported.
+- One pass at a time is enforced: `beginPass` panics with the open pass's label if another is open. The old FBO
+  stack allowed nesting, which exposed two patterns that now live outside passes: (1) the skybox closures in
+  eight states generated the nebula cube lazily inside the opaque pass, so each state now runs the closure once
+  at init with `blendMode = nil` (draws nothing); (2) `RenderCoreSystem:render` no longer wraps the frame in
+  `Window:beginDraw/endDraw`. It pushes a base `Viewport` (ClipRect needs one), and only the final present is a
+  backbuffer pass. `Window:beginDraw()` is a `LoadOp.Load` backbuffer pass (used by `Application:immediateUI`).
+- `RenderPass:finish()` ends the pass. Ending a pass rebinds the default framebuffer, and the pass viewport
+  push/pop still goes through the internal `Viewport` code (removed in S3).
+- The wgpu executor builds a framebuffer-stack entry from the pass desc at `BeginRenderPass` and pops it at
+  `EndRenderPass`. 3D layer attachments still use the whole volume view there (TODO: `depth_slice`).
+
+Original plan:
 - **Engine.** Add `RenderPassDesc`, `TexView` (attachment dims only),
   `BeginRenderPass/EndRenderPass` and the GL FBO cache with load ops.
   Pass begin sets the viewport and the 2D projection; until S3 this is done by

@@ -10,6 +10,8 @@ local TARGET_H = 128
 
 function RenderingIndexedBatch:onInit()
     self.target = Tex2D.Create(TARGET_W, TARGET_H, TexFormat.RGBA8)
+    self.passDesc = RenderPassDesc.Create("IndexedBatch")
+    self.passDesc:color(0, self.target:view(), LoadOp.Clear, 0.0, 0.0, 0.0, 1.0)
     self.mesh = Mesh.Box(2)
     self.indices = ffi.new("uint32_t[3]", {0, 1, 2})
     self.shader = Cache.Shader("indexed_batch", "indexed_batch")
@@ -36,12 +38,11 @@ function RenderingIndexedBatch:onRender()
     RenderState.PushDepthTest(false)
     RenderState.PushDepthWritable(false)
 
-    self.target:push()
-    Draw.Clear(0.0, 0.0, 0.0, 1.0)
+    local pass = Renderer:beginPass(self.passDesc)
     self.shader:start()
     self.mesh:drawInstancedIndices(self.indices, 3)
     self.shader:stop()
-    self.target:pop()
+    pass:finish()
 
     RenderState.PopDepthWritable()
     RenderState.PopDepthTest()

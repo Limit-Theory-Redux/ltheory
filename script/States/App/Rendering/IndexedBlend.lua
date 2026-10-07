@@ -20,6 +20,8 @@ end
 
 function RenderingIndexedBlend:onInit()
     self.target = Tex2D.Create(TARGET_W, TARGET_H, TexFormat.RGBA8)
+    self.passDesc = RenderPassDesc.Create("IndexedBlend")
+    self.passDesc:color(0, self.target:view(), LoadOp.Clear, 0.0, 0.0, 0.0, 1.0)
     self.mesh = makeQuad()
     self.shader = Cache.Shader("indexed_blend", "indexed_blend")
     self.backend = os.getenv("LTHEORY_WGPU") and "wgpu" or "opengl"
@@ -45,15 +47,14 @@ function RenderingIndexedBlend:onRender()
     RenderState.PushDepthTest(false)
     RenderState.PushDepthWritable(false)
 
-    self.target:push()
-    Draw.Clear(0.0, 0.0, 0.0, 1.0)
+    local pass = Renderer:beginPass(self.passDesc)
     self.shader:start()
     self.shader:setFloat4("color", 0.0, 0.0, 1.0, 1.0)
     self.mesh:draw()
     self.shader:setFloat4("color", 1.0, 0.0, 0.0, 0.5)
     self.mesh:draw()
     self.shader:stop()
-    self.target:pop()
+    pass:finish()
 
     RenderState.PopDepthWritable()
     RenderState.PopDepthTest()

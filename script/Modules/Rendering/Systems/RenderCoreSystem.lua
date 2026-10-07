@@ -143,6 +143,9 @@ function RenderCoreSystem:registerVars()
     self.ds              = 4  -- downsample factor for bloom (matches old pipeline)
 
     self.buffers         = {}
+    -- Single-color-attachment pass descriptors, cached per texture (weak, so
+    -- a resized-away buffer takes its descriptors with it); see `colorPassDesc`.
+    self.passDescCache   = setmetatable({}, { __mode = 'k' })
     self:initializeBuffers()
     self.passes = {}
     self.level = 0
@@ -196,7 +199,9 @@ function RenderCoreSystem:initializeBuffers()
         t:setMagFilter(TexFilter.Linear)
         t:setMinFilter(TexFilter.Linear)
         t:setWrapMode(TexWrapMode.Clamp)
-        t:push(); Draw.Clear(0, 0, 0, 0); t:pop(); t:genMipmap()
+        -- A depth buffer has nothing to clear here (the opaque pass clears it).
+        if not TexFormat.IsDepth(fmt) then t:clear(0, 0, 0, 0) end
+        t:genMipmap()
         return t
     end
 
@@ -212,18 +217,19 @@ function RenderCoreSystem:initializeBuffers()
 end
 
 function RenderCoreSystem:registerPasses()
-    local function pass(name, blend, cull, dt, dw, bufs, onStart)
-        self.passes[name] = RenderingPass(bufs, {
+    local function pass(name, blend, cull, dt, dw, bufs, clear, onStart)
+        self.passes[name] = RenderingPass(tostring(name), bufs, {
             blendMode = blend, cullFace = cull, depthTest = dt, depthWritable = dw
-        }, onStart)
+        }, clear, onStart)
     end
 
     pass(Enums.RenderingPasses.Opaque,
         BlendMode.Disabled, self.settings.cullFace and CullFace.Back or CullFace.None,
         true, true,
         { Enums.BufferName.buffer0, Enums.BufferName.buffer1, Enums.BufferName.zBufferL, Enums.BufferName.zBuffer },
+        { color = { 0, 0, 0, 0 }, depth = 1 },
         function()
-            Draw.Clear(0, 0, 0, 0); Draw.ClearDepth(1); Draw.Color(1, 1, 1, 1)
+            Draw.Color(1, 1, 1, 1)
         end)
 
     pass(Enums.RenderingPasses.Additive,
@@ -237,7 +243,7 @@ function RenderCoreSystem:registerPasses()
     pass(Enums.RenderingPasses.UI,
         BlendMode.Alpha, CullFace.None, false, false,
         { Enums.BufferName.buffer1, Enums.BufferName.zBuffer },
-        function() Draw.Clear(0, 0, 0, 0) end)
+        { color = { 0, 0, 0, 0 } })
 end
 
 ---@param data EventData
@@ -254,7 +260,9 @@ function RenderCoreSystem:render(data)
 
     self:handleResize()
 
-    Window:beginDraw()
+    -- Base of the viewport stack for the frame (ClipRect needs one). Only the
+    -- final present draws to the window, in its own backbuffer pass.
+    Viewport.Push(0, 0, self.resX, self.resY, true)
     ClipRect.PushDisabled()
     RenderState.PushAllDefaults()
 
@@ -273,7 +281,7 @@ function RenderCoreSystem:render(data)
     -- Opaque Pass
     Profiler.Begin('Render.Opaque')
     self.currentPass = Enums.RenderingPasses.Opaque
-    self.passes[self.currentPass]:start(self.buffers, self.ssResX, self.ssResY)
+    self.passes[self.currentPass]:start(self.buffers)
     self:renderInOrder(BlendMode.Disabled)
     self.passes[self.currentPass]:stop()
     Profiler.End() -- Render.Opaque
@@ -288,7 +296,7 @@ function RenderCoreSystem:render(data)
     -- Additive Pass
     Profiler.Begin('Render.Additive')
     self.currentPass = Enums.RenderingPasses.Additive
-    self.passes[self.currentPass]:start(self.buffers, self.ssResX, self.ssResY)
+    self.passes[self.currentPass]:start(self.buffers)
     self:renderInOrder(BlendMode.Additive)
     self.passes[self.currentPass]:stop()
     Profiler.End() -- Render.Additive
@@ -296,7 +304,7 @@ function RenderCoreSystem:render(data)
     -- Alpha Pass
     Profiler.Begin('Render.Alpha')
     self.currentPass = Enums.RenderingPasses.Alpha
-    self.passes[self.currentPass]:start(self.buffers, self.ssResX, self.ssResY)
+    self.passes[self.currentPass]:start(self.buffers)
     self:renderInOrder(BlendMode.Alpha)
     self.passes[self.currentPass]:stop()
     Profiler.End() -- Render.Alpha
@@ -304,7 +312,7 @@ function RenderCoreSystem:render(data)
     -- UI Pass
     Profiler.Begin('Render.UI')
     self.currentPass = Enums.RenderingPasses.UI
-    self.passes[self.currentPass]:start(self.buffers, self.ssResX, self.ssResY)
+    self.passes[self.currentPass]:start(self.buffers)
     self.passes[self.currentPass]:stop()
     Profiler.End() -- Render.UI
 
@@ -312,9 +320,7 @@ function RenderCoreSystem:render(data)
     Profiler.Begin('Render.UI.Composite')
     do
         local buffer2 = self.buffers[Enums.BufferName.buffer2]
-        buffer2:push()
-
-        Draw.Clear(0, 0, 0, 0) -- Recommended
+        local pass = Renderer:beginPass(self:colorPassDesc('UI.Composite', buffer2, 0, true))
 
         local shader = Cache.Shader('ui', 'ui/composite')
         shader:start()
@@ -323,7 +329,7 @@ function RenderCoreSystem:render(data)
         Draw.Rect(0, 0, self.ssResX, self.ssResY)
         shader:stop()
 
-        buffer2:pop()
+        pass:finish()
 
         -- Swap: make composited result the new main buffer
         self.buffers[Enums.BufferName.buffer0], self.buffers[Enums.BufferName.buffer2] =
@@ -374,15 +380,17 @@ function RenderCoreSystem:render(data)
 
     CameraManager:endDraw()
 
+    Window:beginDraw()
     if self.settings.showBuffers then
         self:presentAll(0, 0, self.resX, self.resY)
     else
         self:present(0, 0, self.resX, self.resY, false)
     end
+    Window:endDraw()
 
     RenderState.PopAll()
     ClipRect.Pop()
-    Window:endDraw()
+    Viewport.Pop()
 
     self.currentPass = nil
 
@@ -705,10 +713,39 @@ function RenderCoreSystem:swap()
         self.buffers[Enums.BufferName.buffer1], self.buffers[Enums.BufferName.buffer0]
 end
 
+--- Pass descriptor for rendering into mip `level` of `tex`, cached per
+--- (texture, label, level, clear). `clear` selects LoadOp.Clear to transparent
+--- black, otherwise the contents are kept (LoadOp.Load).
+---@param label string
+---@param tex Tex2D
+---@param level integer
+---@param clear boolean
+---@return RenderPassDesc
+function RenderCoreSystem:colorPassDesc(label, tex, level, clear)
+    local byTex = self.passDescCache[tex]
+    if not byTex then
+        byTex = {}
+        self.passDescCache[tex] = byTex
+    end
+    local byLabel = byTex[label]
+    if not byLabel then
+        byLabel = {}
+        byTex[label] = byLabel
+    end
+    local key = level * 2 + (clear and 1 or 0)
+    local desc = byLabel[key]
+    if not desc then
+        desc = RenderPassDesc.Create(label)
+        desc:color(0, tex:mipView(level), clear and LoadOp.Clear or LoadOp.Load, 0, 0, 0, 0)
+        byLabel[key] = desc
+    end
+    return desc
+end
+
 function RenderCoreSystem:applyFilter(fragName, onSetVars)
     local shader = Cache.Shader('ui', 'filter/' .. fragName)
     local target = self.buffers[Enums.BufferName.buffer1]
-    target:pushLevel(self.level or 0)
+    local pass = Renderer:beginPass(self:colorPassDesc('Post.' .. fragName, target, self.level or 0, false))
 
     shader:start()
     shader:setTex2D('src', self.buffers[Enums.BufferName.buffer0])
@@ -717,7 +754,7 @@ function RenderCoreSystem:applyFilter(fragName, onSetVars)
     Draw.Rect(0, 0, self.ssResX / scale, self.ssResY / scale)
     shader:stop()
 
-    target:pop()
+    pass:finish()
     self:swap()
 end
 
@@ -743,7 +780,7 @@ function RenderCoreSystem:downsampleForPost()
 
         -- Downsample from previous level (or original) into current mip level of buffer1
         local target = self.buffers[Enums.BufferName.buffer1]
-        target:pushLevel(currentLevel)
+        local pass = Renderer:beginPass(self:colorPassDesc('Post.downsample', target, currentLevel, false))
 
         local shader = Cache.Shader('ui', 'filter/downsample') -- simple bilinear downsample
         shader:start()
@@ -758,7 +795,7 @@ function RenderCoreSystem:downsampleForPost()
         end
 
         shader:stop()
-        target:pop()
+        pass:finish()
 
         -- Set all main buffers to use this mip level for sampling in post
         for _, key in pairs({ Enums.BufferName.buffer0, Enums.BufferName.buffer1, Enums.BufferName.buffer2 }) do
@@ -799,20 +836,19 @@ function RenderCoreSystem:deferredLighting()
     local eye = CameraManager:getEye()
 
     -- 1. Global lighting (environment from irMap/envMap)
-    buffer2:push()
-    Draw.Clear(0, 0, 0, 0)
+    local pass = Renderer:beginPass(self:colorPassDesc('Lighting.global', buffer2, 0, true))
     local globalShader = Cache.Shader('worldray', 'light/global')
     globalShader:start()
     globalShader:setTex2D('texDepth', zBufferL)
     globalShader:setTex2D('texNormalMat', buffer1)
     Draw.Rect(-1, -1, 2, 2)
     globalShader:stop()
-    buffer2:pop()
+    pass:finish()
 
 
     -- 2. Directional lights (star — no distance falloff, like the sun)
     if self.directionalLights and #self.directionalLights > 0 then
-        buffer2:push()
+        pass = Renderer:beginPass(self:colorPassDesc('Lighting.directional', buffer2, 0, false))
         RenderState.PushBlendMode(BlendMode.Additive)
         local dirShader = Cache.Shader('worldray', 'light/directional')
         dirShader:start()
@@ -825,13 +861,13 @@ function RenderCoreSystem:deferredLighting()
         end
         dirShader:stop()
         RenderState.PopBlendMode()
-        buffer2:pop()
+        pass:finish()
     end
 
     -- 3. Point lights (stations, engines, weapon effects, etc.)
     local pointLights = LightManager:getPointLights()
     if #pointLights > 0 then
-        buffer2:push()
+        pass = Renderer:beginPass(self:colorPassDesc('Lighting.point', buffer2, 0, false))
         RenderState.PushBlendMode(BlendMode.Additive)
         local pointShader = Cache.Shader('worldray', 'light/point')
         pointShader:start()
@@ -847,11 +883,11 @@ function RenderCoreSystem:deferredLighting()
         end
         pointShader:stop()
         RenderState.PopBlendMode()
-        buffer2:pop()
+        pass:finish()
     end
 
     -- 3. Composite: albedo * lighting → buffer1 (reuse as temp)
-    buffer1:push()
+    pass = Renderer:beginPass(self:colorPassDesc('Lighting.composite', buffer1, 0, false))
     local compShader = Cache.Shader('worldray', 'light/composite')
     compShader:start()
     compShader:setTex2D('texAlbedo', buffer0)
@@ -859,7 +895,7 @@ function RenderCoreSystem:deferredLighting()
     compShader:setTex2D('texLighting', buffer2)
     Draw.Rect(-1, -1, 2, 2)
     compShader:stop()
-    buffer1:pop()
+    pass:finish()
 
     -- Swap buffer1 (lit result) into buffer0 (main scene buffer)
     self.buffers[Enums.BufferName.buffer0], self.buffers[Enums.BufferName.buffer1] =
@@ -876,12 +912,12 @@ function RenderCoreSystem:bloom(radius)
     -- Bright extract
     do
         local shader = Cache.Shader('ui', 'filter/bloompre')
-        A:push()
+        local pass = Renderer:beginPass(self:colorPassDesc('Post.bloompre', A, 0, false))
         shader:start()
         shader:setTex2D('src', self.buffers[Enums.BufferName.buffer0])
         Draw.Rect(0, 0, self.resX / self.ds, self.resY / self.ds)
         shader:stop()
-        A:pop()
+        pass:finish()
     end
 
     for i = 1, 3 do
@@ -897,7 +933,7 @@ end
 function RenderCoreSystem:blur(dst, src, dx, dy, radius, variance)
     local shader = Cache.Shader('ui', 'filter/blur')
     local size = src:getSize()
-    dst:push()
+    local pass = Renderer:beginPass(self:colorPassDesc('Post.blur', dst, 0, false))
     shader:start()
     shader:setFloat('variance', variance)
     shader:setFloat2('dir', dx, dy)
@@ -906,7 +942,7 @@ function RenderCoreSystem:blur(dst, src, dx, dy, radius, variance)
     shader:setTex2D('src', src)
     Draw.Rect(0, 0, size.x, size.y)
     shader:stop()
-    dst:pop()
+    pass:finish()
 end
 
 function RenderCoreSystem:fxaa()
@@ -1048,7 +1084,7 @@ function RenderCoreSystem:tonemap(dt)
     if settings.mode == Enums.Tonemappers.Legacy then
         local shader = Cache.Shader('ui', 'filter/tonemap_legacy')
         local target = self.buffers[Enums.BufferName.buffer1]
-        target:pushLevel(self.level or 0)
+        local pass = Renderer:beginPass(self:colorPassDesc('Post.tonemap_legacy', target, self.level or 0, false))
 
         shader:start()
         shader:setTex2D('src', self.buffers[Enums.BufferName.buffer0])
@@ -1058,7 +1094,7 @@ function RenderCoreSystem:tonemap(dt)
         Draw.Rect(0, 0, self.ssResX / scale, self.ssResY / scale)
         shader:stop()
 
-        target:pop()
+        pass:finish()
         self:swap()
         return
     end

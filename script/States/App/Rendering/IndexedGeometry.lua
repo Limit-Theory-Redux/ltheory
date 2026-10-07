@@ -9,6 +9,8 @@ local TARGET_H = 128
 
 function RenderingIndexedGeometry:onInit()
     self.target = Tex2D.Create(TARGET_W, TARGET_H, TexFormat.RGBA8)
+    self.passDesc = RenderPassDesc.Create("IndexedGeometry")
+    self.passDesc:color(0, self.target:view(), LoadOp.Clear, 0.0, 0.0, 0.0, 1.0)
     self.mesh = Mesh.Box(2)
     self.stage = os.getenv("INDEXED_GEOMETRY_STAGE") or "baseline"
     local shaderName = self.stage == "canonical" and "indexed_canonical" or "indexed_baseline"
@@ -39,8 +41,7 @@ function RenderingIndexedGeometry:onRender()
     RenderState.PushDepthTest(false)
     RenderState.PushDepthWritable(false)
 
-    self.target:push()
-    Draw.Clear(0.0, 0.0, 0.0, 1.0)
+    local pass = Renderer:beginPass(self.passDesc)
     self.shader:start()
     if self.stage == "canonical" then
         self.shader:setMatrix("mProj", self.mProj)
@@ -49,7 +50,7 @@ function RenderingIndexedGeometry:onRender()
     end
     self.mesh:draw()
     self.shader:stop()
-    self.target:pop()
+    pass:finish()
 
     RenderState.PopDepthWritable()
     RenderState.PopDepthTest()

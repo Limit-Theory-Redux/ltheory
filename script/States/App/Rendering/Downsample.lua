@@ -36,6 +36,14 @@ function RenderingDownsample:onInit()
     self.rendered = false
     self.probed = false
     self.holdFrames = tonumber(os.getenv("DOWNSAMPLE_HOLD_FRAMES")) or 40
+
+    self.passDescs = {}
+    for _, name in ipairs({ "source", "linear", "nearest", "upscaled" }) do
+        local desc = RenderPassDesc.Create("Downsample." .. name)
+        desc:color(0, self[name]:view(), LoadOp.Clear, 0, 0, 0, 1)
+        self.passDescs[name] = desc
+    end
+    self.presentDesc = RenderPassDesc.Create("Downsample.present")
 end
 
 function RenderingDownsample:eventLoop()
@@ -86,51 +94,47 @@ function RenderingDownsample:onRender()
         return width, height
     end
 
-    self.source:push()
+    local pass = Renderer:beginPass(self.passDescs.source)
     Viewport.Push(0, 0, SOURCE_W, SOURCE_H, false)
-    Draw.Clear(0, 0, 0, 1)
     self.pattern:start()
     local sourceDrawW, sourceDrawH = drawExtent(SOURCE_W, SOURCE_H)
     Draw.Rect(0, 0, sourceDrawW, sourceDrawH)
     self.pattern:stop()
     Viewport.Pop()
-    self.source:pop()
+    pass:finish()
 
     configureTexture(self.source, TexFilter.Linear)
-    self.linear:push()
+    pass = Renderer:beginPass(self.passDescs.linear)
     Viewport.Push(0, 0, TARGET_W, TARGET_H, false)
-    Draw.Clear(0, 0, 0, 1)
     self.downsample:start()
     self.downsample:setTex2D("src", self.source)
     local linearDrawW, linearDrawH = drawExtent(TARGET_W, TARGET_H)
     Draw.Rect(0, 0, linearDrawW, linearDrawH)
     self.downsample:stop()
     Viewport.Pop()
-    self.linear:pop()
+    pass:finish()
 
     configureTexture(self.source, TexFilter.Point)
-    self.nearest:push()
+    pass = Renderer:beginPass(self.passDescs.nearest)
     Viewport.Push(0, 0, TARGET_W, TARGET_H, false)
-    Draw.Clear(0, 0, 0, 1)
     self.downsample:start()
     self.downsample:setTex2D("src", self.source)
     local nearestDrawW, nearestDrawH = drawExtent(TARGET_W, TARGET_H)
     Draw.Rect(0, 0, nearestDrawW, nearestDrawH)
     self.downsample:stop()
     Viewport.Pop()
-    self.nearest:pop()
+    pass:finish()
 
     configureTexture(self.linear, TexFilter.Linear)
-    self.upscaled:push()
+    pass = Renderer:beginPass(self.passDescs.upscaled)
     Viewport.Push(0, 0, OUTPUT_W, OUTPUT_H, false)
-    Draw.Clear(0, 0, 0, 1)
     self.identity:start()
     self.identity:setTex2D("src", self.linear)
     local upscaleDrawW, upscaleDrawH = drawExtent(OUTPUT_W, OUTPUT_H)
     Draw.Rect(0, 0, upscaleDrawW, upscaleDrawH)
     self.identity:stop()
     Viewport.Pop()
-    self.upscaled:pop()
+    pass:finish()
 
     -- The WGPU surface path owns a Depth24Plus attachment. Keep the
     -- renderer-owned color targets depth-free, then match the surface
@@ -142,12 +146,13 @@ function RenderingDownsample:onRender()
 
     -- Keep the presentation path explicit and separate from renderer-owned
     -- readback: the target-local texture is flipped into window coordinates.
-    Viewport.Push(0, 0, self.resX, self.resY, true)
+    self.presentDesc:backbuffer(self.resX, self.resY, LoadOp.Load, 0, 0, 0, 1)
+    pass = Renderer:beginPass(self.presentDesc)
     self.identity:start()
     self.identity:setTex2D("src", self.linear)
     Draw.Rect(0, self.resY, self.resX, -self.resY)
     self.identity:stop()
-    Viewport.Pop()
+    pass:finish()
 
     RenderState.PopDepthWritable()
     RenderState.PopDepthTest()

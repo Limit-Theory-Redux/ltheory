@@ -61,12 +61,13 @@ function GenTex2D:onGenerate()
         local tex = Tex2D.Create(kTexSize, kTexSize, TexFormat.RGBA16F)
 
         RenderState.PushAllDefaults()
-        tex:push()
-        Draw.Clear(0, 0, 0, 1)
+        local desc = RenderPassDesc.Create('GenTex2D')
+        desc:color(0, tex:view(), LoadOp.Clear, 0, 0, 0, 1)
+        local pass = Renderer:beginPass(desc)
 
         self:DrawWorn(tex)
 
-        tex:pop()
+        pass:finish()
         Draw.Color(1, 1, 1, 1)
         RenderState.PopAll()
 
@@ -184,8 +185,11 @@ function GenTex2D:onDraw()
     local sy = self.zoom * kTexSize
     local x = (self.resX - sx) / 2 + self.panX * self.zoom
     local y = (self.resY - sy) / 2 + self.panY * self.zoom
-    Draw.Clear(0.1, 0.1, 0.1, 1.0)
+    local desc = RenderPassDesc.Create('GenTex2D.draw')
+    desc:backbuffer(self.resX, self.resY, LoadOp.Clear, 0.1, 0.1, 0.1, 1.0)
+    local pass = Renderer:beginPass(desc)
     self.texture:draw(x, y, sx, sy)
+    pass:finish()
 end
 
 return GenTex2D

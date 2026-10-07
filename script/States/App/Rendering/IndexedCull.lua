@@ -25,9 +25,7 @@ end
 ---@param name string
 local function drawPair(self, mode, name)
     RenderState.PushCullFace(mode)
-    RenderTarget.Push(TARGET_W, TARGET_H)
-    RenderTarget.BindTex2D(self.target)
-    Draw.Clear(0.0, 0.0, 0.0, 1.0)
+    local pass = Renderer:beginPass(self.passDesc)
 
     self.shader:start()
     self.shader:setFloat4("color", 0.0, 1.0, 0.0, 1.0)
@@ -36,7 +34,7 @@ local function drawPair(self, mode, name)
     self.back:draw()
     self.shader:stop()
 
-    RenderTarget.Pop()
+    pass:finish()
     RenderState.PopCullFace()
     self.target:save(ProbePaths.file("indexed-cull-" .. self.backend .. "-" .. name .. ".png"))
     return self.target:sample(math.floor(TARGET_W / 2), math.floor(TARGET_H / 2))
@@ -44,6 +42,8 @@ end
 
 function RenderingIndexedCull:onInit()
     self.target = Tex2D.Create(TARGET_W, TARGET_H, TexFormat.RGBA8)
+    self.passDesc = RenderPassDesc.Create("IndexedCull")
+    self.passDesc:color(0, self.target:view(), LoadOp.Clear, 0.0, 0.0, 0.0, 1.0)
     self.front = triangle(false)
     self.back = triangle(true)
     self.shader = Cache.Shader("indexed_cull", "indexed_cull")

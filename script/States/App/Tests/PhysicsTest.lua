@@ -56,7 +56,6 @@ local System              = require('Legacy.GameObjects.Entities.StarSystem')
 local DebugControl        = require('Legacy.Systems.Controls.Controls.DebugControl')
 local MasterControl       = require('Legacy.Systems.Controls.Controls.MasterControl')
 local SoundManager        = require("Legacy.Systems.SFX.SoundManager")
-local GameView            = require('Legacy.Systems.Overlay.GameView')
 
 local LTheory             = require('States.Application')
 local rng                 = RNG.FromTime()
@@ -151,13 +150,10 @@ function LTheory:onInit()
     self:generate()
 
     DebugControl.ltheory = self
-    self.gameView = GameView(self.player, self.audio)
+    -- The Legacy GameView path (RenderPipeline) is gone; the canvas stays for UI.
     self.canvas = UI.Canvas()
-    GameState.render.gameView = self.gameView
+    GameState.render.gameView = nil
     GameState.render.uiCanvas = self.canvas
-    self.canvas
-        :add(self.gameView
-            :add(MasterControl(self.gameView, self.player)))
 end
 
 function LTheory:onInput()

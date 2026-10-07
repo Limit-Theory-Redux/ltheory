@@ -17,13 +17,13 @@ function RenderingGradient:eventLoop()
         Viewport.Push(0, 0, self.resX, self.resY, true)
         RenderState.PushAllDefaults()
         local probe = Tex2D.Create(self.resX, self.resY, TexFormat.RGBA8)
-        probe:push()
-        Draw.Clear(0, 0, 0, 1)
-        Draw.ClearDepth(1)
+        local probeDesc = RenderPassDesc.Create("Gradient.probe")
+        probeDesc:color(0, probe:view(), LoadOp.Clear, 0, 0, 0, 1)
+        local probePass = Renderer:beginPass(probeDesc)
         self.shader:start()
         Draw.Rect(0, 0, self.resX, self.resY)
         self.shader:stop()
-        probe:pop()
+        probePass:finish()
         local tl = probe:sample(0, 0)
         local tr = probe:sample(self.resX - 1, 0)
         local bl = probe:sample(0, self.resY - 1)
@@ -46,13 +46,16 @@ end
 
 function RenderingGradient:onRender()
     RenderState.PushAllDefaults()
-    Draw.Clear(0, 0, 0, 1)
 
-    Viewport.Push(0, 0, self.resX, self.resY, true)
+    if not self.passDesc then
+        self.passDesc = RenderPassDesc.Create("Gradient")
+        self.passDesc:backbuffer(self.resX, self.resY, LoadOp.Clear, 0, 0, 0, 1)
+    end
+    local pass = Renderer:beginPass(self.passDesc)
     self.shader:start()
     Draw.Rect(0, 0, self.resX, self.resY)
     self.shader:stop()
-    Viewport.Pop()
+    pass:finish()
 
     RenderState.PopAll()
 end

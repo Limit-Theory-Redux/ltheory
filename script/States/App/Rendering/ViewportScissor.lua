@@ -27,7 +27,12 @@ end
 
 function RenderingViewportScissor:onRender()
     RenderState.PushAllDefaults()
-    Draw.Clear(BACKGROUND[1], BACKGROUND[2], BACKGROUND[3], BACKGROUND[4])
+    if not self.passDesc then
+        self.passDesc = RenderPassDesc.Create("ViewportScissor")
+        self.passDesc:backbuffer(self.resX, self.resY, LoadOp.Clear,
+            BACKGROUND[1], BACKGROUND[2], BACKGROUND[3], BACKGROUND[4])
+    end
+    local pass = Renderer:beginPass(self.passDesc)
 
     if self.frames <= 30 then
         Viewport.Push(OUTER.x, OUTER.y, OUTER.w, OUTER.h, true)
@@ -47,6 +52,7 @@ function RenderingViewportScissor:onRender()
         Viewport.Pop()
     end
 
+    pass:finish()
     RenderState.PopAll()
 end
 

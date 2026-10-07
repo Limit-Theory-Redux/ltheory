@@ -1191,7 +1191,10 @@ function WeaponSystemTestbed:onInit()
     self.respawnQueue = {}
     self.contactCursor = 0
 
-    self.skybox = SkyboxEntity(self.seed, function(entity, blendMode)
+    -- The skybox closure also builds the nebula maps, which renders to textures,
+    -- so run it once now (blendMode nil draws nothing): a render pass cannot be
+    -- open while another begins.
+    local skyboxFn = function(entity, blendMode)
         local placeholder = entity:get(CoreComponents.Empty)
         if not placeholder then
             placeholder = entity:add(CoreComponents.Empty)
@@ -1231,7 +1234,9 @@ function WeaponSystemTestbed:onInit()
             placeholder.stars:draw()
             shader:stop()
         end
-    end)
+    end
+    self.skybox = SkyboxEntity(self.seed, skyboxFn)
+    skyboxFn(self.skybox, nil)
 
     self.pulseRenderEntity = Entity.Create(
         "WeaponPulseEffects",
