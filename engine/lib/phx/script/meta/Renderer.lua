@@ -61,6 +61,39 @@ function Renderer:flushBatch() end
 ---@return BatchStats?
 function Renderer:getBatchStats() end
 
+-- Draw calls of the last frame (mesh + immediate + instanced).
+---@return integer
+function Renderer:statsDrawCalls() end
+
+-- Render-thread execute time of the last frame, in microseconds.
+---@return integer
+function Renderer:statsFrameTimeUs() end
+
+-- Time the render thread sat blocked waiting for commands in the last
+-- frame (producer starvation), microseconds.
+---@return integer
+function Renderer:statsRecvWaitUs() end
+
+-- Time the render thread spent blocked in the buffer swap (vsync/GPU
+-- back-pressure) in the last frame, microseconds.
+---@return integer
+function Renderer:statsPresentWaitUs() end
+
+-- Frames the render thread has completed (to de-duplicate stats samples).
+---@return integer
+function Renderer:statsFrameCount() end
+
+-- Commands the render thread processed in the last frame.
+---@return integer
+function Renderer:statsCommands() end
+
+-- Time the main thread spent blocked in the last frame end, microseconds.
+---@return integer
+function Renderer:statsMainWaitUs() end
+
+---@return integer
+function Renderer:statsVertices() end
+
 -- Set the viewport
 ---@param x integer
 ---@param y integer

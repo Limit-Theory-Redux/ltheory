@@ -592,6 +592,9 @@ end
 function PlanetTest:onRender(data)
     RenderCoreSystem:render(data)
 
+    -- Debug overlay shows wall-clock/memory values: hidden for deterministic captures
+    if self.captureMode then return end
+
     self:immediateUI(function()
         local mem = GC.GetMemory()
         local camEntity = CameraManager:getActiveCameraEntity()

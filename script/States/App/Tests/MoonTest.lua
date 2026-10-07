@@ -200,6 +200,9 @@ end
 function MoonTest:onRender(data)
     RenderCoreSystem:render(data)
 
+    -- Debug overlay shows wall-clock values: hidden for deterministic captures
+    if self.captureMode then return end
+
     self:immediateUI(function()
         local camPos = CameraManager:getActiveCameraEntity():get(CameraDataComponent):getController():getPosition()
         local infoLines = {

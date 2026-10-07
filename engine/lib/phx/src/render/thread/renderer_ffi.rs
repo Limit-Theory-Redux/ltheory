@@ -132,6 +132,50 @@ impl Renderer {
         }
     }
 
+    // === Frame stats (last completed frame; used by LTHEORY_CAPTURE) ===
+
+    /// Draw calls of the last frame (mesh + immediate + instanced).
+    pub fn stats_draw_calls(&mut self) -> u64 {
+        let s = self.get_stats();
+        s.draw_mesh_calls + s.draw_immediate_calls + s.draw_instanced_calls
+    }
+
+    /// Render-thread execute time of the last frame, in microseconds.
+    pub fn stats_frame_time_us(&mut self) -> u64 {
+        self.get_stats().last_frame_time_us
+    }
+
+    /// Time the render thread sat blocked waiting for commands in the last
+    /// frame (producer starvation), microseconds.
+    pub fn stats_recv_wait_us(&mut self) -> u64 {
+        self.get_stats().recv_wait_us
+    }
+
+    /// Time the render thread spent blocked in the buffer swap (vsync/GPU
+    /// back-pressure) in the last frame, microseconds.
+    pub fn stats_present_wait_us(&mut self) -> u64 {
+        self.get_stats().present_wait_us
+    }
+
+    /// Frames the render thread has completed (to de-duplicate stats samples).
+    pub fn stats_frame_count(&mut self) -> u64 {
+        self.get_stats().frame_count
+    }
+
+    /// Commands the render thread processed in the last frame.
+    pub fn stats_commands(&mut self) -> u64 {
+        self.get_stats().commands
+    }
+
+    /// Time the main thread spent blocked in the last frame end, microseconds.
+    pub fn stats_main_wait_us(&self) -> u64 {
+        self.get_main_thread_wait_us()
+    }
+
+    pub fn stats_vertices(&mut self) -> u64 {
+        self.get_stats().vertices_drawn
+    }
+
     // === State Management ===
 
     /// Set the viewport

@@ -109,8 +109,14 @@ function Benchmark:onInit()
     -- and present path.
     local benchResX = tonumber(os.getenv("BENCH_RES_X")) or 1920
     local benchResY = tonumber(os.getenv("BENCH_RES_Y")) or 1080
+    -- Captures use a fixed windowed size (see Application:getDefaultSize)
+    if self.captureMode then
+        benchResX, benchResY = self:getDefaultSize()
+    end
     Window:setSize(benchResX, benchResY)
-    Window:setFullscreen(true, false)
+    if not self.captureMode then
+        Window:setFullscreen(true, false)
+    end
 
     -- Match the game's real ECS spawn caps (100 concurrent, 5/update).
     -- Belt DATA stays dense (thousands of asteroids - realistic for a
@@ -531,6 +537,9 @@ end
 
 function Benchmark:onRender(data)
     RenderCoreSystem:render(data)
+
+    -- Overlay shows wall-clock/memory values: hidden for deterministic captures
+    if self.captureMode then return end
 
     self:immediateUI(function()
         local ft = RenderCoreSystem:getSmoothFrameTime(true)

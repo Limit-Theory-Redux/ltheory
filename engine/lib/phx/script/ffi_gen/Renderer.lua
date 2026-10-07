@@ -27,6 +27,14 @@ function Loader.defineType()
             uint32            Renderer_CullBatch              (Renderer*, uint32* outIndices, uint64 outIndices_size);
             void              Renderer_FlushBatch             (Renderer*);
             BatchStats const* Renderer_GetBatchStats          (Renderer const*);
+            uint64            Renderer_StatsDrawCalls         (Renderer*);
+            uint64            Renderer_StatsFrameTimeUs       (Renderer*);
+            uint64            Renderer_StatsRecvWaitUs        (Renderer*);
+            uint64            Renderer_StatsPresentWaitUs     (Renderer*);
+            uint64            Renderer_StatsFrameCount        (Renderer*);
+            uint64            Renderer_StatsCommands          (Renderer*);
+            uint64            Renderer_StatsMainWaitUs        (Renderer const*);
+            uint64            Renderer_StatsVertices          (Renderer*);
             void              Renderer_SetViewport            (Renderer*, int x, int y, int width, int height);
             void              Renderer_SetScissor             (Renderer*, int x, int y, int width, int height);
             void              Renderer_EnableScissor          (Renderer*, bool enable);
@@ -87,6 +95,14 @@ function Loader.defineType()
                 cullBatch              = libphx.Renderer_CullBatch,
                 flushBatch             = libphx.Renderer_FlushBatch,
                 getBatchStats          = libphx.Renderer_GetBatchStats,
+                statsDrawCalls         = libphx.Renderer_StatsDrawCalls,
+                statsFrameTimeUs       = libphx.Renderer_StatsFrameTimeUs,
+                statsRecvWaitUs        = libphx.Renderer_StatsRecvWaitUs,
+                statsPresentWaitUs     = libphx.Renderer_StatsPresentWaitUs,
+                statsFrameCount        = libphx.Renderer_StatsFrameCount,
+                statsCommands          = libphx.Renderer_StatsCommands,
+                statsMainWaitUs        = libphx.Renderer_StatsMainWaitUs,
+                statsVertices          = libphx.Renderer_StatsVertices,
                 setViewport            = libphx.Renderer_SetViewport,
                 setScissor             = libphx.Renderer_SetScissor,
                 enableScissor          = libphx.Renderer_EnableScissor,

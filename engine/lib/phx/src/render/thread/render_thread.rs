@@ -126,6 +126,13 @@ impl RenderThread {
                         break;
                     }
 
+                    // Per-frame command count (record_command does this when
+                    // the stats-server feature is on).
+                    #[cfg(not(feature = "stats-server"))]
+                    if self.wgpu_executor.is_none() {
+                        self.executor.this_frame_stats.commands += 1;
+                    }
+
                     if self.wgpu_executor.is_none() && recv_wait_us >= STARVATION_THRESHOLD_US {
                         self.executor.this_frame_stats.recv_wait_us += recv_wait_us;
                         self.executor.this_frame_stats.recv_wait_count += 1;

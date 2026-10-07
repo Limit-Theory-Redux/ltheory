@@ -6,7 +6,14 @@ local ShaderErrorOverlay = require('Shared.Tools.ShaderErrorOverlay')
 ---@class Application
 local Application = Class("Application", function(self) end)
 
+-- Opt-in deterministic screenshot capture (render validation):
+--   LTHEORY_CAPTURE=<out.png>   save the final backbuffer after frame N and exit
+--   LTHEORY_CAPTURE_FRAME=<n>   frame to capture (default 120)
+-- Also fixes the window size and (engine-side) the frame delta time.
+local CAPTURE_SIZE_X, CAPTURE_SIZE_Y = 1280, 720
+
 function Application:getDefaultSize()
+    if self.captureMode then return CAPTURE_SIZE_X, CAPTURE_SIZE_Y end
     return Config.render.window.defaultResX, Config.render.window.defaultResY
 end
 
@@ -47,6 +54,10 @@ function Application:appInit()
     ShaderHotReload:init()
 
     self.eventsRegistered = false
+    self.capturePath = os.getenv('LTHEORY_CAPTURE')
+    self.captureMode = self.capturePath ~= nil
+    self.captureFrame = tonumber(os.getenv('LTHEORY_CAPTURE_FRAME')) or 120
+    self.frameCount = 0
     self.resX, self.resY = self:getDefaultSize()
 
     Window:setTitle(self:getTitle())
@@ -265,10 +276,66 @@ function Application:onPostRender(data)
 
     Profiler.End()
 
+    if self.captureMode then self:captureTick() end
+
     -- Flush accumulated scope frame-times into the totals once per frame.
     -- Without this, every scope's total stays 0 and the printed table is
     -- empty (begin/end only accumulate into scope.frame).
     Profiler.LoopMarker()
+end
+
+function Application:captureTick()
+    self.frameCount = self.frameCount + 1
+    -- Wall-clock timing over the second half of the run (first half is warmup)
+    local half = math.floor(self.captureFrame / 2)
+    if self.frameCount == half then
+        self.captureStart = TimeStamp.Now()
+        self.captureAcc = { lastFrame = -1, recv = {}, present = {}, busy = {}, commands = {}, draws = {}, mainWait = {} }
+    elseif self.frameCount > half and self.captureAcc then
+        -- Per-frame render-thread stats (of the previous completed frame), averaged below
+        local acc = self.captureAcc
+        local rtFrame = tonumber(Renderer:statsFrameCount())
+        if rtFrame ~= acc.lastFrame then -- skip ticks without a new render-thread frame
+            acc.lastFrame = rtFrame
+            table.insert(acc.recv, tonumber(Renderer:statsRecvWaitUs()))
+            table.insert(acc.present, tonumber(Renderer:statsPresentWaitUs()))
+            table.insert(acc.busy, tonumber(Renderer:statsFrameTimeUs()))
+            table.insert(acc.commands, tonumber(Renderer:statsCommands()))
+            table.insert(acc.draws, tonumber(Renderer:statsDrawCalls()))
+            table.insert(acc.mainWait, tonumber(Renderer:statsMainWaitUs()))
+        end
+    end
+    if self.captureDone or self.frameCount < self.captureFrame then return end
+    self.captureDone = true
+
+    Renderer:sync()
+    Window:beginDraw() -- ScreenCapture needs a viewport on the stack
+    local tex = Tex2D.ScreenCapture()
+    Window:endDraw()
+    tex:save(self.capturePath)
+
+    -- RenderCoreSystem's smoothed FPS is derived from the fixed capture dt, so
+    -- report real wall-clock frame time measured here instead.
+    local frames = self.frameCount - math.floor(self.captureFrame / 2)
+    local ft = frames > 0 and self.captureStart:getElapsed() * 1000 / frames or 0
+    local fps = ft > 0 and 1000 / ft or 0
+    -- Producer/consumer balance: share of the frame the render thread spent
+    -- not executing/presenting (>= 15% idle => Lua/main thread is the bottleneck).
+    -- Medians (microseconds -> ms) so one-off hitches don't skew the balance.
+    local function median(t)
+        table.sort(t)
+        return t[math.floor(#t / 2) + 1] or 0
+    end
+    local acc = self.captureAcc
+    local recvMs, mainWaitMs = median(acc.recv) / 1000, median(acc.mainWait) / 1000
+    local execMs = median(acc.busy) / 1000 - recvMs -- render-thread time spent executing commands
+    local presentMs = median(acc.present) / 1000
+    local idlePct = ft > 0 and math.max(0, 100 * (1 - (execMs + presentMs) / ft)) or 0
+    Log.Info('CAPTURE frame=%d fps=%.1f frametime_ms=%.2f render_thread_ms=%.2f render_recv_wait_ms=%.2f render_idle_pct=%.1f render_exec_ms=%.2f render_present_ms=%.2f main_wait_ms=%.2f commands_per_frame=%d draw_calls=%.0f vertices=%d bound=%s path=%s',
+        self.frameCount, fps, ft, tonumber(Renderer:statsFrameTimeUs()) / 1000,
+        recvMs, idlePct, execMs, presentMs, mainWaitMs, median(acc.commands), median(acc.draws),
+        tonumber(Renderer:statsVertices()), idlePct >= 15 and 'producer' or 'consumer', self.capturePath)
+    self:quit()
 end
 
 function Application:onPreInput(data) end
