@@ -25,7 +25,7 @@ use tracing::warn;
 use crate::render::thread::{ExecutorStats, GpuHandle};
 use crate::render::{
     BindEntry, BindGroupId, BlendMode, BlockLayout, CmdPrimitiveType, CommandReply, CullFace,
-    GenericUniformName, ImmVertex, InstanceData, InstanceUniformsCmd, LoadOp, PassCmd,
+    ImmVertex, InstanceData, LoadOp, PassCmd,
     PassCommands, PipelineDesc, PipelineId, PolygonMode, RenderCommand, RenderPassDesc,
     RenderStats, ResourceId, SamplerDesc, SamplerId, ShaderLayout, ShaderReloadResult, TexFilter,
     TexFormat, TexView, TexWrapMode, VertexFormat, ViewDim, blocks_from_naga, entry_unit,
@@ -269,7 +269,6 @@ pub struct WgpuCommandExecutor {
 
     // === UBO staging (raw bytes; uploaded at draw time) ===
     view_ubo: Option<Vec<u8>>,
-    material_ubo: Option<Vec<u8>>,
     light_ubo: Option<Vec<u8>>,
 
     // === Binding model (S3): objects and the uniform ring ===
@@ -278,6 +277,8 @@ pub struct WgpuCommandExecutor {
     bind_groups: HashMap<BindGroupId, (u8, Vec<BindEntry>)>,
     /// Uniform ring bytes by `(slot, chunk)`.
     ring_bytes: HashMap<(u8, u16), Vec<u8>>,
+    /// Vertex ring bytes (instance data) by `(slot, chunk)`.
+    vertex_ring_bytes: HashMap<(u8, u16), Vec<u8>>,
     /// Pipeline last set by a pass command.
     current_pipeline: Option<PipelineId>,
 
@@ -377,12 +378,12 @@ impl WgpuCommandExecutor {
             bound_textures: vec![None; 16],
             named_uniforms: HashMap::new(),
             view_ubo: None,
-            material_ubo: None,
             light_ubo: None,
             pipeline_descs: HashMap::new(),
             sampler_descs: HashMap::new(),
             bind_groups: HashMap::new(),
             ring_bytes: HashMap::new(),
+            vertex_ring_bytes: HashMap::new(),
             current_pipeline: None,
             ubo_buffers: HashMap::new(),
             plain_uniform_staging: HashMap::new(),
@@ -517,12 +518,11 @@ impl WgpuCommandExecutor {
         offset: u32,
         layout: &ShaderLayout,
     ) -> String {
-        use crate::render::thread::ubo::{LIGHT_UBO_BINDING, MATERIAL_UBO_BINDING};
+        use crate::render::thread::ubo::LIGHT_UBO_BINDING;
         let mut out = code.replace("#version 330", "#version 440");
         // Legacy fixed blocks, and the frame group's view block.
         let injections = [
             ("ViewBlock", 0),
-            ("MaterialUBO", MATERIAL_UBO_BINDING),
             ("LightUBO", LIGHT_UBO_BINDING),
         ];
         for (name, binding) in injections {
@@ -1306,15 +1306,6 @@ impl WgpuCommandExecutor {
             b[i * 4..i * 4 + 4].copy_from_slice(&v.to_le_bytes());
         }
         self.apply_uniform_by_name(&name, &b);
-    }
-
-    /// Fixed-name uniform (`mWorld`/`mWorldIT`): same as the by-name path.
-    pub(super) fn cmd_set_uniform_mat4_by_generic_name(
-        &mut self,
-        name: GenericUniformName,
-        value: [f32; 16],
-    ) {
-        self.cmd_set_uniform_mat4_by_name(Arc::from(name.as_str()), value);
     }
 
     // --- Texture operations (bind bookkeeping real; upload = texture stage) ---
@@ -2333,18 +2324,6 @@ impl WgpuCommandExecutor {
         self.draw_indexed_mesh(vao, index_count, primitive, 1, false);
     }
 
-    pub(super) fn cmd_draw_mesh_instanced(
-        &mut self,
-        vao: GpuHandle,
-        index_count: i32,
-        instance_count: i32,
-        primitive: CmdPrimitiveType,
-    ) {
-        self.vertices_drawn_this_frame +=
-            (index_count.max(0) as u64) * instance_count.max(0) as u64;
-        self.draw_indexed_mesh(vao, index_count, primitive, instance_count.max(0), true);
-    }
-
     pub(super) fn cmd_draw_mesh_by_resource(
         &mut self,
         id: ResourceId,
@@ -2353,24 +2332,6 @@ impl WgpuCommandExecutor {
     ) {
         self.vertices_drawn_this_frame += index_count.max(0) as u64;
         self.draw_indexed_mesh(GpuHandle(id.0 as u32), index_count, primitive, 1, false);
-    }
-
-    pub(super) fn cmd_draw_mesh_instanced_by_resource(
-        &mut self,
-        id: ResourceId,
-        index_count: i32,
-        instance_count: i32,
-        primitive: CmdPrimitiveType,
-    ) {
-        self.vertices_drawn_this_frame +=
-            (index_count.max(0) as u64) * instance_count.max(0) as u64;
-        self.draw_indexed_mesh(
-            GpuHandle(id.0 as u32),
-            index_count,
-            primitive,
-            instance_count.max(0),
-            true,
-        );
     }
 
     pub(super) fn cmd_draw_instanced_with_data(
@@ -4120,7 +4081,6 @@ impl WgpuCommandExecutor {
         };
         for (binding, data) in [
             (0u32, self.view_ubo.as_deref()),
-            (1u32, self.material_ubo.as_deref()),
             (2u32, self.light_ubo.as_deref()),
         ] {
             if let Some(bytes) = data {
@@ -4975,17 +4935,28 @@ impl WgpuCommandExecutor {
         }
     }
 
-    pub(super) fn cmd_pass_commands(&mut self, commands: &PassCommands) {
+    pub(super) fn cmd_pass_commands(&mut self, commands: &mut PassCommands) {
         for chunk in &commands.uniforms {
             let bytes = self
                 .ring_bytes
                 .entry((commands.slot, chunk.at.buffer))
                 .or_default();
-            let end = chunk.at.offset as usize + chunk.bytes.len();
+            let end = chunk.at.offset as usize + chunk.data().len();
             if bytes.len() < end {
                 bytes.resize(end, 0);
             }
-            bytes[chunk.at.offset as usize..end].copy_from_slice(&chunk.bytes);
+            bytes[chunk.at.offset as usize..end].copy_from_slice(chunk.data());
+        }
+        for chunk in &commands.vertices {
+            let bytes = self
+                .vertex_ring_bytes
+                .entry((commands.slot, chunk.at.buffer))
+                .or_default();
+            let end = chunk.at.offset as usize + chunk.data().len();
+            if bytes.len() < end {
+                bytes.resize(end, 0);
+            }
+            bytes[chunk.at.offset as usize..end].copy_from_slice(chunk.data());
         }
         for cmd in &commands.cmds {
             match cmd {
@@ -5069,6 +5040,69 @@ impl WgpuCommandExecutor {
                         CmdPrimitiveType::Triangles,
                     );
                 }
+                PassCmd::DrawMeshInstanced {
+                    mesh,
+                    index_count,
+                    instances,
+                    count,
+                } => {
+                    let stride = std::mem::size_of::<InstanceData>();
+                    let start = instances.offset as usize;
+                    let Some(bytes) = self
+                        .vertex_ring_bytes
+                        .get(&(commands.slot, instances.buffer))
+                        .and_then(|b| b.get(start..start + *count as usize * stride))
+                    else {
+                        warn!("wgpu: DrawMeshInstanced data missing");
+                        continue;
+                    };
+                    let f = |chunk: &[u8]| f32::from_le_bytes(chunk.try_into().unwrap());
+                    let data: Vec<InstanceData> = bytes
+                        .chunks_exact(stride)
+                        .map(|inst| {
+                            let mut model_matrix = [0.0; 16];
+                            for (i, v) in model_matrix.iter_mut().enumerate() {
+                                *v = f(&inst[i * 4..i * 4 + 4]);
+                            }
+                            let color = [f(&inst[64..68]), f(&inst[68..72]), f(&inst[72..76]), f(&inst[76..80])];
+                            InstanceData::new(model_matrix, color, f(&inst[80..84]))
+                        })
+                        .collect();
+                    self.draw_instanced_calls_this_frame += 1;
+                    self.cmd_draw_instanced_with_data(
+                        *mesh,
+                        *index_count as i32,
+                        data,
+                        CmdPrimitiveType::Triangles,
+                    );
+                }
+                PassCmd::DrawInstancedIndices {
+                    mesh,
+                    index_count,
+                    indices,
+                    count,
+                } => {
+                    let start = indices.offset as usize;
+                    let Some(bytes) = self
+                        .vertex_ring_bytes
+                        .get(&(commands.slot, indices.buffer))
+                        .and_then(|b| b.get(start..start + *count as usize * 4))
+                    else {
+                        warn!("wgpu: DrawInstancedIndices data missing");
+                        continue;
+                    };
+                    let data: Vec<u32> = bytes
+                        .chunks_exact(4)
+                        .map(|c| u32::from_le_bytes(c.try_into().unwrap()))
+                        .collect();
+                    self.draw_instanced_calls_this_frame += 1;
+                    self.cmd_draw_instanced_indices(
+                        *mesh,
+                        *index_count as i32,
+                        data,
+                        CmdPrimitiveType::Triangles,
+                    );
+                }
                 PassCmd::DrawFullscreen => {
                     // Unit quad as an immediate quad, like `Draw.Rect` did.
                     let v = |x: f32, y: f32| ImmVertex {
@@ -5081,19 +5115,6 @@ impl WgpuCommandExecutor {
                     self.cmd_draw_immediate(CmdPrimitiveType::Quads, &vertices);
                 }
             }
-        }
-    }
-
-    pub(super) fn cmd_create_material_ubo(&mut self) {
-        self.material_ubo = Some(Vec::new());
-    }
-
-    pub(super) fn cmd_update_material_ubo(&mut self, data: &[u8]) {
-        if let Some(ubo) = self.material_ubo.as_mut() {
-            ubo.clear();
-            ubo.extend_from_slice(data);
-        } else {
-            warn!("wgpu: UpdateMaterialUBO before CreateMaterialUBO");
         }
     }
 
@@ -5342,26 +5363,6 @@ impl WgpuCommandExecutor {
             RenderCommand::SetUniformMat4 { location, value } => {
                 self.cmd_set_uniform_mat4(location, value);
             }
-            RenderCommand::SetInstanceUniforms(cmd) => {
-                let InstanceUniformsCmd {
-                    world_loc,
-                    world_it_loc,
-                    scale_loc,
-                    world,
-                    world_it,
-                    scale,
-                } = *cmd;
-                // GL writes three uniforms at cached locations; wgpu stages
-                // them under fixed names for the draw path.
-                let _ = (world_loc, world_it_loc, scale_loc);
-                self.named_uniforms
-                    .insert("__inst_world".into(), UniformValue::Mat4(world));
-                self.named_uniforms
-                    .insert("__inst_world_it".into(), UniformValue::Mat4(world_it));
-                self.named_uniforms
-                    .insert("__inst_scale".into(), UniformValue::Float(scale));
-            }
-
             // === Name-based Uniform Operations ===
             RenderCommand::SetUniformIntByName { name, value } => {
                 self.cmd_set_uniform_int_by_name(name, value);
@@ -5386,9 +5387,6 @@ impl WgpuCommandExecutor {
             }
             RenderCommand::SetUniformFloat4ByName { name, value } => {
                 self.cmd_set_uniform_float4_by_name(name, value);
-            }
-            RenderCommand::SetUniformMat4ByGenericName { name, value } => {
-                self.cmd_set_uniform_mat4_by_generic_name(name, value);
             }
             RenderCommand::SetUniformMat4ByName { name, value } => {
                 self.cmd_set_uniform_mat4_by_name(name, value);
@@ -5623,7 +5621,10 @@ impl WgpuCommandExecutor {
             // === Render Passes ===
             RenderCommand::BeginRenderPass(desc) => self.cmd_begin_render_pass(&desc),
             RenderCommand::EndRenderPass => self.cmd_end_render_pass(),
-            RenderCommand::PassCommands(commands) => self.cmd_pass_commands(&commands),
+            // Ring slots need no fence here: `queue.write_buffer` is ordered
+            // before the submission that reads it.
+            RenderCommand::BeginFrame { .. } => {}
+            RenderCommand::PassCommands(mut commands) => self.cmd_pass_commands(&mut commands),
             RenderCommand::CreatePipeline { id, desc } => self.cmd_create_pipeline(id, &desc),
             RenderCommand::CreateSampler { id, desc } => self.cmd_create_sampler(id, &desc),
             RenderCommand::CreateBindGroup {
@@ -5647,15 +5648,6 @@ impl WgpuCommandExecutor {
                 self.draw_mesh_calls_this_frame += 1;
                 self.cmd_draw_mesh(vao, index_count, primitive);
             }
-            RenderCommand::DrawMeshInstanced {
-                vao,
-                index_count,
-                instance_count,
-                primitive,
-            } => {
-                self.draw_instanced_calls_this_frame += 1;
-                self.cmd_draw_mesh_instanced(vao, index_count, instance_count, primitive);
-            }
             RenderCommand::DrawMeshByResource {
                 id,
                 index_count,
@@ -5663,40 +5655,6 @@ impl WgpuCommandExecutor {
             } => {
                 self.draw_mesh_calls_this_frame += 1;
                 self.cmd_draw_mesh_by_resource(id, index_count, primitive);
-            }
-            RenderCommand::DrawMeshInstancedByResource {
-                id,
-                index_count,
-                instance_count,
-                primitive,
-            } => {
-                self.draw_instanced_calls_this_frame += 1;
-                self.cmd_draw_mesh_instanced_by_resource(
-                    id,
-                    index_count,
-                    instance_count,
-                    primitive,
-                );
-            }
-            RenderCommand::DrawInstancedWithData {
-                mesh_id,
-                index_count,
-                instances,
-                primitive,
-            } => {
-                self.draw_instanced_calls_this_frame += 1;
-                self.instanced_data_items_this_frame += instances.len() as u64;
-                self.cmd_draw_instanced_with_data(mesh_id, index_count, instances, primitive);
-            }
-            RenderCommand::DrawInstancedIndices {
-                mesh_id,
-                index_count,
-                indices,
-                primitive,
-            } => {
-                self.draw_instanced_calls_this_frame += 1;
-                self.instanced_data_items_this_frame += indices.len() as u64;
-                self.cmd_draw_instanced_indices(mesh_id, index_count, indices, primitive);
             }
             RenderCommand::DrawImmediate {
                 primitive,
@@ -5768,8 +5726,6 @@ impl WgpuCommandExecutor {
             RenderCommand::DestroyResources { ids } => self.cmd_destroy_resource(&ids),
 
             // === Uniform Buffer Objects ===
-            RenderCommand::CreateMaterialUBO => self.cmd_create_material_ubo(),
-            RenderCommand::UpdateMaterialUBO { data } => self.cmd_update_material_ubo(&data),
             RenderCommand::CreateLightUBO => self.cmd_create_light_ubo(),
             RenderCommand::UpdateLightUBO { data } => self.cmd_update_light_ubo(&data),
 
@@ -6066,7 +6022,9 @@ mod tests {
             uniforms: vec![RingChunk {
                 at,
                 bytes: vec![7u8; 448],
+                skip: 0,
             }],
+            vertices: Vec::new(),
             cmds: vec![PassCmd::SetView {
                 block: at,
                 size: 448,

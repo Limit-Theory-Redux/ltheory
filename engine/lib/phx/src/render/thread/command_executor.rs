@@ -159,12 +159,6 @@ pub struct CommandExecutor {
     /// NOT cleared on shader change - preserves locations across shader switches
     /// Uses Arc<str> as key for O(1) cloning from commands
     pub(super) uniform_caches: HashMap<u32, HashMap<Arc<str>, i32>>,
-    /// Instance buffer for DrawInstancedWithData (reused across frames)
-    pub(super) instance_vbo: u32,
-    /// Capacity of instance buffer in instances
-    pub(super) instance_vbo_capacity: usize,
-    /// Capacity of instance buffer in u32 elements (DrawInstancedIndices)
-    pub(super) instance_vbo_capacity_u32: usize,
     /// Texture binding cache: tracks which texture is bound to each slot
     /// Avoids redundant glBindTexture calls
     pub(super) texture_bindings: [TextureBinding; MAX_TEXTURE_SLOTS],
@@ -173,8 +167,6 @@ pub struct CommandExecutor {
     /// Binding model state: pipelines, samplers, bind groups, GL state cache,
     /// uniform ring buffers.
     pub(super) binding: GlBindingState,
-    /// Material UBO handle (0 if not created yet)
-    pub(super) material_ubo: u32,
     /// Light UBO handle (0 if not created yet)
     pub(super) light_ubo: u32,
 }
@@ -247,13 +239,9 @@ impl CommandExecutor {
             #[cfg(feature = "stats-server")]
             category_timing: _category_timing,
             uniform_caches: HashMap::with_capacity(32), // Pre-allocate for typical shader count
-            instance_vbo: 0,
-            instance_vbo_capacity: 0,
-            instance_vbo_capacity_u32: 0,
             texture_bindings: [TextureBinding::default(); MAX_TEXTURE_SLOTS],
             texture_binds_skipped: 0,
             binding: GlBindingState::new(),
-            material_ubo: 0,
             light_ubo: 0,
         }
     }
@@ -417,12 +405,6 @@ impl CommandExecutor {
                 self.cmd_set_uniform_mat4(location, value);
             }
 
-            RenderCommand::SetInstanceUniforms(cmd) => {
-                self.cmd_set_uniform_mat4(cmd.world_loc, cmd.world);
-                self.cmd_set_uniform_mat4(cmd.world_it_loc, cmd.world_it);
-                self.cmd_set_uniform_float(cmd.scale_loc, cmd.scale);
-            }
-
             // === Name-based Uniform Operations ===
             // These use cached uniform location lookups to avoid repeated GL calls
             // Arc<str> enables O(1) cloning when building the cache key
@@ -460,10 +442,6 @@ impl CommandExecutor {
 
             RenderCommand::SetUniformMat4ByName { name, value } => {
                 self.cmd_set_uniform_mat4_by_name(name, value);
-            }
-
-            RenderCommand::SetUniformMat4ByGenericName { name, value } => {
-                self.cmd_set_uniform_mat4_by_generic_name(name, value);
             }
 
             // === Texture Operations ===
@@ -742,7 +720,9 @@ impl CommandExecutor {
 
             RenderCommand::EndRenderPass => self.cmd_end_render_pass(),
 
-            RenderCommand::PassCommands(commands) => self.cmd_pass_commands(&commands),
+            RenderCommand::BeginFrame { slot } => self.cmd_begin_frame(slot),
+
+            RenderCommand::PassCommands(mut commands) => self.cmd_pass_commands(&mut commands),
 
             // === Binding model objects ===
             RenderCommand::CreatePipeline { id, desc } => self.cmd_create_pipeline(id, &desc),
@@ -770,53 +750,12 @@ impl CommandExecutor {
                 self.cmd_draw_mesh(vao, index_count, primitive);
             }
 
-            RenderCommand::DrawMeshInstanced {
-                vao,
-                index_count,
-                instance_count,
-                primitive,
-            } => {
-                self.cmd_draw_mesh_instanced(vao, index_count, instance_count, primitive);
-            }
-
             RenderCommand::DrawMeshByResource {
                 id,
                 index_count,
                 primitive,
             } => {
                 self.cmd_draw_mesh_by_resource(id, index_count, primitive);
-            }
-
-            RenderCommand::DrawMeshInstancedByResource {
-                id,
-                index_count,
-                instance_count,
-                primitive,
-            } => {
-                self.cmd_draw_mesh_instanced_by_resource(
-                    id,
-                    index_count,
-                    instance_count,
-                    primitive,
-                );
-            }
-
-            RenderCommand::DrawInstancedWithData {
-                mesh_id,
-                index_count,
-                instances,
-                primitive,
-            } => {
-                self.cmd_draw_instanced_with_data(mesh_id, index_count, &instances, primitive);
-            }
-
-            RenderCommand::DrawInstancedIndices {
-                mesh_id,
-                index_count,
-                indices,
-                primitive,
-            } => {
-                self.cmd_draw_instanced_indices(mesh_id, index_count, &indices, primitive);
             }
 
             RenderCommand::BindMeshByResource { id } => self.cmd_bind_mesh_by_resource(id),
@@ -891,8 +830,6 @@ impl CommandExecutor {
             RenderCommand::DestroyResources { ids } => self.cmd_destroy_resource(&ids),
 
             // === Uniform Buffer Objects ===
-            RenderCommand::CreateMaterialUBO => self.cmd_create_material_ubo(),
-            RenderCommand::UpdateMaterialUBO { data } => self.cmd_update_material_ubo(&data),
             RenderCommand::CreateLightUBO => self.cmd_create_light_ubo(),
             RenderCommand::UpdateLightUBO { data } => self.cmd_update_light_ubo(&data),
 

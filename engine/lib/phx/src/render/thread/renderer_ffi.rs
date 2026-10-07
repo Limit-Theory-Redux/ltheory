@@ -3,9 +3,8 @@ use tracing::error;
 
 use crate::math::Matrix;
 use crate::render::{
-    BatchStats, BindGroupDesc, BlendMode, CmdPrimitiveType, CullFace, GpuHandle, InstanceData,
-    LightUboData, MaterialUboData, RenderBatch, RenderPass, RenderPassDesc, Renderer, ResourceId,
-    TexCube,
+    BatchStats, BindGroupDesc, BlendMode, CmdPrimitiveType, CullFace, GpuHandle, LightUboData,
+    RenderBatch, RenderPass, RenderPassDesc, Renderer, TexCube,
 };
 
 // =============================================================================
@@ -23,16 +22,6 @@ use crate::render::{
 impl Renderer {
     // === Frame Management ===
 
-    /// Begin a new frame
-    pub fn begin_frame(&mut self) {
-        self.begin_frame_intern();
-    }
-
-    /// Flush all queued commands to the render thread
-    pub fn flush(&mut self) {
-        self.flush_intern();
-    }
-
     /// Synchronize with the render thread (wait for all commands to complete)
     pub fn sync(&mut self) -> bool {
         self.sync_intern()
@@ -44,38 +33,6 @@ impl Renderer {
         match &mut self.data.active_batch {
             Some(batch) => batch.reset(view, projection, *eye),
             None => self.data.active_batch = Some(RenderBatch::new(view, projection, *eye)),
-        }
-    }
-
-    /// `mesh_id`/`shader_id` are `ResourceId`s as plain scalars - obtain them
-    /// from `Mesh::resource_id`/`Shader::resource_id` (`mesh:resourceId(r)` /
-    /// `shader:resourceId()` in Lua). `user_id` is an opaque caller tag
-    /// echoed back by `cull_batch`.
-    #[allow(clippy::too_many_arguments)]
-    pub fn add_entity(
-        &mut self,
-        transform: &Matrix,
-        bounds_center: &Vec3,
-        bounds_radius: f32,
-        mesh_id: u64,
-        index_count: i32,
-        shader_id: u64,
-        sort_key: u32,
-        user_id: u32,
-    ) {
-        if let Some(batch) = &mut self.data.active_batch {
-            batch.add_entity(
-                transform,
-                *bounds_center,
-                bounds_radius,
-                ResourceId(mesh_id),
-                index_count,
-                ResourceId(shader_id),
-                sort_key,
-                user_id,
-            );
-        } else {
-            error!("There is no active batch started. Use begin_batch() to start it.");
         }
     }
 
@@ -118,10 +75,6 @@ impl Renderer {
             *dst = batch.entities[i as usize].user_id;
         }
         n as u32
-    }
-
-    pub fn flush_batch(&mut self) {
-        self.process_batch();
     }
 
     pub fn get_batch_stats(&self) -> Option<&BatchStats> {
@@ -305,45 +258,6 @@ impl Renderer {
         self.draw_mesh_intern(GpuHandle(vao), index_count, primitive);
     }
 
-    /// Draw instanced mesh
-    pub fn draw_mesh_instanced(&mut self, vao: u32, index_count: i32, instance_count: i32) {
-        self.draw_mesh_instanced_intern(
-            GpuHandle(vao),
-            index_count,
-            instance_count,
-            CmdPrimitiveType::Triangles,
-        );
-    }
-
-    /// Draw instanced with per-instance data (mesh resource id variant).
-    pub fn draw_instanced_with_data(
-        &mut self,
-        mesh_id: u64,
-        index_count: i32,
-        instances: &[InstanceData],
-        primitive: CmdPrimitiveType,
-    ) {
-        self.draw_instanced_with_data_intern(
-            ResourceId(mesh_id),
-            index_count,
-            instances,
-            primitive,
-        );
-    }
-
-    /// Draw instanced with per-instance u32 INDICES into a static data
-    /// texture (texture-fetch instancing, GL 3.3). See
-    /// draw_instanced_indices_intern.
-    pub fn draw_instanced_indices(
-        &mut self,
-        mesh_id: u64,
-        index_count: i32,
-        indices: &[u32],
-        primitive: CmdPrimitiveType,
-    ) {
-        self.draw_instanced_indices_intern(ResourceId(mesh_id), index_count, indices, primitive);
-    }
-
     // === Window Operations ===
 
     /// Signal resize
@@ -379,31 +293,6 @@ impl Renderer {
     /// `pass:setBindGroup(group, id)`.
     pub fn create_bind_group(&mut self, desc: &BindGroupDesc) -> u32 {
         self.create_bind_group_from_desc(desc).0
-    }
-
-    /// Create the material UBO on the render thread
-    pub fn create_material_ubo(&mut self) {
-        self.create_material_ubo_intern();
-    }
-
-    /// Update the material UBO with new material properties
-    pub fn update_material_ubo(
-        &mut self,
-        r: f32,
-        g: f32,
-        b: f32,
-        a: f32,
-        metallic: f32,
-        roughness: f32,
-        emission: f32,
-    ) {
-        let mut data = MaterialUboData::new();
-        data.set_color(r, g, b, a);
-        data.set_metallic(metallic);
-        data.set_roughness(roughness);
-        data.set_emission(emission);
-
-        self.update_material_ubo_intern(*data.as_bytes());
     }
 
     /// Create the light UBO on the render thread

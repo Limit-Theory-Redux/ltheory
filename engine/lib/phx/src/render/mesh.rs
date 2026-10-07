@@ -9,7 +9,7 @@ use super::{DataFormat, Draw, LoadOp, PixelFormat, RenderPassDesc, Tex2D, Tex3D,
 use crate::error::Error;
 use crate::math::{Box3, Matrix, Triangle, validate_vec2, validate_vec3};
 use crate::render::{
-    CmdPrimitiveType, InstanceData, RenderState, Renderer, ResourceHandle, ResourceId, Shader,
+    CmdPrimitiveType, RenderState, Renderer, ResourceHandle, ResourceId, Shader,
     VertexFormat,
 };
 use crate::rf::Rf;
@@ -456,46 +456,6 @@ impl Mesh {
         self.draw_bind(r);
         self.draw_bound(r);
         self.draw_unbind(r);
-    }
-
-    /// Instanced draw with per-instance data (triangles). Ensures the GPU
-    /// resource exists (same lazy path as draw_bind), then submits ONE
-    /// DrawInstancedWithData command. `instances` is a Lua cdata array of
-    /// InstanceData (ffi.new("InstanceData[?]", count)); ffi_gen passes the
-    /// array pointer + element count. The render thread copies the data, so
-    /// the Lua array can be reused/GC'd after the call.
-    pub fn draw_instanced_with_data(&mut self, r: &mut Renderer, instances: &[InstanceData]) {
-        self.draw_bind(r);
-        let this = self.shared.as_ref();
-        let index_count = this.index.len() as i32;
-        if let Some(handle) = &this.handle {
-            r.draw_instanced_with_data(
-                handle.id().0,
-                index_count,
-                instances,
-                CmdPrimitiveType::Triangles,
-            );
-        }
-    }
-
-    /// Texture-fetch instanced draw: per-instance attribute is a u32 INDEX
-    /// into a static data texture (see wvp_instanced_tex). `indices` is a
-    /// Lua cdata array of u32 (ffi.new("uint32_t[?]", count)); the render
-    /// thread copies it, so the Lua array can be reused/GC'd after the call.
-    /// The static data texture must be bound (setTex2D on the shader) before
-    /// this call - the vertex shader texelFetches per instance.
-    pub fn draw_instanced_indices(&mut self, r: &mut Renderer, indices: &[u32]) {
-        self.draw_bind(r);
-        let this = self.shared.as_ref();
-        let index_count = this.index.len() as i32;
-        if let Some(handle) = &this.handle {
-            r.draw_instanced_indices(
-                handle.id().0,
-                index_count,
-                indices,
-                CmdPrimitiveType::Triangles,
-            );
-        }
     }
 
     pub fn draw_normals(&self, r: &mut Renderer, scale: f32) {

@@ -18,7 +18,8 @@ use std::path::{Path, PathBuf};
 
 use super::command_executor_wgpu::WgpuCommandExecutor;
 use crate::render::{
-    BlockLayout, GLSLCode, GlslType, ShaderLayout, TexDim, ViewBlock, blocks_from_naga,
+    BlockLayout, DrawBlock, GLSLCode, GlslType, ShaderLayout, TexDim, ViewBlock,
+    blocks_from_naga,
 };
 
 fn repo_root() -> PathBuf {
@@ -269,6 +270,62 @@ fn view_block_matches_the_rust_struct() {
             .unwrap_or_else(|| panic!("{rel}: no ViewBlock"));
         ViewBlock::check_layout(block).unwrap_or_else(|e| panic!("{rel}: {e}"));
         assert_eq!(layout.block(ViewBlock::NAME).unwrap().binding(), 0);
+    }
+}
+
+#[test]
+fn draw_block_matches_the_rust_struct() {
+    // Every shader that includes `draw_block` declares the same block, as the
+    // first one of group 2 (binding 8, where `SetDraw` binds the ring range).
+    let root = repo_root();
+    let res_shader = root.join("res").join("shader");
+    let mut loader = |name: &str| -> String {
+        let path = res_shader.join(format!("{name}.glsl"));
+        std::fs::read_to_string(&path)
+            .unwrap_or_else(|e| panic!("cannot load include {path:?}: {e}"))
+    };
+    let sources = [
+        (
+            "vertex",
+            wgpu::naga::ShaderStage::Vertex,
+            "#include vertex_scene
+void main() {
+  VS_BEGIN
+  normal = (mWorldIT * vec4(vertex_normal, 0.0)).xyz;
+  pos = (mWorld * vec4(vertex_position, 1.0)).xyz;
+  gl_Position = mProj * (mView * vec4(pos, 1.0)) + drawScale + drawUser[6];
+  VS_END
+}
+",
+        ),
+        (
+            "fragment",
+            wgpu::naga::ShaderStage::Fragment,
+            "#include fragment
+#include draw_block
+void main() {
+  outColor = drawScale + drawUser[6] + mWorldIT[0];
+}
+",
+        ),
+    ];
+    for (label, stage, src) in sources {
+        let pre = GLSLCode::preprocess_with(src, None, &mut loader);
+        let (layout, errors) = ShaderLayout::merge(&[&pre.layout]);
+        assert!(errors.is_empty(), "{label}: {errors:?}");
+        let view =
+            naga_view(&pre.code, stage, &layout).unwrap_or_else(|e| panic!("{label}: {e}"));
+        let block = view
+            .blocks
+            .iter()
+            .find(|b| b.name == DrawBlock::NAME)
+            .unwrap_or_else(|| panic!("{label}: no DrawBlock"));
+        DrawBlock::check_layout(block).unwrap_or_else(|e| panic!("{label}: {e}"));
+        assert_eq!(
+            layout.block(DrawBlock::NAME).unwrap().binding(),
+            8,
+            "{label}"
+        );
     }
 }
 

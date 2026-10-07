@@ -10,6 +10,7 @@
 ---@field LinearRepeat integer 
 ---@field LinearMipClamp integer 
 ---@field LinearMipRepeat integer 
+---@field LinearMipRepeatAniso integer `LinearMipRepeat` with 16x anisotropic filtering: the state the old `Texture` class gave every material texture.
 Samplers = {
     Point = 0,
     PointRepeat = 1,
@@ -17,5 +18,8 @@ Samplers = {
     LinearRepeat = 3,
     LinearMipClamp = 4,
     LinearMipRepeat = 5,
+    -- `LinearMipRepeat` with 16x anisotropic filtering: the state the old
+    -- `Texture` class gave every material texture.
+    LinearMipRepeatAniso = 6,
 }
 

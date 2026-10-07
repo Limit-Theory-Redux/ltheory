@@ -103,28 +103,6 @@ function Mesh:drawUnbind(r) end
 ---@param r Renderer
 function Mesh:draw(r) end
 
--- Instanced draw with per-instance data (triangles). Ensures the GPU
--- resource exists (same lazy path as draw_bind), then submits ONE
--- DrawInstancedWithData command. `instances` is a Lua cdata array of
--- InstanceData (ffi.new("InstanceData[?]", count)); ffi_gen passes the
--- array pointer + element count. The render thread copies the data, so
--- the Lua array can be reused/GC'd after the call.
----@param r Renderer
----@param instances InstanceData[]
----@param instances_size integer
-function Mesh:drawInstancedWithData(r, instances, instances_size) end
-
--- Texture-fetch instanced draw: per-instance attribute is a u32 INDEX
--- into a static data texture (see wvp_instanced_tex). `indices` is a
--- Lua cdata array of u32 (ffi.new("uint32_t[?]", count)); the render
--- thread copies it, so the Lua array can be reused/GC'd after the call.
--- The static data texture must be bound (setTex2D on the shader) before
--- this call - the vertex shader texelFetches per instance.
----@param r Renderer
----@param indices integer[]
----@param indices_size integer
-function Mesh:drawInstancedIndices(r, indices, indices_size) end
-
 ---@param r Renderer
 ---@param scale number
 function Mesh:drawNormals(r, scale) end

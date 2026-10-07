@@ -23,14 +23,15 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Samplers = {
-            Point           = 0,
-            PointRepeat     = 1,
-            LinearClamp     = 2,
-            LinearRepeat    = 3,
-            LinearMipClamp  = 4,
-            LinearMipRepeat = 5,
+            Point                = 0,
+            PointRepeat          = 1,
+            LinearClamp          = 2,
+            LinearRepeat         = 3,
+            LinearMipClamp       = 4,
+            LinearMipRepeat      = 5,
+            LinearMipRepeatAniso = 6,
 
-            ToString        = libphx.Samplers_ToString,
+            ToString             = libphx.Samplers_ToString,
         }
 
         if onDef_Samplers then onDef_Samplers(Samplers, mt) end

@@ -12,10 +12,11 @@ use tracing::{debug, error, warn};
 use super::{AttachKey, GpuResource, MAX_TEXTURE_SLOTS, TextureBinding, TextureType};
 use crate::render::gl;
 use crate::render::{
-    BindEntry, BindGroupId, BlendMode, BlockLayout, BlockMember, CommandCategory, CommandExecutor,
-    CompareFn, CullFace, GROUP_COUNT, GROUP_DRAW, GROUP_FRAME, GROUP_INPUTS, GlslType, MAX_INPUTS,
-    PassCmd, PassCommands, PipelineDesc, PipelineId, PolygonMode, ResourceId, SamplerDesc,
-    SamplerId, Samplers, ShaderLayout, TexView, UNIFORM_ALIGN, ViewDim, block_binding, entry_unit,
+    BindEntry, BindGroupId, BlendMode, BlockLayout, BlockMember, CHUNK_SIZE, CommandCategory,
+    CommandExecutor, CompareFn, CullFace, GROUP_COUNT, GROUP_DRAW, GROUP_FRAME, GROUP_INPUTS,
+    GlslType, InstanceData, MAX_FRAMES_IN_FLIGHT, MAX_INPUTS, PassCmd, PassCommands, PipelineDesc, PipelineId,
+    PolygonMode, ResourceId, ReturnedChunk, RingChunk, SamplerDesc, SamplerId, Samplers,
+    ShaderLayout, TexView, UNIFORM_ALIGN, VERTEX_CHUNK_SIZE, ViewDim, block_binding, entry_unit,
     texture_unit,
 };
 
@@ -66,10 +67,17 @@ pub(super) struct GlBindingState {
     pub current_pipeline: Option<PipelineId>,
     /// Topology of the current pipeline's draws.
     pub topology: u32,
-    /// GL uniform buffers of the ring, per frame slot and chunk index.
+    /// GL uniform buffers of the uniform ring, per frame slot and chunk index.
     pub ring_buffers: Vec<Vec<u32>>,
-    /// Frame (swap count) each ring buffer was last orphaned in.
-    pub ring_epochs: Vec<Vec<u64>>,
+    /// GL array buffers of the vertex ring, per frame slot and chunk index.
+    pub vertex_buffers: Vec<Vec<u32>>,
+    /// Frame slot the executor is in (`BeginFrame`).
+    pub frame_slot: usize,
+    /// Per slot: the fence inserted after the slot's frame, a `GLsync` as an
+    /// integer (0 = none). Waited on before the slot is reused.
+    pub slot_fences: [usize; MAX_FRAMES_IN_FLIGHT],
+    /// Ring memory uploaded and ready to go back to the main thread.
+    pub returned: Vec<ReturnedChunk>,
     pub ubo_bound: [UboBinding; UBO_BINDINGS],
     /// Sampler object bound to each texture unit (0 = none).
     pub unit_samplers: [u32; MAX_TEXTURE_SLOTS],
@@ -89,12 +97,11 @@ impl GlBindingState {
             gl_state: GlStateCache::default(),
             current_pipeline: None,
             topology: gl::TRIANGLES,
-            ring_buffers: (0..crate::render::MAX_FRAMES_IN_FLIGHT)
-                .map(|_| Vec::new())
-                .collect(),
-            ring_epochs: (0..crate::render::MAX_FRAMES_IN_FLIGHT)
-                .map(|_| Vec::new())
-                .collect(),
+            ring_buffers: (0..MAX_FRAMES_IN_FLIGHT).map(|_| Vec::new()).collect(),
+            vertex_buffers: (0..MAX_FRAMES_IN_FLIGHT).map(|_| Vec::new()).collect(),
+            frame_slot: 0,
+            slot_fences: [0; MAX_FRAMES_IN_FLIGHT],
+            returned: Vec::new(),
             ubo_bound: [UboBinding::default(); UBO_BINDINGS],
             unit_samplers: [0; MAX_TEXTURE_SLOTS],
             mip_ranges: HashMap::new(),
@@ -320,45 +327,166 @@ impl CommandExecutor {
         self.binding.current_pipeline = Some(id);
     }
 
+    /// A pass begins: fixed-function state returns to the defaults the legacy
+    /// `RenderState.PushAllDefaults` established (no blend, no culling, no
+    /// depth test, depth writes on, `LEQUAL`, filled polygons), so draws that
+    /// do not set a pipeline see a known state and nothing leaks from the
+    /// previous pass's last pipeline. wgpu passes start from scratch too.
+    pub(super) fn reset_pass_state(&mut self) {
+        let state = &mut self.binding.gl_state;
+        unsafe {
+            if state.blend != Some(BlendMode::Disabled) {
+                apply_blend(BlendMode::Disabled);
+                state.blend = Some(BlendMode::Disabled);
+            }
+            if state.cull != Some(CullFace::None) {
+                apply_cull(CullFace::None);
+                state.cull = Some(CullFace::None);
+            }
+            if state.depth_test != Some(false) {
+                gl::Disable(gl::DEPTH_TEST);
+                state.depth_test = Some(false);
+            }
+            if state.depth_write != Some(true) {
+                gl::DepthMask(gl::TRUE);
+                state.depth_write = Some(true);
+            }
+            if state.depth_func != Some(CompareFn::LessEqual) {
+                gl::DepthFunc(gl::LEQUAL);
+                state.depth_func = Some(CompareFn::LessEqual);
+            }
+            if state.polygon != Some(PolygonMode::Fill) {
+                gl::PolygonMode(gl::FRONT_AND_BACK, gl::FILL);
+                state.polygon = Some(PolygonMode::Fill);
+            }
+        }
+        self.binding.current_pipeline = None;
+    }
+
     // -----------------------------------------------------------------
     // Uniform ring
     // -----------------------------------------------------------------
 
-    fn ring_buffer(&mut self, slot: usize, index: usize) -> u32 {
-        let epoch = self.stats.frame_count + 1;
-        let buffers = &mut self.binding.ring_buffers[slot];
-        let epochs = &mut self.binding.ring_epochs[slot];
+    /// GL buffer of ring chunk `index` in `slot`, created on first use.
+    /// Reuse across frames is safe because `BeginFrame` waits for the slot's
+    /// fence before the slot's chunks are overwritten.
+    fn ring_buffer(&mut self, slot: usize, index: usize, vertex: bool) -> u32 {
+        let (buffers, target, size) = if vertex {
+            (
+                &mut self.binding.vertex_buffers[slot],
+                gl::ARRAY_BUFFER,
+                VERTEX_CHUNK_SIZE,
+            )
+        } else {
+            (
+                &mut self.binding.ring_buffers[slot],
+                gl::UNIFORM_BUFFER,
+                CHUNK_SIZE,
+            )
+        };
         while buffers.len() <= index {
             let mut buffer = 0;
             unsafe {
                 gl::GenBuffers(1, &mut buffer);
-                gl::BindBuffer(gl::UNIFORM_BUFFER, buffer);
-                gl::BufferData(
-                    gl::UNIFORM_BUFFER,
-                    crate::render::CHUNK_SIZE as isize,
-                    std::ptr::null(),
-                    gl::STREAM_DRAW,
-                );
+                gl::BindBuffer(target, buffer);
+                gl::BufferData(target, size as isize, std::ptr::null(), gl::STREAM_DRAW);
             }
             buffers.push(buffer);
-            epochs.push(epoch);
-        }
-        // First use in a frame: orphan the old storage so the driver does not
-        // have to wait for (or copy around) draws of an earlier frame that
-        // still read it.
-        if epochs[index] != epoch {
-            epochs[index] = epoch;
-            unsafe {
-                gl::BindBuffer(gl::UNIFORM_BUFFER, buffers[index]);
-                gl::BufferData(
-                    gl::UNIFORM_BUFFER,
-                    crate::render::CHUNK_SIZE as isize,
-                    std::ptr::null(),
-                    gl::STREAM_DRAW,
-                );
-            }
         }
         buffers[index]
+    }
+
+    /// Upload ring runs into the slot's buffers, then queue their memory for
+    /// return to the main thread.
+    fn upload_ring_chunks(&mut self, slot: usize, chunks: &mut [RingChunk], vertex: bool) {
+        let target = if vertex {
+            gl::ARRAY_BUFFER
+        } else {
+            gl::UNIFORM_BUFFER
+        };
+        for chunk in chunks.iter_mut() {
+            let buffer = self.ring_buffer(slot, chunk.at.buffer as usize, vertex);
+            let data = chunk.data();
+            unsafe {
+                gl::BindBuffer(target, buffer);
+                gl::BufferSubData(
+                    target,
+                    chunk.at.offset as isize,
+                    data.len() as isize,
+                    data.as_ptr() as *const _,
+                );
+            }
+            self.binding.returned.push(ReturnedChunk {
+                vertex,
+                bytes: std::mem::take(&mut chunk.bytes),
+            });
+        }
+        if vertex && !chunks.is_empty() {
+            unsafe {
+                gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+            }
+        }
+    }
+
+    /// Hand back the ring memory uploaded since the last call.
+    pub fn take_returned_chunks(&mut self) -> Vec<ReturnedChunk> {
+        std::mem::take(&mut self.binding.returned)
+    }
+
+    // -----------------------------------------------------------------
+    // Frame slots and fences
+    // -----------------------------------------------------------------
+
+    /// A new frame starts in ring slot `slot`: wait until the GPU has
+    /// finished the frame that last used it (`glClientWaitSync` on the fence
+    /// `SwapBuffers` inserted after that frame's last pass), then reuse the
+    /// slot's ring buffers.
+    pub(super) fn cmd_begin_frame(&mut self, slot: u8) {
+        let _sa = self.record_command(CommandCategory::Sync, false, false);
+        let slot = slot as usize % MAX_FRAMES_IN_FLIGHT;
+        self.binding.frame_slot = slot;
+        if !self.has_gl_context() {
+            return;
+        }
+        let fence = std::mem::take(&mut self.binding.slot_fences[slot]);
+        if fence == 0 {
+            return;
+        }
+        unsafe {
+            let sync = fence as gl::types::GLsync;
+            let mut status = gl::ClientWaitSync(sync, gl::SYNC_FLUSH_COMMANDS_BIT, 0);
+            if status == gl::TIMEOUT_EXPIRED {
+                // The GPU is behind. Wait in slices so a lost context cannot
+                // hang the render thread forever.
+                let started = std::time::Instant::now();
+                while status == gl::TIMEOUT_EXPIRED
+                    && started.elapsed() < std::time::Duration::from_secs(5)
+                {
+                    status = gl::ClientWaitSync(sync, gl::SYNC_FLUSH_COMMANDS_BIT, 1_000_000);
+                }
+                if status == gl::TIMEOUT_EXPIRED {
+                    error!("BeginFrame: slot {slot} fence did not signal within 5 s");
+                }
+            }
+            gl::DeleteSync(sync);
+        }
+    }
+
+    /// Frame end: fence the commands the slot's frame issued. Called by
+    /// `SwapBuffers` just before the swap.
+    pub(super) fn insert_slot_fence(&mut self) {
+        if !self.has_gl_context() {
+            return;
+        }
+        let slot = self.binding.frame_slot;
+        unsafe {
+            let old = std::mem::take(&mut self.binding.slot_fences[slot]);
+            if old != 0 {
+                gl::DeleteSync(old as gl::types::GLsync);
+            }
+            let sync = gl::FenceSync(gl::SYNC_GPU_COMMANDS_COMPLETE, 0);
+            self.binding.slot_fences[slot] = sync as usize;
+        }
     }
 
     fn bind_ubo_range(&mut self, binding: u32, buffer: u32, offset: u32, size: u32) {
@@ -491,27 +619,27 @@ impl CommandExecutor {
     // Pass commands
     // -----------------------------------------------------------------
 
-    pub(super) fn cmd_pass_commands(&mut self, commands: &PassCommands) {
+    pub(super) fn cmd_pass_commands(&mut self, commands: &mut PassCommands) {
         let _sa = self.record_command(CommandCategory::Draw, false, false);
         if !self.has_gl_context() {
+            // Nothing to upload to, but the memory still goes back.
+            for (chunks, vertex) in [(&mut commands.uniforms, false), (&mut commands.vertices, true)]
+            {
+                for chunk in chunks.iter_mut() {
+                    self.binding.returned.push(ReturnedChunk {
+                        vertex,
+                        bytes: std::mem::take(&mut chunk.bytes),
+                    });
+                }
+            }
             return;
         }
-        let slot = commands.slot as usize % self.binding.ring_buffers.len();
+        let slot = commands.slot as usize % MAX_FRAMES_IN_FLIGHT;
         check_gl(&"commands before this PassCommands");
 
         // Uploads first: everything the commands reference is in these.
-        for chunk in &commands.uniforms {
-            let buffer = self.ring_buffer(slot, chunk.at.buffer as usize);
-            unsafe {
-                gl::BindBuffer(gl::UNIFORM_BUFFER, buffer);
-                gl::BufferSubData(
-                    gl::UNIFORM_BUFFER,
-                    chunk.at.offset as isize,
-                    chunk.bytes.len() as isize,
-                    chunk.bytes.as_ptr() as *const _,
-                );
-            }
-        }
+        self.upload_ring_chunks(slot, &mut commands.uniforms, false);
+        self.upload_ring_chunks(slot, &mut commands.vertices, true);
 
         check_gl(&"ring upload");
         for cmd in &commands.cmds {
@@ -542,7 +670,7 @@ impl CommandExecutor {
                     }
                 }
                 PassCmd::SetView { block, size } => {
-                    let buffer = self.ring_buffer(slot, block.buffer as usize);
+                    let buffer = self.ring_buffer(slot, block.buffer as usize, false);
                     self.bind_ubo_range(VIEW_BINDING, buffer, block.offset, *size);
                 }
                 PassCmd::SetEnvironment { env_map, ir_map } => {
@@ -558,7 +686,7 @@ impl CommandExecutor {
                     }
                 }
                 PassCmd::SetDraw { at, size } => {
-                    let buffer = self.ring_buffer(slot, at.buffer as usize);
+                    let buffer = self.ring_buffer(slot, at.buffer as usize, false);
                     self.bind_ubo_range(DRAW_BINDING, buffer, at.offset, *size);
                 }
                 PassCmd::SetInputs(inputs) => {
@@ -612,6 +740,127 @@ impl CommandExecutor {
                     }
                     self.this_frame_stats.draw_immediate_calls += 1;
                     self.this_frame_stats.vertices_drawn += 4;
+                    #[cfg(feature = "stats-server")]
+                    self.count_draw();
+                }
+                PassCmd::DrawMeshInstanced {
+                    mesh,
+                    index_count,
+                    instances,
+                    count,
+                } => {
+                    let Some(GpuResource::Mesh { vao, .. }) = self.resources.get(mesh) else {
+                        warn!("DrawMeshInstanced: mesh {mesh:?} not found");
+                        return;
+                    };
+                    let vao = *vao;
+                    let buffer = self.ring_buffer(slot, instances.buffer as usize, true);
+                    let base = instances.offset as usize;
+                    // `InstanceData`: model matrix (4 columns, locations 4..7),
+                    // color (8), scale (9); see `include/instanced.glsl`.
+                    let stride = std::mem::size_of::<InstanceData>() as i32;
+                    unsafe {
+                        gl::BindVertexArray(vao);
+                        gl::BindBuffer(gl::ARRAY_BUFFER, buffer);
+                        for col in 0..4u32 {
+                            let attrib = 4 + col;
+                            gl::EnableVertexAttribArray(attrib);
+                            gl::VertexAttribPointer(
+                                attrib,
+                                4,
+                                gl::FLOAT,
+                                gl::FALSE,
+                                stride,
+                                (base + col as usize * 16) as *const _,
+                            );
+                            gl::VertexAttribDivisor(attrib, 1);
+                        }
+                        gl::EnableVertexAttribArray(8);
+                        gl::VertexAttribPointer(
+                            8,
+                            4,
+                            gl::FLOAT,
+                            gl::FALSE,
+                            stride,
+                            (base + 64) as *const _,
+                        );
+                        gl::VertexAttribDivisor(8, 1);
+                        gl::EnableVertexAttribArray(9);
+                        gl::VertexAttribPointer(
+                            9,
+                            1,
+                            gl::FLOAT,
+                            gl::FALSE,
+                            stride,
+                            (base + 80) as *const _,
+                        );
+                        gl::VertexAttribDivisor(9, 1);
+                        gl::DrawElementsInstanced(
+                            self.binding.topology,
+                            *index_count as i32,
+                            gl::UNSIGNED_INT,
+                            std::ptr::null(),
+                            *count as i32,
+                        );
+                        for attrib in 4..=9 {
+                            gl::VertexAttribDivisor(attrib, 0);
+                            gl::DisableVertexAttribArray(attrib);
+                        }
+                        gl::BindVertexArray(0);
+                        gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+                    }
+                    self.this_frame_stats.draw_instanced_calls += 1;
+                    self.this_frame_stats.instanced_data_items += *count as u64;
+                    self.this_frame_stats.vertices_drawn +=
+                        *index_count as u64 * *count as u64;
+                    #[cfg(feature = "stats-server")]
+                    self.count_draw();
+                }
+                PassCmd::DrawInstancedIndices {
+                    mesh,
+                    index_count,
+                    indices,
+                    count,
+                } => {
+                    let Some(GpuResource::Mesh { vao, .. }) = self.resources.get(mesh) else {
+                        warn!("DrawInstancedIndices: mesh {mesh:?} not found");
+                        return;
+                    };
+                    let vao = *vao;
+                    let buffer = self.ring_buffer(slot, indices.buffer as usize, true);
+                    // Attribute 10: instance index (uint, divisor 1). Must use
+                    // VertexAttribIPointer for integer attributes: the float
+                    // path converts bits to floats and the shader's `in uint`
+                    // reads garbage.
+                    const ATTRIB: u32 = 10;
+                    unsafe {
+                        gl::BindVertexArray(vao);
+                        gl::BindBuffer(gl::ARRAY_BUFFER, buffer);
+                        gl::EnableVertexAttribArray(ATTRIB);
+                        gl::VertexAttribIPointer(
+                            ATTRIB,
+                            1,
+                            gl::UNSIGNED_INT,
+                            0,
+                            indices.offset as usize as *const _,
+                        );
+                        gl::VertexAttribDivisor(ATTRIB, 1);
+                        gl::DrawElementsInstanced(
+                            self.binding.topology,
+                            *index_count as i32,
+                            gl::UNSIGNED_INT,
+                            std::ptr::null(),
+                            *count as i32,
+                        );
+                        gl::VertexAttribDivisor(ATTRIB, 0);
+                        gl::DisableVertexAttribArray(ATTRIB);
+                        gl::BindVertexArray(0);
+                        gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+                    }
+                    self.this_frame_stats.draw_instanced_calls += 1;
+                    self.this_frame_stats.instanced_data_items += *count as u64;
+                    self.this_frame_stats.vertices_drawn +=
+                        *index_count as u64 * *count as u64;
                     #[cfg(feature = "stats-server")]
                     self.count_draw();
                 }

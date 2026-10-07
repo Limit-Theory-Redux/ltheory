@@ -6,8 +6,8 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use glam::{ivec2, ivec3, ivec4, vec2, vec3, vec4};
 
 use super::{
-    BlockLayout, GROUP_COUNT, ShaderLayout, ShaderState, ShaderVarData, StageLayout, Tex1D, Tex2D,
-    Tex3D, TexCube, TexDim, ViewBlock, gl,
+    BlockLayout, DrawBlock, GROUP_COUNT, ShaderLayout, ShaderState, ShaderVarData, StageLayout,
+    Tex1D, Tex2D, Tex3D, TexCube, TexDim, ViewBlock, gl,
 };
 use crate::logging::{info, warn};
 use crate::math::Matrix;
@@ -633,56 +633,6 @@ impl Shader {
         self.index_set_uniform(r, index, ShaderVarData::Matrix(value.transpose()));
     }
 
-    /// Batched per-instance uniforms: mWorld, mWorldIT and scale in a single
-    /// command instead of three separate SetUniform* commands. The instance
-    /// values are unique per mesh (no dedup win), so the three GL uniform
-    /// calls are batched on the render thread and the producer pays one
-    /// command + one FFI crossing instead of three of each.
-    #[bind(name = "ISetInstanceUniforms")]
-    pub fn index_set_instance_uniforms(
-        &mut self,
-        r: &mut Renderer,
-        world_index: i32,
-        world_it_index: i32,
-        scale_index: i32,
-        world: &Matrix,
-        world_it: &Matrix,
-        scale: f32,
-    ) {
-        // Per-instance uniforms are unique per mesh (each entity has its
-        // own mWorld/mWorldIT/scale), so the last_uniform_values dedup
-        // cache cannot help here - it would clone 2 matrices + do 2
-        // HashMap inserts per mesh for values that never match a previous
-        // one. Skip the cache entirely and send the batched command
-        // directly; the render thread clones into the command once.
-        let mut shared = self.shared.as_mut();
-        if !shared.is_bound {
-            // Not bound: queue as three pending ops so the values are applied
-            // on the next start() (same semantics as index_set_uniform).
-            shared.pending_uniforms.push(SetUniformOp {
-                index: world_index,
-                data: ShaderVarData::Matrix(world.clone()),
-            });
-            shared.pending_uniforms.push(SetUniformOp {
-                index: world_it_index,
-                data: ShaderVarData::Matrix(world_it.clone()),
-            });
-            shared.pending_uniforms.push(SetUniformOp {
-                index: scale_index,
-                data: ShaderVarData::Float(scale),
-            });
-            return;
-        }
-        r.set_instance_uniforms(
-            world_index,
-            world_it_index,
-            scale_index,
-            world.to_cols_array(),
-            world_it.to_cols_array(),
-            scale,
-        );
-    }
-
     pub fn set_tex1d(&mut self, r: &mut Renderer, name: &str, value: &mut Tex1D) {
         self.set_uniform(r, name, ShaderVarData::Tex1D(value.clone()));
     }
@@ -809,8 +759,12 @@ fn create_shader_blocking(
 /// GPU garbage.
 fn check_fixed_blocks(shader_name: &str, blocks: &[BlockLayout]) {
     for block in blocks {
-        if block.name == "ViewBlock" {
+        if block.name == ViewBlock::NAME {
             if let Err(e) = ViewBlock::check_layout(block) {
+                panic!("Shader '{shader_name}': {e}");
+            }
+        } else if block.name == DrawBlock::NAME {
+            if let Err(e) = DrawBlock::check_layout(block) {
                 panic!("Shader '{shader_name}': {e}");
             }
         }

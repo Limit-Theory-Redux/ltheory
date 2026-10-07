@@ -5,58 +5,9 @@
 
 use crate::render::{gl, glcheck};
 
-/// Binding points of the legacy standard UBOs (group 0 of the new binding
-/// model owns 0..3; the per-pass `ViewBlock` is binding 0). The material and
-/// light UBOs go away in S4/S5.
-pub const MATERIAL_UBO_BINDING: u32 = 1;
+/// Binding point of the legacy light UBO (group 0 of the new binding
+/// model owns 0..3; the per-pass `ViewBlock` is binding 0). It goes away in S5.
 pub const LIGHT_UBO_BINDING: u32 = 2;
-
-/// Material uniform buffer data with std140 layout.
-///
-/// Packs common per-draw material properties to reduce uniform calls.
-/// 32 bytes total (2x vec4).
-#[repr(C, align(16))]
-#[derive(Clone, Copy, Debug, Default)]
-pub struct MaterialUboData {
-    /// Base color (RGBA)
-    pub color: [f32; 4], // 16 bytes
-    /// Material parameters: x=metallic, y=roughness, z=emission, w=padding
-    pub params: [f32; 4], // 16 bytes
-}
-
-impl MaterialUboData {
-    pub const SIZE: usize = std::mem::size_of::<Self>();
-
-    pub fn new() -> Self {
-        Self {
-            color: [1.0, 1.0, 1.0, 1.0],
-            params: [0.0, 0.5, 0.0, 0.0], // Default: non-metallic, medium roughness
-        }
-    }
-
-    pub fn set_color(&mut self, r: f32, g: f32, b: f32, a: f32) {
-        self.color = [r, g, b, a];
-    }
-
-    pub fn set_metallic(&mut self, metallic: f32) {
-        self.params[0] = metallic;
-    }
-
-    pub fn set_roughness(&mut self, roughness: f32) {
-        self.params[1] = roughness;
-    }
-
-    pub fn set_emission(&mut self, emission: f32) {
-        self.params[2] = emission;
-    }
-
-    /// Convert to bytes for GPU upload
-    #[allow(unsafe_code)]
-    pub fn as_bytes(&self) -> &[u8; Self::SIZE] {
-        // SAFETY: MaterialUboData is repr(C) with known size, all fields are POD
-        unsafe { &*(self as *const Self as *const [u8; Self::SIZE]) }
-    }
-}
 
 /// Light uniform buffer data with std140 layout.
 ///

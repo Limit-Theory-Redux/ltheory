@@ -132,16 +132,20 @@ pub enum Samplers {
     LinearRepeat,
     LinearMipClamp,
     LinearMipRepeat,
+    /// `LinearMipRepeat` with 16x anisotropic filtering: the state the old
+    /// `Texture` class gave every material texture.
+    LinearMipRepeatAniso,
 }
 
 impl Samplers {
-    pub const ALL: [Samplers; 6] = [
+    pub const ALL: [Samplers; 7] = [
         Samplers::Point,
         Samplers::PointRepeat,
         Samplers::LinearClamp,
         Samplers::LinearRepeat,
         Samplers::LinearMipClamp,
         Samplers::LinearMipRepeat,
+        Samplers::LinearMipRepeatAniso,
     ];
 
     pub fn desc(self) -> SamplerDesc {
@@ -155,6 +159,10 @@ impl Samplers {
             Samplers::LinearRepeat => SamplerDesc::new(F::Linear, M::None, W::Repeat),
             Samplers::LinearMipClamp => SamplerDesc::new(F::Linear, M::Linear, W::Clamp),
             Samplers::LinearMipRepeat => SamplerDesc::new(F::Linear, M::Linear, W::Repeat),
+            Samplers::LinearMipRepeatAniso => SamplerDesc {
+                anisotropy: 16,
+                ..SamplerDesc::new(F::Linear, M::Linear, W::Repeat)
+            },
         }
     }
 

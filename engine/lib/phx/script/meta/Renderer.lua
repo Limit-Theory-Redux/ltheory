@@ -4,12 +4,6 @@
 ---@class Renderer
 Renderer = {}
 
--- Begin a new frame
-function Renderer:beginFrame() end
-
--- Flush all queued commands to the render thread
-function Renderer:flush() end
-
 -- Synchronize with the render thread (wait for all commands to complete)
 ---@return boolean
 function Renderer:sync() end
@@ -18,20 +12,6 @@ function Renderer:sync() end
 ---@param projection Matrix
 ---@param eye Vec3f
 function Renderer:beginBatch(view, projection, eye) end
-
--- `mesh_id`/`shader_id` are `ResourceId`s as plain scalars - obtain them
--- from `Mesh::resource_id`/`Shader::resource_id` (`mesh:resourceId(r)` /
--- `shader:resourceId()` in Lua). `user_id` is an opaque caller tag
--- echoed back by `cull_batch`.
----@param transform Matrix
----@param boundsCenter Vec3f
----@param boundsRadius number
----@param meshId integer
----@param indexCount integer
----@param shaderId integer
----@param sortKey integer
----@param userId integer
-function Renderer:addEntity(transform, boundsCenter, boundsRadius, meshId, indexCount, shaderId, sortKey, userId) end
 
 -- Add a cull-only entity to the active batch: bounds + sort key, no
 -- mesh/shader to draw. For callers that want frustum culling and sort
@@ -55,8 +35,6 @@ function Renderer:addCullEntity(boundsCenter, boundsRadius, sortKey, userId) end
 ---@param outIndices_size integer
 ---@return integer
 function Renderer:cullBatch(outIndices, outIndices_size) end
-
-function Renderer:flushBatch() end
 
 ---@return BatchStats?
 function Renderer:getBatchStats() end
@@ -212,30 +190,6 @@ function Renderer:drawMesh(vao, indexCount) end
 ---@param primitive CmdPrimitiveType
 function Renderer:drawMeshPrimitive(vao, indexCount, primitive) end
 
--- Draw instanced mesh
----@param vao integer
----@param indexCount integer
----@param instanceCount integer
-function Renderer:drawMeshInstanced(vao, indexCount, instanceCount) end
-
--- Draw instanced with per-instance data (mesh resource id variant).
----@param meshId integer
----@param indexCount integer
----@param instances InstanceData[]
----@param instances_size integer
----@param primitive CmdPrimitiveType
-function Renderer:drawInstancedWithData(meshId, indexCount, instances, instances_size, primitive) end
-
--- Draw instanced with per-instance u32 INDICES into a static data
--- texture (texture-fetch instancing, GL 3.3). See
--- draw_instanced_indices_intern.
----@param meshId integer
----@param indexCount integer
----@param indices integer[]
----@param indices_size integer
----@param primitive CmdPrimitiveType
-function Renderer:drawInstancedIndices(meshId, indexCount, indices, indices_size, primitive) end
-
 -- Signal resize
 ---@param width integer
 ---@param height integer
@@ -265,19 +219,6 @@ function Renderer:setEnvironment(envMap, irMap) end
 ---@param desc BindGroupDesc
 ---@return integer
 function Renderer:createBindGroup(desc) end
-
--- Create the material UBO on the render thread
-function Renderer:createMaterialUbo() end
-
--- Update the material UBO with new material properties
----@param r number
----@param g number
----@param b number
----@param a number
----@param metallic number
----@param roughness number
----@param emission number
-function Renderer:updateMaterialUbo(r, g, b, a, metallic, roughness, emission) end
 
 -- Create the light UBO on the render thread
 function Renderer:createLightUbo() end

@@ -2,9 +2,9 @@ use crossbeam::channel::{Receiver, Sender};
 
 use crate::render::{
     CameraState, ClipManager, DrawState, Environment, PassEncoder, PassState, PipelineCache,
-    PrimitiveBuilder, RenderBatch, RenderCommand, RenderStateIntern, ResourceId, RingOffset,
-    SamplerCache, ScissorUpdate, Shader, ShaderErrorQueue, ShaderWatcherInner, UniformRing,
-    ViewBlock,
+    PrimitiveBuilder, RenderBatch, RenderStateIntern, ResourceId, ReturnedChunk,
+    RingOffset, SamplerCache, ScissorUpdate, Shader, ShaderErrorQueue, ShaderWatcherInner,
+    UniformRing, VertexRing, ViewBlock,
 };
 
 pub struct RendererData {
@@ -17,8 +17,6 @@ pub struct RendererData {
     /// Consumer end, owned solely by this `Renderer` and drained once per
     /// frame in `end_frame_triple_buffered`.
     pub destroy_rx: Receiver<ResourceId>,
-    /// Command buffer used by the batch API (`begin_batch`/`flush_batch`)
-    pub command_buffer: Vec<RenderCommand>,
     /// Active render batch
     pub active_batch: Option<RenderBatch>,
     /// The open render pass (one at a time) and the size of the last target.
@@ -27,6 +25,8 @@ pub struct RendererData {
     pub encoder: PassEncoder,
     /// Uniform staging for per-pass and per-draw blocks.
     pub ring: UniformRing,
+    /// Staging for instance data and instanced index lists.
+    pub vertex_ring: VertexRing,
     /// Frames ended so far; selects the ring slot.
     pub frame_index: u64,
     /// Pipeline hash cache.
@@ -66,16 +66,25 @@ pub struct RendererData {
 }
 
 impl RendererData {
+    /// Ring memory the executor finished uploading: back into its pool.
+    pub fn recycle_chunk(&mut self, chunk: ReturnedChunk) {
+        if chunk.vertex {
+            self.vertex_ring.recycle(chunk.bytes);
+        } else {
+            self.ring.recycle(chunk.bytes);
+        }
+    }
+
     pub fn new(destroy_tx: Sender<ResourceId>, destroy_rx: Receiver<ResourceId>) -> Self {
         Self {
             next_resource_id: 1,
             destroy_tx,
             destroy_rx,
-            command_buffer: vec![],
             active_batch: None,
             pass: PassState::default(),
             encoder: PassEncoder::new(),
             ring: UniformRing::new(),
+            vertex_ring: VertexRing::new(),
             frame_index: 0,
             pipelines: PipelineCache::new(),
             samplers: SamplerCache::new(),

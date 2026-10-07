@@ -8,7 +8,6 @@ mod command_executor_wgpu;
 mod config;
 mod entity_render_data;
 mod error;
-mod instance_batch;
 mod instance_data;
 #[cfg(test)]
 mod layout_parity;
@@ -45,7 +44,6 @@ pub use command_executor::*;
 pub use config::*;
 pub use entity_render_data::*;
 pub use error::*;
-pub use instance_batch::*;
 pub use instance_data::*;
 pub use render_batch::*;
 pub use render_command::*;

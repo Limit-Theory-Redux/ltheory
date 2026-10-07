@@ -6,7 +6,7 @@ use tracing::{debug, error, info, warn};
 
 use crate::render::thread::command_executor_wgpu::WgpuCommandExecutor;
 use crate::render::thread::{CommandExecutor, CommandReply};
-use crate::render::{RenderCommand, RenderStats, ShaderReloadResult};
+use crate::render::{RenderCommand, RenderStats, ReturnedChunk, ShaderReloadResult};
 use crate::window::{WgpuStartupBundle, WindowActiveGlContext, WindowGlContext};
 
 /// Drives a [`CommandExecutor`] on a dedicated thread.
@@ -29,6 +29,8 @@ pub struct RenderThread {
     context_tx: Sender<Option<WindowGlContext>>,
     /// Channel to publish a stats snapshot to the main thread on every frame
     stats_tx: Sender<RenderStats>,
+    /// Channel returning uploaded ring memory to the main thread
+    chunk_return_tx: Sender<ReturnedChunk>,
     running: Arc<AtomicBool>,
     /// Executes commands in thread
     executor: CommandExecutor,
@@ -46,6 +48,7 @@ impl RenderThread {
         shader_result_tx: Sender<ShaderReloadResult>,
         context_tx: Sender<Option<WindowGlContext>>,
         stats_tx: Sender<RenderStats>,
+        chunk_return_tx: Sender<ReturnedChunk>,
         running: Arc<AtomicBool>,
         gl_context: Option<WindowActiveGlContext>,
         category_timing: Arc<AtomicBool>,
@@ -57,6 +60,7 @@ impl RenderThread {
             shader_result_tx,
             context_tx,
             stats_tx,
+            chunk_return_tx,
             running,
             executor: CommandExecutor::new_with_timing(gl_context, category_timing),
             wgpu_executor: None,
@@ -73,6 +77,7 @@ impl RenderThread {
         shader_result_tx: Sender<ShaderReloadResult>,
         context_tx: Sender<Option<WindowGlContext>>,
         stats_tx: Sender<RenderStats>,
+        chunk_return_tx: Sender<ReturnedChunk>,
         running: Arc<AtomicBool>,
         bundle: WgpuStartupBundle,
         category_timing: Arc<AtomicBool>,
@@ -88,6 +93,7 @@ impl RenderThread {
             shader_result_tx,
             context_tx,
             stats_tx,
+            chunk_return_tx,
             running,
             executor: CommandExecutor::new_with_timing(None, category_timing),
             wgpu_executor: Some(executor),
@@ -144,6 +150,13 @@ impl RenderThread {
                         self.executor.execute(cmd)
                     };
                     self.dispatch(reply);
+                    // Ring memory the command finished uploading goes back to
+                    // the main thread for reuse.
+                    if self.wgpu_executor.is_none() {
+                        for chunk in self.executor.take_returned_chunks() {
+                            let _ = self.chunk_return_tx.send(chunk);
+                        }
+                    }
                 }
                 Err(_) => {
                     debug!("Command channel closed, render thread exiting");

@@ -7,6 +7,7 @@
 #include fog
 
 
+#group 1
 uniform sampler2D texDiffuse;
 
 in float vertScale;

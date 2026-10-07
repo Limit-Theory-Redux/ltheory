@@ -4,7 +4,7 @@ use glam::{IVec2, Vec3};
 
 use super::{PASS_FLUSH_LIMIT, PassCmd, PassCommands, PipelineId, SamplerId, TexView, ViewBlock};
 use crate::math::Matrix;
-use crate::render::{Mesh, Renderer, ScissorUpdate};
+use crate::render::{InstanceData, Mesh, Renderer, ScissorUpdate};
 use crate::system::{Metric, Profiler};
 
 pub const MAX_COLOR_ATTACHMENTS: usize = 4;
@@ -270,6 +270,64 @@ impl RenderPass {
         });
     }
 
+    /// Instanced draw of `mesh`: one instance per `InstanceData` (model matrix,
+    /// color, scale, as vertex attributes 4..9; see `instanced.glsl`). The data
+    /// is copied into the vertex ring, so the Lua array can be reused at once.
+    pub fn draw_mesh_instanced(
+        &self,
+        r: &mut Renderer,
+        mesh: &mut Mesh,
+        instances: &[InstanceData],
+    ) {
+        r.pass_require_open("drawMeshInstanced");
+        if instances.is_empty() {
+            return;
+        }
+        let (mesh, index_count) = mesh.resource_and_index_count(r);
+        #[allow(unsafe_code)]
+        // SAFETY: `InstanceData` is repr(C) plain floats without padding.
+        let bytes = unsafe {
+            std::slice::from_raw_parts(
+                instances.as_ptr() as *const u8,
+                std::mem::size_of_val(instances),
+            )
+        };
+        let at = r.data.vertex_ring.alloc_copy(bytes);
+        r.pass_draw(PassCmd::DrawMeshInstanced {
+            mesh,
+            index_count,
+            instances: at,
+            count: instances.len() as u32,
+        });
+    }
+
+    /// Texture-fetch instancing: one instance per index, a `uint` attribute
+    /// (location 10) that the vertex shader uses to `texelFetch` the instance
+    /// transform from a static data texture (see `wvp_instanced_tex.glsl`).
+    /// The indices are copied into the vertex ring (4 bytes per instance).
+    pub fn draw_instanced_indices(&self, r: &mut Renderer, mesh: &mut Mesh, indices: &[u32]) {
+        r.pass_require_open("drawInstancedIndices");
+        if indices.is_empty() {
+            return;
+        }
+        let (mesh, index_count) = mesh.resource_and_index_count(r);
+        #[allow(unsafe_code)]
+        // SAFETY: plain `u32`s viewed as bytes.
+        let bytes = unsafe {
+            std::slice::from_raw_parts(
+                indices.as_ptr() as *const u8,
+                std::mem::size_of_val(indices),
+            )
+        };
+        let at = r.data.vertex_ring.alloc_copy(bytes);
+        r.pass_draw(PassCmd::DrawInstancedIndices {
+            mesh,
+            index_count,
+            indices: at,
+            count: indices.len() as u32,
+        });
+    }
+
     /// Draw the built-in unit quad (pipeline vertex layout `Fullscreen`),
     /// scaled to the viewport by the vertex shader.
     pub fn draw_fullscreen(&self, r: &mut Renderer) {
@@ -427,15 +485,23 @@ impl Renderer {
     /// Send everything recorded so far, plus the uniform bytes it
     /// references, to the executor.
     pub(crate) fn flush_pass_encoder(&mut self) {
-        if self.data.encoder.is_empty() && !self.data.ring.has_pending() {
+        if self.data.encoder.is_empty()
+            && !self.data.ring.has_pending()
+            && !self.data.vertex_ring.has_pending()
+        {
             return;
         }
+        // Ring memory the executor finished with comes back before the next
+        // chunk is needed.
+        self.reclaim_chunks();
         let uniforms = self.data.ring.take_pending();
+        let vertices = self.data.vertex_ring.take_pending();
         let cmds = self.data.encoder.take();
         let slot = self.data.ring.slot();
         self.send_pass_commands(Box::new(PassCommands {
             slot,
             uniforms,
+            vertices,
             cmds,
         }));
     }
@@ -562,5 +628,6 @@ impl Renderer {
         self.data.frame_index += 1;
         let frame = self.data.frame_index;
         self.data.ring.begin_frame(frame);
+        self.data.vertex_ring.begin_frame(frame);
     }
 }

@@ -38,6 +38,25 @@ function RenderPass:setBindGroup(r, group, bindGroup) end
 ---@param mesh Mesh
 function RenderPass:drawMesh(r, mesh) end
 
+-- Instanced draw of `mesh`: one instance per `InstanceData` (model matrix,
+-- color, scale, as vertex attributes 4..9; see `instanced.glsl`). The data
+-- is copied into the vertex ring, so the Lua array can be reused at once.
+---@param r Renderer
+---@param mesh Mesh
+---@param instances InstanceData[]
+---@param instances_size integer
+function RenderPass:drawMeshInstanced(r, mesh, instances, instances_size) end
+
+-- Texture-fetch instancing: one instance per index, a `uint` attribute
+-- (location 10) that the vertex shader uses to `texelFetch` the instance
+-- transform from a static data texture (see `wvp_instanced_tex.glsl`).
+-- The indices are copied into the vertex ring (4 bytes per instance).
+---@param r Renderer
+---@param mesh Mesh
+---@param indices integer[]
+---@param indices_size integer
+function RenderPass:drawInstancedIndices(r, mesh, indices, indices_size) end
+
 -- Draw the built-in unit quad (pipeline vertex layout `Fullscreen`),
 -- scaled to the viewport by the vertex shader.
 ---@param r Renderer

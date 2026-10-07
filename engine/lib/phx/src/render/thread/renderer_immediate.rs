@@ -9,7 +9,7 @@ use crate::render::StatsSink;
 use crate::render::thread::{CommandExecutor, CommandReply, RendererData};
 use crate::render::{
     BindEntry, BindGroupId, BlendMode, BlockLayout, CmdPrimitiveType, CullFace, GpuHandle,
-    ImmVertex, InstanceData, PassCommands, PipelineDesc, PipelineId, RenderPassDesc, RenderStats,
+    ImmVertex, PassCommands, PipelineDesc, PipelineId, RenderPassDesc, RenderStats,
     RenderThreadError, ResourceId, SamplerCache, SamplerDesc, SamplerId, ShaderLayout,
     ShaderReloadResult, TexFilter, TexFormat, TexWrapMode, VertexFormat,
 };
@@ -93,19 +93,6 @@ impl Renderer {
 // === State Management ===
 
 impl Renderer {
-    /// Begin a new frame
-    pub(super) fn begin_frame_intern(&mut self) {
-        self.data.command_buffer.clear();
-    }
-
-    /// Run every buffered command (from the batch API) inline.
-    pub(super) fn flush_intern(&mut self) {
-        self.flush_pass_encoder();
-        for cmd in self.data.command_buffer.drain(..) {
-            self.executor.execute(cmd);
-        }
-    }
-
     /// Immediate mode has nothing to wait for: by the time `submit` returns,
     /// the command has already executed.
     pub(super) fn sync_intern(&mut self) -> bool {
@@ -200,20 +187,6 @@ impl Renderer {
 
     pub fn set_uniform_mat4(&mut self, location: i32, value: [f32; 16]) {
         self.ex().cmd_set_uniform_mat4(location, value);
-    }
-
-    pub fn set_instance_uniforms(
-        &mut self,
-        world_loc: i32,
-        world_it_loc: i32,
-        scale_loc: i32,
-        world: [f32; 16],
-        world_it: [f32; 16],
-        scale: f32,
-    ) {
-        self.ex().cmd_set_uniform_mat4(world_loc, world);
-        self.ex().cmd_set_uniform_mat4(world_it_loc, world_it);
-        self.ex().cmd_set_uniform_float(scale_loc, scale);
     }
 
     // === Texture Operations ===
@@ -464,17 +437,6 @@ impl Renderer {
         self.ex().cmd_draw_mesh(vao, index_count, primitive);
     }
 
-    pub fn draw_mesh_instanced_intern(
-        &mut self,
-        vao: GpuHandle,
-        index_count: i32,
-        instance_count: i32,
-        primitive: CmdPrimitiveType,
-    ) {
-        self.ex()
-            .cmd_draw_mesh_instanced(vao, index_count, instance_count, primitive);
-    }
-
     pub fn draw_mesh_by_resource(
         &mut self,
         id: ResourceId,
@@ -483,28 +445,6 @@ impl Renderer {
     ) {
         self.ex()
             .cmd_draw_mesh_by_resource(id, index_count, primitive);
-    }
-
-    pub fn draw_instanced_with_data_intern(
-        &mut self,
-        mesh_id: ResourceId,
-        index_count: i32,
-        instances: &[InstanceData],
-        primitive: CmdPrimitiveType,
-    ) {
-        self.ex()
-            .cmd_draw_instanced_with_data(mesh_id, index_count, instances, primitive);
-    }
-
-    pub fn draw_instanced_indices_intern(
-        &mut self,
-        mesh_id: ResourceId,
-        index_count: i32,
-        indices: &[u32],
-        primitive: CmdPrimitiveType,
-    ) {
-        self.ex()
-            .cmd_draw_instanced_indices(mesh_id, index_count, indices, primitive);
     }
 
     pub fn draw_immediate(&mut self, primitive: CmdPrimitiveType, vertices: Vec<ImmVertex>) {
@@ -546,9 +486,16 @@ impl Renderer {
 
     /// Run the open pass's recorded commands (called by `flush_pass_encoder`;
     /// goes to the executor directly, without flushing again).
-    pub(crate) fn send_pass_commands(&mut self, commands: Box<PassCommands>) {
-        self.executor.cmd_pass_commands(&commands);
+    pub(crate) fn send_pass_commands(&mut self, mut commands: Box<PassCommands>) {
+        self.executor.cmd_pass_commands(&mut commands);
+        // Immediate mode hands the uploaded ring memory back inline.
+        for chunk in self.executor.take_returned_chunks() {
+            self.data.recycle_chunk(chunk);
+        }
     }
+
+    /// Ring memory comes back inline in `send_pass_commands`; nothing queued.
+    pub(crate) fn reclaim_chunks(&mut self) {}
 
     pub fn get_uniform_location_by_resource(&mut self, id: ResourceId, name: Arc<str>) -> i32 {
         self.ex().cmd_get_uniform_location_by_resource(id, name)
@@ -607,14 +554,6 @@ impl Renderer {
 
     // === Uniform Buffer Objects ===
 
-    pub fn create_material_ubo_intern(&mut self) {
-        self.ex().cmd_create_material_ubo();
-    }
-
-    pub fn update_material_ubo_intern(&mut self, data: [u8; 32]) {
-        self.ex().cmd_update_material_ubo(&data);
-    }
-
     pub fn create_light_ubo_intern(&mut self) {
         self.ex().cmd_create_light_ubo();
     }
@@ -669,6 +608,9 @@ impl Renderer {
         self.pass_end_frame();
         self.drain_destroy_queue();
         self.ex().cmd_swap_buffers();
+        // The next frame's ring slot (see the threaded backend).
+        let slot = self.data.ring.slot();
+        self.ex().cmd_begin_frame(slot);
 
         // Publish the combined snapshot to the dashboard sink (if attached)
         #[cfg(feature = "stats-server")]

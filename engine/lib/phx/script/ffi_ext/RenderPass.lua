@@ -47,6 +47,20 @@ function onDef_RenderPass_t(t, mt)
         libphx.RenderPass_DrawMesh(self, Renderer, mesh)
     end
 
+    --- Instanced draw: `instances` is a cdata `InstanceData[?]` array (model
+    --- matrix, color, scale per instance; see `instanced.glsl`). Copied into
+    --- the vertex ring, so the array can be reused at once.
+    index.drawMeshInstanced = function(self, mesh, instances, count)
+        libphx.RenderPass_DrawMeshInstanced(self, Renderer, mesh, instances, count)
+    end
+
+    --- Texture-fetch instancing: `indices` is a cdata `uint32_t[?]` array, one
+    --- index per instance into the static data texture the shader reads.
+    --- Copied into the vertex ring (4 bytes per instance).
+    index.drawInstancedIndices = function(self, mesh, indices, count)
+        libphx.RenderPass_DrawInstancedIndices(self, Renderer, mesh, indices, count)
+    end
+
     index.drawFullscreen = function(self)
         libphx.RenderPass_DrawFullscreen(self, Renderer)
     end

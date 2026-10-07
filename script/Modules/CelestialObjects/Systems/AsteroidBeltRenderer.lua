@@ -2,13 +2,14 @@ local CameraManager     = require("Modules.Cameras.Managers.CameraManager")
 local AsteroidFieldSystem = require("Modules.CelestialObjects.Systems.AsteroidFieldSystem")
 local AsteroidMeshPool  = require("Modules.CelestialObjects.Systems.AsteroidMeshPool")
 local CoreComponents = require("Modules.Core.Components")
+local Pipelines = require("Render.Pipelines")
 
 --- AsteroidBeltRenderer — performant batch renderer for asteroid belts/rings.
 --- Chunked instancing (article-derived): asteroids are partitioned into
 --- angular chunks at generation time; per frame each chunk is culled by
 --- its centroid, survivors are LOD-selected and collected into reusable
---- InstanceData groups keyed by (mesh variant, LOD level), then flushed
---- with ONE DrawInstancedWithData per group instead of one draw per
+--- index groups keyed by (mesh variant, LOD level), then flushed with ONE
+--- instanced draw per group instead of one draw per
 --- asteroid. Producer cost: ~chunk-count cull tests + per-visible-asteroid
 --- LOD lookup + matrix fill, no per-asteroid draw/start/stop.
 ---@class AsteroidBeltRenderer
@@ -101,7 +102,7 @@ end
 
 --- Create a render function for a belt entity.
 --- Partition asteroids into angular chunks at generation time; per frame
---- cull chunks by centroid, collect survivors into LOD-keyed InstanceData
+--- cull chunks by centroid, collect survivors into LOD-keyed index
 --- groups, flush one instanced draw per group.
 ---@param asteroidData table
 ---@param lodMesh LodMesh
@@ -109,6 +110,7 @@ end
 function AsteroidBeltRenderer.createRenderFn(asteroidData, lodMesh)
     local inst_shader = Cache.Shader('wvp_instanced_tex', 'material/asteroid_instanced')
     local asteroid_tex = Cache.Texture('rock')
+    asteroid_tex:genMipmap() -- sampled with `Samplers.LinearMipRepeatAniso`
 
     -- Texture-fetch instancing: precompute each asteroid's static data ONCE
     -- (rotation*scale mat3 + world position + scale) into a flat float
@@ -172,10 +174,17 @@ function AsteroidBeltRenderer.createRenderFn(asteroidData, lodMesh)
     staticTex:setDataBytes(
         Core.ManagedObject(libphx.Bytes_FromData(staticTexBytes, STATIC_TEX_W * staticTexH * 16), libphx.Bytes_Free),
         PixelFormat.RGBA, DataFormat.Float)
-    -- Linear filter (Nearest doesn't exist; texelFetch uses integer coords
-    -- so filtering is irrelevant anyway)
-    staticTex:setMinFilter(TexFilter.Linear)
-    staticTex:setMagFilter(TexFilter.Linear)
+
+    -- Bind groups, created once: group 1 has the rock texture, group 2 the
+    -- instance data texture (`texelFetch` ignores filtering). The per-draw
+    -- block (`InstanceParams`) is allocated from the pass every frame.
+    local InstanceParams = inst_shader:blockType('InstanceParams')
+    local materialGroup = BindGroupDesc.Create(inst_shader, 1)
+    materialGroup:texture('texDiffuse', asteroid_tex:view(), Samplers.LinearMipRepeatAniso)
+    local materialBindGroup = Renderer:createBindGroup(materialGroup)
+    local instanceGroup = BindGroupDesc.Create(inst_shader, 2)
+    instanceGroup:texture('instanceDataTex', staticTex:view(), Samplers.Point)
+    local instanceBindGroup = Renderer:createBindGroup(instanceGroup)
 
     -- Render distance proportional to belt spread (capped), or the
     -- benchmark override when set (camera orbits far outside the belt)
@@ -441,9 +450,10 @@ function AsteroidBeltRenderer.createRenderFn(asteroidData, lodMesh)
         -- Flush: one instanced draw per (mesh variant, LOD level), all
         -- instances pulled from the static data texture by index
         if #groupOrder > 0 then
-            inst_shader:start()
-            inst_shader:setTex2D('texDiffuse', asteroid_tex)
-            inst_shader:setTex2D('instanceDataTex', staticTex)
+            local pass = Renderer:currentPass()
+            pass:setPipeline(Pipelines.get(inst_shader, Pipelines.Opaque))
+            pass:setBindGroup(1, materialBindGroup)
+            pass:setBindGroup(2, instanceBindGroup)
             -- Camera-relative origin, subtracted in DOUBLE precision here
             -- (Lua numbers are f64): at AU-scale coordinates the origin
             -- and eye are ~1e7 GU, and float32 cannot represent
@@ -452,14 +462,16 @@ function AsteroidBeltRenderer.createRenderFn(asteroidData, lodMesh)
             -- to a GU per frame (larger than a 1 GU rock). The shader
             -- receives ONE small-magnitude vec3 and adds the baked
             -- position on top - no cancellation.
-            inst_shader:setFloat3('originRelEye', entPosX - eyeX, entPosY - eyeY, entPosZ - eyeZ)
+            local params = pass:alloc(InstanceParams)
+            params.originRelEye.x = entPosX - eyeX
+            params.originRelEye.y = entPosY - eyeY
+            params.originRelEye.z = entPosZ - eyeZ
             for i = 1, #groupOrder do
                 local g = groups[groupOrder[i]]
                 if g.count > 0 then
-                    g.mesh:drawInstancedIndices(g.indices, g.count)
+                    pass:drawInstancedIndices(g.mesh, g.indices, g.count)
                 end
             end
-            inst_shader:stop()
         end
     end
 end

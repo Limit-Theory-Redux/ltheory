@@ -4,6 +4,7 @@
 //! samplers, bind groups, the pass encoder and the per-pass view block.
 
 mod bind_group;
+mod draw_block;
 mod layout;
 mod pass_encoder;
 mod pipeline;
@@ -14,6 +15,7 @@ mod uniform_ring;
 mod view_block;
 
 pub use bind_group::*;
+pub use draw_block::*;
 pub use layout::*;
 pub use pass_encoder::*;
 pub use pipeline::*;

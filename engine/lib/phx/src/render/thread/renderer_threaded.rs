@@ -11,10 +11,10 @@ use crate::render::StatsSink;
 use crate::render::thread::RenderThread;
 use crate::render::{
     BindEntry, BindGroupId, BlendMode, BlockLayout, CmdPrimitiveType, CullFace, GpuHandle,
-    ImmVertex, InstanceData, InstanceUniformsCmd, PassCommands, PipelineDesc, PipelineId,
-    RenderCommand, RenderPassDesc, RenderStats, RenderThreadConfig, RenderThreadError,
-    RendererData, ResourceId, SamplerCache, SamplerDesc, SamplerId, ShaderLayout,
-    ShaderReloadResult, TexFilter, TexFormat, TexWrapMode, VertexFormat,
+    ImmVertex, PassCommands, PipelineDesc, PipelineId, RenderCommand, RenderPassDesc, RenderStats,
+    RenderThreadConfig, RenderThreadError, RendererData, ResourceId, ReturnedChunk, SamplerCache,
+    SamplerDesc, SamplerId, ShaderLayout, ShaderReloadResult, TexFilter, TexFormat, TexWrapMode,
+    VertexFormat,
 };
 use crate::window::{PresentMode, WgpuStartupBundle, WindowError, WindowGlContext};
 
@@ -36,6 +36,8 @@ pub struct Renderer {
     shader_result_rx: Receiver<ShaderReloadResult>,
     /// Receive returned GL context when render thread shuts down
     context_rx: Receiver<Option<WindowGlContext>>,
+    /// Ring memory the executor has uploaded, coming back for reuse.
+    chunk_return_rx: Receiver<ReturnedChunk>,
     /// Next fence ID to use
     next_fence_id: AtomicU64,
     /// Number of frames currently in flight (submitted but not rendered)
@@ -118,6 +120,8 @@ impl Renderer {
         let (pacing_fence_tx, pacing_fence_rx) = bounded(config.fence_buffer_size);
         let (shader_result_tx, shader_result_rx) = bounded(SHADER_RESULT_BUFFER_SIZE); // Buffer for shader reload results
         let (context_tx, context_rx) = bounded(1); // Only one context to return
+        // Unbounded: the executor must never block returning ring memory.
+        let (chunk_return_tx, chunk_return_rx) = unbounded();
         let (stats_tx, stats_rx) = bounded(1); // Only the latest snapshot matters
         // Unbounded: `ResourceHandle::drop` must never block or fail.
         let (destroy_tx, destroy_rx) = unbounded();
@@ -180,6 +184,7 @@ impl Renderer {
                             shader_result_tx,
                             context_tx,
                             stats_tx,
+                            chunk_return_tx,
                             running_clone,
                             bundle,
                             category_timing_executor,
@@ -192,6 +197,7 @@ impl Renderer {
                             shader_result_tx,
                             context_tx,
                             stats_tx,
+                            chunk_return_tx,
                             running_clone,
                             gl_context,
                             category_timing_executor,
@@ -219,6 +225,7 @@ impl Renderer {
             pacing_fence_rx,
             shader_result_rx,
             context_rx,
+            chunk_return_rx,
             next_fence_id: AtomicU64::new(1),
             frames_in_flight: AtomicU64::new(0),
             running,
@@ -351,6 +358,10 @@ impl Renderer {
         let fence_id = self.next_fence_id.fetch_add(1, Ordering::Relaxed);
         self.submit(RenderCommand::PacingFence { fence_id });
         self.frames_in_flight.fetch_add(1, Ordering::Relaxed);
+        // The next frame's ring slot: the executor waits for the GPU to be
+        // done with that slot's previous frame before its buffers are reused.
+        let slot = self.data.ring.slot();
+        self.submit(RenderCommand::BeginFrame { slot });
 
         // Store total time spent in frame end (all blocking)
         self.main_thread_wait_us = frame_end_start.elapsed().as_micros() as u64;
@@ -527,24 +538,6 @@ impl Renderer {
 // === State Management ===
 
 impl Renderer {
-    /// Begin a new frame
-    pub(super) fn begin_frame_intern(&mut self) {
-        self.data.command_buffer.clear();
-    }
-
-    /// Flush all queued commands to the render thread
-    pub(super) fn flush_intern(&mut self) {
-        if self.running.load(Ordering::Relaxed) {
-            // TODO: send vector of commands instead of one by one
-            for cmd in self.data.command_buffer.drain(..) {
-                if let Err(e) = self.command_tx.send(cmd) {
-                    error!("Failed to send render command: {e:?}");
-                    break;
-                }
-            }
-        }
-    }
-
     /// Synchronize with the render thread (wait for all commands to complete)
     pub(super) fn sync_intern(&mut self) -> bool {
         if !self.running.load(Ordering::Relaxed) {
@@ -674,27 +667,6 @@ impl Renderer {
 
     pub fn set_uniform_mat4(&mut self, location: i32, value: [f32; 16]) {
         self.submit(RenderCommand::SetUniformMat4 { location, value });
-    }
-
-    pub fn set_instance_uniforms(
-        &mut self,
-        world_loc: i32,
-        world_it_loc: i32,
-        scale_loc: i32,
-        world: [f32; 16],
-        world_it: [f32; 16],
-        scale: f32,
-    ) {
-        self.submit(RenderCommand::SetInstanceUniforms(Box::new(
-            InstanceUniformsCmd {
-                world_loc,
-                world_it_loc,
-                scale_loc,
-                world,
-                world_it,
-                scale,
-            },
-        )));
     }
 
     // === Texture Operations ===
@@ -992,39 +964,6 @@ impl Renderer {
         });
     }
 
-    /// Texture-fetch instancing: submit per-instance u32 indices into a
-    /// static data texture. The data is copied into the command so the
-    /// render thread owns it (Lua array reusable after the call).
-    pub fn draw_instanced_indices_intern(
-        &mut self,
-        mesh_id: ResourceId,
-        index_count: i32,
-        indices: &[u32],
-        primitive: CmdPrimitiveType,
-    ) {
-        self.submit(RenderCommand::DrawInstancedIndices {
-            mesh_id,
-            index_count,
-            indices: indices.to_vec(),
-            primitive,
-        });
-    }
-
-    pub fn draw_mesh_instanced_intern(
-        &mut self,
-        vao: GpuHandle,
-        index_count: i32,
-        instance_count: i32,
-        primitive: CmdPrimitiveType,
-    ) {
-        self.submit(RenderCommand::DrawMeshInstanced {
-            vao,
-            index_count,
-            instance_count,
-            primitive,
-        });
-    }
-
     pub fn draw_mesh_by_resource(
         &mut self,
         id: ResourceId,
@@ -1034,21 +973,6 @@ impl Renderer {
         self.submit(RenderCommand::DrawMeshByResource {
             id,
             index_count,
-            primitive,
-        });
-    }
-
-    pub fn draw_instanced_with_data_intern(
-        &mut self,
-        mesh_id: ResourceId,
-        index_count: i32,
-        instances: &[InstanceData],
-        primitive: CmdPrimitiveType,
-    ) {
-        self.submit(RenderCommand::DrawInstancedWithData {
-            mesh_id,
-            index_count,
-            instances: instances.to_vec(),
             primitive,
         });
     }
@@ -1104,6 +1028,13 @@ impl Renderer {
             group,
             entries,
         });
+    }
+
+    /// Take back the ring memory the render thread has finished uploading.
+    pub(crate) fn reclaim_chunks(&mut self) {
+        while let Ok(chunk) = self.chunk_return_rx.try_recv() {
+            self.data.recycle_chunk(chunk);
+        }
     }
 
     /// Hand the open pass's recorded commands to the render thread (called by
@@ -1197,14 +1128,6 @@ impl Renderer {
     }
 
     // === Uniform Buffer Objects ===
-
-    pub fn create_material_ubo_intern(&mut self) {
-        self.submit(RenderCommand::CreateMaterialUBO);
-    }
-
-    pub fn update_material_ubo_intern(&mut self, data: [u8; 32]) {
-        self.submit(RenderCommand::UpdateMaterialUBO { data });
-    }
 
     pub fn create_light_ubo_intern(&mut self) {
         self.submit(RenderCommand::CreateLightUBO);

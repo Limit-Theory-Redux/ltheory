@@ -12,7 +12,7 @@ use crate::render::thread::{
 };
 use crate::render::{
     BlendMode, BlockLayout, CmdPrimitiveType, CommandCategory, CommandExecutor, CommandReply,
-    CullFace, GenericUniformName, ImmVertex, InstanceData, LoadOp, MAX_COLOR_ATTACHMENTS,
+    CullFace, ImmVertex, LoadOp, MAX_COLOR_ATTACHMENTS,
     PolygonMode, RenderPassDesc, RenderStats, ResourceId, ShaderLayout, ShaderReloadResult,
     TexFilter, TexFormat, TexWrapMode, VertexFormat, ViewDim,
 };
@@ -452,21 +452,6 @@ impl CommandExecutor {
     pub(super) fn cmd_set_uniform_mat4_by_name(&mut self, name: Arc<str>, value: [f32; 16]) {
         let _sa = self.record_command(CommandCategory::Uniform, false, false);
         let loc = self.get_uniform_location_cached(&name);
-        if loc >= 0 {
-            unsafe {
-                gl::UniformMatrix4fv(loc, 1, gl::FALSE, value.as_ptr());
-            }
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_set_uniform_mat4_by_generic_name(
-        &mut self,
-        name: GenericUniformName,
-        value: [f32; 16],
-    ) {
-        let _sa = self.record_command(CommandCategory::Uniform, false, false);
-        let loc = self.get_uniform_location_cached(name.as_str());
         if loc >= 0 {
             unsafe {
                 gl::UniformMatrix4fv(loc, 1, gl::FALSE, value.as_ptr());
@@ -1345,6 +1330,7 @@ impl CommandExecutor {
             gl::BindFramebuffer(gl::FRAMEBUFFER, fbo);
             gl::Viewport(0, 0, desc.extent[0] as i32, desc.extent[1] as i32);
         }
+        self.reset_pass_state();
 
         // Load ops. `DontCare` needs no work on GL 3.3.
         let mut color_ops: [Option<[f32; 4]>; MAX_COLOR_ATTACHMENTS] =
@@ -1455,31 +1441,6 @@ impl CommandExecutor {
     }
 
     #[inline(always)]
-    pub(super) fn cmd_draw_mesh_instanced(
-        &mut self,
-        vao: super::GpuHandle,
-        index_count: i32,
-        instance_count: i32,
-        primitive: CmdPrimitiveType,
-    ) {
-        let _sa = self.record_command(CommandCategory::Draw, true, false);
-        self.this_frame_stats.draw_instanced_calls += 1;
-        unsafe {
-            gl::BindVertexArray(vao.0);
-            gl::DrawElementsInstanced(
-                primitive.to_gl(),
-                index_count,
-                gl::UNSIGNED_INT,
-                std::ptr::null(),
-                instance_count,
-            );
-            gl::BindVertexArray(0);
-        }
-        self.this_frame_stats.vertices_drawn +=
-            (index_count.max(0) as u64) * (instance_count.max(0) as u64);
-    }
-
-    #[inline(always)]
     pub(super) fn cmd_draw_mesh_by_resource(
         &mut self,
         id: ResourceId,
@@ -1503,260 +1464,6 @@ impl CommandExecutor {
         } else {
             warn!("DrawMeshByResource: resource {id:?} not found");
         }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_draw_mesh_instanced_by_resource(
-        &mut self,
-        id: ResourceId,
-        index_count: i32,
-        instance_count: i32,
-        primitive: CmdPrimitiveType,
-    ) {
-        let _sa = self.record_command(CommandCategory::Draw, true, false);
-        self.this_frame_stats.draw_instanced_calls += 1;
-        if let Some(GpuResource::Mesh { vao, .. }) = self.resources.get(&id) {
-            unsafe {
-                gl::BindVertexArray(*vao);
-                gl::DrawElementsInstanced(
-                    primitive.to_gl(),
-                    index_count,
-                    gl::UNSIGNED_INT,
-                    std::ptr::null(),
-                    instance_count,
-                );
-                gl::BindVertexArray(0);
-            }
-            self.this_frame_stats.vertices_drawn +=
-                (index_count.max(0) as u64) * (instance_count.max(0) as u64);
-        } else {
-            warn!("DrawMeshInstancedByResource: resource {id:?} not found");
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_draw_instanced_with_data(
-        &mut self,
-        mesh_id: ResourceId,
-        index_count: i32,
-        instances: &[InstanceData],
-        primitive: CmdPrimitiveType,
-    ) {
-        let _sa = self.record_command(CommandCategory::Draw, true, false);
-        self.this_frame_stats.draw_instanced_calls += 1;
-
-        if instances.is_empty() {
-            return; // Nothing to draw
-        }
-
-        let mesh_vao = if let Some(GpuResource::Mesh { vao, .. }) = self.resources.get(&mesh_id) {
-            *vao
-        } else {
-            warn!(
-                "DrawInstancedWithData: mesh resource {:?} not found",
-                mesh_id
-            );
-            return;
-        };
-
-        unsafe {
-            // Create or resize instance VBO if needed
-            let instance_count = instances.len();
-            let instance_size = std::mem::size_of::<InstanceData>();
-            let data_size = std::mem::size_of_val(instances);
-
-            if self.instance_vbo == 0 {
-                gl::GenBuffers(1, &mut self.instance_vbo);
-            }
-
-            // Bind mesh VAO first
-            gl::BindVertexArray(mesh_vao);
-
-            // Bind instance VBO once - used for resize, upload, AND attribute setup
-            // (GL_ARRAY_BUFFER is NOT part of VAO state, so this stays bound)
-            gl::BindBuffer(gl::ARRAY_BUFFER, self.instance_vbo);
-
-            // Resize buffer if needed (grow only, with some headroom)
-            if instance_count > self.instance_vbo_capacity {
-                let new_capacity = (instance_count * 3 / 2).max(64); // 50% headroom, min 64
-                gl::BufferData(
-                    gl::ARRAY_BUFFER,
-                    (new_capacity * instance_size) as isize,
-                    std::ptr::null(),
-                    gl::DYNAMIC_DRAW,
-                );
-                self.instance_vbo_capacity = new_capacity;
-            }
-
-            // Upload instance data
-            gl::BufferSubData(
-                gl::ARRAY_BUFFER,
-                0,
-                data_size as isize,
-                instances.as_ptr() as *const _,
-            );
-
-            // Set up instance attributes (model matrix as 4 vec4 columns + color + scale)
-            // InstanceData layout: model_matrix[16] + color[4] + scale = 84 bytes
-            let stride = instance_size as i32;
-
-            // Attribute 4-7: model matrix columns (mat4 = 4 x vec4)
-            for col in 0..4u32 {
-                let attrib = 4 + col;
-                gl::EnableVertexAttribArray(attrib);
-                gl::VertexAttribPointer(
-                    attrib,
-                    4, // 4 floats per column
-                    gl::FLOAT,
-                    gl::FALSE,
-                    stride,
-                    (col as usize * 16) as *const _, // offset: col * 4 floats * 4 bytes
-                );
-                gl::VertexAttribDivisor(attrib, 1); // Per-instance
-            }
-
-            // Attribute 8: color (vec4)
-            gl::EnableVertexAttribArray(8);
-            gl::VertexAttribPointer(
-                8,
-                4, // 4 floats (RGBA)
-                gl::FLOAT,
-                gl::FALSE,
-                stride,
-                64 as *const _, // offset: 16 floats * 4 bytes = 64
-            );
-            gl::VertexAttribDivisor(8, 1); // Per-instance
-
-            // Attribute 9: per-instance scale (float)
-            gl::EnableVertexAttribArray(9);
-            gl::VertexAttribPointer(
-                9,
-                1, // 1 float (scale)
-                gl::FLOAT,
-                gl::FALSE,
-                stride,
-                80 as *const _, // offset: 20 floats * 4 bytes = 80
-            );
-            gl::VertexAttribDivisor(9, 1); // Per-instance
-
-            // Draw instanced
-            gl::DrawElementsInstanced(
-                primitive.to_gl(),
-                index_count,
-                gl::UNSIGNED_INT,
-                std::ptr::null(),
-                instance_count as i32,
-            );
-
-            // Disable instance attributes and reset divisors
-            for attrib in 4..=9 {
-                gl::VertexAttribDivisor(attrib, 0);
-                gl::DisableVertexAttribArray(attrib);
-            }
-
-            gl::BindVertexArray(0);
-            gl::BindBuffer(gl::ARRAY_BUFFER, 0);
-        }
-        // Note: draw_calls/draw_instanced_calls are handled by record_command() above.
-        self.this_frame_stats.instanced_data_items += instances.len() as u64;
-        self.this_frame_stats.vertices_drawn +=
-            (index_count.max(0) as u64) * (instances.len() as u64);
-    }
-
-    /// Texture-fetch instancing: per-instance attribute is a u32 INDEX into
-    /// a static data texture (uploaded once by the producer); the vertex
-    /// shader pulls the transform via texelFetch. Upload per frame is
-    /// 4 bytes/instance instead of an 84-byte InstanceData - this is what
-    /// lets the producer scale to 100k+ asteroids on GL 3.3.
-    #[inline(always)]
-    pub(super) fn cmd_draw_instanced_indices(
-        &mut self,
-        mesh_id: ResourceId,
-        index_count: i32,
-        indices: &[u32],
-        primitive: CmdPrimitiveType,
-    ) {
-        let _sa = self.record_command(CommandCategory::Draw, true, false);
-        self.this_frame_stats.draw_instanced_calls += 1;
-        if indices.is_empty() {
-            return; // Nothing to draw
-        }
-
-        let mesh_vao = if let Some(GpuResource::Mesh { vao, .. }) = self.resources.get(&mesh_id) {
-            *vao
-        } else {
-            warn!(
-                "DrawInstancedIndices: mesh resource {:?} not found",
-                mesh_id
-            );
-            return;
-        };
-
-        unsafe {
-            // Reuse the instance VBO (it's just a buffer; the attribute
-            // layout below reinterprets it as u32 indices)
-            let instance_count = indices.len();
-            let data_size = std::mem::size_of_val(indices);
-
-            if self.instance_vbo == 0 {
-                gl::GenBuffers(1, &mut self.instance_vbo);
-            }
-
-            gl::BindVertexArray(mesh_vao);
-            gl::BindBuffer(gl::ARRAY_BUFFER, self.instance_vbo);
-
-            // Grow-only capacity (u32 elements)
-            if instance_count > self.instance_vbo_capacity_u32 {
-                let new_capacity = (instance_count * 3 / 2).max(64);
-                gl::BufferData(
-                    gl::ARRAY_BUFFER,
-                    (new_capacity * std::mem::size_of::<u32>()) as isize,
-                    std::ptr::null(),
-                    gl::DYNAMIC_DRAW,
-                );
-                self.instance_vbo_capacity_u32 = new_capacity;
-            }
-
-            gl::BufferSubData(
-                gl::ARRAY_BUFFER,
-                0,
-                data_size as isize,
-                indices.as_ptr() as *const _,
-            );
-
-            // Attribute 10: instance index (uint, divisor 1). MUST use
-            // VertexAttribIPointer for integer attributes - the float
-            // pointer path converts bits to floats and the shader's
-            // `in uint` reads garbage -> out-of-bounds texelFetch.
-            const ATTRIB: u32 = 10;
-            gl::EnableVertexAttribArray(ATTRIB);
-            gl::VertexAttribIPointer(
-                ATTRIB,
-                1,
-                gl::UNSIGNED_INT,
-                0, // tightly packed
-                std::ptr::null(),
-            );
-            gl::VertexAttribDivisor(ATTRIB, 1);
-
-            gl::DrawElementsInstanced(
-                primitive.to_gl(),
-                index_count,
-                gl::UNSIGNED_INT,
-                std::ptr::null(),
-                instance_count as i32,
-            );
-
-            gl::VertexAttribDivisor(ATTRIB, 0);
-            gl::DisableVertexAttribArray(ATTRIB);
-
-            gl::BindVertexArray(0);
-            gl::BindBuffer(gl::ARRAY_BUFFER, 0);
-        }
-        // Note: draw_calls/draw_instanced_calls are handled by record_command() above.
-        self.this_frame_stats.instanced_data_items += indices.len() as u64;
-        self.this_frame_stats.vertices_drawn +=
-            (index_count.max(0) as u64) * (indices.len() as u64);
     }
 
     #[inline(always)]
@@ -2009,6 +1716,9 @@ impl CommandExecutor {
             ..self.this_frame_stats.clone()
         };
 
+        // Fence the frame's commands (uniform ring slot reuse waits on this).
+        self.insert_slot_fence();
+
         // Perform actual buffer swap if we have a GL context
         let present_start = std::time::Instant::now();
         if let Some(ref ctx) = self.gl_context {
@@ -2147,41 +1857,6 @@ impl CommandExecutor {
     }
 
     #[inline(always)]
-    /// Create material UBO
-    pub(super) fn cmd_create_material_ubo(&mut self) {
-        let _sa = self.record_command(CommandCategory::Ubo, false, false);
-        if self.material_ubo != 0 {
-            return; // Already created
-        }
-
-        unsafe {
-            gl::GenBuffers(1, &mut self.material_ubo);
-            gl::BindBuffer(gl::UNIFORM_BUFFER, self.material_ubo);
-            // Allocate 32 bytes (MaterialUboData::SIZE)
-            gl::BufferData(gl::UNIFORM_BUFFER, 32, std::ptr::null(), gl::DYNAMIC_DRAW);
-            // Bind to binding point 1
-            gl::BindBufferBase(gl::UNIFORM_BUFFER, 1, self.material_ubo);
-            gl::BindBuffer(gl::UNIFORM_BUFFER, 0);
-        }
-        debug!("Created material UBO with handle {}", self.material_ubo);
-    }
-
-    #[inline(always)]
-    /// Update material UBO data
-    pub(super) fn cmd_update_material_ubo(&mut self, data: &[u8; 32]) {
-        let _sa = self.record_command(CommandCategory::Ubo, false, false);
-        if self.material_ubo == 0 {
-            self.cmd_create_material_ubo();
-        }
-
-        unsafe {
-            gl::BindBuffer(gl::UNIFORM_BUFFER, self.material_ubo);
-            gl::BufferSubData(gl::UNIFORM_BUFFER, 0, 32, data.as_ptr() as *const _);
-            gl::BindBuffer(gl::UNIFORM_BUFFER, 0);
-        }
-    }
-
-    #[inline(always)]
     /// Create light UBO
     pub(super) fn cmd_create_light_ubo(&mut self) {
         let _sa = self.record_command(CommandCategory::Ubo, false, false);
@@ -2271,9 +1946,9 @@ impl CommandExecutor {
             gl::BindAttribLocation(program, 1, c"vertex_normal".as_ptr() as *const _);
             gl::BindAttribLocation(program, 2, c"vertex_uv".as_ptr() as *const _);
             gl::BindAttribLocation(program, 3, c"vertex_color".as_ptr() as *const _);
-            // Per-instance attributes for DrawInstancedWithData (res/shader/include/instanced.glsl);
-            // must match cmd_draw_instanced_with_data's VertexAttribPointer setup: 4-7=mWorld
-            // columns, 8=color. No-op (harmless) for shaders that don't declare these names.
+            // Per-instance attributes of `PassCmd::DrawMeshInstanced` (res/shader/include/instanced.glsl);
+            // must match its VertexAttribPointer setup: 4-7=mWorld columns, 8=color. No-op
+            // (harmless) for shaders that don't declare these names.
             gl::BindAttribLocation(program, 4, c"instance_matrix_col0".as_ptr() as *const _);
             gl::BindAttribLocation(program, 5, c"instance_matrix_col1".as_ptr() as *const _);
             gl::BindAttribLocation(program, 6, c"instance_matrix_col2".as_ptr() as *const _);

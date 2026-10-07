@@ -55,11 +55,34 @@ pub enum PassCmd {
     },
     /// The built-in unit quad (`VertexLayout::Fullscreen`).
     DrawFullscreen,
+    /// Instanced draw whose per-instance attributes (`InstanceData`, 84
+    /// bytes each, locations 4..9) were written into the vertex ring at
+    /// `instances` (see `instanced.glsl`).
+    DrawMeshInstanced {
+        mesh: ResourceId,
+        index_count: u32,
+        instances: RingOffset,
+        count: u32,
+    },
+    /// Texture-fetch instancing: `count` u32 indices (attribute location 10)
+    /// into a static data texture, written into the vertex ring at `indices`.
+    DrawInstancedIndices {
+        mesh: ResourceId,
+        index_count: u32,
+        indices: RingOffset,
+        count: u32,
+    },
 }
 
 impl PassCmd {
     pub fn is_draw(&self) -> bool {
-        matches!(self, PassCmd::DrawMesh { .. } | PassCmd::DrawFullscreen)
+        matches!(
+            self,
+            PassCmd::DrawMesh { .. }
+                | PassCmd::DrawFullscreen
+                | PassCmd::DrawMeshInstanced { .. }
+                | PassCmd::DrawInstancedIndices { .. }
+        )
     }
 }
 
@@ -68,8 +91,10 @@ impl PassCmd {
 pub struct PassCommands {
     /// Frame slot the uniform chunks belong to.
     pub slot: u8,
-    /// Uploads that must happen before `cmds` run.
+    /// Uniform uploads that must happen before `cmds` run.
     pub uniforms: Vec<RingChunk>,
+    /// Vertex-ring uploads (instance data, instanced index lists).
+    pub vertices: Vec<RingChunk>,
     pub cmds: Vec<PassCmd>,
 }
 

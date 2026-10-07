@@ -34,10 +34,8 @@ function RenderingIndexedBatch:onRender()
 
     local pass = Renderer:beginPass(self.passDesc)
     pass:setPipeline(self.pipeline)
-    -- Texture-fetch instancing still goes through the legacy draw command
-    -- (it moves into the pass encoder with the instance ring, S4); it draws
-    -- with the pipeline's program and state.
-    self.mesh:drawInstancedIndices(self.indices, 3)
+    -- Texture-fetch instancing: the indices go through the vertex ring.
+    pass:drawInstancedIndices(self.mesh, self.indices, 3)
     pass:finish()
 
     local left = self.target:sample(32, math.floor(TARGET_H / 2))

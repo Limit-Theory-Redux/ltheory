@@ -10,7 +10,7 @@ use crossbeam::channel::Sender;
 
 use super::command_category::CommandCategory;
 use crate::render::{
-    BindEntry, BindGroupId, BlendMode, BlockLayout, CullFace, InstanceData, PassCommands,
+    BindEntry, BindGroupId, BlendMode, BlockLayout, CullFace, PassCommands,
     PipelineDesc, PipelineId, RenderPassDesc, SamplerDesc, SamplerId, ShaderLayout, TexFilter,
     TexFormat, TexWrapMode, VertexFormat, gl,
 };
@@ -32,26 +32,6 @@ impl GpuHandle {
 /// Unique identifier for resources being created
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ResourceId(pub u64);
-
-/// A fixed, known-in-advance uniform name. `Copy`, so a value costs nothing
-/// to construct or send across the render-thread channel. Used by the batch
-/// path (`renderer_shared.rs`) for the two per-draw uniforms every shader in
-/// this engine's pipeline exposes; extend with more variants if another
-/// fixed name needs this path.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum GenericUniformName {
-    MWorld,
-    MWorldIT,
-}
-
-impl GenericUniformName {
-    pub fn as_str(self) -> &'static str {
-        match self {
-            Self::MWorld => "mWorld",
-            Self::MWorldIT => "mWorldIT",
-        }
-    }
-}
 
 /// Primitive type for drawing operations (command buffer version)
 #[luajit_ffi_gen::luajit_ffi]
@@ -88,26 +68,6 @@ pub struct ImmVertex {
     pub normal: [f32; 3],
     pub uv: [f32; 2],
     pub color: [f32; 4],
-}
-
-/// Batched per-instance uniforms: mWorld + mWorldIT + scale in one
-/// command. The three per-mesh matrix/scale sends dominate the uniform
-/// command stream (3 commands + 3 FFI crossings per mesh); batching them
-/// cuts that to 1 command + 1 crossing. mWorldIT is derived from the
-/// already-computed mWorld (inverse) instead of a rebuild + fresh invert
-/// on the Lua side.
-///
-/// Boxed in `RenderCommand::SetInstanceUniforms` because this is by far the
-/// largest command payload (~144 bytes) and would otherwise force every
-/// other variant to pay for its size.
-#[derive(Debug, Clone)]
-pub struct InstanceUniformsCmd {
-    pub world_loc: i32,
-    pub world_it_loc: i32,
-    pub scale_loc: i32,
-    pub world: [f32; 16],
-    pub world_it: [f32; 16],
-    pub scale: f32,
 }
 
 /// A render command that can be executed on the render thread.
@@ -199,10 +159,6 @@ pub enum RenderCommand {
     /// Set mat4 uniform
     SetUniformMat4 { location: i32, value: [f32; 16] },
 
-    /// Batched per-instance uniforms: mWorld + mWorldIT + scale (see
-    /// `InstanceUniformsCmd`).
-    SetInstanceUniforms(Box<InstanceUniformsCmd>),
-
     // === Name-based Uniform Operations (for command mode) ===
     // These look up uniform location by name on the render thread,
     // since the render thread's shader has different uniform indices
@@ -233,13 +189,6 @@ pub enum RenderCommand {
 
     /// Set mat4 uniform by name
     SetUniformMat4ByName { name: Arc<str>, value: [f32; 16] },
-
-    /// Set mat4 uniform by a fixed, known-in-advance name - no allocation,
-    /// no cache needed at the call site (see `GenericUniformName`)
-    SetUniformMat4ByGenericName {
-        name: GenericUniformName,
-        value: [f32; 16],
-    },
 
     // === Texture Operations ===
     /// Bind a 2D texture to a slot
@@ -470,6 +419,11 @@ pub enum RenderCommand {
     /// End the open render pass and return to the default framebuffer.
     EndRenderPass,
 
+    /// A new frame starts in uniform-ring slot `slot`. GL: wait for the fence
+    /// inserted after the frame that last used the slot, so its ring buffers
+    /// can be overwritten.
+    BeginFrame { slot: u8 },
+
     /// The commands recorded in the open pass since the last flush, with the
     /// uniform ring bytes they reference (see `PassEncoder`).
     PassCommands(Box<PassCommands>),
@@ -510,48 +464,10 @@ pub enum RenderCommand {
         primitive: CmdPrimitiveType,
     },
 
-    /// Draw instanced mesh
-    DrawMeshInstanced {
-        vao: GpuHandle,
-        index_count: i32,
-        instance_count: i32,
-        primitive: CmdPrimitiveType,
-    },
-
     /// Draw a mesh by its resource ID (for command mode)
     DrawMeshByResource {
         id: ResourceId,
         index_count: i32,
-        primitive: CmdPrimitiveType,
-    },
-
-    /// Draw instanced mesh by resource ID
-    DrawMeshInstancedByResource {
-        id: ResourceId,
-        index_count: i32,
-        instance_count: i32,
-        primitive: CmdPrimitiveType,
-    },
-
-    /// Draw instanced mesh with per-instance data (transforms + colors)
-    /// This creates/updates a temporary instance buffer and sets up attribute divisors
-    DrawInstancedWithData {
-        mesh_id: ResourceId,
-        index_count: i32,
-        instances: Vec<InstanceData>,
-        primitive: CmdPrimitiveType,
-    },
-
-    /// Draw instanced mesh with per-instance INDICES into a static data
-    /// texture (texture-fetch instancing): the GPU pulls each instance's
-    /// transform from a texture uploaded once, so the producer only sends
-    /// 4-byte indices per instance instead of an 84-byte InstanceData.
-    /// This is the GL 3.3-compatible form of GPU-driven instancing and
-    /// maps 1:1 onto a storage buffer under wgpu.
-    DrawInstancedIndices {
-        mesh_id: ResourceId,
-        index_count: i32,
-        indices: Vec<u32>,
         primitive: CmdPrimitiveType,
     },
 
@@ -639,14 +555,6 @@ pub enum RenderCommand {
     DestroyResources { ids: Vec<ResourceId> },
 
     // === Uniform Buffer Objects ===
-    /// Create material UBO
-    CreateMaterialUBO,
-
-    /// Update material UBO data
-    UpdateMaterialUBO {
-        data: [u8; 32], // MaterialUboData::SIZE = 32 bytes
-    },
-
     /// Create light UBO
     CreateLightUBO,
 
@@ -724,7 +632,6 @@ impl RenderCommand {
             | SetUniformFloat3 { .. }
             | SetUniformFloat4 { .. }
             | SetUniformMat4 { .. }
-            | SetInstanceUniforms(_)
             | SetUniformIntByName { .. }
             | SetUniformInt2ByName { .. }
             | SetUniformInt3ByName { .. }
@@ -733,8 +640,7 @@ impl RenderCommand {
             | SetUniformFloat2ByName { .. }
             | SetUniformFloat3ByName { .. }
             | SetUniformFloat4ByName { .. }
-            | SetUniformMat4ByName { .. }
-            | SetUniformMat4ByGenericName { .. } => CommandCategory::Uniform,
+            | SetUniformMat4ByName { .. } => CommandCategory::Uniform,
 
             // === Texture Binding ===
             BindTexture2D { .. }
@@ -778,19 +684,16 @@ impl RenderCommand {
 
             // === Render Passes ===
             BeginRenderPass(_) | EndRenderPass => CommandCategory::Framebuffer,
+            BeginFrame { .. } => CommandCategory::Sync,
             PassCommands(_) => CommandCategory::Draw,
 
             // === Mesh Operations ===
             BindMesh { .. } | BindMeshByResource { .. } | UnbindMesh => CommandCategory::Mesh,
 
             // === Drawing Operations ===
-            DrawMesh { .. }
-            | DrawMeshInstanced { .. }
-            | DrawMeshByResource { .. }
-            | DrawMeshInstancedByResource { .. }
-            | DrawInstancedWithData { .. }
-            | DrawInstancedIndices { .. }
-            | DrawImmediate { .. } => CommandCategory::Draw,
+            DrawMesh { .. } | DrawMeshByResource { .. } | DrawImmediate { .. } => {
+                CommandCategory::Draw
+            }
 
             // === Resource Creation / Destruction ===
             CreateShader { .. }
@@ -807,10 +710,7 @@ impl RenderCommand {
             | DestroyResources { .. } => CommandCategory::Resource,
 
             // === Uniform Buffer Objects ===
-            CreateMaterialUBO
-            | UpdateMaterialUBO { .. }
-            | CreateLightUBO
-            | UpdateLightUBO { .. } => CommandCategory::Ubo,
+            CreateLightUBO | UpdateLightUBO { .. } => CommandCategory::Ubo,
 
             // === Window / Synchronization ===
             Resize { .. }
@@ -850,12 +750,8 @@ impl RenderCommand {
         matches!(
             self,
             RenderCommand::DrawMesh { .. }
-                | RenderCommand::DrawMeshInstanced { .. }
                 | RenderCommand::DrawMeshByResource { .. }
-                | RenderCommand::DrawMeshInstancedByResource { .. }
                 | RenderCommand::DrawImmediate { .. }
-                | RenderCommand::DrawInstancedWithData { .. }
-                | RenderCommand::DrawInstancedIndices { .. }
         )
     }
 
