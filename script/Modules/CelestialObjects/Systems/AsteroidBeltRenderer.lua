@@ -373,9 +373,14 @@ function AsteroidBeltRenderer.createRenderFn(asteroidData, lodMesh)
         -- all in Rust, in f64, in chunk order. Worker threads fill their
         -- own lists; the join happens inside this call.
         libphx.InstanceField_SetWorkers(field, beltWorkers())
+        -- The FFI rejects empty slices, so an empty spawned set is a clear
+        if nSpawned > 0 then
+            libphx.InstanceField_SetSpawned(field, spawnedBuf, nSpawned)
+        else
+            libphx.InstanceField_ClearSpawned(field)
+        end
         libphx.InstanceField_Cull(field, eyeX, eyeY, eyeZ, fwdX, fwdY, fwdZ,
-            entPosX, entPosY, entPosZ, pxPerUnitSq, renderDistSq, MAX_DRAWN_PER_FRAME,
-            spawnedBuf, nSpawned)
+            entPosX, entPosY, entPosZ, pxPerUnitSq, renderDistSq, MAX_DRAWN_PER_FRAME)
 
         -- Groups keep the order in which a LOD first produced instances.
         for k = 0, libphx.InstanceField_GetLodOrderLen(field) - 1 do

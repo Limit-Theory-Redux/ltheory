@@ -163,6 +163,9 @@ pub struct InstanceField {
     data: FieldData,
     outs: Vec<ChunkOut>,
     spawned: Vec<u8>,
+    /// Spawned indices for the next FFI `Cull`, set by `SetSpawned` (an
+    /// empty set goes through `ClearSpawned`: the FFI rejects empty slices).
+    pending_spawned: Vec<u32>,
     /// Merged, capped result: asteroid indices per LOD.
     lists: [Vec<u32>; LOD_COUNT],
     /// LODs in order of first appearance in the merged stream.
@@ -212,6 +215,7 @@ impl InstanceField {
             },
             outs: (0..chunks).map(|_| ChunkOut::default()).collect(),
             spawned: vec![0; n],
+            pending_spawned: Vec::new(),
             lists: Default::default(),
             lod_order: Vec::new(),
             lod_count: LOD_COUNT,
@@ -340,9 +344,22 @@ impl InstanceField {
         self.lod_count = (count as usize).min(LOD_COUNT);
     }
 
-    /// Cull the field (see the module docs). `spawned` holds 0-based indices
-    /// of asteroids that are real entities and are not drawn here. Returns
-    /// the number of instances to draw.
+    /// 0-based indices of asteroids that are real entities and are not drawn
+    /// by the next `Cull`. Copied.
+    #[bind(name = "SetSpawned")]
+    pub fn set_spawned(&mut self, spawned: &[u32]) {
+        self.pending_spawned.clear();
+        self.pending_spawned.extend_from_slice(spawned);
+    }
+
+    /// No spawned asteroids for the next `Cull`.
+    #[bind(name = "ClearSpawned")]
+    pub fn clear_spawned(&mut self) {
+        self.pending_spawned.clear();
+    }
+
+    /// Cull the field (see the module docs), skipping the asteroids given to
+    /// `SetSpawned`. Returns the number of instances to draw.
     #[bind(name = "Cull")]
     #[allow(clippy::too_many_arguments)]
     pub fn cull(
@@ -359,17 +376,19 @@ impl InstanceField {
         px_per_unit_sq: f64,
         render_dist_sq: f64,
         max_drawn: u32,
-        spawned: &[u32],
     ) -> u32 {
-        self.cull_field(
+        let spawned = std::mem::take(&mut self.pending_spawned);
+        let n = self.cull_field(
             [eye_x, eye_y, eye_z],
             [fwd_x, fwd_y, fwd_z],
             [origin_x, origin_y, origin_z],
             px_per_unit_sq,
             render_dist_sq,
             max_drawn as usize,
-            spawned,
-        ) as u32
+            &spawned,
+        ) as u32;
+        self.pending_spawned = spawned;
+        n
     }
 
     /// Instances of LOD `lod` (0-based) after the last cull.

@@ -29,9 +29,17 @@ function InstanceField:setWorkers(workers) end
 ---@param count integer
 function InstanceField:setLodCount(count) end
 
--- Cull the field (see the module docs). `spawned` holds 0-based indices
--- of asteroids that are real entities and are not drawn here. Returns
--- the number of instances to draw.
+-- 0-based indices of asteroids that are real entities and are not drawn
+-- by the next `Cull`. Copied.
+---@param spawned integer[]
+---@param spawned_size integer
+function InstanceField:setSpawned(spawned, spawned_size) end
+
+-- No spawned asteroids for the next `Cull`.
+function InstanceField:clearSpawned() end
+
+-- Cull the field (see the module docs), skipping the asteroids given to
+-- `SetSpawned`. Returns the number of instances to draw.
 ---@param eyeX number
 ---@param eyeY number
 ---@param eyeZ number
@@ -44,10 +52,8 @@ function InstanceField:setLodCount(count) end
 ---@param pxPerUnitSq number
 ---@param renderDistSq number
 ---@param maxDrawn integer
----@param spawned integer[]
----@param spawned_size integer
 ---@return integer
-function InstanceField:cull(eyeX, eyeY, eyeZ, fwdX, fwdY, fwdZ, originX, originY, originZ, pxPerUnitSq, renderDistSq, maxDrawn, spawned, spawned_size) end
+function InstanceField:cull(eyeX, eyeY, eyeZ, fwdX, fwdY, fwdZ, originX, originY, originZ, pxPerUnitSq, renderDistSq, maxDrawn) end
 
 -- Instances of LOD `lod` (0-based) after the last cull.
 ---@param lod integer
