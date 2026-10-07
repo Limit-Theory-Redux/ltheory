@@ -903,8 +903,10 @@ these paths correctly. S11 replaced it (see the S11 notes).
 - Parameters moved from per-frame closures into data. Planet (`color1..4`, `oceanLevel`, `rAtmo`), atmosphere
   (`rAtmo`), moon (`highlandColor`, `mariaColor`, `heightMult`, `enableAtmosphere`) and ring (`rMin`, `rMax`, `seed`, ...)
   are written once through `Shared/Rendering/PlanetMaterials.lua`. The cloud and ring time, the star's time,
-  temperature and tint, and the travel drive's time, intensity and speed are `perDraw` values. `rAtmo` is the body's
-  scale at creation times `atmoScale`; the old shader var re-read it every frame. Parameters the shaders never
+  temperature and tint, and the travel drive's time, intensity and speed are `perDraw` values. The planet and
+  atmosphere store `atmoScale`, not `rAtmo`: the shaders derive `rAtmo = drawScale.x * atmoScale`, so both radii
+  follow the body's current scale as the old per-frame shader vars did (a creation-time `rAtmo` went stale when
+  Benchmark rescaled its planet to Earth size, leaving `rAtmo < rPlanet`). Parameters the shaders never
   declared are gone (`starColor`, the planet's `starTint`, `craterDepth`, the moon's base textures, `ringTex`, the
   ring's `planetPos`/`planetQuat`/`planetRadius`/`ringQuat`), and with them their "no such uniform" warnings;
   `enableDebug`/`debugMode` of the ring are real block fields now.
@@ -1615,6 +1617,25 @@ or outdated swapchain (reconfigured, the frame skipped, never provoked), resizin
 `FLOAT32_FILTERABLE` (the 16F fallback exists and is unit tested for conversion, but no run used it), hot reload of a
 shader under wgpu (pipelines and bind groups are keyed by generation, but `hot_reload_probe.py` was not run under wgpu), and the
 `GenerateMips` grow path on cube and 3D textures (planet and nebula cubes use it; no capture uses a grown 3D texture).
+
+#### Texture lifetime in bind groups (post-S11 fix)
+
+A `TexView` is a plain `ResourceId`, so a bind group did not keep its textures alive. `AsteroidBeltRenderer` built
+its instance-data texture, put it in a bind group and kept only the bind group: the first full Lua GC (about frame 900
+in Benchmark) collected the `Tex2D`, its `ResourceHandle` destroyed the GPU texture, and every later draw bound a
+missing id (`bind view: texture ResourceId(45) not found`, thousands of times). GL left whatever texture was last
+bound on that unit in place, so the instanced asteroids read garbage transforms (a black, pixelated blob over the
+planet, the rest of the belt gone, which looked like over-culling); wgpu silently sampled a default texture.
+Now every bind group pins the textures it samples (`TexturePins` in `RendererData`): a dropped texture still
+referenced by a live bind group stays queued and is destroyed once the group is (materials release theirs; groups
+from `BindGroupDesc` live until shutdown, and so do their textures). A missing texture is still reported once per id
+on both backends, GL unbinds the unit instead of sampling a stale texture. A second source of the same warning
+(SolarSystemPlayable, WeaponSystem): staged group-3 inputs outlived their pass, so a later pass re-sent every input slot
+ever set, including views of generation-time textures destroyed since; `beginPass` now starts with no inputs. The
+culling report was the belt, not the scene list: `CAPTURE_CULL` counts (submitted/culled per frame) of the scene list
+match the pre-refactor `RenderBatch` exactly at every Benchmark phase. The capture runner forces a full GC
+halfway to the first capture frame and fails a scene whose log reports a missing texture; `BenchmarkPhases`
+(frames 600 to 2100, all camera phases) and `Benchmark1080` joined the capture set.
 
 ---
 

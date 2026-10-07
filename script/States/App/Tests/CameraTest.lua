@@ -177,7 +177,7 @@ function CameraTest:createPlanet(seed)
     rb:setKinematic(true)
     rb:setPos(Position(self.planetPos.x, self.planetPos.y, self.planetPos.z))
     rb:setScale(planetRNG:getInt(100, 200))
-    PlanetMaterials.planet(self.matPlanet, self.matAtmo, self.genOptions, rb:getScale())
+    PlanetMaterials.planet(self.matPlanet, self.matAtmo, self.genOptions)
 
     -- add rb to physics world
     self.world:addRigidBody(rb)

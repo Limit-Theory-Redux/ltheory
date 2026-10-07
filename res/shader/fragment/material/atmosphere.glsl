@@ -7,10 +7,11 @@
 
 #define origin (mWorld[3].xyz)    // camera-relative position of the planet
 #define rPlanet (drawScale.x)     // the body's scale
+#define rAtmo (rPlanet * atmoScale) // follows the body's scale when it changes
 
 #group 1
 layout(std140) uniform MaterialParams {
-  float rAtmo;
+  float atmoScale;  // atmosphere radius / planet radius
 };
 
 void main() {

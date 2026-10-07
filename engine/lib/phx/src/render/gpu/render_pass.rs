@@ -402,6 +402,11 @@ impl Renderer {
         // Every pass starts without a scissor on wgpu; the first draw sends
         // the one the clip stack wants (GL's scissor state outlives a pass).
         self.data.clip_emitted = None;
+        // Group-3 inputs belong to one pass. Staged inputs used to outlive it,
+        // so a later pass re-sent every slot ever set, including views of
+        // textures destroyed since (`bind view: texture ... not found`).
+        self.data.encoder.inputs = Default::default();
+        self.data.encoder.inputs_dirty = false;
 
         self.pass_emit_view();
         self.pass_emit_environment();

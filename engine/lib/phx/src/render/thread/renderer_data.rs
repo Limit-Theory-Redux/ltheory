@@ -2,7 +2,7 @@ use crossbeam::channel::{Receiver, Sender};
 
 use crate::render::{
     CameraState, ClipManager, Environment, ImmBatcher, MaterialArenas, PassEncoder, PassState,
-    PipelineCache, Release, ResourceId, ReturnedChunk, RingOffset, SamplerCache, ScissorUpdate,
+    PipelineCache, Release, ResourceId, TexturePins, ReturnedChunk, RingOffset, SamplerCache, ScissorUpdate,
     Shader, ShaderErrorQueue, ShaderWatcherInner, UniformRing, VertexRing, ViewBlock,
 };
 
@@ -16,6 +16,8 @@ pub struct RendererData {
     /// Consumer end, owned solely by this `Renderer` and drained once per
     /// frame in `end_frame_triple_buffered`.
     pub destroy_rx: Receiver<ResourceId>,
+    /// Textures referenced by live bind groups: their destruction waits.
+    pub tex_pins: TexturePins,
     /// The open render pass (one at a time) and the size of the last target.
     pub pass: PassState,
     /// Records the open pass's commands until they are flushed.
@@ -81,6 +83,7 @@ impl RendererData {
             next_resource_id: 1,
             destroy_tx,
             destroy_rx,
+            tex_pins: TexturePins::default(),
             pass: PassState::default(),
             encoder: PassEncoder::new(),
             ring: UniformRing::new(),

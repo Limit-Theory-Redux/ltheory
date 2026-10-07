@@ -145,7 +145,15 @@ impl WgpuCommandExecutor {
         dim: crate::render::TexDim,
     ) -> Option<(wgpu::TextureView, [u64; 6])> {
         use crate::render::TexDim;
-        let (texture, desc) = self.texture_and_desc(tv.tex)?;
+        let Some((texture, desc)) = self.texture_and_desc(tv.tex) else {
+            // Destroyed (or never created): the caller samples a default
+            // texture instead. Say so, as GL does - it is a lifetime bug.
+            self.warn_once(format!(
+                "bind view: texture {:?} not found (destroyed while still bound?); a default texture is sampled",
+                tv.tex
+            ));
+            return None;
+        };
         // One face of a cube can be sampled as a 2D texture.
         let face = match (desc.dim, dim, tv.dim) {
             (TexDim::Cube, TexDim::D2, ViewDim::CubeFace(face)) => Some(face_layer(face)),

@@ -8,18 +8,17 @@ local PlanetMaterials = {}
 ---@param matPlanet Material a `PlanetSurface` instance
 ---@param matAtmo Material|nil a `PlanetAtmosphere` instance
 ---@param gen table `color1..4`, `oceanLevel`, `atmoScale` (the planet's gen options)
----@param scale number the planet's scale (its rigid body's)
-function PlanetMaterials.planet(matPlanet, matAtmo, gen, scale)
-    local rAtmo = scale * gen.atmoScale
-
+--- The radii come from the draw's scale (`drawScale`), so they follow the body
+--- when it is rescaled after creation (Benchmark scales its planet to Earth size).
+function PlanetMaterials.planet(matPlanet, matAtmo, gen)
     local p = matPlanet:params()
     p.color1, p.color2, p.color3, p.color4 = gen.color1, gen.color2, gen.color3, gen.color4
     p.oceanLevel = gen.oceanLevel
-    p.rAtmo = rAtmo
+    p.atmoScale = gen.atmoScale
     matPlanet:commit()
 
     if matAtmo then
-        matAtmo:params().rAtmo = rAtmo
+        matAtmo:params().atmoScale = gen.atmoScale
         matAtmo:commit()
     end
 end

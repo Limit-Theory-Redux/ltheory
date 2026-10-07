@@ -146,8 +146,7 @@ function SolarSystemVisualizer:_materializePlanet(entity, physicsWorld)
     local matPlanet = Materials.PlanetSurface:instance()
     local matAtmo = Materials.PlanetAtmosphere:instance()
     matPlanet:setTexture("surface", texSurface)
-    local planetTransform = entity:get(PhysicsComponents.Transform)
-    PlanetMaterials.planet(matPlanet, matAtmo, genOptions, planetTransform:getScale())
+    PlanetMaterials.planet(matPlanet, matAtmo, genOptions)
 
     -- Add gen component for shader var lookups
     local planetGenCmp = CelestialComponents.Gen.Planet(genOptions)

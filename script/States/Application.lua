@@ -11,8 +11,17 @@ local Application = Class("Application", function(self) end)
 -- Opt-in deterministic screenshot capture (render validation):
 --   LTHEORY_CAPTURE=<out.png>   save the final backbuffer after frame N and exit
 --   LTHEORY_CAPTURE_FRAME=<n>   frame to capture (default 120)
+--   LTHEORY_CAPTURE_EXTRA_FRAMES=<a,b,...>  also save frames a, b, ... (each < n) to
+--                               <out>_f<a>.png, ... in the same run (one launch, several phases)
+--   LTHEORY_CAPTURE_SIZE=<w>x<h> window size (default 1280x720)
+--   LTHEORY_CAPTURE_GC_FRAME=<g> run a full Lua GC at frame g (catches GPU resources whose
+--                               only strong reference was a collected Lua object)
 -- Also fixes the window size and (engine-side) the frame delta time.
 local CAPTURE_SIZE_X, CAPTURE_SIZE_Y = 1280, 720
+do
+    local w, h = (os.getenv('LTHEORY_CAPTURE_SIZE') or ''):match('^(%d+)x(%d+)$')
+    if w then CAPTURE_SIZE_X, CAPTURE_SIZE_Y = tonumber(w), tonumber(h) end
+end
 
 function Application:getDefaultSize()
     if self.captureMode then return CAPTURE_SIZE_X, CAPTURE_SIZE_Y end
@@ -59,6 +68,11 @@ function Application:appInit()
     self.capturePath = os.getenv('LTHEORY_CAPTURE')
     self.captureMode = self.capturePath ~= nil
     self.captureFrame = tonumber(os.getenv('LTHEORY_CAPTURE_FRAME')) or 120
+    self.captureGcFrame = tonumber(os.getenv('LTHEORY_CAPTURE_GC_FRAME'))
+    self.captureExtraFrames = {}
+    for f in (os.getenv('LTHEORY_CAPTURE_EXTRA_FRAMES') or ''):gmatch('%d+') do
+        self.captureExtraFrames[tonumber(f)] = true
+    end
     self.frameCount = 0
     self.resX, self.resY = self:getDefaultSize()
 
@@ -298,6 +312,16 @@ end
 
 function Application:captureTick()
     self.frameCount = self.frameCount + 1
+    -- A size set before the OS window exists can be lost (the window opens at
+    -- its default 1280x720): ask again once it is up, until frame 10.
+    if self.frameCount <= 10 and (Window:width() ~= CAPTURE_SIZE_X or Window:height() ~= CAPTURE_SIZE_Y) then
+        if self.frameCount == 10 then
+            Log.Warn('CAPTURE_SIZE: window is %dx%d, wanted %dx%d', Window:width(), Window:height(),
+                CAPTURE_SIZE_X, CAPTURE_SIZE_Y)
+        else
+            Window:setSize(CAPTURE_SIZE_X, CAPTURE_SIZE_Y)
+        end
+    end
     -- Wall-clock timing over the second half of the run (first half is warmup)
     local half = math.floor(self.captureFrame / 2)
     if self.frameCount == half then
@@ -317,14 +341,18 @@ function Application:captureTick()
             table.insert(acc.mainWait, tonumber(Renderer:statsMainWaitUs()))
         end
     end
+    if self.frameCount == self.captureGcFrame then
+        collectgarbage('collect')
+        collectgarbage('collect') -- second pass runs the finalizers queued by the first
+        Log.Info('CAPTURE_GC frame=%d mem_kb=%.0f', self.frameCount, collectgarbage('count'))
+    end
+    if self.captureExtraFrames[self.frameCount] then
+        self:captureSave((self.capturePath:gsub('%.png$', '')) .. '_f' .. self.frameCount .. '.png')
+    end
     if self.captureDone or self.frameCount < self.captureFrame then return end
     self.captureDone = true
 
-    Renderer:sync()
-    Window:beginDraw() -- ScreenCapture measures the open pass target and reads the backbuffer (readSync)
-    local tex = Tex2D.ScreenCapture()
-    Window:endDraw()
-    tex:save(self.capturePath)
+    self:captureSave(self.capturePath)
 
     -- RenderCoreSystem's smoothed FPS is derived from the fixed capture dt, so
     -- report real wall-clock frame time measured here instead.
@@ -348,6 +376,30 @@ function Application:captureTick()
         recvMs, idlePct, execMs, presentMs, mainWaitMs, median(acc.commands), median(acc.draws),
         tonumber(Renderer:statsVertices()), idlePct >= 15 and 'producer' or 'consumer', self.capturePath)
     self:quit()
+end
+
+--- Save the backbuffer of the current capture frame to `path`, logging the
+--- frame's frustum cull stats (when the state renders through RenderCoreSystem).
+function Application:captureSave(path)
+    -- A minimized window has no backbuffer to read (ScreenCapture would save 1x1):
+    -- save nothing, so the runner reports the image as missing instead of diffing it.
+    if Window:width() < 2 or Window:height() < 2 then
+        Log.Warn('CAPTURE_SKIPPED frame=%d: window is minimized (%dx%d), nothing saved to %s',
+            self.frameCount, Window:width(), Window:height(), path)
+        return
+    end
+    Renderer:sync()
+    Window:beginDraw() -- ScreenCapture measures the open pass target and reads the backbuffer (readSync)
+    local tex = Tex2D.ScreenCapture()
+    Window:endDraw()
+    tex:save(path)
+    local ok, rcs = pcall(require, 'Modules.Rendering.Systems.RenderCoreSystem')
+    local cs = ok and rcs.getCullStats and rcs:getCullStats()
+    if cs then
+        Log.Info('CAPTURE_CULL frame=%d submitted=%d culled=%d visible=%d window=%dx%d physical=%dx%d scale=%.2f path=%s',
+            self.frameCount, cs.submitted or -1, cs.culled or -1, cs.visible or -1, Window:width(), Window:height(),
+            Window:physicalWidth(), Window:physicalHeight(), Window:scaleFactor(), path)
+    end
 end
 
 function Application:onPreInput(data) end

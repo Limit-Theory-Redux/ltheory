@@ -88,6 +88,8 @@ pub(super) struct GlBindingState {
     pub mip_ranges: HashMap<ResourceId, (i32, i32)>,
     /// What every live texture was created as (an update needs its format and kind).
     pub tex_descs: HashMap<ResourceId, TexDesc>,
+    /// Textures a bind was asked for after they were destroyed (warned once each).
+    pub missing_textures: std::collections::HashSet<ResourceId>,
     /// Unit quad for `DrawFullscreen`.
     pub fullscreen_vao: u32,
     pub fullscreen_vbo: u32,
@@ -118,6 +120,7 @@ impl GlBindingState {
             unit_samplers: [0; MAX_TEXTURE_SLOTS],
             mip_ranges: HashMap::new(),
             tex_descs: HashMap::new(),
+            missing_textures: std::collections::HashSet::new(),
             fullscreen_vao: 0,
             fullscreen_vbo: 0,
             imm2d_vao: 0,
@@ -702,7 +705,31 @@ impl CommandExecutor {
                 (gl::TEXTURE_CUBE_MAP, *handle, TextureType::TextureCube)
             }
             _ => {
-                warn!("bind view: texture {:?} not found", view.tex);
+                // A destroyed texture (or never created one). Unbind the unit
+                // rather than leave the texture bound there last in place,
+                // which the shader would sample instead (garbage); sampling
+                // unit 0 is deterministic black.
+                if self.binding.missing_textures.insert(view.tex) {
+                    warn!(
+                        "bind view: texture {:?} not found (destroyed while still bound?); unit {unit} left empty, further binds of it are not logged",
+                        view.tex
+                    );
+                }
+                let (target, ty) = match view.dim {
+                    ViewDim::D1 => (gl::TEXTURE_1D, TextureType::Texture1D),
+                    ViewDim::D2 | ViewDim::D2Layer(_) => (gl::TEXTURE_2D, TextureType::Texture2D),
+                    ViewDim::D3 => (gl::TEXTURE_3D, TextureType::Texture3D),
+                    ViewDim::Cube | ViewDim::CubeFace(_) => {
+                        (gl::TEXTURE_CUBE_MAP, TextureType::TextureCube)
+                    }
+                };
+                let unit_index = unit as usize;
+                unsafe {
+                    gl::ActiveTexture(gl::TEXTURE0 + unit);
+                    gl::BindTexture(target, 0);
+                    gl::ActiveTexture(gl::TEXTURE0);
+                }
+                self.texture_bindings[unit_index] = TextureBinding::new(0, ty);
                 return;
             }
         };

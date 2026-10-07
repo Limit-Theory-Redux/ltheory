@@ -435,7 +435,10 @@ impl Renderer {
         while let Ok(release) = self.data.release_rx.try_recv() {
             match release {
                 Release::Slice(slice) => self.data.arenas.release(slice),
-                Release::BindGroup(id) => groups.push(id),
+                Release::BindGroup(id) => {
+                    self.data.tex_pins.unpin_group(id);
+                    groups.push(id);
+                }
             }
         }
         if !groups.is_empty() {

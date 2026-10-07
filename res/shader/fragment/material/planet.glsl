@@ -9,6 +9,7 @@
 // Per-draw values of the group-2 draw block (see MaterialDefs.lua).
 #define origin (mWorld[3].xyz)    // camera-relative position of the planet
 #define rPlanet (drawScale.x)     // the body's scale
+#define rAtmo (rPlanet * atmoScale) // follows the body's scale when it changes
 #define time (drawUser[0].x)      // cloud motion time
 
 #group 1
@@ -18,7 +19,7 @@ layout(std140) uniform MaterialParams {
   vec3 color2;
   float oceanLevel;
   vec3 color3;
-  float rAtmo;
+  float atmoScale;  // atmosphere radius / planet radius
   vec3 color4;
   float _pad0;
 };

@@ -285,7 +285,9 @@ impl Renderer {
     fn drain_destroy_queue(&mut self) {
         // Collect first: the `destroy_rx` borrow has to end before `submit`
         // takes `&mut self`.
-        let ids: Vec<_> = self.data.destroy_rx.try_iter().collect();
+        let dropped: Vec<_> = self.data.destroy_rx.try_iter().collect();
+        // Textures a live bind group still samples wait (see `TexturePins`).
+        let ids = self.data.tex_pins.destroyable(dropped);
 
         self.ex().cmd_destroy_resource(&ids);
     }

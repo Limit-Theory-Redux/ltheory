@@ -21,7 +21,8 @@ artifact_dir = Path(
     os.environ.get("LTHEORY_VALIDATION_ARTIFACT_DIR", workdir / "target" / "render_validation")
 )
 baseline_dir = Path(__file__).resolve().parent / "baseline"
-SCENES = ["PlanetTest", "Benchmark", "SolarSystemPlayable", "MoonTest", "PlanetTestRing", "WeaponSystem"]
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from capture import SCENES, outputs  # noqa: E402  (scene list and multi-frame names)
 
 
 def heat(v):
@@ -58,7 +59,7 @@ def main():
     cap_dir = artifact_dir / "captures" / a.backend
     print(f"{'scene':<22}{'rmse':>8}{'max':>6}{'%>thr':>9}  result")
     failed = False
-    for scene in a.scenes or SCENES:
+    for scene in [n for s in (a.scenes or SCENES) for n in outputs(s)]:
         ref, cur = baseline_dir / f"{scene}.png", cap_dir / f"{scene}.png"
         if not ref.exists() or not cur.exists():
             print(f"{scene:<22}{'-':>8}{'-':>6}{'-':>9}  FAIL (missing {'baseline' if not ref.exists() else 'capture'})")

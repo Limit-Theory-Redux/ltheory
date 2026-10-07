@@ -56,7 +56,8 @@ MaterialType {
 
 ---@class Materials
 ---@field PlanetSurface MaterialType
--- Per instance: color1..4, oceanLevel and rAtmo (from the planet's gen options).
+-- Per instance: color1..4, oceanLevel and atmoScale (from the planet's gen options;
+-- the shaders derive rPlanet/rAtmo from the draw's scale, so a rescaled body stays right).
 MaterialType {
     name     = "PlanetSurface",
     shader   = { "wvp", "material/planet" },
@@ -74,7 +75,7 @@ MaterialType {
 
 ---@class Materials
 ---@field PlanetAtmosphere MaterialType
--- Per instance: rAtmo.
+-- Per instance: atmoScale.
 MaterialType {
     name   = "PlanetAtmosphere",
     shader = { "wvp", "material/atmosphere" },

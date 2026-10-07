@@ -14,10 +14,21 @@ with `LTHEORY_EXE` or `CARGO_TARGET_DIR`. Exit code 0 means the scene passed.
 
 ## Capture baseline / regression diff
 
-Real scenes (PlanetTest, Benchmark, SolarSystemPlayable, MoonTest, plus the variants PlanetTestRing = PlanetTest with seed 27, which rolls a planet ring, and the WeaponSystem testbed with deferred point lights) are captured
+Real scenes (PlanetTest, Benchmark, BenchmarkPhases, Benchmark1080, SolarSystemPlayable, MoonTest, plus the variants PlanetTestRing = PlanetTest with seed 27, which rolls a planet ring, and the WeaponSystem testbed with deferred point lights) are captured
 deterministically via `LTHEORY_CAPTURE=<out.png>` (+ `LTHEORY_CAPTURE_FRAME=<n>`,
 default 120): the engine uses a fixed 60 Hz delta time, a 1280x720 window, saves
 the backbuffer after frame n and exits, logging a `CAPTURE ...` stats line.
+
+More capture options (all only under `LTHEORY_CAPTURE`): `LTHEORY_CAPTURE_SIZE=WxH` (window size; re-requested
+during the first frames, since a size set before the OS window exists is lost),
+`LTHEORY_CAPTURE_EXTRA_FRAMES=a,b,...` (also save `<out>_f<a>.png`, ... in the same run; each logs a
+`CAPTURE_CULL` line with the scene list's submitted/culled counts) and `LTHEORY_CAPTURE_GC_FRAME=g` (full Lua GC at
+frame g). `capture.py` always forces the GC halfway to the first captured frame and fails a scene whose log reports a
+texture bound after it was destroyed (`texture ResourceId(n) not found`): a GPU resource kept alive only by a Lua object
+that something still draws with shows up there instead of after the first natural GC, minutes into a session. Two
+Benchmark variants cover what frame 120 at 1280x720 does not: `BenchmarkPhases` (frames 600, 1000, 1300, 1600, 1850 and
+2100: ring fly-through, asteroid zoom and close-up, return, moon zoom and close-up) and `Benchmark1080` (1920x1080). A
+minimized window saves nothing (`CAPTURE_SKIPPED`), so the scene fails as missing rather than diffing a 1x1 image.
 
 ```sh
 python tools/render_validation/capture.py gl [scene...]   # -> target/render_validation/captures/gl/
