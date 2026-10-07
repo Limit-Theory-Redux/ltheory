@@ -19,6 +19,10 @@ function WorkerFunction.Create(f)
         local managedPayload = Core.ManagedObject(inPayloadPtr, libphx.Payload_Free)
         local result = f(PayloadConverter:payloadToValue(managedPayload))
         local outPayloadPtr = PayloadConverter:valueToPayload(result, true)
+        if outPayloadPtr == nil then
+            -- nil result: the engine delivers an empty task result
+            return nil
+        end
         -- 'forget' about payload before sending it to the Rust
         ffi.gc(outPayloadPtr, nil)
         -- cast payload pointer to number to be sent to Rust

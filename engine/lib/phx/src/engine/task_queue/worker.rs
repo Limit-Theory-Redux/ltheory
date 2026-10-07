@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use crossbeam::channel::{Receiver, RecvTimeoutError, Sender, unbounded};
+use crossbeam::channel::{Receiver, RecvTimeoutError, Sender, TryRecvError, unbounded};
 use tracing::debug;
 
 use super::{TaskId, TaskQueueError, WorkerInData, WorkerInstance, WorkerOutData};
@@ -148,25 +148,46 @@ impl<IN: Send + 'static, OUT: Send + 'static> Worker<IN, OUT> {
         Ok(task_id)
     }
 
-    /// Get result from the worker thread if any.
+    /// Get result from the worker thread if any. Never blocks.
     pub fn recv(&mut self) -> Result<Option<(TaskId, OUT)>, TaskQueueError> {
-        match self.out_receiver.recv_timeout(RECEIVE_TIMEOUT) {
-            Ok(out_data) => match out_data {
-                WorkerOutData::Pong => Ok(None),
-                WorkerOutData::Data(task_id, data) => {
-                    self.tasks_in_work -= 1;
-                    Ok(Some((task_id, data)))
-                }
-            },
-            Err(err) => match err {
-                RecvTimeoutError::Timeout => Ok(None),
-                RecvTimeoutError::Disconnected => Err(TaskQueueError::ThreadError(format!(
-                    "Worker thread {:?} is disconnected",
-                    self.name
-                ))),
-            },
+        match self.out_receiver.try_recv() {
+            Ok(out_data) => Ok(self.handle_out_data(out_data)),
+            Err(TryRecvError::Empty) => Ok(None),
+            Err(TryRecvError::Disconnected) => Err(self.disconnected_error()),
         }
     }
+
+    /// Get result from the worker thread, waiting up to `timeout` for one to become ready.
+    pub fn recv_timeout(
+        &mut self,
+        timeout: Duration,
+    ) -> Result<Option<(TaskId, OUT)>, TaskQueueError> {
+        match self.out_receiver.recv_timeout(timeout) {
+            Ok(out_data) => Ok(self.handle_out_data(out_data)),
+            Err(RecvTimeoutError::Timeout) => Ok(None),
+            Err(RecvTimeoutError::Disconnected) => Err(self.disconnected_error()),
+        }
+    }
+
+    fn handle_out_data(&mut self, out_data: WorkerOutData<OUT>) -> Option<(TaskId, OUT)> {
+        match out_data {
+            WorkerOutData::Pong => None,
+            WorkerOutData::Data(task_id, data) => {
+                self.tasks_in_work = self.tasks_in_work.saturating_sub(1);
+                Some((task_id, data))
+            }
+        }
+    }
+
+    fn disconnected_error(&self) -> TaskQueueError {
+        TaskQueueError::ThreadError(format!("Worker thread {:?} is disconnected", self.name))
+    }
+}
+
+/// Tasks being executed right now. The channel lengths are read without synchronisation
+/// with the workers, so the sum can transiently exceed `in_work`: never underflow.
+fn in_progress(in_work: usize, waiting: usize, ready: usize) -> usize {
+    in_work.saturating_sub(waiting.saturating_add(ready))
 }
 
 impl<IN, OUT> WorkerBase for Worker<IN, OUT> {
@@ -183,7 +204,7 @@ impl<IN, OUT> WorkerBase for Worker<IN, OUT> {
     }
 
     fn tasks_in_progress(&self) -> usize {
-        self.tasks_in_work - self.tasks_waiting() - self.tasks_ready()
+        in_progress(self.tasks_in_work, self.tasks_waiting(), self.tasks_ready())
     }
 
     fn tasks_ready(&self) -> usize {
@@ -236,7 +257,7 @@ mod tests {
         assert_eq!(0, worker.tasks_ready(), "Tasks ready");
 
         let (result_task_id, result_data) = worker
-            .recv()
+            .recv_timeout(Duration::from_secs(5))
             .expect("Cannot receive task result")
             .expect("Task result is not ready");
 
@@ -253,5 +274,50 @@ mod tests {
         std::thread::sleep(RECEIVE_TIMEOUT);
 
         assert!(worker.is_finished());
+    }
+
+    #[test]
+    fn test_recv_does_not_block() {
+        let mut worker: Worker<String, String> = Worker::new_native("TestNoBlock", 1, |d| d);
+        let start = std::time::Instant::now();
+        for _ in 0..100 {
+            assert!(worker.recv().expect("recv").is_none());
+        }
+        assert!(
+            start.elapsed() < Duration::from_millis(100),
+            "recv blocked: {:?}",
+            start.elapsed()
+        );
+        worker.stop().expect("Cannot stop worker");
+    }
+
+    #[test]
+    fn test_in_progress_never_underflows() {
+        assert_eq!(0, super::in_progress(0, 1, 0));
+        assert_eq!(0, super::in_progress(1, 1, 1));
+        assert_eq!(0, super::in_progress(2, usize::MAX, 5));
+        assert_eq!(2, super::in_progress(5, 2, 1));
+    }
+
+    #[test]
+    fn test_tasks_in_progress_accounting_under_load() {
+        let mut worker: Worker<u32, u32> = Worker::new_native("TestAcct", 2, |d| {
+            std::thread::sleep(Duration::from_millis(1));
+            d
+        });
+        for i in 0..200 {
+            worker.send(i).unwrap();
+            // must never panic (debug build overflow checks) while workers race with us
+            let _ = worker.tasks_in_progress();
+        }
+        let mut got = 0;
+        while got < 200 {
+            let _ = worker.tasks_in_progress();
+            if worker.recv_timeout(Duration::from_secs(5)).unwrap().is_some() {
+                got += 1;
+            }
+        }
+        assert_eq!(0, worker.tasks_in_work());
+        worker.stop().unwrap();
     }
 }
