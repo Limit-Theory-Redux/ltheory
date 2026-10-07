@@ -1,7 +1,7 @@
 use super::gl;
 
 #[luajit_ffi_gen::luajit_ffi(with_impl = true, repr = "u32")]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum CubeFace {
     PX = gl::TEXTURE_CUBE_MAP_POSITIVE_X,
     NX = gl::TEXTURE_CUBE_MAP_NEGATIVE_X,

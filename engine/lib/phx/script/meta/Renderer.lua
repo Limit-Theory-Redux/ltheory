@@ -189,31 +189,11 @@ function Renderer:bindTextureCube(slot, handle) end
 ---@param slot integer
 function Renderer:unbindTexture(slot) end
 
--- Bind a framebuffer
----@param handle integer
-function Renderer:bindFramebuffer(handle) end
-
--- Bind the default framebuffer
-function Renderer:bindDefaultFramebuffer() end
-
--- Clear color buffer
----@param r number
----@param g number
----@param b number
----@param a number
-function Renderer:clearColor(r, g, b, a) end
-
--- Clear depth buffer
----@param depth number
-function Renderer:clearDepth(depth) end
-
--- Clear both color and depth buffers
----@param r number
----@param g number
----@param b number
----@param a number
----@param depth number
-function Renderer:clear(r, g, b, a, depth) end
+-- Begin a render pass on `desc`'s attachments. Only one pass may be open
+-- at a time; end it with `RenderPass:finish()`.
+---@param desc RenderPassDesc
+---@return RenderPass
+function Renderer:beginPass(desc) end
 
 -- Draw a mesh
 ---@param vao integer

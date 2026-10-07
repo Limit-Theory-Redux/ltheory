@@ -1,8 +1,10 @@
 use glam::{IVec2, Vec3};
 use image::{DynamicImage, GenericImageView, ImageBuffer, ImageReader, Rgba};
 
-use super::{DataFormat, Draw, PixelFormat, RenderTarget, TexFilter, TexFormat, TexWrapMode};
-use crate::render::{Renderer, ResourceHandle, ResourceId, Viewport, gl};
+use super::{DataFormat, PixelFormat, TexFilter, TexFormat, TexWrapMode};
+use crate::render::{
+    LoadOp, RenderPassDesc, Renderer, ResourceHandle, ResourceId, TexView, ViewDim, Viewport, gl,
+};
 use crate::rf::Rf;
 use crate::system::{Bytes, Resource, ResourceType};
 
@@ -177,26 +179,31 @@ impl Tex2D {
         }
     }
 
-    pub fn pop(&self, r: &mut Renderer) {
-        RenderTarget::pop(r);
+    /// View of mip level 0, usable as a render attachment.
+    pub fn view(&self) -> TexView {
+        self.mip_view(0)
     }
 
-    pub fn push(&self, r: &mut Renderer) {
-        RenderTarget::push_tex2d(r, self);
-    }
-
-    pub fn push_level(&mut self, r: &mut Renderer, level: i32) {
-        RenderTarget::push_tex2d_level(r, self, level);
+    /// View of one mip level, usable as a render attachment.
+    pub fn mip_view(&self, level: i32) -> TexView {
+        let size = self.get_size_level(level);
+        TexView::new(self.resource_id(), ViewDim::D2, level, [size.x, size.y])
     }
 
     pub fn clear(&mut self, r: &mut Renderer, red: f32, green: f32, blue: f32, alpha: f32) {
-        RenderTarget::push_tex2d(r, self);
-        Draw::clear(r, red, green, blue, alpha);
-        RenderTarget::pop(r);
+        let desc = RenderPassDesc::with_color(
+            "Tex2D.clear",
+            self.view(),
+            LoadOp::Clear,
+            [red, green, blue, alpha],
+        );
+        r.begin_pass_intern(&desc);
+        r.end_pass_intern();
     }
 
     pub fn deep_clone(&mut self, r: &mut Renderer) -> Tex2D {
-        RenderTarget::push_tex2d(r, self);
+        let desc = RenderPassDesc::with_color("Tex2D.deepClone", self.view(), LoadOp::Load, [0.0; 4]);
+        r.begin_pass_intern(&desc);
 
         let this = self.shared.as_ref();
         let size = this.size;
@@ -206,7 +213,7 @@ impl Tex2D {
         r.create_texture_2d(handle.id(), size.x as u32, size.y as u32, format, None);
         r.copy_texture_2d_from_framebuffer_by_resource(handle.id(), format as i32, size.x, size.y);
 
-        RenderTarget::pop(r);
+        r.end_pass_intern();
 
         Tex2D {
             shared: Rf::new(Tex2DShared {

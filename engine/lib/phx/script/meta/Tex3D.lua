@@ -12,17 +12,16 @@ Tex3D = {}
 ---@return Tex3D
 function Tex3D.Create(r, sx, sy, sz, format) end
 
----@param r Renderer
-function Tex3D:pop(r) end
-
----@param r Renderer
+-- View of one z-slice at mip level 0, usable as a render attachment.
 ---@param layer integer
-function Tex3D:push(r, layer) end
+---@return TexView
+function Tex3D:layerView(layer) end
 
----@param r Renderer
+-- View of one z-slice at the given mip level, usable as a render attachment.
 ---@param layer integer
 ---@param level integer
-function Tex3D:pushLevel(r, layer, level) end
+---@return TexView
+function Tex3D:layerMipView(layer, level) end
 
 ---@param r Renderer
 function Tex3D:genMipmap(r) end

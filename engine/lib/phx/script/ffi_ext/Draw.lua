@@ -5,14 +5,6 @@ local libphx = require('libphx').lib
 -- doc/engine/render-thread.md); inject the global `Renderer` set by
 -- SetEngine so call sites don't change.
 function onDef_Draw(t, mt)
-    t.Clear = function(red, green, blue, alpha)
-        libphx.Draw_Clear(Renderer, red, green, blue, alpha)
-    end
-
-    t.ClearDepth = function(d)
-        libphx.Draw_ClearDepth(Renderer, d)
-    end
-
     t.Color = function(red, green, blue, alpha)
         libphx.Draw_Color(Renderer, red, green, blue, alpha)
     end

@@ -4,7 +4,7 @@ use tracing::error;
 use crate::math::Matrix;
 use crate::render::{
     BatchStats, BlendMode, CameraUboData, CmdPrimitiveType, CullFace, GpuHandle, InstanceData,
-    LightUboData, MaterialUboData, RenderBatch, Renderer, ResourceId,
+    LightUboData, MaterialUboData, RenderBatch, RenderPass, RenderPassDesc, Renderer, ResourceId,
 };
 
 // =============================================================================
@@ -277,31 +277,12 @@ impl Renderer {
         self.unbind_texture_intern(slot);
     }
 
-    // === Framebuffer Operations ===
+    // === Render Passes ===
 
-    /// Bind a framebuffer
-    pub fn bind_framebuffer(&mut self, handle: u32) {
-        self.bind_framebuffer_intern(GpuHandle(handle));
-    }
-
-    /// Bind the default framebuffer
-    pub fn bind_default_framebuffer(&mut self) {
-        self.bind_default_framebuffer_intern();
-    }
-
-    /// Clear color buffer
-    pub fn clear_color(&mut self, r: f32, g: f32, b: f32, a: f32) {
-        self.clear_intern(Some([r, g, b, a]), None);
-    }
-
-    /// Clear depth buffer
-    pub fn clear_depth(&mut self, depth: f32) {
-        self.clear_intern(None, Some(depth));
-    }
-
-    /// Clear both color and depth buffers
-    pub fn clear(&mut self, r: f32, g: f32, b: f32, a: f32, depth: f32) {
-        self.clear_intern(Some([r, g, b, a]), Some(depth));
+    /// Begin a render pass on `desc`'s attachments. Only one pass may be open
+    /// at a time; end it with `RenderPass:finish()`.
+    pub fn begin_pass(&mut self, desc: &RenderPassDesc) -> RenderPass {
+        self.begin_pass_intern(desc)
     }
 
     // === Drawing Operations ===

@@ -9,17 +9,6 @@ Draw = {}
 ---@param green number
 ---@param blue number
 ---@param alpha number
-function Draw.Clear(r, red, green, blue, alpha) end
-
----@param r Renderer
----@param d number
-function Draw.ClearDepth(r, d) end
-
----@param r Renderer
----@param red number
----@param green number
----@param blue number
----@param alpha number
 function Draw.Color(r, red, green, blue, alpha) end
 
 ---@param r Renderer

@@ -2,7 +2,7 @@ use crossbeam::channel::{Receiver, Sender};
 
 use crate::render::{
     ClipManager, DrawState, PrimitiveBuilder, RenderBatch, RenderCommand, RenderStateIntern,
-    RenderTargetStack, ResourceId, Shader, ShaderErrorQueue, ShaderVarMap, ShaderWatcherInner,
+    ResourceId, Shader, ShaderErrorQueue, ShaderVarMap, ShaderWatcherInner,
     VpStack,
 };
 
@@ -22,9 +22,8 @@ pub struct RendererData {
     pub active_batch: Option<RenderBatch>,
     /// Viewport stack (was `thread_local! VP_STACK` in viewport.rs)
     pub viewport: VpStack,
-    /// Framebuffer attachment bookkeeping (was `thread_local! FBO_STACK` in
-    /// render_target.rs)
-    pub render_target: RenderTargetStack,
+    /// Label of the currently open render pass, if any (one at a time).
+    pub open_pass: Option<std::sync::Arc<str>>,
     /// Clip-rect stack (was `thread_local! CLIP_MANAGER` in clip_rect.rs)
     pub clip_rect: ClipManager,
     /// GL state stack (was `thread_local! RENDER_STATE` in render_state.rs)

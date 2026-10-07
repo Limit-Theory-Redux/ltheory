@@ -9,7 +9,8 @@ use std::time::Instant;
 use tracing::info;
 
 use crate::render::{
-    CommandCategory, RenderCommand, RenderStats, ResourceId, ShaderReloadResult, gl,
+    CommandCategory, MAX_COLOR_ATTACHMENTS, RenderCommand, RenderStats, ResourceId,
+    ShaderReloadResult, ViewDim, gl,
 };
 use crate::window::WindowActiveGlContext;
 
@@ -34,7 +35,6 @@ pub enum CommandReply {
 
 /// GPU resource stored on the render thread
 #[derive(Debug)]
-#[expect(dead_code)]
 pub(super) enum GpuResource {
     Shader { program: u32 },
     Texture1D { handle: u32 },
@@ -42,7 +42,6 @@ pub(super) enum GpuResource {
     Texture3D { handle: u32 },
     TextureCube { handle: u32 },
     Mesh { vao: u32, vbo: u32, ebo: u32 },
-    Framebuffer { fbo: u32 },
 }
 
 /// Statistics from the render thread (local copy)
@@ -54,13 +53,21 @@ pub struct ExecutorStats {
     pub frame_count: u64,
 }
 
-/// FBO entry for the render thread's FBO stack
-pub(super) struct FboEntry {
-    pub handle: u32,
-    pub color_index: i32,
+/// One framebuffer attachment as identified by the FBO cache: a texture and
+/// the part of it (mip level, cube face or 3D layer) that is attached.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(super) struct AttachKey {
+    pub id: ResourceId,
+    pub dim: ViewDim,
+    pub mip: u8,
 }
 
-pub(super) const FBO_STACK_DEPTH: usize = 16;
+/// FBO cache key: the set of attachments a pass renders to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(super) struct FboKey {
+    pub color: [Option<AttachKey>; MAX_COLOR_ATTACHMENTS],
+    pub depth: Option<AttachKey>,
+}
 
 /// Maximum number of texture units to track for caching
 /// OpenGL requires at least 16, most GPUs support 32+
@@ -123,8 +130,13 @@ pub struct CommandExecutor {
     // Immediate mode VAO/VBO for DrawImmediate commands
     pub(super) imm_vao: u32,
     pub(super) imm_vbo: u32,
-    // FBO stack for push/pop framebuffer operations
-    pub(super) fbo_stack: Vec<FboEntry>,
+    /// GL framebuffer objects by attachment set. An entry lives until one of
+    /// its textures is destroyed.
+    pub(super) fbo_cache: HashMap<FboKey, u32>,
+    /// Texture -> the cache keys that attach it, for eviction on destroy.
+    pub(super) texture_fbos: HashMap<ResourceId, Vec<FboKey>>,
+    /// Framebuffer bound by the open render pass (0 = default framebuffer).
+    pub(super) bound_fbo: u32,
     // GL context for buffer swapping (stored here to allow access during execute)
     pub(super) gl_context: Option<WindowActiveGlContext>,
     // Currently bound shader program (needed for name-based uniform lookups)
@@ -223,7 +235,9 @@ impl CommandExecutor {
             last_stats: RenderStats::default(),
             imm_vao: 0,
             imm_vbo: 0,
-            fbo_stack: Vec::with_capacity(FBO_STACK_DEPTH),
+            fbo_cache: HashMap::new(),
+            texture_fbos: HashMap::new(),
+            bound_fbo: 0,
             gl_context,
             current_program: 0,
             frame_start: std::time::Instant::now(),
@@ -721,72 +735,10 @@ impl CommandExecutor {
                 let _ = reply_tx.send(data);
             }
 
-            // === Framebuffer Operations ===
-            RenderCommand::PushFramebuffer {
-                id: _,
-                width: _,
-                height: _,
-            } => {
-                self.cmd_push_framebuffer();
-            }
+            // === Render Passes ===
+            RenderCommand::BeginRenderPass(desc) => self.cmd_begin_render_pass(&desc),
 
-            RenderCommand::PopFramebuffer => {
-                self.cmd_pop_framebuffer();
-            }
-
-            RenderCommand::FramebufferAttachTexture2D {
-                attachment,
-                texture,
-                level,
-            } => self.cmd_framebuffer_attach_texture_2d(attachment, texture, level),
-
-            RenderCommand::FramebufferAttachTexture2DByResource {
-                attachment,
-                id,
-                level,
-            } => {
-                self.cmd_framebuffer_attach_texture_2d_by_resource(attachment, id, level);
-            }
-
-            RenderCommand::FramebufferAttachTexture3D {
-                attachment,
-                texture,
-                layer,
-                level,
-            } => self.cmd_framebuffer_attach_texture_3d(attachment, texture, layer, level),
-
-            RenderCommand::FramebufferAttachTexture3DByResource {
-                attachment,
-                id,
-                layer,
-                level,
-            } => {
-                self.cmd_framebuffer_attach_texture_3d_by_resource(attachment, id, layer, level);
-            }
-
-            RenderCommand::FramebufferAttachTextureCube {
-                attachment,
-                texture,
-                face,
-                level,
-            } => self.cmd_framebuffer_attach_texture_cube(attachment, texture, face, level),
-
-            RenderCommand::FramebufferAttachTextureCubeByResource {
-                attachment,
-                id,
-                face,
-                level,
-            } => {
-                self.cmd_framebuffer_attach_texture_cube_by_resource(attachment, id, face, level);
-            }
-
-            RenderCommand::SetDrawBuffers { count } => self.cmd_set_draw_buffers(count),
-
-            RenderCommand::BindFramebuffer { handle } => self.cmd_bind_framebuffer(handle),
-
-            RenderCommand::BindDefaultFramebuffer => self.cmd_bind_default_framebuffer(),
-
-            RenderCommand::Clear { color, depth } => self.cmd_clear(color, depth),
+            RenderCommand::EndRenderPass => self.cmd_end_render_pass(),
 
             // === Mesh Operations ===
             RenderCommand::BindMesh { vao } => self.cmd_bind_mesh(vao),

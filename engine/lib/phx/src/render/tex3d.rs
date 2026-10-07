@@ -1,7 +1,7 @@
 use glam::IVec3;
 
-use super::{DataFormat, PixelFormat, RenderTarget, TexFilter, TexFormat, TexWrapMode};
-use crate::render::{Renderer, ResourceHandle, ResourceId};
+use super::{DataFormat, PixelFormat, TexFilter, TexFormat, TexWrapMode};
+use crate::render::{Renderer, ResourceHandle, ResourceId, TexView, ViewDim};
 use crate::rf::Rf;
 use crate::system::Bytes;
 
@@ -85,16 +85,20 @@ impl Tex3D {
         }
     }
 
-    pub fn pop(&self, r: &mut Renderer) {
-        RenderTarget::pop(r);
+    /// View of one z-slice at mip level 0, usable as a render attachment.
+    pub fn layer_view(&self, layer: i32) -> TexView {
+        self.layer_mip_view(layer, 0)
     }
 
-    pub fn push(&self, r: &mut Renderer, layer: i32) {
-        RenderTarget::push_tex3d(r, self, layer);
-    }
-
-    pub fn push_level(&self, r: &mut Renderer, layer: i32, level: i32) {
-        RenderTarget::push_tex3d_level(r, self, layer, level);
+    /// View of one z-slice at the given mip level, usable as a render attachment.
+    pub fn layer_mip_view(&self, layer: i32, level: i32) -> TexView {
+        let size = self.get_size_level(level);
+        TexView::new(
+            self.resource_id(),
+            ViewDim::D2Layer(layer as u16),
+            level,
+            [size.x, size.y],
+        )
     }
 
     pub fn gen_mipmap(&mut self, r: &mut Renderer) {

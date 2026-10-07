@@ -20,6 +20,8 @@ function Loader.defineType()
             void      TexCube_Free         (TexCube*);
             TexCube*  TexCube_Create       (Renderer* r, int size, TexFormat format);
             TexCube*  TexCube_Load         (Renderer* r, cstr path);
+            TexView*  TexCube_FaceView     (TexCube const*, CubeFace face);
+            TexView*  TexCube_FaceMipView  (TexCube const*, CubeFace face, int level);
             void      TexCube_Clear        (TexCube*, Renderer* r, float red, float green, float blue, float alpha);
             void      TexCube_Save         (TexCube*, Renderer* r, cstr path);
             void      TexCube_SaveLevel    (TexCube*, Renderer* r, cstr path, int level);
@@ -55,6 +57,14 @@ function Loader.defineType()
         local t  = ffi.typeof('TexCube')
         local mt = {
             __index = {
+                faceView     = function(self, face)
+                    local _instance = libphx.TexCube_FaceView(self, face)
+                    return Core.ManagedObject(_instance, libphx.TexView_Free)
+                end,
+                faceMipView  = function(self, face, level)
+                    local _instance = libphx.TexCube_FaceMipView(self, face, level)
+                    return Core.ManagedObject(_instance, libphx.TexView_Free)
+                end,
                 clear        = libphx.TexCube_Clear,
                 save         = libphx.TexCube_Save,
                 saveLevel    = libphx.TexCube_SaveLevel,

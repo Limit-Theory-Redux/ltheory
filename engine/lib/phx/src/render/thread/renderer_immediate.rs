@@ -9,7 +9,7 @@ use crate::render::StatsSink;
 use crate::render::thread::{CommandExecutor, CommandReply, RendererData};
 use crate::render::{
     BlendMode, CameraUboArray, ClipManager, CmdPrimitiveType, CullFace, DrawState, GpuHandle,
-    ImmVertex, InstanceData, PrimitiveBuilder, RenderStateIntern, RenderStats, RenderTargetStack,
+    ImmVertex, InstanceData, PrimitiveBuilder, RenderPassDesc, RenderStateIntern, RenderStats,
     RenderThreadError, ResourceId, ShaderErrorQueue, ShaderReloadResult, ShaderVarMap, TexFilter,
     TexFormat, TexWrapMode, VertexFormat, VpStack,
 };
@@ -63,7 +63,7 @@ impl Renderer {
                 command_buffer: vec![],
                 active_batch: None,
                 viewport: VpStack::new(),
-                render_target: RenderTargetStack::new(),
+                open_pass: None,
                 clip_rect: ClipManager::new(),
                 render_state: RenderStateIntern::new(),
                 imm: PrimitiveBuilder::new(),
@@ -448,58 +448,14 @@ impl Renderer {
             .cmd_read_framebuffer_pixels(x, y, width, height)
     }
 
-    // === Framebuffer Operations ===
+    // === Render Passes ===
 
-    pub fn push_framebuffer(&mut self, _id: u64, _width: i32, _height: i32) {
-        self.executor.cmd_push_framebuffer();
+    pub fn begin_render_pass(&mut self, desc: Box<RenderPassDesc>) {
+        self.executor.cmd_begin_render_pass(&desc);
     }
 
-    pub fn pop_framebuffer(&mut self) {
-        self.executor.cmd_pop_framebuffer();
-    }
-
-    pub fn framebuffer_attach_texture_2d_by_resource(
-        &mut self,
-        attachment: u32,
-        id: ResourceId,
-        level: i32,
-    ) {
-        self.executor
-            .cmd_framebuffer_attach_texture_2d_by_resource(attachment, id, level);
-    }
-
-    pub fn framebuffer_attach_texture_3d_by_resource(
-        &mut self,
-        attachment: u32,
-        id: ResourceId,
-        layer: i32,
-        level: i32,
-    ) {
-        self.executor
-            .cmd_framebuffer_attach_texture_3d_by_resource(attachment, id, layer, level);
-    }
-
-    pub fn framebuffer_attach_texture_cube_by_resource(
-        &mut self,
-        attachment: u32,
-        id: ResourceId,
-        face: u32,
-        level: i32,
-    ) {
-        self.executor
-            .cmd_framebuffer_attach_texture_cube_by_resource(attachment, id, face, level);
-    }
-
-    pub fn bind_framebuffer_intern(&mut self, handle: GpuHandle) {
-        self.executor.cmd_bind_framebuffer(handle);
-    }
-
-    pub fn bind_default_framebuffer_intern(&mut self) {
-        self.executor.cmd_bind_default_framebuffer();
-    }
-
-    pub fn clear_intern(&mut self, color: Option<[f32; 4]>, depth: Option<f32>) {
-        self.executor.cmd_clear(color, depth);
+    pub fn end_render_pass(&mut self) {
+        self.executor.cmd_end_render_pass();
     }
 
     // === Drawing Operations ===
@@ -812,7 +768,7 @@ impl Renderer {
                 command_buffer: vec![],
                 active_batch: None,
                 viewport: VpStack::new(),
-                render_target: RenderTargetStack::new(),
+                open_pass: None,
                 clip_rect: ClipManager::new(),
                 render_state: RenderStateIntern::new(),
                 imm: PrimitiveBuilder::new(),

@@ -11,18 +11,6 @@ function onDef_Tex3D(t, mt)
 end
 
 function onDef_Tex3D_t(t, mt)
-    mt.__index.pop = function(self)
-        libphx.Tex3D_Pop(self, Renderer)
-    end
-
-    mt.__index.push = function(self, layer)
-        libphx.Tex3D_Push(self, Renderer, layer)
-    end
-
-    mt.__index.pushLevel = function(self, layer, level)
-        libphx.Tex3D_PushLevel(self, Renderer, layer, level)
-    end
-
     mt.__index.genMipmap = function(self)
         libphx.Tex3D_GenMipmap(self, Renderer)
     end

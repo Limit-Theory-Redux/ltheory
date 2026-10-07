@@ -23,9 +23,8 @@ function Loader.defineType()
             Tex2D*    Tex2D_Clone         (Tex2D const*);
             Tex2D*    Tex2D_ScreenCapture (Renderer* r);
             void      Tex2D_Save          (Tex2D*, Renderer* r, cstr path);
-            void      Tex2D_Pop           (Tex2D const*, Renderer* r);
-            void      Tex2D_Push          (Tex2D const*, Renderer* r);
-            void      Tex2D_PushLevel     (Tex2D*, Renderer* r, int level);
+            TexView*  Tex2D_View          (Tex2D const*);
+            TexView*  Tex2D_MipView       (Tex2D const*, int level);
             void      Tex2D_Clear         (Tex2D*, Renderer* r, float red, float green, float blue, float alpha);
             Tex2D*    Tex2D_DeepClone     (Tex2D*, Renderer* r);
             void      Tex2D_GenMipmap     (Tex2D*, Renderer* r);
@@ -73,9 +72,14 @@ function Loader.defineType()
                     return Core.ManagedObject(_instance, libphx.Tex2D_Free)
                 end,
                 save          = libphx.Tex2D_Save,
-                pop           = libphx.Tex2D_Pop,
-                push          = libphx.Tex2D_Push,
-                pushLevel     = libphx.Tex2D_PushLevel,
+                view          = function(self)
+                    local _instance = libphx.Tex2D_View(self)
+                    return Core.ManagedObject(_instance, libphx.TexView_Free)
+                end,
+                mipView       = function(self, level)
+                    local _instance = libphx.Tex2D_MipView(self, level)
+                    return Core.ManagedObject(_instance, libphx.TexView_Free)
+                end,
                 clear         = libphx.Tex2D_Clear,
                 deepClone     = function(self, r)
                     local _instance = libphx.Tex2D_DeepClone(self, r)

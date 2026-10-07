@@ -19,9 +19,8 @@ function Loader.defineType()
         ffi.cdef [[
             void      Tex3D_Free         (Tex3D*);
             Tex3D*    Tex3D_Create       (Renderer* r, int sx, int sy, int sz, TexFormat format);
-            void      Tex3D_Pop          (Tex3D const*, Renderer* r);
-            void      Tex3D_Push         (Tex3D const*, Renderer* r, int layer);
-            void      Tex3D_PushLevel    (Tex3D const*, Renderer* r, int layer, int level);
+            TexView*  Tex3D_LayerView    (Tex3D const*, int layer);
+            TexView*  Tex3D_LayerMipView (Tex3D const*, int layer, int level);
             void      Tex3D_GenMipmap    (Tex3D*, Renderer* r);
             Bytes*    Tex3D_GetDataBytes (Tex3D*, Renderer* r, PixelFormat pf, DataFormat df);
             TexFormat Tex3D_GetFormat    (Tex3D const*);
@@ -50,9 +49,14 @@ function Loader.defineType()
         local t  = ffi.typeof('Tex3D')
         local mt = {
             __index = {
-                pop          = libphx.Tex3D_Pop,
-                push         = libphx.Tex3D_Push,
-                pushLevel    = libphx.Tex3D_PushLevel,
+                layerView    = function(self, layer)
+                    local _instance = libphx.Tex3D_LayerView(self, layer)
+                    return Core.ManagedObject(_instance, libphx.TexView_Free)
+                end,
+                layerMipView = function(self, layer, level)
+                    local _instance = libphx.Tex3D_LayerMipView(self, layer, level)
+                    return Core.ManagedObject(_instance, libphx.TexView_Free)
+                end,
                 genMipmap    = libphx.Tex3D_GenMipmap,
                 getDataBytes = function(self, r, pf, df)
                     local _instance = libphx.Tex3D_GetDataBytes(self, r, pf, df)

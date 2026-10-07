@@ -2,8 +2,8 @@ use glam::{IVec2, Mat4, vec3};
 
 use crate::render::{Renderer, ShaderVar};
 
-/* TODO : This is a low-level mechanism and probably not for use outside of
- *        RenderTarget. Should likely be folded into RenderTarget. */
+/* TODO : This is a low-level mechanism; render passes set it up at begin
+ *        (`Renderer::begin_pass_intern`). It is folded into the pass in S3. */
 
 pub struct Viewport;
 

@@ -11,7 +11,7 @@ use crossbeam::channel::Sender;
 use super::command_category::CommandCategory;
 use crate::render::{
     BlendMode, CameraUboArray, CullFace, InstanceData, TexFilter, TexFormat, TexWrapMode,
-    VertexFormat, gl,
+    RenderPassDesc, VertexFormat, gl,
 };
 use crate::window::PresentMode;
 
@@ -396,8 +396,8 @@ pub enum RenderCommand {
 
     /// Copy the currently-bound read framebuffer into a (already-created,
     /// empty) 2D texture by resource ID. Used by `Tex2D::deep_clone` - the
-    /// caller is expected to have already bound the source via
-    /// `RenderTarget::push_tex2d`.
+    /// caller is expected to have already bound the source by opening
+    /// a render pass on it.
     CopyTexture2DFromFramebufferByResource {
         id: ResourceId,
         internal_format: i32,
@@ -461,81 +461,13 @@ pub enum RenderCommand {
         reply_tx: Sender<Vec<u8>>,
     },
 
-    // === Framebuffer Operations ===
-    /// Create and bind a new framebuffer, returning its handle via the FBO stack
-    /// This is used by RenderTarget::push()
-    PushFramebuffer {
-        /// Local ID for tracking (mapped to GL handle on render thread)
-        id: u64,
-        width: i32,
-        height: i32,
-    },
+    // === Render Passes ===
+    /// Begin a render pass: bind the attachments (or the backbuffer), set the
+    /// viewport to the attachment size, apply the load ops.
+    BeginRenderPass(Box<RenderPassDesc>),
 
-    /// Pop and delete the current framebuffer, restore previous
-    /// This is used by RenderTarget::pop()
-    PopFramebuffer,
-
-    /// Attach a 2D texture to the current framebuffer (by GL handle)
-    FramebufferAttachTexture2D {
-        attachment: u32, // GL_COLOR_ATTACHMENT0, GL_DEPTH_ATTACHMENT, etc.
-        texture: GpuHandle,
-        level: i32,
-    },
-
-    /// Attach a 2D texture to the current framebuffer (by resource ID)
-    /// Used when the texture was created on the render thread
-    FramebufferAttachTexture2DByResource {
-        attachment: u32,
-        id: ResourceId,
-        level: i32,
-    },
-
-    /// Attach a 3D texture layer to the current framebuffer
-    FramebufferAttachTexture3D {
-        attachment: u32,
-        texture: GpuHandle,
-        layer: i32,
-        level: i32,
-    },
-
-    /// Attach a 3D texture layer to the current framebuffer (by resource ID)
-    FramebufferAttachTexture3DByResource {
-        attachment: u32,
-        id: ResourceId,
-        layer: i32,
-        level: i32,
-    },
-
-    /// Attach a cube map face to the current framebuffer
-    FramebufferAttachTextureCube {
-        attachment: u32,
-        texture: GpuHandle,
-        face: u32, // GL_TEXTURE_CUBE_MAP_POSITIVE_X, etc.
-        level: i32,
-    },
-
-    /// Attach a cube map face to the current framebuffer (by resource ID)
-    FramebufferAttachTextureCubeByResource {
-        attachment: u32,
-        id: ResourceId,
-        face: u32,
-        level: i32,
-    },
-
-    /// Set draw buffers for current framebuffer
-    SetDrawBuffers { count: i32 },
-
-    /// Bind a framebuffer by handle (legacy)
-    BindFramebuffer { handle: GpuHandle },
-
-    /// Bind default framebuffer (0)
-    BindDefaultFramebuffer,
-
-    /// Clear color and/or depth buffer
-    Clear {
-        color: Option<[f32; 4]>,
-        depth: Option<f32>,
-    },
+    /// End the open render pass and return to the default framebuffer.
+    EndRenderPass,
 
     // === Mesh Operations ===
     /// Bind a mesh's VAO and enable vertex attributes
@@ -825,19 +757,8 @@ impl RenderCommand {
             | SamplePixel2DByResource { .. }
             | ReadFramebufferPixels { .. } => CommandCategory::Readback,
 
-            // === Framebuffer Operations ===
-            PushFramebuffer { .. }
-            | PopFramebuffer
-            | FramebufferAttachTexture2D { .. }
-            | FramebufferAttachTexture2DByResource { .. }
-            | FramebufferAttachTexture3D { .. }
-            | FramebufferAttachTexture3DByResource { .. }
-            | FramebufferAttachTextureCube { .. }
-            | FramebufferAttachTextureCubeByResource { .. }
-            | SetDrawBuffers { .. }
-            | BindFramebuffer { .. }
-            | BindDefaultFramebuffer
-            | Clear { .. } => CommandCategory::Framebuffer,
+            // === Render Passes ===
+            BeginRenderPass(_) | EndRenderPass => CommandCategory::Framebuffer,
 
             // === Mesh Operations ===
             BindMesh { .. } | BindMeshByResource { .. } | UnbindMesh => CommandCategory::Mesh,
@@ -900,8 +821,6 @@ impl RenderCommand {
                 | RenderCommand::BindTexture2D { .. }
                 | RenderCommand::BindTexture3D { .. }
                 | RenderCommand::BindTextureCube { .. }
-                | RenderCommand::BindFramebuffer { .. }
-                | RenderCommand::BindDefaultFramebuffer
         )
     }
 

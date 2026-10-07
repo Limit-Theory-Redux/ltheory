@@ -13,8 +13,6 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            void Draw_Clear        (Renderer* r, float red, float green, float blue, float alpha);
-            void Draw_ClearDepth   (Renderer* r, float d);
             void Draw_Color        (Renderer* r, float red, float green, float blue, float alpha);
             void Draw_Flush        (Renderer* r);
             void Draw_PushAlpha    (Renderer* r, float a);
@@ -44,8 +42,6 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         Draw = {
-            Clear        = libphx.Draw_Clear,
-            ClearDepth   = libphx.Draw_ClearDepth,
             Color        = libphx.Draw_Color,
             Flush        = libphx.Draw_Flush,
             PushAlpha    = libphx.Draw_PushAlpha,

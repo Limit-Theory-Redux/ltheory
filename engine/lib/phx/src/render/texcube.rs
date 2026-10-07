@@ -2,11 +2,14 @@ use glam::{Vec2, Vec3};
 use image::{DynamicImage, GenericImageView, ImageBuffer, ImageReader, Rgba};
 
 use super::{
-    CUBE_FACES, ClipRect, CubeFace, DataFormat, Draw, PixelFormat, RenderTarget, ShaderState,
-    Tex2D, TexFilter, TexFormat,
+    CUBE_FACES, ClipRect, CubeFace, DataFormat, Draw, PixelFormat, ShaderState, Tex2D, TexFilter,
+    TexFormat,
 };
 use crate::math::Rng;
-use crate::render::{RenderState, Renderer, ResourceHandle, ResourceId, Shader, gl};
+use crate::render::{
+    LoadOp, RenderPassDesc, RenderState, Renderer, ResourceHandle, ResourceId, Shader, TexView,
+    ViewDim, gl,
+};
 use crate::rf::Rf;
 use crate::system::{Bytes, TimeStamp};
 
@@ -221,17 +224,33 @@ impl TexCube {
         }
     }
 
-    pub fn clear(&mut self, r: &mut Renderer, red: f32, green: f32, blue: f32, alpha: f32) {
-        let this = self.shared.as_ref();
-        let size = this.size;
+    /// View of one face at mip level 0, usable as a render attachment.
+    pub fn face_view(&self, face: CubeFace) -> TexView {
+        self.face_mip_view(face, 0)
+    }
 
+    /// View of one face at the given mip level, usable as a render attachment.
+    pub fn face_mip_view(&self, face: CubeFace, level: i32) -> TexView {
+        let size = (self.shared.as_ref().size >> level).max(1);
+        TexView::new(
+            self.resource_id(),
+            ViewDim::CubeFace(face),
+            level,
+            [size, size],
+        )
+    }
+
+    pub fn clear(&mut self, r: &mut Renderer, red: f32, green: f32, blue: f32, alpha: f32) {
         for i in 0..6 {
             let face = K_FACES[i as usize];
-
-            RenderTarget::push(r, size, size);
-            RenderTarget::bind_tex_cube(r, self, face.face);
-            Draw::clear(r, red, green, blue, alpha);
-            RenderTarget::pop(r);
+            let desc = RenderPassDesc::with_color(
+                "TexCube.clear",
+                self.face_view(face.face),
+                LoadOp::Clear,
+                [red, green, blue, alpha],
+            );
+            r.begin_pass_intern(&desc);
+            r.end_pass_intern();
         }
     }
 
@@ -287,9 +306,13 @@ impl TexCube {
             let size = this.size;
             let size_f = this.size as f32;
 
-            RenderTarget::push(r, size, size);
-            RenderTarget::bind_tex_cube(r, self, face.face);
-            Draw::clear(r, 0.0, 0.0, 0.0, 1.0);
+            let desc = RenderPassDesc::with_color(
+                "TexCube.generate",
+                self.face_view(face.face),
+                LoadOp::Clear,
+                [0.0, 0.0, 0.0, 1.0],
+            );
+            r.begin_pass_intern(&desc);
 
             state
                 .shader()
@@ -323,7 +346,7 @@ impl TexCube {
 
             state.stop(r);
 
-            RenderTarget::pop(r);
+            r.end_pass_intern();
         }
 
         RenderState::pop_all(r);
@@ -427,15 +450,20 @@ impl TexCube {
                 let this_look = look[i];
                 let this_up = up[i];
 
-                RenderTarget::push(r, size, size);
-                RenderTarget::bind_tex_cube_level(r, &result, this_face, level);
+                let desc = RenderPassDesc::with_color(
+                    "TexCube.genIRMap",
+                    result.face_mip_view(this_face, level),
+                    LoadOp::DontCare,
+                    [0.0; 4],
+                );
+                r.begin_pass_intern(&desc);
 
                 shader.set_float3(r, "cubeLook", this_look.x, this_look.y, this_look.z);
                 shader.set_float3(r, "cubeUp", this_up.x, this_up.y, this_up.z);
 
                 Draw::rect(r, -1.0, -1.0, 2.0, 2.0);
 
-                RenderTarget::pop(r);
+                r.end_pass_intern();
             }
         }
         shader.stop(r);

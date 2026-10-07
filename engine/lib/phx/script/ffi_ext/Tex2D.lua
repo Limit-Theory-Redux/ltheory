@@ -27,18 +27,6 @@ function onDef_Tex2D_t(t, mt)
         libphx.Tex2D_Save(self, Renderer, path)
     end
 
-    mt.__index.pop = function(self)
-        libphx.Tex2D_Pop(self, Renderer)
-    end
-
-    mt.__index.push = function(self)
-        libphx.Tex2D_Push(self, Renderer)
-    end
-
-    mt.__index.pushLevel = function(self, level)
-        libphx.Tex2D_PushLevel(self, Renderer, level)
-    end
-
     mt.__index.clear = function(self, red, green, blue, alpha)
         libphx.Tex2D_Clear(self, Renderer, red, green, blue, alpha)
     end

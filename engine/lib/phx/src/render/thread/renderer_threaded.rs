@@ -11,8 +11,8 @@ use crate::render::StatsSink;
 use crate::render::thread::RenderThread;
 use crate::render::{
     BlendMode, CameraUboArray, ClipManager, CmdPrimitiveType, CullFace, DrawState, GpuHandle,
-    ImmVertex, InstanceData, InstanceUniformsCmd, PrimitiveBuilder, RenderCommand,
-    RenderStateIntern, RenderStats, RenderTargetStack, RenderThreadConfig, RenderThreadError,
+    ImmVertex, InstanceData, InstanceUniformsCmd, PrimitiveBuilder, RenderCommand, RenderPassDesc,
+    RenderStateIntern, RenderStats, RenderThreadConfig, RenderThreadError,
     RendererData, ResourceId, ShaderErrorQueue, ShaderReloadResult, ShaderVarMap, TexFilter,
     TexFormat, TexWrapMode, VertexFormat, VpStack,
 };
@@ -240,7 +240,7 @@ impl Renderer {
                 command_buffer: vec![],
                 active_batch: None,
                 viewport: VpStack::new(),
-                render_target: RenderTargetStack::new(),
+                open_pass: None,
                 clip_rect: ClipManager::new(),
                 render_state: RenderStateIntern::new(),
                 imm: PrimitiveBuilder::new(),
@@ -972,69 +972,14 @@ impl Renderer {
         rx.recv().unwrap_or_default()
     }
 
-    // === Framebuffer Operations ===
+    // === Render Passes ===
 
-    pub fn push_framebuffer(&mut self, id: u64, width: i32, height: i32) {
-        self.submit(RenderCommand::PushFramebuffer { id, width, height });
+    pub fn begin_render_pass(&mut self, desc: Box<RenderPassDesc>) {
+        self.submit(RenderCommand::BeginRenderPass(desc));
     }
 
-    pub fn pop_framebuffer(&mut self) {
-        self.submit(RenderCommand::PopFramebuffer);
-    }
-
-    pub fn framebuffer_attach_texture_2d_by_resource(
-        &mut self,
-        attachment: u32,
-        id: ResourceId,
-        level: i32,
-    ) {
-        self.submit(RenderCommand::FramebufferAttachTexture2DByResource {
-            attachment,
-            id,
-            level,
-        });
-    }
-
-    pub fn framebuffer_attach_texture_3d_by_resource(
-        &mut self,
-        attachment: u32,
-        id: ResourceId,
-        layer: i32,
-        level: i32,
-    ) {
-        self.submit(RenderCommand::FramebufferAttachTexture3DByResource {
-            attachment,
-            id,
-            layer,
-            level,
-        });
-    }
-
-    pub fn framebuffer_attach_texture_cube_by_resource(
-        &mut self,
-        attachment: u32,
-        id: ResourceId,
-        face: u32,
-        level: i32,
-    ) {
-        self.submit(RenderCommand::FramebufferAttachTextureCubeByResource {
-            attachment,
-            id,
-            face,
-            level,
-        });
-    }
-
-    pub fn bind_framebuffer_intern(&mut self, handle: GpuHandle) {
-        self.submit(RenderCommand::BindFramebuffer { handle });
-    }
-
-    pub fn bind_default_framebuffer_intern(&mut self) {
-        self.submit(RenderCommand::BindDefaultFramebuffer);
-    }
-
-    pub fn clear_intern(&mut self, color: Option<[f32; 4]>, depth: Option<f32>) {
-        self.submit(RenderCommand::Clear { color, depth });
+    pub fn end_render_pass(&mut self) {
+        self.submit(RenderCommand::EndRenderPass);
     }
 
     // === Drawing Operations ===

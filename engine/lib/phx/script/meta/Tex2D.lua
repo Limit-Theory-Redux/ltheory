@@ -27,15 +27,14 @@ function Tex2D.ScreenCapture(r) end
 ---@param path string
 function Tex2D:save(r, path) end
 
----@param r Renderer
-function Tex2D:pop(r) end
+-- View of mip level 0, usable as a render attachment.
+---@return TexView
+function Tex2D:view() end
 
----@param r Renderer
-function Tex2D:push(r) end
-
----@param r Renderer
+-- View of one mip level, usable as a render attachment.
 ---@param level integer
-function Tex2D:pushLevel(r, level) end
+---@return TexView
+function Tex2D:mipView(level) end
 
 ---@param r Renderer
 ---@param red number

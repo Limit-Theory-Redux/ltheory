@@ -75,6 +75,7 @@ const COPY_TYPES: &[&str] = &[
     "BlendMode",
     "CullFace",
     "BspNodeRel",
+    "LoadOp",
 ];
 
 #[derive(Debug, PartialEq)]

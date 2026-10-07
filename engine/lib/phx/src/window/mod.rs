@@ -166,11 +166,12 @@ impl Default for Window {
 impl Window {
     pub fn begin_draw(&self, r: &mut Renderer) {
         let size = self.size();
-        Viewport::push(r, 0, 0, size.x as i32, size.y as i32, true);
+        let desc = RenderPassDesc::new_backbuffer("Window", size.x as i32, size.y as i32);
+        r.begin_pass_intern(&desc);
     }
 
     pub fn end_draw(&self, r: &mut Renderer) {
-        Viewport::pop(r);
+        r.end_pass_intern();
     }
 
     /// The window title.

@@ -5,7 +5,7 @@ use std::time::SystemTime;
 use glam::{Vec2, Vec3, Vec4};
 use tobj::LoadError;
 
-use super::{DataFormat, Draw, PixelFormat, RenderTarget, Tex2D, Tex3D, TexFormat};
+use super::{DataFormat, Draw, LoadOp, PixelFormat, RenderPassDesc, Tex2D, Tex3D, TexFormat};
 use crate::error::Error;
 use crate::math::{Box3, Matrix, Triangle, validate_vec2, validate_vec3};
 use crate::render::{
@@ -803,7 +803,13 @@ impl Mesh {
             });
 
         RenderState::push_all_defaults(r);
-        RenderTarget::push_tex2d(r, &tex_output);
+        let pass_desc = RenderPassDesc::with_color(
+            "Mesh.compute",
+            tex_output.view(),
+            LoadOp::DontCare,
+            [0.0; 4],
+        );
+        r.begin_pass_intern(&pass_desc);
 
         shader.start(r);
         shader.set_int(r, "sDim", s_dim as i32);
@@ -815,7 +821,7 @@ impl Mesh {
         Draw::rect(r, -1.0, -1.0, 2.0, 2.0);
         shader.stop(r);
 
-        RenderTarget::pop(r);
+        r.end_pass_intern();
         RenderState::pop_all(r);
 
         r.data.ao_shader = Some(shader);
@@ -845,7 +851,13 @@ impl Mesh {
         });
 
         RenderState::push_all_defaults(r);
-        RenderTarget::push_tex2d(r, &tex_output);
+        let pass_desc = RenderPassDesc::with_color(
+            "Mesh.compute",
+            tex_output.view(),
+            LoadOp::DontCare,
+            [0.0; 4],
+        );
+        r.begin_pass_intern(&pass_desc);
 
         shader.start(r);
         shader.set_float(r, "radius", radius);
@@ -854,7 +866,7 @@ impl Mesh {
         Draw::rect(r, -1.0, -1.0, 2.0, 2.0);
         shader.stop(r);
 
-        RenderTarget::pop(r);
+        r.end_pass_intern();
         RenderState::pop_all(r);
 
         r.data.occlusion_shader = Some(shader);

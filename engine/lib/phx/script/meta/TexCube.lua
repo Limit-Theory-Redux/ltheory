@@ -15,6 +15,17 @@ function TexCube.Create(r, size, format) end
 ---@return TexCube
 function TexCube.Load(r, path) end
 
+-- View of one face at mip level 0, usable as a render attachment.
+---@param face CubeFace
+---@return TexView
+function TexCube:faceView(face) end
+
+-- View of one face at the given mip level, usable as a render attachment.
+---@param face CubeFace
+---@param level integer
+---@return TexView
+function TexCube:faceMipView(face, level) end
+
 ---@param r Renderer
 ---@param red number
 ---@param green number

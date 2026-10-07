@@ -25,8 +25,9 @@ use tracing::warn;
 use crate::render::thread::{ExecutorStats, GpuHandle};
 use crate::render::{
     BlendMode, CmdPrimitiveType, CommandReply, CullFace, GenericUniformName, ImmVertex,
-    InstanceData, InstanceUniformsCmd, RenderCommand, RenderStats, ResourceId, ShaderReloadResult,
-    TexFilter, TexFormat, TexWrapMode, VertexFormat,
+    InstanceData, InstanceUniformsCmd, LoadOp, RenderCommand, RenderPassDesc, RenderStats,
+    ResourceId, ShaderReloadResult, TexFilter, TexFormat, TexView, TexWrapMode, VertexFormat,
+    ViewDim,
 };
 use crate::window::PresentMode;
 
@@ -280,8 +281,9 @@ pub struct WgpuCommandExecutor {
     pipeline_cache: HashMap<PipelineKey, wgpu::RenderPipeline>,
     /// Bind-group cache keyed by (shader id, sampler-slot configuration).
     bind_group_cache: HashMap<(u64, u64), wgpu::BindGroup>,
-    /// Offscreen render targets by framebuffer id (persist across pushes).
-    framebuffers: HashMap<u64, WgpuFramebuffer>,
+    /// True while the open render pass targets textures (a framebuffer is
+    /// on `framebuffer_stack`) rather than the surface.
+    pass_offscreen: bool,
     /// Current render-target stack; empty stack = the surface.
     framebuffer_stack: Vec<WgpuFramebuffer>,
     /// Acquired surface frame (presented on SwapBuffers).
@@ -369,7 +371,7 @@ impl WgpuCommandExecutor {
             sampler_slots: HashMap::new(),
             pipeline_cache: HashMap::new(),
             bind_group_cache: HashMap::new(),
-            framebuffers: HashMap::new(),
+            pass_offscreen: false,
             framebuffer_stack: Vec::new(),
             surface_frame: None,
             surface_size: (320, 240),
@@ -425,7 +427,7 @@ impl WgpuCommandExecutor {
         self.current_encoder.take();
         self.surface_frame.take();
         self.framebuffer_stack.clear();
-        self.framebuffers.clear();
+        self.pass_offscreen = false;
         self.bind_group_cache.clear();
         self.pipeline_cache.clear();
         self.ubo_buffers.clear();
@@ -2144,195 +2146,106 @@ impl WgpuCommandExecutor {
         .unwrap_or_default()
     }
 
-    // --- Framebuffer operations ---
+    // --- Render passes ---
 
-    pub(super) fn cmd_push_framebuffer(&mut self, id: u64, width: i32, height: i32) {
-        // GL allocates a fresh FBO for every RenderTarget.Push. The producer
-        // uses the legacy id 0 for this stack operation, so cloning a cached
-        // entry would retain color/depth attachments from a prior pass and
-        // make a later color-only WGPU pass incompatible with its pipeline.
-        let fb = WgpuFramebuffer {
-            width: width.max(1) as u32,
-            height: height.max(1) as u32,
+    /// Begin a render pass. Offscreen passes push a framebuffer built from
+    /// the attachment views; the clear values wait in it until the first draw
+    /// opens the wgpu pass. The backbuffer pass targets the surface.
+    pub(super) fn cmd_begin_render_pass(&mut self, desc: &RenderPassDesc) {
+        if desc.backbuffer {
+            self.pass_offscreen = false;
+            if desc.back_color.0 == LoadOp::Clear {
+                self.surface_pending_clear_color = Some(desc.back_color.1);
+            }
+            if desc.back_depth.0 == LoadOp::Clear {
+                self.surface_pending_clear_depth = Some(desc.back_depth.1);
+            }
+            return;
+        }
+
+        self.pass_offscreen = true;
+        let mut fb = WgpuFramebuffer {
+            width: desc.extent[0].max(1),
+            height: desc.extent[1].max(1),
             ..WgpuFramebuffer::default()
         };
-        self.framebuffers.insert(id, fb.clone());
+        for (i, att) in desc.color.iter().enumerate() {
+            let Some(att) = att else { continue };
+            if self.attach_view(&mut fb, Some(i), &att.view) && att.load == LoadOp::Clear {
+                fb.pending_clear_color = Some(att.clear);
+            }
+        }
+        if let Some(att) = &desc.depth {
+            if self.attach_view(&mut fb, None, &att.view) && att.load == LoadOp::Clear {
+                fb.pending_clear_depth = Some(att.clear);
+            }
+        }
         self.framebuffer_stack.push(fb);
     }
 
-    pub(super) fn cmd_pop_framebuffer(&mut self) {
-        if self.framebuffer_stack.pop().is_none() {
-            warn!("wgpu: pop_framebuffer with empty stack");
+    pub(super) fn cmd_end_render_pass(&mut self) {
+        if self.pass_offscreen && self.framebuffer_stack.pop().is_none() {
+            warn!("wgpu: end_render_pass with no open pass");
         }
+        self.pass_offscreen = false;
     }
 
-    pub(super) fn cmd_framebuffer_attach_texture_2d(
-        &mut self,
-        attachment: u32,
-        texture: GpuHandle,
-        _level: i32,
-    ) {
-        self.framebuffer_attach_handle(attachment, texture, None);
-    }
-
-    pub(super) fn cmd_framebuffer_attach_texture_2d_by_resource(
-        &mut self,
-        attachment: u32,
-        id: ResourceId,
-        _level: i32,
-    ) {
-        self.framebuffer_attach_handle(attachment, GpuHandle(id.0 as u32), None);
-    }
-
-    pub(super) fn cmd_framebuffer_attach_texture_3d(
-        &mut self,
-        attachment: u32,
-        texture: GpuHandle,
-        _layer: i32,
-        _level: i32,
-    ) {
-        self.framebuffer_attach_handle(attachment, texture, None);
-    }
-
-    pub(super) fn cmd_framebuffer_attach_texture_3d_by_resource(
-        &mut self,
-        attachment: u32,
-        id: ResourceId,
-        _layer: i32,
-        _level: i32,
-    ) {
-        self.framebuffer_attach_handle(attachment, GpuHandle(id.0 as u32), None);
-    }
-
-    pub(super) fn cmd_framebuffer_attach_texture_cube(
-        &mut self,
-        attachment: u32,
-        texture: GpuHandle,
-        face: u32,
-        _level: i32,
-    ) {
-        self.framebuffer_attach_handle(attachment, texture, Some(face));
-    }
-
-    pub(super) fn cmd_framebuffer_attach_texture_cube_by_resource(
-        &mut self,
-        attachment: u32,
-        id: ResourceId,
-        face: u32,
-        _level: i32,
-    ) {
-        self.framebuffer_attach_handle(attachment, GpuHandle(id.0 as u32), Some(face));
-    }
-
-    /// Attach a texture's view to the current framebuffer's color/depth slot.
-    /// `cube_face` selects a single layer of a cube texture (render targets
-    /// must be single-layer D2 views; the whole 6-layer cube view is invalid).
-    fn framebuffer_attach_handle(
-        &mut self,
-        attachment: u32,
-        texture: GpuHandle,
-        cube_face: Option<u32>,
-    ) {
-        const GL_COLOR_ATTACHMENT0: u32 = 0x8CE0;
-        const GL_DEPTH_ATTACHMENT: u32 = 0x8D00;
-        let Some(fb) = self.framebuffer_stack.last_mut() else {
-            warn!("wgpu: framebuffer attach without a pushed framebuffer");
-            return;
+    /// Attach a texture view to `fb`'s color slot (`Some(i)`) or depth slot
+    /// (`None`). Cube faces and mip levels become single-layer, single-mip
+    /// D2 views as wgpu render attachments require.
+    fn attach_view(&self, fb: &mut WgpuFramebuffer, slot: Option<usize>, view: &TexView) -> bool {
+        const GL_TEXTURE_CUBE_MAP_POSITIVE_X: u32 = 0x8515;
+        let Some(resource) = self.resources.get(&view.tex) else {
+            warn!("wgpu: render pass attachment for unknown texture {:?}", view.tex);
+            return false;
         };
-        let Some(resource) = self.resources.get(&ResourceId(texture.0 as u64)) else {
-            warn!("wgpu: framebuffer attach for unknown texture {texture:?}");
-            return;
-        };
-        let (attached_texture, view) = match resource {
-            WgpuGpuResource::Texture2D { texture, view, .. }
-            | WgpuGpuResource::Texture1D { texture, view, .. }
-            | WgpuGpuResource::Texture3D { texture, view, .. } => {
-                (Some(texture.clone()), view.clone())
+        let (texture, format, attach_view) = match (resource, view.dim) {
+            (WgpuGpuResource::Texture2D { texture, .. }, ViewDim::D2) => {
+                let v = texture.create_view(&wgpu::TextureViewDescriptor {
+                    base_mip_level: view.base_mip as u32,
+                    mip_level_count: Some(1),
+                    ..Default::default()
+                });
+                (texture.clone(), texture.format(), v)
             }
-            WgpuGpuResource::TextureCube { texture, .. } => {
-                // Per-face D2 view for render attachment use.
-                let view = texture.create_view(&wgpu::TextureViewDescriptor {
+            (WgpuGpuResource::TextureCube { texture, .. }, ViewDim::CubeFace(face)) => {
+                let layer = (face as u32 - GL_TEXTURE_CUBE_MAP_POSITIVE_X).min(5);
+                let v = texture.create_view(&wgpu::TextureViewDescriptor {
                     dimension: Some(wgpu::TextureViewDimension::D2),
-                    base_array_layer: cube_face.unwrap_or(0).min(5),
+                    base_mip_level: view.base_mip as u32,
+                    mip_level_count: Some(1),
+                    base_array_layer: layer,
                     array_layer_count: Some(1),
                     ..Default::default()
                 });
-                (Some(texture.clone()), view)
+                (texture.clone(), texture.format(), v)
+            }
+            (WgpuGpuResource::Texture3D { texture, view: full, .. }, ViewDim::D2Layer(_)) => {
+                // TODO(wgpu port): render to one z-slice (needs `depth_slice`
+                // on the color attachment); for now the whole volume view.
+                (texture.clone(), texture.format(), full.clone())
             }
             _ => {
-                warn!("wgpu: framebuffer attach for non-texture {texture:?}");
-                return;
+                warn!(
+                    "wgpu: render pass attachment {:?} ({:?}) has the wrong texture kind",
+                    view.tex, view.dim
+                );
+                return false;
             }
         };
-        // The ATTACHMENT is authoritative for the framebuffer's size: the
-        // producer's PushFramebuffer width/height is nominal, and auto-created
-        // depth must match the attached texture or wgpu rejects the pass
-        // ("Attachments have differing sizes").
-        let (tex_w, tex_h) = match resource {
-            WgpuGpuResource::Texture2D { texture, .. }
-            | WgpuGpuResource::TextureCube { texture, .. } => {
-                let s = texture.size();
-                (s.width, s.height)
+        match slot {
+            Some(i) => {
+                fb.color_formats[i] = format;
+                fb.color[i] = Some(attach_view);
+                fb.color_textures[i] = Some(texture);
             }
-            _ => (fb.width, fb.height),
-        };
-        if tex_w > 0 && tex_h > 0 {
-            fb.width = tex_w;
-            fb.height = tex_h;
-        }
-        if attachment == GL_DEPTH_ATTACHMENT {
-            fb.depth = Some(view);
-            fb.depth_texture = attached_texture;
-            let format = match resource {
-                WgpuGpuResource::Texture2D { texture, .. }
-                | WgpuGpuResource::TextureCube { texture, .. } => Some(texture.format()),
-                _ => fb.depth_format,
-            };
-            fb.depth_format = format;
-        } else if (GL_COLOR_ATTACHMENT0..=GL_COLOR_ATTACHMENT0 + 3).contains(&attachment) {
-            let idx = (attachment - GL_COLOR_ATTACHMENT0) as usize;
-            let format = match resource {
-                WgpuGpuResource::Texture2D { texture, .. }
-                | WgpuGpuResource::TextureCube { texture, .. } => texture.format(),
-                _ => fb.color_formats[idx],
-            };
-            fb.color_formats[idx] = format;
-            fb.color[idx] = Some(view);
-            fb.color_textures[idx] = attached_texture;
-        } else {
-            warn!("wgpu: framebuffer attach for unknown attachment {attachment:#x}");
-        }
-    }
-
-    pub(super) fn cmd_set_draw_buffers(&mut self, _count: i32) {
-        // wgpu render passes declare their color targets at pass start.
-    }
-
-    pub(super) fn cmd_bind_framebuffer(&mut self, _handle: GpuHandle) {
-        // The producer's bind_framebuffer maps ids on its side; the stack is
-        // authoritative for wgpu (push/pop carry the target state).
-    }
-
-    pub(super) fn cmd_bind_default_framebuffer(&mut self) {
-        // The default target IS the swap chain surface in wgpu.
-    }
-
-    pub(super) fn cmd_clear(&mut self, color: Option<[f32; 4]>, depth: Option<f32>) {
-        if let Some(fb) = self.framebuffer_stack.last_mut() {
-            if color.is_some() {
-                fb.pending_clear_color = color;
-            }
-            if depth.is_some() {
-                fb.pending_clear_depth = depth;
-            }
-        } else {
-            if color.is_some() {
-                self.surface_pending_clear_color = color;
-            }
-            if depth.is_some() {
-                self.surface_pending_clear_depth = depth;
+            None => {
+                fb.depth_format = Some(format);
+                fb.depth = Some(attach_view);
+                fb.depth_texture = Some(texture);
             }
         }
+        true
     }
 
     // --- Mesh operations (bookkeeping real; buffer creation = mesh stage) ---
@@ -5500,53 +5413,9 @@ impl WgpuCommandExecutor {
                 let _ = reply_tx.send(data);
             }
 
-            // === Framebuffer Operations ===
-            RenderCommand::PushFramebuffer { id, width, height } => {
-                self.cmd_push_framebuffer(id, width, height);
-            }
-            RenderCommand::PopFramebuffer => self.cmd_pop_framebuffer(),
-            RenderCommand::FramebufferAttachTexture2D {
-                attachment,
-                texture,
-                level,
-            } => {
-                self.cmd_framebuffer_attach_texture_2d(attachment, texture, level);
-            }
-            RenderCommand::FramebufferAttachTexture2DByResource {
-                attachment,
-                id,
-                level,
-            } => {
-                self.cmd_framebuffer_attach_texture_2d_by_resource(attachment, id, level);
-            }
-            RenderCommand::FramebufferAttachTexture3D {
-                attachment,
-                texture,
-                layer,
-                level,
-            } => self.cmd_framebuffer_attach_texture_3d(attachment, texture, layer, level),
-            RenderCommand::FramebufferAttachTexture3DByResource {
-                attachment,
-                id,
-                layer,
-                level,
-            } => self.cmd_framebuffer_attach_texture_3d_by_resource(attachment, id, layer, level),
-            RenderCommand::FramebufferAttachTextureCube {
-                attachment,
-                texture,
-                face,
-                level,
-            } => self.cmd_framebuffer_attach_texture_cube(attachment, texture, face, level),
-            RenderCommand::FramebufferAttachTextureCubeByResource {
-                attachment,
-                id,
-                face,
-                level,
-            } => self.cmd_framebuffer_attach_texture_cube_by_resource(attachment, id, face, level),
-            RenderCommand::SetDrawBuffers { count } => self.cmd_set_draw_buffers(count),
-            RenderCommand::BindFramebuffer { handle } => self.cmd_bind_framebuffer(handle),
-            RenderCommand::BindDefaultFramebuffer => self.cmd_bind_default_framebuffer(),
-            RenderCommand::Clear { color, depth } => self.cmd_clear(color, depth),
+            // === Render Passes ===
+            RenderCommand::BeginRenderPass(desc) => self.cmd_begin_render_pass(&desc),
+            RenderCommand::EndRenderPass => self.cmd_end_render_pass(),
 
             // === Mesh Operations ===
             RenderCommand::BindMesh { vao } => self.cmd_bind_mesh(vao),

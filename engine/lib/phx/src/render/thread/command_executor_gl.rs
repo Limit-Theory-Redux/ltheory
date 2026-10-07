@@ -8,12 +8,13 @@ use tracing::{debug, error, info, warn};
 use crate::render::gl::types::GLsizeiptr;
 use crate::render::gl::{self};
 use crate::render::thread::{
-    FBO_STACK_DEPTH, FboEntry, GpuResource, MAX_TEXTURE_SLOTS, TextureBinding, TextureType,
+    AttachKey, FboKey, GpuResource, MAX_TEXTURE_SLOTS, TextureBinding, TextureType,
 };
 use crate::render::{
     BlendMode, CameraUboArray, CmdPrimitiveType, CommandCategory, CommandExecutor, CommandReply,
-    CullFace, GenericUniformName, ImmVertex, InstanceData, RenderStats, ResourceId,
-    ShaderReloadResult, TexFilter, TexFormat, TexWrapMode, VertexFormat,
+    CullFace, GenericUniformName, ImmVertex, InstanceData, LoadOp, MAX_COLOR_ATTACHMENTS,
+    RenderPassDesc, RenderStats, ResourceId, ShaderReloadResult, TexFilter, TexFormat,
+    TexWrapMode, VertexFormat, ViewDim,
 };
 use crate::window::{PresentMode, WindowGlContext};
 
@@ -1154,11 +1155,8 @@ impl CommandExecutor {
                 } else {
                     warn!("SamplePixel2DByResource: incomplete framebuffer");
                 }
-                // Restore whatever framebuffer the FBO stack says should be bound.
-                gl::BindFramebuffer(
-                    gl::FRAMEBUFFER,
-                    self.fbo_stack.last().map_or(0, |fbo| fbo.handle),
-                );
+                // Restore the framebuffer of the open pass (or the default one).
+                gl::BindFramebuffer(gl::FRAMEBUFFER, self.bound_fbo);
                 gl::DeleteFramebuffers(1, &fbo);
             }
         } else {
@@ -1191,205 +1189,205 @@ impl CommandExecutor {
         data
     }
 
-    #[inline(always)]
-    pub(super) fn cmd_framebuffer_attach_texture_2d(
-        &mut self,
-        attachment: u32,
-        texture: super::GpuHandle,
-        level: i32,
-    ) {
-        let _sa = self.record_command(CommandCategory::Framebuffer, false, false);
+    /// Framebuffer for `desc`'s attachments, created on first use and cached
+    /// until one of its textures is destroyed. Returns `None` if a texture is
+    /// missing or the framebuffer is incomplete.
+    fn framebuffer_for_pass(&mut self, desc: &RenderPassDesc) -> Option<u32> {
+        let key = FboKey {
+            color: std::array::from_fn(|i| {
+                desc.color[i].as_ref().map(|c| AttachKey {
+                    id: c.view.tex,
+                    dim: c.view.dim,
+                    mip: c.view.base_mip,
+                })
+            }),
+            depth: desc.depth.as_ref().map(|d| AttachKey {
+                id: d.view.tex,
+                dim: d.view.dim,
+                mip: d.view.base_mip,
+            }),
+        };
+        if let Some(&fbo) = self.fbo_cache.get(&key) {
+            return Some(fbo);
+        }
+
+        let mut fbo = 0;
         unsafe {
-            gl::FramebufferTexture2D(
-                gl::FRAMEBUFFER,
-                attachment,
-                gl::TEXTURE_2D,
-                texture.0,
-                level,
-            );
-            // Update color index if this is a color attachment
-            if (gl::COLOR_ATTACHMENT0..=gl::COLOR_ATTACHMENT3).contains(&attachment) {
-                if let Some(fbo) = self.fbo_stack.last_mut() {
-                    fbo.color_index = (attachment - gl::COLOR_ATTACHMENT0 + 1) as i32;
-                    gl::DrawBuffers(fbo.color_index, DRAW_BUFS.as_ptr());
+            gl::GenFramebuffers(1, &mut fbo);
+            gl::BindFramebuffer(gl::FRAMEBUFFER, fbo);
+        }
+        let mut ok = true;
+        let mut color_count = 0;
+        for (i, att) in key.color.iter().enumerate() {
+            if let Some(att) = att {
+                ok &= self.attach_to_bound_fbo(gl::COLOR_ATTACHMENT0 + i as u32, att);
+                color_count += 1;
+            }
+        }
+        if let Some(att) = &key.depth {
+            ok &= self.attach_to_bound_fbo(gl::DEPTH_ATTACHMENT, att);
+        }
+        unsafe {
+            if color_count > 0 {
+                gl::DrawBuffers(color_count, DRAW_BUFS.as_ptr());
+            } else {
+                gl::DrawBuffer(gl::NONE);
+                gl::ReadBuffer(gl::NONE);
+            }
+            if ok {
+                let status = gl::CheckFramebufferStatus(gl::FRAMEBUFFER);
+                if status != gl::FRAMEBUFFER_COMPLETE {
+                    error!(
+                        "RenderPass '{}': incomplete framebuffer (status {status:#x})",
+                        desc.label
+                    );
+                    ok = false;
+                }
+            }
+            if !ok {
+                gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
+                gl::DeleteFramebuffers(1, &fbo);
+                return None;
+            }
+        }
+
+        self.fbo_cache.insert(key, fbo);
+        let mut ids: Vec<ResourceId> = key.color.iter().flatten().map(|a| a.id).collect();
+        ids.extend(key.depth.map(|a| a.id));
+        for id in ids {
+            self.texture_fbos.entry(id).or_default().push(key);
+        }
+        Some(fbo)
+    }
+
+    /// Attach one view to the currently bound framebuffer.
+    fn attach_to_bound_fbo(&self, attachment: u32, att: &AttachKey) -> bool {
+        let level = att.mip as i32;
+        unsafe {
+            match (self.resources.get(&att.id), att.dim) {
+                (Some(GpuResource::Texture2D { handle }), ViewDim::D2) => {
+                    gl::FramebufferTexture2D(
+                        gl::FRAMEBUFFER,
+                        attachment,
+                        gl::TEXTURE_2D,
+                        *handle,
+                        level,
+                    );
+                }
+                (Some(GpuResource::Texture3D { handle }), ViewDim::D2Layer(layer)) => {
+                    gl::FramebufferTextureLayer(
+                        gl::FRAMEBUFFER,
+                        attachment,
+                        *handle,
+                        level,
+                        layer as i32,
+                    );
+                }
+                (Some(GpuResource::TextureCube { handle }), ViewDim::CubeFace(face)) => {
+                    gl::FramebufferTexture2D(
+                        gl::FRAMEBUFFER,
+                        attachment,
+                        face as u32,
+                        *handle,
+                        level,
+                    );
+                }
+                (resource, dim) => {
+                    error!(
+                        "RenderPass: cannot attach {:?} ({dim:?}) as a render target (resource: {})",
+                        att.id,
+                        if resource.is_some() {
+                            "wrong texture kind"
+                        } else {
+                            "not found"
+                        }
+                    );
+                    return false;
                 }
             }
         }
+        true
     }
 
-    #[inline(always)]
-    pub(super) fn cmd_framebuffer_attach_texture_2d_by_resource(
-        &mut self,
-        attachment: u32,
-        id: ResourceId,
-        level: i32,
-    ) {
+    pub(super) fn cmd_begin_render_pass(&mut self, desc: &RenderPassDesc) {
         let _sa = self.record_command(CommandCategory::Framebuffer, false, false);
-        if let Some(GpuResource::Texture2D { handle }) = self.resources.get(&id) {
-            unsafe {
-                gl::FramebufferTexture2D(
-                    gl::FRAMEBUFFER,
-                    attachment,
-                    gl::TEXTURE_2D,
-                    *handle,
-                    level,
-                );
-                // Update color index if this is a color attachment
-                if (gl::COLOR_ATTACHMENT0..=gl::COLOR_ATTACHMENT3).contains(&attachment) {
-                    if let Some(fbo) = self.fbo_stack.last_mut() {
-                        fbo.color_index = (attachment - gl::COLOR_ATTACHMENT0 + 1) as i32;
-                        gl::DrawBuffers(fbo.color_index, DRAW_BUFS.as_ptr());
-                    }
-                }
-            }
+
+        // If a texture is missing or the FBO is incomplete the error was
+        // logged at creation; fall back to the default framebuffer so the
+        // rest of the pass cannot touch the textures.
+        let fbo = if desc.backbuffer {
+            0
         } else {
-            warn!(
-                "FramebufferAttachTexture2DByResource: resource {:?} not found",
-                id
-            );
-        }
-    }
+            self.framebuffer_for_pass(desc).unwrap_or(0)
+        };
+        self.bound_fbo = fbo;
 
-    #[inline(always)]
-    pub(super) fn cmd_framebuffer_attach_texture_3d(
-        &mut self,
-        attachment: u32,
-        texture: super::GpuHandle,
-        layer: i32,
-        level: i32,
-    ) {
-        let _sa = self.record_command(CommandCategory::Framebuffer, false, false);
         unsafe {
-            gl::FramebufferTexture3D(
-                gl::FRAMEBUFFER,
-                attachment,
-                gl::TEXTURE_3D,
-                texture.0,
-                level,
-                layer,
-            );
-            if let Some(fbo) = self.fbo_stack.last_mut() {
-                fbo.color_index = (attachment - gl::COLOR_ATTACHMENT0 + 1) as i32;
-                gl::DrawBuffers(fbo.color_index, DRAW_BUFS.as_ptr());
-            }
+            gl::BindFramebuffer(gl::FRAMEBUFFER, fbo);
+            gl::Viewport(0, 0, desc.extent[0] as i32, desc.extent[1] as i32);
         }
-    }
 
-    #[inline(always)]
-    pub(super) fn cmd_framebuffer_attach_texture_3d_by_resource(
-        &mut self,
-        attachment: u32,
-        id: ResourceId,
-        layer: i32,
-        level: i32,
-    ) {
-        let _sa = self.record_command(CommandCategory::Framebuffer, false, false);
-        if let Some(GpuResource::Texture3D { handle }) = self.resources.get(&id) {
-            unsafe {
-                gl::FramebufferTexture3D(
-                    gl::FRAMEBUFFER,
-                    attachment,
-                    gl::TEXTURE_3D,
-                    *handle,
-                    level,
-                    layer,
-                );
-                if let Some(fbo) = self.fbo_stack.last_mut() {
-                    fbo.color_index = (attachment - gl::COLOR_ATTACHMENT0 + 1) as i32;
-                    gl::DrawBuffers(fbo.color_index, DRAW_BUFS.as_ptr());
+        // Load ops. `DontCare` needs no work on GL 3.3.
+        let mut color_ops: [Option<[f32; 4]>; MAX_COLOR_ATTACHMENTS] =
+            [None; MAX_COLOR_ATTACHMENTS];
+        let depth_op: Option<f32>;
+        if desc.backbuffer {
+            if desc.back_color.0 == LoadOp::Clear {
+                color_ops[0] = Some(desc.back_color.1);
+            }
+            depth_op = (desc.back_depth.0 == LoadOp::Clear).then_some(desc.back_depth.1);
+        } else {
+            for (i, c) in desc.color.iter().enumerate() {
+                if let Some(c) = c.as_ref().filter(|c| c.load == LoadOp::Clear) {
+                    color_ops[i] = Some(c.clear);
                 }
             }
-        } else {
-            warn!(
-                "FramebufferAttachTexture3DByResource: resource {:?} not found",
-                id
-            );
+            depth_op = desc
+                .depth
+                .as_ref()
+                .filter(|d| d.load == LoadOp::Clear)
+                .map(|d| d.clear);
         }
-    }
+        if color_ops.iter().all(|c| c.is_none()) && depth_op.is_none() {
+            return;
+        }
 
-    #[inline(always)]
-    pub(super) fn cmd_framebuffer_attach_texture_cube(
-        &mut self,
-        attachment: u32,
-        texture: super::GpuHandle,
-        face: u32,
-        level: i32,
-    ) {
-        let _sa = self.record_command(CommandCategory::Framebuffer, false, false);
         unsafe {
-            gl::FramebufferTexture2D(gl::FRAMEBUFFER, attachment, face, texture.0, level);
-            if let Some(fbo) = self.fbo_stack.last_mut() {
-                fbo.color_index = (attachment - gl::COLOR_ATTACHMENT0 + 1) as i32;
-                gl::DrawBuffers(fbo.color_index, DRAW_BUFS.as_ptr());
+            // Clears honour the write masks and the scissor, so force them
+            // open for the clear and put them back afterwards.
+            let mut depth_mask: u8 = gl::TRUE;
+            gl::GetBooleanv(gl::DEPTH_WRITEMASK, &mut depth_mask);
+            let scissor = gl::IsEnabled(gl::SCISSOR_TEST) == gl::TRUE;
+            if depth_mask != gl::TRUE {
+                gl::DepthMask(gl::TRUE);
             }
-        }
-    }
+            if scissor {
+                gl::Disable(gl::SCISSOR_TEST);
+            }
 
-    #[inline(always)]
-    pub(super) fn cmd_framebuffer_attach_texture_cube_by_resource(
-        &mut self,
-        attachment: u32,
-        id: ResourceId,
-        face: u32,
-        level: i32,
-    ) {
-        let _sa = self.record_command(CommandCategory::Framebuffer, false, false);
-        if let Some(GpuResource::TextureCube { handle }) = self.resources.get(&id) {
-            unsafe {
-                gl::FramebufferTexture2D(gl::FRAMEBUFFER, attachment, face, *handle, level);
-                if let Some(fbo) = self.fbo_stack.last_mut() {
-                    fbo.color_index = (attachment - gl::COLOR_ATTACHMENT0 + 1) as i32;
-                    gl::DrawBuffers(fbo.color_index, DRAW_BUFS.as_ptr());
+            for (index, color) in color_ops.iter().enumerate() {
+                if let Some(color) = color {
+                    gl::ClearBufferfv(gl::COLOR, index as i32, color.as_ptr());
                 }
             }
-        } else {
-            warn!(
-                "FramebufferAttachTextureCubeByResource: resource {:?} not found",
-                id
-            );
+            if let Some(depth) = depth_op {
+                gl::ClearBufferfv(gl::DEPTH, 0, &depth);
+            }
+
+            if scissor {
+                gl::Enable(gl::SCISSOR_TEST);
+            }
+            if depth_mask != gl::TRUE {
+                gl::DepthMask(depth_mask);
+            }
         }
     }
 
-    #[inline(always)]
-    pub(super) fn cmd_set_draw_buffers(&mut self, count: i32) {
+    pub(super) fn cmd_end_render_pass(&mut self) {
         let _sa = self.record_command(CommandCategory::Framebuffer, false, false);
-        unsafe {
-            gl::DrawBuffers(count, DRAW_BUFS.as_ptr());
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_bind_framebuffer(&mut self, handle: super::GpuHandle) {
-        let _sa = self.record_command(CommandCategory::Framebuffer, false, true);
-        unsafe {
-            gl::BindFramebuffer(gl::FRAMEBUFFER, handle.0);
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_bind_default_framebuffer(&mut self) {
-        let _sa = self.record_command(CommandCategory::Framebuffer, false, true);
+        self.bound_fbo = 0;
         unsafe {
             gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_clear(&mut self, color: Option<[f32; 4]>, depth: Option<f32>) {
-        let _sa = self.record_command(CommandCategory::Framebuffer, false, false);
-        unsafe {
-            let mut mask = 0;
-            if let Some([r, g, b, a]) = color {
-                gl::ClearColor(r, g, b, a);
-                mask |= gl::COLOR_BUFFER_BIT;
-            }
-            if let Some(d) = depth {
-                gl::ClearDepth(d as f64);
-                mask |= gl::DEPTH_BUFFER_BIT;
-            }
-            if mask != 0 {
-                gl::Clear(mask);
-            }
         }
     }
 
@@ -1868,6 +1866,19 @@ impl CommandExecutor {
     pub(super) fn cmd_destroy_resource(&mut self, ids: &[ResourceId]) {
         let _sa = self.record_command(CommandCategory::Resource, false, false);
         for id in ids {
+            // Evict every framebuffer that attaches this texture.
+            if let Some(keys) = self.texture_fbos.remove(id) {
+                for key in keys {
+                    if let Some(fbo) = self.fbo_cache.remove(&key) {
+                        if fbo == self.bound_fbo {
+                            self.bound_fbo = 0;
+                        }
+                        unsafe {
+                            gl::DeleteFramebuffers(1, &fbo);
+                        }
+                    }
+                }
+            }
             if let Some(resource) = self.resources.remove(id) {
                 self.destroy_resource(resource);
             }
@@ -2207,68 +2218,6 @@ impl CommandExecutor {
             gl::BindBuffer(gl::UNIFORM_BUFFER, self.light_ubo);
             gl::BufferSubData(gl::UNIFORM_BUFFER, 0, 32, data.as_ptr() as *const _);
             gl::BindBuffer(gl::UNIFORM_BUFFER, 0);
-        }
-    }
-
-    #[inline(always)]
-    /// Push a new framebuffer onto the FBO stack
-    pub(super) fn cmd_push_framebuffer(&mut self) {
-        let _sa = self.record_command(CommandCategory::Framebuffer, false, false);
-        if self.fbo_stack.len() >= FBO_STACK_DEPTH {
-            error!(
-                "RenderThread: Maximum FBO stack depth {} exceeded",
-                FBO_STACK_DEPTH
-            );
-            return;
-        }
-
-        unsafe {
-            let mut handle = 0;
-            gl::GenFramebuffers(1, &mut handle);
-            gl::BindFramebuffer(gl::FRAMEBUFFER, handle);
-
-            self.fbo_stack.push(FboEntry {
-                handle,
-                color_index: 0,
-            });
-        }
-    }
-
-    #[inline(always)]
-    /// Pop the current framebuffer from the FBO stack
-    pub(super) fn cmd_pop_framebuffer(&mut self) {
-        let _sa = self.record_command(CommandCategory::Framebuffer, false, false);
-        if self.fbo_stack.is_empty() {
-            error!("RenderThread: Attempting to pop an empty FBO stack");
-            return;
-        }
-
-        unsafe {
-            // Detach all color attachments
-            for i in 0..4 {
-                gl::FramebufferTexture2D(
-                    gl::FRAMEBUFFER,
-                    gl::COLOR_ATTACHMENT0 + i,
-                    gl::TEXTURE_2D,
-                    0,
-                    0,
-                );
-            }
-
-            // Detach depth attachment
-            gl::FramebufferTexture2D(gl::FRAMEBUFFER, gl::DEPTH_ATTACHMENT, gl::TEXTURE_2D, 0, 0);
-
-            // Delete the FBO
-            if let Some(fbo) = self.fbo_stack.pop() {
-                gl::DeleteFramebuffers(1, &fbo.handle);
-            }
-
-            // Bind previous FBO or default framebuffer
-            if let Some(prev) = self.fbo_stack.last() {
-                gl::BindFramebuffer(gl::FRAMEBUFFER, prev.handle);
-            } else {
-                gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
-            }
         }
     }
 
@@ -2686,9 +2635,6 @@ impl CommandExecutor {
                     gl::DeleteBuffers(1, &vbo);
                     gl::DeleteBuffers(1, &ebo);
                 }
-                GpuResource::Framebuffer { fbo } => {
-                    gl::DeleteFramebuffers(1, &fbo);
-                }
             }
         }
     }
@@ -2711,14 +2657,15 @@ impl CommandExecutor {
         }
         info!("Resources cleaned up");
 
-        // Cleanup any remaining FBOs in the stack
+        // Cleanup cached FBOs
         unsafe {
-            let fbo_count = self.fbo_stack.len();
-            for fbo in self.fbo_stack.drain(..) {
-                gl::DeleteFramebuffers(1, &fbo.handle);
+            let fbo_count = self.fbo_cache.len();
+            for (_, fbo) in self.fbo_cache.drain() {
+                gl::DeleteFramebuffers(1, &fbo);
             }
+            self.texture_fbos.clear();
             if fbo_count > 0 {
-                info!("Cleaned up {} FBOs from stack", fbo_count);
+                info!("Cleaned up {} cached FBOs", fbo_count);
             }
         }
 
