@@ -11,7 +11,7 @@ use crate::render::{
     BindEntry, BindGroupId, BlendMode, BlockLayout, BufferId, CmdPrimitiveType, CullFace,
     GpuHandle, ImmVertex, PassCommands, PipelineDesc, PipelineId, RenderPassDesc, RenderStats,
     RenderThreadError, ResourceId, SamplerCache, SamplerDesc, SamplerId, ShaderLayout,
-    ShaderReloadResult, TexFilter, TexFormat, TexWrapMode, VertexFormat,
+    ShaderReloadResult, TexFilter, TexFormat, TexView, TexWrapMode, VertexFormat,
 };
 use crate::window::{PresentMode, WindowGlContext};
 
@@ -282,6 +282,12 @@ impl Renderer {
 
     pub fn generate_mipmap_by_resource(&mut self, id: ResourceId) {
         self.ex().cmd_generate_mipmap_by_resource(id);
+    }
+
+    /// Copy `size` texels (width, height, layers) from the origin of `src`
+    /// to the origin of `dst` (see `RenderCommand::CopyTexture`).
+    pub fn copy_texture(&mut self, src: TexView, dst: TexView, size: [u32; 3]) {
+        self.ex().cmd_copy_texture(&src, &dst, size);
     }
 
     pub fn update_texture_1d_data_by_resource(

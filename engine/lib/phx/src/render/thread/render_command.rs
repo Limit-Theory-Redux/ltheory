@@ -12,7 +12,7 @@ use super::command_category::CommandCategory;
 use crate::render::{
     BindEntry, BindGroupId, BlendMode, BlockLayout, BufferId, CullFace, PassCommands, PipelineDesc,
     PipelineId, RenderPassDesc, SamplerDesc, SamplerId, ShaderLayout, TexFilter, TexFormat,
-    TexWrapMode, VertexFormat, gl,
+    TexView, TexWrapMode, VertexFormat, gl,
 };
 use crate::window::PresentMode;
 
@@ -309,6 +309,17 @@ pub enum RenderCommand {
 
     /// Generate mipmaps for a texture by resource ID (see above)
     GenerateMipmapByResource { id: ResourceId },
+
+    /// Copy a `size[0]` x `size[1]` rectangle (`size[2]` layers, always 1 on
+    /// GL) from the origin of `src` to the origin of `dst`. Both views are
+    /// one level of a 2D texture, one face of a cube or one z-slice of a 3D
+    /// texture, with the same format. GL: `glBlitFramebuffer` between two
+    /// scratch framebuffers (`glCopyImageSubData` needs 4.3).
+    CopyTexture {
+        src: TexView,
+        dst: TexView,
+        size: [u32; 3],
+    },
 
     /// Update data for a 1D texture by ResourceId
     UpdateTexture1DDataByResource {
@@ -685,6 +696,7 @@ impl RenderCommand {
             | SetTextureMinFilterByResource { .. }
             | SetTextureWrapModeByResource { .. }
             | GenerateMipmapByResource { .. }
+            | CopyTexture { .. }
             | UpdateTexture1DDataByResource { .. }
             | UpdateTexture3DDataByResource { .. }
             | UpdateTextureCubeFaceDataByResource { .. }

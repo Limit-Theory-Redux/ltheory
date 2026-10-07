@@ -2345,6 +2345,9 @@ impl CommandExecutor {
             for sampler in self.binding.samplers.values() {
                 gl::DeleteSamplers(1, sampler);
             }
+            if self.binding.copy_fbos[0] != 0 {
+                gl::DeleteFramebuffers(2, self.binding.copy_fbos.as_ptr());
+            }
             if self.binding.fullscreen_vao != 0 {
                 gl::DeleteVertexArrays(1, &self.binding.fullscreen_vao);
                 gl::DeleteBuffers(1, &self.binding.fullscreen_vbo);

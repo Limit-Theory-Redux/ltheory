@@ -1839,6 +1839,68 @@ impl WgpuCommandExecutor {
     ) {
     }
 
+    /// The texture, mip level and array layer a 2D or cube-face view addresses.
+    fn copy_target(&self, view: &TexView) -> Option<(wgpu::Texture, u32, u32)> {
+        match (self.resources.get(&view.tex)?, view.dim) {
+            (WgpuGpuResource::Texture2D { texture, .. }, ViewDim::D2) => {
+                Some((texture.clone(), view.base_mip as u32, 0))
+            }
+            (WgpuGpuResource::TextureCube { texture, .. }, ViewDim::CubeFace(face)) => {
+                let layer = (face as u32 - crate::render::gl::TEXTURE_CUBE_MAP_POSITIVE_X).min(5);
+                Some((texture.clone(), view.base_mip as u32, layer))
+            }
+            _ => None,
+        }
+    }
+
+    /// `CopyTexture` between two 2D or cube-face views (mip levels the wgpu
+    /// textures do not have yet are skipped, see `GenerateMipmapByResource`).
+    pub(super) fn cmd_copy_texture(&mut self, src: &TexView, dst: &TexView, size: [u32; 3]) {
+        let (Some(device), Some(queue)) = (self.device.as_ref(), self.queue.as_ref()) else {
+            return;
+        };
+        let (Some((src_tex, src_mip, src_layer)), Some((dst_tex, dst_mip, dst_layer))) =
+            (self.copy_target(src), self.copy_target(dst))
+        else {
+            warn!("wgpu: CopyTexture supports 2D and cube-face views only (no-op)");
+            return;
+        };
+        if src_mip >= src_tex.mip_level_count() || dst_mip >= dst_tex.mip_level_count() {
+            return;
+        }
+        let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some("phx-copy-texture"),
+        });
+        encoder.copy_texture_to_texture(
+            wgpu::TexelCopyTextureInfo {
+                texture: &src_tex,
+                mip_level: src_mip,
+                origin: wgpu::Origin3d {
+                    x: 0,
+                    y: 0,
+                    z: src_layer,
+                },
+                aspect: wgpu::TextureAspect::All,
+            },
+            wgpu::TexelCopyTextureInfo {
+                texture: &dst_tex,
+                mip_level: dst_mip,
+                origin: wgpu::Origin3d {
+                    x: 0,
+                    y: 0,
+                    z: dst_layer,
+                },
+                aspect: wgpu::TextureAspect::All,
+            },
+            wgpu::Extent3d {
+                width: size[0],
+                height: size[1],
+                depth_or_array_layers: 1,
+            },
+        );
+        queue.submit([encoder.finish()]);
+    }
+
     pub(super) fn cmd_generate_mipmap_by_resource(&mut self, _id: ResourceId) {
         // No mipmap generation yet (see ai/wgpu-modernization-list.md #4);
         // textures are created with mip_level_count 1.
@@ -5544,6 +5606,9 @@ impl WgpuCommandExecutor {
             }
             RenderCommand::GenerateMipmapByResource { id } => {
                 self.cmd_generate_mipmap_by_resource(id)
+            }
+            RenderCommand::CopyTexture { src, dst, size } => {
+                self.cmd_copy_texture(&src, &dst, size)
             }
             RenderCommand::UpdateTexture1DDataByResource {
                 id,

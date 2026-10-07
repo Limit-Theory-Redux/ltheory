@@ -4,7 +4,6 @@
 #include color
 #include noise
 #include scattering2
-#include texcube
 
 #group 1
 layout(std140) uniform MaterialParams {

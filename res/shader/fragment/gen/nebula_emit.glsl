@@ -2,13 +2,21 @@
 #include color
 #include math
 #include noise
-#include texcube
 #include quat
 
-uniform float seed;
-uniform vec3 color;
-uniform vec4 rot;
+#group 2
+layout(std140) uniform Params {
+    vec4 genLook;   // face data written by TexGen.Cube (must stay the first three members)
+    vec4 genUp;
+    vec4 genSize;   // x = face size in pixels
+    float seed;
+    vec3 color;
+    vec4 rot;
+};
+#group 3
 uniform samplerCube src;
+
+#include texcube
 
 const float kRoughness  = 0.7;
 const int kIterations   = 32;

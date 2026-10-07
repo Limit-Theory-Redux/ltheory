@@ -1,5 +1,4 @@
-local Generator = require('Legacy.Systems.Gen.Generator')
-local GenUtil   = require('Legacy.Systems.Gen.GenUtil')
+local Generator = require('Shared.Generation.Generator')
 
 local function generateNebulaLightTransport(rng, res, starDir)
     Profiler.Begin('Nebula.Generate.LightTransport')
@@ -11,34 +10,42 @@ local function generateNebulaLightTransport(rng, res, starDir)
     buffSrc:setMinFilter(TexFilter.Linear)
     buffSrc:clear(0.05, 0.05, 0.05, 0)
 
-    local emit   = Cache.Shader('ui', 'gen/nebula_emit')
-    local absorb = Cache.Shader('ui', 'gen/nebula_absorb')
+    local emit   = Cache.Shader('fullscreen_ndc', 'gen/nebula_emit')
+    local absorb = Cache.Shader('fullscreen_ndc', 'gen/nebula_absorb')
+    local EmitParams = emit:blockType('Params')
+    local AbsorbParams = absorb:blockType('Params')
 
     for i = 1, 8 do
         for j = 1, rng:getInt(4, 8) do -- Emission
-            local ss = ShaderState.Create(emit)
+            local p = EmitParams()
             local rot = rng:getQuat()
             local dir = rng:getDir3()
-            -- ss:setFloat('seed', rng:getUniform())
             local T = rng:getUniform()
             local K = Math.Lerp(1600.0, 15000.0, T)
             local C = Color.FromTemperature(K, 2.5):toVec3():normalize():scale(1.0 + rng:getExp())
-            ss:setFloat3('color', C.x, C.y, C.z)
-            ss:setFloat4('rot', rot.x, rot.y, rot.z, rot.w)
-            -- ss:setFloat3('starDir', starDir.x, starDir.y, starDir.z)
-            ss:setTexCube('src', buffSrc)
-            buffDst:generate(ss)
+            p.color.x, p.color.y, p.color.z = C.x, C.y, C.z
+            p.rot.x, p.rot.y, p.rot.z, p.rot.w = rot.x, rot.y, rot.z, rot.w
+            TexGen.CubeInto(buffDst, {
+                label  = 'Nebula.Emit',
+                shader = emit,
+                params = p,
+                inputs = { { buffSrc:view(), Samplers.LinearClamp } },
+            })
             buffSrc, buffDst = buffDst, buffSrc
         end
 
         for j = 1, rng:getInt(2, 4) do -- Extinction
-            local ss = ShaderState.Create(absorb)
+            local p = AbsorbParams()
             local rot = rng:getQuat()
-            ss:setFloat('density', 1.0 + rng:getExp())
-            ss:setFloat('seed', rng:getUniform())
-            ss:setFloat4('rot', rot.x, rot.y, rot.z, rot.w)
-            ss:setTexCube('src', buffSrc)
-            buffDst:generate(ss)
+            p.density = 1.0 + rng:getExp()
+            p.seed = rng:getUniform()
+            p.rot.x, p.rot.y, p.rot.z, p.rot.w = rot.x, rot.y, rot.z, rot.w
+            TexGen.CubeInto(buffDst, {
+                label  = 'Nebula.Absorb',
+                shader = absorb,
+                params = p,
+                inputs = { { buffSrc:view(), Samplers.LinearClamp } },
+            })
             buffSrc, buffDst = buffDst, buffSrc
         end
     end

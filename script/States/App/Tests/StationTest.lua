@@ -26,8 +26,8 @@ local SkyboxEntity          = require("Modules.CelestialObjects.Entities.SkyboxE
 local StationGenerator      = require("Modules.Constructs.Managers.Generators.StationGenerator")
 
 ---! still using legacy
-local Generator             = require("Legacy.Systems.Gen.Generator")
-local Starfield             = require("Legacy.Systems.Gen.Starfield")
+local Generator             = require("Shared.Generation.Generator")
+local Starfield             = require("Shared.Generation.Starfield")
 
 function StationTest:onInit()
     Window:setPresentMode(PresentMode.NoVsync)
@@ -48,7 +48,7 @@ function StationTest:onInit()
         end
 
         if not placeholder.envMap then
-            require("Legacy.Systems.Gen.Nebula.Nebula1")
+            require("Shared.Generation.Nebula1")
             local nebulaRNG     = RNG.Create(entity:get(CoreComponents.Seed):getSeed() + 0xC0104FULL)
             local starAngle     = nebulaRNG:getDir2()
             placeholder.starDir = Vec3f(starAngle.x, 0, starAngle.y)

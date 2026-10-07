@@ -2,11 +2,18 @@
 #include color
 #include math
 #include noise
-#include texcube
 
-uniform vec3 color;
-uniform float seed;
-uniform vec3 genStarDir;
+#group 2
+layout(std140) uniform Params {
+    vec4 genLook;   // face data written by TexGen.Cube (must stay the first three members)
+    vec4 genUp;
+    vec4 genSize;   // x = face size in pixels
+    vec3 color;
+    float seed;
+    vec3 genStarDir;
+};
+
+#include texcube
 
 float bgDensity(vec3 p) {
   return 0.5 + 0.5 * fSmoothNoise(p * 4 + seed, 8, 2.0);

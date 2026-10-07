@@ -1,9 +1,13 @@
 local GenTex2D = require('States.Application')
 
+-- Pure-Lua helper; `Gen` is the global of the Legacy generator namespace, which this state does not load.
+local MathUtil = require('Legacy.Systems.Gen.MathUtil')
+local Pipelines = require('Render.Pipelines')
+
 local kTexSize = 1024
 local rng = RNG.FromTime()
 
-local vs = Resource.LoadString(ResourceType.Shader, 'vertex/ui')
+local vs = Resource.LoadString(ResourceType.Shader, 'vertex/fullscreen_ndc')
 
 -- Main generating fragment shader
 local fs = [[
@@ -15,9 +19,12 @@ local fs = [[
 #include bezier
 
 /* Declare inputs. */
-uniform vec2 size;
-uniform float seed;
-uniform float borderThreshold;
+#group 2
+layout(std140) uniform Params {
+  vec2 size;
+  float seed;
+  float borderThreshold;
+};
 
 void main() {
   vec3 c = vec3(0.0);
@@ -41,13 +48,6 @@ void main() {
 }
 
 ]]
-
-function GenTex2D:onSetShaderVars()
-    -- Set shader variables here
-    self.genShader:setFloat('seed', rng:getUniformRange(0, 1000.0))
-    self.genShader:setFloat2('size', kTexSize, kTexSize)
-    self.genShader:setFloat('borderThreshold', 0.01)
-end
 
 function GenTex2D:onGenerate()
     do -- Free old texture
@@ -94,7 +94,7 @@ function GenTex2D:DrawWorn(tex)
         Draw.Border(5, x, 0, x + w, kTexSize)
         -- inner detail lines
         local nd = rng:getInt(1, 3)
-        local dist = Gen.MathUtil.GenerateNumsThatAddToSum(nd, w, rng)
+        local dist = MathUtil.GenerateNumsThatAddToSum(nd, w, rng)
         local dx = x
         for j = 0, nd - 1 do
             local y = rng:getUniformRange(0, kTexSize)
@@ -104,11 +104,15 @@ function GenTex2D:DrawWorn(tex)
     end
 end
 
+--- Fill the open pass with the cel shader (one fullscreen draw).
 function GenTex2D:DrawCel(tex)
-    self.genShader:start()
-    self:onSetShaderVars()
-    Draw.Rect(0, 0, kTexSize, kTexSize)
-    self.genShader:stop()
+    local pass = Renderer:currentPass()
+    pass:setPipeline(Pipelines.get(self.genShader, { vertex = VertexLayout.Fullscreen }))
+    local p = pass:alloc(self.CelParams)
+    p.seed = rng:getUniformRange(0, 1000.0)
+    p.size.x, p.size.y = kTexSize, kTexSize
+    p.borderThreshold = 0.01
+    pass:drawFullscreen()
 end
 
 function GenTex2D:DrawRect1(tex)
@@ -131,7 +135,7 @@ function GenTex2D:DrawRect1(tex)
         x = 0
         y = rowHeight * i
         numCols = rng:getInt(5, 20)
-        columnWidths = Gen.MathUtil.GenerateNumsThatAddToSum(numCols, kTexSize, rng)
+        columnWidths = MathUtil.GenerateNumsThatAddToSum(numCols, kTexSize, rng)
         for j = 1, numCols do
             Draw.Border(lineWidth, x, y, columnWidths[j], rowHeight)
             -- vertical box subdivision
@@ -161,6 +165,7 @@ end
 
 function GenTex2D:onInit()
     self.genShader = Shader.Create(vs, fs)
+    self.CelParams = self.genShader:blockType('Params')
     self.zoom = 1
     self.zoomT = 1
     self.panX = 0

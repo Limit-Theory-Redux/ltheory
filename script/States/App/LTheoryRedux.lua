@@ -52,9 +52,12 @@ local MemoryReporter = require('Modules.Profiling.MemoryReporter')
 local ConstructManager = require('Modules.Constructs.Managers.ConstructManager')
 local StationGenerator = require('Modules.Constructs.Managers.Generators.StationGenerator')
 
--- Legacy (still needed for skybox generation)
-local Generator = require('Legacy.Systems.Gen.Generator')
-local Starfield = require('Legacy.Systems.Gen.Starfield')
+-- Skybox generation (the nebula generators register themselves with `Generator`;
+-- this state also draws from the light-transport nebula, which the Legacy
+-- namespace load used to register)
+local Generator = require('Shared.Generation.Generator')
+local Starfield = require('Shared.Generation.Starfield')
+require('Shared.Generation.Nebula2')
 
 local rng = RNG.FromTime()
 
@@ -383,7 +386,7 @@ function LimitTheoryRedux:createSkybox()
         end
 
         if not placeholder.envMap then
-            require("Legacy.Systems.Gen.Nebula.Nebula1")
+            require("Shared.Generation.Nebula1")
             local nebulaRNG     = RNG.Create(entity:get(CoreComponents.Seed):getSeed() + 0xC0104FULL)
             local starAngle     = nebulaRNG:getDir2()
             placeholder.starDir = Vec3f(starAngle.x, 0, starAngle.y)

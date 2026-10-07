@@ -8,6 +8,7 @@
 mod bind_group;
 mod buffer;
 mod draw_block;
+mod r#gen;
 mod layout;
 mod material;
 mod pass_encoder;
@@ -22,6 +23,7 @@ mod view_block;
 pub use bind_group::*;
 pub use buffer::*;
 pub use draw_block::*;
+pub use r#gen::*;
 pub use layout::*;
 pub use material::*;
 pub use pass_encoder::*;

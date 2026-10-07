@@ -3,6 +3,7 @@
 #include gamma
 #include color
 
+#group 3
 uniform sampler2D src;
 uniform sampler2D srcBlur;
 

@@ -3,8 +3,15 @@
 in vec2 uv;
 out vec4 outColor;
 
-uniform vec3 cubeLook;
-uniform vec3 cubeUp;
+#group 2
+layout(std140) uniform Params {
+    vec4 genLook;
+    vec4 genUp;
+    float angle;
+    int samples;
+};
+#define cubeLook genLook.xyz
+#define cubeUp genUp.xyz
 
 vec3 cubeMapDir(vec2 uv) {
   uv = 2.0 * uv - vec2(1.0, 1.0);
@@ -16,10 +23,9 @@ float lum(vec3 rgb) {
   return dot(rgb, vec3(0.2126, 0.7152, 0.0722));
 }
 
+#group 3
 uniform samplerCube src;
 uniform sampler2D sampleBuffer;
-uniform float angle;
-uniform int samples;
 
 void main() {
   vec3 N = cubeMapDir(uv);

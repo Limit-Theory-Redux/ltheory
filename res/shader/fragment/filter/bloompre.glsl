@@ -2,6 +2,7 @@
 #include math
 #include color
 
+#group 3
 uniform sampler2D src;
 
 void main() {

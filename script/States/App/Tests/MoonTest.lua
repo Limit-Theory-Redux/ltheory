@@ -30,9 +30,9 @@ local MoonEntity            = require('Modules.CelestialObjects.Entities.MoonEnt
 
 ---! still using legacy
 local Primitive             = require("Legacy.Systems.Gen.Primitive")
-local GenUtil               = require("Legacy.Systems.Gen.GenUtil")
-local Generator             = require("Legacy.Systems.Gen.Generator")
-local Starfield             = require("Legacy.Systems.Gen.Starfield")
+local GenUtil               = require("Core.ECS.Mesh.Util.GenUtil")
+local Generator             = require("Shared.Generation.Generator")
+local Starfield             = require("Shared.Generation.Starfield")
 
 function MoonTest:onInit()
     Window:setPresentMode(PresentMode.NoVsync)
@@ -53,7 +53,7 @@ function MoonTest:onInit()
         end
 
         if not placeholder.envMap then
-            require("Legacy.Systems.Gen.Nebula.Nebula1")
+            require("Shared.Generation.Nebula1")
             local nebulaRNG     = RNG.Create(entity:get(CoreComponents.Seed):getSeed() + 0xC0104FULL)
             local starAngle     = nebulaRNG:getDir2()
             placeholder.starDir = Vec3f(starAngle.x, 0, starAngle.y)

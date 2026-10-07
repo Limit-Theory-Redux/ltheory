@@ -575,6 +575,10 @@ impl CommandExecutor {
                 self.cmd_generate_mipmap_by_resource(id);
             }
 
+            RenderCommand::CopyTexture { src, dst, size } => {
+                self.cmd_copy_texture(&src, &dst, size);
+            }
+
             RenderCommand::UpdateTexture1DDataByResource {
                 id,
                 width,

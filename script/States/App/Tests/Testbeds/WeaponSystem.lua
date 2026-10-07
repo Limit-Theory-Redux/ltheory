@@ -596,8 +596,8 @@ local OrbitCameraController = require("Modules.Cameras.Managers.CameraController
 local RenderCoreSystem = require("Modules.Rendering.Systems.RenderCoreSystem")
 local LightManager = require("Modules.Rendering.Managers.LightManager")
 local CameraSystem = require("Modules.Cameras.Systems.CameraSystem")
-local Generator = require("Legacy.Systems.Gen.Generator")
-local Starfield = require("Legacy.Systems.Gen.Starfield")
+local Generator = require("Shared.Generation.Generator")
+local Starfield = require("Shared.Generation.Starfield")
 local Pulse = require("Legacy.GameObjects.Entities.Effects.Pulse")
 local WeaponSystem = require("Modules.Constructs.Systems.WeaponSystem")
 local AIWeaponSystem = require("Modules.Constructs.Systems.AIWeaponSystem")
@@ -1201,7 +1201,7 @@ function WeaponSystemTestbed:onInit()
         end
 
         if not placeholder.envMap then
-            require("Legacy.Systems.Gen.Nebula.Nebula1")
+            require("Shared.Generation.Nebula1")
             local nebulaRNG = RNG.Create(entity:get(CoreComponents.Seed):getSeed() + 0xC0104FULL)
             local starAngle = nebulaRNG:getDir2()
             placeholder.starDir = Vec3f(starAngle.x, 0, starAngle.y)

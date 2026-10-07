@@ -87,6 +87,8 @@ pub(super) struct GlBindingState {
     /// Unit quad for `DrawFullscreen`.
     pub fullscreen_vao: u32,
     pub fullscreen_vbo: u32,
+    /// Scratch read and draw framebuffers of `CopyTexture` (0 until first use).
+    pub copy_fbos: [u32; 2],
 }
 
 impl GlBindingState {
@@ -109,6 +111,7 @@ impl GlBindingState {
             mip_ranges: HashMap::new(),
             fullscreen_vao: 0,
             fullscreen_vbo: 0,
+            copy_fbos: [0; 2],
         }
     }
 }
@@ -184,6 +187,101 @@ impl CommandExecutor {
             }
             gl::BindVertexArray(0);
             gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+        }
+    }
+
+    /// Attach `view` (a level of a 2D texture, a cube face or a 3D slice) to
+    /// color attachment 0 of the framebuffer bound to `target`. `false` if
+    /// the texture is missing or the view is not attachable.
+    fn attach_copy_view(&self, target: u32, view: &TexView) -> bool {
+        let level = view.base_mip as i32;
+        unsafe {
+            match (self.resources.get(&view.tex), view.dim) {
+                (Some(GpuResource::Texture2D { handle }), ViewDim::D2) => {
+                    gl::FramebufferTexture2D(
+                        target,
+                        gl::COLOR_ATTACHMENT0,
+                        gl::TEXTURE_2D,
+                        *handle,
+                        level,
+                    );
+                }
+                (Some(GpuResource::TextureCube { handle }), ViewDim::CubeFace(face)) => {
+                    gl::FramebufferTexture2D(
+                        target,
+                        gl::COLOR_ATTACHMENT0,
+                        face as u32,
+                        *handle,
+                        level,
+                    );
+                }
+                (Some(GpuResource::Texture3D { handle }), ViewDim::D2Layer(layer)) => {
+                    gl::FramebufferTextureLayer(
+                        target,
+                        gl::COLOR_ATTACHMENT0,
+                        *handle,
+                        level,
+                        layer as i32,
+                    );
+                }
+                (resource, dim) => {
+                    error!(
+                        "CopyTexture: {:?} ({dim:?}) is not a copyable view (resource: {})",
+                        view.tex,
+                        if resource.is_some() {
+                            "wrong texture kind"
+                        } else {
+                            "not found"
+                        }
+                    );
+                    return false;
+                }
+            }
+        }
+        true
+    }
+
+    /// `CopyTexture`: `glBlitFramebuffer` from `src` to `dst` through two
+    /// scratch framebuffers (`glCopyImageSubData` needs GL 4.3). Same-format
+    /// copies are exact: the blit is nearest-filtered and unscaled. The pass
+    /// framebuffer, scissor and draw-buffer state are restored.
+    pub(super) fn cmd_copy_texture(&mut self, src: &TexView, dst: &TexView, size: [u32; 3]) {
+        let _sa = self.record_command(CommandCategory::TextureData, false, false);
+        let (w, h) = (size[0] as i32, size[1] as i32);
+        if w <= 0 || h <= 0 {
+            return;
+        }
+        unsafe {
+            if self.binding.copy_fbos[0] == 0 {
+                gl::GenFramebuffers(2, self.binding.copy_fbos.as_mut_ptr());
+            }
+            let [read_fbo, draw_fbo] = self.binding.copy_fbos;
+            gl::BindFramebuffer(gl::READ_FRAMEBUFFER, read_fbo);
+            gl::BindFramebuffer(gl::DRAW_FRAMEBUFFER, draw_fbo);
+            let ok = self.attach_copy_view(gl::READ_FRAMEBUFFER, src)
+                && self.attach_copy_view(gl::DRAW_FRAMEBUFFER, dst);
+            if ok {
+                gl::ReadBuffer(gl::COLOR_ATTACHMENT0);
+                let draw_buffers = [gl::COLOR_ATTACHMENT0];
+                gl::DrawBuffers(1, draw_buffers.as_ptr());
+                let scissor = gl::IsEnabled(gl::SCISSOR_TEST) == gl::TRUE;
+                if scissor {
+                    gl::Disable(gl::SCISSOR_TEST);
+                }
+                gl::BlitFramebuffer(0, 0, w, h, 0, 0, w, h, gl::COLOR_BUFFER_BIT, gl::NEAREST);
+                if scissor {
+                    gl::Enable(gl::SCISSOR_TEST);
+                }
+            }
+            // Detach, so a deleted texture is not kept alive by the scratch FBOs.
+            for (target, fbo) in [
+                (gl::READ_FRAMEBUFFER, read_fbo),
+                (gl::DRAW_FRAMEBUFFER, draw_fbo),
+            ] {
+                gl::BindFramebuffer(target, fbo);
+                gl::FramebufferTexture2D(target, gl::COLOR_ATTACHMENT0, gl::TEXTURE_2D, 0, 0);
+            }
+            gl::BindFramebuffer(gl::FRAMEBUFFER, self.bound_fbo);
         }
     }
 

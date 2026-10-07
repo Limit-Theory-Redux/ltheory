@@ -2,10 +2,14 @@
 in vec2 uv;
 out vec4 fragColor;
 
+#group 2
+layout(std140) uniform Params {
+    int mode;
+    float exposure;
+    vec2 size;
+};
+#group 3
 uniform sampler2D src;
-uniform int mode;
-uniform float exposure;
-uniform vec2 size;
 
 vec3 Linear(vec3 c) { return c; }
 

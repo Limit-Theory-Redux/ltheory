@@ -1,7 +1,11 @@
 #version 330
 
+#group 2
+layout(std140) uniform Params {
+    float strength;
+};
+#group 3
 uniform sampler2D src;
-uniform float strength;
 in vec2 uv;
 out vec4 outColor;
 

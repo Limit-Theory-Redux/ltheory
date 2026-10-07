@@ -1,4 +1,4 @@
---local istype = ffi.istype
+local ffi = require('ffi')
 local GenUtil = {}
 
 --[[
@@ -32,83 +32,100 @@ function GenUtil.FindMountPoint(mesh, bsp, rng, normal, facing, maxTries)
 end
 --]]
 
----Creates a Tex3D from a Shader
----@param shaderState ShaderState
----@param res integer
----@param fmt TexFormat
----@return Tex3D
-function GenUtil.ShaderToTex3D(shaderState, res, fmt)
-    -- Create Tex3D, Resolution res, TexFormat fmt
-    local tex3D = Tex3D.Create(res, res, res, fmt)
-    -- Set RenderState to Default
-    RenderState.PushAllDefaults()
-    -- Start ShaderState and get it's Shader
-    shaderState:start()
-    local shader = shaderState:shader()
-    -- Set Shader Uniforms
-    shader:setFloat3('du', 2, 0, 0)
-    shader:setFloat3('dv', 0, 2, 0)
-
-    -- One pass per z-slice. The shader writes every texel, so no load is needed.
-    local desc = RenderPassDesc.Create('GenUtil.ShaderToTex3D')
-    for i = 0, res - 1 do
-        local z = (2.0 * (i / (res - 1)) - 1.0)
-        shader:setFloat3('origin', -1, -1, z)
-        desc:color(0, tex3D:layerView(i), LoadOp.DontCare, 0, 0, 0, 0)
-        local pass = Renderer:beginPass(desc)
-        Draw.Rect(-1, -1, 2, 2)
-        Draw.Flush()
-        pass:finish()
+--- Write `value` into the `Params` field `p[name]`: numbers and booleans
+--- directly, vectors component by component (`Vec3f` into a `vec3`, ...).
+local function assignField(p, name, value)
+    local t = type(value)
+    if t == 'number' then
+        p[name] = value
+    elseif t == 'boolean' then
+        p[name] = value and 1.0 or 0.0
+    else
+        local field = p[name]
+        local components = ffi.sizeof(field) / 4 -- Vec2f/Vec3f/Vec4f
+        field.x = value.x
+        if components >= 2 then field.y = value.y end
+        if components >= 3 then field.z = value.z end
+        if components >= 4 then field.w = value.w end
     end
-
-    -- Stop ShaderState
-    shaderState:stop()
-    -- Return RenderState to previous state
-    RenderState.PopAll()
-
-    -- Return Tex3D
-    return tex3D
 end
 
---[[
---TODO: From Systems/Gen/GenUtil Not Currently Used
-
-function GenUtil.ShaderToTexCube(res, fmt, fragShader, args)
-    --Profiler.Begin('Gen.ShaderToTexCube')
-    local shader = Cache.Shader('ui', fragShader)
-    local state = ShaderState.Create(shader)
-    for k, v in pairs(args) do
-        local t = type(v)
-        if t == 'number' then
-            state:setFloat(k, v)
-        elseif istype('Vec2f', v) or istype('Vec2d', v) then
-            state:setFloat2(k, v.x, v.y)
-        elseif istype('Vec3f', v) or istype('Vec3d', v) then
-            state:setFloat3(k, v.x, v.y, v.z)
-        elseif istype('Vec4f', v) or istype('Vec4d', v) then
-            state:setFloat4(k, v.x, v.y, v.z, v.w)
-        elseif istype('Tex1D', v) then
-            state:setTex1D(k, v)
-        elseif istype('Tex2D', v) then
-            state:setTex2D(k, v)
-        elseif istype('Tex3D', v) then
-            state:setTex3D(k, v)
-        elseif istype('TexCube', v) then
-            state:setTexCube(k, v)
-        elseif istype('Matrix', v) then
-            state:setMatrix(k, v)
-        else
-            Log.Error('Argument <%s> has incompatible type', k)
+--- The `Params` struct of `shader` with `args` written into it. Arguments the
+--- shader does not declare are ignored (the old `ShaderState` only warned).
+---@param shader Shader
+---@param args table<string, number|boolean|Vec2f|Vec3f|Vec4f>|nil
+---@return ffi.cdata*
+local function buildParams(shader, args)
+    local T = shader:blockType('Params')
+    local p = T()
+    for k, v in pairs(args or {}) do
+        if ffi.offsetof(T, k) ~= nil then
+            assignField(p, k, v)
         end
     end
+    return p
+end
 
-    local self = TexCube.Create(res, fmt)
-    self:generate(state)
-    self:genMipmap()
+-- A one texel black texture (alpha 1): what a sampler without a bound texture reads.
+local blackTex
+local function black()
+    if not blackTex then
+        blackTex = Tex2D.Create(1, 1, TexFormat.RGBA16F)
+        blackTex:clear(0, 0, 0, 1)
+    end
+    return blackTex
+end
+
+--- Sampler inputs of generating shaders that declare any, by fragment shader.
+--- `gen/moon` blends a photographic base texture (`baseMoonTex`) that is not
+--- shipped; the sampler always read black, and still does.
+local defaultInputs = {
+    ['gen/moon'] = function() return { { black():view(), Samplers.Point } } end,
+}
+
+---Creates a Tex3D from a fullscreen generating shader (`TexGen.Volume`): one
+---pass per z-slice over [-1,1]^3.
+---@param fragShader string fragment shader name, e.g. 'sdf/asteroid'
+---@param res integer
+---@param fmt TexFormat
+---@param args table<string, number|boolean|Vec2f|Vec3f|Vec4f>|nil `Params` fields
+---@return Tex3D
+function GenUtil.ShaderToTex3D(fragShader, res, fmt, args)
+    local shader = Cache.Shader('fullscreen_ndc', fragShader)
+    return TexGen.Volume {
+        label  = 'GenUtil.ShaderToTex3D',
+        shader = shader,
+        size   = res,
+        format = fmt,
+        params = buildParams(shader, args),
+    }
+end
+
+---Creates a TexCube from a fullscreen generating shader (`TexGen.Cube`),
+---with its mip chain.
+---@param res integer
+---@param fmt TexFormat
+---@param fragShader string fragment shader name, e.g. 'gen/planet'
+---@param args table<string, number|boolean|Vec2f|Vec3f|Vec4f>|nil `Params` fields
+---@return TexCube
+function GenUtil.ShaderToTexCube(res, fmt, fragShader, args)
+    Profiler.Begin('Gen.ShaderToTexCube')
+    local shader = Cache.Shader('fullscreen_ndc', fragShader)
+    local self = TexGen.Cube {
+        label  = 'GenUtil.ShaderToTexCube',
+        shader = shader,
+        size   = res,
+        format = fmt,
+        params = buildParams(shader, args),
+        mips   = true,
+        inputs = defaultInputs[fragShader] and defaultInputs[fragShader](),
+    }
     self:setMagFilter(TexFilter.Linear)
     self:setMinFilter(TexFilter.LinearMipLinear)
-    --Profiler.End()
+    Profiler.End()
     return self
 end
---]]
+
+GenUtil.buildParams = buildParams
+
 return GenUtil

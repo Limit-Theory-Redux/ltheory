@@ -1,4 +1,3 @@
-local istype = ffi.istype
 local GenUtil = {}
 
 -- Find a suitable point on the given mesh for mounting a module.
@@ -28,68 +27,10 @@ function GenUtil.FindMountPoint(mesh, bsp, rng, normal, facing, maxTries)
     return nil
 end
 
-function GenUtil.ShaderToTex3D(shaderState, res, fmt)
-    local self = Tex3D.Create(res, res, res, fmt)
-    RenderState.PushAllDefaults()
-    shaderState:start()
-    local shader = shaderState:shader()
-    shader:setFloat3('du', 2, 0, 0)
-    shader:setFloat3('dv', 0, 2, 0)
-
-    local desc = RenderPassDesc.Create('GenUtil.ShaderToTex3D')
-    for i = 0, res - 1 do
-        local z = (2.0 * (i / (res - 1)) - 1.0)
-        shader:setFloat3('origin', -1, -1, z)
-        desc:color(0, self:layerView(i), LoadOp.DontCare, 0, 0, 0, 0)
-        local pass = Renderer:beginPass(desc)
-        Draw.Rect(-1, -1, 2, 2)
-        Draw.Flush()
-        pass:finish()
-    end
-
-    shaderState:stop()
-    RenderState.PopAll()
-    return self
-end
-
+-- Generation moved to Core.ECS.Mesh.Util.GenUtil (render API v2, S5): fullscreen
+-- passes through `TexGen`. The ShaderState based `ShaderToTex3D` is gone.
 function GenUtil.ShaderToTexCube(res, fmt, fragShader, args)
-    Profiler.Begin('Gen.ShaderToTexCube')
-    local shader = Cache.Shader('ui', fragShader)
-    local state = ShaderState.Create(shader)
-    for k, v in pairs(args) do
-        local t = type(v)
-        if t == 'number' then
-            state:setFloat(k, v)
-        elseif t == 'boolean' then
-            state:setFloat(k, v == true and 1.0 or v == false and 0.0)
-        elseif istype('Vec2f', v) or istype('Vec2d', v) then
-            state:setFloat2(k, v.x, v.y)
-        elseif istype('Vec3f', v) or istype('Vec3d', v) then
-            state:setFloat3(k, v.x, v.y, v.z)
-        elseif istype('Vec4f', v) or istype('Vec4d', v) then
-            state:setFloat4(k, v.x, v.y, v.z, v.w)
-        elseif istype('Tex1D', v) then
-            state:setTex1D(k, v)
-        elseif istype('Tex2D', v) then
-            state:setTex2D(k, v)
-        elseif istype('Tex3D', v) then
-            state:setTex3D(k, v)
-        elseif istype('TexCube', v) then
-            state:setTexCube(k, v)
-        elseif istype('Matrix', v) then
-            state:setMatrix(k, v)
-        else
-            Log.Error('Argument <%s> has incompatible type', k)
-        end
-    end
-
-    local self = TexCube.Create(res, fmt)
-    self:generate(state)
-    self:genMipmap()
-    self:setMagFilter(TexFilter.Linear)
-    self:setMinFilter(TexFilter.LinearMipLinear)
-    Profiler.End()
-    return self
+    return require('Core.ECS.Mesh.Util.GenUtil').ShaderToTexCube(res, fmt, fragShader, args)
 end
 
 return GenUtil

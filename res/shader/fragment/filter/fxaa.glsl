@@ -1,11 +1,14 @@
 #version 330
 
+#group 2
+layout(std140) uniform Params {
+    vec2 size;
+    float fxaaQualitySubpix;
+    float fxaaQualityEdgeThreshold;
+    float fxaaQualityEdgeThresholdMin;
+};
+#group 3
 uniform sampler2D src;
-uniform vec2 size;
-
-uniform float fxaaQualitySubpix;           
-uniform float fxaaQualityEdgeThreshold;    
-uniform float fxaaQualityEdgeThresholdMin; 
 
 in vec2 uv;
 out vec4 outColor;
