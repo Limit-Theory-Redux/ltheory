@@ -25,6 +25,12 @@ function onDef_Material_t(t, mt)
         libphx.Material_Commit(self, Renderer)
     end
 
+    --- The shader was hot reloaded: adopt its layout (see `Material:refresh`).
+    --- Returns the report line; `params()` moved, and `commit()` must follow.
+    index.refreshShader = function(self)
+        return libphx.Material_RefreshShader(self, Renderer)
+    end
+
     --- Raw pointer to the parameter block; cast it to the type of
     --- `shader:blockType('MaterialParams')`.
     index.paramsPointer = function(self)

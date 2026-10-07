@@ -6,7 +6,7 @@ use tracing::{debug, error, info, warn};
 
 use crate::render::thread::command_executor_wgpu::WgpuCommandExecutor;
 use crate::render::thread::{CommandExecutor, CommandReply};
-use crate::render::{RenderCommand, RenderStats, ReturnedChunk, ShaderReloadResult};
+use crate::render::{RenderCommand, RenderStats, ReturnedChunk};
 use crate::window::{WgpuStartupBundle, WindowActiveGlContext, WindowGlContext};
 
 /// Drives a [`CommandExecutor`] on a dedicated thread.
@@ -23,8 +23,6 @@ pub struct RenderThread {
     /// round-trip fences can never be consumed by the wrong consumer (see
     /// `RenderCommand::PacingFence`'s docs).
     pacing_fence_tx: Sender<u64>,
-    /// Channel to send shader reload results back to main thread
-    shader_result_tx: Sender<ShaderReloadResult>,
     /// Channel to return GL context to main thread on shutdown
     context_tx: Sender<Option<WindowGlContext>>,
     /// Channel to publish a stats snapshot to the main thread on every frame
@@ -45,7 +43,6 @@ impl RenderThread {
         command_rx: Receiver<RenderCommand>,
         fence_tx: Sender<u64>,
         pacing_fence_tx: Sender<u64>,
-        shader_result_tx: Sender<ShaderReloadResult>,
         context_tx: Sender<Option<WindowGlContext>>,
         stats_tx: Sender<RenderStats>,
         chunk_return_tx: Sender<ReturnedChunk>,
@@ -57,7 +54,6 @@ impl RenderThread {
             command_rx,
             fence_tx,
             pacing_fence_tx,
-            shader_result_tx,
             context_tx,
             stats_tx,
             chunk_return_tx,
@@ -74,7 +70,6 @@ impl RenderThread {
         command_rx: Receiver<RenderCommand>,
         fence_tx: Sender<u64>,
         pacing_fence_tx: Sender<u64>,
-        shader_result_tx: Sender<ShaderReloadResult>,
         context_tx: Sender<Option<WindowGlContext>>,
         stats_tx: Sender<RenderStats>,
         chunk_return_tx: Sender<ReturnedChunk>,
@@ -90,7 +85,6 @@ impl RenderThread {
             command_rx,
             fence_tx,
             pacing_fence_tx,
-            shader_result_tx,
             context_tx,
             stats_tx,
             chunk_return_tx,
@@ -191,11 +185,6 @@ impl RenderThread {
             CommandReply::PacingFence(fence_id) => {
                 if let Err(e) = self.pacing_fence_tx.send(fence_id) {
                     warn!("Failed to send pacing fence signal: {e:?}");
-                }
-            }
-            CommandReply::ShaderReload(result) => {
-                if let Err(e) = self.shader_result_tx.send(result) {
-                    error!("Failed to send shader reload result: {e:?}");
                 }
             }
             CommandReply::Stats(stats) => {

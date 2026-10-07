@@ -1,6 +1,6 @@
 # Render API v2 — wgpu-shaped interface on the GL renderer
 
-Status: design. S2 (render passes and attachment views), S3 (binding model, pipelines, samplers, views, frame group), S4 (materials, scene list, uniform ring), S5 (fullscreen, post-processing, offscreen generation) S6 (immediate batching, UI, glyph atlas, and the removal of the legacy API) and S7 (sampler/view completion) and S9 (mip chains and texture kinds) are implemented; later steps are not. Companion to `wgpu-migration-gaps.md`,
+Status: design. S2 (render passes and attachment views), S3 (binding model, pipelines, samplers, views, frame group), S4 (materials, scene list, uniform ring), S5 (fullscreen, post-processing, offscreen generation), S6 (immediate batching, UI, glyph atlas, and the removal of the legacy API), S7 (sampler/view completion), S9 (mip chains and texture kinds) and S10 (hot reload) are implemented; S8 (async readback) is not. Companion to `wgpu-migration-gaps.md`,
 `render-thread.md`, `batch-rendering.md` and `shader-system.md`.
 
 **Strategy, already decided.** First the GL renderer and the Lua render
@@ -244,7 +244,7 @@ Deleted, roughly 75 of today's variants: `SetViewport`, `SetScissor`,
 `GpuHandle` variant goes, and `GpuHandle` goes with them.
 
 Kept: `Create{Shader,Texture*,Mesh}`, `Update*DataByResource` (made
-format-agnostic in S9), `DestroyResources`, `ReloadShader`, `Resize`,
+format-agnostic in S9), `DestroyResources`, `Resize`,
 `SetPresentMode`, `SwapBuffers`, `Flush`, `Fence`, `PacingFence`, `Shutdown`.
 
 ### 1.6 Threaded and immediate backends
@@ -1304,6 +1304,49 @@ without a validation error) but, like everything the wgpu executor does since S3
 *Probe.* `States/App/Tests/TexKinds` creates one texture of each kind with mips, uploads in layouts that differ from
 the texture's format (RGB float into RGBA8, RG8, R32F, per cube face), reads everything back and logs a PASS/FAIL line.
 It passes on GL; on wgpu the readbacks of RG8, R32F and cube faces fail (gap 1, readbacks, is S8).
+
+##### S10 (implemented)
+
+*What reload already did.* `Shader::reload` has made a new GPU resource (a new `ResourceId`, a new link through the
+same `CreateShader` path, so block bindings and sampler units are applied again) and dropped the old one since S3. That
+refreshed everything keyed by the id (`Pipelines.get`, `shader:blockType`, the pipeline cache), but not what held on to
+the shader's layout: a `Material` kept the `MaterialParams` size, its member offsets, the index of its block and its
+texture slots from the day it was made, and `ShaderHotReload` called a `material.reloadShader` that no longer existed. A
+reload that moved a member, or added a sampler, wrote the old bytes into the new block.
+
+*Generations.* `PipelineDesc` has `shader_generation` (`Shader::generation()`, bumped by every successful reload), so
+the generation is part of the pipeline cache key whether or not a reload keeps the resource id (`PipelineDesc::
+for_shader`; `Material::pipeline()` follows both). The wgpu executor counts how often each shader or texture resource
+was created (`resource_generations`) and puts the count into its pipeline key and into its bind group key, for the
+shader and for every bound texture; a creation under an existing id drops the cached groups (gaps 2 and 3). The
+vestigial `ReloadShader` command (a second reload path that nothing called, with its `hot_reloaded_shaders` pairs in both
+executors, the `ShaderReloadResult` channel to the render thread and `Renderer::reload_shader`) is deleted: it was the
+stale-pipeline behaviour gap 2 describes.
+
+*Layout hash.* `BlockLayout::layout_hash()` (FNV-1a over the block's name and size and every member's name, type,
+offset, array length and strides) changes exactly when a ctype made from the block would. `shader:blockHash(name)` and
+`shader:blockNames()` expose it; `Cache.ReloadShader(key)` (used by `ShaderHotReload` and by `Cache.ReloadShaders`)
+compares the hashes of all blocks before and after the reload and hands the set of changed blocks to the reload hooks
+(`Cache.OnShaderReload`). A changed block nobody claims is logged: LuaJIT types made from it (a `Params` ctype held in a
+module local) are stale until restart. Only `MaterialParams` of material types is claimed.
+
+*Materials.* `Material.OnShaderReloaded` (the hook) asks every `MaterialType` that draws with the shader to
+`regenerate()` its ctype (`paramsType`, `paramsHash`), then refreshes each live instance: `Material::refresh_shader`
+(Rust) reads the new layout, copies the parameters into a block of the new size **by member name** (same name, type,
+array length and strides; `BlockLayout::copy_members`; new members are zero, and Lua then applies the type's `defaults`
+to them), keeps the textures by sampler name (one the shader dropped, or now declares with another dimension, is
+dropped and reported), gives back the old arena slice and bind group and re-points the pipeline template. Lua recasts
+`params()` to the new ctype, and `commit()` writes one new slice and makes the new bind group. The report line logs
+`changed`, `copied`, `added`, `dropped` and `textures_dropped`. Hot reload runs in `onPreRender`, outside any pass.
+
+*Test.* `tools/render_validation/hot_reload_probe.py` runs `PlanetTest` four times to frame 9000 and edits
+`material/planet.glsl` 8 s after the start (while the scene runs, `LTHEORY_CAPTURE` set only for the picture): untouched
+(reference); albedo tinted red (differs from the reference only inside the planet's bounding box, RMSE 5.07); tinted
+and reverted (identical); and a new *first* member `vec4 hotProbe` in `MaterialParams`, which moves every other member
+by 16 bytes (identical to the reference, so the copy by name worked; the log shows `changed=1 ... added=hotProbe`). A
+plain run without `LTHEORY_CAPTURE` for 20 s with four edits in a row (a comment, the tint, the new member, the revert)
+reloaded four times without an `ERROR` or panic line, `added=hotProbe` after the third and `dropped=hotProbe` after the
+fourth.
 
 ---
 

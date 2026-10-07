@@ -26,4 +26,8 @@ python tools/render_validation/compare.py gl              # RMSE / max / % pixel
 python tools/render_validation/run_all.py gl              # supervisors + capture + compare
 ```
 
+Hot reload is covered by a separate probe (about two minutes): `python tools/render_validation/hot_reload_probe.py`
+edits `material/planet.glsl` while `PlanetTest` runs (a tint, a revert, and a new first `MaterialParams` member) and
+checks the pictures against an unedited run and the logs for errors.
+
 `compare.py` needs Pillow. Baseline `.json` stats (fps, draw calls) are informational.

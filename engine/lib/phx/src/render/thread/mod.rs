@@ -15,7 +15,6 @@ mod renderer_ffi;
 mod renderer_shared;
 mod renderer_stats;
 mod resource_handle;
-mod shader_reload_result;
 // Both files carry an inner `#![cfg(feature = "stats-server")]`, so they
 // compile to nothing without the feature - no outer gate needed here.
 #[cfg(feature = "stats-server")]
@@ -50,7 +49,6 @@ pub use renderer_stats::*;
 #[cfg(not(feature = "immediate"))]
 pub use renderer_threaded::*;
 pub use resource_handle::*;
-pub use shader_reload_result::*;
 #[cfg(feature = "stats-server")]
 pub use stats_server::*;
 #[cfg(feature = "stats-server")]

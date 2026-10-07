@@ -281,6 +281,74 @@ impl BlockLayout {
         self.members.iter().find(|m| m.name == name)
     }
 
+    /// Bytes of one member in the block's data: an array takes `count`
+    /// strides, a `mat3` three std140 columns.
+    pub fn member_bytes(m: &BlockMember) -> u32 {
+        if m.count > 1 {
+            m.count * m.array_stride.max(m.ty.packed_size())
+        } else if m.ty == GlslType::Mat3 {
+            48
+        } else {
+            m.ty.packed_size()
+        }
+    }
+
+    /// A hash of everything the CPU side depends on: the block's name and
+    /// size and every member's name, type, offset, array length and strides.
+    /// It changes exactly when a ctype generated from the block would.
+    /// (FNV-1a: stable between runs, which `DefaultHasher` does not promise.)
+    pub fn layout_hash(&self) -> u32 {
+        fn mix(h: &mut u32, bytes: &[u8]) {
+            for &b in bytes {
+                *h ^= b as u32;
+                *h = h.wrapping_mul(16_777_619);
+            }
+        }
+        let mut h = 2_166_136_261u32;
+        mix(&mut h, self.name.as_bytes());
+        mix(&mut h, &self.size.to_le_bytes());
+        for m in &self.members {
+            mix(&mut h, m.name.as_bytes());
+            mix(&mut h, format!("{:?}", m.ty).as_bytes());
+            for v in [m.offset, m.count, m.array_stride, m.matrix_stride] {
+                mix(&mut h, &v.to_le_bytes());
+            }
+        }
+        h
+    }
+
+    /// Copy every member of this (old) block that the `new` layout also has,
+    /// by name, with the same type, array length and strides, from `old`
+    /// bytes to `new_bytes`. Members the new block lacks are dropped, new
+    /// ones are left as they are (zero).
+    pub fn copy_members(&self, old: &[u8], new: &BlockLayout, new_bytes: &mut [u8]) -> CopyReport {
+        let mut report = CopyReport::default();
+        for m in &new.members {
+            let Some(o) = self.member(&m.name) else {
+                report.added.push(m.name.clone());
+                continue;
+            };
+            let bytes = Self::member_bytes(m) as usize;
+            let same = o.ty == m.ty
+                && o.count == m.count
+                && o.array_stride == m.array_stride
+                && o.matrix_stride == m.matrix_stride;
+            let (from, to) = (o.offset as usize, m.offset as usize);
+            if same && bytes > 0 && from + bytes <= old.len() && to + bytes <= new_bytes.len() {
+                new_bytes[to..to + bytes].copy_from_slice(&old[from..from + bytes]);
+                report.copied.push(m.name.clone());
+            } else {
+                report.added.push(m.name.clone());
+            }
+        }
+        for o in &self.members {
+            if new.member(&o.name).is_none() {
+                report.dropped.push(o.name.clone());
+            }
+        }
+        report
+    }
+
     /// A LuaJIT `ffi.typeof` declaration (an anonymous struct) with the exact
     /// byte layout of this block: members at their std140 offsets, explicit
     /// `_padN` fields for the holes, trailing pad up to the block size.
@@ -338,6 +406,16 @@ impl BlockLayout {
         out.push('}');
         out
     }
+}
+
+/// What `BlockLayout::copy_members` did, by member name. `added` holds the
+/// members the new layout has that nothing was copied into (new, or changed
+/// type), `dropped` the old members that have no counterpart.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct CopyReport {
+    pub copied: Vec<String>,
+    pub added: Vec<String>,
+    pub dropped: Vec<String>,
 }
 
 fn sanitize(name: &str) -> String {
@@ -548,6 +626,120 @@ mod tests {
         };
         let (_, errors) = ShaderLayout::merge(&[&a, &b]);
         assert_eq!(errors.len(), 1);
+    }
+
+    fn member(name: &str, ty: GlslType, offset: u32) -> BlockMember {
+        BlockMember {
+            name: name.into(),
+            ty,
+            offset,
+            count: 1,
+            array_stride: 0,
+            matrix_stride: 0,
+        }
+    }
+
+    fn params(members: Vec<BlockMember>, size: u32) -> BlockLayout {
+        BlockLayout {
+            name: "MaterialParams".into(),
+            size,
+            members,
+        }
+    }
+
+    #[test]
+    fn layout_hash_changes_with_the_layout_only() {
+        let a = params(
+            vec![
+                member("color", GlslType::Vec3, 0),
+                member("k", GlslType::Float, 12),
+            ],
+            16,
+        );
+        let same = a.clone();
+        assert_eq!(a.layout_hash(), same.layout_hash());
+
+        let mut moved = a.clone();
+        moved.members[1].offset = 16;
+        moved.size = 32;
+        assert_ne!(a.layout_hash(), moved.layout_hash());
+
+        let mut renamed = a.clone();
+        renamed.members[1].name = "j".into();
+        assert_ne!(a.layout_hash(), renamed.layout_hash());
+
+        let mut retyped = a.clone();
+        retyped.members[1].ty = GlslType::Int;
+        assert_ne!(a.layout_hash(), retyped.layout_hash());
+    }
+
+    #[test]
+    fn copy_members_goes_by_name() {
+        let old = params(
+            vec![
+                member("color", GlslType::Vec3, 0),
+                member("k", GlslType::Float, 12),
+                member("gone", GlslType::Vec4, 16),
+            ],
+            32,
+        );
+        // New layout: `k` moved, `color` kept, `extra` added, `gone` removed.
+        let new = params(
+            vec![
+                member("extra", GlslType::Vec4, 0),
+                member("k", GlslType::Float, 16),
+                member("color", GlslType::Vec3, 32),
+            ],
+            48,
+        );
+        let mut old_bytes = vec![0u8; 32];
+        for (i, b) in old_bytes.iter_mut().enumerate() {
+            *b = i as u8 + 1;
+        }
+        let mut new_bytes = vec![0u8; 48];
+        let report = old.copy_members(&old_bytes, &new, &mut new_bytes);
+
+        assert_eq!(report.copied, vec!["k".to_string(), "color".to_string()]);
+        assert_eq!(report.added, vec!["extra".to_string()]);
+        assert_eq!(report.dropped, vec!["gone".to_string()]);
+        assert_eq!(
+            &new_bytes[16..20],
+            &old_bytes[12..16],
+            "k moved from 12 to 16"
+        );
+        assert_eq!(
+            &new_bytes[32..44],
+            &old_bytes[0..12],
+            "color moved from 0 to 32"
+        );
+        assert_eq!(&new_bytes[0..16], &[0u8; 16], "extra stays zero");
+    }
+
+    #[test]
+    fn copy_members_skips_a_changed_type() {
+        let old = params(vec![member("k", GlslType::Float, 0)], 16);
+        let new = params(vec![member("k", GlslType::Vec4, 0)], 16);
+        let mut new_bytes = vec![0u8; 16];
+        let report = old.copy_members(&[9u8; 16], &new, &mut new_bytes);
+        assert!(report.copied.is_empty());
+        assert_eq!(report.added, vec!["k".to_string()]);
+        assert_eq!(new_bytes, vec![0u8; 16]);
+    }
+
+    #[test]
+    fn member_bytes_covers_arrays_and_matrices() {
+        let mut m = member("a", GlslType::Vec4, 0);
+        m.count = 7;
+        m.array_stride = 16;
+        assert_eq!(BlockLayout::member_bytes(&m), 112);
+        assert_eq!(
+            BlockLayout::member_bytes(&member("m", GlslType::Mat3, 0)),
+            48
+        );
+        assert_eq!(
+            BlockLayout::member_bytes(&member("m", GlslType::Mat4, 0)),
+            64
+        );
     }
 
     #[test]

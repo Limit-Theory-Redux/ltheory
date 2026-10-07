@@ -15,6 +15,14 @@ Material = {}
 ---@return Material
 function Material.Create(r, shader, blend, cull, depthTest, depthWrite) end
 
+-- The shader was hot reloaded: adopt its layout (see
+-- `Material::refresh_shader`). Returns a one-line report,
+-- `changed=<0|1> copied=<names> added=<names> dropped=<names> textures_dropped=<names>`.
+-- Recast `params()` afterwards (the parameter copy moved), then `commit()`.
+---@param r Renderer
+---@return string
+function Material:refreshShader(r) end
+
 -- Size in bytes of the `MaterialParams` block (0 if the shader has none).
 ---@return integer
 function Material:getParamsSize() end

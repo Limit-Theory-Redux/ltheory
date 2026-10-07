@@ -25,7 +25,7 @@ fn compute_pass(
     inputs: &[TexView],
     params: &[u8],
 ) {
-    let mut pipeline = PipelineDesc::new(shader.resource());
+    let mut pipeline = PipelineDesc::for_shader(shader);
     pipeline.vertex = VertexLayout::Fullscreen;
     let pipeline = r.get_pipeline(&pipeline);
 

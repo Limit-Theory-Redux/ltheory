@@ -32,13 +32,24 @@ function Shader:name() end
 ---@return string
 function Shader:blockDecl(name) end
 
+-- A hash of the layout of the uniform block `name` (0 if absent). A hot
+-- reload that changes it invalidates every ctype and parameter copy made
+-- from the old block (`BlockLayout::layout_hash`).
+---@param name string
+---@return integer
+function Shader:blockHash(name) end
+
+-- The names of the shader's uniform blocks, one per line.
+---@return string
+function Shader:blockNames() end
+
 -- Size in bytes of the uniform block `name` (0 if absent).
 ---@param name string
 ---@return integer
 function Shader:blockSize(name) end
 
--- Bumped each time hot reload relinks the shader, so cached block types
--- can be regenerated.
+-- Bumped each time hot reload relinks the shader (it is part of the
+-- key of every pipeline made with it).
 ---@return integer
 function Shader:generation() end
 

@@ -13,7 +13,7 @@ use crate::render::{
     BindEntry, BindGroupId, BlockLayout, BufferId, PassCommands, PipelineDesc, PipelineId,
     RenderCommand, RenderPassDesc, RenderStats, RenderThreadConfig, RenderThreadError,
     RendererData, ResourceId, ReturnedChunk, SamplerCache, SamplerDesc, SamplerId, ShaderLayout,
-    ShaderReloadResult, TexDesc, TexFormat, TexRegion, TexView, VertexFormat,
+    TexDesc, TexFormat, TexRegion, TexView, VertexFormat,
 };
 use crate::window::{PresentMode, WgpuStartupBundle, WindowError, WindowGlContext};
 
@@ -31,8 +31,6 @@ pub struct Renderer {
     /// so `end_frame_triple_buffered` can never consume a fence meant for a
     /// concurrently-blocked `sync_intern` call, or vice versa.
     pacing_fence_rx: Receiver<u64>,
-    /// Receive shader reload results from the render thread
-    shader_result_rx: Receiver<ShaderReloadResult>,
     /// Receive returned GL context when render thread shuts down
     context_rx: Receiver<Option<WindowGlContext>>,
     /// Ring memory the executor has uploaded, coming back for reuse.
@@ -109,15 +107,12 @@ impl Renderer {
     }
 
     fn create_intern(backend: RenderBackend) -> Result<Self, RenderThreadError> {
-        const SHADER_RESULT_BUFFER_SIZE: usize = 16;
-
         // Spawn the render thread with the GL context
         let config = RenderThreadConfig::default();
         // Use bounded channel for backpressure - SwapBuffers will block to sync with render thread
         let (command_tx, command_rx) = bounded(config.command_buffer_size);
         let (fence_tx, fence_rx) = bounded(config.fence_buffer_size);
         let (pacing_fence_tx, pacing_fence_rx) = bounded(config.fence_buffer_size);
-        let (shader_result_tx, shader_result_rx) = bounded(SHADER_RESULT_BUFFER_SIZE); // Buffer for shader reload results
         let (context_tx, context_rx) = bounded(1); // Only one context to return
         // Unbounded: the executor must never block returning ring memory.
         let (chunk_return_tx, chunk_return_rx) = unbounded();
@@ -180,7 +175,6 @@ impl Renderer {
                             command_rx,
                             fence_tx,
                             pacing_fence_tx,
-                            shader_result_tx,
                             context_tx,
                             stats_tx,
                             chunk_return_tx,
@@ -193,7 +187,6 @@ impl Renderer {
                             command_rx,
                             fence_tx,
                             pacing_fence_tx,
-                            shader_result_tx,
                             context_tx,
                             stats_tx,
                             chunk_return_tx,
@@ -222,7 +215,6 @@ impl Renderer {
             command_tx,
             fence_rx,
             pacing_fence_rx,
-            shader_result_rx,
             context_rx,
             chunk_return_rx,
             next_fence_id: AtomicU64::new(1),
@@ -452,41 +444,6 @@ impl Renderer {
     pub fn get_texture_binds_skipped(&mut self) -> u64 {
         self.refresh_stats();
         self.last_stats.texture_binds_skipped_cumulative
-    }
-
-    /// Reload a shader on the render thread.
-    /// Returns the result with success/failure and new program handle.
-    /// This blocks until the shader is compiled on the render thread.
-    pub fn reload_shader(
-        &mut self,
-        shader_key: &str,
-        vertex_src: &str,
-        fragment_src: &str,
-    ) -> ShaderReloadResult {
-        if !self.running.load(Ordering::Relaxed) {
-            return ShaderReloadResult {
-                shader_key: shader_key.to_string(),
-                error: Some("Render thread not running".to_string()),
-                program: 0,
-            };
-        }
-
-        // Send the reload command
-        self.submit(RenderCommand::ReloadShader {
-            shader_key: shader_key.to_string(),
-            vertex_src: vertex_src.to_string(),
-            fragment_src: fragment_src.to_string(),
-        });
-
-        // Wait for the result (blocking)
-        match self.shader_result_rx.recv() {
-            Ok(result) => result,
-            Err(_) => ShaderReloadResult {
-                shader_key: shader_key.to_string(),
-                error: Some("Channel closed while waiting for shader result".to_string()),
-                program: 0,
-            },
-        }
     }
 
     /// Request the render thread to shutdown.

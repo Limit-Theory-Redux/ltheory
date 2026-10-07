@@ -112,9 +112,12 @@ impl Default for DepthState {
 /// Everything that defines a pipeline. The cache key is the whole value.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct PipelineDesc {
-    /// The shader's resource id. Hot reload swaps a shader's id; S10 adds
-    /// the shader generation to the key and rebuilds stale pipelines.
+    /// The shader's resource id.
     pub shader: ResourceId,
+    /// The shader's generation (bumped by every hot reload). Part of the
+    /// key, so a reloaded shader never reuses a pipeline made with its old
+    /// program, whether or not the reload kept the resource id.
+    pub shader_generation: u32,
     pub vertex: VertexLayout,
     pub topology: Topology,
     pub blend: BlendMode,
@@ -129,6 +132,7 @@ impl PipelineDesc {
     pub fn new(shader: ResourceId) -> Self {
         Self {
             shader,
+            shader_generation: 0,
             vertex: VertexLayout::Mesh,
             topology: Topology::Triangles,
             blend: BlendMode::Disabled,
@@ -141,13 +145,24 @@ impl PipelineDesc {
     }
 }
 
+impl PipelineDesc {
+    /// A description for the current program of `shader`: its resource and
+    /// generation, so a hot reload makes a different (new) pipeline.
+    pub fn for_shader(shader: &Shader) -> Self {
+        Self {
+            shader_generation: shader.generation(),
+            ..Self::new(shader.resource())
+        }
+    }
+}
+
 #[luajit_ffi_gen::luajit_ffi]
 impl PipelineDesc {
     /// A description with the legacy defaults: opaque, no culling, no depth
     /// test, writes on, filled triangles from a `Mesh`.
     #[bind(name = "Create")]
     pub fn create(shader: &Shader) -> PipelineDesc {
-        Self::new(shader.resource())
+        Self::for_shader(shader)
     }
 
     pub fn blend(&mut self, blend: BlendMode) {
@@ -270,5 +285,17 @@ mod tests {
         let d = PipelineDesc::new(ResourceId(2));
         assert_ne!(cache.get_or_insert(&d).0, ida);
         assert_eq!(cache.len(), 3);
+    }
+
+    #[test]
+    fn a_new_shader_generation_is_a_new_pipeline() {
+        let mut cache = PipelineCache::new();
+        let before = PipelineDesc::new(ResourceId(1));
+        let mut after = before.clone();
+        after.shader_generation = 1;
+        let (a, _) = cache.get_or_insert(&before);
+        let (b, created) = cache.get_or_insert(&after);
+        assert!(created);
+        assert_ne!(a, b);
     }
 }

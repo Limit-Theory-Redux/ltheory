@@ -236,13 +236,6 @@ pub enum RenderCommand {
         reply_tx: Sender<Result<Vec<BlockLayout>, String>>,
     },
 
-    /// Reload a shader (compile and send result back via channel)
-    ReloadShader {
-        shader_key: String,
-        vertex_src: String,
-        fragment_src: String,
-    },
-
     /// Create a texture. `data` (optional, 1D/2D/3D only) is level 0 in the
     /// texture's own `TexFormat` layout; the other levels are allocated
     /// (`desc.mips`) but not filled, see `GenerateMips`.
@@ -335,7 +328,6 @@ impl RenderCommand {
             | DestroyBindGroups { .. }
             | CreateBuffer { .. }
             | WriteBuffer { .. }
-            | ReloadShader { .. }
             | CreateTexture { .. }
             | CreateMesh { .. }
             | DestroyResources { .. } => CommandCategory::Resource,

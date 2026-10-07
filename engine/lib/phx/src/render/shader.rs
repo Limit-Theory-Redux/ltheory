@@ -296,6 +296,29 @@ impl Shader {
             .unwrap_or_default()
     }
 
+    /// A hash of the layout of the uniform block `name` (0 if absent). A hot
+    /// reload that changes it invalidates every ctype and parameter copy made
+    /// from the old block (`BlockLayout::layout_hash`).
+    pub fn block_hash(&self, name: &str) -> u32 {
+        self.shared
+            .as_ref()
+            .blocks
+            .iter()
+            .find(|b| b.name == name)
+            .map_or(0, |b| b.layout_hash())
+    }
+
+    /// The names of the shader's uniform blocks, one per line.
+    pub fn block_names(&self) -> String {
+        self.shared
+            .as_ref()
+            .blocks
+            .iter()
+            .map(|b| b.name.as_str())
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+
     /// Size in bytes of the uniform block `name` (0 if absent).
     pub fn block_size(&self, name: &str) -> u32 {
         self.shared
@@ -306,8 +329,8 @@ impl Shader {
             .map_or(0, |b| b.size)
     }
 
-    /// Bumped each time hot reload relinks the shader, so cached block types
-    /// can be regenerated.
+    /// Bumped each time hot reload relinks the shader (it is part of the
+    /// key of every pipeline made with it).
     pub fn generation(&self) -> u32 {
         self.shared.as_ref().generation
     }

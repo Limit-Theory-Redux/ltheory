@@ -307,8 +307,9 @@ impl WgpuCommandExecutor {
             },
         };
         self.resources.insert(id, resource);
-        // A new texture under a reused id must not show up through old groups.
-        self.bind_group_cache.clear();
+        // A texture created again under an id must not show up through the
+        // pipelines and bind groups made for the old one.
+        self.bump_generation(id);
         if let Some(bytes) = data {
             self.cmd_update_texture(id, &TexRegion::level(desc, 0), bytes);
         }

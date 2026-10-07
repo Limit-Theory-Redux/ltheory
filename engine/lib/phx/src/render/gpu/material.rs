@@ -11,6 +11,7 @@
 //! `Material_Params`, then `commit()` sends one `WriteBuffer` (and recreates
 //! the bind group if a texture changed). Nothing is written per draw.
 
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU32, Ordering};
 
@@ -18,8 +19,8 @@ use crossbeam::channel::Sender;
 use tracing::warn;
 
 use super::{
-    ArenaSlice, BindEntry, BindGroupId, GROUP_MATERIAL, GROUP_UNIT_COUNT, PipelineDesc, PipelineId,
-    Release, SamplerId, ShaderLayout, TexDim, TexView, ViewDim,
+    ArenaSlice, BindEntry, BindGroupId, BlockLayout, GROUP_MATERIAL, GROUP_UNIT_COUNT,
+    PipelineDesc, PipelineId, Release, SamplerId, ShaderLayout, TexDim, TexView, ViewDim,
 };
 use crate::render::{BlendMode, CompareFn, CullFace, DepthState, Renderer, ResourceId, Shader};
 
@@ -37,6 +38,9 @@ pub struct Material {
     /// Index of `MaterialParams` among the group-1 blocks, if the shader has
     /// one.
     params_index: Option<u8>,
+    /// The reflected layout of `MaterialParams` the CPU copy follows (what a
+    /// hot reload copies fields from, by name).
+    block: Option<BlockLayout>,
     /// The CPU copy of the block. Heap-allocated, so the pointer Lua holds
     /// stays valid for the life of the material.
     params: Box<[u8]>,
@@ -46,8 +50,8 @@ pub struct Material {
     bind_group: Option<BindGroupId>,
     /// Textures or the slice changed since the bind group was made.
     dirty: bool,
-    /// The pipeline for the shader's current resource.
-    pipeline: Option<(ResourceId, PipelineId)>,
+    /// The pipeline for the shader's current resource and generation.
+    pipeline: Option<(ResourceId, u32, PipelineId)>,
     uid: u32,
     release: Sender<Release>,
     warned_missing: bool,
@@ -77,12 +81,9 @@ impl Material {
             .block(MATERIAL_PARAMS_BLOCK)
             .filter(|b| b.group == GROUP_MATERIAL)
             .map(|b| b.index);
-        let params_size = if params_index.is_some() {
-            shader.block_size(MATERIAL_PARAMS_BLOCK)
-        } else {
-            0
-        };
-        let mut template = PipelineDesc::new(shader.resource());
+        let block = Self::params_block(shader, params_index);
+        let params_size = block.as_ref().map_or(0, |b| b.size);
+        let mut template = PipelineDesc::for_shader(shader);
         template.blend = blend;
         template.cull = cull;
         template.depth = DepthState {
@@ -96,6 +97,7 @@ impl Material {
             template,
             blend,
             params_index,
+            block,
             params: vec![0u8; params_size as usize].into_boxed_slice(),
             slice: None,
             textures: Default::default(),
@@ -108,6 +110,16 @@ impl Material {
         }
     }
 
+    /// The reflected `MaterialParams` block, if the shader has one in group 1.
+    fn params_block(shader: &Shader, params_index: Option<u8>) -> Option<BlockLayout> {
+        params_index?;
+        shader
+            .blocks()
+            .iter()
+            .find(|b| b.name == MATERIAL_PARAMS_BLOCK)
+            .cloned()
+    }
+
     /// Unique id, the middle part of the scene sort key.
     pub fn uid(&self) -> u32 {
         self.uid
@@ -118,18 +130,109 @@ impl Material {
     }
 
     /// The pipeline of this material: the template with the shader's
-    /// current resource (hot reload swaps it).
+    /// current resource and generation (a hot reload gives it new ones).
     pub fn pipeline(&mut self, r: &mut Renderer) -> PipelineId {
         let resource = self.shader.resource();
-        if let Some((cached_for, id)) = self.pipeline {
-            if cached_for == resource {
+        let generation = self.shader.generation();
+        if let Some((cached_for, cached_generation, id)) = self.pipeline {
+            if cached_for == resource && cached_generation == generation {
                 return id;
             }
         }
         self.template.shader = resource;
+        self.template.shader_generation = generation;
         let id = r.get_pipeline(&self.template);
-        self.pipeline = Some((resource, id));
+        self.pipeline = Some((resource, generation, id));
         id
+    }
+
+    /// The shader was hot reloaded: take its new layout. The parameter copy
+    /// follows the new `MaterialParams` block (members are copied from the old
+    /// one by name, new ones are zero), the textures are kept by sampler name
+    /// (one the shader no longer declares, or declares with another
+    /// dimension, is dropped), and the arena slice and the bind group go back
+    /// to be remade by the next `commit`. The pointer of `params()` changes:
+    /// recast it. Not allowed inside a pass.
+    pub fn refresh_shader(&mut self, r: &mut Renderer) -> RefreshReport {
+        debug_assert!(
+            r.data.pass.open.is_none(),
+            "Material:refreshShader() inside an open render pass: resource writes are not allowed there"
+        );
+        let layout = self.shader.layout();
+        let params_index = layout
+            .block(MATERIAL_PARAMS_BLOCK)
+            .filter(|b| b.group == GROUP_MATERIAL)
+            .map(|b| b.index);
+        let block = Self::params_block(&self.shader, params_index);
+
+        // Parameters, by member name.
+        let mut params = vec![0u8; block.as_ref().map_or(0, |b| b.size) as usize];
+        let blocks = match (&self.block, &block) {
+            (Some(old), Some(new)) => old.copy_members(&self.params, new, &mut params),
+            (None, Some(new)) => super::CopyReport {
+                added: new.members.iter().map(|m| m.name.clone()).collect(),
+                ..Default::default()
+            },
+            (Some(old), None) => super::CopyReport {
+                dropped: old.members.iter().map(|m| m.name.clone()).collect(),
+                ..Default::default()
+            },
+            (None, None) => Default::default(),
+        };
+        let layout_changed = self.block.as_ref().map(BlockLayout::layout_hash)
+            != block.as_ref().map(BlockLayout::layout_hash);
+
+        // Textures, by sampler name.
+        let mut by_name: HashMap<String, (TexView, SamplerId)> = HashMap::new();
+        for decl in self
+            .layout
+            .textures
+            .iter()
+            .filter(|t| t.group == GROUP_MATERIAL)
+        {
+            if let Some(t) = self.textures[decl.index as usize] {
+                by_name.insert(decl.name.clone(), t);
+            }
+        }
+        let mut textures: [Option<(TexView, SamplerId)>;
+            GROUP_UNIT_COUNT[GROUP_MATERIAL as usize] as usize] = Default::default();
+        let mut textures_dropped = Vec::new();
+        for decl in layout.textures.iter().filter(|t| t.group == GROUP_MATERIAL) {
+            match by_name.remove(&decl.name) {
+                Some((view, sampler)) if dim_matches(decl.dim, view.dim) => {
+                    textures[decl.index as usize] = Some((view, sampler));
+                }
+                Some(_) => textures_dropped.push(decl.name.clone()),
+                None => {}
+            }
+        }
+        textures_dropped.extend(by_name.into_keys());
+
+        // What the GPU had of the old layout goes back; `commit` makes it anew.
+        if let Some(id) = self.bind_group.take() {
+            let _ = self.release.send(Release::BindGroup(id));
+        }
+        if let Some(slice) = self.slice.take() {
+            let _ = self.release.send(Release::Slice(slice));
+        }
+        self.layout = layout;
+        self.params_index = params_index;
+        self.block = block;
+        self.params = params.into_boxed_slice();
+        self.textures = textures;
+        self.template.shader = self.shader.resource();
+        self.template.shader_generation = self.shader.generation();
+        self.pipeline = None;
+        self.dirty = true;
+        self.warned_missing = false;
+
+        RefreshReport {
+            layout_changed,
+            copied: blocks.copied.join(","),
+            added: blocks.added.join(","),
+            dropped: blocks.dropped.join(","),
+            textures_dropped: textures_dropped.join(","),
+        }
     }
 
     /// The bind group, committing first if the material was never committed
@@ -195,6 +298,21 @@ impl Material {
     }
 }
 
+/// What `Material::refresh_shader` did, as comma separated names.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct RefreshReport {
+    /// The `MaterialParams` layout hash differs from before.
+    pub layout_changed: bool,
+    /// Members carried over from the old block.
+    pub copied: String,
+    /// Members of the new block that start at zero.
+    pub added: String,
+    /// Members of the old block the new one lacks.
+    pub dropped: String,
+    /// Textures that could not be kept.
+    pub textures_dropped: String,
+}
+
 impl Drop for Material {
     fn drop(&mut self) {
         if let Some(id) = self.bind_group.take() {
@@ -220,6 +338,23 @@ impl Material {
         depth_write: bool,
     ) -> Material {
         Material::new(r, shader, blend, cull, depth_test, depth_write)
+    }
+
+    /// The shader was hot reloaded: adopt its layout (see
+    /// `Material::refresh_shader`). Returns a one-line report,
+    /// `changed=<0|1> copied=<names> added=<names> dropped=<names> textures_dropped=<names>`.
+    /// Recast `params()` afterwards (the parameter copy moved), then `commit()`.
+    #[bind(name = "RefreshShader")]
+    pub fn refresh_shader_report(&mut self, r: &mut Renderer) -> String {
+        let report = self.refresh_shader(r);
+        format!(
+            "changed={} copied={} added={} dropped={} textures_dropped={}",
+            report.layout_changed as u8,
+            report.copied,
+            report.added,
+            report.dropped,
+            report.textures_dropped
+        )
     }
 
     /// Size in bytes of the `MaterialParams` block (0 if the shader has none).

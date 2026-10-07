@@ -1,13 +1,13 @@
 #![allow(unsafe_code)]
 
-use tracing::{debug, error, info, warn};
+use tracing::{error, info, warn};
 
 use crate::render::gl::{self};
 use crate::render::thread::{AttachKey, FboKey, GpuResource};
 use crate::render::{
     BlockLayout, CommandCategory, CommandExecutor, CommandReply, LoadOp, MAX_COLOR_ATTACHMENTS,
-    RenderPassDesc, RenderStats, ResourceId, ShaderLayout, ShaderReloadResult, TexDesc, TexDim,
-    TexFormat, TexRegion, VertexFormat, ViewDim,
+    RenderPassDesc, RenderStats, ResourceId, ShaderLayout, TexDesc, TexDim, TexFormat, TexRegion,
+    VertexFormat, ViewDim,
 };
 use crate::window::{PresentMode, WindowGlContext};
 
@@ -821,60 +821,6 @@ impl CommandExecutor {
             Ok(()) => info!("Present mode set to {mode:?}"),
             Err(e) => warn!("Unable to set present mode {mode:?}: {e}"),
         }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_reload_shader(
-        &mut self,
-        shader_key: &str,
-        vertex_src: &str,
-        fragment_src: &str,
-    ) -> CommandReply {
-        let _sa = self.record_command(CommandCategory::Resource, false, false);
-        // Compile shader on render thread and send result back
-        // The legacy reload command carries no layout; `Shader::reload` (a
-        // fresh `CreateShader`) is what hot reload uses.
-        let result = match self
-            .create_shader(vertex_src, fragment_src, &ShaderLayout::default())
-            .map(|(program, _)| program)
-        {
-            Ok(program) => {
-                // Delete old hot-reloaded shader if exists
-                if let Some(old_program) = self.hot_reloaded_shaders.remove(shader_key) {
-                    // Clear uniform cache for the old program to prevent stale lookups
-                    // (GL may reuse the program ID for a new shader)
-                    self.uniform_caches.remove(&old_program);
-                    unsafe {
-                        gl::DeleteProgram(old_program);
-                    }
-                    debug!("Deleted previous hot-reloaded shader for '{shader_key}'",);
-                }
-
-                // Store the new program for this shader_key
-                self.hot_reloaded_shaders
-                    .insert(shader_key.to_string(), program);
-                info!(
-                    "Shader '{shader_key}' reloaded successfully on render thread (program={program})",
-                );
-
-                ShaderReloadResult {
-                    shader_key: shader_key.into(),
-                    error: None,
-                    program,
-                }
-            }
-            Err(e) => {
-                warn!("Shader '{shader_key}' reload failed: {e}");
-                // Push error to global queue for UI overlay
-                // push_shader_error(&shader_key, "compile", &e);
-                ShaderReloadResult {
-                    shader_key: shader_key.into(),
-                    error: Some(e),
-                    program: 0,
-                }
-            }
-        };
-        CommandReply::ShaderReload(result)
     }
 
     #[inline(always)]

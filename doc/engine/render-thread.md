@@ -38,7 +38,6 @@ Renderer (renderer_threaded.rs)
   submit(RenderCommand) ──► bounded crossbeam channel ──► RenderThread.run()
   fence_rx ◄──────────────  Fence replies             ◄──  execute(cmd) → gl::*
   pacing_fence_rx ◄────────  PacingFence replies       ◄── (CommandExecutor)
-  shader_result_rx ◄───────  ReloadShader results
   stats_rx ◄───────────────  per-frame RenderStats snapshot
   context_rx ◄─────────────  GL context returned on shutdown
 ```

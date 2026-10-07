@@ -340,7 +340,7 @@ impl TexCube {
             r.data.irmap_shader.take().unwrap_or_else(|| {
                 Shader::load(r, "vertex/fullscreen_ndc", "fragment/compute/irmap")
             });
-        let mut pipeline = PipelineDesc::new(shader.resource());
+        let mut pipeline = PipelineDesc::for_shader(&shader);
         pipeline.vertex = VertexLayout::Fullscreen;
         let pipeline = r.get_pipeline(&pipeline);
 

@@ -19,6 +19,9 @@ could be modernized now that wgpu is in the picture. Appended as found.
    forever. A hot reload changes nothing on screen until the process restarts.
    Fix: include the hot pair identity (e.g. a reload counter / key hash) in
    `PipelineKey`, or clear the affected pipeline entries on reload.
+    **Closed (S10):** `PipelineDesc` carries the shader generation (part of the cache key; the wgpu executor also
+    keys its pipelines by its creation count of the shader), and the vestigial `ReloadShader` command with its
+    `hot_reloaded_shaders` pairs is deleted. Tested live on GL (`tools/render_validation/hot_reload_probe.py`).
 
 3. **Bind-group cache never invalidated on texture destruction**:
    `bind_group_cache` keys on (shader id, sampler-slot hash) — when a texture
@@ -27,6 +30,9 @@ could be modernized now that wgpu is in the picture. Appended as found.
    no crash — but the new texture never appears until the slot hash changes).
    Fix: invalidate on `DestroyResources` / `BindTexture` with a generation
    counter per slot.
+    **Closed (S10):** the wgpu bind group key includes the creation count of the shader and of every bound texture
+    (and of the sampler id), and creating a shader or texture under an id clears the cache. Materials remake their group
+    after a reload (`Material::refresh_shader`).
 
 4. **Mipmap generation is a no-op** (`cmd_generate_mipmap_2d`): textures are
    created with `mip_level_count: 1`; the GL path generates full mip chains.

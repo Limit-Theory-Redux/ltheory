@@ -10,8 +10,7 @@ use tracing::info;
 
 use super::command_executor_gl_binding::GlBindingState;
 use crate::render::{
-    CommandCategory, MAX_COLOR_ATTACHMENTS, RenderCommand, RenderStats, ResourceId,
-    ShaderReloadResult, ViewDim, gl,
+    CommandCategory, MAX_COLOR_ATTACHMENTS, RenderCommand, RenderStats, ResourceId, ViewDim, gl,
 };
 use crate::window::WindowActiveGlContext;
 
@@ -30,7 +29,6 @@ pub enum CommandReply {
     /// so it can never be picked up by whichever code is waiting on a plain
     /// `Fence` (see `RenderCommand::PacingFence`'s docs).
     PacingFence(u64),
-    ShaderReload(ShaderReloadResult),
     Stats(Box<RenderStats>),
 }
 
@@ -121,8 +119,6 @@ impl TextureBinding {
 /// main thread in immediate mode - it has no idea which.
 pub struct CommandExecutor {
     pub(super) resources: HashMap<ResourceId, GpuResource>,
-    /// Hot-reloaded shaders by shader_key (separate from resources for override)
-    pub(crate) hot_reloaded_shaders: HashMap<String, u32>,
     pub(super) stats: ExecutorStats,
     /// Snapshot taken at the last `SwapBuffers`, readable at any later point
     /// via `stats_snapshot()`. Also what `SwapBuffers` returns as
@@ -152,10 +148,6 @@ pub struct CommandExecutor {
     /// Only read by `record_command` under the `stats-server` feature.
     #[cfg(feature = "stats-server")]
     pub(super) category_timing: Arc<AtomicBool>,
-    /// Per-shader cache for uniform locations: program -> (name -> location)
-    /// NOT cleared on shader change - preserves locations across shader switches
-    /// Uses Arc<str> as key for O(1) cloning from commands
-    pub(super) uniform_caches: HashMap<u32, HashMap<Arc<str>, i32>>,
     /// Texture binding cache: tracks which texture is bound to each slot
     /// Avoids redundant glBindTexture calls
     pub(super) texture_bindings: [TextureBinding; MAX_TEXTURE_SLOTS],
@@ -219,7 +211,6 @@ impl CommandExecutor {
     ) -> Self {
         Self {
             resources: HashMap::new(),
-            hot_reloaded_shaders: HashMap::new(),
             stats: ExecutorStats::default(),
             last_stats: RenderStats::default(),
             fbo_cache: HashMap::new(),
@@ -231,7 +222,6 @@ impl CommandExecutor {
             this_frame_stats: RenderStats::default(),
             #[cfg(feature = "stats-server")]
             category_timing: _category_timing,
-            uniform_caches: HashMap::with_capacity(32), // Pre-allocate for typical shader count
             texture_bindings: [TextureBinding::default(); MAX_TEXTURE_SLOTS],
             texture_binds_skipped: 0,
             binding: GlBindingState::new(),
@@ -463,14 +453,6 @@ impl CommandExecutor {
             } => {
                 let data = self.cmd_create_shader(id, vertex_src, fragment_src, &layout);
                 let _ = reply_tx.send(data);
-            }
-
-            RenderCommand::ReloadShader {
-                shader_key,
-                vertex_src,
-                fragment_src,
-            } => {
-                reply = self.cmd_reload_shader(&shader_key, &vertex_src, &fragment_src);
             }
 
             RenderCommand::CreateTexture { id, desc, data } => {

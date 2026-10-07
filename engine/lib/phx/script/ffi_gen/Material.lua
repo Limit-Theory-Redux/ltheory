@@ -19,6 +19,7 @@ function Loader.defineType()
         ffi.cdef [[
             void      Material_Free          (Material*);
             Material* Material_Create        (Renderer* r, Shader const* shader, BlendMode blend, CullFace cull, bool depthTest, bool depthWrite);
+            cstr      Material_RefreshShader (Material*, Renderer* r);
             uint32    Material_GetParamsSize (Material const*);
             void      Material_SetTexture    (Material*, cstr name, TexView const* view, uint32 sampler);
             void      Material_Commit        (Material*, Renderer* r);
@@ -42,6 +43,7 @@ function Loader.defineType()
         local t  = ffi.typeof('Material')
         local mt = {
             __index = {
+                refreshShader = libphx.Material_RefreshShader,
                 getParamsSize = libphx.Material_GetParamsSize,
                 setTexture    = libphx.Material_SetTexture,
                 commit        = libphx.Material_Commit,

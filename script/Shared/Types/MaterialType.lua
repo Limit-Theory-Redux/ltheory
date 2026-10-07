@@ -28,6 +28,8 @@ local Pipelines = require("Render.Pipelines")
 ---@field defaults table<string, any>
 ---@field textures table<string, MaterialTextureSpec>
 ---@field perDraw fun(entity: Entity, user: ffi.cdata*)|nil
+---@field paramsType ffi.ctype*|nil  the LuaJIT type of the shader's `MaterialParams` block (see `regenerate`)
+---@field paramsHash integer         `shader:blockHash('MaterialParams')` the type was made from
 ---@overload fun(args: MaterialTypeConstructor): MaterialType
 local MaterialType = Class("MaterialType")
 
@@ -74,6 +76,8 @@ function MaterialType.new(args)
         perDraw = args.perDraw,
     }, MaterialType)
 
+    self:regenerate()
+
     -- Textures every instance shares need their mip chain once.
     for _, spec in pairs(self.textures) do
         if spec.tex then
@@ -82,6 +86,21 @@ function MaterialType.new(args)
     end
 
     return Materials:new(args.name, self)
+end
+
+--- (Re)make the LuaJIT type of the shader's `MaterialParams` block from its
+--- current layout. Called when the type is created and after the shader was
+--- hot reloaded (`Material.OnShaderReloaded`): a reload gives the shader a new
+--- block layout, and with it a new ctype.
+function MaterialType:regenerate()
+    local shader = self.shader
+    if shader:blockSize("MaterialParams") > 0 then
+        self.paramsType = shader:blockType("MaterialParams")
+        self.paramsHash = shader:blockHash("MaterialParams")
+    else
+        self.paramsType = nil
+        self.paramsHash = 0
+    end
 end
 
 --- A material with its own parameters and bind group: `instance:params()` for

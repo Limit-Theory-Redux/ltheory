@@ -1,4 +1,5 @@
 local ffi = require("ffi")
+local Cache = require("Render.Cache")
 
 -- The Rust `Material` (FFI type, `Material.Create`) is shadowed by the class
 -- below within this file.
@@ -81,7 +82,7 @@ local Material = Class("Material", function(self, matType)
 
     -- Typed view of the parameter block, with the type's defaults in it.
     if self.handle:getParamsSize() > 0 then
-        local T = matType.shader:blockType("MaterialParams")
+        local T = matType.paramsType or matType.shader:blockType("MaterialParams")
         self.paramsPtr = ffi.cast(pointerTo(T), self.handle:paramsPointer())
         for name, value in pairs(matType.defaults) do
             assignField(self.paramsPtr, name, value)
@@ -131,12 +132,71 @@ function Material:commit()
     self.handle:commit()
 end
 
---- Re-send every live material's parameters and bind group after shaders were
---- hot-reloaded. Pipelines follow the shader's new program by themselves.
+--- The material's shader was hot reloaded: adopt its new layout. The Rust
+--- material copies the parameters over by member name into a block of the new
+--- size (new members are zero, here they get the type's defaults), keeps the
+--- textures by sampler name and gives back its arena slice and bind group; the
+--- typed view is recast to the regenerated type, and `commit()` writes the
+--- parameters to a new slice and makes the new bind group.
+---@return string report
+function Material:refresh()
+    local report = ffi.string(self.handle:refreshShader())
+
+    if self.handle:getParamsSize() > 0 then
+        local T = self.type.paramsType or self.type.shader:blockType("MaterialParams")
+        self.paramsPtr = ffi.cast(pointerTo(T), self.handle:paramsPointer())
+        for name in (report:match("added=(%S*)") or ""):gmatch("[^,]+") do
+            local value = self.type.defaults[name]
+            if value ~= nil then assignField(self.paramsPtr, name, value) end
+        end
+    else
+        self.paramsPtr = nil
+    end
+
+    self.handle:commit()
+    return report
+end
+
+--- Called through `Cache.OnShaderReload` after `shader` was reloaded: ask each
+--- `MaterialType` that draws with it to regenerate its parameter ctype, then
+--- refresh its live materials. Returns the blocks it took care of.
+---@param shader Shader
+---@param changed table<string, boolean>  uniform blocks whose layout changed
+---@return table<string, boolean> handled
+function Material.OnShaderReloaded(shader, changed)
+    local Materials = require("Shared.Registries.Materials")
+    Materials.each(function(matType)
+        if matType.shader == shader then
+            local before = matType.paramsHash
+            matType:regenerate()
+            if matType.paramsHash ~= before then
+                Log.Info("Material type %s: MaterialParams layout changed, ctype regenerated", tostring(matType.name))
+            end
+        end
+    end)
+
+    local count = 0
+    for mat in pairs(allMaterials) do
+        if mat.type.shader == shader then
+            local report = mat:refresh()
+            count = count + 1
+            if changed.MaterialParams then
+                Log.Info("Material %s refreshed: %s", tostring(mat.type.name), report)
+            end
+        end
+    end
+    if count > 0 then
+        Log.Info("Shader hot-reload: %d material(s) refreshed", count)
+    end
+    return { MaterialParams = true }
+end
+
+--- Refresh every live material (after `Cache.ReloadShaders`, which already
+--- does it for the shaders it reloaded; kept for manual use).
 function Material.ReloadAll()
     local count = 0
     for mat in pairs(allMaterials) do
-        mat.handle:commit()
+        mat:refresh()
         count = count + 1
     end
     Log.Info("Material hot-reload: %d materials refreshed", count)
@@ -145,5 +205,7 @@ end
 
 --- Used by `MaterialType` to prepare the textures its materials share.
 Material.EnsureMips = ensureMips
+
+Cache.OnShaderReload(Material.OnShaderReloaded)
 
 return Material

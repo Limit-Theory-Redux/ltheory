@@ -6,12 +6,11 @@ use tracing::{error, info};
 
 #[cfg(feature = "stats-server")]
 use crate::render::StatsSink;
-use crate::render::thread::{CommandExecutor, CommandReply, RendererData};
+use crate::render::thread::{CommandExecutor, RendererData};
 use crate::render::{
     BindEntry, BindGroupId, BlockLayout, BufferId, PassCommands, PipelineDesc, PipelineId,
     RenderPassDesc, RenderStats, RenderThreadError, ResourceId, SamplerCache, SamplerDesc,
-    SamplerId, ShaderLayout, ShaderReloadResult, TexDesc, TexFormat, TexRegion, TexView,
-    VertexFormat,
+    SamplerId, ShaderLayout, TexDesc, TexFormat, TexRegion, TexView, VertexFormat,
 };
 use crate::window::{PresentMode, WindowGlContext};
 
@@ -391,28 +390,6 @@ impl Renderer {
         self.executor
             .stats_snapshot()
             .texture_binds_skipped_cumulative
-    }
-
-    /// Reload a shader inline and return the result directly - no channel
-    /// round-trip needed since the executor answers synchronously.
-    pub fn reload_shader(
-        &mut self,
-        shader_key: &str,
-        vertex_src: &str,
-        fragment_src: &str,
-    ) -> ShaderReloadResult {
-        let reply = self
-            .executor
-            .cmd_reload_shader(shader_key, vertex_src, fragment_src);
-
-        match reply {
-            CommandReply::ShaderReload(result) => result,
-            _ => ShaderReloadResult {
-                shader_key: shader_key.to_string(),
-                error: Some("Executor returned no shader reload result".to_string()),
-                program: 0,
-            },
-        }
     }
 
     /// Immediate mode has nothing pending to poll for - `stop()` already

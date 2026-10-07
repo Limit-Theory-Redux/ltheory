@@ -27,9 +27,9 @@ use crate::render::{
     BindEntry, BindGroupId, BlendMode, BlockLayout, BufferId, CmdPrimitiveType, CommandReply,
     CompareFn, CullFace, ImmLayout, ImmVertex, InstanceData, LoadOp, MipFilter, PassCmd,
     PassCommands, PipelineDesc, PipelineId, PolygonMode, RenderCommand, RenderPassDesc,
-    RenderStats, ResourceId, SamplerDesc, SamplerFilter, SamplerId, ShaderLayout,
-    ShaderReloadResult, TexDesc, TexFilter, TexFormat, TexRegion, TexView, TexWrapMode,
-    VertexFormat, ViewDim, blocks_from_naga, entry_unit,
+    RenderStats, ResourceId, SamplerDesc, SamplerFilter, SamplerId, ShaderLayout, TexDesc,
+    TexFilter, TexFormat, TexRegion, TexView, TexWrapMode, VertexFormat, ViewDim, blocks_from_naga,
+    entry_unit,
 };
 use crate::window::PresentMode;
 
@@ -82,6 +82,8 @@ impl ShaderReflection {}
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct PipelineKey {
     shader_id: u64,
+    /// `resource_generations` of the shader when the pipeline was made.
+    shader_generation: u32,
     vertex_format: (bool, bool, bool, bool, u32),
     blend: BlendMode,
     cull: CullFace,
@@ -251,13 +253,11 @@ pub struct WgpuCommandExecutor {
 
     /// Currently bound shader
     bound_shader: Option<ResourceId>,
-    /// Hot-reloaded shader pairs by shader_key (mirrors the GL executor's
-    /// `hot_reloaded_shaders`): `ReloadShader` compiles a fresh pair under the
-    /// key; `BindShaderByResource` prefers it over the resource's original.
-    hot_reloaded_shaders:
-        HashMap<String, (wgpu::ShaderModule, wgpu::ShaderModule, ShaderReflection)>,
-    /// Shader key of the currently bound hot-reloaded pair, if any.
-    bound_hot_shader: Option<String>,
+    /// How many times each shader or texture resource was (re)created. It is
+    /// part of the pipeline and bind group cache keys, so a resource that is
+    /// created again under the same id (a hot reloaded shader, a replaced
+    /// texture) never shows through a pipeline or group made for the old one.
+    resource_generations: HashMap<ResourceId, u32>,
     /// Texture unit bindings (unit -> handle). wgpu has no texture units;
     /// kept for parity bookkeeping and mapped to bind-group entries at draw.
     bound_textures: Vec<Option<ResourceId>>,
@@ -370,8 +370,7 @@ impl WgpuCommandExecutor {
             depth_writable: true,
             wireframe: false,
             bound_shader: None,
-            hot_reloaded_shaders: HashMap::new(),
-            bound_hot_shader: None,
+            resource_generations: HashMap::new(),
             bound_textures: vec![None; 16],
             view_ubo: None,
             pipeline_descs: HashMap::new(),
@@ -450,7 +449,7 @@ impl WgpuCommandExecutor {
         self.ubo_buffers.clear();
         self.wgpu_samplers.clear();
         self.resources.clear();
-        self.hot_reloaded_shaders.clear();
+        self.resource_generations.clear();
         self.immediate_buffer.take();
         self.instance_buffer.take();
         self.surface_depth.take();
@@ -483,7 +482,7 @@ impl WgpuCommandExecutor {
     /// Compile one GLSL stage into a wgpu ShaderModule via naga's GLSL
     /// frontend. The source must already be engine-preprocessed (includes
     /// inlined, `#group` stripped) — exactly what the producer sends in
-    /// `CreateShader`/`ReloadShader`.
+    /// `CreateShader`.
     /// Adapt engine GLSL for naga's frontend WITHOUT touching the on-disk
     /// sources (those stay GL 3.3 / #version 330):
     /// - naga 30 accepts only 440/450/460 -> bump `#version 330` to 440.
@@ -852,7 +851,7 @@ impl WgpuCommandExecutor {
     ) -> Result<(wgpu::ShaderModule, String), String> {
         // wgpu 30 defers shader errors to pipeline creation, so parse with
         // naga's GLSL frontend FIRST: that is what makes CreateShader/
-        // ReloadShader report failures synchronously (GL parity).
+        // a reload report failures synchronously (GL parity).
         // naga 30: parse is a Frontend method (the free fn was removed).
         let adapted = Self::adapt_glsl_for_naga_with_layout(code, 0, layout);
         let mut frontend = wgpu::naga::front::glsl::Frontend::default();
@@ -1103,15 +1102,7 @@ impl WgpuCommandExecutor {
 
     // --- Shader operations (bind bookkeeping real; compile = shader stage) ---
 
-    pub(super) fn cmd_bind_shader_by_resource(
-        &mut self,
-        id: ResourceId,
-        shader_key: Option<String>,
-    ) {
-        // Mirror the GL executor: if this shader key has a hot-reloaded pair,
-        // the reload wins over the resource's original modules.
-        self.bound_hot_shader =
-            shader_key.filter(|key| self.hot_reloaded_shaders.contains_key(key));
+    pub(super) fn cmd_bind_shader_by_resource(&mut self, id: ResourceId) {
         if !self.resources.contains_key(&id) {
             warn!("wgpu: BindShaderByResource for unknown resource {id:?}");
         }
@@ -2291,6 +2282,7 @@ impl WgpuCommandExecutor {
                         layout: layout.clone(),
                     },
                 );
+                self.bump_generation(id);
                 Ok(blocks)
             }
             Err(e) => {
@@ -2520,7 +2512,7 @@ impl WgpuCommandExecutor {
         refl
     }
 
-    /// Reflection of a shader resource (or its hot-reloaded pair).
+    /// Reflection of a shader resource.
     fn shader_reflection_for_resource(&self, id: ResourceId) -> Option<&ShaderReflection> {
         match self.resources.get(&id) {
             Some(WgpuGpuResource::Shader { reflection, .. }) => Some(reflection),
@@ -2528,13 +2520,8 @@ impl WgpuCommandExecutor {
         }
     }
 
-    /// Reflection of the CURRENTLY bound shader (hot pair wins).
+    /// Reflection of the CURRENTLY bound shader.
     fn bound_shader_reflection(&self) -> Option<&ShaderReflection> {
-        if let Some(key) = &self.bound_hot_shader {
-            if let Some((_, _, reflection)) = self.hot_reloaded_shaders.get(key) {
-                return Some(reflection);
-            }
-        }
         let handle = self.bound_shader?;
         self.shader_reflection_for_resource(handle)
     }
@@ -3092,6 +3079,7 @@ impl WgpuCommandExecutor {
             };
         let key = PipelineKey {
             shader_id,
+            shader_generation: self.generation_of(ResourceId(shader_id)),
             vertex_format: (
                 vertex_format.has_position,
                 vertex_format.has_normal,
@@ -3118,10 +3106,7 @@ impl WgpuCommandExecutor {
         };
         let queue = self.queue.as_ref()?;
         let reflection = self.bound_shader_reflection()?.clone();
-        let (vs, fs) = if let Some(hot_key) = &self.bound_hot_shader {
-            let (vs, fs, _) = self.hot_reloaded_shaders.get(hot_key)?;
-            (vs.clone(), fs.clone())
-        } else {
+        let (vs, fs) = {
             let handle = self.bound_shader?;
             match self.resources.get(&handle) {
                 Some(WgpuGpuResource::Shader {
@@ -3332,7 +3317,7 @@ impl WgpuCommandExecutor {
         // not just the slot numbers (probe-verified: nebula LUT slots 1-3
         // held the composite's 2D textures at first creation -> D1/D2
         // validation error).
-        let mut slot_hash: u64 = 0;
+        let mut slot_hash: u64 = self.generation_of(ResourceId(shader_id)) as u64;
         for s in &reflection.samplers {
             let slot = self.sampler_slots.get(&s.name).copied().unwrap_or(u32::MAX);
             let handle = self
@@ -3347,11 +3332,19 @@ impl WgpuCommandExecutor {
                 .copied()
                 .flatten()
                 .map_or(u64::MAX, |id| id.0 as u64);
+            let texture_generation = self
+                .bound_textures
+                .get(slot as usize)
+                .copied()
+                .flatten()
+                .map_or(0, |id| self.generation_of(id) as u64);
             slot_hash = slot_hash
                 .wrapping_mul(31)
                 .wrapping_add(slot as u64)
                 .wrapping_mul(31)
                 .wrapping_add(handle)
+                .wrapping_mul(31)
+                .wrapping_add(texture_generation)
                 .wrapping_mul(31)
                 .wrapping_add(sampler);
         }
@@ -3656,38 +3649,6 @@ impl WgpuCommandExecutor {
                 (wgpu::PrimitiveTopology::TriangleList, None)
             }
         }
-    }
-
-    pub(super) fn cmd_reload_shader(
-        &mut self,
-        shader_key: &str,
-        vertex_src: &str,
-        fragment_src: &str,
-    ) -> CommandReply {
-        // Same semantics as the GL path: compile a FRESH pair, store it under
-        // shader_key, and let BindShaderByResource prefer it. On failure the
-        // old pair stays in effect (reload never destroys the working shader).
-        let result =
-            match self.compile_shader_pair(vertex_src, fragment_src, &ShaderLayout::default()) {
-                Ok((vs, fs, _avs, _afs, reflection)) => {
-                    self.hot_reloaded_shaders
-                        .insert(shader_key.to_string(), (vs, fs, reflection));
-                    ShaderReloadResult {
-                        shader_key: shader_key.to_string(),
-                        error: None,
-                        program: 0,
-                    }
-                }
-                Err(e) => {
-                    tracing::error!("wgpu: shader reload '{shader_key}' failed: {e}");
-                    ShaderReloadResult {
-                        shader_key: shader_key.to_string(),
-                        error: Some(e),
-                        program: 0,
-                    }
-                }
-            };
-        CommandReply::ShaderReload(result)
     }
 
     /// Rgba8UnormSrgb -> Rgba8Unorm distinction for shader-visible textures:
@@ -3996,7 +3957,20 @@ impl WgpuCommandExecutor {
     pub(super) fn cmd_destroy_resource(&mut self, ids: &[ResourceId]) {
         for id in ids {
             self.resources.remove(id);
+            self.resource_generations.remove(id);
         }
+    }
+
+    /// The (re)creation count of a shader or texture resource (0 if unknown).
+    fn generation_of(&self, id: ResourceId) -> u32 {
+        self.resource_generations.get(&id).copied().unwrap_or(0)
+    }
+
+    /// A shader or texture was created under `id`: bumps its generation, which
+    /// invalidates the pipelines and bind groups cached for the old one.
+    fn bump_generation(&mut self, id: ResourceId) {
+        *self.resource_generations.entry(id).or_insert(0) += 1;
+        self.bind_group_cache.clear();
     }
 
     // --- Uniform buffer objects (byte staging real; upload = draw stage) ---
@@ -4187,7 +4161,7 @@ impl WgpuCommandExecutor {
                         warn!("wgpu: SetPipeline for unknown pipeline {id:?}");
                         continue;
                     };
-                    self.cmd_bind_shader_by_resource(desc.shader, None);
+                    self.cmd_bind_shader_by_resource(desc.shader);
                     self.cmd_set_blend_mode(desc.blend);
                     self.cmd_set_cull_face(desc.cull);
                     self.cmd_set_depth_test(desc.depth.test);
@@ -4685,13 +4659,6 @@ impl WgpuCommandExecutor {
                 let data = self.cmd_create_shader(id, vertex_src, fragment_src, &layout);
                 let _ = reply_tx.send(data);
             }
-            RenderCommand::ReloadShader {
-                shader_key,
-                vertex_src,
-                fragment_src,
-            } => {
-                reply = self.cmd_reload_shader(&shader_key, &vertex_src, &fragment_src);
-            }
             RenderCommand::CreateTexture { id, desc, data } => {
                 self.cmd_create_texture(id, &desc, data);
             }
@@ -4975,7 +4942,7 @@ mod tests {
     }
 
     /// Compile EVERY shader stage in res/shader through naga's GLSL frontend
-    /// with a real wgpu device, plus an end-to-end CreateShader/ReloadShader
+    /// with a real wgpu device, plus an end-to-end CreateShader (twice)
     /// round trip through the command surface. Ignored by default (opens a
     /// real window + needs GPU); run with:
     /// `cargo test -p phx --lib all_shaders_compile_through_naga -- --ignored --nocapture`
@@ -5278,12 +5245,18 @@ mod tests {
                 .unwrap_or_else(|e| Some(e.to_string())),
             other => Some(format!("unexpected create reply: {other:?}")),
         };
-        let reload = ex.execute(RenderCommand::ReloadShader {
-            shader_key: "[vs: vertex/wvp, fs: fragment/imm3d]".to_string(),
+        // Creating the shader again under its id (what a hot reload that kept
+        // the id would do) bumps its generation.
+        let (again_tx, again_rx) = crossbeam::channel::unbounded();
+        let _ = ex.execute(RenderCommand::CreateShader {
+            id: ResourceId(1),
             vertex_src: vs.code.clone(),
             fragment_src: fs.code.clone(),
+            layout: Arc::new(ShaderLayout::default()),
+            reply_tx: again_tx,
         });
-        let hot_pairs = ex.hot_reloaded_shaders.len();
+        let again_ok = again_rx.recv().map(|r| r.is_ok()).unwrap_or(false);
+        let generation = ex.generation_of(ResourceId(1));
 
         println!(
             "naga compile: {total} shader stages, {} failures",
@@ -5292,10 +5265,7 @@ mod tests {
         for f in failures.iter().take(25) {
             println!("  FAIL {f}");
         }
-        println!(
-            "e2e: create_err={create_err:?} reload_success={} hot_pairs={hot_pairs}",
-            matches!(&reload, CommandReply::ShaderReload(r) if r.error.is_none())
-        );
+        println!("e2e: create_err={create_err:?} recreate_ok={again_ok} generation={generation}");
 
         assert!(
             failures.is_empty(),
@@ -5304,11 +5274,8 @@ mod tests {
             failures
         );
         assert!(create_err.is_none(), "create shader failed: {create_err:?}");
-        assert!(
-            matches!(&reload, CommandReply::ShaderReload(r) if r.error.is_none()),
-            "reload failed: {reload:?}"
-        );
-        assert_eq!(hot_pairs, 1, "reload must store one hot pair");
+        assert!(again_ok, "creating the shader again failed");
+        assert_eq!(generation, 2, "each creation bumps the generation");
     }
 
     #[test]

@@ -26,6 +26,12 @@ function Materials:new(name, matType)
     return matType
 end
 
+--- Call `fn(matType)` for every registered material type.
+---@param fn fun(matType: MaterialType)
+function Materials.each(fn)
+    for _, matType in pairs(registry) do fn(matType) end
+end
+
 -- Global access
 setmetatable(Materials, {
     __index = function(_, key)
