@@ -1,10 +1,9 @@
 use crossbeam::channel::{Receiver, Sender};
 
 use crate::render::{
-    CameraState, ClipManager, DrawState, Environment, ImmBatcher, MaterialArenas, PassEncoder, PassState,
-    PipelineCache, PrimitiveBuilder, Release, RenderStateIntern, ResourceId, ReturnedChunk,
-    RingOffset, SamplerCache, ScissorUpdate, Shader, ShaderErrorQueue, ShaderWatcherInner,
-    UniformRing, VertexRing, ViewBlock,
+    CameraState, ClipManager, Environment, ImmBatcher, MaterialArenas, PassEncoder, PassState,
+    PipelineCache, Release, ResourceId, ReturnedChunk, RingOffset, SamplerCache, ScissorUpdate,
+    Shader, ShaderErrorQueue, ShaderWatcherInner, UniformRing, VertexRing, ViewBlock,
 };
 
 pub struct RendererData {
@@ -51,14 +50,8 @@ pub struct RendererData {
     /// The scissor update last sent to the GPU; the GL scissor is global
     /// state, so `ClipRect` compares against this, not against the pass.
     pub clip_emitted: Option<ScissorUpdate>,
-    /// GL state stack (was `thread_local! RENDER_STATE` in render_state.rs)
-    pub render_state: RenderStateIntern,
-    /// Immediate-mode vertex accumulator (was `Draw`'s owned `PrimitiveBuilder`)
-    pub imm: PrimitiveBuilder,
     /// The immediate batcher (`Imm`): the current run of UI/debug vertices.
     pub imm_batch: ImmBatcher,
-    /// `Draw`'s CPU-side alpha/color stack (was static via `Draw::inst()`)
-    pub draw_state: DrawState,
     /// Shader compile/reload error queue, for the hot-reload error overlay
     pub shader_errors: ShaderErrorQueue,
     /// File-watcher state for shader hot-reload; `None` until `ShaderWatcher::Init` runs
@@ -104,10 +97,7 @@ impl RendererData {
             environment: Environment::default(),
             clip_rect: ClipManager::new(),
             clip_emitted: None,
-            render_state: RenderStateIntern::new(),
-            imm: PrimitiveBuilder::new(),
             imm_batch: ImmBatcher::new(),
-            draw_state: DrawState::new(),
             shader_errors: ShaderErrorQueue::new(),
             shader_watcher: None,
             ao_shader: None,

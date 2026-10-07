@@ -98,7 +98,7 @@ pub struct DepthState {
 }
 
 impl Default for DepthState {
-    /// What the legacy `RenderState.PushAllDefaults` gives: no test, writes
+    /// What a pass starts from: no test, writes
     /// on, `LEQUAL`.
     fn default() -> Self {
         Self {

@@ -34,11 +34,7 @@ function Loader.defineType()
             void    Mesh_AddTri            (Mesh*, int i1, int i2, int i3);
             void    Mesh_AddVertex         (Mesh*, float px, float py, float pz, float nx, float ny, float nz, float u, float v);
             void    Mesh_AddVertexRaw      (Mesh*, Vertex const* vertex);
-            void    Mesh_DrawBind          (Mesh*, Renderer* r);
             uint64  Mesh_ResourceId        (Mesh*, Renderer* r);
-            void    Mesh_DrawBound         (Mesh const*, Renderer* r);
-            void    Mesh_DrawUnbind        (Mesh const*, Renderer* r);
-            void    Mesh_Draw              (Mesh*, Renderer* r);
             void    Mesh_DrawNormals       (Mesh const*, Renderer* r, float scale);
             void    Mesh_GetBound          (Mesh*, Box3f* out);
             void    Mesh_GetCenter         (Mesh*, Vec3f* out);
@@ -125,11 +121,7 @@ function Loader.defineType()
                 addTri            = libphx.Mesh_AddTri,
                 addVertex         = libphx.Mesh_AddVertex,
                 addVertexRaw      = libphx.Mesh_AddVertexRaw,
-                drawBind          = libphx.Mesh_DrawBind,
                 resourceId        = libphx.Mesh_ResourceId,
-                drawBound         = libphx.Mesh_DrawBound,
-                drawUnbind        = libphx.Mesh_DrawUnbind,
-                draw              = libphx.Mesh_Draw,
                 drawNormals       = libphx.Mesh_DrawNormals,
                 getBound          = libphx.Mesh_GetBound,
                 getCenter         = libphx.Mesh_GetCenter,

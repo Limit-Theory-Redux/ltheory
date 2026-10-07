@@ -177,7 +177,7 @@ function GenTex2D:onUpdate(dt)
     self.zoom = Math.Lerp(self.zoom, self.zoomT, 1.0 - exp(-16.0 * dt))
 end
 
-function GenTex2D:onDraw()
+function GenTex2D:onRender()
     local sx = self.zoom * kTexSize
     local sy = self.zoom * kTexSize
     local x = (self.resX - sx) / 2 + self.panX * self.zoom

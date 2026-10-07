@@ -44,7 +44,7 @@ pub struct RenderStats {
     pub draw_mesh_calls: u64,
     pub draw_immediate_calls: u64,
     pub draw_instanced_calls: u64,
-    /// Vertices submitted via DrawImmediate in the last frame
+    /// Vertices submitted via `DrawImm` in the last frame
     pub immediate_vertices: u64,
     /// Instance-data items submitted in the last frame
     pub instanced_data_items: u64,
@@ -65,7 +65,7 @@ pub struct RenderStats {
     /// starvation), last frame, microseconds + number of starvation waits
     pub recv_wait_us: u64,
     pub recv_wait_count: u64,
-    /// Shader churn: BindShader commands last frame, how many hit an already
+    /// Shader churn: pipeline binds last frame, how many hit an already
     /// bound program (redundant), and how many distinct programs were bound.
     pub shader_bind_commands: u64,
     pub shader_redundant_binds: u64,

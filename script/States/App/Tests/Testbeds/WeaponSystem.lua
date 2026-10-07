@@ -1224,24 +1224,10 @@ function WeaponSystemTestbed:onInit()
         "WeaponPulseEffects",
         RenderingComponents.Render(function(_, blendMode)
             if #self.projectiles > 0 then
-                -- `Pulse` (Legacy) draws with the old state commands, which the
-                -- scene pass no longer sets up for it; this is the additive
-                -- pass's state. // S6: Pulse moves to pipelines.
-                local additive = blendMode == BlendMode.Additive
-                if additive then
-                    RenderState.PushBlendMode(BlendMode.Additive)
-                    RenderState.PushDepthTest(true)
-                    RenderState.PushDepthWritable(false)
-                end
                 Pulse.Render(self.projectiles, {
                     mode = blendMode,
                     eye = CameraManager:getEye(),
                 })
-                if additive then
-                    RenderState.PopDepthWritable()
-                    RenderState.PopDepthTest()
-                    RenderState.PopBlendMode()
-                end
             end
         end))
 

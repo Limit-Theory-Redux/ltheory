@@ -140,7 +140,7 @@ end
 local white = Color(1, 1, 1, 1)
 local tint = Color(1, 1, 1, 1)
 
-function AudioTest:onDraw()
+function AudioTest:onRender()
     local desc = RenderPassDesc.Create('AudioTest')
     desc:backbuffer(self.resX, self.resY, LoadOp.Clear, 0.1, 0.1, 0.1, 1.0)
     local pass = Renderer:beginPass(desc)

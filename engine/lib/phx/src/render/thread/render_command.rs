@@ -10,24 +10,11 @@ use crossbeam::channel::Sender;
 
 use super::command_category::CommandCategory;
 use crate::render::{
-    BindEntry, BindGroupId, BlendMode, BlockLayout, BufferId, CullFace, PassCommands, PipelineDesc,
-    PipelineId, RenderPassDesc, SamplerDesc, SamplerId, ShaderLayout, TexFilter, TexFormat,
-    TexView, TexWrapMode, VertexFormat, gl,
+    BindEntry, BindGroupId, BlockLayout, BufferId, PassCommands, PipelineDesc, PipelineId,
+    RenderPassDesc, SamplerDesc, SamplerId, ShaderLayout, TexFilter, TexFormat, TexView,
+    TexWrapMode, VertexFormat, gl,
 };
 use crate::window::PresentMode;
-
-/// A handle to a GPU resource (shader, texture, buffer, etc.)
-/// The actual GL handle lives on the render thread.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct GpuHandle(pub u32);
-
-impl GpuHandle {
-    pub const INVALID: GpuHandle = GpuHandle(0);
-
-    pub fn is_valid(&self) -> bool {
-        self.0 != Self::INVALID.0
-    }
-}
 
 /// Unique identifier for resources being created
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -78,183 +65,6 @@ pub struct ImmVertex {
 /// 3. Efficiently batchable
 #[derive(Debug, Clone)]
 pub enum RenderCommand {
-    // === State Management ===
-    /// Set the viewport
-    SetViewport {
-        x: i32,
-        y: i32,
-        width: i32,
-        height: i32,
-    },
-
-    /// Set scissor test region
-    SetScissor {
-        x: i32,
-        y: i32,
-        width: i32,
-        height: i32,
-    },
-
-    /// Enable or disable scissor test
-    EnableScissor(bool),
-
-    /// Set blend mode
-    SetBlendMode(BlendMode),
-
-    /// Set face culling mode
-    SetCullFace(CullFace),
-
-    /// Enable or disable depth testing
-    SetDepthTest(bool),
-
-    /// Enable or disable depth writing
-    SetDepthWritable(bool),
-
-    /// Set wireframe mode
-    SetWireframe(bool),
-
-    /// Set line width for line primitives
-    SetLineWidth(f32),
-
-    /// Set point size for point primitives
-    SetPointSize(f32),
-
-    // === Shader Operations ===
-    /// Bind a shader program
-    BindShader { handle: GpuHandle },
-    /// Bind a shader by resource ID (for shaders created on render thread)
-    /// If shader_key is provided, check hot_reloaded_shaders first for live updates
-    BindShaderByResource {
-        id: ResourceId,
-        shader_key: Option<String>,
-    },
-
-    /// Unbind current shader (bind 0)
-    UnbindShader,
-
-    /// Set integer uniform
-    SetUniformInt { location: i32, value: i32 },
-
-    /// Set ivec2 uniform
-    SetUniformInt2 { location: i32, value: [i32; 2] },
-
-    /// Set ivec3 uniform
-    SetUniformInt3 { location: i32, value: [i32; 3] },
-
-    /// Set ivec4 uniform
-    SetUniformInt4 { location: i32, value: [i32; 4] },
-
-    /// Set float uniform
-    SetUniformFloat { location: i32, value: f32 },
-
-    /// Set vec2 uniform
-    SetUniformFloat2 { location: i32, value: [f32; 2] },
-
-    /// Set vec3 uniform
-    SetUniformFloat3 { location: i32, value: [f32; 3] },
-
-    /// Set vec4 uniform
-    SetUniformFloat4 { location: i32, value: [f32; 4] },
-
-    /// Set mat4 uniform
-    SetUniformMat4 { location: i32, value: [f32; 16] },
-
-    // === Name-based Uniform Operations (for command mode) ===
-    // These look up uniform location by name on the render thread,
-    // since the render thread's shader has different uniform indices
-    // than the main thread's shader.
-    /// Set integer uniform by name (Arc<str> for cheap cloning)
-    SetUniformIntByName { name: Arc<str>, value: i32 },
-
-    /// Set ivec2 uniform by name
-    SetUniformInt2ByName { name: Arc<str>, value: [i32; 2] },
-
-    /// Set ivec3 uniform by name
-    SetUniformInt3ByName { name: Arc<str>, value: [i32; 3] },
-
-    /// Set ivec4 uniform by name
-    SetUniformInt4ByName { name: Arc<str>, value: [i32; 4] },
-
-    /// Set float uniform by name
-    SetUniformFloatByName { name: Arc<str>, value: f32 },
-
-    /// Set vec2 uniform by name
-    SetUniformFloat2ByName { name: Arc<str>, value: [f32; 2] },
-
-    /// Set vec3 uniform by name
-    SetUniformFloat3ByName { name: Arc<str>, value: [f32; 3] },
-
-    /// Set vec4 uniform by name
-    SetUniformFloat4ByName { name: Arc<str>, value: [f32; 4] },
-
-    /// Set mat4 uniform by name
-    SetUniformMat4ByName { name: Arc<str>, value: [f32; 16] },
-
-    // === Texture Operations ===
-    /// Bind a 2D texture to a slot
-    BindTexture2D { slot: u32, handle: GpuHandle },
-
-    /// Bind a 2D texture by resource ID (for textures created in command mode)
-    BindTexture2DByResource { slot: u32, id: ResourceId },
-
-    /// Bind a 1D texture by resource ID
-    BindTexture1DByResource { slot: u32, id: ResourceId },
-
-    /// Bind a 3D texture to a slot
-    BindTexture3D { slot: u32, handle: GpuHandle },
-
-    /// Bind a 3D texture by resource ID
-    BindTexture3DByResource { slot: u32, id: ResourceId },
-
-    /// Bind a cube texture to a slot
-    BindTextureCube { slot: u32, handle: GpuHandle },
-
-    /// Bind a cube texture by resource ID
-    BindTextureCubeByResource { slot: u32, id: ResourceId },
-
-    /// Unbind texture from slot
-    UnbindTexture { slot: u32 },
-
-    // === Texture State Commands ===
-    /// Set magnification filter for a 2D texture
-    SetTexture2DMagFilter {
-        handle: GpuHandle,
-        filter: TexFilter,
-    },
-
-    /// Set minification filter for a 2D texture
-    SetTexture2DMinFilter {
-        handle: GpuHandle,
-        filter: TexFilter,
-    },
-
-    /// Set wrap mode for a 2D texture (both S and T)
-    SetTexture2DWrapMode {
-        handle: GpuHandle,
-        mode: TexWrapMode,
-    },
-
-    /// Set mip level range for a 2D texture
-    SetTexture2DMipRange {
-        handle: GpuHandle,
-        min_level: i32,
-        max_level: i32,
-    },
-
-    /// Generate mipmaps for a 2D texture
-    GenerateMipmap2D { handle: GpuHandle },
-
-    /// Update data for a 2D texture (full image replacement)
-    UpdateTexture2DData {
-        handle: GpuHandle,
-        width: i32,
-        height: i32,
-        internal_format: i32,
-        pixel_format: u32,
-        data_format: u32,
-        data: Vec<u8>,
-    },
-
     /// Update data for a 2D texture by ResourceId (for textures created in command mode)
     UpdateTexture2DDataByResource {
         id: ResourceId,
@@ -278,9 +88,6 @@ pub enum RenderCommand {
         data_format: u32,
         data: Vec<u8>,
     },
-
-    /// Set anisotropy filter for a 2D texture
-    SetTexture2DAnisotropy { handle: GpuHandle, factor: f32 },
 
     /// Set anisotropy filter for a 2D texture by resource ID
     SetTexture2DAnisotropyByResource { id: ResourceId, factor: f32 },
@@ -486,37 +293,6 @@ pub enum RenderCommand {
         data: Vec<u8>,
     },
 
-    // === Mesh Operations ===
-    /// Bind a mesh's VAO and enable vertex attributes
-    BindMesh { vao: GpuHandle },
-
-    /// Bind a mesh by its resource ID
-    BindMeshByResource { id: ResourceId },
-
-    /// Unbind mesh VAO and disable vertex attributes
-    UnbindMesh,
-
-    // === Drawing Operations ===
-    /// Draw a mesh using its VAO
-    DrawMesh {
-        vao: GpuHandle,
-        index_count: i32,
-        primitive: CmdPrimitiveType,
-    },
-
-    /// Draw a mesh by its resource ID (for command mode)
-    DrawMeshByResource {
-        id: ResourceId,
-        index_count: i32,
-        primitive: CmdPrimitiveType,
-    },
-
-    /// Draw immediate mode geometry (vertices submitted directly)
-    DrawImmediate {
-        primitive: CmdPrimitiveType,
-        vertices: Vec<ImmVertex>,
-    },
-
     // === Resource Creation (deferred to GL thread) ===
     /// Create a shader program from source and apply its `#group` layout
     /// (block bindings, sampler units). `reply_tx` receives the reflected
@@ -529,17 +305,6 @@ pub enum RenderCommand {
         fragment_src: String,
         layout: Arc<ShaderLayout>,
         reply_tx: Sender<Result<Vec<BlockLayout>, String>>,
-    },
-
-    /// Blocking lookup of a uniform's location for a specific shader
-    /// resource, independent of whichever program is currently bound (see
-    /// `get_uniform_location_cached` for the current-program version used by
-    /// by-name uniform commands). Sends `-1` if the resource doesn't exist or
-    /// has no such uniform, matching `glGetUniformLocation`'s own convention.
-    GetUniformLocationByResource {
-        id: ResourceId,
-        name: Arc<str>,
-        reply_tx: Sender<i32>,
     },
 
     /// Reload a shader (compile and send result back via channel)
@@ -632,67 +397,14 @@ impl RenderCommand {
     /// Coarse cost category used by the stats dashboard. Commands in the same
     /// category have similar per-command GPU/driver cost, so summing counts
     /// and execution time per category shows *where* the render thread's
-    /// frame time actually goes (draws vs uniforms vs texture binds vs …).
+    /// frame time actually goes (pass commands vs texture data vs resources
+    /// vs ...).
     pub fn category(&self) -> CommandCategory {
         use RenderCommand::*;
         match self {
-            // === State Management ===
-            SetViewport { .. }
-            | SetScissor { .. }
-            | EnableScissor(_)
-            | SetBlendMode(_)
-            | SetCullFace(_)
-            | SetDepthTest(_)
-            | SetDepthWritable(_)
-            | SetWireframe(_)
-            | SetLineWidth(_)
-            | SetPointSize(_) => CommandCategory::State,
-
-            // === Shader Operations ===
-            BindShader { .. } | BindShaderByResource { .. } | UnbindShader => {
-                CommandCategory::Shader
-            }
-
-            // === Uniform Operations ===
-            SetUniformInt { .. }
-            | SetUniformInt2 { .. }
-            | SetUniformInt3 { .. }
-            | SetUniformInt4 { .. }
-            | SetUniformFloat { .. }
-            | SetUniformFloat2 { .. }
-            | SetUniformFloat3 { .. }
-            | SetUniformFloat4 { .. }
-            | SetUniformMat4 { .. }
-            | SetUniformIntByName { .. }
-            | SetUniformInt2ByName { .. }
-            | SetUniformInt3ByName { .. }
-            | SetUniformInt4ByName { .. }
-            | SetUniformFloatByName { .. }
-            | SetUniformFloat2ByName { .. }
-            | SetUniformFloat3ByName { .. }
-            | SetUniformFloat4ByName { .. }
-            | SetUniformMat4ByName { .. } => CommandCategory::Uniform,
-
-            // === Texture Binding ===
-            BindTexture2D { .. }
-            | BindTexture2DByResource { .. }
-            | BindTexture1DByResource { .. }
-            | BindTexture3D { .. }
-            | BindTexture3DByResource { .. }
-            | BindTextureCube { .. }
-            | BindTextureCubeByResource { .. }
-            | UnbindTexture { .. } => CommandCategory::Texture,
-
             // === Texture State / Data ===
-            SetTexture2DMagFilter { .. }
-            | SetTexture2DMinFilter { .. }
-            | SetTexture2DWrapMode { .. }
-            | SetTexture2DMipRange { .. }
-            | GenerateMipmap2D { .. }
-            | UpdateTexture2DData { .. }
-            | UpdateTexture2DDataByResource { .. }
+            UpdateTexture2DDataByResource { .. }
             | UpdateTexture2DRect { .. }
-            | SetTexture2DAnisotropy { .. }
             | SetTexture2DAnisotropyByResource { .. }
             | SetTexture2DMipRangeByResource { .. }
             | SetTexel1DByResource { .. }
@@ -720,17 +432,8 @@ impl RenderCommand {
             BeginFrame { .. } => CommandCategory::Sync,
             PassCommands(_) => CommandCategory::Draw,
 
-            // === Mesh Operations ===
-            BindMesh { .. } | BindMeshByResource { .. } | UnbindMesh => CommandCategory::Mesh,
-
-            // === Drawing Operations ===
-            DrawMesh { .. } | DrawMeshByResource { .. } | DrawImmediate { .. } => {
-                CommandCategory::Draw
-            }
-
             // === Resource Creation / Destruction ===
             CreateShader { .. }
-            | GetUniformLocationByResource { .. }
             | CreatePipeline { .. }
             | CreateSampler { .. }
             | CreateBindGroup { .. }
@@ -745,8 +448,6 @@ impl RenderCommand {
             | CreateMesh { .. }
             | DestroyResources { .. } => CommandCategory::Resource,
 
-            // === Uniform Buffer Objects ===
-
             // === Window / Synchronization ===
             Resize { .. }
             | SetPresentMode { .. }
@@ -756,38 +457,6 @@ impl RenderCommand {
             | PacingFence { .. }
             | Shutdown => CommandCategory::Sync,
         }
-    }
-
-    /// Returns true if this command modifies GPU state
-    pub fn is_state_change(&self) -> bool {
-        matches!(
-            self,
-            RenderCommand::SetViewport { .. }
-                | RenderCommand::SetScissor { .. }
-                | RenderCommand::EnableScissor(_)
-                | RenderCommand::SetBlendMode(_)
-                | RenderCommand::SetCullFace(_)
-                | RenderCommand::SetDepthTest(_)
-                | RenderCommand::SetDepthWritable(_)
-                | RenderCommand::SetWireframe(_)
-                | RenderCommand::SetLineWidth(_)
-                | RenderCommand::SetPointSize(_)
-                | RenderCommand::BindShader { .. }
-                | RenderCommand::UnbindShader
-                | RenderCommand::BindTexture2D { .. }
-                | RenderCommand::BindTexture3D { .. }
-                | RenderCommand::BindTextureCube { .. }
-        )
-    }
-
-    /// Returns true if this command is a draw call
-    pub fn is_draw_call(&self) -> bool {
-        matches!(
-            self,
-            RenderCommand::DrawMesh { .. }
-                | RenderCommand::DrawMeshByResource { .. }
-                | RenderCommand::DrawImmediate { .. }
-        )
     }
 
     /// Returns true if this command requires synchronization
@@ -810,23 +479,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_gpu_handle() {
-        assert!(!GpuHandle::INVALID.is_valid());
-        assert!(GpuHandle(1).is_valid());
-    }
-
-    #[test]
-    fn test_command_classification() {
-        let state_cmd = RenderCommand::SetBlendMode(BlendMode::Alpha);
-        assert!(state_cmd.is_state_change());
-        assert!(!state_cmd.is_draw_call());
-
-        let draw_cmd = RenderCommand::DrawMesh {
-            vao: GpuHandle(1),
-            index_count: 36,
-            primitive: CmdPrimitiveType::Triangles,
-        };
-        assert!(!draw_cmd.is_state_change());
-        assert!(draw_cmd.is_draw_call());
+    fn test_command_categories() {
+        assert_eq!(RenderCommand::SwapBuffers.category(), CommandCategory::Sync);
+        assert_eq!(
+            RenderCommand::EndRenderPass.category(),
+            CommandCategory::Framebuffer
+        );
     }
 }

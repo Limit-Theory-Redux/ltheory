@@ -13,10 +13,10 @@ use super::{AttachKey, GpuResource, MAX_TEXTURE_SLOTS, TextureBinding, TextureTy
 use crate::render::{
     BindEntry, BindGroupId, BlendMode, BlockLayout, BlockMember, BufferId, CHUNK_SIZE,
     CommandCategory, CommandExecutor, CompareFn, CullFace, GROUP_COUNT, GROUP_DRAW, GROUP_FRAME,
-    GROUP_INPUTS, GlslType, ImmLayout, InstanceData, MAX_FRAMES_IN_FLIGHT, MAX_INPUTS, PassCmd, PassCommands,
-    PipelineDesc, PipelineId, PolygonMode, ResourceId, ReturnedChunk, RingChunk, SamplerDesc,
-    SamplerId, Samplers, ShaderLayout, TexView, UNIFORM_ALIGN, VERTEX_CHUNK_SIZE, ViewDim,
-    block_binding, entry_unit, gl, texture_unit,
+    GROUP_INPUTS, GlslType, ImmLayout, InstanceData, MAX_FRAMES_IN_FLIGHT, MAX_INPUTS, PassCmd,
+    PassCommands, PipelineDesc, PipelineId, PolygonMode, ResourceId, ReturnedChunk, RingChunk,
+    SamplerDesc, SamplerId, Samplers, ShaderLayout, TexView, UNIFORM_ALIGN, VERTEX_CHUNK_SIZE,
+    ViewDim, block_binding, entry_unit, gl, texture_unit,
 };
 
 /// Uniform block binding points (`group * 4 + k`) the passes drive.
@@ -34,8 +34,7 @@ const IR_UNIT: u32 = texture_unit(GROUP_FRAME, 1);
 const INPUT_UNIT: u32 = texture_unit(GROUP_INPUTS, 0);
 
 /// What the executor believes GL's fixed-function state is. `None` = unknown.
-/// Pipelines diff against it; the legacy state commands write through it so
-/// the two paths can mix in one pass. // S6: remove the write-through
+/// Pipelines diff against it.
 #[derive(Debug, Default)]
 pub(super) struct GlStateCache {
     pub blend: Option<BlendMode>,
@@ -67,8 +66,7 @@ pub(super) struct GlBindingState {
     /// GL uniform buffers by `BufferId` (material parameter arenas).
     pub buffers: HashMap<BufferId, u32>,
     pub gl_state: GlStateCache,
-    /// The pipeline whose program and state are applied (`None` after any
-    /// legacy shader or state command).
+    /// The pipeline whose program and state are applied.
     pub current_pipeline: Option<PipelineId>,
     /// Topology of the current pipeline's draws.
     pub topology: u32,
@@ -498,11 +496,11 @@ impl CommandExecutor {
         self.binding.current_pipeline = Some(id);
     }
 
-    /// A pass begins: fixed-function state returns to the defaults the legacy
-    /// `RenderState.PushAllDefaults` established (no blend, no culling, no
-    /// depth test, depth writes on, `LEQUAL`, filled polygons), so draws that
-    /// do not set a pipeline see a known state and nothing leaks from the
-    /// previous pass's last pipeline. wgpu passes start from scratch too.
+    /// A pass begins: fixed-function state returns to the defaults (no blend,
+    /// no culling, no depth test, depth writes on, `LEQUAL`, filled polygons),
+    /// so draws that do not set a pipeline see a known state and nothing leaks
+    /// from the previous pass's last pipeline. wgpu passes start from scratch
+    /// too.
     pub(super) fn reset_pass_state(&mut self) {
         let state = &mut self.binding.gl_state;
         unsafe {
@@ -1133,27 +1131,11 @@ impl CommandExecutor {
     }
 
     // -----------------------------------------------------------------
-    // Write-through hooks for the legacy commands. // S6: remove
+    // Texture state commands that bypass views (until S7)
     // -----------------------------------------------------------------
 
-    /// A legacy command changed the program or GL state behind the current
-    /// pipeline; the next `SetPipeline` reapplies it in full.
-    pub(super) fn invalidate_pipeline(&mut self) {
-        self.binding.current_pipeline = None;
-    }
-
-    /// A legacy bind is about to put a texture on `slot`: the sampler object
-    /// the passes left there would override the texture's own parameters.
-    pub(super) fn drop_unit_sampler(&mut self, slot: usize) {
-        if slot < MAX_TEXTURE_SLOTS && self.binding.unit_samplers[slot] != 0 {
-            unsafe {
-                gl::BindSampler(slot as u32, 0);
-            }
-            self.binding.unit_samplers[slot] = 0;
-        }
-    }
-
-    /// A legacy command set `id`'s mip range directly.
+    /// `SetTexture2DMipRangeByResource` set `id`'s mip range directly: the
+    /// view binding must know, or it would not reapply its own.
     pub(super) fn note_mip_range(&mut self, id: ResourceId, min_level: i32, max_level: i32) {
         self.binding.mip_ranges.insert(id, (min_level, max_level));
     }

@@ -15,7 +15,6 @@
 use std::sync::{Arc, Mutex};
 
 use super::{RenderStats, Renderer};
-use crate::render::uniform_dedup_skips;
 
 /// Shared sink holding the most recent [`StatsSnapshot`].
 pub type StatsSink = Arc<Mutex<StatsSnapshot>>;
@@ -42,10 +41,6 @@ pub struct StatsSnapshot {
     pub channel_high_water: u64,
     /// Frames submitted but not yet rendered (triple-buffer depth)
     pub frames_in_flight: u64,
-    /// Uniform sends skipped by the per-shader value dedup last frame - the
-    /// Lua→Rust crossings that were paid but produced no command. Shows the
-    /// hidden producer cost the command count doesn't capture.
-    pub uniform_dedup_skips: u64,
 }
 
 impl Renderer {
@@ -91,7 +86,6 @@ impl Renderer {
             send_block_count: self.send_block_count,
             channel_high_water: self.channel_high_water,
             frames_in_flight: self.get_frames_in_flight(),
-            uniform_dedup_skips: uniform_dedup_skips(),
         };
 
         if let Ok(mut guard) = sink.lock() {
@@ -122,7 +116,6 @@ impl Renderer {
             send_block_count: 0,
             channel_high_water: 0,
             frames_in_flight: self.get_frames_in_flight(),
-            uniform_dedup_skips: uniform_dedup_skips(),
         };
 
         if let Ok(mut guard) = sink.lock() {

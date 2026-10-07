@@ -8,6 +8,10 @@ Renderer = {}
 ---@return boolean
 function Renderer:sync() end
 
+-- Block until the GPU has finished everything submitted so far
+-- (`glFinish`), e.g. to time a piece of GPU work.
+function Renderer:gpuFinish() end
+
 -- Draw calls of the last frame (mesh + immediate + instanced).
 ---@return integer
 function Renderer:statsDrawCalls() end
@@ -41,101 +45,6 @@ function Renderer:statsMainWaitUs() end
 ---@return integer
 function Renderer:statsVertices() end
 
--- Set the viewport
----@param x integer
----@param y integer
----@param width integer
----@param height integer
-function Renderer:setViewport(x, y, width, height) end
-
--- Set the scissor region
----@param x integer
----@param y integer
----@param width integer
----@param height integer
-function Renderer:setScissor(x, y, width, height) end
-
--- Enable or disable scissor test
----@param enable boolean
-function Renderer:enableScissor(enable) end
-
--- Set blend mode (0=Disabled, 1=Alpha, 2=Additive, 3=PreMultAlpha)
----@param mode BlendMode
-function Renderer:setBlendMode(mode) end
-
--- Set cull face (0=None, 1=Back, 2=Front)
----@param face CullFace
-function Renderer:setCullFace(face) end
-
--- Enable or disable depth testing
----@param enable boolean
-function Renderer:setDepthTest(enable) end
-
--- Enable or disable depth writing
----@param enable boolean
-function Renderer:setDepthWritable(enable) end
-
--- Set wireframe mode
----@param enable boolean
-function Renderer:setWireframe(enable) end
-
--- Bind a shader program
----@param handle integer
-function Renderer:bindShader(handle) end
-
--- Unbind the current shader
-function Renderer:unbindShader() end
-
--- Set an integer uniform
----@param location integer
----@param value integer
-function Renderer:setUniformInt(location, value) end
-
--- Set a float uniform
----@param location integer
----@param value number
-function Renderer:setUniformFloat(location, value) end
-
--- Set a vec2 uniform
----@param location integer
----@param x number
----@param y number
-function Renderer:setUniformFloat2(location, x, y) end
-
--- Set a vec3 uniform
----@param location integer
----@param x number
----@param y number
----@param z number
-function Renderer:setUniformFloat3(location, x, y, z) end
-
--- Set a vec4 uniform
----@param location integer
----@param x number
----@param y number
----@param z number
----@param w number
-function Renderer:setUniformFloat4(location, x, y, z, w) end
-
--- Bind a 2D texture to a slot
----@param slot integer
----@param handle integer
-function Renderer:bindTexture2D(slot, handle) end
-
--- Bind a 3D texture to a slot
----@param slot integer
----@param handle integer
-function Renderer:bindTexture3D(slot, handle) end
-
--- Bind a cube texture to a slot
----@param slot integer
----@param handle integer
-function Renderer:bindTextureCube(slot, handle) end
-
--- Unbind a texture from a slot
----@param slot integer
-function Renderer:unbindTexture(slot) end
-
 -- Begin a render pass on `desc`'s attachments. Only one pass may be open
 -- at a time; end it with `RenderPass:finish()`.
 ---@param desc RenderPassDesc
@@ -147,17 +56,6 @@ function Renderer:beginPass(desc) end
 -- the pass. Errors if no pass is open.
 ---@return RenderPass
 function Renderer:currentPass() end
-
--- Draw a mesh
----@param vao integer
----@param indexCount integer
-function Renderer:drawMesh(vao, indexCount) end
-
--- Draw a mesh with a specific primitive type
----@param vao integer
----@param indexCount integer
----@param primitive CmdPrimitiveType
-function Renderer:drawMeshPrimitive(vao, indexCount, primitive) end
 
 -- Signal resize
 ---@param width integer

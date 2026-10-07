@@ -124,18 +124,21 @@ function Imm.Point(r, x, y, size, color) end
 ---@param b Box3f
 function Imm.Box3(r, b) end
 
--- A debug line (camera-relative positions, depth tested, alpha blended).
+-- A debug line of `width` pixels (camera-relative positions, alpha
+-- blended, depth tested if `depth`).
 ---@param r Renderer
 ---@param p1 Vec3f
 ---@param p2 Vec3f
 ---@param color Color
 ---@param width number
-function Imm.Line3(r, p1, p2, color, width) end
+---@param depth boolean
+function Imm.Line3(r, p1, p2, color, width, depth) end
 
--- A debug point of `size` pixels.
+-- A debug point of `size` pixels (see `line3`).
 ---@param r Renderer
 ---@param p Vec3f
 ---@param color Color
 ---@param size number
-function Imm.Point3(r, p, color, size) end
+---@param depth boolean
+function Imm.Point3(r, p, color, size, depth) end
 

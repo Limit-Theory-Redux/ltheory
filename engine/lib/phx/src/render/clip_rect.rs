@@ -141,8 +141,10 @@ impl ClipManager {
         ScissorUpdate::Set {
             x: x as i32,
             y: vp_size.y - (y + sy) as i32,
-            width: sx as i32,
-            height: sy as i32,
+            // A rectangle clipped away entirely has a negative extent: GL rejects
+            // that (and would keep the previous scissor), so it becomes empty.
+            width: (sx as i32).max(0),
+            height: (sy as i32).max(0),
         }
     }
 

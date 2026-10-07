@@ -14,8 +14,8 @@ function onDef_Mesh_t(t, mt)
 
     -- These take the current Renderer as an explicit argument (see
     -- doc/engine/render-thread.md); inject the global `Renderer` set by
-    -- SetEngine so call sites don't change. Instanced draws are pass commands
-    -- now: `pass:drawMeshInstanced(mesh, instances, count)` and
+    -- SetEngine so call sites don't change. Meshes are drawn through a pass:
+    -- `pass:drawMesh(mesh)`, `pass:drawMeshInstanced(mesh, instances, count)` and
     -- `pass:drawInstancedIndices(mesh, indices, count)`.
     mt.__index.computeAO = function(self, radius)
         libphx.Mesh_ComputeAO(self, Renderer, radius)
@@ -25,24 +25,8 @@ function onDef_Mesh_t(t, mt)
         libphx.Mesh_ComputeOcclusion(self, Renderer, sdf, radius)
     end
 
-    mt.__index.drawBind = function(self)
-        libphx.Mesh_DrawBind(self, Renderer)
-    end
-
     mt.__index.resourceId = function(self)
         return libphx.Mesh_ResourceId(self, Renderer)
-    end
-
-    mt.__index.drawBound = function(self)
-        libphx.Mesh_DrawBound(self, Renderer)
-    end
-
-    mt.__index.drawUnbind = function(self)
-        libphx.Mesh_DrawUnbind(self, Renderer)
-    end
-
-    mt.__index.draw = function(self)
-        libphx.Mesh_Draw(self, Renderer)
     end
 
     mt.__index.drawNormals = function(self, scale)

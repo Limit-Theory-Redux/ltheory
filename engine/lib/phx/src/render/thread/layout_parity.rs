@@ -250,7 +250,7 @@ fn view_block_matches_the_rust_struct() {
     let root = repo_root();
     for rel in [
         "res/shader/vertex/wvp.glsl",
-        "res/shader/fragment/simple_color.glsl",
+        "res/shader/fragment/imm3d.glsl",
     ] {
         let file = root.join(rel);
         let pre = preprocess(&root, &file);

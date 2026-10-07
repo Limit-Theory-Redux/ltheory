@@ -188,14 +188,6 @@ impl ShaderLayout {
         self.textures.iter().find(|t| t.name == name)
     }
 
-    /// Bit mask of the texture units this layout claims; the legacy
-    /// `Shader::start` unit allocator skips them. // S6: remove
-    pub fn fixed_unit_mask(&self) -> u32 {
-        self.textures
-            .iter()
-            .fold(0u32, |mask, t| mask | (1 << t.unit()))
-    }
-
     pub fn is_empty(&self) -> bool {
         self.blocks.is_empty() && self.textures.is_empty()
     }
@@ -534,7 +526,6 @@ mod tests {
         assert_eq!(layout.texture("envMap").unwrap().unit(), 0);
         assert_eq!(layout.texture("irMap").unwrap().unit(), 1);
         assert_eq!(layout.texture("src").unwrap().unit(), 12);
-        assert_eq!(layout.fixed_unit_mask(), (1 << 0) | (1 << 1) | (1 << 12));
     }
 
     #[test]

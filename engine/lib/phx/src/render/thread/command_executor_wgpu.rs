@@ -22,13 +22,13 @@ use std::time::{Duration, Instant};
 
 use tracing::warn;
 
-use crate::render::thread::{ExecutorStats, GpuHandle};
+use crate::render::thread::ExecutorStats;
 use crate::render::{
     BindEntry, BindGroupId, BlendMode, BlockLayout, BufferId, CmdPrimitiveType, CommandReply,
-    CullFace, ImmLayout, ImmVertex, InstanceData, LoadOp, PassCmd, PassCommands, PipelineDesc, PipelineId,
-    PolygonMode, RenderCommand, RenderPassDesc, RenderStats, ResourceId, SamplerDesc, SamplerId,
-    ShaderLayout, ShaderReloadResult, TexFilter, TexFormat, TexView, TexWrapMode, VertexFormat,
-    ViewDim, blocks_from_naga, entry_unit,
+    CullFace, ImmLayout, ImmVertex, InstanceData, LoadOp, PassCmd, PassCommands, PipelineDesc,
+    PipelineId, PolygonMode, RenderCommand, RenderPassDesc, RenderStats, ResourceId, SamplerDesc,
+    SamplerId, ShaderLayout, ShaderReloadResult, TexFilter, TexFormat, TexView, TexWrapMode,
+    VertexFormat, ViewDim, blocks_from_naga, entry_unit,
 };
 use crate::window::PresentMode;
 
@@ -72,13 +72,7 @@ struct ShaderReflection {
     blocks: Vec<BlockLayout>,
 }
 
-impl ShaderReflection {
-    /// Location-space offsets: uniforms 0..n, samplers 1000+ (disjoint so a
-    /// sampler slot-set can never alias a uniform write).
-    fn sampler_location(&self, index: usize) -> i32 {
-        1000 + index as i32
-    }
-}
+impl ShaderReflection {}
 
 /// Cache key for a render pipeline: the shader + every state input that
 /// changes the compiled pipeline.
@@ -247,11 +241,9 @@ pub struct WgpuCommandExecutor {
     depth_test: bool,
     depth_writable: bool,
     wireframe: bool,
-    line_width: f32,
-    point_size: f32,
 
-    /// Currently bound shader (by `GpuHandle` value)
-    bound_shader: Option<GpuHandle>,
+    /// Currently bound shader
+    bound_shader: Option<ResourceId>,
     /// Hot-reloaded shader pairs by shader_key (mirrors the GL executor's
     /// `hot_reloaded_shaders`): `ReloadShader` compiles a fresh pair under the
     /// key; `BindShaderByResource` prefers it over the resource's original.
@@ -259,13 +251,9 @@ pub struct WgpuCommandExecutor {
         HashMap<String, (wgpu::ShaderModule, wgpu::ShaderModule, ShaderReflection)>,
     /// Shader key of the currently bound hot-reloaded pair, if any.
     bound_hot_shader: Option<String>,
-    /// Currently bound mesh (by `GpuHandle` value)
-    bound_mesh: Option<GpuHandle>,
     /// Texture unit bindings (unit -> handle). wgpu has no texture units;
     /// kept for parity bookkeeping and mapped to bind-group entries at draw.
-    bound_textures: Vec<Option<GpuHandle>>,
-    /// By-name uniform cache: name -> latest value
-    named_uniforms: HashMap<Arc<str>, UniformValue>,
+    bound_textures: Vec<Option<ResourceId>>,
 
     // === UBO staging (raw bytes; uploaded at draw time) ===
     view_ubo: Option<Vec<u8>>,
@@ -306,7 +294,7 @@ pub struct WgpuCommandExecutor {
     /// Acquired surface frame (presented on SwapBuffers).
     surface_frame: Option<wgpu::SurfaceTexture>,
     surface_size: (u32, u32),
-    /// Scratch buffer for DrawImmediate vertex uploads.
+    /// Scratch buffer for `DrawImm` vertex uploads.
     immediate_buffer: Option<wgpu::Buffer>,
     immediate_capacity: u64,
     /// Scratch buffer for the per-instance attributes of instanced pass draws.
@@ -371,14 +359,10 @@ impl WgpuCommandExecutor {
             depth_test: false,
             depth_writable: true,
             wireframe: false,
-            line_width: 1.0,
-            point_size: 1.0,
             bound_shader: None,
             hot_reloaded_shaders: HashMap::new(),
             bound_hot_shader: None,
-            bound_mesh: None,
             bound_textures: vec![None; 16],
-            named_uniforms: HashMap::new(),
             view_ubo: None,
             pipeline_descs: HashMap::new(),
             sampler_descs: HashMap::new(),
@@ -1110,21 +1094,7 @@ impl WgpuCommandExecutor {
         self.wireframe = enable;
     }
 
-    pub(super) fn cmd_set_line_width(&mut self, width: f32) {
-        // wgpu has no line-width state; kept for parity, applied at draw time
-        // as a polyline workaround where possible.
-        self.line_width = width;
-    }
-
-    pub(super) fn cmd_set_point_size(&mut self, size: f32) {
-        self.point_size = size;
-    }
-
     // --- Shader operations (bind bookkeeping real; compile = shader stage) ---
-
-    pub(super) fn cmd_bind_shader(&mut self, handle: GpuHandle) {
-        self.bound_shader = Some(handle);
-    }
 
     pub(super) fn cmd_bind_shader_by_resource(
         &mut self,
@@ -1138,203 +1108,10 @@ impl WgpuCommandExecutor {
         if !self.resources.contains_key(&id) {
             warn!("wgpu: BindShaderByResource for unknown resource {id:?}");
         }
-        self.bound_shader = Some(GpuHandle(id.0 as u32));
-    }
-
-    pub(super) fn cmd_unbind_shader(&mut self) {
-        self.bound_shader = None;
-        self.bound_hot_shader = None;
-    }
-
-    pub(super) fn cmd_set_uniform_int(&mut self, location: i32, value: i32) {
-        self.named_uniforms
-            .insert("__uniform_int".into(), UniformValue::Int(value));
-        self.apply_uniform(location, &value.to_le_bytes());
-    }
-
-    pub(super) fn cmd_set_uniform_int2(&mut self, location: i32, value: [i32; 2]) {
-        self.named_uniforms
-            .insert("__uniform_int2".into(), UniformValue::Int2(value));
-        let mut b = [0u8; 8];
-        b[..4].copy_from_slice(&value[0].to_le_bytes());
-        b[4..].copy_from_slice(&value[1].to_le_bytes());
-        self.apply_uniform(location, &b);
-    }
-
-    pub(super) fn cmd_set_uniform_int3(&mut self, location: i32, value: [i32; 3]) {
-        self.named_uniforms
-            .insert("__uniform_int3".into(), UniformValue::Int3(value));
-        let mut b = [0u8; 12];
-        for (i, v) in value.iter().enumerate() {
-            b[i * 4..i * 4 + 4].copy_from_slice(&v.to_le_bytes());
-        }
-        self.apply_uniform(location, &b);
-    }
-
-    pub(super) fn cmd_set_uniform_int4(&mut self, location: i32, value: [i32; 4]) {
-        self.named_uniforms
-            .insert("__uniform_int4".into(), UniformValue::Int4(value));
-        let mut b = [0u8; 16];
-        for (i, v) in value.iter().enumerate() {
-            b[i * 4..i * 4 + 4].copy_from_slice(&v.to_le_bytes());
-        }
-        self.apply_uniform(location, &b);
-    }
-
-    pub(super) fn cmd_set_uniform_float(&mut self, location: i32, value: f32) {
-        self.named_uniforms
-            .insert("__uniform_float".into(), UniformValue::Float(value));
-        self.apply_uniform(location, &value.to_le_bytes());
-    }
-
-    pub(super) fn cmd_set_uniform_float2(&mut self, location: i32, value: [f32; 2]) {
-        self.named_uniforms
-            .insert("__uniform_float2".into(), UniformValue::Float2(value));
-        let mut b = [0u8; 8];
-        b[..4].copy_from_slice(&value[0].to_le_bytes());
-        b[4..].copy_from_slice(&value[1].to_le_bytes());
-        self.apply_uniform(location, &b);
-    }
-
-    pub(super) fn cmd_set_uniform_float3(&mut self, location: i32, value: [f32; 3]) {
-        self.named_uniforms
-            .insert("__uniform_float3".into(), UniformValue::Float3(value));
-        let mut b = [0u8; 12];
-        for (i, v) in value.iter().enumerate() {
-            b[i * 4..i * 4 + 4].copy_from_slice(&v.to_le_bytes());
-        }
-        self.apply_uniform(location, &b);
-    }
-
-    pub(super) fn cmd_set_uniform_float4(&mut self, location: i32, value: [f32; 4]) {
-        self.named_uniforms
-            .insert("__uniform_float4".into(), UniformValue::Float4(value));
-        let mut b = [0u8; 16];
-        for (i, v) in value.iter().enumerate() {
-            b[i * 4..i * 4 + 4].copy_from_slice(&v.to_le_bytes());
-        }
-        self.apply_uniform(location, &b);
-    }
-
-    pub(super) fn cmd_set_uniform_mat4(&mut self, location: i32, value: [f32; 16]) {
-        self.named_uniforms
-            .insert("__uniform_mat4".into(), UniformValue::Mat4(value));
-        let mut b = [0u8; 64];
-        for (i, v) in value.iter().enumerate() {
-            b[i * 4..i * 4 + 4].copy_from_slice(&v.to_le_bytes());
-        }
-        self.apply_uniform(location, &b);
-    }
-
-    pub(super) fn cmd_set_uniform_int_by_name(&mut self, name: Arc<str>, value: i32) {
-        self.named_uniforms
-            .insert(name.clone(), UniformValue::Int(value));
-        self.apply_uniform_by_name(&name, &value.to_le_bytes());
-    }
-
-    pub(super) fn cmd_set_uniform_int2_by_name(&mut self, name: Arc<str>, value: [i32; 2]) {
-        self.named_uniforms
-            .insert(name.clone(), UniformValue::Int2(value));
-        let mut b = [0u8; 8];
-        b[..4].copy_from_slice(&value[0].to_le_bytes());
-        b[4..].copy_from_slice(&value[1].to_le_bytes());
-        self.apply_uniform_by_name(&name, &b);
-    }
-
-    pub(super) fn cmd_set_uniform_int3_by_name(&mut self, name: Arc<str>, value: [i32; 3]) {
-        self.named_uniforms
-            .insert(name.clone(), UniformValue::Int3(value));
-        let mut b = [0u8; 12];
-        for (i, v) in value.iter().enumerate() {
-            b[i * 4..i * 4 + 4].copy_from_slice(&v.to_le_bytes());
-        }
-        self.apply_uniform_by_name(&name, &b);
-    }
-
-    pub(super) fn cmd_set_uniform_int4_by_name(&mut self, name: Arc<str>, value: [i32; 4]) {
-        self.named_uniforms
-            .insert(name.clone(), UniformValue::Int4(value));
-        let mut b = [0u8; 16];
-        for (i, v) in value.iter().enumerate() {
-            b[i * 4..i * 4 + 4].copy_from_slice(&v.to_le_bytes());
-        }
-        self.apply_uniform_by_name(&name, &b);
-    }
-
-    pub(super) fn cmd_set_uniform_float_by_name(&mut self, name: Arc<str>, value: f32) {
-        self.named_uniforms
-            .insert(name.clone(), UniformValue::Float(value));
-        self.apply_uniform_by_name(&name, &value.to_le_bytes());
-    }
-
-    pub(super) fn cmd_set_uniform_float2_by_name(&mut self, name: Arc<str>, value: [f32; 2]) {
-        self.named_uniforms
-            .insert(name.clone(), UniformValue::Float2(value));
-        let mut b = [0u8; 8];
-        b[..4].copy_from_slice(&value[0].to_le_bytes());
-        b[4..].copy_from_slice(&value[1].to_le_bytes());
-        self.apply_uniform_by_name(&name, &b);
-    }
-
-    pub(super) fn cmd_set_uniform_float3_by_name(&mut self, name: Arc<str>, value: [f32; 3]) {
-        self.named_uniforms
-            .insert(name.clone(), UniformValue::Float3(value));
-        let mut b = [0u8; 12];
-        for (i, v) in value.iter().enumerate() {
-            b[i * 4..i * 4 + 4].copy_from_slice(&v.to_le_bytes());
-        }
-        self.apply_uniform_by_name(&name, &b);
-    }
-
-    pub(super) fn cmd_set_uniform_float4_by_name(&mut self, name: Arc<str>, value: [f32; 4]) {
-        self.named_uniforms
-            .insert(name.clone(), UniformValue::Float4(value));
-        let mut b = [0u8; 16];
-        for (i, v) in value.iter().enumerate() {
-            b[i * 4..i * 4 + 4].copy_from_slice(&v.to_le_bytes());
-        }
-        self.apply_uniform_by_name(&name, &b);
-    }
-
-    pub(super) fn cmd_set_uniform_mat4_by_name(&mut self, name: Arc<str>, value: [f32; 16]) {
-        self.named_uniforms
-            .insert(name.clone(), UniformValue::Mat4(value));
-        let mut b = [0u8; 64];
-        for (i, v) in value.iter().enumerate() {
-            b[i * 4..i * 4 + 4].copy_from_slice(&v.to_le_bytes());
-        }
-        self.apply_uniform_by_name(&name, &b);
+        self.bound_shader = Some(id);
     }
 
     // --- Texture operations (bind bookkeeping real; upload = texture stage) ---
-
-    pub(super) fn cmd_bind_texture_2d(&mut self, slot: u32, handle: GpuHandle) {
-        self.bind_texture_slot(slot, handle);
-    }
-
-    pub(super) fn cmd_bind_texture_2d_by_resource(&mut self, slot: u32, id: ResourceId) {
-        self.bind_texture_slot_by_resource(slot, id);
-    }
-
-    pub(super) fn cmd_bind_texture_1d_by_resource(&mut self, slot: u32, id: ResourceId) {
-        self.bind_texture_slot_by_resource(slot, id);
-    }
-
-    pub(super) fn cmd_bind_texture_3d(&mut self, slot: u32, handle: GpuHandle) {
-        self.bind_texture_slot(slot, handle);
-    }
-
-    pub(super) fn cmd_bind_texture_3d_by_resource(&mut self, slot: u32, id: ResourceId) {
-        self.bind_texture_slot_by_resource(slot, id);
-    }
-
-    pub(super) fn cmd_bind_texture_cube(&mut self, slot: u32, handle: GpuHandle) {
-        self.bind_texture_slot(slot, handle);
-    }
-
-    pub(super) fn cmd_bind_texture_cube_by_resource(&mut self, slot: u32, id: ResourceId) {
-        self.bind_texture_slot_by_resource(slot, id);
-    }
 
     pub(super) fn cmd_unbind_texture(&mut self, slot: u32) {
         if let Some(entry) = self.bound_textures.get_mut(slot as usize) {
@@ -1342,7 +1119,7 @@ impl WgpuCommandExecutor {
         }
     }
 
-    fn bind_texture_slot(&mut self, slot: u32, handle: GpuHandle) {
+    fn bind_texture_slot(&mut self, slot: u32, handle: ResourceId) {
         if let Some(entry) = self.bound_textures.get_mut(slot as usize) {
             *entry = Some(handle);
         } else {
@@ -1354,46 +1131,7 @@ impl WgpuCommandExecutor {
         if !self.resources.contains_key(&id) {
             warn!("wgpu: BindTexture*ByResource for unknown resource {id:?}");
         }
-        self.bind_texture_slot(slot, GpuHandle(id.0 as u32));
-    }
-
-    pub(super) fn cmd_set_texture_2d_mag_filter(&mut self, handle: GpuHandle, filter: TexFilter) {
-        self.recreate_sampler(handle, Some(filter), None);
-    }
-
-    pub(super) fn cmd_set_texture_2d_min_filter(&mut self, handle: GpuHandle, filter: TexFilter) {
-        self.recreate_sampler(handle, None, Some(filter));
-    }
-
-    pub(super) fn cmd_set_texture_2d_wrap_mode(&mut self, handle: GpuHandle, mode: TexWrapMode) {
-        self.recreate_sampler(handle, None, None);
-        let _ = mode;
-    }
-
-    pub(super) fn cmd_set_texture_2d_mip_range(
-        &mut self,
-        _handle: GpuHandle,
-        _min_level: i32,
-        _max_level: i32,
-    ) {
-    }
-
-    pub(super) fn cmd_generate_mipmap_2d(&mut self, _handle: GpuHandle) {
-        // No mipmap generation yet; textures are created with mip_level_count
-        // 1 and linear filtering degrades gracefully.
-    }
-
-    pub(super) fn cmd_update_texture_2d_data(
-        &mut self,
-        handle: GpuHandle,
-        width: i32,
-        height: i32,
-        _internal_format: i32,
-        pixel_format: u32,
-        data_format: u32,
-        data: Vec<u8>,
-    ) {
-        self.update_texture_2d_impl(handle, [0, 0], width, height, pixel_format, data_format, &data);
+        self.bind_texture_slot(slot, id);
     }
 
     pub(super) fn cmd_update_texture_2d_data_by_resource(
@@ -1406,15 +1144,7 @@ impl WgpuCommandExecutor {
         data_format: u32,
         data: Vec<u8>,
     ) {
-        self.update_texture_2d_impl(
-            GpuHandle(id.0 as u32),
-            [0, 0],
-            width,
-            height,
-            pixel_format,
-            data_format,
-            &data,
-        );
+        self.update_texture_2d_impl(id, [0, 0], width, height, pixel_format, data_format, &data);
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -1430,7 +1160,7 @@ impl WgpuCommandExecutor {
         data: Vec<u8>,
     ) {
         self.update_texture_2d_impl(
-            GpuHandle(id.0 as u32),
+            id,
             [x.max(0) as u32, y.max(0) as u32],
             width,
             height,
@@ -1480,7 +1210,7 @@ impl WgpuCommandExecutor {
 
     fn update_texture_2d_impl(
         &mut self,
-        handle: GpuHandle,
+        handle: ResourceId,
         origin: [u32; 2],
         width: i32,
         height: i32,
@@ -1491,7 +1221,7 @@ impl WgpuCommandExecutor {
         let Some(queue) = self.queue.clone() else {
             return;
         };
-        let Some(resource) = self.resources.get(&ResourceId(handle.0 as u64)) else {
+        let Some(resource) = self.resources.get(&handle) else {
             warn!("wgpu: update texture for unknown resource {handle:?}");
             return;
         };
@@ -1593,14 +1323,14 @@ impl WgpuCommandExecutor {
     /// immutable, so filter changes rebuild the sampler.
     fn recreate_sampler(
         &mut self,
-        handle: GpuHandle,
+        handle: ResourceId,
         mag: Option<TexFilter>,
         min: Option<TexFilter>,
     ) {
         let Some(device) = self.device.clone() else {
             return;
         };
-        let resource_id = ResourceId(handle.0 as u64);
+        let resource_id = handle;
         let filters = self
             .texture_filter_modes
             .entry(resource_id)
@@ -1612,7 +1342,7 @@ impl WgpuCommandExecutor {
             filters.1 = Self::filter_mode(filter);
         }
         let (requested_mag, requested_min) = *filters;
-        let Some(resource) = self.resources.get_mut(&ResourceId(handle.0 as u64)) else {
+        let Some(resource) = self.resources.get_mut(&handle) else {
             return;
         };
         // 32F formats are NOT filterable in WebGPU: clamp the requested
@@ -1673,8 +1403,6 @@ impl WgpuCommandExecutor {
             _ => wgpu::FilterMode::Linear,
         }
     }
-
-    pub(super) fn cmd_set_texture_2d_anisotropy(&mut self, _handle: GpuHandle, _factor: f32) {}
 
     pub(super) fn cmd_set_texture_2d_anisotropy_by_resource(
         &mut self,
@@ -1847,7 +1575,7 @@ impl WgpuCommandExecutor {
         id: ResourceId,
         filter: TexFilter,
     ) {
-        self.recreate_sampler(GpuHandle(id.0 as u32), Some(filter), None);
+        self.recreate_sampler(id, Some(filter), None);
     }
 
     pub(super) fn cmd_set_texture_min_filter_by_resource(
@@ -1855,7 +1583,7 @@ impl WgpuCommandExecutor {
         id: ResourceId,
         filter: TexFilter,
     ) {
-        self.recreate_sampler(GpuHandle(id.0 as u32), None, Some(filter));
+        self.recreate_sampler(id, None, Some(filter));
     }
 
     pub(super) fn cmd_set_texture_wrap_mode_by_resource(
@@ -2386,32 +2114,7 @@ impl WgpuCommandExecutor {
 
     // --- Mesh operations (bookkeeping real; buffer creation = mesh stage) ---
 
-    pub(super) fn cmd_bind_mesh(&mut self, vao: GpuHandle) {
-        self.bound_mesh = Some(vao);
-    }
-
-    pub(super) fn cmd_bind_mesh_by_resource(&mut self, id: ResourceId) {
-        if !self.resources.contains_key(&id) {
-            warn!("wgpu: BindMeshByResource for unknown resource {id:?}");
-        }
-        self.bound_mesh = Some(GpuHandle(id.0 as u32));
-    }
-
-    pub(super) fn cmd_unbind_mesh(&mut self) {
-        self.bound_mesh = None;
-    }
-
     // --- Drawing (all device-bound; parity stage) ---
-
-    pub(super) fn cmd_draw_mesh(
-        &mut self,
-        vao: GpuHandle,
-        index_count: i32,
-        primitive: CmdPrimitiveType,
-    ) {
-        self.vertices_drawn_this_frame += index_count.max(0) as u64;
-        self.draw_indexed_mesh(vao, index_count, primitive, 1, false);
-    }
 
     pub(super) fn cmd_draw_mesh_by_resource(
         &mut self,
@@ -2420,7 +2123,7 @@ impl WgpuCommandExecutor {
         primitive: CmdPrimitiveType,
     ) {
         self.vertices_drawn_this_frame += index_count.max(0) as u64;
-        self.draw_indexed_mesh(GpuHandle(id.0 as u32), index_count, primitive, 1, false);
+        self.draw_indexed_mesh(id, index_count, primitive, 1, false);
     }
 
     pub(super) fn cmd_draw_instanced_with_data(
@@ -2853,7 +2556,7 @@ impl WgpuCommandExecutor {
     /// group and issues the indexed draw.
     fn draw_indexed_mesh(
         &mut self,
-        vao: GpuHandle,
+        vao: ResourceId,
         index_count: i32,
         primitive: CmdPrimitiveType,
         instance_count: i32,
@@ -3162,31 +2865,6 @@ impl WgpuCommandExecutor {
         refl
     }
 
-    pub(super) fn cmd_get_uniform_location_by_resource(
-        &mut self,
-        id: ResourceId,
-        name: Arc<str>,
-    ) -> i32 {
-        // Serve the engine's location protocol from the shader reflection:
-        // plain uniforms get 0..n, samplers get 1000+ (disjoint spaces).
-        let loc = self
-            .shader_reflection_for_resource(id)
-            .and_then(|refl| {
-                refl.uniforms
-                    .iter()
-                    .position(|u| u.name == name)
-                    .map(|i| i as i32)
-                    .or_else(|| {
-                        refl.samplers
-                            .iter()
-                            .position(|s| s.name == name)
-                            .map(|i| refl.sampler_location(i))
-                    })
-            })
-            .unwrap_or(-1);
-        loc
-    }
-
     /// Reflection of a shader resource (or its hot-reloaded pair).
     fn shader_reflection_for_resource(&self, id: ResourceId) -> Option<&ShaderReflection> {
         match self.resources.get(&id) {
@@ -3203,7 +2881,7 @@ impl WgpuCommandExecutor {
             }
         }
         let handle = self.bound_shader?;
-        self.shader_reflection_for_resource(ResourceId(handle.0 as u64))
+        self.shader_reflection_for_resource(handle)
     }
 
     /// Write a plain-uniform value into the per-binding staging buffer, or
@@ -3790,7 +3468,7 @@ impl WgpuCommandExecutor {
             (vs.clone(), fs.clone())
         } else {
             let handle = self.bound_shader?;
-            match self.resources.get(&ResourceId(handle.0 as u64)) {
+            match self.resources.get(&handle) {
                 Some(WgpuGpuResource::Shader {
                     vertex_module,
                     fragment_module,
@@ -4070,7 +3748,7 @@ impl WgpuCommandExecutor {
             let slot = self.sampler_slots.get(&s.name).copied().unwrap_or(u32::MAX);
             match self.bound_textures.get(slot as usize).and_then(|h| {
                 h.as_ref().and_then(|handle| {
-                    match self.resources.get(&ResourceId(handle.0 as u64)) {
+                    match self.resources.get(&handle) {
                         Some(WgpuGpuResource::Texture2D { view, sampler, .. }) => {
                             // The engine's texture-unit counters are per-shader,
                             // so another shader's 2D texture can sit in a slot
@@ -5285,7 +4963,7 @@ impl WgpuCommandExecutor {
         }
     }
 
-pub(super) fn cmd_resize(&mut self, width: u32, height: u32) {
+    pub(super) fn cmd_resize(&mut self, width: u32, height: u32) {
         let new_size = (width.max(1), height.max(1));
         if new_size == self.surface_size {
             return;
@@ -5422,7 +5100,7 @@ pub(super) fn cmd_resize(&mut self, width: u32, height: u32) {
     }
 
     pub(super) fn cmd_flush(&mut self) {
-        // This is the explicit public GPU-finish operation (`Draw.Flush`), not
+        // This is the explicit public GPU-finish operation (`Renderer:gpuFinish`), not
         // teardown. Keep its foreign-driver boundary finite and report a
         // timeout instead of pretending the GPU is idle.
         let Some(device) = self.device.as_ref() else {
@@ -5447,158 +5125,13 @@ pub(super) fn cmd_resize(&mut self, width: u32, height: u32) {
 
         self.stats.commands_processed += 1;
         self.commands_this_frame += 1;
-        if cmd.is_draw_call() {
-            self.stats.draw_calls += 1;
-        }
-        if cmd.is_state_change() {
-            self.stats.state_changes += 1;
-            self.state_changes_this_frame += 1;
-        }
 
         match cmd {
             // === State Management ===
-            RenderCommand::SetViewport {
-                x,
-                y,
-                width,
-                height,
-            } => {
-                self.cmd_set_viewport(x, y, width, height);
-            }
-            RenderCommand::SetScissor {
-                x,
-                y,
-                width,
-                height,
-            } => {
-                self.cmd_set_scissor(x, y, width, height);
-            }
-            RenderCommand::EnableScissor(enable) => self.cmd_enable_scissor(enable),
-            RenderCommand::SetBlendMode(mode) => self.cmd_set_blend_mode(mode),
-            RenderCommand::SetCullFace(face) => self.cmd_set_cull_face(face),
-            RenderCommand::SetDepthTest(enable) => self.cmd_set_depth_test(enable),
-            RenderCommand::SetDepthWritable(enable) => self.cmd_set_depth_writable(enable),
-            RenderCommand::SetWireframe(enable) => self.cmd_set_wireframe(enable),
-            RenderCommand::SetLineWidth(width) => self.cmd_set_line_width(width),
-            RenderCommand::SetPointSize(size) => self.cmd_set_point_size(size),
-
             // === Shader Operations ===
-            RenderCommand::BindShader { handle } => self.cmd_bind_shader(handle),
-            RenderCommand::BindShaderByResource { id, shader_key } => {
-                self.cmd_bind_shader_by_resource(id, shader_key);
-            }
-            RenderCommand::UnbindShader => self.cmd_unbind_shader(),
-            RenderCommand::SetUniformInt { location, value } => {
-                self.cmd_set_uniform_int(location, value);
-            }
-            RenderCommand::SetUniformInt2 { location, value } => {
-                self.cmd_set_uniform_int2(location, value);
-            }
-            RenderCommand::SetUniformInt3 { location, value } => {
-                self.cmd_set_uniform_int3(location, value);
-            }
-            RenderCommand::SetUniformInt4 { location, value } => {
-                self.cmd_set_uniform_int4(location, value);
-            }
-            RenderCommand::SetUniformFloat { location, value } => {
-                self.cmd_set_uniform_float(location, value);
-            }
-            RenderCommand::SetUniformFloat2 { location, value } => {
-                self.cmd_set_uniform_float2(location, value);
-            }
-            RenderCommand::SetUniformFloat3 { location, value } => {
-                self.cmd_set_uniform_float3(location, value);
-            }
-            RenderCommand::SetUniformFloat4 { location, value } => {
-                self.cmd_set_uniform_float4(location, value);
-            }
-            RenderCommand::SetUniformMat4 { location, value } => {
-                self.cmd_set_uniform_mat4(location, value);
-            }
             // === Name-based Uniform Operations ===
-            RenderCommand::SetUniformIntByName { name, value } => {
-                self.cmd_set_uniform_int_by_name(name, value);
-            }
-            RenderCommand::SetUniformInt2ByName { name, value } => {
-                self.cmd_set_uniform_int2_by_name(name, value);
-            }
-            RenderCommand::SetUniformInt3ByName { name, value } => {
-                self.cmd_set_uniform_int3_by_name(name, value);
-            }
-            RenderCommand::SetUniformInt4ByName { name, value } => {
-                self.cmd_set_uniform_int4_by_name(name, value);
-            }
-            RenderCommand::SetUniformFloatByName { name, value } => {
-                self.cmd_set_uniform_float_by_name(name, value);
-            }
-            RenderCommand::SetUniformFloat2ByName { name, value } => {
-                self.cmd_set_uniform_float2_by_name(name, value);
-            }
-            RenderCommand::SetUniformFloat3ByName { name, value } => {
-                self.cmd_set_uniform_float3_by_name(name, value);
-            }
-            RenderCommand::SetUniformFloat4ByName { name, value } => {
-                self.cmd_set_uniform_float4_by_name(name, value);
-            }
-            RenderCommand::SetUniformMat4ByName { name, value } => {
-                self.cmd_set_uniform_mat4_by_name(name, value);
-            }
-
             // === Texture Operations ===
-            RenderCommand::BindTexture2D { slot, handle } => self.cmd_bind_texture_2d(slot, handle),
-            RenderCommand::BindTexture2DByResource { slot, id } => {
-                self.cmd_bind_texture_2d_by_resource(slot, id);
-            }
-            RenderCommand::BindTexture1DByResource { slot, id } => {
-                self.cmd_bind_texture_1d_by_resource(slot, id);
-            }
-            RenderCommand::BindTexture3D { slot, handle } => self.cmd_bind_texture_3d(slot, handle),
-            RenderCommand::BindTexture3DByResource { slot, id } => {
-                self.cmd_bind_texture_3d_by_resource(slot, id);
-            }
-            RenderCommand::BindTextureCube { slot, handle } => {
-                self.cmd_bind_texture_cube(slot, handle)
-            }
-            RenderCommand::BindTextureCubeByResource { slot, id } => {
-                self.cmd_bind_texture_cube_by_resource(slot, id);
-            }
-            RenderCommand::UnbindTexture { slot } => self.cmd_unbind_texture(slot),
-
             // === Texture State Commands ===
-            RenderCommand::SetTexture2DMagFilter { handle, filter } => {
-                self.cmd_set_texture_2d_mag_filter(handle, filter);
-            }
-            RenderCommand::SetTexture2DMinFilter { handle, filter } => {
-                self.cmd_set_texture_2d_min_filter(handle, filter);
-            }
-            RenderCommand::SetTexture2DWrapMode { handle, mode } => {
-                self.cmd_set_texture_2d_wrap_mode(handle, mode);
-            }
-            RenderCommand::SetTexture2DMipRange {
-                handle,
-                min_level,
-                max_level,
-            } => {
-                self.cmd_set_texture_2d_mip_range(handle, min_level, max_level);
-            }
-            RenderCommand::GenerateMipmap2D { handle } => self.cmd_generate_mipmap_2d(handle),
-            RenderCommand::UpdateTexture2DData {
-                handle,
-                width,
-                height,
-                internal_format,
-                pixel_format,
-                data_format,
-                data,
-            } => self.cmd_update_texture_2d_data(
-                handle,
-                width,
-                height,
-                internal_format,
-                pixel_format,
-                data_format,
-                data,
-            ),
             RenderCommand::UpdateTexture2DDataByResource {
                 id,
                 width,
@@ -5635,9 +5168,6 @@ pub(super) fn cmd_resize(&mut self, width: u32, height: u32) {
                 data_format,
                 data,
             ),
-            RenderCommand::SetTexture2DAnisotropy { handle, factor } => {
-                self.cmd_set_texture_2d_anisotropy(handle, factor);
-            }
             RenderCommand::SetTexture2DAnisotropyByResource { id, factor } => {
                 self.cmd_set_texture_2d_anisotropy_by_resource(id, factor);
             }
@@ -5814,36 +5344,7 @@ pub(super) fn cmd_resize(&mut self, width: u32, height: u32) {
             }
 
             // === Mesh Operations ===
-            RenderCommand::BindMesh { vao } => self.cmd_bind_mesh(vao),
-            RenderCommand::BindMeshByResource { id } => self.cmd_bind_mesh_by_resource(id),
-            RenderCommand::UnbindMesh => self.cmd_unbind_mesh(),
-
             // === Drawing Operations ===
-            RenderCommand::DrawMesh {
-                vao,
-                index_count,
-                primitive,
-            } => {
-                self.draw_mesh_calls_this_frame += 1;
-                self.cmd_draw_mesh(vao, index_count, primitive);
-            }
-            RenderCommand::DrawMeshByResource {
-                id,
-                index_count,
-                primitive,
-            } => {
-                self.draw_mesh_calls_this_frame += 1;
-                self.cmd_draw_mesh_by_resource(id, index_count, primitive);
-            }
-            RenderCommand::DrawImmediate {
-                primitive,
-                vertices,
-            } => {
-                self.draw_immediate_calls_this_frame += 1;
-                self.immediate_vertices_this_frame += vertices.len() as u64;
-                self.cmd_draw_immediate(primitive, &vertices);
-            }
-
             // === Resource Creation ===
             RenderCommand::CreateShader {
                 id,
@@ -5853,10 +5354,6 @@ pub(super) fn cmd_resize(&mut self, width: u32, height: u32) {
                 reply_tx,
             } => {
                 let data = self.cmd_create_shader(id, vertex_src, fragment_src, &layout);
-                let _ = reply_tx.send(data);
-            }
-            RenderCommand::GetUniformLocationByResource { id, name, reply_tx } => {
-                let data = self.cmd_get_uniform_location_by_resource(id, name);
                 let _ = reply_tx.send(data);
             }
             RenderCommand::ReloadShader {
@@ -6153,40 +5650,6 @@ mod tests {
     }
 
     #[test]
-    fn state_commands_track_state() {
-        let mut ex = WgpuCommandExecutor::new();
-        ex.execute(RenderCommand::SetViewport {
-            x: 0,
-            y: 0,
-            width: 800,
-            height: 600,
-        });
-        ex.execute(RenderCommand::SetBlendMode(BlendMode::Additive));
-        ex.execute(RenderCommand::SetCullFace(CullFace::Back));
-        ex.execute(RenderCommand::SetDepthTest(true));
-        ex.execute(RenderCommand::SetWireframe(true));
-        assert_eq!(ex.viewport, Some((0, 0, 800, 600)));
-        assert_eq!(ex.blend_mode, BlendMode::Additive);
-        assert_eq!(ex.cull_face, CullFace::Back);
-        assert!(ex.depth_test);
-        assert!(ex.wireframe);
-    }
-
-    #[test]
-    fn named_uniforms_stage_by_name() {
-        let mut ex = WgpuCommandExecutor::new();
-        let name: Arc<str> = Arc::from("u_time");
-        ex.execute(RenderCommand::SetUniformFloatByName {
-            name: name.clone(),
-            value: 1.5,
-        });
-        assert!(matches!(
-            ex.named_uniforms.get(&name),
-            Some(UniformValue::Float(v)) if *v == 1.5
-        ));
-    }
-
-    #[test]
     fn ubo_staging_keeps_latest_bytes() {
         use crate::render::{PassCmd, PassCommands, RingChunk, RingOffset};
         let mut ex = WgpuCommandExecutor::new();
@@ -6208,34 +5671,6 @@ mod tests {
             }],
         })));
         assert_eq!(ex.view_ubo.as_deref(), Some(&[7u8; 448][..]));
-    }
-
-    #[test]
-    fn texture_slot_bookkeeping() {
-        let mut ex = WgpuCommandExecutor::new();
-        ex.execute(RenderCommand::BindTexture2D {
-            slot: 2,
-            handle: GpuHandle(42),
-        });
-        assert_eq!(ex.bound_textures[2], Some(GpuHandle(42)));
-        ex.execute(RenderCommand::UnbindTexture { slot: 2 });
-        assert_eq!(ex.bound_textures[2], None);
-    }
-
-    #[test]
-    fn stats_count_draws_and_state_changes() {
-        let mut ex = WgpuCommandExecutor::new();
-        ex.execute(RenderCommand::SetDepthTest(true));
-        ex.execute(RenderCommand::SetDepthTest(false));
-        ex.execute(RenderCommand::SetViewport {
-            x: 0,
-            y: 0,
-            width: 1,
-            height: 1,
-        });
-        assert_eq!(ex.stats.commands_processed, 3);
-        assert_eq!(ex.stats.state_changes, 3); // SetViewport counts too
-        assert_eq!(ex.stats.draw_calls, 0);
     }
 
     /// Compile EVERY shader stage in res/shader through naga's GLSL frontend
@@ -6333,7 +5768,7 @@ mod tests {
             .join("../../../res")
             .canonicalize()
             .expect("resolve res root");
-        let code = std::fs::read_to_string(res_root.join("shader/vertex/ui.glsl")).unwrap();
+        let code = std::fs::read_to_string(res_root.join("shader/vertex/imm2d.glsl")).unwrap();
         let adapted = WgpuCommandExecutor::adapt_glsl_for_naga(&code);
         eprintln!("--- ADAPTED UI ---");
         eprintln!("{adapted}");
@@ -6523,8 +5958,8 @@ mod tests {
         // End-to-end through the command surface: create + reload one pair.
         let vs_src = std::fs::read_to_string(res_shader.join("vertex").join("wvp.glsl"))
             .expect("read wvp vertex");
-        let fs_src = std::fs::read_to_string(res_shader.join("fragment").join("simple_color.glsl"))
-            .expect("read simple_color fragment");
+        let fs_src = std::fs::read_to_string(res_shader.join("fragment").join("imm3d.glsl"))
+            .expect("read imm3d fragment");
         let vs = GLSLCode::preprocess_with_loader(&vs_src, &mut loader);
         let fs = GLSLCode::preprocess_with_loader(&fs_src, &mut loader);
 
@@ -6543,7 +5978,7 @@ mod tests {
             other => Some(format!("unexpected create reply: {other:?}")),
         };
         let reload = ex.execute(RenderCommand::ReloadShader {
-            shader_key: "[vs: vertex/wvp, fs: fragment/simple_color]".to_string(),
+            shader_key: "[vs: vertex/wvp, fs: fragment/imm3d]".to_string(),
             vertex_src: vs.code.clone(),
             fragment_src: fs.code.clone(),
         });

@@ -5,7 +5,7 @@
 //! changes or when anything else is recorded into the pass, and then becomes
 //! one `PassCmd::DrawImm` (its vertices are copied into the vertex ring).
 //! A quad is two triangles in the order of the old triangle fan, so geometry
-//! rasterizes exactly as the per-primitive `DrawImmediate` did.
+//! rasterizes exactly as the per-primitive immediate draws of old did.
 //!
 //! Two vertex layouts exist. `Imm2D` (pixel coordinates, UI projection) carries
 //! the shape parameters as flat attributes: each `ui/*` fragment shader reads
@@ -310,7 +310,10 @@ impl Renderer {
             desc.polygon = PolygonMode::Line;
         }
         let id = self.get_pipeline(&desc);
-        self.data.imm_batch.debug_pipes.insert(state, (resource, id));
+        self.data
+            .imm_batch
+            .debug_pipes
+            .insert(state, (resource, id));
         id
     }
 
@@ -593,11 +596,9 @@ impl Renderer {
     /// must use `VertexLayout::Imm3D`), as quads in the order of the old
     /// `Draw.Box3`.
     pub fn imm_box3(&mut self, b: &Box3) {
-        let pipeline = self
-            .data
-            .pass
-            .user_pipeline
-            .expect("Imm.Box3: no pipeline set (pass:setPipeline with a VertexLayout.Imm3D pipeline)");
+        let pipeline = self.data.pass.user_pipeline.expect(
+            "Imm.Box3: no pipeline set (pass:setPipeline with a VertexLayout.Imm3D pipeline)",
+        );
         let (l, u) = (b.lower, b.upper);
         let v = |x: f32, y: f32, z: f32| Imm3DVertex {
             pos: [x, y, z],
@@ -606,17 +607,47 @@ impl Renderer {
         };
         let faces = [
             // Left.
-            [v(l.x, l.y, l.z), v(l.x, l.y, u.z), v(l.x, u.y, u.z), v(l.x, u.y, l.z)],
+            [
+                v(l.x, l.y, l.z),
+                v(l.x, l.y, u.z),
+                v(l.x, u.y, u.z),
+                v(l.x, u.y, l.z),
+            ],
             // Right.
-            [v(u.x, l.y, l.z), v(u.x, u.y, l.z), v(u.x, u.y, u.z), v(u.x, l.y, u.z)],
+            [
+                v(u.x, l.y, l.z),
+                v(u.x, u.y, l.z),
+                v(u.x, u.y, u.z),
+                v(u.x, l.y, u.z),
+            ],
             // Front.
-            [v(l.x, l.y, u.z), v(u.x, l.y, u.z), v(u.x, u.y, u.z), v(l.x, u.y, u.z)],
+            [
+                v(l.x, l.y, u.z),
+                v(u.x, l.y, u.z),
+                v(u.x, u.y, u.z),
+                v(l.x, u.y, u.z),
+            ],
             // Back.
-            [v(l.x, l.y, l.z), v(l.x, u.y, l.z), v(u.x, u.y, l.z), v(u.x, l.y, l.z)],
+            [
+                v(l.x, l.y, l.z),
+                v(l.x, u.y, l.z),
+                v(u.x, u.y, l.z),
+                v(u.x, l.y, l.z),
+            ],
             // Top.
-            [v(l.x, u.y, l.z), v(l.x, u.y, u.z), v(u.x, u.y, u.z), v(u.x, u.y, l.z)],
+            [
+                v(l.x, u.y, l.z),
+                v(l.x, u.y, u.z),
+                v(u.x, u.y, u.z),
+                v(u.x, u.y, l.z),
+            ],
             // Bottom.
-            [v(l.x, l.y, l.z), v(u.x, l.y, l.z), v(u.x, l.y, u.z), v(l.x, l.y, u.z)],
+            [
+                v(l.x, l.y, l.z),
+                v(u.x, l.y, l.z),
+                v(u.x, l.y, u.z),
+                v(l.x, l.y, u.z),
+            ],
         ];
         let mut verts = Vec::with_capacity(36);
         for f in faces {
@@ -683,7 +714,11 @@ impl Renderer {
         let ob = side * half * (-vb.z).max(1e-3);
         let inv = view.inverse();
         let w = |p: Vec3| inv.transform_point3(p);
-        self.imm_debug_quad3(state, [w(va + oa), w(va - oa), w(vb - ob), w(vb + ob)], color);
+        self.imm_debug_quad3(
+            state,
+            [w(va + oa), w(va - oa), w(vb - ob), w(vb + ob)],
+            color,
+        );
     }
 
     /// A debug point of `size` pixels: a camera-facing square.
@@ -703,6 +738,126 @@ impl Renderer {
             ],
             color,
         );
+    }
+}
+
+impl Renderer {
+    /// The twelve edges of `b` as debug lines of `width` pixels (what the
+    /// octree and box tree draw).
+    pub fn imm_debug_box3(&mut self, state: ImmDebugState, b: &Box3, color: &Color, width: f32) {
+        let (l, u) = (b.lower, b.upper);
+        let c = |x: bool, y: bool, z: bool| {
+            Vec3::new(
+                if x { u.x } else { l.x },
+                if y { u.y } else { l.y },
+                if z { u.z } else { l.z },
+            )
+        };
+        for (a, b) in [
+            // Bottom, top, verticals.
+            ((false, false, false), (true, false, false)),
+            ((true, false, false), (true, false, true)),
+            ((true, false, true), (false, false, true)),
+            ((false, false, true), (false, false, false)),
+            ((false, true, false), (true, true, false)),
+            ((true, true, false), (true, true, true)),
+            ((true, true, true), (false, true, true)),
+            ((false, true, true), (false, true, false)),
+            ((false, false, false), (false, true, false)),
+            ((true, false, false), (true, true, false)),
+            ((true, false, true), (true, true, true)),
+            ((false, false, true), (false, true, true)),
+        ] {
+            self.imm_debug_line3(state, c(a.0, a.1, a.2), c(b.0, b.1, b.2), color, width);
+        }
+    }
+
+    /// A square of half-size `scale` in the plane through `p` with normal `n`.
+    pub fn imm_debug_plane3(
+        &mut self,
+        state: ImmDebugState,
+        p: Vec3,
+        n: Vec3,
+        scale: f32,
+        color: &Color,
+    ) {
+        const THRESHOLD: f32 = 0.7;
+        let e1 = if n.x.abs() < THRESHOLD {
+            Vec3::X
+        } else {
+            Vec3::Y
+        };
+        let e1 = (e1 - n * e1.dot(n)).normalize();
+        let e2 = n.cross(e1);
+        self.imm_debug_quad3(
+            state,
+            [
+                p + e1 * -scale + e2 * -scale,
+                p + e1 * scale + e2 * -scale,
+                p + e1 * scale + e2 * scale,
+                p + e1 * -scale + e2 * scale,
+            ],
+            color,
+        );
+    }
+
+    /// A UV sphere of `radius` around `p` (seven rings and segments).
+    pub fn imm_debug_sphere3(&mut self, state: ImmDebugState, p: Vec3, radius: f32, color: &Color) {
+        const RES: u32 = 7;
+        let f_res = RES as f32;
+        let spherical = |yaw: f32, pitch: f32| {
+            p + Vec3::new(
+                (radius as f64 * f64::sin(pitch as f64) * f64::cos(yaw as f64)) as f32,
+                (radius as f64 * f64::cos(pitch as f64)) as f32,
+                (radius as f64 * f64::sin(pitch as f64) * f64::sin(yaw as f64)) as f32,
+            )
+        };
+        let tau = std::f32::consts::TAU;
+        let pi = std::f32::consts::PI;
+
+        // Top cap.
+        let mut last_theta = (RES - 1) as f32 / f_res * tau;
+        let phi = 1.0 / f_res * pi;
+        let top = spherical(0.0, 0.0);
+        for i in 0..RES {
+            let theta = i as f32 / f_res * tau;
+            let (br, bl) = (spherical(last_theta, phi), spherical(theta, phi));
+            self.imm_debug_tri3(state, [br, top, bl], color);
+            last_theta = theta;
+        }
+
+        // Rings.
+        let mut last_phi = 1.0 / f_res * pi;
+        let mut last_theta = (RES - 1) as f32 / f_res * tau;
+        for i_phi in 2..RES {
+            let phi = i_phi as f32 / f_res * pi;
+            for i_theta in 0..RES {
+                let theta = i_theta as f32 / f_res * tau;
+                self.imm_debug_quad3(
+                    state,
+                    [
+                        spherical(last_theta, phi),
+                        spherical(last_theta, last_phi),
+                        spherical(theta, last_phi),
+                        spherical(theta, phi),
+                    ],
+                    color,
+                );
+                last_theta = theta;
+            }
+            last_phi = phi;
+        }
+
+        // Bottom cap.
+        let mut last_theta = (RES - 1) as f32 / f_res * tau;
+        let phi = (RES - 1) as f32 / f_res * pi;
+        let bottom = spherical(0.0, pi);
+        for i in 0..RES {
+            let theta = i as f32 / f_res * tau;
+            let (tr, tl) = (spherical(last_theta, phi), spherical(theta, phi));
+            self.imm_debug_tri3(state, [tr, tl, bottom], color);
+            last_theta = theta;
+        }
     }
 }
 
@@ -867,14 +1022,23 @@ impl Imm {
         r.imm_box3(b);
     }
 
-    /// A debug line (camera-relative positions, depth tested, alpha blended).
-    pub fn line3(r: &mut Renderer, p1: &Vec3, p2: &Vec3, color: &Color, width: f32) {
-        r.imm_debug_line3(ImmDebugState::default(), *p1, *p2, color, width);
+    /// A debug line of `width` pixels (camera-relative positions, alpha
+    /// blended, depth tested if `depth`).
+    pub fn line3(r: &mut Renderer, p1: &Vec3, p2: &Vec3, color: &Color, width: f32, depth: bool) {
+        let state = ImmDebugState {
+            depth_test: depth,
+            ..Default::default()
+        };
+        r.imm_debug_line3(state, *p1, *p2, color, width);
     }
 
-    /// A debug point of `size` pixels.
-    pub fn point3(r: &mut Renderer, p: &Vec3, color: &Color, size: f32) {
-        r.imm_debug_point3(ImmDebugState::default(), *p, color, size);
+    /// A debug point of `size` pixels (see `line3`).
+    pub fn point3(r: &mut Renderer, p: &Vec3, color: &Color, size: f32, depth: bool) {
+        let state = ImmDebugState {
+            depth_test: depth,
+            ..Default::default()
+        };
+        r.imm_debug_point3(state, *p, color, size);
     }
 }
 

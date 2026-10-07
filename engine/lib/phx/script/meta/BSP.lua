@@ -4,10 +4,9 @@
 ---@class BSP
 BSP = {}
 
----@param r Renderer
 ---@param mesh Mesh
 ---@return BSP
-function BSP.Create(r, mesh) end
+function BSP.Create(mesh) end
 
 ---@param ray Ray
 ---@param tHit number

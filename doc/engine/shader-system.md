@@ -27,7 +27,7 @@ File System Watch (Rust, via `notify`)
          ↓
   Cache.GetShader(key):reload()  -- in-place: swaps the GL program inside the
          │                           shared Rf<ShaderShared>, so every existing
-   ┌─────┴─────┐                     Shader clone/ShaderState picks it up
+   ┌─────┴─────┐                     Shader clone picks it up
    │           │
  Success    Failure
    │           │
@@ -43,8 +43,8 @@ File System Watch (Rust, via `notify`)
 Unlike a cache-swap design, this repo's `Shader::reload()` mutates the existing `Shader`'s
 GL handle in place inside its shared `Rf<ShaderShared>` cell. That's what makes "keep the
 last working version on failure" free: on success the handle is swapped; on failure it
-simply isn't touched, so every clone of that `Shader` (and every `ShaderState` built from
-it) automatically keeps rendering the previous program with no separate fallback cache.
+simply isn't touched, so every clone of that `Shader`
+automatically keeps rendering the previous program with no separate fallback cache.
 
 ### Rust Components
 
@@ -398,3 +398,17 @@ direction" that's semantically a *generation parameter*, unrelated to the live c
 `uniform vec3 starDir`); now that `starDir` is a `#define` resolving to the view block, the
 nebula generators use a distinctly-named `uniform vec3 genStarDir` instead, set by
 `script/Shared/Generation/Nebula1.lua` through the shader's `Params` block (`p.genStarDir`).
+
+### No Loose Uniforms; the Immediate (UI) Shaders
+
+Every active uniform of a program must be a member of a `#group` uniform block or a sampler:
+`create_shader` (GL) fails the link otherwise, naming the offending uniforms, and the shader
+falls back to the error shader. There is no `shader:setFloat(name, ...)` any more.
+
+The UI shaders (`fragment/ui/*`, drawn through `Imm`, see `render-api-v2.md` section 3d and the
+S6 notes) have no uniform at all: `vertex/imm2d.glsl` passes the vertex color and the shape
+parameters as `flat` varyings (`imm_color`, `imm_p`, `imm_q`, declared by `include/imm.glsl`), and
+each fragment shader names the parameters it reads with `#define`s over them. The glyph atlas
+page (`ui/text`) and images (`ui/image`, `ui/icon`) are the group 3 sampler of slot 0. Mesh-based
+UI shaders (`vertex/mappoints`, `vertex/hologram3d`) declare a `Params` block under `#group 2`
+and forward their color to the same `imm_color` varying.

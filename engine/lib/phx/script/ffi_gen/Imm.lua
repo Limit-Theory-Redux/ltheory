@@ -24,8 +24,8 @@ function Loader.defineType()
             void Imm_LineGlow (Renderer* r, float x1, float y1, float x2, float y2, Color const* color, bool fade, float pad);
             void Imm_Point    (Renderer* r, float x, float y, float size, Color const* color);
             void Imm_Box3     (Renderer* r, Box3f const* b);
-            void Imm_Line3    (Renderer* r, Vec3f const* p1, Vec3f const* p2, Color const* color, float width);
-            void Imm_Point3   (Renderer* r, Vec3f const* p, Color const* color, float size);
+            void Imm_Line3    (Renderer* r, Vec3f const* p1, Vec3f const* p2, Color const* color, float width, bool depth);
+            void Imm_Point3   (Renderer* r, Vec3f const* p, Color const* color, float size, bool depth);
         ]]
     end
 

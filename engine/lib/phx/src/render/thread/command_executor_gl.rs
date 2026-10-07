@@ -1,20 +1,13 @@
 #![allow(unsafe_code)]
 
-use std::collections::HashMap;
-use std::sync::Arc;
-
 use tracing::{debug, error, info, warn};
 
-use crate::render::gl::types::GLsizeiptr;
 use crate::render::gl::{self};
-use crate::render::thread::{
-    AttachKey, FboKey, GpuResource, MAX_TEXTURE_SLOTS, TextureBinding, TextureType,
-};
+use crate::render::thread::{AttachKey, FboKey, GpuResource};
 use crate::render::{
-    BlendMode, BlockLayout, CmdPrimitiveType, CommandCategory, CommandExecutor, CommandReply,
-    CullFace, ImmVertex, LoadOp, MAX_COLOR_ATTACHMENTS, PolygonMode, RenderPassDesc, RenderStats,
-    ResourceId, ShaderLayout, ShaderReloadResult, TexFilter, TexFormat, TexWrapMode, VertexFormat,
-    ViewDim,
+    BlockLayout, CommandCategory, CommandExecutor, CommandReply, LoadOp, MAX_COLOR_ATTACHMENTS,
+    RenderPassDesc, RenderStats, ResourceId, ShaderLayout, ShaderReloadResult, TexFilter,
+    TexFormat, TexWrapMode, VertexFormat, ViewDim,
 };
 use crate::window::{PresentMode, WindowGlContext};
 
@@ -59,23 +52,9 @@ impl CommandExecutor {
             // Seamless cubemap filtering
             gl::Enable(gl::TEXTURE_CUBE_MAP_SEAMLESS);
 
-            // Line rendering
-            gl::Disable(gl::LINE_SMOOTH);
-            gl::Hint(gl::LINE_SMOOTH_HINT, gl::FASTEST);
-            #[cfg(not(target_os = "macos"))]
-            gl::LineWidth(2.0f32);
-
-            // =================================================================
-            // Match RenderState::push_all_defaults() initial values
-            // =================================================================
-
-            // Depth test disabled by default (push_depth_test(false))
+            // The state pipelines start from (see `reset_pass_state`).
             gl::Disable(gl::DEPTH_TEST);
-
-            // Depth writable true by default (push_depth_writable(true))
             gl::DepthMask(gl::TRUE);
-
-            // Wireframe disabled by default (push_wireframe(false))
             gl::PolygonMode(gl::FRONT_AND_BACK, gl::FILL);
 
             // Log initial state for debugging
@@ -89,543 +68,10 @@ impl CommandExecutor {
                 "Render thread GL state after reset: FBO={}, VAO={}, viewport={:?}",
                 current_fbo, current_vao, viewport
             );
-
-            // Create VAO/VBO for immediate mode rendering
-            gl::GenVertexArrays(1, &mut self.imm_vao);
-            gl::GenBuffers(1, &mut self.imm_vbo);
-
-            gl::BindVertexArray(self.imm_vao);
-            gl::BindBuffer(gl::ARRAY_BUFFER, self.imm_vbo);
-
-            // Setup vertex attributes for ImmVertex: pos (3f), normal (3f), uv (2f), color (4f)
-            // Attribute locations must match shader.rs BindAttribLocation calls:
-            //   0 = vertex_position, 1 = vertex_normal, 2 = vertex_uv, 3 = vertex_color
-            const STRIDE: i32 = std::mem::size_of::<ImmVertex>() as i32; // 12 floats = 48 bytes
-
-            // Position attribute (location 0 = vertex_position)
-            gl::EnableVertexAttribArray(0);
-            gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, STRIDE, std::ptr::null());
-
-            // Normal attribute (location 1 = vertex_normal)
-            gl::EnableVertexAttribArray(1);
-            gl::VertexAttribPointer(1, 3, gl::FLOAT, gl::FALSE, STRIDE, (3 * 4) as *const _);
-
-            // UV attribute (location 2 = vertex_uv)
-            gl::EnableVertexAttribArray(2);
-            gl::VertexAttribPointer(2, 2, gl::FLOAT, gl::FALSE, STRIDE, (6 * 4) as *const _);
-
-            // Color attribute (location 3 = vertex_color)
-            gl::EnableVertexAttribArray(3);
-            gl::VertexAttribPointer(3, 4, gl::FLOAT, gl::FALSE, STRIDE, (8 * 4) as *const _);
-
             gl::BindVertexArray(0);
         }
 
         self.init_fullscreen_quad();
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_set_viewport(&mut self, x: i32, y: i32, width: i32, height: i32) {
-        let _sa = self.record_command(CommandCategory::State, false, true);
-        unsafe {
-            gl::Viewport(x, y, width, height);
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_set_scissor(&mut self, x: i32, y: i32, width: i32, height: i32) {
-        let _sa = self.record_command(CommandCategory::State, false, true);
-        unsafe {
-            gl::Scissor(x, y, width, height);
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_enable_scissor(&mut self, enable: bool) {
-        let _sa = self.record_command(CommandCategory::State, false, true);
-        unsafe {
-            if enable {
-                gl::Enable(gl::SCISSOR_TEST);
-            } else {
-                gl::Disable(gl::SCISSOR_TEST);
-            }
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_set_depth_test(&mut self, enable: bool) {
-        let _sa = self.record_command(CommandCategory::State, false, true);
-        // S6: remove the write-through (pipelines own this state).
-        self.binding.gl_state.depth_test = Some(enable);
-        self.invalidate_pipeline();
-        unsafe {
-            if enable {
-                gl::Enable(gl::DEPTH_TEST);
-            } else {
-                gl::Disable(gl::DEPTH_TEST);
-            }
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_set_depth_writable(&mut self, enable: bool) {
-        let _sa = self.record_command(CommandCategory::State, false, true);
-        self.binding.gl_state.depth_write = Some(enable); // S6: remove
-        self.invalidate_pipeline();
-        unsafe {
-            gl::DepthMask(if enable { gl::TRUE } else { gl::FALSE });
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_set_wireframe(&mut self, enable: bool) {
-        let _sa = self.record_command(CommandCategory::State, false, true);
-        // S6: remove
-        self.binding.gl_state.polygon = Some(if enable {
-            PolygonMode::Line
-        } else {
-            PolygonMode::Fill
-        });
-        self.invalidate_pipeline();
-        unsafe {
-            gl::PolygonMode(gl::FRONT_AND_BACK, if enable { gl::LINE } else { gl::FILL });
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_set_line_width(&mut self, width: f32) {
-        let _sa = self.record_command(CommandCategory::State, false, true);
-        unsafe {
-            gl::LineWidth(width);
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_set_point_size(&mut self, size: f32) {
-        let _sa = self.record_command(CommandCategory::State, false, true);
-        unsafe {
-            gl::PointSize(size);
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_bind_shader(&mut self, handle: super::GpuHandle) {
-        let _sa = self.record_command(CommandCategory::Shader, false, true);
-        self.invalidate_pipeline(); // S6: remove
-        self.this_frame_stats.shader_bind_commands += 1;
-        if handle.0 == self.current_program {
-            self.this_frame_stats.shader_redundant_binds += 1;
-        } else {
-            self.this_frame_stats.shader_distinct_programs += 1;
-            // NOTE: deliberately do NOT invalidate the texture cache here.
-            // glUseProgram does not touch texture bindings; the cache keys
-            // on (slot, handle, type) and self-corrects when a different
-            // texture is bound. Invalidating on every shader switch was
-            // wiping the cache ~2k times/frame, keeping the hit rate at
-            // ~0% and forcing redundant glBindTexture calls.
-            unsafe {
-                gl::UseProgram(handle.0);
-            }
-            self.current_program = handle.0;
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_bind_shader_by_resource(
-        &mut self,
-        id: ResourceId,
-        shader_key: Option<String>,
-    ) {
-        let _sa = self.record_command(CommandCategory::Shader, false, false);
-        self.invalidate_pipeline(); // S6: remove
-        // First check if there's a hot-reloaded version of this shader
-        let program = if let Some(ref key) = shader_key {
-            self.hot_reloaded_shaders.get(key).copied()
-        } else {
-            None
-        };
-
-        // Fall back to resource if no hot-reload version
-        let program = program.or_else(|| {
-            if let Some(GpuResource::Shader { program }) = self.resources.get(&id) {
-                Some(*program)
-            } else {
-                None
-            }
-        });
-
-        if let Some(p) = program {
-            self.this_frame_stats.shader_bind_commands += 1;
-            if p == self.current_program {
-                self.this_frame_stats.shader_redundant_binds += 1;
-            } else {
-                self.this_frame_stats.shader_distinct_programs += 1;
-                // NOTE: no texture-cache invalidation here either - see
-                // cmd_bind_shader: glUseProgram does not affect bindings.
-                unsafe {
-                    gl::UseProgram(p);
-                }
-                self.current_program = p;
-            }
-        } else {
-            error!("BindShaderByResource: resource {:?} not found!", id);
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_unbind_shader(&mut self) {
-        let _sa = self.record_command(CommandCategory::Shader, false, true);
-        // NOTE: deliberately do NOT invalidate the texture cache here.
-        // glUseProgram(0) leaves texture bindings untouched; the cache
-        // remains valid across program switches and self-corrects on any
-        // real texture change. Previously this wiped the cache on every
-        // shader stop (~2k/frame), destroying all reuse.
-        self.this_frame_stats.texture_invalidations_on_shader_unbind += 1;
-        self.invalidate_pipeline(); // S6: remove
-        unsafe {
-            gl::UseProgram(0);
-        }
-        self.current_program = 0;
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_set_uniform_int(&mut self, location: i32, value: i32) {
-        let _sa = self.record_command(CommandCategory::Uniform, false, false);
-        unsafe {
-            gl::Uniform1i(location, value);
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_set_uniform_int2(&mut self, location: i32, value: [i32; 2]) {
-        let _sa = self.record_command(CommandCategory::Uniform, false, false);
-        unsafe {
-            gl::Uniform2i(location, value[0], value[1]);
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_set_uniform_int3(&mut self, location: i32, value: [i32; 3]) {
-        let _sa = self.record_command(CommandCategory::Uniform, false, false);
-        unsafe {
-            gl::Uniform3i(location, value[0], value[1], value[2]);
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_set_uniform_int4(&mut self, location: i32, value: [i32; 4]) {
-        let _sa = self.record_command(CommandCategory::Uniform, false, false);
-        unsafe {
-            gl::Uniform4i(location, value[0], value[1], value[2], value[3]);
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_set_uniform_float(&mut self, location: i32, value: f32) {
-        let _sa = self.record_command(CommandCategory::Uniform, false, false);
-        unsafe {
-            gl::Uniform1f(location, value);
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_set_uniform_float2(&mut self, location: i32, value: [f32; 2]) {
-        let _sa = self.record_command(CommandCategory::Uniform, false, false);
-        unsafe {
-            gl::Uniform2f(location, value[0], value[1]);
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_set_uniform_float3(&mut self, location: i32, value: [f32; 3]) {
-        let _sa = self.record_command(CommandCategory::Uniform, false, false);
-        unsafe {
-            gl::Uniform3f(location, value[0], value[1], value[2]);
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_set_uniform_float4(&mut self, location: i32, value: [f32; 4]) {
-        let _sa = self.record_command(CommandCategory::Uniform, false, false);
-        unsafe {
-            gl::Uniform4f(location, value[0], value[1], value[2], value[3]);
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_set_uniform_mat4(&mut self, location: i32, value: [f32; 16]) {
-        let _sa = self.record_command(CommandCategory::Uniform, false, false);
-        unsafe {
-            gl::UniformMatrix4fv(location, 1, gl::FALSE, value.as_ptr());
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_set_uniform_int_by_name(&mut self, name: Arc<str>, value: i32) {
-        let _sa = self.record_command(CommandCategory::Uniform, false, false);
-        let loc = self.get_uniform_location_cached(&name);
-        if loc >= 0 {
-            unsafe {
-                gl::Uniform1i(loc, value);
-            }
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_set_uniform_int2_by_name(&mut self, name: Arc<str>, value: [i32; 2]) {
-        let _sa = self.record_command(CommandCategory::Uniform, false, false);
-        let loc = self.get_uniform_location_cached(&name);
-        if loc >= 0 {
-            unsafe {
-                gl::Uniform2i(loc, value[0], value[1]);
-            }
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_set_uniform_int3_by_name(&mut self, name: Arc<str>, value: [i32; 3]) {
-        let _sa = self.record_command(CommandCategory::Uniform, false, false);
-        let loc = self.get_uniform_location_cached(&name);
-        if loc >= 0 {
-            unsafe {
-                gl::Uniform3i(loc, value[0], value[1], value[2]);
-            }
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_set_uniform_int4_by_name(&mut self, name: Arc<str>, value: [i32; 4]) {
-        let _sa = self.record_command(CommandCategory::Uniform, false, false);
-        let loc = self.get_uniform_location_cached(&name);
-        if loc >= 0 {
-            unsafe {
-                gl::Uniform4i(loc, value[0], value[1], value[2], value[3]);
-            }
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_set_uniform_float_by_name(&mut self, name: Arc<str>, value: f32) {
-        let _sa = self.record_command(CommandCategory::Uniform, false, false);
-        let loc = self.get_uniform_location_cached(&name);
-        if loc >= 0 {
-            unsafe {
-                gl::Uniform1f(loc, value);
-            }
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_set_uniform_float2_by_name(&mut self, name: Arc<str>, value: [f32; 2]) {
-        let _sa = self.record_command(CommandCategory::Uniform, false, false);
-        let loc = self.get_uniform_location_cached(&name);
-        if loc >= 0 {
-            unsafe {
-                gl::Uniform2f(loc, value[0], value[1]);
-            }
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_set_uniform_float3_by_name(&mut self, name: Arc<str>, value: [f32; 3]) {
-        let _sa = self.record_command(CommandCategory::Uniform, false, false);
-        let loc = self.get_uniform_location_cached(&name);
-        if loc >= 0 {
-            unsafe {
-                gl::Uniform3f(loc, value[0], value[1], value[2]);
-            }
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_set_uniform_float4_by_name(&mut self, name: Arc<str>, value: [f32; 4]) {
-        let _sa = self.record_command(CommandCategory::Uniform, false, false);
-        let loc = self.get_uniform_location_cached(&name);
-        if loc >= 0 {
-            unsafe {
-                gl::Uniform4f(loc, value[0], value[1], value[2], value[3]);
-            }
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_set_uniform_mat4_by_name(&mut self, name: Arc<str>, value: [f32; 16]) {
-        let _sa = self.record_command(CommandCategory::Uniform, false, false);
-        let loc = self.get_uniform_location_cached(&name);
-        if loc >= 0 {
-            unsafe {
-                gl::UniformMatrix4fv(loc, 1, gl::FALSE, value.as_ptr());
-            }
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_bind_texture_2d(&mut self, slot: u32, handle: super::GpuHandle) {
-        let _sa = self.record_command(CommandCategory::Texture, false, true);
-        self.bind_texture_cached(slot, handle.0, TextureType::Texture2D);
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_bind_texture_2d_by_resource(&mut self, slot: u32, id: ResourceId) {
-        let _sa = self.record_command(CommandCategory::Texture, false, false);
-        if let Some(GpuResource::Texture2D { handle }) = self.resources.get(&id) {
-            self.bind_texture_cached(slot, *handle, TextureType::Texture2D);
-        } else {
-            warn!("BindTexture2DByResource: resource {:?} not found", id);
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_bind_texture_1d_by_resource(&mut self, slot: u32, id: ResourceId) {
-        let _sa = self.record_command(CommandCategory::Texture, false, false);
-        if let Some(GpuResource::Texture1D { handle }) = self.resources.get(&id) {
-            self.bind_texture_cached(slot, *handle, TextureType::Texture1D);
-        } else {
-            warn!("BindTexture1DByResource: resource {:?} not found", id);
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_bind_texture_3d(&mut self, slot: u32, handle: super::GpuHandle) {
-        let _sa = self.record_command(CommandCategory::Texture, false, true);
-        self.bind_texture_cached(slot, handle.0, TextureType::Texture3D);
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_bind_texture_3d_by_resource(&mut self, slot: u32, id: ResourceId) {
-        let _sa = self.record_command(CommandCategory::Texture, false, false);
-        if let Some(GpuResource::Texture3D { handle }) = self.resources.get(&id) {
-            self.bind_texture_cached(slot, *handle, TextureType::Texture3D);
-        } else {
-            warn!("BindTexture3DByResource: resource {:?} not found", id);
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_bind_texture_cube(&mut self, slot: u32, handle: super::GpuHandle) {
-        let _sa = self.record_command(CommandCategory::Texture, false, true);
-        self.bind_texture_cached(slot, handle.0, TextureType::TextureCube);
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_bind_texture_cube_by_resource(&mut self, slot: u32, id: ResourceId) {
-        let _sa = self.record_command(CommandCategory::Texture, false, false);
-        if let Some(GpuResource::TextureCube { handle }) = self.resources.get(&id) {
-            self.bind_texture_cached(slot, *handle, TextureType::TextureCube);
-        } else {
-            warn!("BindTextureCubeByResource: resource {:?} not found", id);
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_unbind_texture(&mut self, slot: u32) {
-        let _sa = self.record_command(CommandCategory::Texture, false, false);
-        self.unbind_texture_cached(slot);
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_set_texture_2d_mag_filter(
-        &mut self,
-        handle: super::GpuHandle,
-        filter: TexFilter,
-    ) {
-        let _sa = self.record_command(CommandCategory::TextureData, false, false);
-        unsafe {
-            gl::BindTexture(gl::TEXTURE_2D, handle.0);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, filter as i32);
-        }
-        self.restore_active_unit_binding();
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_set_texture_2d_min_filter(
-        &mut self,
-        handle: super::GpuHandle,
-        filter: TexFilter,
-    ) {
-        let _sa = self.record_command(CommandCategory::TextureData, false, false);
-        unsafe {
-            gl::BindTexture(gl::TEXTURE_2D, handle.0);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, filter as i32);
-        }
-        self.restore_active_unit_binding();
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_set_texture_2d_wrap_mode(
-        &mut self,
-        handle: super::GpuHandle,
-        mode: TexWrapMode,
-    ) {
-        let _sa = self.record_command(CommandCategory::TextureData, false, false);
-        unsafe {
-            gl::BindTexture(gl::TEXTURE_2D, handle.0);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, mode as i32);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, mode as i32);
-        }
-        self.restore_active_unit_binding();
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_set_texture_2d_mip_range(
-        &mut self,
-        handle: super::GpuHandle,
-        min_level: i32,
-        max_level: i32,
-    ) {
-        let _sa = self.record_command(CommandCategory::TextureData, false, false);
-        unsafe {
-            gl::BindTexture(gl::TEXTURE_2D, handle.0);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_BASE_LEVEL, min_level);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAX_LEVEL, max_level);
-        }
-        self.restore_active_unit_binding();
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_generate_mipmap_2d(&mut self, handle: super::GpuHandle) {
-        let _sa = self.record_command(CommandCategory::TextureData, false, false);
-        unsafe {
-            gl::BindTexture(gl::TEXTURE_2D, handle.0);
-            gl::GenerateMipmap(gl::TEXTURE_2D);
-        }
-        self.restore_active_unit_binding();
-    }
-
-    #[inline(always)]
-    #[allow(clippy::too_many_arguments)]
-    pub(super) fn cmd_update_texture_2d_data(
-        &mut self,
-        handle: super::GpuHandle,
-        width: i32,
-        height: i32,
-        internal_format: i32,
-        pixel_format: u32,
-        data_format: u32,
-        data: Vec<u8>,
-    ) {
-        let _sa = self.record_command(CommandCategory::TextureData, false, false);
-        unsafe {
-            gl::BindTexture(gl::TEXTURE_2D, handle.0);
-            gl::TexImage2D(
-                gl::TEXTURE_2D,
-                0,
-                internal_format,
-                width,
-                height,
-                0,
-                pixel_format,
-                data_format,
-                data.as_ptr() as *const _,
-            );
-            // Re-apply texture parameters after TexImage2D to ensure consistent state
-            // (some drivers may reset parameters on texture reallocation)
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
-        }
-        self.restore_active_unit_binding();
     }
 
     #[inline(always)]
@@ -706,16 +152,6 @@ impl CommandExecutor {
     }
 
     #[inline(always)]
-    pub(super) fn cmd_set_texture_2d_anisotropy(&mut self, handle: super::GpuHandle, factor: f32) {
-        let _sa = self.record_command(CommandCategory::TextureData, false, false);
-        unsafe {
-            gl::BindTexture(gl::TEXTURE_2D, handle.0);
-            gl::TexParameterf(gl::TEXTURE_2D, gl::TEXTURE_MAX_ANISOTROPY_EXT, factor);
-        }
-        self.restore_active_unit_binding();
-    }
-
-    #[inline(always)]
     pub(super) fn cmd_set_texture_2d_anisotropy_by_resource(
         &mut self,
         id: ResourceId,
@@ -750,7 +186,7 @@ impl CommandExecutor {
                 gl::TexParameteri(target, gl::TEXTURE_BASE_LEVEL, min_level);
                 gl::TexParameteri(target, gl::TEXTURE_MAX_LEVEL, max_level);
             }
-            self.note_mip_range(id, min_level, max_level); // S6: remove
+            self.note_mip_range(id, min_level, max_level);
             self.restore_active_unit_binding();
         } else {
             warn!(
@@ -1434,91 +870,6 @@ impl CommandExecutor {
     }
 
     #[inline(always)]
-    pub(super) fn cmd_bind_mesh(&mut self, vao: super::GpuHandle) {
-        let _sa = self.record_command(CommandCategory::Mesh, false, false);
-        unsafe {
-            gl::BindVertexArray(vao.0);
-            gl::EnableVertexAttribArray(0);
-            gl::EnableVertexAttribArray(1);
-            gl::EnableVertexAttribArray(2);
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_unbind_mesh(&mut self) {
-        let _sa = self.record_command(CommandCategory::Mesh, false, false);
-        unsafe {
-            gl::DisableVertexAttribArray(0);
-            gl::DisableVertexAttribArray(1);
-            gl::DisableVertexAttribArray(2);
-            gl::BindVertexArray(0);
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_draw_mesh(
-        &mut self,
-        vao: super::GpuHandle,
-        index_count: i32,
-        primitive: CmdPrimitiveType,
-    ) {
-        let _sa = self.record_command(CommandCategory::Draw, true, false);
-        self.this_frame_stats.draw_mesh_calls += 1;
-        unsafe {
-            gl::BindVertexArray(vao.0);
-            gl::DrawElements(
-                primitive.to_gl(),
-                index_count,
-                gl::UNSIGNED_INT,
-                std::ptr::null(),
-            );
-            gl::BindVertexArray(0);
-        }
-        self.this_frame_stats.vertices_drawn += index_count.max(0) as u64;
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_draw_mesh_by_resource(
-        &mut self,
-        id: ResourceId,
-        index_count: i32,
-        primitive: CmdPrimitiveType,
-    ) {
-        let _sa = self.record_command(CommandCategory::Draw, true, false);
-        self.this_frame_stats.draw_mesh_calls += 1;
-        if let Some(GpuResource::Mesh { vao, .. }) = self.resources.get(&id) {
-            unsafe {
-                gl::BindVertexArray(*vao);
-                gl::DrawElements(
-                    primitive.to_gl(),
-                    index_count,
-                    gl::UNSIGNED_INT,
-                    std::ptr::null(),
-                );
-                gl::BindVertexArray(0);
-            }
-            self.this_frame_stats.vertices_drawn += index_count.max(0) as u64;
-        } else {
-            warn!("DrawMeshByResource: resource {id:?} not found");
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_bind_mesh_by_resource(&mut self, id: ResourceId) {
-        let _sa = self.record_command(CommandCategory::Mesh, false, false);
-        if let Some(GpuResource::Mesh { vao, .. }) = self.resources.get(&id) {
-            unsafe {
-                gl::BindVertexArray(*vao);
-                gl::EnableVertexAttribArray(0);
-                gl::EnableVertexAttribArray(1);
-                gl::EnableVertexAttribArray(2);
-            }
-        } else {
-            warn!("BindMeshByResource: resource {:?} not found", id);
-        }
-    }
-
-    #[inline(always)]
     pub(super) fn cmd_create_shader(
         &mut self,
         id: ResourceId,
@@ -1543,22 +894,6 @@ impl CommandExecutor {
                 error!("Failed to create shader {:?}: {}", id, e);
                 Err(e)
             }
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_get_uniform_location_by_resource(
-        &mut self,
-        id: ResourceId,
-        name: Arc<str>,
-    ) -> i32 {
-        let _sa = self.record_command(CommandCategory::Resource, false, false);
-        if let Some(GpuResource::Shader { program }) = self.resources.get(&id) {
-            let program = *program;
-            self.get_uniform_location_for_program(program, &name)
-        } else {
-            warn!("GetUniformLocationByResource: resource {:?} not found", id);
-            -1
         }
     }
 
@@ -1795,104 +1130,6 @@ impl CommandExecutor {
         CommandReply::PacingFence(fence_id)
     }
 
-    #[inline(always)]
-    pub(super) fn cmd_set_blend_mode(&mut self, mode: BlendMode) {
-        let _sa = self.record_command(CommandCategory::State, false, true);
-        self.binding.gl_state.blend = Some(mode); // S6: remove
-        self.invalidate_pipeline();
-        unsafe {
-            match mode {
-                BlendMode::Disabled => {
-                    gl::Disable(gl::BLEND);
-                    gl::BlendFunc(gl::ONE, gl::ZERO);
-                }
-                BlendMode::Alpha => {
-                    gl::Enable(gl::BLEND);
-                    gl::BlendFuncSeparate(
-                        gl::SRC_ALPHA,
-                        gl::ONE_MINUS_SRC_ALPHA,
-                        gl::ONE,
-                        gl::ONE_MINUS_SRC_ALPHA,
-                    );
-                }
-                BlendMode::Additive => {
-                    gl::Enable(gl::BLEND);
-                    gl::BlendFuncSeparate(gl::ONE, gl::ONE, gl::ONE, gl::ONE);
-                }
-                BlendMode::PreMultAlpha => {
-                    gl::Enable(gl::BLEND);
-                    gl::BlendFunc(gl::ONE, gl::ONE_MINUS_SRC_ALPHA);
-                }
-            }
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_set_cull_face(&mut self, face: CullFace) {
-        let _sa = self.record_command(CommandCategory::State, false, true);
-        self.binding.gl_state.cull = Some(face); // S6: remove
-        self.invalidate_pipeline();
-        unsafe {
-            match face {
-                CullFace::None => {
-                    gl::Disable(gl::CULL_FACE);
-                }
-                CullFace::Back => {
-                    gl::Enable(gl::CULL_FACE);
-                    gl::CullFace(gl::BACK);
-                }
-                CullFace::Front => {
-                    gl::Enable(gl::CULL_FACE);
-                    gl::CullFace(gl::FRONT);
-                }
-            }
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_draw_immediate(
-        &mut self,
-        primitive: CmdPrimitiveType,
-        vertices: &[ImmVertex],
-    ) {
-        let _sa = self.record_command(CommandCategory::Draw, true, false);
-        self.this_frame_stats.draw_immediate_calls += 1;
-        self.this_frame_stats.immediate_vertices += vertices.len() as u64;
-
-        if vertices.is_empty() {
-            return;
-        }
-
-        unsafe {
-            gl::BindVertexArray(self.imm_vao);
-            gl::BindBuffer(gl::ARRAY_BUFFER, self.imm_vbo);
-
-            // Use BufferData with STREAM_DRAW for per-frame updates.
-            // This "orphans" the old buffer, allowing the driver to reuse memory
-            // without GPU stalls (vs BufferSubData which can block).
-            let size = std::mem::size_of_val(vertices) as GLsizeiptr;
-            gl::BufferData(
-                gl::ARRAY_BUFFER,
-                size,
-                vertices.as_ptr() as *const _,
-                gl::STREAM_DRAW,
-            );
-
-            // Handle quads by drawing as triangle fans (4 vertices per quad)
-            if matches!(primitive, CmdPrimitiveType::Quads) {
-                let quad_count = vertices.len() / 4;
-                for i in 0..quad_count {
-                    gl::DrawArrays(gl::TRIANGLE_FAN, (i * 4) as i32, 4);
-                }
-            } else {
-                gl::DrawArrays(primitive.to_gl(), 0, vertices.len() as i32);
-            }
-
-            gl::BindVertexArray(0);
-        }
-        self.this_frame_stats.vertices_drawn += vertices.len() as u64;
-    }
-
     fn create_shader(
         &self,
         vertex_src: &str,
@@ -1982,6 +1219,19 @@ impl CommandExecutor {
                 ));
             }
 
+            // Every uniform must live in a `#group` block or be a sampler: a loose
+            // uniform has no place in the binding model (nothing could set it).
+            let loose = Self::loose_uniforms(program);
+            if !loose.is_empty() {
+                gl::DeleteShader(vs);
+                gl::DeleteShader(fs);
+                gl::DeleteProgram(program);
+                return Err(format!(
+                    "loose uniform(s) {}: declare them as members of a `#group 2` uniform block (or as samplers in a `#group`)",
+                    loose.join(", ")
+                ));
+            }
+
             // Block binding points and sampler units from the `#group` layout.
             Self::apply_layout(program, layout);
             let blocks = Self::reflect_blocks(program);
@@ -1991,6 +1241,41 @@ impl CommandExecutor {
 
             Ok((program, blocks))
         }
+    }
+
+    /// Names of the active uniforms of `program` that are neither in a uniform
+    /// block nor samplers.
+    fn loose_uniforms(program: u32) -> Vec<String> {
+        let mut loose = Vec::new();
+        unsafe {
+            let mut count = 0;
+            gl::GetProgramiv(program, gl::ACTIVE_UNIFORMS, &mut count);
+            for i in 0..count.max(0) as u32 {
+                let mut name = [0u8; 256];
+                let (mut len, mut size, mut ty) = (0, 0, 0);
+                gl::GetActiveUniform(
+                    program,
+                    i,
+                    name.len() as i32,
+                    &mut len,
+                    &mut size,
+                    &mut ty,
+                    name.as_mut_ptr() as *mut _,
+                );
+                let name = String::from_utf8_lossy(&name[..len.max(0) as usize]).into_owned();
+                if name.starts_with("gl_") {
+                    continue;
+                }
+                let mut block = 0;
+                gl::GetActiveUniformsiv(program, 1, &i, gl::UNIFORM_BLOCK_INDEX, &mut block);
+                // sampler1D..sampler2DShadow, and the integer/array/rect sampler types
+                let sampler = (0x8B5D..=0x8B62).contains(&ty) || (0x8DC0..=0x8DD7).contains(&ty);
+                if block == -1 && !sampler {
+                    loose.push(name);
+                }
+            }
+        }
+        loose
     }
 
     fn create_texture_2d(
@@ -2362,15 +1647,6 @@ impl CommandExecutor {
             }
         }
 
-        // Cleanup immediate mode resources
-        unsafe {
-            if self.imm_vao != 0 {
-                gl::DeleteVertexArrays(1, &self.imm_vao);
-            }
-            if self.imm_vbo != 0 {
-                gl::DeleteBuffers(1, &self.imm_vbo);
-            }
-        }
         info!("Immediate mode resources cleaned up");
 
         // Flush and finish all pending GL commands before releasing context
@@ -2408,78 +1684,6 @@ impl CommandExecutor {
         }
     }
 
-    fn bind_texture_cached(&mut self, slot: u32, handle: u32, tex_type: TextureType) -> bool {
-        // S6: remove. A legacy bind samples with the parameters stored in
-        // the texture, not with a sampler object a pass left on the unit.
-        self.drop_unit_sampler(slot as usize);
-        let slot_idx = slot as usize;
-        if slot_idx >= MAX_TEXTURE_SLOTS {
-            // Slot out of range, just bind directly
-            unsafe {
-                gl::ActiveTexture(gl::TEXTURE0 + slot);
-                gl::BindTexture(tex_type.to_gl_target(), handle);
-                gl::ActiveTexture(gl::TEXTURE0);
-            }
-            self.this_frame_stats.texture_bind_calls += 1;
-            return true;
-        }
-
-        let new_binding = TextureBinding::new(handle, tex_type);
-        let current = &self.texture_bindings[slot_idx];
-
-        // Check if already bound
-        if current.handle == handle && current.tex_type == Some(tex_type) {
-            self.texture_binds_skipped += 1;
-            self.this_frame_stats.texture_binds_skipped += 1;
-            return false;
-        }
-
-        // Different texture or type - need to bind
-        unsafe {
-            gl::ActiveTexture(gl::TEXTURE0 + slot);
-            gl::BindTexture(tex_type.to_gl_target(), handle);
-            gl::ActiveTexture(gl::TEXTURE0);
-        }
-
-        self.this_frame_stats.texture_bind_calls += 1;
-        self.texture_bindings[slot_idx] = new_binding;
-        true
-    }
-
-    /// Unbind texture from slot (bind 0)
-    fn unbind_texture_cached(&mut self, slot: u32) {
-        let slot_idx = slot as usize;
-        if slot_idx < MAX_TEXTURE_SLOTS {
-            let current = &self.texture_bindings[slot_idx];
-            if current.handle == 0 {
-                // Already unbound
-                self.texture_binds_skipped += 1;
-                self.this_frame_stats.texture_binds_skipped += 1;
-                return;
-            }
-
-            // Unbind based on current type
-            if let Some(tex_type) = current.tex_type {
-                unsafe {
-                    gl::ActiveTexture(gl::TEXTURE0 + slot);
-                    gl::BindTexture(tex_type.to_gl_target(), 0);
-                    gl::ActiveTexture(gl::TEXTURE0);
-                }
-                self.this_frame_stats.texture_bind_calls += 1;
-            }
-
-            self.texture_bindings[slot_idx] = TextureBinding::unbound();
-        } else {
-            // Slot out of range, can't track - just unbind 2D as fallback
-            unsafe {
-                gl::ActiveTexture(gl::TEXTURE0 + slot);
-                gl::BindTexture(gl::TEXTURE_2D, 0);
-                gl::ActiveTexture(gl::TEXTURE0);
-            }
-            self.this_frame_stats.texture_bind_calls += 1;
-        }
-    }
-
     /// Re-bind the cached texture for the active unit (slot 0 by the same
     /// invariant as `mark_active_unit_unbound`) after a direct-bind setter
     /// finished its param change. Keeps the cache authoritative: the setter
@@ -2498,41 +1702,5 @@ impl CommandExecutor {
             }
             gl::BindTexture(gl::TEXTURE_2D, 0);
         }
-    }
-
-    /// Get uniform location with per-shader caching to avoid repeated gl::GetUniformLocation calls.
-    /// Cache is keyed by (program, name) - preserves locations across shader switches.
-    /// Takes `&str` so callers never need to own an `Arc<str>` just to do a
-    /// lookup; an `Arc<str>` is only allocated internally on a cache miss.
-    /// Returns -1 if uniform not found (matches OpenGL behavior).
-    fn get_uniform_location_cached(&mut self, name: &str) -> i32 {
-        if self.current_program == 0 {
-            return -1;
-        }
-        self.get_uniform_location_for_program(self.current_program, name)
-    }
-
-    /// Same caching as `get_uniform_location_cached`, but for an explicitly
-    /// named program rather than whichever one is currently bound - used to
-    /// resolve a uniform's location for a shader that may not be bound yet
-    /// (e.g. right after `CreateShader`, or from `GetUniformLocationByResource`).
-    fn get_uniform_location_for_program(&mut self, program: u32, name: &str) -> i32 {
-        let cache = self
-            .uniform_caches
-            .entry(program)
-            .or_insert_with(|| HashMap::with_capacity(32));
-
-        if let Some(&loc) = cache.get(name) {
-            self.this_frame_stats.uniform_cache_hits += 1;
-            return loc;
-        }
-
-        self.this_frame_stats.uniform_cache_misses += 1;
-        let c_name = std::ffi::CString::new(name).unwrap_or_default();
-        let loc = unsafe { gl::GetUniformLocation(program, c_name.as_ptr()) };
-
-        // Store in cache (even if -1 to avoid repeated lookups for non-existent uniforms)
-        cache.insert(Arc::from(name), loc);
-        loc
     }
 }

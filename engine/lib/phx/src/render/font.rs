@@ -68,7 +68,13 @@ impl AtlasPage {
     fn new(r: &mut Renderer) -> Self {
         let size = ATLAS_SIZE as usize;
         Self {
-            tex: Tex2D::new_with_bytes(r, ATLAS_SIZE as i32, ATLAS_SIZE as i32, TexFormat::R8, vec![0; size * size]),
+            tex: Tex2D::new_with_bytes(
+                r,
+                ATLAS_SIZE as i32,
+                ATLAS_SIZE as i32,
+                TexFormat::R8,
+                vec![0; size * size],
+            ),
             cpu: vec![0; size * size],
             shelves: Vec::new(),
             next_y: 0,
@@ -204,7 +210,8 @@ impl Font {
                 for dy in 0..bitmap.rows {
                     let row = ((ay + dy as u32) * ATLAS_SIZE + ax) as usize;
                     for dx in 0..bitmap.width {
-                        let value = unsafe { (*p_bitmap.offset(dx as isize) as f32 / 255.0) as f64 };
+                        let value =
+                            unsafe { (*p_bitmap.offset(dx as isize) as f32 / 255.0) as f64 };
                         let a = value.powf(K_RCP_GAMMA as f64) as f32;
                         page.cpu[row + dx as usize] = (a * 255.0 + 0.5) as u8;
                     }
@@ -231,12 +238,26 @@ impl Font {
             };
             let from = (y0 * ATLAS_SIZE) as usize;
             let to = (y1 * ATLAS_SIZE) as usize;
-            page.tex
-                .update_rect_bytes(r, 0, y0 as i32, ATLAS_SIZE as i32, (y1 - y0) as i32, page.cpu[from..to].to_vec());
+            page.tex.update_rect_bytes(
+                r,
+                0,
+                y0 as i32,
+                ATLAS_SIZE as i32,
+                (y1 - y0) as i32,
+                page.cpu[from..to].to_vec(),
+            );
         }
     }
 
-    fn draw_shape(&self, r: &mut Renderer, shape: Shape, text: &str, mut x: f32, mut y: f32, color: &Color) {
+    fn draw_shape(
+        &self,
+        r: &mut Renderer,
+        shape: Shape,
+        text: &str,
+        mut x: f32,
+        mut y: f32,
+        color: &Color,
+    ) {
         Profiler::begin("Font_Draw");
 
         let mut glyph_last = 0;
@@ -285,7 +306,12 @@ impl Font {
                         q: [0.0; 4],
                     };
                     // The corners of `Draw.RectEx`, as two triangles of its fan.
-                    let (a, b, cc, d) = (v(x0, y0, u0, v0), v(x0, y1, u0, v1), v(x1, y1, u1, v1), v(x1, y0, u1, v0));
+                    let (a, b, cc, d) = (
+                        v(x0, y0, u0, v0),
+                        v(x0, y1, u0, v1),
+                        v(x1, y1, u1, v1),
+                        v(x1, y0, u1, v0),
+                    );
                     runs[page].extend_from_slice(&[a, b, cc, a, cc, d]);
                 }
 

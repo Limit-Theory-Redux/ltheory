@@ -9,13 +9,13 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum CommandCategory {
-    /// Viewport/scissor/blend/depth/cull/wireframe state changes
+    /// Fixed-function state changes (no command of this category is left)
     State,
-    /// Shader bind/unbind (also what invalidates the texture cache)
+    /// Shader bind/unbind (no command of this category is left)
     Shader,
-    /// SetUniform* by location or by name
+    /// Loose uniform sets (no command of this category is left)
     Uniform,
-    /// BindTexture*/UnbindTexture
+    /// Texture binds (no command of this category is left)
     Texture,
     /// Texture parameter/upload/texel commands
     TextureData,
@@ -23,9 +23,9 @@ pub enum CommandCategory {
     Readback,
     /// FBO push/pop/attach, draw buffers, clear
     Framebuffer,
-    /// Mesh bind/unbind
+    /// Mesh bind/unbind (no command of this category is left)
     Mesh,
-    /// DrawMesh*/DrawImmediate
+    /// Pass commands (`PassCommands`: draws and the state around them)
     Draw,
     /// Shader/texture/mesh creation, destroy, reload
     Resource,

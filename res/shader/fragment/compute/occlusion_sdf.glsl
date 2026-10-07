@@ -6,7 +6,12 @@
 in vec2 uv;
 out vec4 outColor;
 
-uniform float radius;
+#group 2
+layout(std140) uniform Params {
+  float radius;
+};
+
+#group 3
 uniform sampler2D points;
 uniform sampler3D sdf;
 

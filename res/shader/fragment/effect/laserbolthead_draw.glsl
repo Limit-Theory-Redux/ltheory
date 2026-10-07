@@ -1,9 +1,13 @@
+// Draw-block variant of laserbolthead.glsl for scene passes: the color (xyz) and
+// alpha (w) come from drawUser[0] of the group-2 DrawBlock.
 #include fragment
 #include color
 #include math
 
-uniform vec3 color;
-uniform float alpha;
+#include draw_block
+
+#define color (drawUser[0].xyz)
+#define alpha (drawUser[0].w)
 
 void main() {
   float r = length(uv);

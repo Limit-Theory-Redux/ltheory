@@ -51,11 +51,13 @@ function onDef_Imm(t, mt)
         libphx.Imm_Box3(Renderer, b)
     end
 
-    t.Line3 = function(p1, p2, color, width)
-        libphx.Imm_Line3(Renderer, p1, p2, color, width)
+    --- Debug line of `width` pixels in camera-relative world space; depth
+    --- tested unless `depth == false`.
+    t.Line3 = function(p1, p2, color, width, depth)
+        libphx.Imm_Line3(Renderer, p1, p2, color, width, depth ~= false)
     end
 
-    t.Point3 = function(p, color, size)
-        libphx.Imm_Point3(Renderer, p, color, size)
+    t.Point3 = function(p, color, size, depth)
+        libphx.Imm_Point3(Renderer, p, color, size, depth ~= false)
     end
 end

@@ -1,8 +1,8 @@
 # Render Thread
 
 All OpenGL work happens through `Renderer`/`RenderCommand`
-(`render/thread/`): every GL-touching type (`Mesh`, `Shader`, `Tex2D`, `Draw`,
-`RenderState`, ...) takes an explicit `&mut Renderer` parameter and encodes
+(`render/thread/`): every GL-touching type (`Mesh`, `Shader`, `Tex2D`, `Imm`,
+`Font`, ...) takes an explicit `&mut Renderer` parameter and encodes
 its work as a `RenderCommand` rather than calling `gl::*` directly. `Engine`
 owns a single `Renderer` (`engine.renderer: Renderer`) created
 at startup and reachable from Lua via `Engine:renderer()`.
@@ -46,20 +46,17 @@ Renderer (renderer_threaded.rs)
 ## RenderCommand
 
 `render_command.rs` defines the command enum sent across the channel (or
-executed inline, in immediate mode): viewport/scissor/blend/cull/depth
-state, uniform sets (by GL location or by name), texture binds and updates, render passes
+executed inline, in immediate mode): texture updates (whole image, or a rectangle for the
+glyph atlas), render passes
 (`BeginRenderPass`/`EndRenderPass`, with the draws recorded in between sent as `PassCommands`, which
 also carry the uniform and vertex ring uploads), frame slots (`BeginFrame`), material parameter buffers
-(`CreateBuffer`/`WriteBuffer`) and bind groups, mesh draws (plain, `DrawImmediate`; instanced and scene
+(`CreateBuffer`/`WriteBuffer`) and bind groups, draws (mesh, instanced, scene and immediate-batch
 draws are `PassCmd`s inside `PassCommands`), resource lifecycle
 (`CreateShader`/`CreateTexture2D`/`CreateMesh`/`DestroyResources` and their
-`*ByResource` bind/draw counterparts), UBO updates, `Resize`,
+`*ByResource` counterparts), `Resize`,
 `SetPresentMode`, `SwapBuffers`, `Fence`, `PacingFence`, `Shutdown`.
 
-`GpuHandle(u32)` identifies a raw GL object for the handful of call sites
-that still bind by raw handle; `ResourceId(u64)` identifies a
-render-thread-managed resource (see below) and is what current code (batch
-rendering, `Mesh`/`Shader` lazily-created resources) uses.
+`ResourceId(u64)` identifies a render-thread-managed resource (see below).
 
 ## Resources: `ResourceId` / `ResourceHandle`
 

@@ -1,9 +1,12 @@
+// Draw-block variant of missiletail.glsl for scene passes: the color (xyz) and
+// alpha (w) come from drawUser[0] of the group-2 DrawBlock.
 #include fragment
 #include math
 
-uniform vec3 axis;
-uniform vec3 color;
-uniform float alpha;
+#include draw_block
+
+#define color (drawUser[0].xyz)
+#define alpha (drawUser[0].w)
 
 void main() {
   float u = max(0.0, abs(uv.x) - 0.008);

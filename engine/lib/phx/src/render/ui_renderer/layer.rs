@@ -98,7 +98,13 @@ impl UIRendererLayer {
                 r.imm_rect(x, y + s, s, h - 2.0 * s, &rect.color);
                 r.imm_rect(x + w - s, y + s, s, h - 2.0 * s, &rect.color);
             } else {
-                r.imm_rect(rect.pos.x, rect.pos.y, rect.size.x, rect.size.y, &rect.color);
+                r.imm_rect(
+                    rect.pos.x,
+                    rect.pos.y,
+                    rect.size.x,
+                    rect.size.y,
+                    &rect.color,
+                );
             }
 
             rect_id_opt = rect.next;
@@ -120,14 +126,7 @@ impl UIRendererLayer {
         while let Some(layer_id) = layer_id_opt {
             let layer = &layers[*layer_id];
 
-            layer.draw(
-                r,
-                layers,
-                images,
-                panels,
-                rects,
-                texts,
-            );
+            layer.draw(r, layers, images, panels, rects, texts);
 
             layer_id_opt = layer.next;
         }

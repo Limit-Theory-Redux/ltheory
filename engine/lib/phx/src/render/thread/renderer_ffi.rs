@@ -1,10 +1,8 @@
 use glam::Vec3;
 
 use crate::math::Matrix;
-use crate::render::{
-    BindGroupDesc, BlendMode, CmdPrimitiveType, CullFace, GpuHandle, RenderPass,
-    RenderPassDesc, Renderer, TexCube,
-};
+use crate::render::{BindGroupDesc, RenderPass, RenderPassDesc, Renderer, TexCube};
+use crate::system::Metric;
 
 // =============================================================================
 // FFI-exposed Renderer API
@@ -24,6 +22,13 @@ impl Renderer {
     /// Synchronize with the render thread (wait for all commands to complete)
     pub fn sync(&mut self) -> bool {
         self.sync_intern()
+    }
+
+    /// Block until the GPU has finished everything submitted so far
+    /// (`glFinish`), e.g. to time a piece of GPU work.
+    pub fn gpu_finish(&mut self) {
+        Metric::Flush.inc();
+        self.gl_finish();
     }
 
     // === Frame stats (last completed frame; used by LTHEORY_CAPTURE) ===
@@ -70,107 +75,6 @@ impl Renderer {
         self.get_stats().vertices_drawn
     }
 
-    // === State Management ===
-
-    /// Set the viewport
-    pub fn set_viewport(&mut self, x: i32, y: i32, width: i32, height: i32) {
-        self.set_viewport_intern(x, y, width, height);
-    }
-
-    /// Set the scissor region
-    pub fn set_scissor(&mut self, x: i32, y: i32, width: i32, height: i32) {
-        self.set_scissor_intern(x, y, width, height);
-    }
-
-    /// Enable or disable scissor test
-    pub fn enable_scissor(&mut self, enable: bool) {
-        self.enable_scissor_intern(enable);
-    }
-
-    /// Set blend mode (0=Disabled, 1=Alpha, 2=Additive, 3=PreMultAlpha)
-    pub fn set_blend_mode(&mut self, mode: BlendMode) {
-        self.set_blend_mode_intern(mode);
-    }
-
-    /// Set cull face (0=None, 1=Back, 2=Front)
-    pub fn set_cull_face(&mut self, face: CullFace) {
-        self.set_cull_face_intern(face);
-    }
-
-    /// Enable or disable depth testing
-    pub fn set_depth_test(&mut self, enable: bool) {
-        self.set_depth_test_intern(enable);
-    }
-
-    /// Enable or disable depth writing
-    pub fn set_depth_writable(&mut self, enable: bool) {
-        self.set_depth_writable_intern(enable);
-    }
-
-    /// Set wireframe mode
-    pub fn set_wireframe(&mut self, enable: bool) {
-        self.set_wireframe_intern(enable);
-    }
-
-    // === Shader Operations ===
-
-    /// Bind a shader program
-    pub fn bind_shader(&mut self, handle: u32) {
-        self.bind_shader_intern(GpuHandle(handle));
-    }
-
-    /// Unbind the current shader
-    pub fn unbind_shader(&mut self) {
-        self.unbind_shader_intern();
-    }
-
-    /// Set an integer uniform
-    pub fn set_uniform_int(&mut self, location: i32, value: i32) {
-        self.set_uniform_int_intern(location, value);
-    }
-
-    /// Set a float uniform
-    pub fn set_uniform_float(&mut self, location: i32, value: f32) {
-        self.set_uniform_float_intern(location, value);
-    }
-
-    /// Set a vec2 uniform
-    pub fn set_uniform_float2(&mut self, location: i32, x: f32, y: f32) {
-        self.set_uniform_float2_intern(location, [x, y]);
-    }
-
-    /// Set a vec3 uniform
-    pub fn set_uniform_float3(&mut self, location: i32, x: f32, y: f32, z: f32) {
-        self.set_uniform_float3_intern(location, [x, y, z]);
-    }
-
-    /// Set a vec4 uniform
-    pub fn set_uniform_float4(&mut self, location: i32, x: f32, y: f32, z: f32, w: f32) {
-        self.set_uniform_float4_intern(location, [x, y, z, w]);
-    }
-
-    // === Texture Operations ===
-
-    /// Bind a 2D texture to a slot
-    pub fn bind_texture_2d(&mut self, slot: u32, handle: u32) {
-        self.bind_texture_2d_intern(slot, GpuHandle(handle));
-    }
-
-    /// Bind a 3D texture to a slot
-    pub fn bind_texture_3d(&mut self, slot: u32, handle: u32) {
-        self.bind_texture_3d_intern(slot, GpuHandle(handle));
-    }
-
-    /// Bind a cube texture to a slot
-    pub fn bind_texture_cube(&mut self, slot: u32, handle: u32) {
-        self.bind_texture_cube_intern(slot, GpuHandle(handle));
-    }
-
-    /// Unbind a texture from a slot
-    pub fn unbind_texture(&mut self, slot: u32) {
-        self.unbind_texture_intern(slot);
-    }
-
     // === Render Passes ===
 
     /// Begin a render pass on `desc`'s attachments. Only one pass may be open
@@ -184,18 +88,6 @@ impl Renderer {
     /// the pass. Errors if no pass is open.
     pub fn current_pass(&self) -> RenderPass {
         self.current_pass_intern()
-    }
-
-    // === Drawing Operations ===
-
-    /// Draw a mesh
-    pub fn draw_mesh(&mut self, vao: u32, index_count: i32) {
-        self.draw_mesh_intern(GpuHandle(vao), index_count, CmdPrimitiveType::Triangles);
-    }
-
-    /// Draw a mesh with a specific primitive type
-    pub fn draw_mesh_primitive(&mut self, vao: u32, index_count: i32, primitive: CmdPrimitiveType) {
-        self.draw_mesh_intern(GpuHandle(vao), index_count, primitive);
     }
 
     // === Window Operations ===

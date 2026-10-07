@@ -127,7 +127,8 @@ function LimitTheoryRedux:initMainMenu(isAppInit)
     end
     Input:setCursorVisible(true)
 
-    UIPageMainMenu:setView("Title")
+    -- Capture variant (render validation): LTHEORY_CAPTURE_VIEW picks the menu view, only under LTHEORY_CAPTURE.
+    UIPageMainMenu:setView(os.getenv('LTHEORY_CAPTURE') and os.getenv('LTHEORY_CAPTURE_VIEW') or "Title")
 
     -- Autonomous test hook: LTR_AUTOSTART=1 skips the main menu and jumps
     -- straight into gameplay (same flow as clicking "New Game").

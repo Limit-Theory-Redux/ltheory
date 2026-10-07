@@ -8,10 +8,10 @@ use tracing::{error, info};
 use crate::render::StatsSink;
 use crate::render::thread::{CommandExecutor, CommandReply, RendererData};
 use crate::render::{
-    BindEntry, BindGroupId, BlendMode, BlockLayout, BufferId, CmdPrimitiveType, CullFace,
-    GpuHandle, ImmVertex, PassCommands, PipelineDesc, PipelineId, RenderPassDesc, RenderStats,
-    RenderThreadError, ResourceId, SamplerCache, SamplerDesc, SamplerId, ShaderLayout,
-    ShaderReloadResult, TexFilter, TexFormat, TexView, TexWrapMode, VertexFormat,
+    BindEntry, BindGroupId, BlockLayout, BufferId, PassCommands, PipelineDesc, PipelineId,
+    RenderPassDesc, RenderStats, RenderThreadError, ResourceId, SamplerCache, SamplerDesc,
+    SamplerId, ShaderLayout, ShaderReloadResult, TexFilter, TexFormat, TexView, TexWrapMode,
+    VertexFormat,
 };
 use crate::window::{PresentMode, WindowGlContext};
 
@@ -69,13 +69,10 @@ impl Renderer {
     }
 
     /// The executor, after handing the open pass's recorded commands to it:
-    /// every non-pass command goes through here, so old and new commands in
-    /// one pass execute in order. // S6: remove
+    /// every non-pass command goes through here, so a resource write in the
+    /// middle of a pass executes in order with the draws around it.
     fn ex(&mut self) -> &mut CommandExecutor {
         self.flush_pass_encoder();
-        // A legacy command may have changed the program behind the pipeline
-        // the batcher thinks is bound. // S6: remove
-        self.data.pass.bound_pipeline = None;
         &mut self.executor
     }
 
@@ -102,129 +99,9 @@ impl Renderer {
         true
     }
 
-    pub fn set_viewport_intern(&mut self, x: i32, y: i32, width: i32, height: i32) {
-        self.ex().cmd_set_viewport(x, y, width, height);
-    }
-
-    pub fn set_scissor_intern(&mut self, x: i32, y: i32, width: i32, height: i32) {
-        self.ex().cmd_set_scissor(x, y, width, height);
-    }
-
-    pub fn enable_scissor_intern(&mut self, enable: bool) {
-        self.ex().cmd_enable_scissor(enable);
-    }
-
-    pub fn set_blend_mode_intern(&mut self, mode: BlendMode) {
-        self.ex().cmd_set_blend_mode(mode);
-    }
-
-    pub fn set_cull_face_intern(&mut self, face: CullFace) {
-        self.ex().cmd_set_cull_face(face);
-    }
-
-    pub fn set_depth_test_intern(&mut self, enable: bool) {
-        self.ex().cmd_set_depth_test(enable);
-    }
-
-    pub fn set_depth_writable_intern(&mut self, enable: bool) {
-        self.ex().cmd_set_depth_writable(enable);
-    }
-
-    pub fn set_wireframe_intern(&mut self, enable: bool) {
-        self.ex().cmd_set_wireframe(enable);
-    }
-
-    pub fn set_line_width(&mut self, width: f32) {
-        self.ex().cmd_set_line_width(width);
-    }
-
-    pub fn set_point_size(&mut self, size: f32) {
-        self.ex().cmd_set_point_size(size);
-    }
-
     // === Shader Operations ===
 
-    pub fn bind_shader_intern(&mut self, handle: GpuHandle) {
-        self.ex().cmd_bind_shader(handle);
-    }
-
-    pub fn bind_shader_by_resource(&mut self, id: ResourceId, shader_key: Option<String>) {
-        self.ex().cmd_bind_shader_by_resource(id, shader_key);
-    }
-
-    pub fn unbind_shader_intern(&mut self) {
-        self.ex().cmd_unbind_shader();
-    }
-
-    pub fn set_uniform_int_intern(&mut self, location: i32, value: i32) {
-        self.ex().cmd_set_uniform_int(location, value);
-    }
-
-    pub fn set_uniform_int2(&mut self, location: i32, value: [i32; 2]) {
-        self.ex().cmd_set_uniform_int2(location, value);
-    }
-
-    pub fn set_uniform_int3(&mut self, location: i32, value: [i32; 3]) {
-        self.ex().cmd_set_uniform_int3(location, value);
-    }
-
-    pub fn set_uniform_int4(&mut self, location: i32, value: [i32; 4]) {
-        self.ex().cmd_set_uniform_int4(location, value);
-    }
-
-    pub fn set_uniform_float_intern(&mut self, location: i32, value: f32) {
-        self.ex().cmd_set_uniform_float(location, value);
-    }
-
-    pub fn set_uniform_float2_intern(&mut self, location: i32, value: [f32; 2]) {
-        self.ex().cmd_set_uniform_float2(location, value);
-    }
-
-    pub fn set_uniform_float3_intern(&mut self, location: i32, value: [f32; 3]) {
-        self.ex().cmd_set_uniform_float3(location, value);
-    }
-
-    pub fn set_uniform_float4_intern(&mut self, location: i32, value: [f32; 4]) {
-        self.ex().cmd_set_uniform_float4(location, value);
-    }
-
-    pub fn set_uniform_mat4(&mut self, location: i32, value: [f32; 16]) {
-        self.ex().cmd_set_uniform_mat4(location, value);
-    }
-
     // === Texture Operations ===
-
-    pub fn bind_texture_2d_intern(&mut self, slot: u32, handle: GpuHandle) {
-        self.ex().cmd_bind_texture_2d(slot, handle);
-    }
-
-    pub fn bind_texture_2d_by_resource(&mut self, slot: u32, id: ResourceId) {
-        self.ex().cmd_bind_texture_2d_by_resource(slot, id);
-    }
-
-    pub fn bind_texture_1d_by_resource(&mut self, slot: u32, id: ResourceId) {
-        self.ex().cmd_bind_texture_1d_by_resource(slot, id);
-    }
-
-    pub fn bind_texture_3d_intern(&mut self, slot: u32, handle: GpuHandle) {
-        self.ex().cmd_bind_texture_3d(slot, handle);
-    }
-
-    pub fn bind_texture_3d_by_resource(&mut self, slot: u32, id: ResourceId) {
-        self.ex().cmd_bind_texture_3d_by_resource(slot, id);
-    }
-
-    pub fn bind_texture_cube_intern(&mut self, slot: u32, handle: GpuHandle) {
-        self.ex().cmd_bind_texture_cube(slot, handle);
-    }
-
-    pub fn bind_texture_cube_by_resource(&mut self, slot: u32, id: ResourceId) {
-        self.ex().cmd_bind_texture_cube_by_resource(slot, id);
-    }
-
-    pub fn unbind_texture_intern(&mut self, slot: u32) {
-        self.ex().cmd_unbind_texture(slot);
-    }
 
     #[allow(clippy::too_many_arguments)]
     pub fn update_texture_2d_data_by_resource(
@@ -461,29 +338,6 @@ impl Renderer {
 
     // === Drawing Operations ===
 
-    pub fn draw_mesh_intern(
-        &mut self,
-        vao: GpuHandle,
-        index_count: i32,
-        primitive: CmdPrimitiveType,
-    ) {
-        self.ex().cmd_draw_mesh(vao, index_count, primitive);
-    }
-
-    pub fn draw_mesh_by_resource(
-        &mut self,
-        id: ResourceId,
-        index_count: i32,
-        primitive: CmdPrimitiveType,
-    ) {
-        self.ex()
-            .cmd_draw_mesh_by_resource(id, index_count, primitive);
-    }
-
-    pub fn draw_immediate(&mut self, primitive: CmdPrimitiveType, vertices: Vec<ImmVertex>) {
-        self.ex().cmd_draw_immediate(primitive, &vertices);
-    }
-
     // === Resource Creation ===
 
     pub fn create_shader(
@@ -541,10 +395,6 @@ impl Renderer {
 
     /// Ring memory comes back inline in `send_pass_commands`; nothing queued.
     pub(crate) fn reclaim_chunks(&mut self) {}
-
-    pub fn get_uniform_location_by_resource(&mut self, id: ResourceId, name: Arc<str>) -> i32 {
-        self.ex().cmd_get_uniform_location_by_resource(id, name)
-    }
 
     pub fn create_texture_1d(
         &mut self,

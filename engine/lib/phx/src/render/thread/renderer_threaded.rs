@@ -10,11 +10,10 @@ use tracing::{error, info};
 use crate::render::StatsSink;
 use crate::render::thread::RenderThread;
 use crate::render::{
-    BindEntry, BindGroupId, BlendMode, BlockLayout, BufferId, CmdPrimitiveType, CullFace,
-    GpuHandle, ImmVertex, PassCommands, PipelineDesc, PipelineId, RenderCommand, RenderPassDesc,
-    RenderStats, RenderThreadConfig, RenderThreadError, RendererData, ResourceId, ReturnedChunk,
-    SamplerCache, SamplerDesc, SamplerId, ShaderLayout, ShaderReloadResult, TexFilter, TexFormat,
-    TexView, TexWrapMode, VertexFormat,
+    BindEntry, BindGroupId, BlockLayout, BufferId, PassCommands, PipelineDesc, PipelineId,
+    RenderCommand, RenderPassDesc, RenderStats, RenderThreadConfig, RenderThreadError,
+    RendererData, ResourceId, ReturnedChunk, SamplerCache, SamplerDesc, SamplerId, ShaderLayout,
+    ShaderReloadResult, TexFilter, TexFormat, TexView, TexWrapMode, VertexFormat,
 };
 use crate::window::{PresentMode, WgpuStartupBundle, WindowError, WindowGlContext};
 
@@ -254,9 +253,6 @@ impl Renderer {
     /// execute in order.
     fn submit(&mut self, cmd: RenderCommand) {
         self.flush_pass_encoder();
-        // A legacy command may have changed the program behind the pipeline
-        // the batcher thinks is bound. // S6: remove
-        self.data.pass.bound_pipeline = None;
         self.send(cmd);
     }
 
@@ -561,151 +557,9 @@ impl Renderer {
         }
     }
 
-    pub fn set_viewport_intern(&mut self, x: i32, y: i32, width: i32, height: i32) {
-        self.submit(RenderCommand::SetViewport {
-            x,
-            y,
-            width,
-            height,
-        });
-    }
-
-    pub fn set_scissor_intern(&mut self, x: i32, y: i32, width: i32, height: i32) {
-        self.submit(RenderCommand::SetScissor {
-            x,
-            y,
-            width,
-            height,
-        });
-    }
-
-    pub fn enable_scissor_intern(&mut self, enable: bool) {
-        self.submit(RenderCommand::EnableScissor(enable));
-    }
-
-    pub fn set_blend_mode_intern(&mut self, mode: BlendMode) {
-        self.submit(RenderCommand::SetBlendMode(mode));
-    }
-
-    pub fn set_cull_face_intern(&mut self, face: CullFace) {
-        self.submit(RenderCommand::SetCullFace(face));
-    }
-
-    pub fn set_depth_test_intern(&mut self, enable: bool) {
-        self.submit(RenderCommand::SetDepthTest(enable));
-    }
-
-    pub fn set_depth_writable_intern(&mut self, enable: bool) {
-        self.submit(RenderCommand::SetDepthWritable(enable));
-    }
-
-    pub fn set_wireframe_intern(&mut self, enable: bool) {
-        self.submit(RenderCommand::SetWireframe(enable));
-    }
-
-    pub fn set_line_width(&mut self, width: f32) {
-        self.submit(RenderCommand::SetLineWidth(width));
-    }
-
-    pub fn set_point_size(&mut self, size: f32) {
-        self.submit(RenderCommand::SetPointSize(size));
-    }
-
     // === Shader Operations ===
 
-    pub fn bind_shader_intern(&mut self, handle: GpuHandle) {
-        self.submit(RenderCommand::BindShader { handle });
-        self.last_shader_bind = Some(handle.0 as u64);
-    }
-
-    pub fn bind_shader_by_resource(&mut self, id: ResourceId, shader_key: Option<String>) {
-        // Skip identical consecutive binds: the executor's current_program is
-        // already this program (uniform/texture commands between two binds of
-        // the same shader don't change the program), so the command would
-        // only be deduped on the render thread anyway. Saves the channel
-        // send + executor dispatch per redundant bind (~1,900/frame in the
-        // main menu, where every mesh re-binds its material's shader).
-        if shader_key.is_none() && self.last_shader_bind == Some(id.0) {
-            return;
-        }
-        self.submit(RenderCommand::BindShaderByResource { id, shader_key });
-        self.last_shader_bind = Some(id.0);
-    }
-
-    pub fn unbind_shader_intern(&mut self) {
-        self.submit(RenderCommand::UnbindShader);
-        self.last_shader_bind = None;
-    }
-
-    pub fn set_uniform_int_intern(&mut self, location: i32, value: i32) {
-        self.submit(RenderCommand::SetUniformInt { location, value });
-    }
-
-    pub fn set_uniform_int2(&mut self, location: i32, value: [i32; 2]) {
-        self.submit(RenderCommand::SetUniformInt2 { location, value });
-    }
-
-    pub fn set_uniform_int3(&mut self, location: i32, value: [i32; 3]) {
-        self.submit(RenderCommand::SetUniformInt3 { location, value });
-    }
-
-    pub fn set_uniform_int4(&mut self, location: i32, value: [i32; 4]) {
-        self.submit(RenderCommand::SetUniformInt4 { location, value });
-    }
-
-    pub fn set_uniform_float_intern(&mut self, location: i32, value: f32) {
-        self.submit(RenderCommand::SetUniformFloat { location, value });
-    }
-
-    pub fn set_uniform_float2_intern(&mut self, location: i32, value: [f32; 2]) {
-        self.submit(RenderCommand::SetUniformFloat2 { location, value });
-    }
-
-    pub fn set_uniform_float3_intern(&mut self, location: i32, value: [f32; 3]) {
-        self.submit(RenderCommand::SetUniformFloat3 { location, value });
-    }
-
-    pub fn set_uniform_float4_intern(&mut self, location: i32, value: [f32; 4]) {
-        self.submit(RenderCommand::SetUniformFloat4 { location, value });
-    }
-
-    pub fn set_uniform_mat4(&mut self, location: i32, value: [f32; 16]) {
-        self.submit(RenderCommand::SetUniformMat4 { location, value });
-    }
-
     // === Texture Operations ===
-
-    pub fn bind_texture_2d_intern(&mut self, slot: u32, handle: GpuHandle) {
-        self.submit(RenderCommand::BindTexture2D { slot, handle });
-    }
-
-    pub fn bind_texture_2d_by_resource(&mut self, slot: u32, id: ResourceId) {
-        self.submit(RenderCommand::BindTexture2DByResource { slot, id });
-    }
-
-    pub fn bind_texture_1d_by_resource(&mut self, slot: u32, id: ResourceId) {
-        self.submit(RenderCommand::BindTexture1DByResource { slot, id });
-    }
-
-    pub fn bind_texture_3d_intern(&mut self, slot: u32, handle: GpuHandle) {
-        self.submit(RenderCommand::BindTexture3D { slot, handle });
-    }
-
-    pub fn bind_texture_3d_by_resource(&mut self, slot: u32, id: ResourceId) {
-        self.submit(RenderCommand::BindTexture3DByResource { slot, id });
-    }
-
-    pub fn bind_texture_cube_intern(&mut self, slot: u32, handle: GpuHandle) {
-        self.submit(RenderCommand::BindTextureCube { slot, handle });
-    }
-
-    pub fn bind_texture_cube_by_resource(&mut self, slot: u32, id: ResourceId) {
-        self.submit(RenderCommand::BindTextureCubeByResource { slot, id });
-    }
-
-    pub fn unbind_texture_intern(&mut self, slot: u32) {
-        self.submit(RenderCommand::UnbindTexture { slot });
-    }
 
     #[allow(clippy::too_many_arguments)]
     pub fn update_texture_2d_data_by_resource(
@@ -985,39 +839,6 @@ impl Renderer {
 
     // === Drawing Operations ===
 
-    pub fn draw_mesh_intern(
-        &mut self,
-        vao: GpuHandle,
-        index_count: i32,
-        primitive: CmdPrimitiveType,
-    ) {
-        self.submit(RenderCommand::DrawMesh {
-            vao,
-            index_count,
-            primitive,
-        });
-    }
-
-    pub fn draw_mesh_by_resource(
-        &mut self,
-        id: ResourceId,
-        index_count: i32,
-        primitive: CmdPrimitiveType,
-    ) {
-        self.submit(RenderCommand::DrawMeshByResource {
-            id,
-            index_count,
-            primitive,
-        });
-    }
-
-    pub fn draw_immediate(&mut self, primitive: CmdPrimitiveType, vertices: Vec<ImmVertex>) {
-        self.submit(RenderCommand::DrawImmediate {
-            primitive,
-            vertices,
-        });
-    }
-
     // === Resource Creation ===
 
     pub fn create_shader(
@@ -1090,16 +911,6 @@ impl Renderer {
         // The executor's current program/pipeline changed behind the old
         // bind-skip cache.
         self.last_shader_bind = None;
-    }
-
-    pub fn get_uniform_location_by_resource(&mut self, id: ResourceId, name: Arc<str>) -> i32 {
-        let (tx, rx) = bounded(1);
-        self.submit(RenderCommand::GetUniformLocationByResource {
-            id,
-            name,
-            reply_tx: tx,
-        });
-        rx.recv().unwrap_or(-1)
     }
 
     pub fn create_texture_1d(

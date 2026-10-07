@@ -977,7 +977,7 @@ end
 
 --- Draw the final image over the whole window. The `fullscreen_ndc` quad has
 --- uv.y = 0 at the bottom row, which is how the window is y-up in GL: no flip
---- is needed (the old y-down `Draw.Rect(x, y + sy, sx, -sy)` did exactly this).
+--- is needed (the old y-down flipped rectangle did exactly this).
 ---@param pass RenderPass the open backbuffer pass
 function RenderCoreSystem:present(pass)
     local sh = Cache.Shader('fullscreen_ndc', 'filter/identity')

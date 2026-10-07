@@ -1,6 +1,6 @@
 # Render API v2 — wgpu-shaped interface on the GL renderer
 
-Status: design. S2 (render passes and attachment views), S3 (binding model, pipelines, samplers, views, frame group), S4 (materials, scene list, uniform ring) and S5 (fullscreen, post-processing, offscreen generation) are implemented; later steps are not. Companion to `wgpu-migration-gaps.md`,
+Status: design. S2 (render passes and attachment views), S3 (binding model, pipelines, samplers, views, frame group), S4 (materials, scene list, uniform ring), S5 (fullscreen, post-processing, offscreen generation) and S6 (immediate batching, UI, glyph atlas, and the removal of the legacy API) are implemented; later steps are not. Companion to `wgpu-migration-gaps.md`,
 `render-thread.md`, `batch-rendering.md` and `shader-system.md`.
 
 **Strategy, already decided.** First the GL renderer and the Lua render
@@ -1074,6 +1074,121 @@ four scenes. All six are bit-identical to their baselines after S5 on both build
   hooks from §4. The loose-uniform check becomes an error.
 - **Immediate renderer.** About 400 lines of mirrored methods disappear from
   both renderer files.
+
+#### S6 notes
+
+**Status: implemented.** The legacy immediate API is gone: the `Draw` global, `Shader:start/stop/set*/iSet*/getVariable/
+hasVariable/resetTexIndex`, `ShaderState`, `RenderState` (and its stacks), `Mesh:draw/drawBind/drawBound/drawUnbind`,
+`LodMesh:draw`, `PrimitiveBuilder`, `GpuHandle`, `ShaderVarData`, and in `RenderCommand` (both backends, GL and wgpu
+executors) `SetViewport/SetScissor/EnableScissor/SetBlendMode/SetCullFace/SetDepthTest/SetDepthWritable/SetWireframe/
+SetLineWidth/SetPointSize`, `BindShader*/UnbindShader`, all 18 `SetUniform*`, `BindTexture*/UnbindTexture`, the
+`GpuHandle` forms of the texture state and update commands, `BindMesh*/UnbindMesh`, `DrawMesh*`, `DrawImmediate`,
+`GetUniformLocationByResource`. The coexistence hooks of section 4 are deleted (the pass-encoder flush before a non-pass
+command stays: it is what orders a texture upload in the middle of a pass), as are the legacy texture-unit allocator
+(`fixed_unit_mask`, `tex_index`), the state-cache write-through, `invalidate_pipeline` and `drop_unit_sampler`. Stats
+that only the legacy path produced (`uniform_dedup_skips`) are gone with it.
+
+*Lua API (deviation from section 3d).* `Imm` is a namespace of statics with the renderer injected (like `ClipRect` and
+`Draw` were), not `Render.imm()` with methods: `Imm.Rect`, `Border`, `Image(tex, sampler, x, y, w, h, u0, v0, u1, v1,
+color)`, `Icon`, `Shape(Shape.X, x, y, w, h, color, a, b, c, d)` (the shape parameters, see the `Shape` enum in `imm.rs`),
+`Tri`, `TriGlow`, `Line(x1, y1, x2, y2, color, width)`, `LineGlow`, `Point`, `Box3`, `Line3`, `Point3`. There is no
+`pushClip/popClip/setTransform`: `ClipRect.Push/Pop` already feed the scissor (below) and `pass:setUiTransform` is the
+transform. `Font:draw(text, x, y, color)` is unchanged. Color is a `Color`, per-vertex; `Draw.Color/PushAlpha` state is
+gone (`DrawEx` keeps its own alpha stack in Lua).
+
+*Batching.* `ImmBatcher` (`render/gpu/imm.rs`) appends vertices of the current run to a CPU buffer. A run is keyed by
+`(layout, pipeline, texture view + sampler, scissor)`; a different key, or anything else recorded into the pass (a
+pipeline, a draw, an `alloc`, an input, a viewport or transform change, a flush), ends the run: its bytes are copied into
+the vertex ring and one `PassCmd::DrawImm { layout, vertices: RingOffset, count }` is recorded (at most 8190 vertices
+each). A quad is two triangles in the order of the old triangle fan, so the geometry is bit-identical. The batcher binds
+its own pipelines and writes input slot 0 for textured runs, so the pass tracks `user_pipeline` (what Lua set) and
+`bound_pipeline` (what the executor will have): a mesh draw re-emits the user's pipeline if a batch run changed it, and a
+run marks the staged inputs dirty so the next draw sends them again. `DrawImm` is the one new `PassCmd`.
+
+*Vertex layouts.* `Imm2D` is 64 bytes (the doc said 48): `pos: vec2, uv: vec2, color: vec4, params: vec4, params2:
+vec4`. Triangle, wedge and the glow line need six values, so there are two parameter vectors. Attribute locations 0, 2, 3
+(as for every mesh) and 11, 12 (`imm_params`, `imm_params2`). `vertex/imm2d.glsl` passes color and parameters as `flat`
+varyings; `include/imm.glsl` declares them for the fragment side and every `ui/*` shader names its parameters with
+`#define`s over them (`#define radius (imm_p.x)`, `#define color imm_color`). `Imm3D` is 36 bytes (position, uv, color):
+the backdrop box (drawn with the pass's own pipeline, which must use `VertexLayout.Imm3D`) and the debug geometry. Both
+layouts have a GL VAO whose attribute pointers are set per draw at the ring offset.
+
+*Shapes.* `Shape` has one pipeline per value (shader + baked blend mode): `Solid`, `Image`, `Text` (alpha); `Box`,
+`Circle`, `Grid`, `Hex`, `Icon`, `PanelGlow`, `PointGlow`, `RingGlow`, `RingDim`, `Triangle`, `Wedge`, `LineGlow`
+(additive); `Panel`, `Point`, `Ring`, `Annulus` (alpha). The padding the shaders need around a shape is part of the
+rectangle the caller passes (as before); the panel shader's `padding` is the constant 64. `fragment/ui/line.glsl` reads
+the fragment position from the `pos` varying instead of rebuilding it from `origin` and `size`, which is the only change
+in shape output (up to 12/255 on a few edge pixels of glow lines). `DrawEx.Hologram`, `ui/hologram`, `vertex/ui3D`,
+`ui/logo`, `ui/shadow`, `ui/circle-old` and the loose-uniform `simple_color`/`simple_image` are deleted (no callers).
+Mesh-based UI draws (the asteroid dots of `SystemMap`, the trails of `SystemMap3D`) are plain pipelines with a `Params`
+block (`vertex/mappoints`, `vertex/hologram3d` declare it under `#group 2` and hand the color to the fragment shader as
+the same `imm_color` varying).
+
+*Lazy scissor.* `ClipRect` only edits its stack now. `Renderer::pass_apply_scissor` emits `PassCmd::SetScissor` right
+before a draw or a batch run when the wanted scissor (computed against the pass's current viewport) differs from the one
+last sent, so clip pushes and pops without a draw in between cost nothing, and the run key carries the scissor. A clipped
+away rectangle has a negative extent, which GL rejects (and then keeps the previous scissor, which the old code did
+silently): it is clamped to empty. `pass:setScissor` is unchanged.
+
+*Glyph atlas (`font.rs`).* Each `Font` owns 1024x1024 `R8` pages. A shelf packer places a glyph (1 texel of padding;
+a shelf is reused for glyphs up to 1.5x its height) and a new page opens when none fits. Glyphs are rasterized on demand
+into a CPU copy of the page (coverage with the same gamma 1/1.8 as before, rounded to 8 bits as the driver did), and the
+rows touched are uploaded once, before the draw, by the new `UpdateTexture2DRect` command (the existing update command
+replaces the whole image; GL sets `UNPACK_ALIGNMENT` to 1 for it). A string is one run per page it touches, sampled with
+`Samplers.Point`; glyph quads sit on whole pixels, so the sampled texels are exactly the ones the per-glyph textures
+gave and the text pixels did not change. `ui/text` samples `.r`. `Font:draw` always blended with alpha whatever state
+surrounded it, so `DrawEx.TextAdditive` was never additive; it still draws with alpha (there is no additive text).
+`UIRenderer` (HmGui) draws panels, images, rects and text through the batcher; its images use `Samplers.Point` (what
+`Tex2D.Load` textures sampled with).
+
+*Lines and points.* 2D lines are quads (`Imm.Line`, width honoured; the glow line is one quad over its bounding box). 2D
+points are small squares. 3D debug lines and points (`imm_debug_line3/point3`, used by the Rust debug draws of physics,
+BSP, octree, box tree and `Mesh:drawNormals`) are camera-facing quads expanded on the CPU from the pass's camera and
+viewport, so their pixel width is honoured too; `glLineWidth`, `glPointSize` and `Draw.SmoothPoints` are gone. The star
+field was already a quad mesh (`pass:drawMesh`), so no point sprites were needed. `Physics:drawWireframes(eye)` lost its
+`shader` argument and `BSP.Create(mesh)` its (hidden) renderer; the BSP debug draws, which set `wireframe` through the old
+state stack, use `ImmDebugState { blend, depth_test, wireframe }` pipelines.
+
+*Fullscreen compute.* `Mesh:computeAO`/`computeOcclusion` (the asteroid meshes) draw their fullscreen quad in a pass with
+a `Params` block (`sDim`, `radius`) and `Samplers.Point` inputs (`fragment/compute/occlusion*.glsl` declare them under
+`#group 2/3`).
+
+*Shaders.* `create_shader` rejects a program with an active uniform that is neither in a block nor a sampler, with the
+names in the error (the shader falls back to the error shader and the overlay shows it). The wgpu executor has no such
+check. The loose-uniform effect shaders that active code used move to draw-block variants (`quad_draw`, `axis_draw`,
+`quadpos_draw`, `*head_draw`, `*tail_draw`, `explosion_draw`; the originals that no active or ported code loads are
+deleted).
+
+*Legacy code touched.* `Legacy/.../Effects/Pulse.lua` (`Pulse.Render`, used by the WeaponSystem testbed) draws its heads
+and tails through the additive pass with draw blocks, and `Effects/Explosion.lua` (loaded by `LoadInline('Legacy')` at
+start-up) likewise; the testbed's `RenderState` wrap is gone. Not ported, and broken if reached: `Effects/Dust`,
+`Entities/Ship/{Bay,Drone,Turret,Thruster}`, `Entities/Objects/{Nebula,Planet}`, `GameObjects/Material`,
+`Systems/Gen/{Asteroid,DiffuseMap}`, `Systems/Overlay/GameView`, `Systems/CommandView/SystemMap` and
+`Util/ShaderLocations` (all use the removed `Shader` methods or loose-uniform shaders; the modules still load).
+`Profiler.TimeGPU` uses the new `Renderer:gpuFinish()`.
+
+*Capture and validation additions.* `UiShapes` (every `DrawEx` shape, both text paths, clipping, alpha, an icon) and
+`UiMaps` (the dots, the trail ribbon, an annulus and the 3D debug primitives) in `States/App/Tests` cover the UI paths.
+Under `LTHEORY_CAPTURE`, `LTHEORY_CAPTURE_SEED` fixes the `LTheoryRedux` menu scene and `LTHEORY_CAPTURE_VIEW` picks the
+menu view. `GenTex2D` and `AudioTest` define `onDraw`, which `Application` stopped calling long ago; they define
+`onRender` now. GenTex2D's "black texture with one white quadrant" was the immediate draws running without a shader; with
+`Imm` it generates its worn plate pattern.
+
+*Cost* (frame 120, median of three runs on the dev machine; commands sent to the render thread per frame and draw calls):
+PlanetTest 90 -> 82 commands, 26 -> 26 draws; Benchmark 90 -> 82, 33 -> 33; MoonTest 90 -> 82, 24 -> 24; PlanetTestRing 90
+-> 82, 27 -> 27; SolarSystemPlayable 754 -> 85, 233 -> 26 (fps 318 -> 332, render idle 25% -> 31%); WeaponSystem 3784 ->
+85, 1318 -> 212 (frame 31.9 -> 30.1 ms, render thread 3.3 -> 2.4 ms per frame). Main menu views at frame 400: Title 206 ->
+85 commands and 65 -> 37 draws, Main 370 -> 85 and 105 -> 51, Newgame 1327 -> 85 and 381 -> 140, Loadgame 1971 -> 85 and
+668 -> 113, Settings 429 -> 85 and 120 -> 54; `UiShapes` 863 -> 10 commands and 245 -> 29 draws.
+
+*Pixels.* All six capture scenes are bit-identical to the baseline on both builds. UI output differs only by the glow line
+shape above (`UiShapes`: RMSE 0.010, max 12, 0.0001% of pixels over 8) and the moving clock and pulse of the menu; the menu
+views match their pre-S6 captures (RMSE <= 0.03). The 3D debug lines and points have no previous output to match (they
+were 1 or 2 pixel GL lines).
+
+*wgpu executor.* `DrawImm` reads the vertices back from the vertex-ring bytes and draws them through the old immediate
+path of that executor, and the rect upload goes through its texture write; like the other pass commands since S3 these do
+not render correctly there yet.
 
 ### S7. Samplers and views, finishing up
 - After S6 every sample goes through a bind group with an explicit sampler,

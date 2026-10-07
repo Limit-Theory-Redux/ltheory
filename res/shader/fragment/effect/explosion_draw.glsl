@@ -1,9 +1,11 @@
 #include fragment
 #include math
 #include noise
+#include draw_block
 
-uniform float age;
-uniform float seed;
+// Draw-block variant for scene passes: the age is drawUser[0].x, the seed drawUser[0].y.
+#define age (drawUser[0].x)
+#define seed (drawUser[0].y)
 const float animSpeed = 0.4;
 
 void main() {

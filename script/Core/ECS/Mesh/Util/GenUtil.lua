@@ -51,7 +51,7 @@ local function assignField(p, name, value)
 end
 
 --- The `Params` struct of `shader` with `args` written into it. Arguments the
---- shader does not declare are ignored (the old `ShaderState` only warned).
+--- shader does not declare are ignored.
 ---@param shader Shader
 ---@param args table<string, number|boolean|Vec2f|Vec3f|Vec4f>|nil
 ---@return ffi.cdata*
