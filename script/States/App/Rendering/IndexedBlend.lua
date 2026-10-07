@@ -1,0 +1,77 @@
+local Application = require("States.Application")
+local ProbePaths = require("States.App.Rendering.ProbePaths")
+local ProbeRead = require("States.App.Rendering.ProbeRead")
+
+---@class RenderingIndexedBlend: Application
+local RenderingIndexedBlend = Subclass("RenderingIndexedBlend", Application)
+
+local TARGET_W = 128
+local TARGET_H = 128
+
+local function makeQuad()
+    local mesh = Mesh.Create()
+    mesh:addVertex(-1.0, -1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0)
+    mesh:addVertex(1.0, -1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0)
+    mesh:addVertex(1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0)
+    mesh:addVertex(-1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0)
+    mesh:addTri(0, 1, 2)
+    mesh:addTri(0, 2, 3)
+    return mesh
+end
+
+function RenderingIndexedBlend:onInit()
+    self.target = Tex2D.Create(TARGET_W, TARGET_H, TexFormat.RGBA8)
+    self.passDesc = RenderPassDesc.Create("IndexedBlend")
+    self.passDesc:color(0, self.target:view(), LoadOp.Clear, 0.0, 0.0, 0.0, 1.0)
+    self.mesh = makeQuad()
+    self.shader = Cache.Shader("indexed_blend", "indexed_blend")
+    self.Params = self.shader:blockType("Params")
+    local desc = PipelineDesc.Create(self.shader)
+    desc:blend(BlendMode.Alpha)
+    self.pipeline = Pipeline.Get(desc)
+    self.backend = os.getenv("LTHEORY_WGPU") and "wgpu" or "opengl"
+    self.frames = 0
+    self.probed = false
+end
+
+function RenderingIndexedBlend:eventLoop()
+    Application.eventLoop(self)
+    self.frames = self.frames + 1
+    if self.frames >= 3 then
+        self:quit()
+    end
+end
+
+function RenderingIndexedBlend:onRender()
+    if self.probed then return end
+
+    local pass = Renderer:beginPass(self.passDesc)
+    pass:setPipeline(self.pipeline)
+    local p = pass:alloc(self.Params)
+    p.color.x, p.color.y, p.color.z, p.color.w = 0.0, 0.0, 1.0, 1.0
+    pass:drawMesh(self.mesh)
+    p = pass:alloc(self.Params)
+    p.color.x, p.color.y, p.color.z, p.color.w = 1.0, 0.0, 0.0, 0.5
+    pass:drawMesh(self.mesh)
+    pass:finish()
+
+    local center = ProbeRead.sample(self.target, math.floor(TARGET_W / 2), math.floor(TARGET_H / 2))
+    local path = ProbePaths.file("indexed-blend-" .. self.backend .. ".png")
+    self.target:save(path)
+    Log.Info(string.format(
+        "[IndexedBlendProbe] backend=%s target=%dx%d center=(%.3f,%.3f,%.3f) artifact=%s",
+        self.backend, TARGET_W, TARGET_H,
+        center.x, center.y, center.z,
+        path
+    ))
+    self.probed = true
+end
+
+function RenderingIndexedBlend:onExit()
+    self.target = nil
+    self.mesh = nil
+    self.shader = nil
+    Log.Info("[IndexedBlendProbe] resources released")
+end
+
+return RenderingIndexedBlend

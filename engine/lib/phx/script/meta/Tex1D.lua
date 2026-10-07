@@ -10,6 +10,20 @@ Tex1D = {}
 ---@return Tex1D
 function Tex1D.Create(r, size, format) end
 
+-- A texture with `mips` levels (0 = the full chain) and the `TexUsage`
+-- bits in `usage` (0 = the default for the kind).
+---@param r Renderer
+---@param size integer
+---@param format TexFormat
+---@param mips integer
+---@param usage integer
+---@return Tex1D
+function Tex1D.CreateDesc(r, size, format, mips, usage) end
+
+-- View of the whole texture, for sampling.
+---@return TexView
+function Tex1D:view() end
+
 ---@return Tex1D
 function Tex1D:clone() end
 
@@ -35,22 +49,10 @@ function Tex1D:getSize() end
 function Tex1D:setDataBytes(r, data, pf, df) end
 
 ---@param r Renderer
----@param filter TexFilter
-function Tex1D:setMagFilter(r, filter) end
-
----@param r Renderer
----@param filter TexFilter
-function Tex1D:setMinFilter(r, filter) end
-
----@param r Renderer
 ---@param x integer
 ---@param red number
 ---@param green number
 ---@param blue number
 ---@param alpha number
 function Tex1D:setTexel(r, x, red, green, blue, alpha) end
-
----@param r Renderer
----@param mode TexWrapMode
-function Tex1D:setWrapMode(r, mode) end
 

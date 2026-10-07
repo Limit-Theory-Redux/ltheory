@@ -14,8 +14,6 @@ local function createDiffuseMap(mesh, source, res)
     shader:stop()
     self:pop()
 
-    self:setMagFilter(TexFilter.Linear)
-    self:setMinFilter(TexFilter.Linear)
     return self
 end
 

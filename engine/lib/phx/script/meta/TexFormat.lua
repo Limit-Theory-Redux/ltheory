@@ -10,7 +10,6 @@
 ---@field RG16 integer 
 ---@field RG16F integer 
 ---@field RG32F integer 
----@field RGB8 integer 
 ---@field RGBA8 integer 
 ---@field RGBA16 integer 
 ---@field RGBA16F integer 
@@ -23,18 +22,17 @@ TexFormat = {
     R16 = 1, -- gl::R16
     R16F = 2, -- gl::R16F
     R32F = 3, -- gl::R32F
-    RG8 = 4, -- gl::RGB
+    RG8 = 4, -- gl::RG8
     RG16 = 5, -- gl::RG16
     RG16F = 6, -- gl::RG16F
     RG32F = 7, -- gl::RG32F
-    RGB8 = 8, -- gl::RGB8
-    RGBA8 = 9, -- gl::RGBA8
-    RGBA16 = 10, -- gl::RGBA16
-    RGBA16F = 11, -- gl::RGBA16F
-    RGBA32F = 12, -- gl::RGBA32F
-    Depth16 = 13, -- gl::DEPTH_COMPONENT16
-    Depth24 = 14, -- gl::DEPTH_COMPONENT24
-    Depth32F = 15, -- gl::DEPTH_COMPONENT32F
+    RGBA8 = 8, -- gl::RGBA8
+    RGBA16 = 9, -- gl::RGBA16
+    RGBA16F = 10, -- gl::RGBA16F
+    RGBA32F = 11, -- gl::RGBA32F
+    Depth16 = 12, -- gl::DEPTH_COMPONENT16
+    Depth24 = 13, -- gl::DEPTH_COMPONENT24
+    Depth32F = 14, -- gl::DEPTH_COMPONENT32F
 }
 
 ---@param this TexFormat

@@ -1,207 +1,211 @@
-local DynamicShaderVar = require("Shared.Rendering.DynamicShaderVar")
-local Texture = require("Shared.Rendering.Texture")
-local UniformFuncs = require("Shared.Rendering.UniformFuncs")
+local ffi = require("ffi")
+local Cache = require("Render.Cache")
+
+-- The Rust `Material` (FFI type, `Material.Create`) is shadowed by the class
+-- below within this file.
+local GpuMaterial = Material
+
+--- Samplers a texture gets when neither the `MaterialType` nor the call names
+--- one (what the old `Texture` class did to every material texture: linear
+--- filtering with mips, repeat wrapping, 16x anisotropy for 2D textures).
+---@param tex Tex1D|Tex2D|Tex3D|TexCube
+---@return integer sampler
+local function defaultSampler(tex)
+    if ffi.istype("TexCube", tex) then return Samplers.LinearMipClamp end
+    if ffi.istype("Tex3D", tex) then return Samplers.LinearMipRepeat end
+    if ffi.istype("Tex1D", tex) then return Samplers.LinearRepeat end
+    return Samplers.LinearMipRepeatAniso
+end
+
+--- Samplers that read the mip chain: a texture sampled with one of them needs
+--- its mips generated.
+local mipSamplers = {
+    [Samplers.LinearMipClamp] = true,
+    [Samplers.LinearMipRepeat] = true,
+    [Samplers.LinearMipRepeatAniso] = true,
+}
+
+---@param tex Tex1D|Tex2D|Tex3D|TexCube
+---@param sampler integer
+local function ensureMips(tex, sampler)
+    if mipSamplers[sampler] and tex.genMipmap then tex:genMipmap() end
+end
+
+-- `T*` ctype of a parameter struct, built once per struct type.
+local pointerTypes = setmetatable({}, { __mode = "k" })
+local function pointerTo(T)
+    local pointerType = pointerTypes[T]
+    if not pointerType then
+        pointerType = ffi.typeof("$ *", T)
+        pointerTypes[T] = pointerType
+    end
+    return pointerType
+end
+
+--- Write `value` into the parameter field `p[name]`: numbers directly, vectors
+--- component by component (`Vec3f` into a `vec3`, ...).
+---@param p ffi.cdata*
+---@param name string
+---@param value any
+local function assignField(p, name, value)
+    if type(value) == "number" or type(value) == "boolean" then
+        p[name] = value
+        return
+    end
+    local field = p[name]
+    local components = ffi.sizeof(field) / 4 -- Vec2f/Vec3f/Vec4f
+    field.x = value.x
+    if components >= 2 then field.y = value.y end
+    if components >= 3 then field.z = value.z end
+    if components >= 4 then field.w = value.w end
+end
+
+-- Registry of all live materials for hot-reload (weak: never keeps one alive).
+local allMaterials = setmetatable({}, { __mode = "k" })
 
 ---@class Material
----@field vs string -- 'res/shader/vertex/'
----@field fs string -- 'res/shader/fragment/'
----@field blendMode BlendMode
----@field textures table<Texture>
----@field shaderState ShaderState
----@field autoShaderVars table<DynamicShaderVar>
----@field constShaderVars table<DynamicShaderVar>
----@field staticShaderVars table<DynamicShaderVar>
-
----@class Material
----@overload fun(self: Material, vs_name: string, fs_name: string, blendMode: BlendMode): Material class internal
----@overload fun(vs_name: string, fs_name: string, blendMode: BlendMode): Material class external
--- Registry of all live materials for hot-reload
-local allMaterials = {}
-setmetatable(allMaterials, { __mode = "v" }) -- weak values: don't prevent GC
-
-local Material = Class("Material", function(self, vs_name, fs_name, blendMode)
-    self.vs = vs_name
-    self.fs = fs_name
-    self.blendMode = blendMode
+---@field type MaterialType
+---@field handle ffi.cdata*   the Rust material (bind group, parameter slice, pipeline)
+---@field blend BlendMode     the scene bucket it draws in
+---@field perDraw fun(entity: Entity, user: ffi.cdata*)|nil   fills `drawUser` of each drawn mesh
+---@field textures table<string, Tex1D|Tex2D|Tex3D|TexCube>   keeps the textures alive
+---@field paramsPtr ffi.cdata*|nil  the typed `MaterialParams` struct
+---@overload fun(self: Material, matType: MaterialType): Material class internal
+---@overload fun(matType: MaterialType): Material class external
+local Material = Class("Material", function(self, matType)
+    local state = matType.state
+    self.type = matType
+    self.blend = state.blend
+    self.perDraw = matType.perDraw
     self.textures = {}
-    self.autoShaderVars = {}
-    self.constShaderVars = {}
-    self.staticShaderVars = {}
+    self.handle = GpuMaterial.Create(matType.shader, state.blend, state.cull, state.depthTest, state.depthWrite)
 
-    -- Create Shader and ShaderState
-    local shader = Cache.Shader(self.vs, self.fs)
-    self.shaderState = ShaderState.Create(shader)
+    -- Typed view of the parameter block, with the type's defaults in it.
+    if self.handle:getParamsSize() > 0 then
+        local T = matType.paramsType or matType.shader:blockType("MaterialParams")
+        self.paramsPtr = ffi.cast(pointerTo(T), self.handle:paramsPointer())
+        for name, value in pairs(matType.defaults) do
+            assignField(self.paramsPtr, name, value)
+        end
+    end
 
-    -- Track for hot-reload
-    insert(allMaterials, self)
+    for name, spec in pairs(matType.textures) do
+        if spec.tex then
+            self:setTexture(name, spec.tex, spec.sampler, false)
+        end
+    end
+
+    self.handle:commit()
+    allMaterials[self] = true
 end)
 
---- Reload all live materials after shaders have been hot-reloaded.
+--- The typed `MaterialParams` struct (`shader:blockType('MaterialParams')`):
+--- write its fields, then `commit()`. Errors if the shader has no such block.
+---@return ffi.cdata*
+function Material:params()
+    local p = self.paramsPtr
+    if not p then
+        error(string.format("Material %s: its shader has no MaterialParams block", tostring(self.type.name)), 2)
+    end
+    return p
+end
+
+--- Bind `tex` to the shader sampler `name` (type-checked against the shader's
+--- group-1 layout). Takes effect at the next `commit()`. The mip chain is
+--- generated when the sampler reads it, unless `genMips` is false.
+---@param name string
+---@param tex Tex1D|Tex2D|Tex3D|TexCube
+---@param sampler integer|nil  default: the type's sampler for `name`, else by texture kind
+---@param genMips boolean|nil
+function Material:setTexture(name, tex, sampler, genMips)
+    local spec = self.type.textures[name]
+    sampler = sampler or (spec and spec.sampler) or defaultSampler(tex)
+    if genMips ~= false then ensureMips(tex, sampler) end
+    self.handle:setTexture(name, tex:view(), sampler)
+    self.textures[name] = tex
+end
+
+--- Send the parameters to the GPU and recreate the bind group if a texture
+--- changed. One write; call it when something changed, never per draw, and not
+--- while a render pass is open.
+function Material:commit()
+    self.handle:commit()
+end
+
+--- The material's shader was hot reloaded: adopt its new layout. The Rust
+--- material copies the parameters over by member name into a block of the new
+--- size (new members are zero, here they get the type's defaults), keeps the
+--- textures by sampler name and gives back its arena slice and bind group; the
+--- typed view is recast to the regenerated type, and `commit()` writes the
+--- parameters to a new slice and makes the new bind group.
+---@return string report
+function Material:refresh()
+    local report = ffi.string(self.handle:refreshShader())
+
+    if self.handle:getParamsSize() > 0 then
+        local T = self.type.paramsType or self.type.shader:blockType("MaterialParams")
+        self.paramsPtr = ffi.cast(pointerTo(T), self.handle:paramsPointer())
+        for name in (report:match("added=(%S*)") or ""):gmatch("[^,]+") do
+            local value = self.type.defaults[name]
+            if value ~= nil then assignField(self.paramsPtr, name, value) end
+        end
+    else
+        self.paramsPtr = nil
+    end
+
+    self.handle:commit()
+    return report
+end
+
+--- Called through `Cache.OnShaderReload` after `shader` was reloaded: ask each
+--- `MaterialType` that draws with it to regenerate its parameter ctype, then
+--- refresh its live materials. Returns the blocks it took care of.
+---@param shader Shader
+---@param changed table<string, boolean>  uniform blocks whose layout changed
+---@return table<string, boolean> handled
+function Material.OnShaderReloaded(shader, changed)
+    local Materials = require("Shared.Registries.Materials")
+    Materials.each(function(matType)
+        if matType.shader == shader then
+            local before = matType.paramsHash
+            matType:regenerate()
+            if matType.paramsHash ~= before then
+                Log.Info("Material type %s: MaterialParams layout changed, ctype regenerated", tostring(matType.name))
+            end
+        end
+    end)
+
+    local count = 0
+    for mat in pairs(allMaterials) do
+        if mat.type.shader == shader then
+            local report = mat:refresh()
+            count = count + 1
+            if changed.MaterialParams then
+                Log.Info("Material %s refreshed: %s", tostring(mat.type.name), report)
+            end
+        end
+    end
+    if count > 0 then
+        Log.Info("Shader hot-reload: %d material(s) refreshed", count)
+    end
+    return { MaterialParams = true }
+end
+
+--- Refresh every live material (after `Cache.ReloadShaders`, which already
+--- does it for the shaders it reloaded; kept for manual use).
 function Material.ReloadAll()
     local count = 0
-    for i = #allMaterials, 1, -1 do
-        local mat = allMaterials[i]
-        if mat then
-            mat:reloadShader()
-            count = count + 1
-        else
-            table.remove(allMaterials, i)
-        end
+    for mat in pairs(allMaterials) do
+        mat:refresh()
+        count = count + 1
     end
     Log.Info("Material hot-reload: %d materials refreshed", count)
     return count
 end
 
----@param textures table<TextureInfo>
-function Material:addTextures(textures)
-    for name, texInfo in pairs(textures) do
-        local tex = Texture(name, texInfo.tex, texInfo.type, texInfo.setting)
-        tex:setTextureToShaderState(self.shaderState)
-        insert(self.textures, tex)
-    end
-end
+--- Used by `MaterialType` to prepare the textures its materials share.
+Material.EnsureMips = ensureMips
 
----@param shaderVars table<ShaderVarInfo>
-function Material:addAutoShaderVars(shaderVars)
-    for name, shaderVarInfo in pairs(shaderVars) do
-        local autoShaderVar = DynamicShaderVar(name, shaderVarInfo.type, shaderVarInfo.value, false,
-            shaderVarInfo.perInstance)
-        insert(self.autoShaderVars, autoShaderVar)
-    end
-end
-
----@param shaderVars table<ShaderVarInfo>
-function Material:addConstShaderVars(shaderVars)
-    for name, shaderVarInfo in pairs(shaderVars) do
-        local constShaderVar = DynamicShaderVar(name, shaderVarInfo.type, shaderVarInfo.value, true, true)
-        insert(self.constShaderVars, constShaderVar)
-    end
-end
-
----@param name string
----@param type UniformType
----@param value any
-function Material:addStaticShaderVar(name, type, value)
-    local staticShaderVar = DynamicShaderVar(name, type, value, false, false)
-    staticShaderVar:setUniformInt(self.shaderState:shader())
-    insert(self.staticShaderVars, staticShaderVar)
-end
-
-function Material:reloadShader()
-    local shader = Cache.Shader(self.vs, self.fs)
-    if not shader then return end
-
-    self.shaderState = ShaderState.Create(shader)
-    self.shader = shader
-
-    local function cache(vars)
-        for _, v in ipairs(vars) do
-            v:setUniformInt(shader)
-        end
-    end
-
-    cache(self.autoShaderVars)
-    cache(self.constShaderVars)
-    cache(self.staticShaderVars or {})
-
-    -- Set const vars
-    for _, v in ipairs(self.constShaderVars) do
-        v:setShaderVar(nil, shader, nil)
-    end
-
-    -- Rebind textures
-    for _, tex in pairs(self.textures) do
-        local name = tex.texName
-        if shader:hasVariable(name) then
-            local loc = shader:getVariable(name)
-            local fnName = ({
-                [Enums.UniformType.Tex2D]   = "iSetTex2D",
-                [Enums.UniformType.TexCube] = "iSetTexCube",
-            })[tex.texType]
-            if fnName and shader[fnName] then
-                shader[fnName](shader, loc, tex.tex)
-            end
-        end
-    end
-end
-
----Set Uniform Values for Materials Shader
----@param eye Position Camera Position
----@param entity Entity
-function Material:setAllShaderVars(eye, entity)
-    local shader = self.shaderState:shader()
-    for _, shaderVar in ipairs(self.autoShaderVars) do
-        shaderVar:setShaderVar(eye, shader, entity)
-    end
-    for _, shaderVar in ipairs(self.constShaderVars) do
-        shaderVar:setShaderVar(eye, shader, entity)
-    end
-    for _, shaderVar in ipairs(self.staticShaderVars) do
-        shaderVar:setShaderVar(eye, shader, entity)
-    end
-end
-
-function Material:setTexture(texName, tex, texType)
-    -- Infer type if not provided
-    texType = texType or (ffi.istype("TexCube", tex) and Enums.UniformType.TexCube
-        or ffi.istype("Tex2D", tex) and Enums.UniformType.Tex2D
-        or ffi.istype("Tex3D", tex) and Enums.UniformType.Tex3D
-        or error("Unsupported texture type"))
-
-    local texInfo = {
-        tex = tex,
-        type = texType,
-        settings = {
-            genMipMap = true,
-            magFilter = TexFilter.Linear,
-            minFilter = TexFilter.LinearMipLinear,
-            anisotropy = 16,
-            wrapS = TexWrapMode.Repeat,
-            wrapT = TexWrapMode.Repeat,
-            wrapR = TexWrapMode.Repeat,
-        }
-    }
-
-    local textures = {}
-    textures[texName] = texInfo
-    self:addTextures(textures)
-end
-
----@return Material ClonedMaterial
-function Material:clone()
-    local c = Material(self.vs, self.fs, self.blendMode)
-    c.textures = {}
-    c.autoShaderVars = { unpack(self.autoShaderVars or {}) }
-    c.constShaderVars = { unpack(self.constShaderVars or {}) }
-
-    for tex in Iterator(self.textures or {}) do
-        ---@cast tex Texture
-        local texture = Texture(tex.texName, tex.tex, tex.texType, tex.texSettings)
-        texture:setTextureToShaderState(c.shaderState)
-        c.textures[tex] = texture
-    end
-
-    return c
-end
-
----@return ShaderState
-function Material:getShaderState()
-    return self.shaderState
-end
-
----@return string
-function Material:getVertex()
-    return self.vs
-end
-
----@return string
-function Material:getFragment()
-    return self.fs
-end
-
----@return BlendMode
-function Material:getBlendMode()
-    return self.blendMode
-end
+Cache.OnShaderReload(Material.OnShaderReloaded)
 
 return Material

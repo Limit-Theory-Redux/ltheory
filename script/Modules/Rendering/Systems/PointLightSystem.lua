@@ -8,9 +8,11 @@ local Physics = require("Modules.Physics.Components")
 local Rendering = require("Modules.Rendering.Components")
 local CameraManager = require("Modules.Cameras.Managers.CameraManager")
 local LightManager = require("Modules.Rendering.Managers.LightManager")
+local Pipelines = require("Render.Pipelines")
 
 local pointLightMarkerMesh
 local pointLightMarkerShader
+local DrawBlock
 
 local function getEntityPosition(entity)
     if not entity or (entity.isValid and not entity:isValid()) then
@@ -165,32 +167,33 @@ function PointLightSystem:renderDiagnostics(blendMode, eye)
 
     if not pointLightMarkerMesh then
         pointLightMarkerMesh = Gen.Primitive.Billboard(-1, -1, 1, 1)
-        pointLightMarkerShader = Cache.Shader("billboard/quad", "effect/pulsehead")
+        pointLightMarkerShader = Cache.Shader("billboard/quad_draw", "effect/pulsehead_draw")
+        DrawBlock = pointLightMarkerShader:blockType("DrawBlock")
     end
 
     eye = eye or CameraManager:getEye()
-    pointLightMarkerShader:start()
-    pointLightMarkerMesh:drawBind()
+    -- Two additive sprites per light (a halo and a core), each with its own
+    -- draw block: the transform and the sprite parameters.
+    local pass = Renderer:currentPass()
+    pass:setPipeline(Pipelines.get(pointLightMarkerShader, Pipelines.Additive))
     for _, light in ipairs(lights) do
         local position = light.pos:relativeTo(eye)
         local markerSize = math.max(0.12, math.min(0.35, (light.radius or 0.18) * 0.85))
-        pointLightMarkerShader:setFloat3(
-            "color",
-            light.color.x,
-            light.color.y,
-            light.color.z)
-        pointLightMarkerShader:setMatrix(
-            "mWorld",
-            Matrix.Translation(position.x, position.y, position.z))
-        pointLightMarkerShader:setFloat("alpha", 0.35)
-        pointLightMarkerShader:setFloat("size", markerSize * 2.2)
-        pointLightMarkerMesh:drawBound()
-        pointLightMarkerShader:setFloat("alpha", 1.0)
-        pointLightMarkerShader:setFloat("size", markerSize)
-        pointLightMarkerMesh:drawBound()
+        for layer = 1, 2 do
+            local d = pass:alloc(DrawBlock)
+            local m = d.mWorld
+            m[0], m[5], m[10], m[15] = 1, 1, 1, 1
+            m[12], m[13], m[14] = position.x, position.y, position.z
+            local user = d.drawUser
+            user[0], user[1], user[2] = light.color.x, light.color.y, light.color.z
+            if layer == 1 then
+                user[3], user[4] = 0.35, markerSize * 2.2 -- alpha, size
+            else
+                user[3], user[4] = 1.0, markerSize
+            end
+            pass:drawMesh(pointLightMarkerMesh)
+        end
     end
-    pointLightMarkerMesh:drawUnbind()
-    pointLightMarkerShader:stop()
 end
 
 return PointLightSystem()

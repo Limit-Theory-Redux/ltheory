@@ -5,9 +5,22 @@ local libphx = require('libphx').lib
 -- (see doc/engine/render-thread.md). Inject the global `Renderer` set by
 -- SetEngine so call sites don't change.
 
+-- The optional `desc` of `Create`: `{ mips = true | <levels>, usage = <TexUsage bits> }`.
+-- `mips = true` allocates the full mip chain; no `mips` is a single level, no
+-- `usage` is the default for the texture kind.
+local function mipsOf(desc)
+    if desc.mips == true then return 0 end
+    return desc.mips or 1
+end
+
 function onDef_Tex2D(t, mt)
-    t.Create = function(sx, sy, format)
-        local _instance = libphx.Tex2D_Create(Renderer, sx, sy, format)
+    t.Create = function(sx, sy, format, desc)
+        local _instance
+        if desc then
+            _instance = libphx.Tex2D_CreateDesc(Renderer, sx, sy, format, mipsOf(desc), desc.usage or 0)
+        else
+            _instance = libphx.Tex2D_Create(Renderer, sx, sy, format)
+        end
         return Core.ManagedObject(_instance, libphx.Tex2D_Free)
     end
 
@@ -23,20 +36,20 @@ function onDef_Tex2D(t, mt)
 end
 
 function onDef_Tex2D_t(t, mt)
+    -- `tex:view()` is the whole texture (level 0 as an attachment);
+    -- `tex:view{ baseMip = 1, mipCount = 3 }` restricts the levels sampled
+    -- (`mipCount` 0 = all remaining).
+    local view = mt.__index.view
+    mt.__index.view = function(self, opts)
+        local v = view(self)
+        if opts then
+            return v:mips(opts.baseMip or 0, opts.mipCount or 0)
+        end
+        return v
+    end
+
     mt.__index.save = function(self, path)
         libphx.Tex2D_Save(self, Renderer, path)
-    end
-
-    mt.__index.pop = function(self)
-        libphx.Tex2D_Pop(self, Renderer)
-    end
-
-    mt.__index.push = function(self)
-        libphx.Tex2D_Push(self, Renderer)
-    end
-
-    mt.__index.pushLevel = function(self, level)
-        libphx.Tex2D_PushLevel(self, Renderer, level)
     end
 
     mt.__index.clear = function(self, red, green, blue, alpha)
@@ -57,35 +70,11 @@ function onDef_Tex2D_t(t, mt)
         return Core.ManagedObject(_instance, libphx.Bytes_Free)
     end
 
-    mt.__index.setAnisotropy = function(self, factor)
-        libphx.Tex2D_SetAnisotropy(self, Renderer, factor)
-    end
-
     mt.__index.setDataBytes = function(self, data, pf, df)
         libphx.Tex2D_SetDataBytes(self, Renderer, data, pf, df)
     end
 
-    mt.__index.setMagFilter = function(self, filter)
-        libphx.Tex2D_SetMagFilter(self, Renderer, filter)
-    end
-
-    mt.__index.setMinFilter = function(self, filter)
-        libphx.Tex2D_SetMinFilter(self, Renderer, filter)
-    end
-
-    mt.__index.setMipRange = function(self, minLevel, maxLevel)
-        libphx.Tex2D_SetMipRange(self, Renderer, minLevel, maxLevel)
-    end
-
     mt.__index.setTexel = function(self, x, y, red, green, blue, alpha)
         libphx.Tex2D_SetTexel(self, Renderer, x, y, red, green, blue, alpha)
-    end
-
-    mt.__index.setWrapMode = function(self, mode)
-        libphx.Tex2D_SetWrapMode(self, Renderer, mode)
-    end
-
-    mt.__index.sample = function(self, x, y)
-        return libphx.Tex2D_Sample(self, Renderer, x, y)
     end
 end

@@ -185,144 +185,175 @@ impl Payload {
         Self::BoolArray(value.into())
     }
 
-    pub fn for_each_bool(&self, f: impl Fn(bool)) {
+    /// Address of the first element of the array (cast with ffi.cast) (valid for `array_len` elements while the payload lives).
+    pub fn get_bool_array_addr(&self) -> usize {
         let Self::BoolArray(value) = self else {
             self.type_panic("BoolArray");
         };
 
-        value.iter().for_each(|v| f(*v));
+        value.as_ptr() as usize
     }
 
     pub fn from_i8_array(value: &[i8]) -> Self {
         Self::I8Array(value.into())
     }
 
-    pub fn for_each_i8(&self, f: impl Fn(i8)) {
+    /// Address of the first element of the array (cast with ffi.cast) (valid for `array_len` elements while the payload lives).
+    pub fn get_i8_array_addr(&self) -> usize {
         let Self::I8Array(value) = self else {
             self.type_panic("I8Array");
         };
 
-        value.iter().for_each(|v| f(*v));
+        value.as_ptr() as usize
     }
 
     pub fn from_u8_array(value: &[u8]) -> Self {
         Self::U8Array(value.into())
     }
 
-    pub fn for_each_u8(&self, f: impl Fn(u8)) {
+    /// Address of the first element of the array (cast with ffi.cast) (valid for `array_len` elements while the payload lives).
+    pub fn get_u8_array_addr(&self) -> usize {
         let Self::U8Array(value) = self else {
             self.type_panic("U8Array");
         };
 
-        value.iter().for_each(|v| f(*v));
+        value.as_ptr() as usize
     }
 
     pub fn from_i16_array(value: &[i16]) -> Self {
         Self::I16Array(value.into())
     }
 
-    pub fn for_each_i16(&self, f: impl Fn(i16)) {
+    /// Address of the first element of the array (cast with ffi.cast) (valid for `array_len` elements while the payload lives).
+    pub fn get_i16_array_addr(&self) -> usize {
         let Self::I16Array(value) = self else {
             self.type_panic("I16Array");
         };
 
-        value.iter().for_each(|v| f(*v));
+        value.as_ptr() as usize
     }
 
     pub fn from_u16_array(value: &[u16]) -> Self {
         Self::U16Array(value.into())
     }
 
-    pub fn for_each_u16(&self, f: impl Fn(u16)) {
+    /// Address of the first element of the array (cast with ffi.cast) (valid for `array_len` elements while the payload lives).
+    pub fn get_u16_array_addr(&self) -> usize {
         let Self::U16Array(value) = self else {
             self.type_panic("U16Array");
         };
 
-        value.iter().for_each(|v| f(*v));
+        value.as_ptr() as usize
     }
 
     pub fn from_i32_array(value: &[i32]) -> Self {
         Self::I32Array(value.into())
     }
 
-    pub fn for_each_i32(&self, f: impl Fn(i32)) {
+    /// Address of the first element of the array (cast with ffi.cast) (valid for `array_len` elements while the payload lives).
+    pub fn get_i32_array_addr(&self) -> usize {
         let Self::I32Array(value) = self else {
             self.type_panic("I32Array");
         };
 
-        value.iter().for_each(|v| f(*v));
+        value.as_ptr() as usize
     }
 
     pub fn from_u32_array(value: &[u32]) -> Self {
         Self::U32Array(value.into())
     }
 
-    pub fn for_each_u32(&self, f: impl Fn(u32)) {
+    /// Address of the first element of the array (cast with ffi.cast) (valid for `array_len` elements while the payload lives).
+    pub fn get_u32_array_addr(&self) -> usize {
         let Self::U32Array(value) = self else {
             self.type_panic("U32Array");
         };
 
-        value.iter().for_each(|v| f(*v));
+        value.as_ptr() as usize
     }
 
     pub fn from_i64_array(value: &[i64]) -> Self {
         Self::I64Array(value.into())
     }
 
-    pub fn for_each_i64(&self, f: impl Fn(i64)) {
+    /// Address of the first element of the array (cast with ffi.cast) (valid for `array_len` elements while the payload lives).
+    pub fn get_i64_array_addr(&self) -> usize {
         let Self::I64Array(value) = self else {
             self.type_panic("I64Array");
         };
 
-        value.iter().for_each(|v| f(*v));
+        value.as_ptr() as usize
     }
 
     pub fn from_u64_array(value: &[u64]) -> Self {
         Self::U64Array(value.into())
     }
 
-    pub fn for_each_u64(&self, f: impl Fn(u64)) {
+    /// Address of the first element of the array (cast with ffi.cast) (valid for `array_len` elements while the payload lives).
+    pub fn get_u64_array_addr(&self) -> usize {
         let Self::U64Array(value) = self else {
             self.type_panic("U64Array");
         };
 
-        value.iter().for_each(|v| f(*v));
+        value.as_ptr() as usize
     }
 
     pub fn from_f32_array(value: &[f32]) -> Self {
         Self::F32Array(value.into())
     }
 
-    pub fn for_each_f32(&self, f: impl Fn(f32)) {
+    /// Address of the first element of the array (cast with ffi.cast) (valid for `array_len` elements while the payload lives).
+    pub fn get_f32_array_addr(&self) -> usize {
         let Self::F32Array(value) = self else {
             self.type_panic("F32Array");
         };
 
-        value.iter().for_each(|v| f(*v));
+        value.as_ptr() as usize
     }
 
     pub fn from_f64_array(value: &[f64]) -> Self {
         Self::F64Array(value.into())
     }
 
-    pub fn for_each_f64(&self, f: impl Fn(f64)) {
+    /// Address of the first element of the array (cast with ffi.cast) (valid for `array_len` elements while the payload lives).
+    pub fn get_f64_array_addr(&self) -> usize {
         let Self::F64Array(value) = self else {
             self.type_panic("F64Array");
         };
 
-        value.iter().for_each(|v| f(*v));
+        value.as_ptr() as usize
     }
 
     pub fn from_string_array(value: &[&str]) -> Self {
         Self::StringArray(value.iter().map(|v| v.to_string()).collect())
     }
 
-    pub fn for_each_string(&self, f: impl Fn(&str)) {
+    /// Returns the string at `index` of a string array. Panics if out of range.
+    pub fn get_string_array_item(&self, index: usize) -> &str {
         let Self::StringArray(value) = self else {
             self.type_panic("StringArray");
         };
 
-        value.iter().for_each(|v| f(v));
+        value[index].as_str()
+    }
+
+    /// Number of elements of any array payload type. Zero for non-array payloads.
+    pub fn array_len(&self) -> usize {
+        match self {
+            Self::BoolArray(v) => v.len(),
+            Self::I8Array(v) => v.len(),
+            Self::U8Array(v) => v.len(),
+            Self::I16Array(v) => v.len(),
+            Self::U16Array(v) => v.len(),
+            Self::I32Array(v) => v.len(),
+            Self::U32Array(v) => v.len(),
+            Self::I64Array(v) => v.len(),
+            Self::U64Array(v) => v.len(),
+            Self::F32Array(v) => v.len(),
+            Self::F64Array(v) => v.len(),
+            Self::StringArray(v) => v.len(),
+            _ => 0,
+        }
     }
 
     pub fn from_table(value: PayloadTable) -> Self {

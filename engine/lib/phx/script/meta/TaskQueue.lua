@@ -48,6 +48,12 @@ function TaskQueue:sendTask(workerId, data) end
 ---@return TaskResult?
 function TaskQueue:nextTaskResult(workerId) end
 
+-- Like `next_task_result`, but waits up to `timeout_ms` milliseconds for a result.
+---@param workerId integer
+---@param timeoutMs integer
+---@return TaskResult?
+function TaskQueue:waitTaskResult(workerId, timeoutMs) end
+
 -- Send a message to the echo worker.
 ---@param data string
 ---@return boolean

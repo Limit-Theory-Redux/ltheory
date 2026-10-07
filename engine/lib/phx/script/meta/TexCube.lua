@@ -10,10 +10,35 @@ TexCube = {}
 ---@return TexCube
 function TexCube.Create(r, size, format) end
 
+-- A cube with `mips` levels (0 = the full chain) and the `TexUsage` bits
+-- in `usage` (0 = the default for the kind).
+---@param r Renderer
+---@param size integer
+---@param format TexFormat
+---@param mips integer
+---@param usage integer
+---@return TexCube
+function TexCube.CreateDesc(r, size, format, mips, usage) end
+
 ---@param r Renderer
 ---@param path string
 ---@return TexCube
 function TexCube.Load(r, path) end
+
+-- View of the whole cube, for sampling.
+---@return TexView
+function TexCube:view() end
+
+-- View of one face at mip level 0, usable as a render attachment.
+---@param face CubeFace
+---@return TexView
+function TexCube:faceView(face) end
+
+-- View of one face at the given mip level, usable as a render attachment.
+---@param face CubeFace
+---@param level integer
+---@return TexView
+function TexCube:faceMipView(face, level) end
 
 ---@param r Renderer
 ---@param red number
@@ -46,10 +71,6 @@ function TexCube:getFormat() end
 function TexCube:getSize() end
 
 ---@param r Renderer
----@param state ShaderState
-function TexCube:generate(r, state) end
-
----@param r Renderer
 function TexCube:genMipmap(r) end
 
 ---@param r Renderer
@@ -59,14 +80,6 @@ function TexCube:genMipmap(r) end
 ---@param tf TexFormat
 ---@param df DataFormat
 function TexCube:setDataBytes(r, data, face, level, tf, df) end
-
----@param r Renderer
----@param filter TexFilter
-function TexCube:setMagFilter(r, filter) end
-
----@param r Renderer
----@param filter TexFilter
-function TexCube:setMinFilter(r, filter) end
 
 ---@param r Renderer
 ---@param sampleCount integer

@@ -1,7 +1,11 @@
 #version 330
 
-uniform float casSharpness;  // 0.0 = none, 1.0 = strong
-uniform vec2 size;
+#group 2
+layout(std140) uniform Params {
+    float casSharpness;  // 0.0 = none, 1.0 = strong
+    vec2 size;
+};
+#group 3
 uniform sampler2D src;
 
 in vec2 uv;

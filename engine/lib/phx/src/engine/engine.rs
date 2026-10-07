@@ -125,10 +125,33 @@ impl Engine {
         // (its own swap_buffers is a no-op from this point on; frame end goes
         // through `renderer.end_frame_triple_buffered()` instead, driven from
         // `MainLoop::about_to_wait`).
-        let context = winit_window
-            .extract_gl_context()
-            .expect("Failed to extract GL context for renderer");
-        let mut renderer = Renderer::start(context).expect("Failed to start renderer");
+        //
+        // `LTHEORY_WGPU` selects the wgpu backend instead: `resume()` above
+        // already created a live GL context on the window, so it is dropped
+        // first (GL and wgpu must never coexist on one native window), then
+        // the surface bundle is built from the winit window.
+        // The immediate-renderer build is GL-only and ignores the variable.
+        let use_wgpu = cfg!(not(feature = "immediate")) && std::env::var("LTHEORY_WGPU").is_ok();
+        let mut renderer = if use_wgpu {
+            #[cfg(feature = "immediate")]
+            unreachable!("wgpu backend is not available in the immediate renderer build");
+            #[cfg(not(feature = "immediate"))]
+            {
+                info!("Starting renderer with wgpu backend (LTHEORY_WGPU)");
+                winit_window
+                    .disable_gl_backend()
+                    .expect("Failed to disable GL backend before wgpu startup");
+                let bundle = winit_window
+                    .extract_wgpu_surface(window.width() as u32, window.height() as u32)
+                    .expect("Failed to create wgpu surface bundle for renderer");
+                Renderer::start_wgpu(bundle).expect("Failed to start renderer")
+            }
+        } else {
+            let context = winit_window
+                .extract_gl_context()
+                .expect("Failed to extract GL context for renderer");
+            Renderer::start(context).expect("Failed to start renderer")
+        };
 
         // Optional live stats dashboard (feature `stats-server`, activated by
         // the ltr `--stats-server <port>` flag).

@@ -44,7 +44,7 @@ pub struct RenderStats {
     pub draw_mesh_calls: u64,
     pub draw_immediate_calls: u64,
     pub draw_instanced_calls: u64,
-    /// Vertices submitted via DrawImmediate in the last frame
+    /// Vertices submitted via `DrawImm` in the last frame
     pub immediate_vertices: u64,
     /// Instance-data items submitted in the last frame
     pub instanced_data_items: u64,
@@ -65,11 +65,31 @@ pub struct RenderStats {
     /// starvation), last frame, microseconds + number of starvation waits
     pub recv_wait_us: u64,
     pub recv_wait_count: u64,
-    /// Shader churn: BindShader commands last frame, how many hit an already
+    /// Shader churn: pipeline binds last frame, how many hit an already
     /// bound program (redundant), and how many distinct programs were bound.
     pub shader_bind_commands: u64,
     pub shader_redundant_binds: u64,
     pub shader_distinct_programs: u64,
     /// Texture binds skipped due to caching (cumulative)
     pub texture_binds_skipped_cumulative: u64,
+    /// Render passes begun in the last frame
+    pub passes: u64,
+    /// `SetBindGroup` commands executed in the last frame
+    pub bind_group_switches: u64,
+    /// Resource census at the last frame end. [`STAT_NA`] when the backend
+    /// cannot provide it.
+    pub pipelines_cached: u64,
+    pub samplers: u64,
+    pub bind_groups: u64,
+    pub textures: u64,
+    pub meshes: u64,
+    /// Approximate GPU memory of all live textures (from their descriptors)
+    pub texture_bytes: u64,
+    /// GPU time per render pass of a completed frame a few frames back
+    /// (timestamp queries). `gpu.available` is false when the backend cannot
+    /// provide it or `LTHEORY_GPU_TIMING=0`.
+    pub gpu: super::GpuTimings,
 }
+
+/// Value of a [`RenderStats`] field the backend cannot provide.
+pub const STAT_NA: u64 = u64::MAX;

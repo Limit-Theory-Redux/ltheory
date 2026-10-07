@@ -8,5 +8,5 @@
 ## Rendering
 
 1. [Render thread](render-thread.md)
-2. [Batch rendering](batch-rendering.md)
+2. [Scene list and instancing](batch-rendering.md)
 3. [Shader system](shader-system.md)

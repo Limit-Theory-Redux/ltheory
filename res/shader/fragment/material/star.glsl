@@ -1,13 +1,15 @@
 #include fragment
 #include deferred
 #include math
+#include draw_block
 
+// Per-draw values of the group-2 draw block (see MaterialDefs.lua).
+#define time (drawUser[0].x)
+#define starTemp (drawUser[0].y)
+#define starTint (drawUser[1].xyz)
+
+#group 1
 uniform sampler2D sunTex;
-uniform vec3 origin;
-uniform vec3 starTint;
-uniform float starTemp;
-uniform float time;
-uniform float scale;
 
 // Adapted from trisomie21's solar shader approach
 // Smooth 3D noise with configurable resolution

@@ -347,6 +347,40 @@ impl WinitWindow {
         }
     }
 
+    /// Permanently discard the unused GL context before the wgpu path takes
+    /// ownership of the same native window. The wgpu and GL backends must
+    /// never remain live simultaneously.
+    pub fn disable_gl_backend(&mut self) -> Result<(), WindowError> {
+        let old_state = std::mem::replace(&mut self.gl_state, GlState::Undefined);
+        match old_state {
+            GlState::Current { context, surface } => {
+                let context = context.make_not_current()?;
+                drop(surface);
+                drop(context);
+            }
+            GlState::NotCurrent { context } => {
+                drop(context);
+            }
+            GlState::Undefined => {}
+        }
+        info!("Unused GL backend disabled before wgpu startup");
+        Ok(())
+    }
+
+    /// Create the wgpu surface/device/queue bundle from this window.
+    ///
+    /// The wgpu path never extracts a GL context: the bundle is created from
+    /// the winit window directly and handed to the render thread (same
+    /// handoff point as `extract_gl_context`, minus GL).
+    pub fn extract_wgpu_surface(
+        &self,
+        width: u32,
+        height: u32,
+    ) -> Result<crate::window::WgpuStartupBundle, crate::window::WgpuError> {
+        debug!("Creating wgpu surface bundle for render thread");
+        crate::window::create_surface_bundle(&self.window, self.present_mode, width, height)
+    }
+
     /// Restore the GL context from the render thread.
     ///
     /// This is called when the render thread shuts down and returns the GL context

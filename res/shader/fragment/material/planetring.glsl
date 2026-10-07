@@ -3,16 +3,47 @@
 #include math
 #include color
 #include noise
+#include draw_block
 
-uniform float rMin;
-uniform float rMax;
-uniform float ringHeight;
-uniform float seed;
-uniform float time;
-uniform float rotationSpeed;
-uniform float twistFactor;
+#define time (drawUser[0].x)      // ring rotation time (per draw)
+
+#group 1
+layout(std140) uniform MaterialParams {
+  float rMin;
+  float rMax;
+  float ringHeight;
+  float seed;
+  float rotationSpeed;
+  float twistFactor;
+  int enableDebug;
+  int debugMode;
+};
 
 in vec3 objPos;
+
+// Per-ring random numbers come from an integer hash of the seed's bits, not
+// from `noise()`. `noise()` is `fract(sin(x) * 4137.3)`: a change in the last
+// bit of `sin(x)` moves the result anywhere in 0..1. An expression that only
+// reads uniforms (the seed) can be folded by the driver, and it was not
+// evaluated the same way on every draw: with identical uniforms, vertices,
+// pipeline and destination, the gaps jumped between two layouts on random
+// frames (BenchmarkPhases on wgpu, Vulkan and DX12; RMSE 11 to 17). Integer
+// arithmetic is exact, so these values are the same however they are
+// evaluated; only expressions that vary per fragment still use `noise()`.
+uint ringHash(uint x) {
+    x ^= x >> 16u;
+    x *= 0x7feb352du;
+    x ^= x >> 15u;
+    x *= 0x846ca68bu;
+    x ^= x >> 16u;
+    return x;
+}
+
+// A number in [0, 1) for (index, channel) of this ring, exact in float.
+float ringRandom(int index, int channel) {
+    uint h = ringHash(floatBitsToUint(seed) ^ ringHash(uint(index * 8 + channel) + 0x9e3779b9u));
+    return float(h >> 8u) * (1.0 / 16777216.0);
+}
 
 void main() {
     // --- Normalized radial coordinate ---
@@ -55,10 +86,9 @@ void main() {
     
     // Minor gaps with procedural variation
     for(int i = 0; i < 5; i++) {
-        float gapSeed = seed * float(i + 17);
-        float gapPos = fSmoothNoise(vec2(gapSeed, 0.0), 1, 2.0) * 0.7 + 0.15;
-        float gapWidth = 0.015 + 0.025 * fSmoothNoise(vec2(gapSeed, 1.0), 1, 2.0);
-        float gapDepth = 0.4 + 0.5 * fSmoothNoise(vec2(gapSeed, 2.0), 1, 2.0);
+        float gapPos = ringRandom(i, 0) * 0.7 + 0.15;
+        float gapWidth = 0.015 + 0.025 * ringRandom(i, 1);
+        float gapDepth = 0.4 + 0.5 * ringRandom(i, 2);
         
         float gap = smoothstep(gapPos - gapWidth, gapPos - gapWidth*0.5, rNorm) *
                     (1.0 - smoothstep(gapPos + gapWidth*0.5, gapPos + gapWidth, rNorm));
@@ -70,11 +100,11 @@ void main() {
     int streakLayers = 50;
     for(int i = 0; i < streakLayers; i++){
         float pos = fSmoothNoise(vec2(float(i), rNorm*60.0 + seed*float(i)), 1, 2.0) + rNorm*2.0;
-        float width = mix(0.015 + rNorm*0.04, 0.05 + rNorm*0.07, fSmoothNoise(vec2(float(i), seed*2.0),1,2.0));
+        float width = mix(0.015 + rNorm*0.04, 0.05 + rNorm*0.07, ringRandom(8 + i, 0));
         float intensity = mix(0.15, 0.65, fSmoothNoise(vec2(float(i), rNorm*3.0 + seed*3.0),1,2.0));
         
         // Variable vertical offset
-        float yOffset = 0.25 * fSmoothNoise(vec2(float(i), seed*10.0), 1, 2.0); 
+        float yOffset = 0.25 * ringRandom(8 + i, 1);
         float layerYNorm = clamp(yNorm + yOffset - 0.5, 0.0, 1.0);
         float layerFade = exp(-7.0 * abs(layerYNorm - 0.5));
 
@@ -94,7 +124,8 @@ void main() {
     dust *= streak * 0.9;
     
     // Radial density variation
-    float densityVar = 0.6 + 0.4 * fSmoothNoise(vec2(rNorm*30.0, seed*7.0), 2, 2.0);
+    // The per-ring offset is a whole number (exact); the noise varies per fragment.
+    float densityVar = 0.6 + 0.4 * fSmoothNoise(rNorm*30.0 + floor(ringRandom(0, 7) * 4096.0), 2, 2.0);
     dust *= densityVar;
 
     // Apply gap pattern

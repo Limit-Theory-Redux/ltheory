@@ -2,7 +2,7 @@
    Instanced counterpart to `wvp.glsl`: same output contract (`pos`, `normal`,
    `objPos`, and the varyings `vertex.glsl` provides), but `mWorld`/`mWorldIT`
    come from per-instance vertex attributes (see `instanced.glsl`) instead of
-   a uniform - use with `InstanceBatch`/`DrawInstancedWithData`, never with a
+   a uniform - use with `pass:drawMeshInstanced`, never with a
    plain `DrawMesh`.
 ----------------------------------------------------------------------------- */
 

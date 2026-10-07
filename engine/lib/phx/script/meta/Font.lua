@@ -10,6 +10,9 @@ Font = {}
 ---@return Font
 function Font.Load(r, name, size) end
 
+-- Draw `text` with its baseline-relative top-left corner at `x, y`, alpha
+-- blended. Every glyph is a quad of the font's atlas: a string is one
+-- draw per atlas page it touches.
 ---@param r Renderer
 ---@param text string
 ---@param x number

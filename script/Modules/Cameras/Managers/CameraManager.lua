@@ -32,11 +32,11 @@ function CameraManager:registerVars()
     ---@type TransformComponent|nil
     self.activeCameraTransform = nil
 
-    ---@type Vec3f Primary light direction, pushed to the Camera UBO in beginDraw
+    ---@type Vec3f Primary light direction, given to the renderer in beginDraw
     self.starDir = Vec3f(0, 1, 0)
 end
 
----Set the star (primary light) direction used by the Camera UBO
+---Set the star (primary light) direction given to the renderer in beginDraw
 ---@param dir Vec3f Star direction vector
 function CameraManager:setStarDir(dir)
     self.starDir = dir
@@ -246,7 +246,9 @@ function CameraManager:getUp()
     return self.activeCameraTransform:getRot():getUp()
 end
 
----Begin drawing with the active camera (sets shader variables)
+---Begin drawing with the active camera: every render pass that begins after
+---this renders with its view/projection (and the star direction). Rendering is
+---camera-relative, so the eye is the origin.
 function CameraManager:beginDraw()
     if not self.activeCameraData then
         Log.Error("CameraManager: Cannot beginDraw without active camera")
@@ -254,29 +256,7 @@ function CameraManager:beginDraw()
     end
 
     local camData = self.activeCameraData
-    ShaderVar.PushMatrix('mView', camData:getView())
-    ShaderVar.PushMatrix('mViewInv', camData:getViewInverse())
-    ShaderVar.PushMatrix('mProj', camData:getProjection())
-    ShaderVar.PushMatrix('mProjInv', camData:getProjectionInverse())
-
-    --local eye = self:getEye()
-    ShaderVar.PushFloat3('eye', 0.0, 0.0, 0.0) -- needs to use 0,0,0 for camera-relative
-
-    local sd = self.starDir
-    Renderer:updateCameraUbo(
-        camData:getView(), camData:getProjection(),
-        0.0, 0.0, 0.0, -- eye at origin (camera-relative)
-        sd.x, sd.y, sd.z
-    )
-end
-
----End drawing with the active camera (pops shader variables)
-function CameraManager:endDraw()
-    ShaderVar.Pop('mView')
-    ShaderVar.Pop('mViewInv')
-    ShaderVar.Pop('mProj')
-    ShaderVar.Pop('mProjInv')
-    ShaderVar.Pop('eye')
+    Renderer:setCamera(camData:getView(), camData:getProjection(), self.starDir)
 end
 
 ---Update the view matrix from the active camera's transform
@@ -309,6 +289,12 @@ end
 ---@param zFar? number Far clip plane (optional, uses config default)
 function CameraManager:updateProjectionMatrix(resX, resY, fov, zNear, zFar)
     if not self.activeCameraData then
+        return
+    end
+
+    -- A minimized window reports a zero size; keep the last valid projection
+    -- instead of building one from a NaN aspect ratio.
+    if not resX or not resY or resX <= 0 or resY <= 0 then
         return
     end
 
@@ -357,7 +343,8 @@ function CameraManager:screenToRay(screenPos, length)
 
     -- Calculate ray direction
     local dir = farPoint - nearPoint
-    if dir:length() < 1e-6 then
+    -- `not (>=)` also catches NaN from a degenerate projection
+    if not (dir:length() >= 1e-6) then
         dir = self.activeCameraTransform:getRot():getForward()
     else
         dir = dir:normalize()

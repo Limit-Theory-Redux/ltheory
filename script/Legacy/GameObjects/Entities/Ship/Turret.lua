@@ -1,3 +1,4 @@
+local ShaderLocations = require('Legacy.Util.ShaderLocations')
 local Entity = require('Legacy.GameObjects.Entity')
 local SocketType = require('Legacy.GameObjects.Entities.Ship.SocketType')
 local Material = require('Legacy.GameObjects.Material')
@@ -34,7 +35,7 @@ local Turret = Subclass("Turret", Entity, function(self)
     end
 
     if not varCache then
-        varCache = ShaderVarCache(shader, { 'color', 'size', 'alpha', 'mWorld', })
+        varCache = ShaderLocations(shader, { 'color', 'size', 'alpha', 'mWorld', })
     end
 
     self:addRigidBody(true, shared.mesh)

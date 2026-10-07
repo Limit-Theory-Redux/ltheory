@@ -127,9 +127,7 @@ function Collapsible:onDraw(focus, active)
     end
 
     -- Collapsed Indicator
-    UI.DrawEx.SimpleShaderStart(self:getColor(focus, active, Config.ui.color.fill))
-    Draw.Tri(a, b, c);
-    UI.DrawEx.SimpleShaderStop()
+    UI.DrawEx.SimpleTri(a.x, a.y, b.x, b.y, c.x, c.y, self:getColor(focus, active, Config.ui.color.fill))
 
     -- Header Title
     local font  = Config.ui.font.title

@@ -31,3 +31,31 @@ impl From<internal::PresentMode> for PresentMode {
         }
     }
 }
+
+impl From<PresentMode> for wgpu::PresentMode {
+    fn from(value: PresentMode) -> Self {
+        match value {
+            // Fifo = classic vsync (SwapInterval::Wait(1)); Immediate = no vsync
+            // (SwapInterval::DontWait) — mirrors the glutin mapping above.
+            PresentMode::Vsync => Self::Fifo,
+            PresentMode::NoVsync => Self::Immediate,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn present_mode_maps_to_wgpu() {
+        assert_eq!(
+            wgpu::PresentMode::from(PresentMode::Vsync),
+            wgpu::PresentMode::Fifo
+        );
+        assert_eq!(
+            wgpu::PresentMode::from(PresentMode::NoVsync),
+            wgpu::PresentMode::Immediate
+        );
+    }
+}

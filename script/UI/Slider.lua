@@ -90,14 +90,12 @@ function Slider:onDraw(focus, active)
     local barSY = 4
     local barX  = x + self.thumbSX / 2
     local barY  = y + (sy - barSY) / 2
---    Config.ui.color.border:set()
-    Draw.Rect(barX, barY, barSX, barSY)
+    UI.DrawEx.SimpleRect(barX, barY, barSX, barSY, Config.ui.color.border)
 
     -- Thumb
     local thumbX = Math.Lerp(x, x + sx - self.thumbSX, self.value)
     local thumbY = y + (sy - self.thumbSY) / 2
-    self:getColor(focus, active, Config.ui.color.fill)
-    Draw.Rect(thumbX, thumbY, self.thumbSX, self.thumbSY)
+    UI.DrawEx.SimpleRect(thumbX, thumbY, self.thumbSX, self.thumbSY, self:getColor(focus, active, Config.ui.color.fill))
 end
 
 function Slider:setValueNormalized(value)

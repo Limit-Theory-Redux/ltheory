@@ -1,9 +1,11 @@
 #include fragment
 
-uniform float innerRadius;
-uniform float outerRadius;
-uniform vec2 size;
-uniform vec4 color;
+#include imm
+
+#define innerRadius (imm_p.x)
+#define outerRadius (imm_p.y)
+#define size (imm_p.zw)
+#define color imm_color
 
 void main() {
   vec2 uvp = uv - 0.5;

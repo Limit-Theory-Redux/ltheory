@@ -1,85 +1,36 @@
 local Registry           = require("Core.ECS.Registry")
 local QuickProfiler      = require("Shared.Tools.QuickProfiler")
-local RenderingPass      = require("Shared.Rendering.RenderingPass")
 local CameraManager      = require("Modules.Cameras.Managers.CameraManager")
 local RenderComp         = require("Modules.Rendering.Components").Render
 local PointLightSystem   = require("Modules.Rendering.Systems.PointLightSystem")
 local LightManager       = require("Modules.Rendering.Managers.LightManager")
 local CameraComponent    = require("Modules.Cameras.Components.CameraDataComponent")
 local RigidBodyComponent = require("Modules.Physics.Components.RigidBodyComponent")
-local UniformFuncs       = require("Shared.Rendering.UniformFuncs")
 local Cache              = require("Render.Cache")
+local Pipelines          = require("Render.Pipelines")
 
-local ffi = require('ffi')
-local libphx = require('libphx').lib
+-- Pipeline states of the fullscreen passes (post-processing, lighting,
+-- present). The vertex shader (`fullscreen_ndc`, `fullscreen_ray`) maps the
+-- built-in unit quad to the viewport, so no state besides blending matters.
+---@type PipelineState
+local FullscreenState = { vertex = VertexLayout.Fullscreen }
+---@type PipelineState
+local FullscreenAdditive = { vertex = VertexLayout.Fullscreen, blend = BlendMode.Additive }
 
--- Frustum-cull scratch (see `cullPassLists`/`buildPassLists`): reused across
--- entities/frames to avoid per-entity allocation.
---   scratchPos       - out-param for RigidBody:getPos (double precision)
---   scratchBoundsVec - mutated in place, then passed by reference to
---                      Renderer:addCullEntity; Rust copies its value out
---                      immediately, so one shared instance is safe to reuse
---                      across every entity in a frame.
---   ZERO_EYE         - eye is always camera-relative (0,0,0) per
---                      CameraManager:beginDraw, so a single constant works
---                      for every Renderer:beginBatch call.
+-- Descriptors of the scene passes are cached per texture set. The buffers are
+-- swapped between passes (buffer0/buffer1/buffer2), so a few distinct sets
+-- recur; anything beyond this is a stale set from before a resize.
+local MAX_CACHED_DESCS = 4
+
+-- Scratch for `buildPassLists`: out-param of RigidBody:getPos (double precision),
+-- reused across entities and frames to avoid per-entity allocation.
 local scratchPos = Position()
-local scratchBoundsVec = Vec3f(0, 0, 0)
-local scratchCenter = Vec3f(0, 0, 0)
-local ZERO_EYE = Vec3f(0, 0, 0)
-
---- Radius of a sphere centred on the mesh's LOCAL ORIGIN that contains the
---- mesh. The cull bound has to come from the drawn geometry, not from the
---- entity's physics collider: the two are unrelated in general (e.g.
---- PlanetTest's ring mesh spans hundreds of units around a default
---- unit-sphere collider). Centring on the origin rather than the mesh's own
---- bound centre is what lets the caller use the rigid body's position as the
---- sphere centre without having to apply the body's rotation to an offset.
----
---- Mesh's own radius is measured about its bound centre, so shifting the
---- centre to the origin costs `|centre|` - exact for origin-centred meshes
---- (every mesh in play here) and conservative otherwise.
----
---- Both calls are version-cached on the Rust side (MeshShared::update_info),
---- so this is two field copies per mesh per frame, not a vertex re-scan.
---- Mesh_GetCenter is called through libphx rather than `mesh:getCenter()`
---- because ffi_ext/Mesh.lua wraps that to allocate and return a fresh Vec3f
---- per call; this path fills the shared scratch instead.
-local function meshOriginRadius(mesh)
-    libphx.Mesh_GetCenter(mesh, scratchCenter)
-    local cx, cy, cz = scratchCenter.x, scratchCenter.y, scratchCenter.z
-    return math.sqrt(cx * cx + cy * cy + cz * cz) + mesh:getRadius()
-end
-
--- Dense integer ids for (vs, fs) shader-source pairs, used as the batch sort
--- key so `cullPassLists` groups draws by shader program. Keyed on source
--- names (not `shader:resourceId()`) so it survives shader hot-reload, and
--- because `Material:clone()` preserves `vs`/`fs` so per-entity material
--- clones of the same definition still share a key. Memoized on
--- `mat.__sortKey` so the string concat happens once per distinct pair ever.
-local shaderKeys = {}
-local nextShaderKey = 0
-local function shaderKeyFor(mat)
-    local key = mat.__sortKey
-    if key then return key end
-
-    local name = mat.vs .. '|' .. mat.fs
-    key = shaderKeys[name]
-    if not key then
-        key = nextShaderKey
-        nextShaderKey = nextShaderKey + 1
-        shaderKeys[name] = key
-    end
-    mat.__sortKey = key
-    return key
-end
 
 ---@class RenderCoreSystem
 ---@overload fun(self): RenderCoreSystem
 ---@overload fun(): RenderCoreSystem
 local RenderCoreSystem = Class("RenderCoreSystem", function(self)
     require("Shared.Definitions.MaterialDefs")
-    require("Shared.Definitions.UniformFuncDefs")
 
     self:registerVars()
     self:registerPasses()
@@ -97,22 +48,12 @@ function RenderCoreSystem:registerVars()
         frustumCulling  = Config.render.general.frustumCulling,
     }
 
-    -- Per-blend-mode frustum-cull scratch, filled by `cullPassLists`:
-    --   cullBufs[bm]  = { arr = <uint32_t[?]>, cap = n } - grown by doubling,
-    --                   never shrunk, reused across frames.
-    --   passOrder[bm] = { buf = <uint32_t[?]>, n = count } - the surviving,
-    --                   sorted entries for this frame, or nil if culling is
-    --                   off/unavailable (renderInOrder then falls back to
-    --                   walking passMeshes[bm] in full).
-    self.cullBufs  = {}
-    self.passOrder = {}
-
-    -- Per-pass mesh/render-fn buckets, filled by `buildPassLists` and
-    -- persisted across frames: entries and bucket tables are reused in
-    -- place (tracked via an explicit `.n` count, since a reused table can
-    -- have stale entries past the current frame's count) rather than
-    -- reallocated every frame.
-    self.passMeshes    = {}
+    -- What the scene passes draw: filled once per frame by `buildPassLists`
+    -- (entries are reused in place), then culled, sorted and emitted per pass
+    -- by `SceneList:submit`. Render-fn entities are kept apart in
+    -- `passRenderFns` (tracked via an explicit `.n` count, since a reused
+    -- table can have stale entries past the current frame's count).
+    self.scene         = SceneList.Create()
     self.passRenderFns = { n = 0 }
     self.cullStats = { submitted = 0, visible = 0, culled = 0 }
 
@@ -131,6 +72,7 @@ function RenderCoreSystem:registerVars()
     self.autoExposure    = {
         current = 1.0, -- current adapted exposure
         target  = 1.0, -- what we're adapting toward this frame
+        ticket  = nil, -- the luminance readback in flight (S8: `readAsync` of a small mip of buffer0)
     }
 
     local win            = Window:size()
@@ -143,6 +85,9 @@ function RenderCoreSystem:registerVars()
     self.ds              = 4  -- downsample factor for bloom (matches old pipeline)
 
     self.buffers         = {}
+    -- Single-color-attachment pass descriptors, cached per texture (weak, so
+    -- a resized-away buffer takes its descriptors with it); see `colorPassDesc`.
+    self.passDescCache   = setmetatable({}, { __mode = 'k' })
     self:initializeBuffers()
     self.passes = {}
     self.level = 0
@@ -171,32 +116,12 @@ function RenderCoreSystem:getCullStats()
     return self.cullStats
 end
 
---- Grow-by-doubling `uint32_t[?]` scratch buffer for `Renderer:cullBatch`'s
---- out-param, one per blend mode, reused across frames. Never shrinks.
----@param bm integer blend mode key
----@param need integer minimum capacity required this frame
----@return ffi.cdata* buffer of at least `need` uint32_t elements
-function RenderCoreSystem:cullBuffer(bm, need)
-    local buf = self.cullBufs[bm]
-    if not buf then
-        buf = { arr = ffi.new('uint32_t[?]', need), cap = need }
-        self.cullBufs[bm] = buf
-    elseif buf.cap < need then
-        local cap = buf.cap * 2
-        if cap < need then cap = need end
-        buf.arr = ffi.new('uint32_t[?]', cap)
-        buf.cap = cap
-    end
-    return buf.arr
-end
-
 function RenderCoreSystem:initializeBuffers()
     local function create(x, y, fmt)
-        local t = Tex2D.Create(x, y, fmt)
-        t:setMagFilter(TexFilter.Linear)
-        t:setMinFilter(TexFilter.Linear)
-        t:setWrapMode(TexWrapMode.Clamp)
-        t:push(); Draw.Clear(0, 0, 0, 0); t:pop(); t:genMipmap()
+        local t = Tex2D.Create(x, y, fmt, { mips = true })
+        -- A depth buffer has nothing to clear here (the opaque pass clears it).
+        if not TexFormat.IsDepth(fmt) then t:clear(0, 0, 0, 0) end
+        t:genMipmap()
         return t
     end
 
@@ -212,32 +137,83 @@ function RenderCoreSystem:initializeBuffers()
 end
 
 function RenderCoreSystem:registerPasses()
-    local function pass(name, blend, cull, dt, dw, bufs, onStart)
-        self.passes[name] = RenderingPass(bufs, {
-            blendMode = blend, cullFace = cull, depthTest = dt, depthWritable = dw
-        }, onStart)
+    -- Fixed-function state (blend, culling, depth) is not part of a pass: every
+    -- scene draw brings its pipeline (see `Render.Pipelines` for the state of
+    -- each pass), so a pass is only its attachments and load ops.
+    ---@param clear { color: number[]|nil, depth: number|nil }|nil nil keeps the contents (LoadOp.Load)
+    local function pass(name, bufs, clear)
+        self.passes[name] = { name = tostring(name), bufferOrder = bufs, clear = clear or {}, descs = {} }
     end
 
     pass(Enums.RenderingPasses.Opaque,
-        BlendMode.Disabled, self.settings.cullFace and CullFace.Back or CullFace.None,
-        true, true,
         { Enums.BufferName.buffer0, Enums.BufferName.buffer1, Enums.BufferName.zBufferL, Enums.BufferName.zBuffer },
-        function()
-            Draw.Clear(0, 0, 0, 0); Draw.ClearDepth(1); Draw.Color(1, 1, 1, 1)
-        end)
+        { color = { 0, 0, 0, 0 }, depth = 1 })
 
     pass(Enums.RenderingPasses.Additive,
-        BlendMode.Additive, CullFace.None, true, false,
         { Enums.BufferName.buffer0, Enums.BufferName.zBuffer })
 
     pass(Enums.RenderingPasses.Alpha,
-        BlendMode.Alpha, CullFace.None, true, false,
         { Enums.BufferName.buffer0, Enums.BufferName.zBuffer })
 
     pass(Enums.RenderingPasses.UI,
-        BlendMode.Alpha, CullFace.None, false, false,
         { Enums.BufferName.buffer1, Enums.BufferName.zBuffer },
-        function() Draw.Clear(0, 0, 0, 0) end)
+        { color = { 0, 0, 0, 0 } })
+
+    -- The window: one backbuffer pass that draws the final image.
+    self.presentDesc = RenderPassDesc.Create('Present')
+end
+
+--- The `RenderPassDesc` of a scene pass for the current buffers: color
+--- attachments in `bufferOrder` order, the depth-format buffer as depth.
+---@param spec table scene pass spec made by `registerPasses`
+---@return RenderPassDesc
+function RenderCoreSystem:scenePassDesc(spec)
+    local buffers = self.buffers
+    local order = spec.bufferOrder
+    local descs = spec.descs
+    for _, entry in ipairs(descs) do
+        local same = true
+        for i = 1, #order do
+            if entry.textures[i] ~= buffers[order[i]] then
+                same = false
+                break
+            end
+        end
+        if same then return entry.desc end
+    end
+
+    local desc = RenderPassDesc.Create(spec.name)
+    local textures = {}
+    local colorIndex = 0
+    local c = spec.clear.color
+    local d = spec.clear.depth
+    for i = 1, #order do
+        local tex = buffers[order[i]]
+        textures[i] = tex
+        if TexFormat.IsDepth(tex:getFormat()) then
+            desc:depth(tex:view(), d and LoadOp.Clear or LoadOp.Load, d or 1.0)
+        else
+            if c then
+                desc:color(colorIndex, tex:view(), LoadOp.Clear, c[1], c[2], c[3], c[4])
+            else
+                desc:color(colorIndex, tex:view(), LoadOp.Load, 0, 0, 0, 0)
+            end
+            colorIndex = colorIndex + 1
+        end
+    end
+
+    if #descs >= MAX_CACHED_DESCS then
+        table.remove(descs, 1)
+    end
+    descs[#descs + 1] = { textures = textures, desc = desc }
+    return desc
+end
+
+--- Begin a scene pass on the current buffers.
+---@param name RenderingPassName
+---@return RenderPass
+function RenderCoreSystem:beginScenePass(name)
+    return Renderer:beginPass(self:scenePassDesc(self.passes[name]))
 end
 
 ---@param data EventData
@@ -254,10 +230,8 @@ function RenderCoreSystem:render(data)
 
     self:handleResize()
 
-    Window:beginDraw()
+    -- Only the final present draws to the window, in its own backbuffer pass.
     ClipRect.PushDisabled()
-    RenderState.PushAllDefaults()
-
     CameraManager:updateViewMatrix()
     CameraManager:updateProjectionMatrix(self.resX, self.resY)
     CameraManager:beginDraw()
@@ -266,16 +240,17 @@ function RenderCoreSystem:render(data)
     -- (including reusable diagnostics) consume this same snapshot.
     PointLightSystem:update(dt)
 
-    -- Sort visible meshes into per-pass lists once (renderInOrder runs 3×).
+    -- Collect what the scene passes draw once (each pass submits its bucket).
     self:buildPassLists()
-    self:cullPassLists()
 
     -- Opaque Pass
     Profiler.Begin('Render.Opaque')
     self.currentPass = Enums.RenderingPasses.Opaque
-    self.passes[self.currentPass]:start(self.buffers, self.ssResX, self.ssResY)
-    self:renderInOrder(BlendMode.Disabled)
-    self.passes[self.currentPass]:stop()
+    do
+        local pass = self:beginScenePass(self.currentPass)
+        self:renderInOrder(pass, BlendMode.Disabled)
+        pass:finish()
+    end
     Profiler.End() -- Render.Opaque
 
     -- Deferred Lighting Pass
@@ -288,42 +263,46 @@ function RenderCoreSystem:render(data)
     -- Additive Pass
     Profiler.Begin('Render.Additive')
     self.currentPass = Enums.RenderingPasses.Additive
-    self.passes[self.currentPass]:start(self.buffers, self.ssResX, self.ssResY)
-    self:renderInOrder(BlendMode.Additive)
-    self.passes[self.currentPass]:stop()
+    do
+        local pass = self:beginScenePass(self.currentPass)
+        self:renderInOrder(pass, BlendMode.Additive)
+        pass:finish()
+    end
     Profiler.End() -- Render.Additive
 
     -- Alpha Pass
     Profiler.Begin('Render.Alpha')
     self.currentPass = Enums.RenderingPasses.Alpha
-    self.passes[self.currentPass]:start(self.buffers, self.ssResX, self.ssResY)
-    self:renderInOrder(BlendMode.Alpha)
-    self.passes[self.currentPass]:stop()
+    do
+        local pass = self:beginScenePass(self.currentPass)
+        self:renderInOrder(pass, BlendMode.Alpha)
+        pass:finish()
+    end
     Profiler.End() -- Render.Alpha
+
+    local scene, st = self.scene, self.cullStats
+    st.submitted, st.visible, st.culled = scene:getSubmitted(), scene:getVisible(), scene:getCulled()
 
     -- UI Pass
     Profiler.Begin('Render.UI')
     self.currentPass = Enums.RenderingPasses.UI
-    self.passes[self.currentPass]:start(self.buffers, self.ssResX, self.ssResY)
-    self.passes[self.currentPass]:stop()
+    self:beginScenePass(self.currentPass):finish()
     Profiler.End() -- Render.UI
 
     -- Manual UI Composite: buffer0 (scene) + buffer1 (UI) → buffer2
     Profiler.Begin('Render.UI.Composite')
     do
         local buffer2 = self.buffers[Enums.BufferName.buffer2]
-        buffer2:push()
+        local pass = Renderer:beginPass(self:colorPassDesc('UI.Composite', buffer2, 0, true))
 
-        Draw.Clear(0, 0, 0, 0) -- Recommended
+        local shader = Cache.Shader('fullscreen_ndc', 'ui/composite')
+        pass:setPipeline(Pipelines.get(shader, FullscreenState))
+        pass:setInputs(
+            self.buffers[Enums.BufferName.buffer0]:mipView(0), Samplers.LinearClamp, -- srcBottom
+            self.buffers[Enums.BufferName.buffer1]:mipView(0), Samplers.LinearClamp) -- srcTop
+        pass:drawFullscreen()
 
-        local shader = Cache.Shader('ui', 'ui/composite')
-        shader:start()
-        shader:setTex2D('srcBottom', self.buffers[Enums.BufferName.buffer0])
-        shader:setTex2D('srcTop', self.buffers[Enums.BufferName.buffer1])
-        Draw.Rect(0, 0, self.ssResX, self.ssResY)
-        shader:stop()
-
-        buffer2:pop()
+        pass:finish()
 
         -- Swap: make composited result the new main buffer
         self.buffers[Enums.BufferName.buffer0], self.buffers[Enums.BufferName.buffer2] =
@@ -372,17 +351,20 @@ function RenderCoreSystem:render(data)
     self:radialBlur(dt)
     Profiler.End()
 
-    CameraManager:endDraw()
-
-    if self.settings.showBuffers then
-        self:presentAll(0, 0, self.resX, self.resY)
-    else
-        self:present(0, 0, self.resX, self.resY, false)
+    Profiler.Begin('Render.Present')
+    self.presentDesc:backbuffer(self.resX, self.resY, LoadOp.Load, 0, 0, 0, 1)
+    do
+        local pass = Renderer:beginPass(self.presentDesc)
+        if self.settings.showBuffers then
+            self:presentAll(pass, self.resX, self.resY)
+        else
+            self:present(pass)
+        end
+        pass:finish()
     end
+    Profiler.End()
 
-    RenderState.PopAll()
     ClipRect.Pop()
-    Window:endDraw()
 
     self.currentPass = nil
 
@@ -414,18 +396,15 @@ function RenderCoreSystem:handleResize()
         self:initializeBuffers()
     end
 
-    -- Reset mip settings
-    for _, buf in pairs(self.buffers) do
-        if buf.setMipRange then
-            buf:setMipRange(0, 0)
-            buf:setMinFilter(TexFilter.Linear)
-        end
-    end
+    -- Post-processing samples explicit mip views (`downsampleForPost` picks the level)
     self.level = 0
 end
 
-function RenderCoreSystem:renderInOrder(blendMode)
-    local lastMaterial = nil
+--- Draw one scene pass: the custom render fns, then the scene list's bucket
+--- of the pass's blend mode.
+---@param pass RenderPass the open pass
+---@param blendMode BlendMode
+function RenderCoreSystem:renderInOrder(pass, blendMode)
     local eye = CameraManager:getEye()
 
     if blendMode == BlendMode.Additive then
@@ -433,75 +412,32 @@ function RenderCoreSystem:renderInOrder(blendMode)
     end
 
     -- Custom render fns are called in every pass (their blend mode isn't
-    -- queryable). Mesh entities are pre-sorted into per-pass lists by
-    -- buildPassLists, so this loop only touches entities that draw here.
+    -- queryable); they set their own pipeline. Mesh entities are in the scene
+    -- list, so `submit` only touches the meshes that draw in this pass.
     local fns = self.passRenderFns
     Profiler.Begin('Render.Fns')
     for fi = 1, fns.n do
         local fnEntry = fns[fi]
         fnEntry.fn(fnEntry.entity, blendMode)
-        lastMaterial = nil
     end
     Profiler.End()
 
-    local list = self.passMeshes[blendMode]
-    if not list then return end
-
-    -- When cullPassLists ran (frustumCulling on and Renderer:cullBatch
-    -- available), walk only the surviving entries in sort-key order via the
-    -- 0-indexed uint32_t buffer it filled; otherwise fall back to the full,
-    -- unculled list.
-    local order = self.passOrder[blendMode]
-    local count = order and order.n or list.n
-    local buf = order and order.buf
-
-    for k = 1, count do
-        local entry = list[buf and buf[k - 1] or k]
-        local mat = entry.mat
-        local sh = entry.sh
-
-        -- start() resets the texture-unit counter, so it must
-        -- run per mesh (cannot be skipped for shared shaders);
-        -- its auto-var re-application is already skipped inside
-        -- by the var-stack revision check, and the redundant
-        -- BindShader command is suppressed on the main thread.
-        sh:start()
-
-        -- The uniform funcs (UniformFuncs, keyed by UniformType)
-        -- call iSetFloat/iSetFloat3/... which live on the raw
-        -- Shader, not the ShaderState wrapper. Resolve it once
-        -- (sh:shader() - colon form passes the ShaderState as self).
-        local shader = sh:shader()
-
-        -- Material-level vars only change when the material
-        -- changes (they're constant across instances of the
-        -- same material), so apply them once per material.
-        if mat ~= lastMaterial then
-            self:applyMaterialVars(mat, shader, eye, entry.entity)
-            lastMaterial = mat
-        end
-
-        self:applyInstanceVars(mat, shader, eye, entry.entity, entry.instCache)
-
-        entry.mesh:draw()
-    end
+    -- Frustum cull, sort by (pipeline, material, mesh) (alpha keeps insertion
+    -- order), per-draw callbacks of the survivors, then the draws.
+    Profiler.Begin('Render.Scene')
+    self.scene:submit(pass, blendMode, self.settings.frustumCulling)
+    Profiler.End()
 end
 
---- Sort visible render entities into per-pass mesh lists once per frame.
---- renderInOrder runs 3× (Opaque/Additive/Alpha passes); the old code
---- re-iterated every entity × mesh in each pass just to filter on blend
---- mode. Building the lists once turns that into one iteration + three
---- walks of only the meshes that actually draw.
+--- Collect what the scene passes draw, once per frame (the passes run 3x and
+--- each submits its own bucket). One transform per mesh entity, written in
+--- place by the rigid body, and one item per mesh. Culling, sorting and the
+--- per-draw values happen in `SceneList:submit`.
 function RenderCoreSystem:buildPassLists()
-    -- Buckets and their entry tables persist across frames (see
-    -- registerVars) and are refilled in place below, tracked via an
-    -- explicit `.n` count rather than `#list` - entries past `.n` are
-    -- last frame's leftovers and must never be read.
-    local passMeshes = self.passMeshes
+    local scene = self.scene
     local passRenderFns = self.passRenderFns
-    local entityInstCache = {}
 
-    for bm, list in pairs(passMeshes) do list.n = 0 end
+    scene:reset()
     passRenderFns.n = 0
 
     local eye = CameraManager:getEye()
@@ -521,181 +457,43 @@ function RenderCoreSystem:buildPassLists()
             fnEntry.fn = rend:getRenderFn()
             fnEntry.entity = entity
         elseif rend:getMeshes() then
-            -- Per-entity instance-var cache. All meshes of an entity
-            -- (hull/turrets/thrusters) share the same rigid-body transform,
-            -- so perInstance vars (mWorld/mWorldIT/scale) are identical
-            -- across them. Previously each mesh recomputed + reallocated
-            -- the matrices via getToWorldMatrix()/getToLocalMatrix() (each
-            -- a managed Matrix* with a finalizer); the cache computes each
-            -- var once per entity per frame and reuses the values.
-            local instCache = {}
-            entityInstCache[entity.id] = instCache
-
-            -- Cull sphere centre for this entity (cullPassLists): the rigid
-            -- body's position, camera-relative to match the camera-relative
-            -- render (CameraManager:beginDraw pushes eye = (0,0,0)). Plain
-            -- double subtraction rather than Position:relativeTo(), which
-            -- returns a boxed Vec3 by value.
+            -- All meshes of an entity (hull/turrets/thrusters) share the same
+            -- rigid-body transform: one transform, written straight into the
+            -- list, serves them all (mWorldIT is derived once per transform
+            -- when it draws).
             --
-            -- `scale` is the same factor mWorld carries
-            -- (RigidBody::get_to_world_matrix multiplies by get_scale), so
-            -- mesh-local extents must be scaled by it to get world extents.
+            -- Cull sphere centre: the rigid body's position, camera-relative
+            -- to match the camera-relative render (CameraManager:beginDraw
+            -- pushes eye = (0,0,0)). Plain double subtraction rather than
+            -- Position:relativeTo(), which returns a boxed Vec3 by value.
             --
-            -- No rigid body -> `scale = nil`, which becomes the `radius = -1`
-            -- "never cull" sentinel below (mWorldFunc would already fail on
-            -- such an entity, so this never regresses a working case).
-            local cx, cy, cz, scale
+            -- `scale` is the factor mWorld carries (RigidBody::get_to_world_matrix
+            -- multiplies by get_scale), so mesh-local extents are scaled by it
+            -- to get world extents. No rigid body -> `scale = -1`, the "never
+            -- cull" sentinel, and an identity transform.
+            local t = scene:addTransform()
             local rbc = entity:get(RigidBodyComponent)
             if rbc then
                 local rb = rbc:getRigidBody()
                 rb:getPos(scratchPos)
-                cx, cy, cz = scratchPos.x - eye.x, scratchPos.y - eye.y, scratchPos.z - eye.z
-                scale = rbc:getScale()
+                t.cx, t.cy, t.cz = scratchPos.x - eye.x, scratchPos.y - eye.y, scratchPos.z - eye.z
+                t.scale = rbc:getScale()
+                rb:getToWorldMatrixInto(eye, t.world)
             else
-                cx, cy, cz = 0, 0, 0
+                t.cx, t.cy, t.cz = 0, 0, 0
+                t.scale = -1
+                local m = t.world.m
+                m[0], m[5], m[10], m[15] = 1, 1, 1, 1
             end
 
+            local index = t.index
             local meshes = rend:getMeshes()
             for mi = 1, #meshes do
                 local meshmat = meshes[mi]
-                local mat = meshmat.material
-                local bm = mat:getBlendMode() or BlendMode.Disabled
-                local list = passMeshes[bm]
-                if not list then
-                    list = { n = 0 }
-                    passMeshes[bm] = list
-                end
-                local n = list.n + 1
-                list.n = n
-                local e = list[n]
-                if not e then
-                    e = {}
-                    list[n] = e
-                end
-                -- Per-mesh radius, not per-entity: an entity's meshes can
-                -- differ wildly in extent (a planet's atmosphere shell is
-                -- 1.5x its surface), and the physics collider is no guide to
-                -- either - PlanetTest's ring mesh spans hundreds of units
-                -- around a default unit-sphere body.
-                e.mesh = meshmat.mesh
-                e.mat = mat
-                e.sh = mat:getShaderState()
-                e.entity = entity
-                e.instCache = instCache
-                e.cx = cx
-                e.cy = cy
-                e.cz = cz
-                e.radius = scale and (meshOriginRadius(meshmat.mesh) * scale) or -1
-                e.sortKey = shaderKeyFor(mat)
+                scene:addItem(index, meshmat.mesh, meshmat.material, entity)
             end
         end
         ::next_entity::
-    end
-
-    self.entityInstCache = entityInstCache
-end
-
---- Frustum-cull and shader-sort each blend bucket built by buildPassLists,
---- via the Rust RenderBatch cull+sort service (Renderer:beginBatch/
---- addCullEntity/cullBatch - see doc/engine/batch-rendering.md). Populates
---- self.passOrder for renderInOrder to walk; does not draw anything itself
---- and does not touch self.passRenderFns (render-fn entities, e.g. asteroid
---- belts/rings, never enter passMeshes and so are structurally never culled
---- here - they already do their own culling).
-function RenderCoreSystem:cullPassLists()
-    for bm in pairs(self.passOrder) do self.passOrder[bm] = nil end
-
-    if not self.settings.frustumCulling or not Renderer.cullBatch then return end
-
-    Profiler.Begin('Render.Cull')
-
-    local view, proj = CameraManager:getViewMatrix(), CameraManager:getProjectionMatrix()
-    local st = self.cullStats
-    st.submitted, st.visible, st.culled = 0, 0, 0
-
-    for bm, list in pairs(self.passMeshes) do
-        local n = list.n
-        -- cullBatch asserts size > 0 across the FFI boundary - this guard is
-        -- load-bearing, not defensive.
-        if n > 0 then
-            Renderer:beginBatch(view, proj, ZERO_EYE)
-            for i = 1, n do
-                local e = list[i]
-                -- Alpha keeps insertion order: shader-sorting blended draws
-                -- would change which one wins at equal depth, i.e. change
-                -- pixels, not just draw order.
-                local key = (bm == BlendMode.Alpha) and 0 or e.sortKey
-                scratchBoundsVec.x, scratchBoundsVec.y, scratchBoundsVec.z = e.cx, e.cy, e.cz
-                -- user_id = i: the 1-based Lua index into `list`, read back
-                -- directly by renderInOrder.
-                Renderer:addCullEntity(scratchBoundsVec, e.radius, key, i)
-            end
-
-            local buf = self:cullBuffer(bm, n)
-            local vis = Renderer:cullBatch(buf, n)
-            self.passOrder[bm] = { buf = buf, n = vis }
-
-            st.submitted = st.submitted + n
-            st.visible   = st.visible + vis
-            st.culled    = st.culled + (n - vis)
-        end
-    end
-
-    Profiler.End() -- Render.Cull
-end
-
-function RenderCoreSystem:applyMaterialVars(mat, shader, eye, entity)
-    -- material level (constant across all instances of the material)
-    local vars = mat.staticShaderVars
-    if vars then
-        for i = 1, #vars do
-            vars[i]:setShaderVar(eye, shader, entity)
-        end
-    end
-    vars = mat.constShaderVars
-    if vars then
-        for i = 1, #vars do
-            vars[i]:setShaderVar(eye, shader, entity)
-        end
-    end
-    vars = mat.autoShaderVars
-    if vars then
-        for i = 1, #vars do
-            local v = vars[i]
-            if not v.perInstance then
-                v:setShaderVar(eye, shader, entity)
-            end
-        end
-    end
-end
-
-function RenderCoreSystem:applyInstanceVars(mat, shader, eye, entity, instCache)
-    -- instance level (per-entity): values are computed once per entity per
-    -- frame (see buildPassLists) and reused across all of the entity's
-    -- meshes. Missing uniformInt vars fall through to setShaderVar, which
-    -- warns once and skips.
-    local vars = mat.autoShaderVars
-    if vars then
-        for i = 1, #vars do
-            local v = vars[i]
-            if v.perInstance then
-                if not v.uniformInt then
-                    v:setShaderVar(eye, shader, entity)
-                else
-                    -- Key by the var OBJECT, not its name: two materials could
-                    -- have perInstance vars with the same name but different
-                    -- value functions. Same material on multiple meshes of the
-                    -- same entity -> same var object -> cache hit.
-                    local values = instCache and instCache[v]
-                    if not values then
-                        values = v:getValues(eye, entity)
-                        if instCache then instCache[v] = values end
-                    end
-                    local func = UniformFuncs[v.uniformType]
-                    if func then func(shader, v.uniformInt, table.unpack(values)) end
-                end
-            end
-        end
     end
 end
 
@@ -705,19 +503,69 @@ function RenderCoreSystem:swap()
         self.buffers[Enums.BufferName.buffer1], self.buffers[Enums.BufferName.buffer0]
 end
 
-function RenderCoreSystem:applyFilter(fragName, onSetVars)
-    local shader = Cache.Shader('ui', 'filter/' .. fragName)
+--- Pass descriptor for rendering into mip `level` of `tex`, cached per
+--- (texture, label, level, clear). `clear` selects LoadOp.Clear to transparent
+--- black, otherwise the contents are kept (LoadOp.Load).
+---@param label string
+---@param tex Tex2D
+---@param level integer
+---@param clear boolean
+---@return RenderPassDesc
+function RenderCoreSystem:colorPassDesc(label, tex, level, clear)
+    local byTex = self.passDescCache[tex]
+    if not byTex then
+        byTex = {}
+        self.passDescCache[tex] = byTex
+    end
+    local byLabel = byTex[label]
+    if not byLabel then
+        byLabel = {}
+        byTex[label] = byLabel
+    end
+    local key = level * 2 + (clear and 1 or 0)
+    local desc = byLabel[key]
+    if not desc then
+        desc = RenderPassDesc.Create(label)
+        desc:color(0, tex:mipView(level), clear and LoadOp.Clear or LoadOp.Load, 0, 0, 0, 0)
+        byLabel[key] = desc
+    end
+    return desc
+end
+
+-- `Params` struct types of the filters, by shader name.
+local paramsTypes = {}
+
+--- One post-processing filter pass: the current level of `buffer0` through
+--- `filter/<fragName>` into the same level of `buffer1`, then the two swap.
+--- `fill(p)` writes the filter's group-2 `Params` block (nil for a filter
+--- without one). `extra` is a second sampled view (slot 1).
+---@param fragName string
+---@param fill fun(p: ffi.cdata*)|nil
+---@param extra TexView|nil
+function RenderCoreSystem:applyFilter(fragName, fill, extra)
+    local shader = Cache.Shader('fullscreen_ndc', 'filter/' .. fragName)
+    local level = self.level or 0
     local target = self.buffers[Enums.BufferName.buffer1]
-    target:pushLevel(self.level or 0)
+    local pass = Renderer:beginPass(self:colorPassDesc('Post.' .. fragName, target, level, false))
 
-    shader:start()
-    shader:setTex2D('src', self.buffers[Enums.BufferName.buffer0])
-    if onSetVars then onSetVars(shader) end
-    local scale = 2 ^ (self.level or 0)
-    Draw.Rect(0, 0, self.ssResX / scale, self.ssResY / scale)
-    shader:stop()
+    pass:setPipeline(Pipelines.get(shader, FullscreenState))
+    local src = self.buffers[Enums.BufferName.buffer0]:mipView(level)
+    if extra then
+        pass:setInputs(src, Samplers.LinearClamp, extra, Samplers.LinearClamp)
+    else
+        pass:setInputs(src, Samplers.LinearClamp)
+    end
+    if fill then
+        local T = paramsTypes[fragName]
+        if not T then
+            T = shader:blockType('Params')
+            paramsTypes[fragName] = T
+        end
+        fill(pass:alloc(T))
+    end
+    pass:drawFullscreen()
 
-    target:pop()
+    pass:finish()
     self:swap()
 end
 
@@ -731,7 +579,6 @@ function RenderCoreSystem:downsampleForPost()
     -- and optionally generate lower mips for post effects that might use them
     -- We'll do this in log2(superSampleRate) steps, building mips progressively
 
-    local ssFactor = self.settings.superSampleRate -- e.g., 2, 4, etc. (assumed power of 2)
     local currentLevel = 0
     local currentSizeX = self.ssResX
     local currentSizeY = self.ssResY
@@ -741,33 +588,16 @@ function RenderCoreSystem:downsampleForPost()
         currentSizeX = math.floor(currentSizeX / 2)
         currentSizeY = math.floor(currentSizeY / 2)
 
-        -- Downsample from previous level (or original) into current mip level of buffer1
+        -- Downsample level N-1 of buffer0 into level N of buffer1 (a bilinear
+        -- resolve over the whole level)
         local target = self.buffers[Enums.BufferName.buffer1]
-        target:pushLevel(currentLevel)
+        local pass = Renderer:beginPass(self:colorPassDesc('Post.downsample', target, currentLevel, false))
 
-        local shader = Cache.Shader('ui', 'filter/downsample') -- simple bilinear downsample
-        shader:start()
-        shader:setTex2D('src', self.buffers[Enums.BufferName.buffer0])
-
-        -- If this is the first downsample (full res → half), draw full screen quad at half size
-        -- Otherwise, we're downsampling from previous mip
-        if currentLevel == 1 then
-            Draw.Rect(0, 0, self.ssResX / 2, self.ssResY / 2)
-        else
-            Draw.Rect(0, 0, currentSizeX * 2, currentSizeY * 2) -- draw from previous larger mip
-        end
-
-        shader:stop()
-        target:pop()
-
-        -- Set all main buffers to use this mip level for sampling in post
-        for _, key in pairs({ Enums.BufferName.buffer0, Enums.BufferName.buffer1, Enums.BufferName.buffer2 }) do
-            local b = self.buffers[key]
-            if b.setMipRange then
-                b:setMipRange(currentLevel, currentLevel)
-                b:setMinFilter(TexFilter.Linear) -- Linear for smooth resolve
-            end
-        end
+        local shader = Cache.Shader('fullscreen_ndc', 'filter/downsample')
+        pass:setPipeline(Pipelines.get(shader, FullscreenState))
+        pass:setInputs(self.buffers[Enums.BufferName.buffer0]:mipView(currentLevel - 1), Samplers.LinearClamp)
+        pass:drawFullscreen()
+        pass:finish()
 
         -- Make the downsampled result the new "current" buffer0 for next post passes
         self:swap()
@@ -789,7 +619,9 @@ function RenderCoreSystem:setDeferredLightingEnabled(enabled)
     self.settings.deferredLighting = enabled == true
 end
 
--- Deferred lighting pass: global environment + point lights → composite with albedo
+-- Deferred lighting pass: global environment + directional + point lights
+-- accumulate in one pass (additive pipelines after the global term), then
+-- composite with albedo
 function RenderCoreSystem:deferredLighting()
     local buffer0 = self.buffers[Enums.BufferName.buffer0]   -- albedo
     local buffer1 = self.buffers[Enums.BufferName.buffer1]   -- normals/material
@@ -797,69 +629,58 @@ function RenderCoreSystem:deferredLighting()
     local zBufferL = self.buffers[Enums.BufferName.zBufferL] -- linear depth
 
     local eye = CameraManager:getEye()
+    local normalMat = buffer1:mipView(0)
+    local depth = zBufferL:mipView(0)
 
     -- 1. Global lighting (environment from irMap/envMap)
-    buffer2:push()
-    Draw.Clear(0, 0, 0, 0)
-    local globalShader = Cache.Shader('worldray', 'light/global')
-    globalShader:start()
-    globalShader:setTex2D('texDepth', zBufferL)
-    globalShader:setTex2D('texNormalMat', buffer1)
-    Draw.Rect(-1, -1, 2, 2)
-    globalShader:stop()
-    buffer2:pop()
+    local pass = Renderer:beginPass(self:colorPassDesc('Lighting', buffer2, 0, true))
+    local globalShader = Cache.Shader('fullscreen_ray', 'light/global')
+    pass:setPipeline(Pipelines.get(globalShader, FullscreenState))
+    pass:setInputs(normalMat, Samplers.LinearClamp, depth, Samplers.LinearClamp) -- texNormalMat, texDepth
+    pass:drawFullscreen()
 
-
-    -- 2. Directional lights (star — no distance falloff, like the sun)
-    if self.directionalLights and #self.directionalLights > 0 then
-        buffer2:push()
-        RenderState.PushBlendMode(BlendMode.Additive)
-        local dirShader = Cache.Shader('worldray', 'light/directional')
-        dirShader:start()
-        for _, light in ipairs(self.directionalLights) do
-            dirShader:setFloat3('lightDir', light.dir.x, light.dir.y, light.dir.z)
-            dirShader:setFloat3('lightColor', light.color.x, light.color.y, light.color.z)
-            dirShader:setTex2D('texDepth', zBufferL)
-            dirShader:setTex2D('texNormalMat', buffer1)
-            Draw.Rect(-1, -1, 2, 2)
+    -- 2. Directional lights (star - no distance falloff, like the sun)
+    local directional = self.directionalLights
+    if directional and #directional > 0 then
+        local dirShader = Cache.Shader('fullscreen_ray', 'light/directional')
+        pass:setPipeline(Pipelines.get(dirShader, FullscreenAdditive))
+        local DirParams = dirShader:blockType('Params')
+        for _, light in ipairs(directional) do
+            local p = pass:alloc(DirParams)
+            p.lightDir.x, p.lightDir.y, p.lightDir.z = light.dir.x, light.dir.y, light.dir.z
+            p.lightColor.x, p.lightColor.y, p.lightColor.z = light.color.x, light.color.y, light.color.z
+            pass:drawFullscreen()
         end
-        dirShader:stop()
-        RenderState.PopBlendMode()
-        buffer2:pop()
     end
 
     -- 3. Point lights (stations, engines, weapon effects, etc.)
     local pointLights = LightManager:getPointLights()
     if #pointLights > 0 then
-        buffer2:push()
-        RenderState.PushBlendMode(BlendMode.Additive)
-        local pointShader = Cache.Shader('worldray', 'light/point')
-        pointShader:start()
+        local pointShader = Cache.Shader('fullscreen_ray', 'light/point')
+        pass:setPipeline(Pipelines.get(pointShader, FullscreenAdditive))
+        local PointLight = pointShader:blockType('PointLight')
         for _, light in ipairs(pointLights) do
             local renderPos = light.pos:relativeTo(eye)
-            Renderer:updateLightUbo(
-                renderPos.x, renderPos.y, renderPos.z, light.radius or 0.0,
-                light.color.x, light.color.y, light.color.z, light.intensity or 1.0
-            )
-            pointShader:setTex2D('texDepth', zBufferL)
-            pointShader:setTex2D('texNormalMat', buffer1)
-            Draw.Rect(-1, -1, 2, 2)
+            local p = pass:alloc(PointLight)
+            p.positionRadius.x, p.positionRadius.y, p.positionRadius.z = renderPos.x, renderPos.y, renderPos.z
+            p.positionRadius.w = light.radius or 0.0
+            p.colorIntensity.x, p.colorIntensity.y, p.colorIntensity.z = light.color.x, light.color.y, light.color.z
+            p.colorIntensity.w = light.intensity or 1.0
+            pass:drawFullscreen()
         end
-        pointShader:stop()
-        RenderState.PopBlendMode()
-        buffer2:pop()
     end
+    pass:finish()
 
-    -- 3. Composite: albedo * lighting → buffer1 (reuse as temp)
-    buffer1:push()
-    local compShader = Cache.Shader('worldray', 'light/composite')
-    compShader:start()
-    compShader:setTex2D('texAlbedo', buffer0)
-    compShader:setTex2D('texDepth', zBufferL)
-    compShader:setTex2D('texLighting', buffer2)
-    Draw.Rect(-1, -1, 2, 2)
-    compShader:stop()
-    buffer1:pop()
+    -- 4. Composite: albedo * lighting -> buffer1 (reuse as temp)
+    pass = Renderer:beginPass(self:colorPassDesc('Lighting.composite', buffer1, 0, false))
+    local compShader = Cache.Shader('fullscreen_ray', 'light/composite')
+    pass:setPipeline(Pipelines.get(compShader, FullscreenState))
+    pass:setInputs(
+        buffer0:mipView(0), Samplers.LinearClamp, -- texAlbedo
+        depth, Samplers.LinearClamp,              -- texDepth
+        buffer2:mipView(0), Samplers.LinearClamp) -- texLighting
+    pass:drawFullscreen()
+    pass:finish()
 
     -- Swap buffer1 (lit result) into buffer0 (main scene buffer)
     self.buffers[Enums.BufferName.buffer0], self.buffers[Enums.BufferName.buffer1] =
@@ -875,38 +696,40 @@ function RenderCoreSystem:bloom(radius)
 
     -- Bright extract
     do
-        local shader = Cache.Shader('ui', 'filter/bloompre')
-        A:push()
-        shader:start()
-        shader:setTex2D('src', self.buffers[Enums.BufferName.buffer0])
-        Draw.Rect(0, 0, self.resX / self.ds, self.resY / self.ds)
-        shader:stop()
-        A:pop()
+        local shader = Cache.Shader('fullscreen_ndc', 'filter/bloompre')
+        local pass = Renderer:beginPass(self:colorPassDesc('Post.bloompre', A, 0, false))
+        pass:setPipeline(Pipelines.get(shader, FullscreenState))
+        pass:setInputs(self.buffers[Enums.BufferName.buffer0]:mipView(self.level or 0), Samplers.LinearClamp)
+        pass:drawFullscreen()
+        pass:finish()
     end
 
     for i = 1, 3 do
         self:blur(B, A, 1, 0, radius, width)
         self:blur(A, B, 0, 1, radius, width)
 
-        self:applyFilter('bloomcomposite', function(sh)
-            sh:setTex2D('srcBlur', A)
-        end)
+        self:applyFilter('bloomcomposite', nil, A:mipView(0))
     end
 end
 
 function RenderCoreSystem:blur(dst, src, dx, dy, radius, variance)
-    local shader = Cache.Shader('ui', 'filter/blur')
+    local shader = Cache.Shader('fullscreen_ndc', 'filter/blur')
     local size = src:getSize()
-    dst:push()
-    shader:start()
-    shader:setFloat('variance', variance)
-    shader:setFloat2('dir', dx, dy)
-    shader:setFloat2('size', size.x, size.y)
-    shader:setInt('radius', radius)
-    shader:setTex2D('src', src)
-    Draw.Rect(0, 0, size.x, size.y)
-    shader:stop()
-    dst:pop()
+    local pass = Renderer:beginPass(self:colorPassDesc('Post.blur', dst, 0, false))
+    pass:setPipeline(Pipelines.get(shader, FullscreenState))
+    pass:setInputs(src:mipView(0), Samplers.LinearClamp)
+    local T = paramsTypes['blur']
+    if not T then
+        T = shader:blockType('Params')
+        paramsTypes['blur'] = T
+    end
+    local p = pass:alloc(T)
+    p.variance = variance
+    p.dir.x, p.dir.y = dx, dy
+    p.size.x, p.size.y = size.x, size.y
+    p.radius = radius
+    pass:drawFullscreen()
+    pass:finish()
 end
 
 function RenderCoreSystem:fxaa()
@@ -914,11 +737,11 @@ function RenderCoreSystem:fxaa()
 
     local settings = self.postSettings.fxaa
 
-    self:applyFilter('fxaa', function(sh)
-        sh:setFloat('fxaaQualitySubpix', settings.strength)
-        sh:setFloat('fxaaQualityEdgeThreshold', settings.edgeThreshold or 0.125)
-        sh:setFloat('fxaaQualityEdgeThresholdMin', settings.edgeThresholdMin or 0.0312)
-        sh:setFloat2('size', self.resX, self.resY)
+    self:applyFilter('fxaa', function(p)
+        p.fxaaQualitySubpix = settings.strength
+        p.fxaaQualityEdgeThreshold = settings.edgeThreshold or 0.125
+        p.fxaaQualityEdgeThresholdMin = settings.edgeThresholdMin or 0.0312
+        p.size.x, p.size.y = self.resX, self.resY
     end)
 end
 
@@ -928,10 +751,9 @@ function RenderCoreSystem:sharpen()
     local settings = self.postSettings.sharpen
 
     -- Single-pass CAS
-    self:applyFilter('sharpen_cas', function(sh)
-        sh:setFloat('casSharpness', settings.strength)
-
-        sh:setFloat2('size', self.resX, self.resY) -- pixel size for offsets
+    self:applyFilter('sharpen_cas', function(p)
+        p.casSharpness = settings.strength
+        p.size.x, p.size.y = self.resX, self.resY -- pixel size for offsets
     end)
 end
 
@@ -940,23 +762,39 @@ function RenderCoreSystem:radialBlur()
 
     local rb = self.postSettings.radialblur
 
-    self:applyFilter('radialblur', function(sh)
-        sh:setFloat('strength', rb.strength)
-        sh:setFloat2('center', rb.center[1], rb.center[2])
-    end)
+    -- Slot 1 is the linear depth the filter weighs its taps with
+    self:applyFilter('radialblur', function(p)
+        p.strength = rb.strength
+        p.center.x, p.center.y = rb.center[1], rb.center[2]
+    end, self.buffers[Enums.BufferName.zBufferL]:mipView(0))
 end
 
+--- Auto-exposure measurement (render API v2, S8). Resolves the readback that
+--- is in flight, if it has finished, into `autoExposure.target`, then starts
+--- the next one: mip chain of buffer0, then one `readAsync` of a small mip
+--- (~512 px at most, at least mip 2). The read takes a few frames, so
+--- `target` lags the picture by that much and nothing here ever waits for the
+--- GPU. The statistics are the same as when 128 pixels were read one by one
+--- (`Tex2D:sample`): log-average of random luminance samples of the mip, the
+--- brightest 35% ignored, capped per sample, through an RGBA8 read.
+---@param settings table post-processing tonemap settings
 ---@param dt number
-function RenderCoreSystem:tonemap(dt)
-    if not self.postSettings.tonemap.enable then return end
+function RenderCoreSystem:updateAutoExposureTarget(settings, dt)
+    local ae = self.autoExposure
+    local ticket = ae.ticket
 
-    local settings = self.postSettings.tonemap
-    local exposure = settings.exposure
+    if ticket and ticket:ready() then
+        local w, h = ticket:getWidth(), ticket:getHeight()
+        local bytes = ticket:data()
+        ticket:free()
+        ae.ticket = nil
+        if bytes:getSize() >= w * h * 4 then
+            ae.target = self:autoExposureTarget(settings, bytes, w, h, dt)
+        end
+    end
 
-    -- Space-game optimized auto-exposure: extremely stable, ignores bright stars/sun, very slow adaptation
-    if settings.autoExpose.enable then
+    if not ae.ticket then
         local src = self.buffers[Enums.BufferName.buffer0]
-        src:setMinFilter(TexFilter.Linear)
         src:genMipmap()
 
         -- Strong downsampling
@@ -970,57 +808,83 @@ function RenderCoreSystem:tonemap(dt)
         end
         mip = math.max(mip, 2)
 
-        src:setMipRange(mip, mip)
-
         local smallSize = src:getSizeLevel(mip)
-        local w, h = smallSize.x, smallSize.y
+        ae.ticket = Renderer:readAsync(src:mipView(mip), 0, 0, smallSize.x, smallSize.y, TexFormat.RGBA8)
+    end
+end
 
-        -- Continuous random sampling: 128 samples
-        local numSamples = 128
-        local lumSamples = {}
-        local maxLumCap = 0.05
+--- The exposure target for the RGBA8 pixels of a `w` x `h` mip (see
+--- `updateAutoExposureTarget`).
+---@param settings table
+---@param bytes Bytes
+---@param w integer
+---@param h integer
+---@param dt number
+---@return number
+function RenderCoreSystem:autoExposureTarget(settings, bytes, w, h, dt)
+    -- Continuous random sampling: 128 samples
+    local numSamples = 128
+    local lumSamples = {}
+    local maxLumCap = 0.05
 
-        local seed = (self.frameCounter or 0) + dt * 1000
-        math.randomseed(math.floor(seed * 1000))
+    local seed = (self.frameCounter or 0) + dt * 1000
+    math.randomseed(math.floor(seed * 1000))
 
-        for i = 1, numSamples do
-            local u = math.random()
-            local v = math.random()
+    for i = 1, numSamples do
+        local u = math.random()
+        local v = math.random()
 
-            local x = math.floor(u * (w - 1) + 0.5)
-            local y = math.floor(v * (h - 1) + 0.5)
+        local x = math.floor(u * (w - 1) + 0.5)
+        local y = math.floor(v * (h - 1) + 0.5)
 
-            local color = src:sample(x, y)
+        bytes:setCursor((y * w + x) * 4)
+        local r = bytes:readU8() / 255
+        local g = bytes:readU8() / 255
+        local b = bytes:readU8() / 255
 
-            local lum = color.x * 0.2126 + color.y * 0.7152 + color.z * 0.0722
-            lum = math.min(lum, maxLumCap)
-            table.insert(lumSamples, math.max(lum, 0.000001))
-        end
+        local lum = r * 0.2126 + g * 0.7152 + b * 0.0722
+        lum = math.min(lum, maxLumCap)
+        table.insert(lumSamples, math.max(lum, 0.000001))
+    end
 
-        table.sort(lumSamples)
+    table.sort(lumSamples)
 
-        -- Keep lowest 65%
-        local validFraction = 0.65
-        local validCount = math.max(1, math.floor(#lumSamples * validFraction))
-        local logSum = 0.0
-        for i = 1, validCount do
-            logSum = logSum + math.log(lumSamples[i])
-        end
+    -- Keep lowest 65%
+    local validFraction = 0.65
+    local validCount = math.max(1, math.floor(#lumSamples * validFraction))
+    local logSum = 0.0
+    for i = 1, validCount do
+        logSum = logSum + math.log(lumSamples[i])
+    end
 
-        local logAvgLum          = logSum / validCount
-        local avgLum             = math.exp(logAvgLum)
+    local logAvgLum      = logSum / validCount
+    local avgLum         = math.exp(logAvgLum)
 
-        -- Base target
-        local targetExposure     = 0.0005 / avgLum
+    -- Base target
+    local targetExposure = 0.0005 / avgLum
 
-        -- Slight dark bias
-        targetExposure           = targetExposure * 0.8
+    -- Slight dark bias
+    targetExposure       = targetExposure * 0.8
 
-        local minTarget          = settings.autoExpose.minTarget
-        local maxTarget          = settings.autoExpose.maxTarget
-        targetExposure           = Math.Clamp(targetExposure, minTarget, maxTarget)
+    local minTarget      = settings.autoExpose.minTarget
+    local maxTarget      = settings.autoExpose.maxTarget
+    return Math.Clamp(targetExposure, minTarget, maxTarget)
+end
 
-        self.autoExposure.target = targetExposure
+---@param dt number
+function RenderCoreSystem:tonemap(dt)
+    if not self.postSettings.tonemap.enable then return end
+
+    local settings = self.postSettings.tonemap
+    local exposure = settings.exposure
+
+    -- Space-game optimized auto-exposure: extremely stable, ignores bright stars/sun, very slow adaptation
+    if settings.autoExpose.enable then
+        -- The target comes from an asynchronous read of a small mip of buffer0
+        -- (a few frames old when it arrives; the adaptation below is slow enough
+        -- that nobody can tell).
+        self:updateAutoExposureTarget(settings, dt)
+        local targetExposure     = self.autoExposure.target
 
         -- Extremely slow adaptation
         local ae                 = self.autoExposure
@@ -1039,27 +903,14 @@ function RenderCoreSystem:tonemap(dt)
 
         -- Optional extra safety floor (can keep or remove)
         -- exposure = math.max(exposure, settings.exposure * 0.05)
-
-        -- Restore
-        src:setMipRange(0, 0)
     end
 
     -- Legacy path
     if settings.mode == Enums.Tonemappers.Legacy then
-        local shader = Cache.Shader('ui', 'filter/tonemap_legacy')
-        local target = self.buffers[Enums.BufferName.buffer1]
-        target:pushLevel(self.level or 0)
-
-        shader:start()
-        shader:setTex2D('src', self.buffers[Enums.BufferName.buffer0])
-        shader:setFloat('exposure', exposure)
-        shader:setFloat2('size', self.resX, self.resY)
-        local scale = 2 ^ (self.level or 0)
-        Draw.Rect(0, 0, self.ssResX / scale, self.ssResY / scale)
-        shader:stop()
-
-        target:pop()
-        self:swap()
+        self:applyFilter('tonemap_limittheory', function(p)
+            p.exposure = exposure
+            p.size.x, p.size.y = self.resX, self.resY
+        end)
         return
     end
 
@@ -1093,33 +944,33 @@ function RenderCoreSystem:tonemap(dt)
         modeId = 12
     end
 
-    self:applyFilter('tonemap', function(sh)
-        sh:setInt('mode', modeId)
-        sh:setFloat('exposure', exposure)
-        sh:setFloat2('size', self.resX, self.resY)
+    self:applyFilter('tonemap', function(p)
+        p.mode = modeId
+        p.exposure = exposure
+        p.size.x, p.size.y = self.resX, self.resY
     end)
 end
 
 function RenderCoreSystem:vignette()
     if not self.postSettings.vignette.enable then return end
-    self:applyFilter('vignette', function(sh)
-        sh:setFloat('strength', self.postSettings.vignette.strength)
-        sh:setFloat('hardness', self.postSettings.vignette.hardness)
+    self:applyFilter('vignette', function(p)
+        p.strength = self.postSettings.vignette.strength
+        p.hardness = self.postSettings.vignette.hardness
     end)
 end
 
 function RenderCoreSystem:aberration()
     if not self.postSettings.aberration.enable then return end
-    self:applyFilter('aberration', function(sh)
-        sh:setFloat('strength', self.postSettings.aberration.strength)
+    self:applyFilter('aberration', function(p)
+        p.strength = self.postSettings.aberration.strength
     end)
 end
 
 function RenderCoreSystem:dither()
     if not self.postSettings.dither.enable then return end
 
-    self:applyFilter('dither', function(sh)
-        sh:setFloat('strength', self.postSettings.dither.strength)
+    self:applyFilter('dither', function(p)
+        p.strength = self.postSettings.dither.strength
     end)
 end
 
@@ -1145,45 +996,55 @@ function RenderCoreSystem:colorgrade()
         modeId = 6
     end
 
-    self:applyFilter('colorgrade', function(sh)
-        sh:setInt('mode', modeId)
-        sh:setFloat('preExposure', settings.preExposure)
-        sh:setFloat('temperature', settings.temperature)
-        sh:setFloat('tint', settings.tint)
-        sh:setFloat('saturation', settings.saturation)
-        sh:setFloat('contrast', settings.contrast)
-        sh:setFloat('brightness', settings.brightness)
-        sh:setFloat('vibrance', settings.vibrance)
-        sh:setFloat3('lift', settings.lift[1], settings.lift[2], settings.lift[3])
-        sh:setFloat3('gamma', settings.gamma[1], settings.gamma[2], settings.gamma[3])
-        sh:setFloat3('gain', settings.gain[1], settings.gain[2], settings.gain[3])
+    self:applyFilter('colorgrade', function(p)
+        p.mode = modeId
+        p.preExposure = settings.preExposure
+        p.temperature = settings.temperature
+        p.tint = settings.tint
+        p.saturation = settings.saturation
+        p.contrast = settings.contrast
+        p.brightness = settings.brightness
+        p.vibrance = settings.vibrance
+        p.lift.x, p.lift.y, p.lift.z = settings.lift[1], settings.lift[2], settings.lift[3]
+        p.gamma.x, p.gamma.y, p.gamma.z = settings.gamma[1], settings.gamma[2], settings.gamma[3]
+        p.gain.x, p.gain.y, p.gain.z = settings.gain[1], settings.gain[2], settings.gain[3]
     end)
 end
 
-function RenderCoreSystem:present(x, y, sx, sy, useMips)
-    RenderState.PushAllDefaults()
-    local sh = Cache.Shader('ui', 'filter/identity')
-    sh:start()
-    sh:setTex2D("src", self.buffers[Enums.BufferName.buffer0])
-    Draw.Rect(x, y + sy, sx, -sy)
-    sh:stop()
-    RenderState.PopAll()
+--- Draw the final image over the whole window. The `fullscreen_ndc` quad has
+--- uv.y = 0 at the bottom row, which is how the window is y-up in GL: no flip
+--- is needed (the old y-down flipped rectangle did exactly this).
+---@param pass RenderPass the open backbuffer pass
+function RenderCoreSystem:present(pass)
+    local sh = Cache.Shader('fullscreen_ndc', 'filter/identity')
+    pass:setPipeline(Pipelines.get(sh, FullscreenState))
+    -- The buffer is the size of the window, so this is a copy: sample exactly one texel per
+    -- pixel. (A linear filter at texel centres is a copy only up to the rounding of the
+    -- interpolated uv, which differs between GL and wgpu: GL blurred every pixel a little,
+    -- and let a NaN texel poison its neighbours.)
+    pass:setInputs(self.buffers[Enums.BufferName.buffer0]:mipView(self.level or 0), Samplers.Point)
+    pass:drawFullscreen()
 end
 
-function RenderCoreSystem:presentAll(x, y, sx, sy)
-    RenderState.PushAllDefaults()
-    local sh = Cache.Shader('ui', 'filter/identity')
-    sh:start()
-    local function draw(bufKey, px, py)
-        sh:setTex2D("src", self.buffers[bufKey])
-        Draw.Rect(px, py, sx / 2, -sy / 2)
+--- Debug view: the four main buffers in one quadrant each (buffer0 top left,
+--- buffer1 top right, buffer2 bottom left, linear depth bottom right).
+---@param pass RenderPass the open backbuffer pass
+---@param sx integer window width
+---@param sy integer window height
+function RenderCoreSystem:presentAll(pass, sx, sy)
+    local sh = Cache.Shader('fullscreen_ndc', 'filter/identity')
+    pass:setPipeline(Pipelines.get(sh, FullscreenState))
+    local hx, hy = math.floor(sx / 2), math.floor(sy / 2)
+    local level = self.level or 0
+    local function draw(bufKey, bufLevel, x, y)
+        pass:setViewport(x, y, hx, hy)
+        pass:setInputs(self.buffers[bufKey]:mipView(bufLevel), Samplers.LinearClamp)
+        pass:drawFullscreen()
     end
-    draw(Enums.BufferName.buffer0, x, y + sy / 2)
-    draw(Enums.BufferName.buffer1, x + sx / 2, y + sy / 2)
-    draw(Enums.BufferName.buffer2, x, y)
-    draw(Enums.BufferName.zBufferL, x + sx / 2, y)
-    sh:stop()
-    RenderState.PopAll()
+    draw(Enums.BufferName.buffer0, level, 0, hy)
+    draw(Enums.BufferName.buffer1, level, hx, hy)
+    draw(Enums.BufferName.buffer2, level, 0, 0)
+    draw(Enums.BufferName.zBufferL, 0, hx, 0)
 end
 
 function RenderCoreSystem:getFPS()

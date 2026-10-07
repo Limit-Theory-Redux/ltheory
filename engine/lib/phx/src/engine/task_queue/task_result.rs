@@ -5,6 +5,8 @@ use crate::engine::Payload;
 enum TaskResultData {
     Payload(Box<Payload>),
     Error(String),
+    /// The worker function returned nothing (nil).
+    Empty,
 }
 
 /// Task result information.
@@ -21,6 +23,15 @@ impl TaskResult {
             worker_id,
             task_id,
             data: TaskResultData::Payload(payload),
+        }
+    }
+
+    /// Create a result without data.
+    pub fn new_empty(worker_id: WorkerIndex, task_id: TaskId) -> Self {
+        Self {
+            worker_id,
+            task_id,
+            data: TaskResultData::Empty,
         }
     }
 
@@ -49,13 +60,13 @@ impl TaskResult {
     pub fn payload(&self) -> Option<&Payload> {
         match &self.data {
             TaskResultData::Payload(payload) => Some(payload.as_ref()),
-            TaskResultData::Error(_) => None,
+            TaskResultData::Error(_) | TaskResultData::Empty => None,
         }
     }
 
     pub fn error(&self) -> Option<&str> {
         match &self.data {
-            TaskResultData::Payload(_) => None,
+            TaskResultData::Payload(_) | TaskResultData::Empty => None,
             TaskResultData::Error(err) => Some(err.as_str()),
         }
     }

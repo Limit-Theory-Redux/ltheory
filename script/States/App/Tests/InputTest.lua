@@ -45,7 +45,6 @@ local function drawAxisBar(label, value, x, y, width, height, font, fontSize)
     local halfWidth = barWidth / 2
     local centerX = barX + halfWidth
 
-    RenderState.PushBlendMode(BlendMode.Alpha)
     DrawEx.Rect(barX, y, barWidth, height, Color(0.2, 0.2, 0.2, 0.8))
     DrawEx.Rect(centerX - 1, y, 2, height, Color(0.5, 0.5, 0.5, 1.0))
 
@@ -55,7 +54,6 @@ local function drawAxisBar(label, value, x, y, width, height, font, fontSize)
     else
         DrawEx.Rect(centerX - fillWidth, y + 2, fillWidth, height - 4, Color(0.8, 0.2, 0.2, 1.0))
     end
-    RenderState.PopBlendMode()
 
     local valueStr = string.format("%.2f", value)
     DrawEx.TextAdditive(fontName, valueStr, size - 1, barX + barWidth + 10, y, 60, height, 0.7, 0.7, 0.7, 1.0, 0.0, 0.5)
@@ -70,7 +68,6 @@ local function drawProgressBar(label, value, x, y, width, height, font, fontSize
     local barX = x + 100
     local barWidth = width - 100
 
-    RenderState.PushBlendMode(BlendMode.Alpha)
     DrawEx.Rect(barX, y, barWidth, height, Color(0.2, 0.2, 0.2, 0.8))
     
     local clampedValue = math.max(0, math.min(1, value))
@@ -79,7 +76,6 @@ local function drawProgressBar(label, value, x, y, width, height, font, fontSize
         DrawEx.Rect(barX, y + 2, fillWidth, height - 4, Color(1.0, 1.0, 0.2, 1.0))
     end
     
-    RenderState.PopBlendMode()
 
     local valueStr = string.format("%.2f", clampedValue)
     DrawEx.TextAdditive(fontName, valueStr, size - 1, barX + barWidth + 10, y, 60, height, 0.7, 0.7, 0.7, 1.0, 0.0, 0.5)
@@ -344,11 +340,9 @@ function InputTest:drawGamepadCursor()
     if self.activeDevice ~= InputDeviceType.Gamepad then return end
     local size = 64
     local halfSize = size / 2
-    RenderState.PushBlendMode(BlendMode.Alpha)
     local color = Color(1.0, 1.0, 1.0, 0.5)
     DrawEx.Ring(self.gamepadCursorX, self.gamepadCursorY, halfSize - 4, color, 1)
     DrawEx.Circle(self.gamepadCursorX, self.gamepadCursorY, halfSize - 33, color)
-    RenderState.PopBlendMode()
 end
 
 function InputTest:updateBindings(dt)

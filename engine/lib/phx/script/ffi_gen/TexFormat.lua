@@ -25,7 +25,6 @@ function Loader.defineType()
             TexFormat TexFormat_RG16;
             TexFormat TexFormat_RG16F;
             TexFormat TexFormat_RG32F;
-            TexFormat TexFormat_RGB8;
             TexFormat TexFormat_RGBA8;
             TexFormat TexFormat_RGBA16;
             TexFormat TexFormat_RGBA16F;
@@ -53,7 +52,6 @@ function Loader.defineType()
             RG16     = libphx.TexFormat_RG16,
             RG16F    = libphx.TexFormat_RG16F,
             RG32F    = libphx.TexFormat_RG32F,
-            RGB8     = libphx.TexFormat_RGB8,
             RGBA8    = libphx.TexFormat_RGBA8,
             RGBA16   = libphx.TexFormat_RGBA16,
             RGBA16F  = libphx.TexFormat_RGBA16F,

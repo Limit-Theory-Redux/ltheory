@@ -96,9 +96,7 @@ function Graph:onDraw(focus, active)
     local x, y, sx, sy = self:getRectGlobal()
 
     do -- Draw Border
-        UI.DrawEx.SimpleShaderStart(self:getColor(focus, active, Config.ui.color.border))
-        Draw.Border(self.padMinX, x, y, sx, sy)
-        UI.DrawEx.SimpleShaderStop()
+        UI.DrawEx.SimpleBorder(self.padMinX, x, y, sx, sy, self:getColor(focus, active, Config.ui.color.border))
     end
 
     local ix, iy, isx, isy = self:getRectPadGlobal()
@@ -110,31 +108,29 @@ function Graph:onDraw(focus, active)
         local vMin     = self.rangeMin.value
         local dydv     = usableSY / range
 
-        ShaderVar.PushMatrix("mWorldViewUI", Matrix.Translation(0, y + sy - self.padMaxY, 0) * Matrix.Scaling(1, -(sy / usableSY), 1))
+        local pass = Renderer:currentPass()
+        pass:setUiTransform(Matrix.Translation(0, y + sy - self.padMaxY, 0) * Matrix.Scaling(1, -(sy / usableSY), 1))
 
         do -- Draw Bars
             local color = Config.ui.color.focused
             color.a = 0.25
-            UI.DrawEx.SimpleShaderStart(color)
             local fx = ix
             for i = 1, #self.values do
                 local fy = dydv * (self.values:get(i) - vMin)
-                Draw.Rect(fx, 0, barSX, fy)
+                UI.DrawEx.SimpleRect(fx, 0, barSX, fy, color)
                 fx = fx + barTotal
             end
-            UI.DrawEx.SimpleShaderStop()
         end
 
         do -- Draw Lines
-            Draw.LineWidth(1.0)
-            UI.DrawEx.SimpleShaderStart(Config.ui.color.focused)
+            local lineColor = Config.ui.color.focused
             local xLast = ix
             local fx = xLast + barTotal
             local yLast = dydv * (self.values:get(1) - vMin)
             for i = 2, #self.values do
                 local value = self.values:get(i)
                 local fy = dydv * (value - vMin)
-                Draw.Line(xLast, yLast, fx, fy)
+                UI.DrawEx.SimpleLine(xLast, yLast, fx, fy, lineColor, 1)
                 xLast = fx
                 yLast = fy
                 fx = fx + barTotal
@@ -150,9 +146,8 @@ function Graph:onDraw(focus, active)
                 for j = 1, #self.rulers do
                     local ruler = self.rulers[j]
                     if value >= ruler.value then
-                        UI.DrawEx.SimpleShaderStart(Color(ruler.color.x, ruler.color.y, ruler.color.z, 1))
-                        Draw.Rect(fx - 2, dydv * (ruler.value - vMin) - 2, 4, 4)
-                        UI.DrawEx.SimpleShaderStop()
+                        UI.DrawEx.SimpleRect(fx - 2, dydv * (ruler.value - vMin) - 2, 4, 4,
+                            Color(ruler.color.x, ruler.color.y, ruler.color.z, 1))
                     end
                 end
                 fx = fx + barTotal
@@ -160,11 +155,9 @@ function Graph:onDraw(focus, active)
         end
 
         do -- Highlight Head
-            UI.DrawEx.SimpleShaderStart(Config.ui.color.focused)
-            Draw.Rect(
+            UI.DrawEx.SimpleRect(
                 ix + (self.head - 1) * barTotal,
-                0, barSX, dydv * (self.values:get(self.head) - vMin))
-            UI.DrawEx.SimpleShaderStop()
+                0, barSX, dydv * (self.values:get(self.head) - vMin), Config.ui.color.focused)
         end
 
         do -- Draw Rulers
@@ -172,13 +165,11 @@ function Graph:onDraw(focus, active)
                 local ruler = self.rulers[i]
                 local fy = dydv * (ruler.value - vMin)
                 ruler.y = fy
-                UI.DrawEx.SimpleShaderStart(Color(ruler.color.x, ruler.color.y, ruler.color.z, 0.75))
-                Draw.Line(ix, fy, ix + isx, fy)
-                UI.DrawEx.SimpleShaderStop()
+                UI.DrawEx.SimpleLine(ix, fy, ix + isx, fy, Color(ruler.color.x, ruler.color.y, ruler.color.z, 0.75), 1)
             end
         end
 
-        ShaderVar.Pop("mWorldViewUI")
+        pass:setUiTransform(Matrix.Identity())
     end
 
     do -- Draw Ruler Labels

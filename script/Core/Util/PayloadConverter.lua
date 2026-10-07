@@ -5,6 +5,71 @@ local PayloadConverter = {
 }
 PayloadConverter.__index = PayloadConverter
 
+local hasNewTable, newTable = pcall(require, 'table.new')
+if not hasNewTable then
+    newTable = function() return {} end
+end
+
+-- The generated Payload.From*Array wrappers drop the length argument, so call the C functions directly.
+local function arrayPayload(fn, array, count)
+    local libphx = require('libphx').lib
+    return Core.ManagedObject(libphx[fn](array, count), libphx.Payload_Free)
+end
+
+-- payload type -> element access description (built lazily: PayloadType is a runtime global)
+PayloadConverter.ArrayTypes = nil
+local function initArrayTypes()
+    local function info(getter, ctype, convert)
+        return { getter = getter, ctype = ctype, convert = convert }
+    end
+    PayloadConverter.ArrayTypes = {
+        [PayloadType.BoolArray] = info("getBoolArrayAddr", "uint8_t const*", "bool"),
+        [PayloadType.I8Array] = info("getI8ArrayAddr", "int8_t const*"),
+        [PayloadType.U8Array] = info("getU8ArrayAddr", "uint8_t const*"),
+        [PayloadType.I16Array] = info("getI16ArrayAddr", "int16_t const*"),
+        [PayloadType.U16Array] = info("getU16ArrayAddr", "uint16_t const*"),
+        [PayloadType.I32Array] = info("getI32ArrayAddr", "int32_t const*"),
+        [PayloadType.U32Array] = info("getU32ArrayAddr", "uint32_t const*"),
+        [PayloadType.I64Array] = info("getI64ArrayAddr", "int64_t const*", "number"),
+        [PayloadType.U64Array] = info("getU64ArrayAddr", "uint64_t const*", "number"),
+        [PayloadType.F32Array] = info("getF32ArrayAddr", "float const*"),
+        [PayloadType.F64Array] = info("getF64ArrayAddr", "double const*"),
+        [PayloadType.StringArray] = info(nil, nil),
+    }
+end
+
+-- Classifies a table.
+-- Returns the element kind ("boolean" | "number" | "string") and the length for a proper non-empty
+-- sequence (keys are exactly 1..n, all elements of the same kind), "mixed" for a sequence with
+-- mixed/unsupported element types and nil for anything else (empty or has other keys).
+---@param value table
+---@return string? kind
+---@return integer? count
+function PayloadConverter.SequenceKind(value)
+    local n = #value
+    if n == 0 then
+        return nil
+    end
+    -- every key must be an integer in 1..n: count them
+    local keys = 0
+    for _ in pairs(value) do
+        keys = keys + 1
+    end
+    if keys ~= n then
+        return nil
+    end
+    local kind = rawtype(value[1])
+    if kind ~= "boolean" and kind ~= "number" and kind ~= "string" then
+        return "mixed", n
+    end
+    for i = 2, n do
+        if rawtype(value[i]) ~= kind then
+            return "mixed", n
+        end
+    end
+    return kind, n
+end
+
 -- Convert Lua table into payload one
 ---@param value table
 ---@return PayloadTable
@@ -31,37 +96,33 @@ function PayloadConverter:valueToPayload(value, rustPayload)
         if rawtype(value) == "boolean" then
             return Payload.FromBool(value)
         end
-        if rawtype(value) == "integer" then
-            return Payload.FromI64(value) -- TODO: can we distinguish other integer types?
-        end
+        -- LuaJIT has a single number type, so every number is sent as F64 (lossless for doubles).
         if rawtype(value) == "number" then
-            return Payload.FromF64(value) -- TODO: can we distinguish other numeric types?
+            return Payload.FromF64(value)
         end
         if rawtype(value) == "string" then
             return Payload.FromString(value)
         end
 
-        -- check if this is an array
-        if value[1] ~= nil then
-            if rawtype(value[1]) == "boolean" then
-                local array = ffi.new("bool[?]", #value, value)
-                return Payload.FromBoolArray(array, #value)
-            end
-            if rawtype(value[1]) == "integer" then
-                local array = ffi.new("i64[?]", #value, value)
-                return Payload.FromI64Array(array, #value) -- TODO: can we distinguish other integer types?
-            end
-            if rawtype(value[1]) == "number" then
-                local array = ffi.new("double[?]", #value, value)
-                return Payload.FromF64Array(array, #value) -- TODO: can we distinguish other numeric types?
-            end
-            if rawtype(value[1]) == "string" then
-                local array = ffi.new("cstr[?]", #value, value)
-                return Payload.FromStringArray(array, #value)
-            end
-        end
-
         if rawtype(value) == "table" then
+            local kind, count = PayloadConverter.SequenceKind(value)
+            if kind == "boolean" then
+                local array = ffi.new("bool[?]", count, value)
+                return arrayPayload("Payload_FromBoolArray", array, count)
+            end
+            if kind == "number" then
+                local array = ffi.new("double[?]", count, value)
+                return arrayPayload("Payload_FromF64Array", array, count)
+            end
+            if kind == "string" then
+                local array = ffi.new("cstr[?]", count, value)
+                return arrayPayload("Payload_FromStringArray", array, count)
+            end
+            if kind == "mixed" then
+                Log.Warn("Unsupported payload: array with mixed or unsupported element types")
+                return nil
+            end
+            -- kind == nil: not a sequence (empty or has other keys): send as a table
             return Payload.FromTable(self:valueToPayloadTable(value))
         end
 
@@ -101,6 +162,10 @@ function PayloadConverter:payloadToValue(payload)
         return nil
     end
 
+    if PayloadConverter.ArrayTypes == nil then
+        initArrayTypes()
+    end
+
     local payloadType = payload:getType()
     if payloadType == PayloadType.Lua then
         local payloadId = tonumber(payload:getLua())
@@ -121,60 +186,28 @@ function PayloadConverter:payloadToValue(payload)
     if payloadType == PayloadType.String then return ffi.string(payload:getString()) end
     if payloadType == PayloadType.Table then return self:tablePayloadToValue(payload:getTable()) end
 
-    -- array types
-    local result = {}
-    local f = function(value)
-        insert(result, value)
-    end
-
-    if payloadType == PayloadType.BoolArray then
-        payload:forEachBool(f)
-        return result
-    end
-    if payloadType == PayloadType.I8Array then
-        payload:forEachI8(f)
-        return result
-    end
-    if payloadType == PayloadType.U8Array then
-        payload:forEachU8(f)
-        return result
-    end
-    if payloadType == PayloadType.I16Array then
-        payload:forEachI16(f)
-        return result
-    end
-    if payloadType == PayloadType.U16Array then
-        payload:forEachU16(f)
-        return result
-    end
-    if payloadType == PayloadType.I32Array then
-        payload:forEachI32(f)
-        return result
-    end
-    if payloadType == PayloadType.U32Array then
-        payload:forEachU32(f)
-        return result
-    end
-    if payloadType == PayloadType.I64Array then
-        payload:forEachI64(f)
-        return result
-    end
-    if payloadType == PayloadType.U64Array then
-        payload:forEachU64(f)
-        return result
-    end
-    if payloadType == PayloadType.F32Array then
-        payload:forEachF32(f)
-        return result
-    end
-    if payloadType == PayloadType.F64Array then
-        payload:forEachF64(f)
-        return result
-    end
-    if payloadType == PayloadType.StringArray then
-        payload:forEachString(function(value)
-            insert(result, ffi.string(value))
-        end)
+    -- array types: bulk access through the raw element address, no per-element FFI calls or callbacks
+    local arrayInfo = PayloadConverter.ArrayTypes[payloadType]
+    if arrayInfo ~= nil then
+        local count = tonumber(payload:arrayLen())
+        local result = newTable(count, 0)
+        if count == 0 then
+            return result
+        end
+        if payloadType == PayloadType.StringArray then
+            for i = 0, count - 1 do
+                result[i + 1] = ffi.string(payload:getStringArrayItem(i))
+            end
+            return result
+        end
+        local ptr = ffi.cast(arrayInfo.ctype, payload[arrayInfo.getter](payload))
+        if arrayInfo.convert == "bool" then
+            for i = 0, count - 1 do result[i + 1] = ptr[i] ~= 0 end
+        elseif arrayInfo.convert == "number" then
+            for i = 0, count - 1 do result[i + 1] = tonumber(ptr[i]) end
+        else
+            for i = 0, count - 1 do result[i + 1] = ptr[i] end
+        end
         return result
     end
 

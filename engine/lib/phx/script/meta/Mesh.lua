@@ -74,56 +74,14 @@ function Mesh:addVertex(px, py, pz, nx, ny, nz, u, v) end
 ---@param vertex Vertex
 function Mesh:addVertexRaw(vertex) end
 
----@param r Renderer
-function Mesh:drawBind(r) end
-
--- The mesh's GPU resource id (as a plain scalar - see
--- `Renderer::add_entity`'s `mesh_id`/`shader_id` params for why this
--- isn't `ResourceId` itself), lazily creating (or recreating, if the
--- mesh changed) the executor-owned resource just like `draw_bind` does
--- - without also drawing. For code that needs to reference the mesh
--- instead of calling `draw`/`drawBind` itself (e.g. the batch API,
--- `Renderer:addEntity`).
+-- The mesh's GPU resource id (as a plain scalar: `ResourceId` itself is
+-- not an FFI type), lazily creating (or recreating, if the mesh changed)
+-- the executor-owned resource just like `draw_bind` does - without also
+-- drawing. For code that needs to reference the mesh instead of drawing
+-- it itself.
 ---@param r Renderer
 ---@return integer
 function Mesh:resourceId(r) end
-
----@param r Renderer
-function Mesh:drawBound(r) end
-
--- No-op: `DrawMeshByResource` binds/draws/unbinds in one self-contained
--- command (see `draw_bound`), so there is nothing left to unbind here.
--- Kept as a method - and still takes `r` - so `drawBind`/`drawBound`/
--- `drawUnbind` stay a matched FFI triple for existing Lua call sites
--- that interleave shader uniform changes between multiple `drawBound`
--- calls (e.g. per-instance rendering without true GPU instancing).
----@param r Renderer
-function Mesh:drawUnbind(r) end
-
----@param r Renderer
-function Mesh:draw(r) end
-
--- Instanced draw with per-instance data (triangles). Ensures the GPU
--- resource exists (same lazy path as draw_bind), then submits ONE
--- DrawInstancedWithData command. `instances` is a Lua cdata array of
--- InstanceData (ffi.new("InstanceData[?]", count)); ffi_gen passes the
--- array pointer + element count. The render thread copies the data, so
--- the Lua array can be reused/GC'd after the call.
----@param r Renderer
----@param instances InstanceData[]
----@param instances_size integer
-function Mesh:drawInstancedWithData(r, instances, instances_size) end
-
--- Texture-fetch instanced draw: per-instance attribute is a u32 INDEX
--- into a static data texture (see wvp_instanced_tex). `indices` is a
--- Lua cdata array of u32 (ffi.new("uint32_t[?]", count)); the render
--- thread copies it, so the Lua array can be reused/GC'd after the call.
--- The static data texture must be bound (setTex2D on the shader) before
--- this call - the vertex shader texelFetches per instance.
----@param r Renderer
----@param indices integer[]
----@param indices_size integer
-function Mesh:drawInstancedIndices(r, indices, indices_size) end
 
 ---@param r Renderer
 ---@param scale number

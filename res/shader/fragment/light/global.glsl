@@ -4,15 +4,11 @@
 #include gamma
 #include math
 
-#autovar samplerCube irMap
-#autovar samplerCube envMap
 
 in vec3 worldOrigin;
 in vec3 worldDir;
 
-uniform vec3 lightColor;
-uniform vec3 lightPos;
-
+#group 3
 uniform sampler2D texNormalMat;
 uniform sampler2D texDepth;
 

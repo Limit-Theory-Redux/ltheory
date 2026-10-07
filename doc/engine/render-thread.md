@@ -1,8 +1,8 @@
 # Render Thread
 
 All OpenGL work happens through `Renderer`/`RenderCommand`
-(`render/thread/`): every GL-touching type (`Mesh`, `Shader`, `Tex2D`, `Draw`,
-`RenderState`, ...) takes an explicit `&mut Renderer` parameter and encodes
+(`render/thread/`): every GL-touching type (`Mesh`, `Shader`, `Tex2D`, `Imm`,
+`Font`, ...) takes an explicit `&mut Renderer` parameter and encodes
 its work as a `RenderCommand` rather than calling `gl::*` directly. `Engine`
 owns a single `Renderer` (`engine.renderer: Renderer`) created
 at startup and reachable from Lua via `Engine:renderer()`.
@@ -25,7 +25,7 @@ threaded backend.
 Both backends drive the same `CommandExecutor` (`command_executor.rs`,
 GL implementation in `command_executor_gl.rs`), which owns all GL state:
 `resources: HashMap<ResourceId, GpuResource>`, per-program uniform-location
-caches, cached texture bindings, the FBO stack, UBO handles. `RenderThread`
+caches, cached texture bindings, the FBO cache (framebuffers keyed by attachment set, evicted when a texture is destroyed), UBO handles. `RenderThread`
 (`render_thread.rs`) is only the plumbing around it for the threaded
 backend — it pulls `RenderCommand`s off a channel, hands them to the
 executor, and forwards whatever the executor replies (`CommandReply`) back
@@ -38,7 +38,6 @@ Renderer (renderer_threaded.rs)
   submit(RenderCommand) ──► bounded crossbeam channel ──► RenderThread.run()
   fence_rx ◄──────────────  Fence replies             ◄──  execute(cmd) → gl::*
   pacing_fence_rx ◄────────  PacingFence replies       ◄── (CommandExecutor)
-  shader_result_rx ◄───────  ReloadShader results
   stats_rx ◄───────────────  per-frame RenderStats snapshot
   context_rx ◄─────────────  GL context returned on shutdown
 ```
@@ -46,18 +45,17 @@ Renderer (renderer_threaded.rs)
 ## RenderCommand
 
 `render_command.rs` defines the command enum sent across the channel (or
-executed inline, in immediate mode): viewport/scissor/blend/cull/depth
-state, uniform sets (by GL location or, for the batch path, by name/generic
-name), texture binds and updates, framebuffer push/pop, mesh draws (plain,
-instanced, `DrawInstancedWithData`, `DrawImmediate`), resource lifecycle
+executed inline, in immediate mode): texture updates (whole image, or a rectangle for the
+glyph atlas), render passes
+(`BeginRenderPass`/`EndRenderPass`, with the draws recorded in between sent as `PassCommands`, which
+also carry the uniform and vertex ring uploads), frame slots (`BeginFrame`), material parameter buffers
+(`CreateBuffer`/`WriteBuffer`) and bind groups, draws (mesh, instanced, scene and immediate-batch
+draws are `PassCmd`s inside `PassCommands`), resource lifecycle
 (`CreateShader`/`CreateTexture2D`/`CreateMesh`/`DestroyResources` and their
-`*ByResource` bind/draw counterparts), UBO updates, `Resize`,
+`*ByResource` counterparts), `Resize`,
 `SetPresentMode`, `SwapBuffers`, `Fence`, `PacingFence`, `Shutdown`.
 
-`GpuHandle(u32)` identifies a raw GL object for the handful of call sites
-that still bind by raw handle; `ResourceId(u64)` identifies a
-render-thread-managed resource (see below) and is what current code (batch
-rendering, `Mesh`/`Shader` lazily-created resources) uses.
+`ResourceId(u64)` identifies a render-thread-managed resource (see below).
 
 ## Resources: `ResourceId` / `ResourceHandle`
 

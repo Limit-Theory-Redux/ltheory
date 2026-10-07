@@ -9,6 +9,7 @@ LimitTheoryRedux = require('States.Application')
 
 -- Sound / persistence
 local SoundManager = require('Legacy.Systems.SFX.SoundManager')
+local Backdrop = require("Render.Backdrop")
 local MusicPlayer = require('Shared.Audio.MusicPlayer')
 local InitFiles = require('Legacy.Systems.Files.InitFiles')
 
@@ -51,9 +52,12 @@ local MemoryReporter = require('Modules.Profiling.MemoryReporter')
 local ConstructManager = require('Modules.Constructs.Managers.ConstructManager')
 local StationGenerator = require('Modules.Constructs.Managers.Generators.StationGenerator')
 
--- Legacy (still needed for skybox generation)
-local Generator = require('Legacy.Systems.Gen.Generator')
-local Starfield = require('Legacy.Systems.Gen.Starfield')
+-- Skybox generation (the nebula generators register themselves with `Generator`;
+-- this state also draws from the light-transport nebula, which the Legacy
+-- namespace load used to register)
+local Generator = require('Shared.Generation.Generator')
+local Starfield = require('Shared.Generation.Starfield')
+require('Shared.Generation.Nebula2')
 
 local rng = RNG.FromTime()
 
@@ -123,7 +127,8 @@ function LimitTheoryRedux:initMainMenu(isAppInit)
     end
     Input:setCursorVisible(true)
 
-    UIPageMainMenu:setView("Title")
+    -- Capture variant (render validation): LTHEORY_CAPTURE_VIEW picks the menu view, only under LTHEORY_CAPTURE.
+    UIPageMainMenu:setView(os.getenv('LTHEORY_CAPTURE') and os.getenv('LTHEORY_CAPTURE_VIEW') or "Title")
 
     -- Autonomous test hook: LTR_AUTOSTART=1 skips the main menu and jumps
     -- straight into gameplay (same flow as clicking "New Game").
@@ -148,7 +153,8 @@ function LimitTheoryRedux:createMenuBackground()
 
     -- Skybox + universe at menu scale (Config.gen scaleSystemBack etc.)
     setMenuScale()
-    self.menuSeed = rng:get64()
+    -- Capture variant (render validation): LTHEORY_CAPTURE_SEED fixes the menu scene, only under LTHEORY_CAPTURE.
+    self.menuSeed = os.getenv('LTHEORY_CAPTURE') and tonumber(os.getenv('LTHEORY_CAPTURE_SEED')) or rng:get64()
     self.seed = self.menuSeed
     self:createSkybox()
     self:generateUniverse()
@@ -372,14 +378,17 @@ end
 ---@param seed integer
 function LimitTheoryRedux:createSkybox()
     local SkyboxEntity = require('Modules.CelestialObjects.Entities.SkyboxEntity')
-    self.skybox = SkyboxEntity(self.seed, function(entity, blendMode)
+    -- The skybox closure also builds the nebula maps, which renders to textures,
+    -- so run it once now (blendMode nil draws nothing): a render pass cannot be
+    -- open while another begins.
+    local skyboxFn = function(entity, blendMode)
         local placeholder = entity:get(CoreComponents.Empty)
         if not placeholder then
             placeholder = entity:add(CoreComponents.Empty)
         end
 
         if not placeholder.envMap then
-            require("Legacy.Systems.Gen.Nebula.Nebula1")
+            require("Shared.Generation.Nebula1")
             local nebulaRNG     = RNG.Create(entity:get(CoreComponents.Seed):getSeed() + 0xC0104FULL)
             local starAngle     = nebulaRNG:getDir2()
             placeholder.starDir = Vec3f(starAngle.x, 0, starAngle.y)
@@ -387,29 +396,13 @@ function LimitTheoryRedux:createSkybox()
             placeholder.irMap   = placeholder.envMap:genIRMap(256)
             placeholder.stars   = Starfield(nebulaRNG, Config.gen.nStars(nebulaRNG))
             CameraManager:setStarDir(placeholder.starDir)
-            ShaderVar.PushTexCube('envMap', placeholder.envMap)
-            ShaderVar.PushTexCube('irMap', placeholder.irMap)
+            Renderer:setEnvironment(placeholder.envMap, placeholder.irMap)
         end
 
-        if blendMode == BlendMode.Disabled then
-            RenderState.PushDepthWritable(false)
-            local shader = Cache.Shader('farplane', 'skybox')
-            RenderState.PushCullFace(CullFace.None)
-            shader:start()
-            Draw.Box3(Box3f(-1, -1, -1, 1, 1, 1))
-            shader:stop()
-            RenderState.PopCullFace()
-            RenderState.PopDepthWritable()
-        elseif blendMode == BlendMode.Additive then
-            local shader = Cache.Shader('farplane', 'starbg')
-            shader:start()
-            shader:setFloat('brightnessScale', 3)
-            shader:setTexCube('irMap', placeholder.irMap)
-            shader:setTexCube('envMap', placeholder.envMap)
-            placeholder.stars:draw()
-            shader:stop()
-        end
-    end)
+        Backdrop.draw(placeholder, blendMode)
+    end
+    self.skybox = SkyboxEntity(self.seed, skyboxFn)
+    skyboxFn(self.skybox, nil)
 end
 
 --- Generate the universe through UniverseManager + SolarSystemVisualizer.

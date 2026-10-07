@@ -1,7 +1,9 @@
 #include fragment
 #include math
 
-uniform vec4 color;
+#include imm
+
+#define color imm_color
 
 const float scale = 1.0;
 

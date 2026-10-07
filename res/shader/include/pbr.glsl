@@ -1,6 +1,7 @@
 #ifndef include_pbr
 #define include_pbr
 
+#include math
 #include random
 
 /* (Approximate) GGX microsurface distribution sample in NTB frame.

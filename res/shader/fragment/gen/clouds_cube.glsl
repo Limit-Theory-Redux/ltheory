@@ -2,6 +2,14 @@
 #include color
 #include math
 #include noise
+
+#group 2
+layout(std140) uniform Params {
+    vec4 genLook;   // face data written by TexGen.Cube (must stay the first three members)
+    vec4 genUp;
+    vec4 genSize;   // x = face size in pixels
+};
+
 #include texcube
 
 void main() {

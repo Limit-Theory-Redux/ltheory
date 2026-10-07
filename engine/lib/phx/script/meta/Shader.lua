@@ -25,215 +25,42 @@ function Shader:reload(r) end
 ---@return string
 function Shader:name() end
 
--- The shader's GPU resource id (as a plain scalar - see
--- `Renderer::add_entity`'s `mesh_id`/`shader_id` params for why this
--- isn't `ResourceId` itself), e.g. for code that needs to reference the
--- shader instead of calling `start`/`stop` itself (the batch API,
--- `Renderer:addEntity`). Unlike `Mesh::resource_id`, this is a plain
--- getter - `ShaderShared::handle` is always created eagerly in
+-- A LuaJIT `ffi.typeof` struct declaration with the byte layout of the
+-- shader's uniform block `name` (empty if the shader has no such block).
+-- The Lua side wraps it as `shader:blockType(name)`.
+---@param name string
+---@return string
+function Shader:blockDecl(name) end
+
+-- A hash of the layout of the uniform block `name` (0 if absent). A hot
+-- reload that changes it invalidates every ctype and parameter copy made
+-- from the old block (`BlockLayout::layout_hash`).
+---@param name string
+---@return integer
+function Shader:blockHash(name) end
+
+-- The names of the shader's uniform blocks, one per line.
+---@return string
+function Shader:blockNames() end
+
+-- Size in bytes of the uniform block `name` (0 if absent).
+---@param name string
+---@return integer
+function Shader:blockSize(name) end
+
+-- Bumped each time hot reload relinks the shader (it is part of the
+-- key of every pipeline made with it).
+---@return integer
+function Shader:generation() end
+
+-- The shader's GPU resource id (as a plain scalar: `ResourceId` itself
+-- is not an FFI type), e.g. for caches keyed by the shader's program
+-- (`Render.Pipelines`; a hot reload gives the shader a new resource).
+-- Unlike `Mesh::resource_id`, this is a plain getter - `ShaderShared::handle` is always created eagerly in
 -- `new`/`from_preprocessed`, never lazily.
 ---@return integer
 function Shader:resourceId() end
 
 ---@return Shader
 function Shader:clone() end
-
----@return ShaderState
-function Shader:toShaderState() end
-
----@param r Renderer
----@param name string
----@return integer
-function Shader:getVariable(r, name) end
-
----@param r Renderer
----@param name string
----@return boolean
-function Shader:hasVariable(r, name) end
-
-function Shader:resetTexIndex() end
-
----@param r Renderer
----@param name string
----@param value number
-function Shader:setFloat(r, name, value) end
-
----@param r Renderer
----@param index integer
----@param value number
-function Shader:iSetFloat(r, index, value) end
-
----@param r Renderer
----@param name string
----@param x number
----@param y number
-function Shader:setFloat2(r, name, x, y) end
-
----@param r Renderer
----@param index integer
----@param x number
----@param y number
-function Shader:iSetFloat2(r, index, x, y) end
-
----@param r Renderer
----@param name string
----@param x number
----@param y number
----@param z number
-function Shader:setFloat3(r, name, x, y, z) end
-
----@param r Renderer
----@param index integer
----@param x number
----@param y number
----@param z number
-function Shader:iSetFloat3(r, index, x, y, z) end
-
----@param r Renderer
----@param name string
----@param x number
----@param y number
----@param z number
----@param w number
-function Shader:setFloat4(r, name, x, y, z, w) end
-
----@param r Renderer
----@param index integer
----@param x number
----@param y number
----@param z number
----@param w number
-function Shader:iSetFloat4(r, index, x, y, z, w) end
-
----@param r Renderer
----@param name string
----@param value integer
-function Shader:setInt(r, name, value) end
-
----@param r Renderer
----@param index integer
----@param value integer
-function Shader:iSetInt(r, index, value) end
-
----@param r Renderer
----@param name string
----@param x integer
----@param y integer
-function Shader:setInt2(r, name, x, y) end
-
----@param r Renderer
----@param index integer
----@param x integer
----@param y integer
-function Shader:iSetInt2(r, index, x, y) end
-
----@param r Renderer
----@param name string
----@param x integer
----@param y integer
----@param z integer
-function Shader:setInt3(r, name, x, y, z) end
-
----@param r Renderer
----@param index integer
----@param x integer
----@param y integer
----@param z integer
-function Shader:iSetInt3(r, index, x, y, z) end
-
----@param r Renderer
----@param name string
----@param x integer
----@param y integer
----@param z integer
----@param w integer
-function Shader:setInt4(r, name, x, y, z, w) end
-
----@param r Renderer
----@param index integer
----@param x integer
----@param y integer
----@param z integer
----@param w integer
-function Shader:iSetInt4(r, index, x, y, z, w) end
-
----@param r Renderer
----@param name string
----@param value Matrix
-function Shader:setMatrix(r, name, value) end
-
----@param r Renderer
----@param index integer
----@param value Matrix
-function Shader:iSetMatrix(r, index, value) end
-
----@param r Renderer
----@param name string
----@param value Matrix
-function Shader:setMatrixT(r, name, value) end
-
----@param r Renderer
----@param index integer
----@param value Matrix
-function Shader:iSetMatrixT(r, index, value) end
-
--- Batched per-instance uniforms: mWorld, mWorldIT and scale in a single
--- command instead of three separate SetUniform* commands. The instance
--- values are unique per mesh (no dedup win), so the three GL uniform
--- calls are batched on the render thread and the producer pays one
--- command + one FFI crossing instead of three of each.
----@param r Renderer
----@param worldIndex integer
----@param worldItIndex integer
----@param scaleIndex integer
----@param world Matrix
----@param worldIt Matrix
----@param scale number
-function Shader:iSetInstanceUniforms(r, worldIndex, worldItIndex, scaleIndex, world, worldIt, scale) end
-
----@param r Renderer
----@param name string
----@param value Tex1D
-function Shader:setTex1D(r, name, value) end
-
----@param r Renderer
----@param index integer
----@param value Tex1D
-function Shader:iSetTex1D(r, index, value) end
-
----@param r Renderer
----@param name string
----@param value Tex2D
-function Shader:setTex2D(r, name, value) end
-
----@param r Renderer
----@param index integer
----@param value Tex2D
-function Shader:iSetTex2D(r, index, value) end
-
----@param r Renderer
----@param name string
----@param value Tex3D
-function Shader:setTex3D(r, name, value) end
-
----@param r Renderer
----@param index integer
----@param value Tex3D
-function Shader:iSetTex3D(r, index, value) end
-
----@param r Renderer
----@param name string
----@param value TexCube
-function Shader:setTexCube(r, name, value) end
-
----@param r Renderer
----@param index integer
----@param value TexCube
-function Shader:iSetTexCube(r, index, value) end
-
----@param r Renderer
-function Shader:start(r) end
-
----@param r Renderer
-function Shader:stop(r) end
 

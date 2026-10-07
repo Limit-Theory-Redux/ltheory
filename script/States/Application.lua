@@ -2,11 +2,29 @@ local Bindings = require('States.ApplicationBindings')
 local MainMenu = require('Legacy.Systems.Menus.MainMenu')
 local ShaderHotReload = require('Render.ShaderHotReload')
 local ShaderErrorOverlay = require('Shared.Tools.ShaderErrorOverlay')
+local RenderInfoOverlay = require('Shared.Tools.RenderInfoOverlay')
+local GeneralActions = require('Input.ActionBindings.GeneralActions')
 
 ---@class Application
 local Application = Class("Application", function(self) end)
 
+-- Opt-in deterministic screenshot capture (render validation):
+--   LTHEORY_CAPTURE=<out.png>   save the final backbuffer after frame N and exit
+--   LTHEORY_CAPTURE_FRAME=<n>   frame to capture (default 120)
+--   LTHEORY_CAPTURE_EXTRA_FRAMES=<a,b,...>  also save frames a, b, ... (each < n) to
+--                               <out>_f<a>.png, ... in the same run (one launch, several phases)
+--   LTHEORY_CAPTURE_SIZE=<w>x<h> window size (default 1280x720)
+--   LTHEORY_CAPTURE_GC_FRAME=<g> run a full Lua GC at frame g (catches GPU resources whose
+--                               only strong reference was a collected Lua object)
+-- Also fixes the window size and (engine-side) the frame delta time.
+local CAPTURE_SIZE_X, CAPTURE_SIZE_Y = 1280, 720
+do
+    local w, h = (os.getenv('LTHEORY_CAPTURE_SIZE') or ''):match('^(%d+)x(%d+)$')
+    if w then CAPTURE_SIZE_X, CAPTURE_SIZE_Y = tonumber(w), tonumber(h) end
+end
+
 function Application:getDefaultSize()
+    if self.captureMode then return CAPTURE_SIZE_X, CAPTURE_SIZE_Y end
     return Config.render.window.defaultResX, Config.render.window.defaultResY
 end
 
@@ -47,6 +65,15 @@ function Application:appInit()
     ShaderHotReload:init()
 
     self.eventsRegistered = false
+    self.capturePath = os.getenv('LTHEORY_CAPTURE')
+    self.captureMode = self.capturePath ~= nil
+    self.captureFrame = tonumber(os.getenv('LTHEORY_CAPTURE_FRAME')) or 120
+    self.captureGcFrame = tonumber(os.getenv('LTHEORY_CAPTURE_GC_FRAME'))
+    self.captureExtraFrames = {}
+    for f in (os.getenv('LTHEORY_CAPTURE_EXTRA_FRAMES') or ''):gmatch('%d+') do
+        self.captureExtraFrames[tonumber(f)] = true
+    end
+    self.frameCount = 0
     self.resX, self.resY = self:getDefaultSize()
 
     Window:setTitle(self:getTitle())
@@ -64,6 +91,7 @@ function Application:appInit()
 
     -- Settings
     self.profilerFont = Font.Load('NovaMono', 10)
+    RenderInfoOverlay:init()
     self.lastUpdate = TimeStamp.Now()
     self.profiling = false
     self.toggleProfiler = false
@@ -263,12 +291,127 @@ function Application:onPostRender(data)
 
     self:immediateUI(function() ShaderErrorOverlay:draw() end)
 
+    -- Render info overlay: drawn last, on top. Hidden in capture mode unless
+    -- LTHEORY_OVERLAY=1 (so validation captures stay identical).
+    RenderInfoOverlay:tick()
+    GeneralActions.RenderInfoOverlay:update(data:deltaTime())
+    if GeneralActions.RenderInfoOverlay:isPressed() then RenderInfoOverlay:toggle() end
+    if RenderInfoOverlay.visible and (not self.captureMode or RenderInfoOverlay.forced) then
+        self:immediateUI(function() RenderInfoOverlay:draw() end)
+    end
+
     Profiler.End()
+
+    if self.captureMode then self:captureTick() end
 
     -- Flush accumulated scope frame-times into the totals once per frame.
     -- Without this, every scope's total stays 0 and the printed table is
     -- empty (begin/end only accumulate into scope.frame).
     Profiler.LoopMarker()
+end
+
+function Application:captureTick()
+    self.frameCount = self.frameCount + 1
+    -- A size set before the OS window exists can be lost (the window opens at
+    -- its default 1280x720): ask again once it is up, until frame 10.
+    if self.frameCount <= 10 and (Window:width() ~= CAPTURE_SIZE_X or Window:height() ~= CAPTURE_SIZE_Y) then
+        if self.frameCount == 10 then
+            Log.Warn('CAPTURE_SIZE: window is %dx%d, wanted %dx%d', Window:width(), Window:height(),
+                CAPTURE_SIZE_X, CAPTURE_SIZE_Y)
+        else
+            Window:setSize(CAPTURE_SIZE_X, CAPTURE_SIZE_Y)
+        end
+    end
+    -- Wall-clock timing over the second half of the run (first half is warmup)
+    local half = math.floor(self.captureFrame / 2)
+    if self.frameCount == half then
+        self.captureStart = TimeStamp.Now()
+        self.captureAcc = { lastFrame = -1, recv = {}, present = {}, busy = {}, commands = {}, draws = {}, mainWait = {}, gpu = {}, gpuFrame = -1 }
+    elseif self.frameCount > half and self.captureAcc then
+        -- Per-frame render-thread stats (of the previous completed frame), averaged below
+        local acc = self.captureAcc
+        local rtFrame = tonumber(Renderer:statsFrameCount())
+        if rtFrame ~= acc.lastFrame then -- skip ticks without a new render-thread frame
+            acc.lastFrame = rtFrame
+            table.insert(acc.recv, tonumber(Renderer:statsRecvWaitUs()))
+            table.insert(acc.present, tonumber(Renderer:statsPresentWaitUs()))
+            table.insert(acc.busy, tonumber(Renderer:statsFrameTimeUs()))
+            table.insert(acc.commands, tonumber(Renderer:statsCommands()))
+            table.insert(acc.draws, tonumber(Renderer:statsDrawCalls()))
+            table.insert(acc.mainWait, tonumber(Renderer:statsMainWaitUs()))
+        end
+        local gpuFrame = tonumber(Renderer:statsGpuFrames()) -- GPU timings arrive a few frames late
+        if gpuFrame ~= acc.gpuFrame then
+            acc.gpuFrame = gpuFrame
+            table.insert(acc.gpu, tonumber(Renderer:statsGpuTotalUs()))
+        end
+    end
+    if self.frameCount == self.captureGcFrame then
+        collectgarbage('collect')
+        collectgarbage('collect') -- second pass runs the finalizers queued by the first
+        Log.Info('CAPTURE_GC frame=%d mem_kb=%.0f', self.frameCount, collectgarbage('count'))
+    end
+    if self.captureExtraFrames[self.frameCount] then
+        self:captureSave((self.capturePath:gsub('%.png$', '')) .. '_f' .. self.frameCount .. '.png')
+    end
+    if self.captureDone or self.frameCount < self.captureFrame then return end
+    self.captureDone = true
+
+    self:captureSave(self.capturePath)
+
+    -- RenderCoreSystem's smoothed FPS is derived from the fixed capture dt, so
+    -- report real wall-clock frame time measured here instead.
+    local frames = self.frameCount - math.floor(self.captureFrame / 2)
+    local ft = frames > 0 and self.captureStart:getElapsed() * 1000 / frames or 0
+    local fps = ft > 0 and 1000 / ft or 0
+    -- Producer/consumer balance: share of the frame the render thread spent
+    -- not executing/presenting (>= 15% idle => Lua/main thread is the bottleneck).
+    -- Medians (microseconds -> ms) so one-off hitches don't skew the balance.
+    local function median(t)
+        table.sort(t)
+        return t[math.floor(#t / 2) + 1] or 0
+    end
+    local acc = self.captureAcc
+    local recvMs, mainWaitMs = median(acc.recv) / 1000, median(acc.mainWait) / 1000
+    local execMs = median(acc.busy) / 1000 - recvMs -- render-thread time spent executing commands
+    local presentMs = median(acc.present) / 1000
+    local idlePct = ft > 0 and math.max(0, 100 * (1 - (execMs + presentMs) / ft)) or 0
+    -- GPU time (median of the measured frames; -1 / none when the backend has no timestamps)
+    local gpuMs, gpuTop = -1, 'none'
+    if Renderer:statsGpuAvailable() and #acc.gpu > 0 then
+        gpuMs = median(acc.gpu) / 1000
+        gpuTop = ffi.string(Renderer:statsGpuSummary(3))
+        if gpuTop == '' then gpuTop = 'none' end
+    end
+    Log.Info('CAPTURE frame=%d fps=%.1f frametime_ms=%.2f render_thread_ms=%.2f render_recv_wait_ms=%.2f render_idle_pct=%.1f render_exec_ms=%.2f render_present_ms=%.2f main_wait_ms=%.2f commands_per_frame=%d draw_calls=%.0f vertices=%d bound=%s gpu_ms=%.2f gpu_top=%s path=%s',
+        self.frameCount, fps, ft, tonumber(Renderer:statsFrameTimeUs()) / 1000,
+        recvMs, idlePct, execMs, presentMs, mainWaitMs, median(acc.commands), median(acc.draws),
+        tonumber(Renderer:statsVertices()), idlePct >= 15 and 'producer' or 'consumer', gpuMs, gpuTop, self.capturePath)
+    self:quit()
+end
+
+--- Save the backbuffer of the current capture frame to `path`, logging the
+--- frame's frustum cull stats (when the state renders through RenderCoreSystem).
+function Application:captureSave(path)
+    -- A minimized window has no backbuffer to read (ScreenCapture would save 1x1):
+    -- save nothing, so the runner reports the image as missing instead of diffing it.
+    if Window:width() < 2 or Window:height() < 2 then
+        Log.Warn('CAPTURE_SKIPPED frame=%d: window is minimized (%dx%d), nothing saved to %s',
+            self.frameCount, Window:width(), Window:height(), path)
+        return
+    end
+    Renderer:sync()
+    Window:beginDraw() -- ScreenCapture measures the open pass target and reads the backbuffer (readSync)
+    local tex = Tex2D.ScreenCapture()
+    Window:endDraw()
+    tex:save(path)
+    local ok, rcs = pcall(require, 'Modules.Rendering.Systems.RenderCoreSystem')
+    local cs = ok and rcs.getCullStats and rcs:getCullStats()
+    if cs then
+        Log.Info('CAPTURE_CULL frame=%d submitted=%d culled=%d visible=%d window=%dx%d physical=%dx%d scale=%.2f path=%s',
+            self.frameCount, cs.submitted or -1, cs.culled or -1, cs.visible or -1, Window:width(), Window:height(),
+            Window:physicalWidth(), Window:physicalHeight(), Window:scaleFactor(), path)
+    end
 end
 
 function Application:onPreInput(data) end
@@ -360,7 +503,6 @@ end
 function Application:immediateUI(renderFn)
     -- Re-open backbuffer for immediate UI
     Window:beginDraw()
-    RenderState.PushAllDefaults()
     ClipRect.PushDisabled()
 
     do
@@ -369,7 +511,6 @@ function Application:immediateUI(renderFn)
 
     -- Close again
     ClipRect.Pop()
-    RenderState.PopAll()
     Window:endDraw()
 end
 

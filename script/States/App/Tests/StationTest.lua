@@ -1,5 +1,6 @@
 local Application           = require('States.Application')
 
+local Backdrop = require("Render.Backdrop")
 ---@class StationTest: Application
 local StationTest           = Subclass("StationTest", Application)
 
@@ -25,8 +26,8 @@ local SkyboxEntity          = require("Modules.CelestialObjects.Entities.SkyboxE
 local StationGenerator      = require("Modules.Constructs.Managers.Generators.StationGenerator")
 
 ---! still using legacy
-local Generator             = require("Legacy.Systems.Gen.Generator")
-local Starfield             = require("Legacy.Systems.Gen.Starfield")
+local Generator             = require("Shared.Generation.Generator")
+local Starfield             = require("Shared.Generation.Starfield")
 
 function StationTest:onInit()
     Window:setPresentMode(PresentMode.NoVsync)
@@ -37,14 +38,17 @@ function StationTest:onInit()
     self.world = Physics.Create()
 
     -- Skybox
-    self.skybox = SkyboxEntity(self.seed, function(entity, blendMode)
+    -- The skybox closure also builds the nebula maps, which renders to textures,
+    -- so run it once now (blendMode nil draws nothing): a render pass cannot be
+    -- open while another begins.
+    local skyboxFn = function(entity, blendMode)
         local placeholder = entity:get(CoreComponents.Empty)
         if not placeholder then
             placeholder = entity:add(CoreComponents.Empty)
         end
 
         if not placeholder.envMap then
-            require("Legacy.Systems.Gen.Nebula.Nebula1")
+            require("Shared.Generation.Nebula1")
             local nebulaRNG     = RNG.Create(entity:get(CoreComponents.Seed):getSeed() + 0xC0104FULL)
             local starAngle     = nebulaRNG:getDir2()
             placeholder.starDir = Vec3f(starAngle.x, 0, starAngle.y)
@@ -52,29 +56,13 @@ function StationTest:onInit()
             placeholder.irMap   = placeholder.envMap:genIRMap(256)
             placeholder.stars   = Starfield(nebulaRNG, Config.gen.nStars(nebulaRNG))
             CameraManager:setStarDir(placeholder.starDir)
-            ShaderVar.PushTexCube('envMap', placeholder.envMap)
-            ShaderVar.PushTexCube('irMap', placeholder.irMap)
+            Renderer:setEnvironment(placeholder.envMap, placeholder.irMap)
         end
 
-        if blendMode == BlendMode.Disabled then
-            RenderState.PushDepthWritable(false)
-            local shader = Cache.Shader('farplane', 'skybox')
-            RenderState.PushCullFace(CullFace.None)
-            shader:start()
-            Draw.Box3(Box3f(-1, -1, -1, 1, 1, 1))
-            shader:stop()
-            RenderState.PopCullFace()
-            RenderState.PopDepthWritable()
-        elseif blendMode == BlendMode.Additive then
-            local shader = Cache.Shader('farplane', 'starbg')
-            shader:start()
-            shader:setFloat('brightnessScale', 3)
-            shader:setTexCube('irMap', placeholder.irMap)
-            shader:setTexCube('envMap', placeholder.envMap)
-            placeholder.stars:draw()
-            shader:stop()
-        end
-    end)
+        Backdrop.draw(placeholder, blendMode)
+    end
+    self.skybox = SkyboxEntity(self.seed, skyboxFn)
+    skyboxFn(self.skybox, nil)
 
     -- Camera setup
     local camOrbit = CameraEntity()

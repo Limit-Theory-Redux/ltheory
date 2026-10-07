@@ -70,6 +70,15 @@ strum = "0.28"
 strum_macros = "0.28"
 tobj = "4.0"
 byteorder = "1.5"
+# NOTE: Cargo.lock pins gpu-allocator's `windows` dependency to 0.62 (the
+# version wgpu-hal uses). gpu-allocator accepts 0.53..=0.62, so a
+# `cargo update` touching the wgpu tree may re-resolve it to 0.54 (pulled in
+# by cpal) and break wgpu-hal's DX12 build with ID3D12Device type mismatches.
+# If that happens, re-point gpu-allocator's "windows" entry in Cargo.lock.
+wgpu = { version = "30", features = ["glsl", "vulkan", "dx12", "naga-ir"] }
+pollster = "0.4"
+# Belt cull worker pool (render/instance_field.rs); already in Cargo.lock via other deps.
+rayon = "1.10"
 
 [dev-dependencies]
 test-log = "0.2"

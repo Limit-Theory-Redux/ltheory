@@ -4,8 +4,13 @@ in vec2 uv;
 
 out vec4 outColor;
 
-uniform int sDim;
-uniform float radius;
+#group 2
+layout(std140) uniform Params {
+  int sDim;
+  float radius;
+};
+
+#group 3
 uniform sampler2D sPointBuffer;
 uniform sampler2D sNormalBuffer;
 uniform sampler2D vPointBuffer;

@@ -1,0 +1,17 @@
+{
+  "frame": 120,
+  "fps": 336.1,
+  "frametime_ms": 2.98,
+  "render_thread_ms": 2.58,
+  "render_recv_wait_ms": 0.32,
+  "render_idle_pct": 33.6,
+  "render_exec_ms": 1.53,
+  "render_present_ms": 0.44,
+  "main_wait_ms": 0.0,
+  "commands_per_frame": 85,
+  "draw_calls": 26,
+  "vertices": 196888,
+  "bound": "producer",
+  "scene": "SolarSystemPlayable",
+  "backend": "gl"
+}

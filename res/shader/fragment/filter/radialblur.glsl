@@ -3,10 +3,14 @@
 #include color
 #include noise
 
-uniform float strength;
-uniform float scanlines;
-uniform vec2 center;
-uniform sampler2D depthBuffer;  // Add depth buffer
+#group 2
+layout(std140) uniform Params {
+    float strength;
+    float scanlines;
+    vec2 center;
+};
+#group 3
+uniform sampler2D depthBuffer;  // linear depth (slot 1; `src` is slot 0)
 
 const float k = 1.0;
 const float a = 0.005;
@@ -35,8 +39,8 @@ void main() {
     float depthDiff = abs(centerDepth - sampleDepth);
     float depthWeight = exp(-depthDiff * 100.0);  // Reject samples far in depth
     
-    vec3 sample = texture(src, uvp).xyz;
-    c += w * depthWeight * sample * sample;
+    vec3 smp = texture(src, uvp).xyz;
+    c += w * depthWeight * smp * smp;
     tw += w * depthWeight;
   }
   

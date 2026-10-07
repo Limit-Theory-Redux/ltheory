@@ -106,13 +106,11 @@ function ShaderErrorOverlay:draw()
     DrawEx.Panel(bannerX, bannerY, bannerWidth, bannerHeight, colors.bg, 1.0)
 
     local borderWidth = 3
-    RenderState.PushBlendMode(BlendMode.Alpha)
-    Draw.Color(colors.border.r, colors.border.g, colors.border.b, colors.border.a)
-    Draw.Rect(bannerX, bannerY, bannerWidth, borderWidth)
-    Draw.Rect(bannerX, bannerY + bannerHeight - borderWidth, bannerWidth, borderWidth)
-    Draw.Rect(bannerX, bannerY, borderWidth, bannerHeight)
-    Draw.Rect(bannerX + bannerWidth - borderWidth, bannerY, borderWidth, bannerHeight)
-    RenderState.PopBlendMode()
+    local border = colors.border
+    DrawEx.SimpleRect(bannerX, bannerY, bannerWidth, borderWidth, border)
+    DrawEx.SimpleRect(bannerX, bannerY + bannerHeight - borderWidth, bannerWidth, borderWidth, border)
+    DrawEx.SimpleRect(bannerX, bannerY, borderWidth, bannerHeight, border)
+    DrawEx.SimpleRect(bannerX + bannerWidth - borderWidth, bannerY, borderWidth, bannerHeight, border)
 
     local textX = bannerX + self.padding + borderWidth
     local textY = bannerY + self.padding + borderWidth

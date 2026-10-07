@@ -4,218 +4,182 @@
 ---@class Renderer
 Renderer = {}
 
--- Begin a new frame
-function Renderer:beginFrame() end
-
--- Flush all queued commands to the render thread
-function Renderer:flush() end
-
 -- Synchronize with the render thread (wait for all commands to complete)
 ---@return boolean
 function Renderer:sync() end
 
----@param view Matrix
----@param projection Matrix
----@param eye Vec3f
-function Renderer:beginBatch(view, projection, eye) end
+-- Block until the GPU has finished everything submitted so far
+-- (`glFinish`), e.g. to time a piece of GPU work.
+function Renderer:gpuFinish() end
 
--- `mesh_id`/`shader_id` are `ResourceId`s as plain scalars - obtain them
--- from `Mesh::resource_id`/`Shader::resource_id` (`mesh:resourceId(r)` /
--- `shader:resourceId()` in Lua). `user_id` is an opaque caller tag
--- echoed back by `cull_batch`.
----@param transform Matrix
----@param boundsCenter Vec3f
----@param boundsRadius number
----@param meshId integer
----@param indexCount integer
----@param shaderId integer
----@param sortKey integer
----@param userId integer
-function Renderer:addEntity(transform, boundsCenter, boundsRadius, meshId, indexCount, shaderId, sortKey, userId) end
-
--- Add a cull-only entity to the active batch: bounds + sort key, no
--- mesh/shader to draw. For callers that want frustum culling and sort
--- ordering from `cull_batch` without going through the (unused) batch
--- draw path - see `RenderCoreSystem` in Lua, which still applies its
--- own per-entity material uniforms and issues its own draws.
--- 
--- `radius < 0.0` is a sentinel meaning "never cull" (e.g. no bounds
--- source available for this entity).
----@param boundsCenter Vec3f
----@param boundsRadius number
----@param sortKey integer
----@param userId integer
-function Renderer:addCullEntity(boundsCenter, boundsRadius, sortKey, userId) end
-
--- Frustum-cull and sort the active batch, writing survivors' `user_id`s
--- into `out_indices` in sort-key order. Returns the number written
--- (never more than `out_indices`'s length). Emits no draw commands and
--- does not clear the batch - `flush_batch` still works afterward.
----@param outIndices integer[]
----@param outIndices_size integer
+-- Draw calls of the last frame (mesh + immediate + instanced).
 ---@return integer
-function Renderer:cullBatch(outIndices, outIndices_size) end
+function Renderer:statsDrawCalls() end
 
-function Renderer:flushBatch() end
+-- Render-thread execute time of the last frame, in microseconds.
+---@return integer
+function Renderer:statsFrameTimeUs() end
 
----@return BatchStats?
-function Renderer:getBatchStats() end
+-- Time the render thread sat blocked waiting for commands in the last
+-- frame (producer starvation), microseconds.
+---@return integer
+function Renderer:statsRecvWaitUs() end
 
--- Set the viewport
+-- Time the render thread spent blocked in the buffer swap (vsync/GPU
+-- back-pressure) in the last frame, microseconds.
+---@return integer
+function Renderer:statsPresentWaitUs() end
+
+-- Frames the render thread has completed (to de-duplicate stats samples).
+---@return integer
+function Renderer:statsFrameCount() end
+
+-- Commands the render thread processed in the last frame.
+---@return integer
+function Renderer:statsCommands() end
+
+-- Time the main thread spent blocked in the last frame end, microseconds.
+---@return integer
+function Renderer:statsMainWaitUs() end
+
+---@return integer
+function Renderer:statsVertices() end
+
+-- Render passes begun in the last frame.
+---@return integer
+function Renderer:statsPasses() end
+
+-- Pipeline (program) switches in the last frame: binds that changed the program.
+---@return integer
+function Renderer:statsPipelineSwitches() end
+
+-- Bind groups bound in the last frame.
+---@return integer
+function Renderer:statsBindGroupSwitches() end
+
+-- Immediate-mode (UI) vertices in the last frame.
+---@return integer
+function Renderer:statsImmVertices() end
+
+-- Resource census: pipelines, samplers, bind groups, textures, meshes
+-- (`u64::MAX` = n/a on this backend).
+---@return integer
+function Renderer:statsPipelines() end
+
+---@return integer
+function Renderer:statsSamplers() end
+
+---@return integer
+function Renderer:statsBindGroups() end
+
+---@return integer
+function Renderer:statsTextures() end
+
+---@return integer
+function Renderer:statsMeshes() end
+
+-- Approximate GPU memory of all live textures, bytes (`u64::MAX` = n/a).
+---@return integer
+function Renderer:statsTextureBytes() end
+
+-- The backend times render passes (and `LTHEORY_GPU_TIMING` is not 0).
+---@return boolean
+function Renderer:statsGpuAvailable() end
+
+-- Frames of GPU timing measured so far (changes when a new one arrives).
+---@return integer
+function Renderer:statsGpuFrames() end
+
+-- GPU time of the last measured frame, first pass start to last pass
+-- end, microseconds.
+---@return integer
+function Renderer:statsGpuTotalUs() end
+
+-- Exponential average of `stats_gpu_total_us`.
+---@return integer
+function Renderer:statsGpuTotalSmoothUs() end
+
+-- Sum of the GPU time of all passes of the last measured frame (no gaps).
+---@return integer
+function Renderer:statsGpuBusyUs() end
+
+-- Number of passes in the per-pass list, heaviest first (at most 32).
+---@return integer
+function Renderer:statsGpuPassCount() end
+
+-- Label of the `i`-th heaviest pass (0-based), empty if out of range.
+---@param i integer
+---@return string
+function Renderer:statsGpuPassLabel(i) end
+
+-- GPU time of the `i`-th heaviest pass in the last measured frame, microseconds.
+---@param i integer
+---@return integer
+function Renderer:statsGpuPassUs(i) end
+
+-- Exponential average of the GPU time of the `i`-th heaviest pass, microseconds.
+---@param i integer
+---@return integer
+function Renderer:statsGpuPassSmoothUs(i) end
+
+-- The `n` heaviest passes (smoothed ms) as `label=ms` pairs separated by `,`
+-- (for logs and capture output); empty when n/a.
+---@param n integer
+---@return string
+function Renderer:statsGpuSummary(n) end
+
+-- Uniform ring bytes allocated in the last completed frame.
+---@return integer
+function Renderer:statsUniformBytes() end
+
+-- Vertex ring bytes allocated in the last completed frame.
+---@return integer
+function Renderer:statsVertexBytes() end
+
+-- Startup backend description as `key=value` lines: `backend`
+-- (`OpenGL 3.3` or `wgpu`), then GL strings or the wgpu adapter info.
+-- Empty until the render thread is up; query once and cache.
+---@return string
+function Renderer:backendInfo() end
+
+-- Read the `w` x `h` texels at `x`, `y` of `view` (its mip level, face or
+-- layer) as `fmt` and wait for them: rows from the first up, tightly
+-- packed, in the layout of `fmt` (the texture is converted if it is
+-- stored differently). **Stalls until the GPU has produced the data**:
+-- for screenshots, tests and tools only, never in a frame. Empty `Bytes`
+-- if the read failed.
+---@param view TexView
 ---@param x integer
 ---@param y integer
----@param width integer
----@param height integer
-function Renderer:setViewport(x, y, width, height) end
+---@param w integer
+---@param h integer
+---@param fmt TexFormat
+---@return Bytes
+function Renderer:readSync(view, x, y, w, h, fmt) end
 
--- Set the scissor region
+-- Start reading the `w` x `h` texels at `x`, `y` of `view` as `fmt`
+-- without waiting. Poll the ticket (`:ready()`) once per frame; the data
+-- arrives two or three frames later. See `ReadbackTicket`.
+---@param view TexView
 ---@param x integer
 ---@param y integer
----@param width integer
----@param height integer
-function Renderer:setScissor(x, y, width, height) end
+---@param w integer
+---@param h integer
+---@param fmt TexFormat
+---@return ReadbackTicket
+function Renderer:readAsync(view, x, y, w, h, fmt) end
 
--- Enable or disable scissor test
----@param enable boolean
-function Renderer:enableScissor(enable) end
+-- Begin a render pass on `desc`'s attachments. Only one pass may be open
+-- at a time; end it with `RenderPass:finish()`.
+---@param desc RenderPassDesc
+---@return RenderPass
+function Renderer:beginPass(desc) end
 
--- Set blend mode (0=Disabled, 1=Alpha, 2=Additive, 3=PreMultAlpha)
----@param mode BlendMode
-function Renderer:setBlendMode(mode) end
-
--- Set cull face (0=None, 1=Back, 2=Front)
----@param face CullFace
-function Renderer:setCullFace(face) end
-
--- Enable or disable depth testing
----@param enable boolean
-function Renderer:setDepthTest(enable) end
-
--- Enable or disable depth writing
----@param enable boolean
-function Renderer:setDepthWritable(enable) end
-
--- Set wireframe mode
----@param enable boolean
-function Renderer:setWireframe(enable) end
-
--- Bind a shader program
----@param handle integer
-function Renderer:bindShader(handle) end
-
--- Unbind the current shader
-function Renderer:unbindShader() end
-
--- Set an integer uniform
----@param location integer
----@param value integer
-function Renderer:setUniformInt(location, value) end
-
--- Set a float uniform
----@param location integer
----@param value number
-function Renderer:setUniformFloat(location, value) end
-
--- Set a vec2 uniform
----@param location integer
----@param x number
----@param y number
-function Renderer:setUniformFloat2(location, x, y) end
-
--- Set a vec3 uniform
----@param location integer
----@param x number
----@param y number
----@param z number
-function Renderer:setUniformFloat3(location, x, y, z) end
-
--- Set a vec4 uniform
----@param location integer
----@param x number
----@param y number
----@param z number
----@param w number
-function Renderer:setUniformFloat4(location, x, y, z, w) end
-
--- Bind a 2D texture to a slot
----@param slot integer
----@param handle integer
-function Renderer:bindTexture2D(slot, handle) end
-
--- Bind a 3D texture to a slot
----@param slot integer
----@param handle integer
-function Renderer:bindTexture3D(slot, handle) end
-
--- Bind a cube texture to a slot
----@param slot integer
----@param handle integer
-function Renderer:bindTextureCube(slot, handle) end
-
--- Unbind a texture from a slot
----@param slot integer
-function Renderer:unbindTexture(slot) end
-
--- Bind a framebuffer
----@param handle integer
-function Renderer:bindFramebuffer(handle) end
-
--- Bind the default framebuffer
-function Renderer:bindDefaultFramebuffer() end
-
--- Clear color buffer
----@param r number
----@param g number
----@param b number
----@param a number
-function Renderer:clearColor(r, g, b, a) end
-
--- Clear depth buffer
----@param depth number
-function Renderer:clearDepth(depth) end
-
--- Clear both color and depth buffers
----@param r number
----@param g number
----@param b number
----@param a number
----@param depth number
-function Renderer:clear(r, g, b, a, depth) end
-
--- Draw a mesh
----@param vao integer
----@param indexCount integer
-function Renderer:drawMesh(vao, indexCount) end
-
--- Draw a mesh with a specific primitive type
----@param vao integer
----@param indexCount integer
----@param primitive CmdPrimitiveType
-function Renderer:drawMeshPrimitive(vao, indexCount, primitive) end
-
--- Draw instanced mesh
----@param vao integer
----@param indexCount integer
----@param instanceCount integer
-function Renderer:drawMeshInstanced(vao, indexCount, instanceCount) end
-
--- Draw instanced with per-instance data (mesh resource id variant).
----@param meshId integer
----@param indexCount integer
----@param instances InstanceData[]
----@param instances_size integer
----@param primitive CmdPrimitiveType
-function Renderer:drawInstancedWithData(meshId, indexCount, instances, instances_size, primitive) end
-
--- Draw instanced with per-instance u32 INDICES into a static data
--- texture (texture-fetch instancing, GL 3.3). See
--- draw_instanced_indices_intern.
----@param meshId integer
----@param indexCount integer
----@param indices integer[]
----@param indices_size integer
----@param primitive CmdPrimitiveType
-function Renderer:drawInstancedIndices(meshId, indexCount, indices, indices_size, primitive) end
+-- The open pass, for code that records into it without owning it (for
+-- example UI widgets calling `pass:setUiTransform`). It cannot `finish`
+-- the pass. Errors if no pass is open.
+---@return RenderPass
+function Renderer:currentPass() end
 
 -- Signal resize
 ---@param width integer
@@ -225,45 +189,25 @@ function Renderer:resize(width, height) end
 -- Signal swap buffers (frame end)
 function Renderer:swapBuffers() end
 
--- Create the camera UBO on the render thread
-function Renderer:createCameraUbo() end
+-- Set the camera of the passes that begin from now on (and of the open
+-- pass): view and projection matrices and the direction towards the
+-- primary light. Rendering is camera-relative, so the eye is the origin.
+-- Replaces the old shader-variable stack and the camera UBO update.
+---@param view Matrix
+---@param proj Matrix
+---@param starDir Vec3f
+function Renderer:setCamera(view, proj, starDir) end
 
--- Update the camera UBO with new camera data
--- Parameters are the matrices and vectors that make up the camera state.
----@param mView Matrix
----@param mProj Matrix
----@param eyeX number
----@param eyeY number
----@param eyeZ number
----@param starDirX number
----@param starDirY number
----@param starDirZ number
-function Renderer:updateCameraUbo(mView, mProj, eyeX, eyeY, eyeZ, starDirX, starDirY, starDirZ) end
+-- Set the environment cube maps (`envMap` and `irMap` of group 0) of the
+-- passes that begin from now on (and of the open pass). Replaces
+-- the old per-shader `envMap`/`irMap` variables.
+---@param envMap TexCube
+---@param irMap TexCube
+function Renderer:setEnvironment(envMap, irMap) end
 
--- Create the material UBO on the render thread
-function Renderer:createMaterialUbo() end
-
--- Update the material UBO with new material properties
----@param r number
----@param g number
----@param b number
----@param a number
----@param metallic number
----@param roughness number
----@param emission number
-function Renderer:updateMaterialUbo(r, g, b, a, metallic, roughness, emission) end
-
--- Create the light UBO on the render thread
-function Renderer:createLightUbo() end
-
--- Update the light UBO with light properties
----@param posX number
----@param posY number
----@param posZ number
----@param radius number
----@param r number
----@param g number
----@param b number
----@param intensity number
-function Renderer:updateLightUbo(posX, posY, posZ, radius, r, g, b, intensity) end
+-- Create a bind group from `desc`; bind it in a pass with
+-- `pass:setBindGroup(group, id)`.
+---@param desc BindGroupDesc
+---@return integer
+function Renderer:createBindGroup(desc) end
 

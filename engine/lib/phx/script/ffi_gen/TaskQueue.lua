@@ -27,6 +27,7 @@ function Loader.defineType()
             uint64 const* TaskQueue_TasksReady      (TaskQueue const*, uint16 workerId);
             uint64 const* TaskQueue_SendTask        (TaskQueue*, uint16 workerId, Payload* data);
             TaskResult*   TaskQueue_NextTaskResult  (TaskQueue*, uint16 workerId);
+            TaskResult*   TaskQueue_WaitTaskResult  (TaskQueue*, uint16 workerId, uint32 timeoutMs);
             bool          TaskQueue_SendEcho        (TaskQueue*, cstr data);
             cstr          TaskQueue_GetEcho         (TaskQueue*);
         ]]
@@ -56,6 +57,10 @@ function Loader.defineType()
                 end,
                 nextTaskResult  = function(self, workerId)
                     local _instance = libphx.TaskQueue_NextTaskResult(self, workerId)
+                    return Core.ManagedObject(_instance, libphx.TaskResult_Free)
+                end,
+                waitTaskResult  = function(self, workerId, timeoutMs)
+                    local _instance = libphx.TaskQueue_WaitTaskResult(self, workerId, timeoutMs)
                     return Core.ManagedObject(_instance, libphx.TaskResult_Free)
                 end,
                 sendEcho        = libphx.TaskQueue_SendEcho,

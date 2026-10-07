@@ -1,7 +1,7 @@
 use super::gl;
 
 #[luajit_ffi_gen::luajit_ffi(repr = "u32")]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TexWrapMode {
     Clamp = gl::CLAMP_TO_EDGE,
     MirrorClamp = gl::MIRROR_CLAMP_TO_EDGE,

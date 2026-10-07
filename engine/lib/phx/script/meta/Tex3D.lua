@@ -12,17 +12,32 @@ Tex3D = {}
 ---@return Tex3D
 function Tex3D.Create(r, sx, sy, sz, format) end
 
+-- A texture with `mips` levels (0 = the full chain) and the `TexUsage`
+-- bits in `usage` (0 = the default for the kind).
 ---@param r Renderer
-function Tex3D:pop(r) end
+---@param sx integer
+---@param sy integer
+---@param sz integer
+---@param format TexFormat
+---@param mips integer
+---@param usage integer
+---@return Tex3D
+function Tex3D.CreateDesc(r, sx, sy, sz, format, mips, usage) end
 
----@param r Renderer
+-- View of the whole volume, for sampling.
+---@return TexView
+function Tex3D:view() end
+
+-- View of one z-slice at mip level 0, usable as a render attachment.
 ---@param layer integer
-function Tex3D:push(r, layer) end
+---@return TexView
+function Tex3D:layerView(layer) end
 
----@param r Renderer
+-- View of one z-slice at the given mip level, usable as a render attachment.
 ---@param layer integer
 ---@param level integer
-function Tex3D:pushLevel(r, layer, level) end
+---@return TexView
+function Tex3D:layerMipView(layer, level) end
 
 ---@param r Renderer
 function Tex3D:genMipmap(r) end
@@ -48,16 +63,4 @@ function Tex3D:getSizeLevel(level) end
 ---@param pf PixelFormat
 ---@param df DataFormat
 function Tex3D:setDataBytes(r, data, pf, df) end
-
----@param r Renderer
----@param filter TexFilter
-function Tex3D:setMagFilter(r, filter) end
-
----@param r Renderer
----@param filter TexFilter
-function Tex3D:setMinFilter(r, filter) end
-
----@param r Renderer
----@param mode TexWrapMode
-function Tex3D:setWrapMode(r, mode) end
 

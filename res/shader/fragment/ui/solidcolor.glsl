@@ -1,7 +1,7 @@
 #include fragment
 
-uniform vec4 color;
+#include imm
 
 void main() {
-  outColor = color;
+  outColor = imm_color;
 }

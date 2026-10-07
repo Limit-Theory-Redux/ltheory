@@ -59,15 +59,9 @@ pub fn init_renderer<D: GlDisplay>(gl_display: &D) {
     glcheck!(gl::Enable(gl::TEXTURE_CUBE_MAP_SEAMLESS));
     glcheck!(gl::Disable(gl::LINE_SMOOTH));
     glcheck!(gl::Hint(gl::LINE_SMOOTH_HINT, gl::FASTEST));
-    if cfg!(not(target_os = "macos")) {
-        glcheck!(gl::LineWidth(2.0f32));
-    }
 
-    // RenderState defaults used to be pushed here, back when this ran on the
-    // main thread before any render thread existed. `Renderer` now always
-    // owns the GL context and `CommandExecutor::init_gl()` sets the
-    // equivalent GL state unconditionally (see the "Match
-    // RenderState::push_all_defaults()" block there) - nothing left to do.
+    // Fixed-function state belongs to pipelines now: `Renderer` owns the GL
+    // context and `CommandExecutor::init_gl()` sets the state they start from.
 }
 
 pub fn resize(width: i32, height: i32) {

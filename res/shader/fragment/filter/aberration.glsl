@@ -3,7 +3,10 @@
 #include color
 #include noise
 
-uniform float strength;
+#group 2
+layout(std140) uniform Params {
+    float strength;
+};
 
 const float k = 1.00;
 const float a = 0.0002;

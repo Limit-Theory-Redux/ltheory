@@ -101,96 +101,113 @@ function Payload:getString() end
 ---@return Payload
 function Payload.FromBoolArray(value, value_size) end
 
----@param f fun(arg1: boolean): nil
-function Payload:forEachBool(f) end
+-- Address of the first element of the array (cast with ffi.cast) (valid for `array_len` elements while the payload lives).
+---@return integer
+function Payload:getBoolArrayAddr() end
 
 ---@param value integer[]
 ---@param value_size integer
 ---@return Payload
 function Payload.FromI8Array(value, value_size) end
 
----@param f fun(arg1: integer): nil
-function Payload:forEachI8(f) end
+-- Address of the first element of the array (cast with ffi.cast) (valid for `array_len` elements while the payload lives).
+---@return integer
+function Payload:getI8ArrayAddr() end
 
 ---@param value integer[]
 ---@param value_size integer
 ---@return Payload
 function Payload.FromU8Array(value, value_size) end
 
----@param f fun(arg1: integer): nil
-function Payload:forEachU8(f) end
+-- Address of the first element of the array (cast with ffi.cast) (valid for `array_len` elements while the payload lives).
+---@return integer
+function Payload:getU8ArrayAddr() end
 
 ---@param value integer[]
 ---@param value_size integer
 ---@return Payload
 function Payload.FromI16Array(value, value_size) end
 
----@param f fun(arg1: integer): nil
-function Payload:forEachI16(f) end
+-- Address of the first element of the array (cast with ffi.cast) (valid for `array_len` elements while the payload lives).
+---@return integer
+function Payload:getI16ArrayAddr() end
 
 ---@param value integer[]
 ---@param value_size integer
 ---@return Payload
 function Payload.FromU16Array(value, value_size) end
 
----@param f fun(arg1: integer): nil
-function Payload:forEachU16(f) end
+-- Address of the first element of the array (cast with ffi.cast) (valid for `array_len` elements while the payload lives).
+---@return integer
+function Payload:getU16ArrayAddr() end
 
 ---@param value integer[]
 ---@param value_size integer
 ---@return Payload
 function Payload.FromI32Array(value, value_size) end
 
----@param f fun(arg1: integer): nil
-function Payload:forEachI32(f) end
+-- Address of the first element of the array (cast with ffi.cast) (valid for `array_len` elements while the payload lives).
+---@return integer
+function Payload:getI32ArrayAddr() end
 
 ---@param value integer[]
 ---@param value_size integer
 ---@return Payload
 function Payload.FromU32Array(value, value_size) end
 
----@param f fun(arg1: integer): nil
-function Payload:forEachU32(f) end
+-- Address of the first element of the array (cast with ffi.cast) (valid for `array_len` elements while the payload lives).
+---@return integer
+function Payload:getU32ArrayAddr() end
 
 ---@param value integer[]
 ---@param value_size integer
 ---@return Payload
 function Payload.FromI64Array(value, value_size) end
 
----@param f fun(arg1: integer): nil
-function Payload:forEachI64(f) end
+-- Address of the first element of the array (cast with ffi.cast) (valid for `array_len` elements while the payload lives).
+---@return integer
+function Payload:getI64ArrayAddr() end
 
 ---@param value integer[]
 ---@param value_size integer
 ---@return Payload
 function Payload.FromU64Array(value, value_size) end
 
----@param f fun(arg1: integer): nil
-function Payload:forEachU64(f) end
+-- Address of the first element of the array (cast with ffi.cast) (valid for `array_len` elements while the payload lives).
+---@return integer
+function Payload:getU64ArrayAddr() end
 
 ---@param value number[]
 ---@param value_size integer
 ---@return Payload
 function Payload.FromF32Array(value, value_size) end
 
----@param f fun(arg1: number): nil
-function Payload:forEachF32(f) end
+-- Address of the first element of the array (cast with ffi.cast) (valid for `array_len` elements while the payload lives).
+---@return integer
+function Payload:getF32ArrayAddr() end
 
 ---@param value number[]
 ---@param value_size integer
 ---@return Payload
 function Payload.FromF64Array(value, value_size) end
 
----@param f fun(arg1: number): nil
-function Payload:forEachF64(f) end
+-- Address of the first element of the array (cast with ffi.cast) (valid for `array_len` elements while the payload lives).
+---@return integer
+function Payload:getF64ArrayAddr() end
 
 ---@param value string[]
 ---@param value_size integer
 ---@return Payload
 function Payload.FromStringArray(value, value_size) end
 
----@param f fun(arg1: string): nil
-function Payload:forEachString(f) end
+-- Returns the string at `index` of a string array. Panics if out of range.
+---@param index integer
+---@return string
+function Payload:getStringArrayItem(index) end
+
+-- Number of elements of any array payload type. Zero for non-array payloads.
+---@return integer
+function Payload:arrayLen() end
 
 ---@param value PayloadTable
 ---@return Payload

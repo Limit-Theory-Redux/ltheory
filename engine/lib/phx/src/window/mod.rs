@@ -3,6 +3,7 @@ mod error;
 mod glutin_render;
 mod monitor_selection;
 mod present_mode;
+mod wgpu_render;
 mod window_gl_context;
 mod window_mode;
 mod window_position;
@@ -16,6 +17,7 @@ pub use error::*;
 pub use glutin_render::*;
 pub use monitor_selection::*;
 pub use present_mode::*;
+pub use wgpu_render::*;
 pub use window_gl_context::*;
 pub use window_mode::*;
 pub use window_position::*;
@@ -164,11 +166,12 @@ impl Default for Window {
 impl Window {
     pub fn begin_draw(&self, r: &mut Renderer) {
         let size = self.size();
-        Viewport::push(r, 0, 0, size.x as i32, size.y as i32, true);
+        let desc = RenderPassDesc::new_backbuffer("Window", size.x as i32, size.y as i32);
+        r.begin_pass_intern(&desc);
     }
 
     pub fn end_draw(&self, r: &mut Renderer) {
-        Viewport::pop(r);
+        r.end_pass_intern();
     }
 
     /// The window title.

@@ -2,12 +2,11 @@
 #include deferred
 #include gamma
 
-#autovar samplerCube irMap
-#autovar samplerCube envMap
 
 in vec3 worldOrigin;
 in vec3 worldDir;
 
+#group 3
 uniform sampler2D texAlbedo;
 uniform sampler2D texDepth;
 uniform sampler2D texLighting;

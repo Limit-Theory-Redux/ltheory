@@ -21,6 +21,7 @@ Namespace.LoadInline("Legacy.Systems")
 
 local Application = require("States.Application")
 
+local Backdrop = require("Render.Backdrop")
 local Registry = require("Core.ECS.Registry")
 local Entity = require("Core.ECS.Entity")
 local PhysicsComponents = require("Modules.Physics.Components")
@@ -595,8 +596,8 @@ local OrbitCameraController = require("Modules.Cameras.Managers.CameraController
 local RenderCoreSystem = require("Modules.Rendering.Systems.RenderCoreSystem")
 local LightManager = require("Modules.Rendering.Managers.LightManager")
 local CameraSystem = require("Modules.Cameras.Systems.CameraSystem")
-local Generator = require("Legacy.Systems.Gen.Generator")
-local Starfield = require("Legacy.Systems.Gen.Starfield")
+local Generator = require("Shared.Generation.Generator")
+local Starfield = require("Shared.Generation.Starfield")
 local Pulse = require("Legacy.GameObjects.Entities.Effects.Pulse")
 local WeaponSystem = require("Modules.Constructs.Systems.WeaponSystem")
 local AIWeaponSystem = require("Modules.Constructs.Systems.AIWeaponSystem")
@@ -1146,7 +1147,6 @@ end
 
 function WeaponSystemTestbed:onInit()
     require("Shared.Definitions.MaterialDefs")
-    require("Shared.Definitions.UniformFuncDefs")
 
     Window:setPresentMode(PresentMode.NoVsync)
     Window:setFullscreen(false, true)
@@ -1191,14 +1191,17 @@ function WeaponSystemTestbed:onInit()
     self.respawnQueue = {}
     self.contactCursor = 0
 
-    self.skybox = SkyboxEntity(self.seed, function(entity, blendMode)
+    -- The skybox closure also builds the nebula maps, which renders to textures,
+    -- so run it once now (blendMode nil draws nothing): a render pass cannot be
+    -- open while another begins.
+    local skyboxFn = function(entity, blendMode)
         local placeholder = entity:get(CoreComponents.Empty)
         if not placeholder then
             placeholder = entity:add(CoreComponents.Empty)
         end
 
         if not placeholder.envMap then
-            require("Legacy.Systems.Gen.Nebula.Nebula1")
+            require("Shared.Generation.Nebula1")
             local nebulaRNG = RNG.Create(entity:get(CoreComponents.Seed):getSeed() + 0xC0104FULL)
             local starAngle = nebulaRNG:getDir2()
             placeholder.starDir = Vec3f(starAngle.x, 0, starAngle.y)
@@ -1209,29 +1212,13 @@ function WeaponSystemTestbed:onInit()
             placeholder.irMap = placeholder.envMap:genIRMap(256)
             placeholder.stars = Starfield(nebulaRNG, Config.gen.nStars(nebulaRNG))
             CameraManager:setStarDir(placeholder.starDir)
-            ShaderVar.PushTexCube("envMap", placeholder.envMap)
-            ShaderVar.PushTexCube("irMap", placeholder.irMap)
+            Renderer:setEnvironment(placeholder.envMap, placeholder.irMap)
         end
 
-        if blendMode == BlendMode.Disabled then
-            RenderState.PushDepthWritable(false)
-            local shader = Cache.Shader("farplane", "skybox")
-            RenderState.PushCullFace(CullFace.None)
-            shader:start()
-            Draw.Box3(Box3f(-1, -1, -1, 1, 1, 1))
-            shader:stop()
-            RenderState.PopCullFace()
-            RenderState.PopDepthWritable()
-        elseif blendMode == BlendMode.Additive then
-            local shader = Cache.Shader("farplane", "starbg")
-            shader:start()
-            shader:setFloat("brightnessScale", 3)
-            shader:setTexCube("irMap", placeholder.irMap)
-            shader:setTexCube("envMap", placeholder.envMap)
-            placeholder.stars:draw()
-            shader:stop()
-        end
-    end)
+        Backdrop.draw(placeholder, blendMode)
+    end
+    self.skybox = SkyboxEntity(self.seed, skyboxFn)
+    skyboxFn(self.skybox, nil)
 
     self.pulseRenderEntity = Entity.Create(
         "WeaponPulseEffects",
