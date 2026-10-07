@@ -94,7 +94,12 @@ end
 
 ---@param bind number|table
 ---@return number
-function ActionBinding:readBind(bind)    
+function ActionBinding:readBind(bind)
+    -- A raw key (e.g. the last key of a Control.Combo) reads directly
+    if type(bind) == "number" then
+        return Input:getValue(bind)
+    end
+
     local t = bind.type
 
     if t == Enums.ControlType.Single then
