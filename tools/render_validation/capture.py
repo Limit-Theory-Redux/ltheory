@@ -1,7 +1,7 @@
 """Deterministic screenshot capture of real scenes.
 
     python tools/render_validation/capture.py <backend> [scene...]
-    python tools/render_validation/capture.py --baseline
+    python tools/render_validation/capture.py --baseline [scene...]
 
 Writes target/render_validation/captures/<backend>/<scene>.png and .json
 (stats parsed from the CAPTURE log line printed by Application:captureTick).
@@ -15,7 +15,13 @@ import subprocess
 import sys
 from pathlib import Path
 
-SCENES = ["PlanetTest", "Benchmark", "SolarSystemPlayable", "MoonTest"]
+SCENES = ["PlanetTest", "Benchmark", "SolarSystemPlayable", "MoonTest", "PlanetTestRing", "WeaponSystem"]
+# Capture name -> (state to launch, extra env). The scenes read these variables only under LTHEORY_CAPTURE.
+VARIANTS = {
+    # PlanetTest with a fixed seed that rolls a planet ring (seed 27: ring chance is 20%).
+    "PlanetTestRing": ("PlanetTest", {"LTHEORY_CAPTURE_SEED": "27"}),
+    "WeaponSystem": ("Testbeds/WeaponSystem", {}),
+}
 FRAME = os.environ.get("LTHEORY_CAPTURE_FRAME", "120")
 TIMEOUT = float(os.environ.get("CAPTURE_TIMEOUT_SECONDS", "180"))
 
@@ -38,13 +44,15 @@ def capture(backend, scene):
     env = os.environ.copy()
     env["LTHEORY_CAPTURE"] = str(png)
     env["LTHEORY_CAPTURE_FRAME"] = FRAME
+    state, extra_env = VARIANTS.get(scene, (scene, {}))
+    env.update(extra_env)
     if backend == "wgpu":
         env["LTHEORY_WGPU"] = "1"
     else:
         env.pop("LTHEORY_WGPU", None)
     with log_path.open("w", encoding="utf-8", newline="") as log:
         proc = subprocess.Popen(
-            [str(exe), "-e", "./script/Main.lua", scene],
+            [str(exe), "-e", "./script/Main.lua", state],
             cwd=workdir, env=env, stdout=log, stderr=subprocess.STDOUT,
             creationflags=getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0),
         )
@@ -81,7 +89,10 @@ def main():
     if args[:1] == ["--baseline"]:
         src = artifact_dir / "captures" / "gl"
         baseline_dir.mkdir(parents=True, exist_ok=True)
+        only = set(args[1:])  # optional scene names: bless just these
         for f in sorted(src.glob("*.png")) + sorted(src.glob("*.json")):
+            if only and f.stem not in only:
+                continue
             shutil.copy2(f, baseline_dir / f.name)
             print(f"baseline <- {f.name}")
         return 0

@@ -36,7 +36,8 @@ function PlanetTest:onInit()
     Window:setPresentMode(PresentMode.NoVsync)
     Window:setFullscreen(false, true)
 
-    self.seed = 0
+    -- Capture variant (render validation): LTHEORY_CAPTURE_SEED picks a fixed planet, only under LTHEORY_CAPTURE.
+    self.seed = os.getenv('LTHEORY_CAPTURE') and tonumber(os.getenv('LTHEORY_CAPTURE_SEED')) or 0
     self.rng = RNG.FromTime()
 
     -- Timers

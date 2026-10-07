@@ -21,7 +21,7 @@ artifact_dir = Path(
     os.environ.get("LTHEORY_VALIDATION_ARTIFACT_DIR", workdir / "target" / "render_validation")
 )
 baseline_dir = Path(__file__).resolve().parent / "baseline"
-SCENES = ["PlanetTest", "Benchmark", "SolarSystemPlayable", "MoonTest"]
+SCENES = ["PlanetTest", "Benchmark", "SolarSystemPlayable", "MoonTest", "PlanetTestRing", "WeaponSystem"]
 
 
 def heat(v):

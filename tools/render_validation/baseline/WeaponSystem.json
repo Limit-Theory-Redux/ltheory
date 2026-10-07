@@ -1,0 +1,17 @@
+{
+  "frame": 120,
+  "fps": 31.6,
+  "frametime_ms": 31.67,
+  "render_thread_ms": 22.11,
+  "render_recv_wait_ms": 26.34,
+  "render_idle_pct": 86.3,
+  "render_exec_ms": 3.54,
+  "render_present_ms": 0.8,
+  "main_wait_ms": 0.0,
+  "commands_per_frame": 4258,
+  "draw_calls": 1318,
+  "vertices": 329822,
+  "bound": "producer",
+  "scene": "WeaponSystem",
+  "backend": "gl"
+}

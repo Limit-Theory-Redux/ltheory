@@ -14,7 +14,7 @@ with `LTHEORY_EXE` or `CARGO_TARGET_DIR`. Exit code 0 means the scene passed.
 
 ## Capture baseline / regression diff
 
-Real scenes (PlanetTest, Benchmark, SolarSystemPlayable, MoonTest) are captured
+Real scenes (PlanetTest, Benchmark, SolarSystemPlayable, MoonTest, plus the variants PlanetTestRing = PlanetTest with seed 27, which rolls a planet ring, and the WeaponSystem testbed with deferred point lights) are captured
 deterministically via `LTHEORY_CAPTURE=<out.png>` (+ `LTHEORY_CAPTURE_FRAME=<n>`,
 default 120): the engine uses a fixed 60 Hz delta time, a 1280x720 window, saves
 the backbuffer after frame n and exits, logging a `CAPTURE ...` stats line.
