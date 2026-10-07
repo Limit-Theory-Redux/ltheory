@@ -169,7 +169,7 @@ impl WgpuCommandExecutor {
     }
 
     fn texture_usages(&self, desc: &TexDesc) -> wgpu::TextureUsages {
-        let mut usage = wgpu::TextureUsages::empty();
+        let mut usage = self.diag.texture_usage();
         if desc.usage.contains(TexUsages::SAMPLED) {
             usage |= wgpu::TextureUsages::TEXTURE_BINDING;
         }

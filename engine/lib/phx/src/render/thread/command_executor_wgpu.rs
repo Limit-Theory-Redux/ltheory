@@ -67,6 +67,7 @@ use crate::render::{
 use crate::window::PresentMode;
 
 mod bind;
+mod diag;
 mod formats;
 mod frame;
 mod pass;
@@ -178,6 +179,10 @@ pub struct WgpuCommandExecutor {
     frame_counters: FrameCounters,
     /// End of the previous frame's present: a frame's render time is measured from here.
     frame_start: Instant,
+
+    // === Opt-in diagnostics (diag.rs) ===
+    diag: diag::Diag,
+    diag_state: diag::DiagState,
 }
 
 /// Per-frame counters behind `RenderStats`.
@@ -257,6 +262,8 @@ impl WgpuCommandExecutor {
             last_stats: RenderStats::default(),
             frame_counters: FrameCounters::default(),
             frame_start: Instant::now(),
+            diag: diag::Diag::from_env(),
+            diag_state: Default::default(),
         }
     }
 
@@ -438,9 +445,12 @@ impl WgpuCommandExecutor {
         let vertex_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("phx-mesh-vb"),
             size: (vertices.len() as u64).next_multiple_of(4).max(4),
-            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            usage: wgpu::BufferUsages::VERTEX
+                | wgpu::BufferUsages::COPY_DST
+                | self.diag.buffer_usage(),
             mapped_at_creation: false,
         });
+        self.diag_mesh_created(id, &vertices);
         if !vertices.is_empty() {
             let padded = pad4(&vertices);
             self.queue.write_buffer(&vertex_buffer, 0, &padded);
@@ -507,9 +517,12 @@ impl WgpuCommandExecutor {
         let buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("phx-arena"),
             size: size as u64,
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            usage: wgpu::BufferUsages::UNIFORM
+                | wgpu::BufferUsages::COPY_DST
+                | self.diag.buffer_usage(),
             mapped_at_creation: false,
         });
+        self.diag_arena_created(id, size);
         self.buffers.insert(id, buffer);
     }
 
@@ -517,6 +530,7 @@ impl WgpuCommandExecutor {
     /// submission, so work already recorded (which may read the old bytes)
     /// is submitted first.
     pub(super) fn cmd_write_buffer(&mut self, id: BufferId, offset: u32, data: &[u8]) {
+        self.diag_arena_write(id, offset, data);
         self.flush_for_write();
         let Some(buffer) = self.buffers.get(&id) else {
             warn!("wgpu: WriteBuffer: buffer {id:?} was never created");

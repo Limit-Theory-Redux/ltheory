@@ -105,6 +105,9 @@ pub(super) struct PassRt {
     pub slot: usize,
     /// The viewport is empty after clamping: draws do nothing (as in GL).
     pub no_viewport: bool,
+    /// Diagnostics (`LTHEORY_WGPU_DUMP`): the first color attachment (texture,
+    /// mip level) and the depth texture, copied when the pass ends.
+    pub dump: Option<(Option<(wgpu::Texture, u32)>, Option<wgpu::Texture>)>,
 }
 
 impl PassRt {
@@ -357,6 +360,7 @@ impl WgpuCommandExecutor {
             scissor: None,
             slot: self.frame_slot,
             no_viewport: false,
+            dump: (self.diag.dump == Some(self.frame_index)).then(|| self.dump_sources(desc)),
         };
         self.open_rpass(&mut pass);
         self.pass = Some(pass);
@@ -364,7 +368,41 @@ impl WgpuCommandExecutor {
 
     pub(super) fn cmd_end_render_pass(&mut self) {
         // Dropping the pass ends it; the encoder stays open for the frame.
-        self.pass = None;
+        if let Some(pass) = self.pass.take() {
+            if let Some((color, depth)) = pass.dump.clone() {
+                let label = pass.label.to_string();
+                drop(pass);
+                if let Some((texture, mip)) = color {
+                    self.diag_record_dump(&label, &texture, mip);
+                }
+                if let Some(texture) = depth {
+                    self.diag_record_dump(&format!("{label}_depth"), &texture, 0);
+                }
+            }
+        }
+        if self.diag.pass_submit {
+            self.submit_frame();
+        }
+    }
+
+    /// Diagnostics: what `LTHEORY_WGPU_DUMP` copies of the pass `desc`.
+    fn dump_sources(
+        &self,
+        desc: &RenderPassDesc,
+    ) -> (Option<(wgpu::Texture, u32)>, Option<wgpu::Texture>) {
+        if desc.backbuffer {
+            let color = self.backbuffer.as_ref().map(|b| (b.color.clone(), 0));
+            return (color, None);
+        }
+        let color = desc.color.iter().flatten().next().and_then(|a| {
+            self.texture_and_desc(a.view.tex)
+                .map(|(t, _)| (t, a.view.base_mip as u32))
+        });
+        let depth = desc
+            .depth
+            .as_ref()
+            .and_then(|d| self.texture_and_desc(d.view.tex).map(|(t, _)| t));
+        (color, depth)
     }
 
     /// Open (or reopen) the wgpu pass of `pass`. The first opening applies the
@@ -536,6 +574,9 @@ impl WgpuCommandExecutor {
                 };
                 let (vb, ib) = (m.vertex_buffer.clone(), m.index_buffer.clone());
                 let flavor = Flavor::Mesh(m.vertex_format.stride, format_flags(&m.vertex_format));
+                if self.diag.check {
+                    self.diag_record_check(pass, *mesh);
+                }
                 if !self.prepare_draw(pass, flavor) {
                     return;
                 }

@@ -126,8 +126,11 @@ pub fn create_surface_bundle(
     height: u32,
 ) -> Result<WgpuStartupBundle, WgpuError> {
     let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
-        backends: wgpu::Backends::VULKAN | wgpu::Backends::DX12,
-        flags: wgpu::InstanceFlags::default(),
+        // WGPU_BACKEND (e.g. `dx12`) and the WGPU_VALIDATION/WGPU_DEBUG
+        // variables override the defaults (diagnostics).
+        backends: wgpu::Backends::from_env()
+            .unwrap_or(wgpu::Backends::VULKAN | wgpu::Backends::DX12),
+        flags: wgpu::InstanceFlags::default().with_env(),
         memory_budget_thresholds: wgpu::MemoryBudgetThresholds::default(),
         backend_options: wgpu::BackendOptions::default(),
         display: None,

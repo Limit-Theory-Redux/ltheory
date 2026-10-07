@@ -69,8 +69,15 @@ impl WgpuCommandExecutor {
         self.suspend_pass();
         if let Some(encoder) = self.encoder.take() {
             if self.recorded {
-                self.queue.submit([encoder.finish()]);
+                let index = self.queue.submit([encoder.finish()]);
                 self.frame_counters.submits += 1;
+                self.diag_submitted();
+                if self.diag.wait {
+                    let _ = self.device.poll(wgpu::PollType::Wait {
+                        submission_index: Some(index),
+                        timeout: Some(Duration::from_secs(10)),
+                    });
+                }
             }
         }
         self.recorded = false;
@@ -94,17 +101,21 @@ impl WgpuCommandExecutor {
     /// thread never reuses a region within a frame.
     pub(super) fn upload_ring(&mut self, slot: usize, chunks: &mut [RingChunk], vertex: bool) {
         for chunk in chunks.iter_mut() {
+            if !vertex {
+                self.diag_ring_upload(slot, chunk.at.buffer, chunk.at.offset, chunk.data());
+            }
+            let extra = self.diag.buffer_usage();
             let (buffers, size, usage) = if vertex {
                 (
                     &mut self.ring_vertex[slot],
                     VERTEX_CHUNK_SIZE,
-                    wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+                    wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST | extra,
                 )
             } else {
                 (
                     &mut self.ring_uniform[slot],
                     CHUNK_SIZE,
-                    wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+                    wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST | extra,
                 )
             };
             while buffers.len() <= chunk.at.buffer as usize {
@@ -296,6 +307,7 @@ impl WgpuCommandExecutor {
             }
         }
         self.poll_readbacks();
+        self.diag_poll_checks();
         if self.frame_index % 64 == 0 {
             self.sweep_bind_groups();
         }
@@ -308,6 +320,7 @@ impl WgpuCommandExecutor {
         let frame_time_us = self.frame_start.elapsed().as_micros() as u64;
         self.pass = None;
         self.submit_frame();
+        self.diag_save_dumps();
         self.ensure_backbuffer();
 
         let present_started = Instant::now();
@@ -374,6 +387,12 @@ impl WgpuCommandExecutor {
         self.queue
             .on_submitted_work_done(move || flag.store(true, Ordering::Release));
         self.slot_done[self.frame_slot] = Some(done);
+        if self.diag.frame_wait {
+            let _ = self.device.poll(wgpu::PollType::Wait {
+                submission_index: None,
+                timeout: Some(Duration::from_secs(10)),
+            });
+        }
         let _ = self.device.poll(wgpu::PollType::Poll);
 
         self.frame_index += 1;

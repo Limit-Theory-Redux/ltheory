@@ -419,6 +419,10 @@ impl WgpuCommandExecutor {
         }
 
         let frame = self.frame_index;
+        if self.diag.no_bg_cache {
+            // Diagnostics: a key no other resolve has, so nothing is shared.
+            key.push(self.next_bg_serial);
+        }
         if let Some(hit) = self.bg_cache.get_mut(&key) {
             hit.last_used = frame;
             return hit.bound.clone();
