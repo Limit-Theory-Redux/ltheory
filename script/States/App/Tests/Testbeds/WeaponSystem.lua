@@ -21,6 +21,7 @@ Namespace.LoadInline("Legacy.Systems")
 
 local Application = require("States.Application")
 
+local Backdrop = require("Render.Backdrop")
 local Registry = require("Core.ECS.Registry")
 local Entity = require("Core.ECS.Entity")
 local PhysicsComponents = require("Modules.Physics.Components")
@@ -1146,7 +1147,6 @@ end
 
 function WeaponSystemTestbed:onInit()
     require("Shared.Definitions.MaterialDefs")
-    require("Shared.Definitions.UniformFuncDefs")
 
     Window:setPresentMode(PresentMode.NoVsync)
     Window:setFullscreen(false, true)
@@ -1215,24 +1215,7 @@ function WeaponSystemTestbed:onInit()
             Renderer:setEnvironment(placeholder.envMap, placeholder.irMap)
         end
 
-        if blendMode == BlendMode.Disabled then
-            RenderState.PushDepthWritable(false)
-            local shader = Cache.Shader("farplane", "skybox")
-            RenderState.PushCullFace(CullFace.None)
-            shader:start()
-            Draw.Box3(Box3f(-1, -1, -1, 1, 1, 1))
-            shader:stop()
-            RenderState.PopCullFace()
-            RenderState.PopDepthWritable()
-        elseif blendMode == BlendMode.Additive then
-            local shader = Cache.Shader("farplane", "starbg")
-            shader:start()
-            shader:setFloat("brightnessScale", 3)
-            shader:setTexCube("irMap", placeholder.irMap)
-            shader:setTexCube("envMap", placeholder.envMap)
-            placeholder.stars:draw()
-            shader:stop()
-        end
+        Backdrop.draw(placeholder, blendMode)
     end
     self.skybox = SkyboxEntity(self.seed, skyboxFn)
     skyboxFn(self.skybox, nil)
@@ -1241,10 +1224,24 @@ function WeaponSystemTestbed:onInit()
         "WeaponPulseEffects",
         RenderingComponents.Render(function(_, blendMode)
             if #self.projectiles > 0 then
+                -- `Pulse` (Legacy) draws with the old state commands, which the
+                -- scene pass no longer sets up for it; this is the additive
+                -- pass's state. // S6: Pulse moves to pipelines.
+                local additive = blendMode == BlendMode.Additive
+                if additive then
+                    RenderState.PushBlendMode(BlendMode.Additive)
+                    RenderState.PushDepthTest(true)
+                    RenderState.PushDepthWritable(false)
+                end
                 Pulse.Render(self.projectiles, {
                     mode = blendMode,
                     eye = CameraManager:getEye(),
                 })
+                if additive then
+                    RenderState.PopDepthWritable()
+                    RenderState.PopDepthTest()
+                    RenderState.PopBlendMode()
+                end
             end
         end))
 

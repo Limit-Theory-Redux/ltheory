@@ -47,9 +47,11 @@ Renderer (renderer_threaded.rs)
 
 `render_command.rs` defines the command enum sent across the channel (or
 executed inline, in immediate mode): viewport/scissor/blend/cull/depth
-state, uniform sets (by GL location or, for the batch path, by name/generic
-name), texture binds and updates, render passes (`BeginRenderPass`/`EndRenderPass`), mesh draws (plain,
-instanced, `DrawInstancedWithData`, `DrawImmediate`), resource lifecycle
+state, uniform sets (by GL location or by name), texture binds and updates, render passes
+(`BeginRenderPass`/`EndRenderPass`, with the draws recorded in between sent as `PassCommands`, which
+also carry the uniform and vertex ring uploads), frame slots (`BeginFrame`), material parameter buffers
+(`CreateBuffer`/`WriteBuffer`) and bind groups, mesh draws (plain, `DrawImmediate`; instanced and scene
+draws are `PassCmd`s inside `PassCommands`), resource lifecycle
 (`CreateShader`/`CreateTexture2D`/`CreateMesh`/`DestroyResources` and their
 `*ByResource` bind/draw counterparts), UBO updates, `Resize`,
 `SetPresentMode`, `SwapBuffers`, `Fence`, `PacingFence`, `Shutdown`.

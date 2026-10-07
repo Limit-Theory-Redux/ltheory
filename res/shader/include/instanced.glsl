@@ -5,9 +5,9 @@
    reading them as uniforms - one instanced draw call covers every instance,
    so there is no single uniform value that would work for all of them.
 
-   Attribute layout must match `InstanceData` (render_command.rs) and the
-   VertexAttribPointer/Divisor setup in `command_executor_gl.rs`'s
-   `cmd_draw_instanced_with_data`, and the attribute name -> location bindings
+   Attribute layout must match `InstanceData` (instance_data.rs) and the
+   VertexAttribPointer/Divisor setup of `PassCmd::DrawMeshInstanced` in
+   `command_executor_gl_binding.rs`, and the attribute name -> location bindings
    in `command_executor_gl.rs`'s `create_shader` (`glBindAttribLocation`):
    locations 4-7 = mWorld matrix columns, location 8 = per-instance RGBA color.
 

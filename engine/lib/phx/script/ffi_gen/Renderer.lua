@@ -17,50 +17,46 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            void              Renderer_Free               (Renderer*);
-            bool              Renderer_Sync               (Renderer*);
-            void              Renderer_BeginBatch         (Renderer*, Matrix const* view, Matrix const* projection, Vec3f const* eye);
-            void              Renderer_AddCullEntity      (Renderer*, Vec3f const* boundsCenter, float boundsRadius, uint32 sortKey, uint32 userId);
-            uint32            Renderer_CullBatch          (Renderer*, uint32* outIndices, uint64 outIndices_size);
-            BatchStats const* Renderer_GetBatchStats      (Renderer const*);
-            uint64            Renderer_StatsDrawCalls     (Renderer*);
-            uint64            Renderer_StatsFrameTimeUs   (Renderer*);
-            uint64            Renderer_StatsRecvWaitUs    (Renderer*);
-            uint64            Renderer_StatsPresentWaitUs (Renderer*);
-            uint64            Renderer_StatsFrameCount    (Renderer*);
-            uint64            Renderer_StatsCommands      (Renderer*);
-            uint64            Renderer_StatsMainWaitUs    (Renderer const*);
-            uint64            Renderer_StatsVertices      (Renderer*);
-            void              Renderer_SetViewport        (Renderer*, int x, int y, int width, int height);
-            void              Renderer_SetScissor         (Renderer*, int x, int y, int width, int height);
-            void              Renderer_EnableScissor      (Renderer*, bool enable);
-            void              Renderer_SetBlendMode       (Renderer*, BlendMode mode);
-            void              Renderer_SetCullFace        (Renderer*, CullFace face);
-            void              Renderer_SetDepthTest       (Renderer*, bool enable);
-            void              Renderer_SetDepthWritable   (Renderer*, bool enable);
-            void              Renderer_SetWireframe       (Renderer*, bool enable);
-            void              Renderer_BindShader         (Renderer*, uint32 handle);
-            void              Renderer_UnbindShader       (Renderer*);
-            void              Renderer_SetUniformInt      (Renderer*, int location, int value);
-            void              Renderer_SetUniformFloat    (Renderer*, int location, float value);
-            void              Renderer_SetUniformFloat2   (Renderer*, int location, float x, float y);
-            void              Renderer_SetUniformFloat3   (Renderer*, int location, float x, float y, float z);
-            void              Renderer_SetUniformFloat4   (Renderer*, int location, float x, float y, float z, float w);
-            void              Renderer_BindTexture2D      (Renderer*, uint32 slot, uint32 handle);
-            void              Renderer_BindTexture3D      (Renderer*, uint32 slot, uint32 handle);
-            void              Renderer_BindTextureCube    (Renderer*, uint32 slot, uint32 handle);
-            void              Renderer_UnbindTexture      (Renderer*, uint32 slot);
-            RenderPass*       Renderer_BeginPass          (Renderer*, RenderPassDesc const* desc);
-            RenderPass*       Renderer_CurrentPass        (Renderer const*);
-            void              Renderer_DrawMesh           (Renderer*, uint32 vao, int indexCount);
-            void              Renderer_DrawMeshPrimitive  (Renderer*, uint32 vao, int indexCount, CmdPrimitiveType* primitive);
-            void              Renderer_Resize             (Renderer*, uint32 width, uint32 height);
-            void              Renderer_SwapBuffers        (Renderer*);
-            void              Renderer_SetCamera          (Renderer*, Matrix const* view, Matrix const* proj, Vec3f const* starDir);
-            void              Renderer_SetEnvironment     (Renderer*, TexCube const* envMap, TexCube const* irMap);
-            uint32            Renderer_CreateBindGroup    (Renderer*, BindGroupDesc const* desc);
-            void              Renderer_CreateLightUbo     (Renderer*);
-            void              Renderer_UpdateLightUbo     (Renderer*, float posX, float posY, float posZ, float radius, float r, float g, float b, float intensity);
+            void        Renderer_Free               (Renderer*);
+            bool        Renderer_Sync               (Renderer*);
+            uint64      Renderer_StatsDrawCalls     (Renderer*);
+            uint64      Renderer_StatsFrameTimeUs   (Renderer*);
+            uint64      Renderer_StatsRecvWaitUs    (Renderer*);
+            uint64      Renderer_StatsPresentWaitUs (Renderer*);
+            uint64      Renderer_StatsFrameCount    (Renderer*);
+            uint64      Renderer_StatsCommands      (Renderer*);
+            uint64      Renderer_StatsMainWaitUs    (Renderer const*);
+            uint64      Renderer_StatsVertices      (Renderer*);
+            void        Renderer_SetViewport        (Renderer*, int x, int y, int width, int height);
+            void        Renderer_SetScissor         (Renderer*, int x, int y, int width, int height);
+            void        Renderer_EnableScissor      (Renderer*, bool enable);
+            void        Renderer_SetBlendMode       (Renderer*, BlendMode mode);
+            void        Renderer_SetCullFace        (Renderer*, CullFace face);
+            void        Renderer_SetDepthTest       (Renderer*, bool enable);
+            void        Renderer_SetDepthWritable   (Renderer*, bool enable);
+            void        Renderer_SetWireframe       (Renderer*, bool enable);
+            void        Renderer_BindShader         (Renderer*, uint32 handle);
+            void        Renderer_UnbindShader       (Renderer*);
+            void        Renderer_SetUniformInt      (Renderer*, int location, int value);
+            void        Renderer_SetUniformFloat    (Renderer*, int location, float value);
+            void        Renderer_SetUniformFloat2   (Renderer*, int location, float x, float y);
+            void        Renderer_SetUniformFloat3   (Renderer*, int location, float x, float y, float z);
+            void        Renderer_SetUniformFloat4   (Renderer*, int location, float x, float y, float z, float w);
+            void        Renderer_BindTexture2D      (Renderer*, uint32 slot, uint32 handle);
+            void        Renderer_BindTexture3D      (Renderer*, uint32 slot, uint32 handle);
+            void        Renderer_BindTextureCube    (Renderer*, uint32 slot, uint32 handle);
+            void        Renderer_UnbindTexture      (Renderer*, uint32 slot);
+            RenderPass* Renderer_BeginPass          (Renderer*, RenderPassDesc const* desc);
+            RenderPass* Renderer_CurrentPass        (Renderer const*);
+            void        Renderer_DrawMesh           (Renderer*, uint32 vao, int indexCount);
+            void        Renderer_DrawMeshPrimitive  (Renderer*, uint32 vao, int indexCount, CmdPrimitiveType* primitive);
+            void        Renderer_Resize             (Renderer*, uint32 width, uint32 height);
+            void        Renderer_SwapBuffers        (Renderer*);
+            void        Renderer_SetCamera          (Renderer*, Matrix const* view, Matrix const* proj, Vec3f const* starDir);
+            void        Renderer_SetEnvironment     (Renderer*, TexCube const* envMap, TexCube const* irMap);
+            uint32      Renderer_CreateBindGroup    (Renderer*, BindGroupDesc const* desc);
+            void        Renderer_CreateLightUbo     (Renderer*);
+            void        Renderer_UpdateLightUbo     (Renderer*, float posX, float posY, float posZ, float radius, float r, float g, float b, float intensity);
         ]]
     end
 
@@ -76,10 +72,6 @@ function Loader.defineType()
         local mt = {
             __index = {
                 sync               = libphx.Renderer_Sync,
-                beginBatch         = libphx.Renderer_BeginBatch,
-                addCullEntity      = libphx.Renderer_AddCullEntity,
-                cullBatch          = libphx.Renderer_CullBatch,
-                getBatchStats      = libphx.Renderer_GetBatchStats,
                 statsDrawCalls     = libphx.Renderer_StatsDrawCalls,
                 statsFrameTimeUs   = libphx.Renderer_StatsFrameTimeUs,
                 statsRecvWaitUs    = libphx.Renderer_StatsRecvWaitUs,

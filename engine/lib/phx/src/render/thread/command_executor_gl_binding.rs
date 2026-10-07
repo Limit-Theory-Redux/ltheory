@@ -10,14 +10,13 @@ use std::collections::HashMap;
 use tracing::{debug, error, warn};
 
 use super::{AttachKey, GpuResource, MAX_TEXTURE_SLOTS, TextureBinding, TextureType};
-use crate::render::gl;
 use crate::render::{
-    BindEntry, BindGroupId, BlendMode, BlockLayout, BlockMember, CHUNK_SIZE, CommandCategory,
-    CommandExecutor, CompareFn, CullFace, GROUP_COUNT, GROUP_DRAW, GROUP_FRAME, GROUP_INPUTS,
-    GlslType, InstanceData, MAX_FRAMES_IN_FLIGHT, MAX_INPUTS, PassCmd, PassCommands, PipelineDesc, PipelineId,
-    PolygonMode, ResourceId, ReturnedChunk, RingChunk, SamplerDesc, SamplerId, Samplers,
-    ShaderLayout, TexView, UNIFORM_ALIGN, VERTEX_CHUNK_SIZE, ViewDim, block_binding, entry_unit,
-    texture_unit,
+    BindEntry, BindGroupId, BlendMode, BlockLayout, BlockMember, BufferId, CHUNK_SIZE,
+    CommandCategory, CommandExecutor, CompareFn, CullFace, GROUP_COUNT, GROUP_DRAW, GROUP_FRAME,
+    GROUP_INPUTS, GlslType, InstanceData, MAX_FRAMES_IN_FLIGHT, MAX_INPUTS, PassCmd, PassCommands,
+    PipelineDesc, PipelineId, PolygonMode, ResourceId, ReturnedChunk, RingChunk, SamplerDesc,
+    SamplerId, Samplers, ShaderLayout, TexView, UNIFORM_ALIGN, VERTEX_CHUNK_SIZE, ViewDim,
+    block_binding, entry_unit, gl, texture_unit,
 };
 
 /// Uniform block binding points (`group * 4 + k`) the passes drive.
@@ -61,6 +60,8 @@ pub(super) struct GlBindingState {
     pub pipelines: HashMap<PipelineId, PipelineDesc>,
     pub samplers: HashMap<SamplerId, u32>,
     pub bind_groups: HashMap<BindGroupId, GlBindGroup>,
+    /// GL uniform buffers by `BufferId` (material parameter arenas).
+    pub buffers: HashMap<BufferId, u32>,
     pub gl_state: GlStateCache,
     /// The pipeline whose program and state are applied (`None` after any
     /// legacy shader or state command).
@@ -94,6 +95,7 @@ impl GlBindingState {
             pipelines: HashMap::new(),
             samplers: HashMap::new(),
             bind_groups: HashMap::new(),
+            buffers: HashMap::new(),
             gl_state: GlStateCache::default(),
             current_pipeline: None,
             topology: gl::TRIANGLES,
@@ -243,6 +245,51 @@ impl CommandExecutor {
                 entries: entries.to_vec(),
             },
         );
+    }
+
+    pub(super) fn cmd_destroy_bind_groups(&mut self, ids: &[BindGroupId]) {
+        let _sa = self.record_command(CommandCategory::Resource, false, false);
+        for id in ids {
+            self.binding.bind_groups.remove(id);
+        }
+    }
+
+    pub(super) fn cmd_create_buffer(&mut self, id: BufferId, size: u32) {
+        let _sa = self.record_command(CommandCategory::Resource, false, false);
+        if !self.has_gl_context() {
+            return;
+        }
+        let mut buffer = 0;
+        unsafe {
+            gl::GenBuffers(1, &mut buffer);
+            gl::BindBuffer(gl::UNIFORM_BUFFER, buffer);
+            gl::BufferData(
+                gl::UNIFORM_BUFFER,
+                size as isize,
+                std::ptr::null(),
+                gl::DYNAMIC_DRAW,
+            );
+        }
+        self.binding.buffers.insert(id, buffer);
+    }
+
+    pub(super) fn cmd_write_buffer(&mut self, id: BufferId, offset: u32, data: &[u8]) {
+        let _sa = self.record_command(CommandCategory::Resource, false, false);
+        let Some(&buffer) = self.binding.buffers.get(&id) else {
+            if self.has_gl_context() {
+                warn!("WriteBuffer: buffer {id:?} was never created");
+            }
+            return;
+        };
+        unsafe {
+            gl::BindBuffer(gl::UNIFORM_BUFFER, buffer);
+            gl::BufferSubData(
+                gl::UNIFORM_BUFFER,
+                offset as isize,
+                data.len() as isize,
+                data.as_ptr() as *const _,
+            );
+        }
     }
 
     // -----------------------------------------------------------------
@@ -623,8 +670,10 @@ impl CommandExecutor {
         let _sa = self.record_command(CommandCategory::Draw, false, false);
         if !self.has_gl_context() {
             // Nothing to upload to, but the memory still goes back.
-            for (chunks, vertex) in [(&mut commands.uniforms, false), (&mut commands.vertices, true)]
-            {
+            for (chunks, vertex) in [
+                (&mut commands.uniforms, false),
+                (&mut commands.vertices, true),
+            ] {
                 for chunk in chunks.iter_mut() {
                     self.binding.returned.push(ReturnedChunk {
                         vertex,
@@ -665,8 +714,30 @@ impl CommandExecutor {
                     let group = *group;
                     debug_assert_eq!(group, bg.group);
                     for entry in &entries {
-                        let BindEntry::Texture { view, sampler, .. } = entry;
-                        self.bind_view(entry_unit(group, entry), view, *sampler);
+                        match entry {
+                            BindEntry::Texture { view, sampler, .. } => {
+                                if let Some(unit) = entry_unit(group, entry) {
+                                    self.bind_view(unit, view, *sampler);
+                                }
+                            }
+                            BindEntry::Uniform {
+                                index,
+                                buffer,
+                                offset,
+                                size,
+                            } => {
+                                let Some(&gl_buffer) = self.binding.buffers.get(buffer) else {
+                                    warn!("SetBindGroup: buffer {buffer:?} was never created");
+                                    continue;
+                                };
+                                self.bind_ubo_range(
+                                    block_binding(group, *index),
+                                    gl_buffer,
+                                    *offset,
+                                    *size,
+                                );
+                            }
+                        }
                     }
                 }
                 PassCmd::SetView { block, size } => {
@@ -811,8 +882,7 @@ impl CommandExecutor {
                     }
                     self.this_frame_stats.draw_instanced_calls += 1;
                     self.this_frame_stats.instanced_data_items += *count as u64;
-                    self.this_frame_stats.vertices_drawn +=
-                        *index_count as u64 * *count as u64;
+                    self.this_frame_stats.vertices_drawn += *index_count as u64 * *count as u64;
                     #[cfg(feature = "stats-server")]
                     self.count_draw();
                 }
@@ -859,8 +929,7 @@ impl CommandExecutor {
                     }
                     self.this_frame_stats.draw_instanced_calls += 1;
                     self.this_frame_stats.instanced_data_items += *count as u64;
-                    self.this_frame_stats.vertices_drawn +=
-                        *index_count as u64 * *count as u64;
+                    self.this_frame_stats.vertices_drawn += *index_count as u64 * *count as u64;
                     #[cfg(feature = "stats-server")]
                     self.count_draw();
                 }

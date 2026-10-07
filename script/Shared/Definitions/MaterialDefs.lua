@@ -1,367 +1,173 @@
 -- Types --
----@type MaterialDefinition
-local MaterialDefinition = require("Shared.Types.MaterialDefinition")
--- Definitions --
-local ShaderVarFuncs = require("Shared.Definitions.ShaderVarFuncs")
+---@type MaterialType
+local MaterialType = require("Shared.Types.MaterialType")
 
-local CoreComponents = require("Modules.Core.Components")
 local CelestialComponents = require("Modules.CelestialObjects.Components")
-local PhysicsComponents = require("Modules.Physics.Components")
 
--- Helper
-local function genField(name, type, cmpType)
-    return {
-        type = type,
-        value = function(_, entity)
-            local gen = entity:get(cmpType)
-            if type == Enums.UniformType.Float3 then
-                local v = gen[name]
-                return v.x, v.y, v.z
-            else
-                return gen[name]
-            end
-        end,
-        perInstance = true -- every gen field is per-planet
-    }
-end
+-- Every material is a `MaterialType`: the shader, the fixed-function state
+-- (the blend mode picks the scene bucket; cull and depth default to those of
+-- the scene pass of the bucket), the `MaterialParams` defaults, default
+-- textures and an optional `perDraw` callback.
+--
+--   * `MaterialParams` (shader group 1) is written once per instance:
+--     `local p = mat:params(); p.heightMult = 2; mat:commit()`.
+--   * `perDraw(entity, user)` fills `drawUser` (a `Vec4f[7]`, shader group 2)
+--     of each drawn mesh, for values that change from frame to frame or from
+--     entity to entity. It runs only for the meshes that survive culling.
+--   * `mWorld`, `mWorldIT` and the body's scale (`drawScale.x`) are in the
+--     draw block for every mesh, no callback needed.
+--
+-- See res/shader/include/draw_block.glsl.
 
 ---@class Materials
----@field Asteroid Material
-MaterialDefinition {
-    name = "Asteroid",
-    vs_name = "wvp",
-    fs_name = "material/asteroid",
-    blendMode = BlendMode.Disabled,
+---@field Asteroid MaterialType
+MaterialType {
+    name     = "Asteroid",
+    shader   = { "wvp", "material/asteroid" },
+    state    = { blend = BlendMode.Disabled },
     textures = {
-        texDiffuse = { tex = Cache.Texture('rock'), type = Enums.UniformType.Tex2D, settings = nil }
+        texDiffuse = { tex = Cache.Texture('rock') },
     },
-    autoShaderVars = {
-        mWorld   = { type = Enums.UniformType.Matrix, value = ShaderVarFuncs.mWorldFunc },
-        mWorldIT = { type = Enums.UniformType.MatrixT, value = ShaderVarFuncs.mWorldITFunc },
-        scale    = { type = Enums.UniformType.Float, value = ShaderVarFuncs.scaleFunc }
-    }
 }
 
 ---@class Materials
----@field Metal Material
-MaterialDefinition {
-    name = "Metal",
-    vs_name = "wvp",
-    fs_name = "material/metal",
-    blendMode = BlendMode.Disabled,
+---@field Metal MaterialType
+MaterialType {
+    name     = "Metal",
+    shader   = { "wvp", "material/metal" },
+    state    = { blend = BlendMode.Disabled },
+    -- The paint stripes (`paintAttrib`, `paintColor`) were never set from Lua;
+    -- zero is what the shader has always run with.
     textures = {
-        texDiffuse = { tex = Cache.Texture('metal/01_d'), type = Enums.UniformType.Tex2D, settings = nil },
-        texNormal  = { tex = Cache.Texture('metal/01_n'), type = Enums.UniformType.Tex2D, settings = nil },
-        texSpec    = { tex = Cache.Texture('metal/01_s'), type = Enums.UniformType.Tex2D, settings = nil }
-    },
-    autoShaderVars = {
-        mWorld   = { type = Enums.UniformType.Matrix, value = ShaderVarFuncs.mWorldFunc },
-        mWorldIT = { type = Enums.UniformType.MatrixT, value = ShaderVarFuncs.mWorldITFunc },
-        scale    = { type = Enums.UniformType.Float, value = ShaderVarFuncs.scaleFunc }
-    }
-}
-
----@class Materials
----@field DebugColor Material
-MaterialDefinition {
-    name = "DebugColor",
-    vs_name = "wvp",
-    fs_name = "material/solidcolor",
-    blendMode = BlendMode.Disabled,
-    constShaderVars = {
-        color = { type = Enums.UniformType.Float3, value = { 1.0, 0.0, 1.0 } }
-    },
-    autoShaderVars = {
-        mWorld = { type = Enums.UniformType.Matrix, value = ShaderVarFuncs.mWorldFunc },
-    }
-}
-
----@class Materials
----@field PlanetSurface Material
-MaterialDefinition {
-    name = "PlanetSurface",
-    vs_name = "wvp",
-    fs_name = "material/planet",
-    blendMode = BlendMode.Disabled,
-    textures = nil, -- set at runtime
-    constShaderVars = {
-        heightMult = { type = Enums.UniformType.Float, value = 1.0 },
-        starTint   = { type = Enums.UniformType.Float3, value = { 1.0, 0.5, 0.1 } },
-    },
-    autoShaderVars = {
-        mWorld     = { type = Enums.UniformType.Matrix, value = ShaderVarFuncs.mWorldFunc, perInstance = true },
-        mWorldIT   = { type = Enums.UniformType.MatrixT, value = ShaderVarFuncs.mWorldITFunc, perInstance = true },
-        scale      = { type = Enums.UniformType.Float, value = ShaderVarFuncs.scaleFunc, perInstance = true },
-
-        time       = { type = Enums.UniformType.Float,
-            value = function(_, e)
-                ---@cast e Entity
-                local time = e:get(CelestialComponents.Simulation.CloudMotion):getTime()
-                return time
-            end,
-            perInstance = false
-        },
-
-        oceanLevel = genField("oceanLevel", Enums.UniformType.Float, CelestialComponents.Gen.Planet),
-        color1     = genField("color1", Enums.UniformType.Float3, CelestialComponents.Gen.Planet),
-        color2     = genField("color2", Enums.UniformType.Float3, CelestialComponents.Gen.Planet),
-        color3     = genField("color3", Enums.UniformType.Float3, CelestialComponents.Gen.Planet),
-        color4     = genField("color4", Enums.UniformType.Float3, CelestialComponents.Gen.Planet),
-
-        origin     = { type = Enums.UniformType.Float3,
-            value = function(eye, entity)
-                local rb = entity:get(PhysicsComponents.RigidBody):getRigidBody()
-                local o = rb:getPos():relativeTo(eye)
-                return o.x, o.y, o.z
-            end, perInstance = true },
-        rPlanet    = { type = Enums.UniformType.Float,
-            value = function(_, e) return e:get(PhysicsComponents.RigidBody):getRigidBody():getScale() end, perInstance = true },
-        rAtmo      = { type = Enums.UniformType.Float,
-            value = function(_, e)
-                local rb = e:get(PhysicsComponents.RigidBody):getRigidBody()
-                local gen = e:get(CelestialComponents.Gen.Planet)
-                return rb:getScale() * gen.atmoScale
-            end, perInstance = false }, -- shared across all planets
+        texDiffuse = { tex = Cache.Texture('metal/01_d') },
+        texNormal  = { tex = Cache.Texture('metal/01_n') },
+        texSpec    = { tex = Cache.Texture('metal/01_s') },
     },
 }
 
 ---@class Materials
----@field PlanetAtmosphere Material
-MaterialDefinition {
-    name = "PlanetAtmosphere",
-    vs_name = "wvp",
-    fs_name = "material/atmosphere",
-    blendMode = BlendMode.Alpha,
-    textures = nil, -- set at runtime
-    constShaderVars = {
-        starColor = { type = Enums.UniformType.Float3, value = { 1.0, 0.5, 0.1 } },
-    },
-    autoShaderVars = {
-        mWorld   = { type = Enums.UniformType.Matrix, value = ShaderVarFuncs.mWorldFunc, perInstance = true },
-        mWorldIT = { type = Enums.UniformType.MatrixT, value = ShaderVarFuncs.mWorldITFunc, perInstance = true },
-        scale    = { type = Enums.UniformType.Float, value = ShaderVarFuncs.scaleFunc, perInstance = true },
-
-        origin   = { type = Enums.UniformType.Float3,
-            value = function(eye, entity)
-                local rb = entity:get(PhysicsComponents.RigidBody):getRigidBody()
-                local o = rb:getPos():relativeTo(eye)
-                return o.x, o.y, o.z
-            end, perInstance = true },
-        rPlanet  = { type = Enums.UniformType.Float,
-            value = function(_, e) return e:get(PhysicsComponents.RigidBody):getRigidBody():getScale() end, perInstance = true },
-        rAtmo    = { type = Enums.UniformType.Float,
-            value = function(_, e)
-                local rb = e:get(PhysicsComponents.RigidBody):getRigidBody()
-                local gen = e:get(CelestialComponents.Gen.Planet)
-                return rb:getScale() * gen.atmoScale
-            end, perInstance = false },
-        scaleVec = { type = Enums.UniformType.Float3,
-            value = function(_, e)
-                local s = e:get(PhysicsComponents.RigidBody):getRigidBody():getScale()
-                return s, s, s
-            end, perInstance = true },
-    },
+---@field DebugColor MaterialType
+MaterialType {
+    name     = "DebugColor",
+    shader   = { "wvp", "material/solidcolor" },
+    state    = { blend = BlendMode.Disabled },
+    defaults = { color = Vec3f(1.0, 0.0, 1.0) },
 }
 
 ---@class Materials
----@field PlanetRing Material
-MaterialDefinition {
-    name = "PlanetRing",
-    vs_name = "wvp",                 -- standard WVP vertex shader
-    fs_name = "material/planetring", -- fragment shader
-    blendMode = BlendMode.Alpha,     -- enable alpha blending
-    textures = nil,
-    constShaderVars = {
-        nearDist = { uniformType = Enums.UniformType.Float, callbackFn = function() return 10000 end },
-        farDist = { uniformType = Enums.UniformType.Float, callbackFn = function() return 100000 end }
-    },
-    autoShaderVars = {
-        -- World transform
-        mWorld       = { type = Enums.UniformType.Matrix, value = ShaderVarFuncs.mWorldFunc, perInstance = true },
-        mWorldIT     = { type = Enums.UniformType.MatrixT, value = ShaderVarFuncs.mWorldITFunc, perInstance = true },
-
-        -- Time for rotation
-        time         = { type = Enums.UniformType.Float,
-            value = function(_, e)
-                ---@cast e Entity
-                local time = e:get(CelestialComponents.Simulation.PlanetaryRingMotion):getTime()
-                return time
-            end,
-            perInstance = false
-        },
-
-        -- Planet center and radius (for shadow)
-        planetPos    = { type = Enums.UniformType.Float3,
-            value = function(eye, e)
-                ---@cast e Entity
-                local planet = e:get(CoreComponents.Parent)
-                    :getParent()
-                    :get(PhysicsComponents.RigidBody)
-                    :getRigidBody()
-                local p = planet:getPos()
-                return p.x, p.y, p.z
-            end,
-            perInstance = true
-        },
-        planetQuat   = { uniformType = Enums.UniformType.Float4,
-            callbackFn = function(eye, e)
-                ---@cast e Entity
-                local planet = e:get(CoreComponents.Parent)
-                    :getParent()
-                    :get(PhysicsComponents.RigidBody)
-                    :getRigidBody()
-                local p = planet:getRot()
-                return p.x, p.y, p.z, p.w
-            end,
-            perInstance = true
-        },
-        planetRadius = { uniformType = Enums.UniformType.Float4,
-            callbackFn = function(eye, e)
-                ---@cast e Entity
-                local planetRadius = e:get(CoreComponents.Parent)
-                    :getParent()
-                    :get(PhysicsComponents.RigidBody)
-                    :getRadius()
-                return planetRadius
-            end,
-            perInstance = true
-        },
-        ringQuat     = { uniformType = Enums.UniformType.Float4,
-            callbackFn = function(_, e)
-                local ringBody = e:get(PhysicsComponents.RigidBody):getRigidBody()
-                local q = ringBody:getRot() -- returns a quaternion {x, y, z, w}
-                return q.x, q.y, q.z, q.w
-            end,
-            perInstance = true
-        },
-        -- Ring procedural parameters
-        seed         = { type = Enums.UniformType.Float,
-            value = function(_, e)
-                local seed = e:get(CoreComponents.Seed):getSeed()
-                return seed
-            end,
-            perInstance = true
-        },
-    },
-}
-
----@class Materials
----@field MoonSurface Material
-MaterialDefinition {
-    name = "MoonSurface",
-    vs_name = "wvp",
-    fs_name = "material/moon",
-    blendMode = BlendMode.Disabled,
-    textures = nil, -- set at runtime
-    constShaderVars = {
-        starColor        = { type = Enums.UniformType.Float3, value = { 1.0, 0.5, 0.1 } },
-        heightMult       = { type = Enums.UniformType.Float, value = 0.03 },
-        craterDepth      = { type = Enums.UniformType.Float, value = 1.0 },
-        enableAtmosphere = { type = Enums.UniformType.Float, value = 0.0 },
-        mercuryBaseTex   = { type = Enums.UniformType.Tex2D, value = Cache.Texture('surface/2k_mercury') },
-        moonBaseTex      = { type = Enums.UniformType.Tex2D, value = Cache.Texture('surface/2k_moon') },
-    },
-    autoShaderVars = {
-        mWorld        = { type = Enums.UniformType.Matrix, value = ShaderVarFuncs.mWorldFunc, perInstance = true },
-        mWorldIT      = { type = Enums.UniformType.MatrixT, value = ShaderVarFuncs.mWorldITFunc, perInstance = true },
-        scale         = { type = Enums.UniformType.Float, value = ShaderVarFuncs.scaleFunc, perInstance = true },
-
-        highlandColor = genField("highlandColor", Enums.UniformType.Float3, CelestialComponents.Gen.Moon),
-        mariaColor    = genField("mariaColor", Enums.UniformType.Float3, CelestialComponents.Gen.Moon),
-
-        origin        = { type = Enums.UniformType.Float3,
-            value = function(eye, entity)
-                local rb = entity:get(PhysicsComponents.RigidBody):getRigidBody()
-                local o = rb:getPos():relativeTo(eye)
-                return o.x, o.y, o.z
-            end, perInstance = true },
-        rPlanet       = { type = Enums.UniformType.Float,
-            value = function(_, e) return e:get(PhysicsComponents.RigidBody):getRigidBody():getScale() end, perInstance = true },
-    },
-}
-
----@class Materials
----@field Star Material
-MaterialDefinition {
-    name = "Star",
-    vs_name = "wvp",
-    fs_name = "material/star",
-    blendMode = BlendMode.Disabled,
+---@field PlanetSurface MaterialType
+-- Per instance: color1..4, oceanLevel and rAtmo (from the planet's gen options).
+MaterialType {
+    name     = "PlanetSurface",
+    shader   = { "wvp", "material/planet" },
+    state    = { blend = BlendMode.Disabled },
+    defaults = { heightMult = 1.0 },
     textures = {
-        sunTex = { tex = Cache.Texture('surface/2k_sun'), type = Enums.UniformType.Tex2D, settings = nil },
+        surface = { sampler = Samplers.LinearMipClamp }, -- set per planet
     },
-    autoShaderVars = {
-        mWorld     = { type = Enums.UniformType.Matrix, value = ShaderVarFuncs.mWorldFunc, perInstance = true },
-        mWorldIT   = { type = Enums.UniformType.MatrixT, value = ShaderVarFuncs.mWorldITFunc, perInstance = true },
-        scale      = { type = Enums.UniformType.Float, value = ShaderVarFuncs.scaleFunc, perInstance = true },
+    -- drawUser[0].x: the time of the cloud motion
+    perDraw  = function(entity, user)
+        ---@cast entity Entity
+        user[0].x = entity:get(CelestialComponents.Simulation.CloudMotion):getTime()
+    end,
+}
 
-        time       = { type = Enums.UniformType.Float,
-            value = function() return Engine:getTime() end,
-            perInstance = false },
+---@class Materials
+---@field PlanetAtmosphere MaterialType
+-- Per instance: rAtmo.
+MaterialType {
+    name   = "PlanetAtmosphere",
+    shader = { "wvp", "material/atmosphere" },
+    state  = { blend = BlendMode.Alpha },
+}
 
-        origin     = { type = Enums.UniformType.Float3,
-            value = function(eye, entity)
-                local rb = entity:get(PhysicsComponents.RigidBody):getRigidBody()
-                local o = rb:getPos():relativeTo(eye)
-                return o.x, o.y, o.z
-            end, perInstance = true },
+---@class Materials
+---@field PlanetRing MaterialType
+-- Per instance: rMin, rMax and seed; enableDebug/debugMode for tests.
+MaterialType {
+    name     = "PlanetRing",
+    shader   = { "wvp", "material/planetring" },
+    state    = { blend = BlendMode.Alpha },
+    defaults = {
+        ringHeight    = 50,
+        rotationSpeed = 2.0,
+        twistFactor   = 0.25,
+        enableDebug   = 0,
+        debugMode     = 0,
+    },
+    -- drawUser[0].x: the time of the ring rotation
+    perDraw  = function(entity, user)
+        ---@cast entity Entity
+        user[0].x = entity:get(CelestialComponents.Simulation.PlanetaryRingMotion):getTime()
+    end,
+}
 
-        starTint   = { type = Enums.UniformType.Float3,
-            value = function(_, entity)
-                local typeCmp = entity:get(CoreComponents.Type)
-                local starType = typeCmp and typeCmp:getSubtype() or "MainSequence"
-                if starType == "RedGiant" then
-                    return 1.0, 0.3, 0.1
-                elseif starType == "WhiteDwarf" then
-                    return 0.8, 0.85, 1.0
-                else
-                    return 1.0, 0.85, 0.6
-                end
-            end, perInstance = true },
-
-        starTemp = { type = Enums.UniformType.Float,
-            value = function(_, entity)
-                local lumCmp = entity:get(CelestialComponents.Luminosity)
-                local luminosity = lumCmp and lumCmp:getLuminosity() or 1.0
-                return 1.0 + math.log(math.max(0.1, luminosity)) * 0.3
-            end, perInstance = true },
+---@class Materials
+---@field MoonSurface MaterialType
+-- Per instance: highlandColor and mariaColor.
+MaterialType {
+    name     = "MoonSurface",
+    shader   = { "wvp", "material/moon" },
+    state    = { blend = BlendMode.Disabled },
+    defaults = { heightMult = 0.03, enableAtmosphere = 0.0 },
+    textures = {
+        surface = { sampler = Samplers.LinearMipClamp }, -- set per moon
     },
 }
 
 ---@class Materials
----@field TravelDrive Material
-MaterialDefinition {
-    name = "TravelDrive",
-    vs_name = "traveldrive",
-    fs_name = "material/traveldrive",
-    blendMode = BlendMode.Additive,
-    autoShaderVars = {
-        mWorld   = { type = Enums.UniformType.Matrix, value = ShaderVarFuncs.mWorldFunc, perInstance = true },
-        mWorldIT = { type = Enums.UniformType.MatrixT, value = ShaderVarFuncs.mWorldITFunc, perInstance = true },
-
-        effectScale = { type = Enums.UniformType.Float,
-            value = function() return 1.5 end, -- inflation distance along normals
-            perInstance = false },
-
-        time      = { type = Enums.UniformType.Float,
-            value = function() return Engine:getTime() end,
-            perInstance = false },
-
-        intensity = { type = Enums.UniformType.Float,
-            value = function()
-                local TDS = require("Modules.Constructs.Systems.TravelDriveSystem")
-                local state = TDS:getState()
-                if state == "charging" then return TDS:getChargeProgress()
-                elseif state == "active" then return 0.7 + 0.3 * math.min(1, TDS:getMultiplier() / 50)
-                elseif state == "decelerating" then return math.max(0, (TDS:getMultiplier() - 1) / 50)
-                end
-                return 0
-            end, perInstance = false },
-
-        driveSpeed = { type = Enums.UniformType.Float,
-            value = function()
-                local TDS = require("Modules.Constructs.Systems.TravelDriveSystem")
-                return TDS:getMultiplier()
-            end, perInstance = false },
+---@field Star MaterialType
+MaterialType {
+    name     = "Star",
+    shader   = { "wvp", "material/star" },
+    state    = { blend = BlendMode.Disabled },
+    textures = {
+        sunTex = { tex = Cache.Texture('surface/2k_sun') },
     },
+    -- drawUser[0].x: time, [0].y: starTemp, [1].xyz: starTint
+    perDraw  = function(entity, user)
+        ---@cast entity Entity
+        local CoreComponents = require("Modules.Core.Components")
+        user[0].x = Engine:getTime()
+
+        local lumCmp = entity:get(CelestialComponents.Luminosity)
+        local luminosity = lumCmp and lumCmp:getLuminosity() or 1.0
+        user[0].y = 1.0 + math.log(math.max(0.1, luminosity)) * 0.3
+
+        local typeCmp = entity:get(CoreComponents.Type)
+        local starType = typeCmp and typeCmp:getSubtype() or "MainSequence"
+        if starType == "RedGiant" then
+            user[1].x, user[1].y, user[1].z = 1.0, 0.3, 0.1
+        elseif starType == "WhiteDwarf" then
+            user[1].x, user[1].y, user[1].z = 0.8, 0.85, 1.0
+        else
+            user[1].x, user[1].y, user[1].z = 1.0, 0.85, 0.6
+        end
+    end,
+}
+
+---@class Materials
+---@field TravelDrive MaterialType
+MaterialType {
+    name     = "TravelDrive",
+    shader   = { "traveldrive", "material/traveldrive" },
+    state    = { blend = BlendMode.Additive },
+    defaults = { effectScale = 1.5 }, -- inflation distance along normals
+    -- drawUser[0].x: time, .y: intensity, .z: driveSpeed
+    perDraw  = function(_, user)
+        local TDS = require("Modules.Constructs.Systems.TravelDriveSystem")
+        user[0].x = Engine:getTime()
+
+        local intensity = 0
+        local state = TDS:getState()
+        if state == "charging" then
+            intensity = TDS:getChargeProgress()
+        elseif state == "active" then
+            intensity = 0.7 + 0.3 * math.min(1, TDS:getMultiplier() / 50)
+        elseif state == "decelerating" then
+            intensity = math.max(0, (TDS:getMultiplier() - 1) / 50)
+        end
+        user[0].y = intensity
+        user[0].z = TDS:getMultiplier()
+    end,
 }

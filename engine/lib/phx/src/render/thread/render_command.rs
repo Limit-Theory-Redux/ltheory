@@ -10,9 +10,9 @@ use crossbeam::channel::Sender;
 
 use super::command_category::CommandCategory;
 use crate::render::{
-    BindEntry, BindGroupId, BlendMode, BlockLayout, CullFace, PassCommands,
-    PipelineDesc, PipelineId, RenderPassDesc, SamplerDesc, SamplerId, ShaderLayout, TexFilter,
-    TexFormat, TexWrapMode, VertexFormat, gl,
+    BindEntry, BindGroupId, BlendMode, BlockLayout, BufferId, CullFace, PassCommands, PipelineDesc,
+    PipelineId, RenderPassDesc, SamplerDesc, SamplerId, ShaderLayout, TexFilter, TexFormat,
+    TexWrapMode, VertexFormat, gl,
 };
 use crate::window::PresentMode;
 
@@ -438,12 +438,28 @@ pub enum RenderCommand {
     /// Create a sampler object.
     CreateSampler { id: SamplerId, desc: SamplerDesc },
 
-    /// Create a bind group: textures with samplers for one group of `shader`.
+    /// Create a bind group: uniform ranges and textures with samplers for one
+    /// group of `shader`.
     CreateBindGroup {
         id: BindGroupId,
         shader: ResourceId,
         group: u8,
         entries: Box<[BindEntry]>,
+    },
+
+    /// Destroy bind groups (their material was dropped or changed).
+    DestroyBindGroups { ids: Vec<BindGroupId> },
+
+    /// Create a uniform buffer of `size` bytes (material parameter arenas).
+    CreateBuffer { id: BufferId, size: u32 },
+
+    /// Write `data` at byte `offset` of buffer `id`. Not allowed inside an
+    /// open pass on wgpu (`queue.write_buffer` orders before the whole
+    /// submission); GL executes it in command order.
+    WriteBuffer {
+        id: BufferId,
+        offset: u32,
+        data: Vec<u8>,
     },
 
     // === Mesh Operations ===
@@ -701,6 +717,9 @@ impl RenderCommand {
             | CreatePipeline { .. }
             | CreateSampler { .. }
             | CreateBindGroup { .. }
+            | DestroyBindGroups { .. }
+            | CreateBuffer { .. }
+            | WriteBuffer { .. }
             | ReloadShader { .. }
             | CreateTexture1D { .. }
             | CreateTexture2D { .. }

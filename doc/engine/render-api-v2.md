@@ -1,6 +1,6 @@
 # Render API v2 — wgpu-shaped interface on the GL renderer
 
-Status: design. S2 (render passes and attachment views) and S3 (binding model, pipelines, samplers, views, frame group) are implemented; later steps are not. Companion to `wgpu-migration-gaps.md`,
+Status: design. S2 (render passes and attachment views), S3 (binding model, pipelines, samplers, views, frame group) and S4 (materials, scene list, uniform ring) are implemented; later steps are not. Companion to `wgpu-migration-gaps.md`,
 `render-thread.md`, `batch-rendering.md` and `shader-system.md`.
 
 **Strategy, already decided.** First the GL renderer and the Lua render
@@ -766,7 +766,7 @@ Original plan:
   one upload. `Renderer:setCamera(view, proj, starDir)` and `setEnvironment(env, ir)` are state; an open pass
   re-emits. The environment is bound at every `beginPass` (the executor's unit cache makes that cheap).
 - Uniform ring: 256 KiB chunks, one GL uniform buffer per chunk and frame slot, orphaned at its first use in a
-  frame. No fences yet (S4).
+  frame. No fences yet (S4 adds them).
 - `vertex/fullscreen.glsl` draws a unit quad scaled by `ubo_viewport.zw` through `mProjUI`, so it reproduces
   `Draw.Rect(0, 0, w, h)` bit for bit (`fullscreen_flip.glsl` reproduces `Draw.Rect(0, h, w, -h)`). The NDC quad
   of S5 replaces it. `fragment/blit.glsl`, `color_block.glsl` and the `indexed_*` shaders declare their
@@ -830,6 +830,117 @@ reflection is built from naga, with grouped block bindings injected by `adapt_gl
   its commands, and `index_set_instance_uniforms`.
 - **Immediate renderer.** Ring chunks are returned inline. The GL fence wait
   is in the executor, so it is the same code path.
+
+#### S4 notes
+
+**Status: implemented.** Differences from the plan above, and what shipped:
+
+*Rings and frames.*
+- `UniformRing` and `VertexRing` are two wrappers of one allocator (`StagingRing`, `render/gpu/uniform_ring.rs`).
+  Chunks: 256 KiB (uniform), 1 MiB (vertex; one instanced draw must fit in a chunk). A `RingChunk` is
+  `{at, bytes, skip}`: `bytes[skip..]` goes to `at`. A chunk that filled up moves to the executor as one `Vec` (no
+  copy; `skip` is what an earlier flush already sent); only the filled part of the chunk still being written is
+  copied, into a small pooled `Vec`. The executor does not own a channel: it queues the uploaded memory
+  (`take_returned_chunks`), and `RenderThread` forwards it over an unbounded return channel (threaded) or
+  `Renderer::send_pass_commands` recycles it inline (immediate). The wgpu executor drops the chunks (the main
+  thread then allocates fresh ones).
+- GL fences: `SwapBuffers` inserts `glFenceSync` for the executor's current slot just before the swap, and
+  `BeginFrame { slot }` (a new command, sent right after the frame's `SwapBuffers` and `PacingFence`) waits for the
+  fence of the slot it enters with `glClientWaitSync` (flush flag, 1 ms slices, 5 s cap) before that slot's buffers
+  are overwritten. The S3 buffer orphaning is gone: buffers are created once per (slot, chunk) and reused.
+- `PassCommands` gained `vertices`. `PassCmd::DrawMeshInstanced { mesh, index_count, instances, count }` and
+  `DrawInstancedIndices { mesh, index_count, indices, count }` carry `RingOffset`s into the vertex ring; Lua:
+  `pass:drawMeshInstanced(mesh, instances, count)`, `pass:drawInstancedIndices(mesh, indices, count)`.
+  Removed with them: the `GpuHandle` and `ByResource` forms of the `DrawMeshInstanced` command, the
+  `DrawInstancedIndices` and `DrawInstancedWithData` commands, `InstanceBatch`, and
+  `Mesh:drawInstancedWithData/drawInstancedIndices`.
+- `BeginRenderPass` resets the GL state cache to the legacy defaults (no blend, no culling, no depth test, depth
+  writes on, `LEQUAL`, filled polygons). The scene passes no longer push `RenderState`, so without this the last
+  pipeline of one pass would leak into the legacy draws of the next (post-processing, UI composite). wgpu passes
+  start from scratch as well.
+
+*DrawBlock and shaders.*
+- `DrawBlock` members are named `mWorld`, `mWorldIT`, `drawScale`, `drawUser[7]` (no `ubo_` prefix: the shaders use
+  them directly). Size 256 bytes, binding 8, checked at link like `ViewBlock`
+  (`draw_block_matches_the_rust_struct` covers a vertex and a fragment user in the parity test).
+- `include/vertex.glsl` is split: `vertex_base.glsl` (attributes, varyings, `VS_BEGIN/VS_END`, `logDepth`),
+  `vertex.glsl` (base plus the loose `mWorld`/`mWorldIT`, for the shaders that are not scene materials until S6) and
+  `vertex_scene.glsl` (base plus the draw block). `wvp.glsl` and `traveldrive.glsl` use `vertex_scene`.
+  `fragment.glsl` no longer declares the loose `mWorldIT`, which no fragment shader read.
+- `scattering2.glsl` declared `rPlanet`/`rAtmo` (and the unused cloud samplers) as loose uniforms. They are now
+  parameters of `atmosphereDefault(rd, ro, rPlanet, rAtmo)`, so the including shaders pass them from `drawScale.x`
+  and their `MaterialParams`; a `#define rPlanet` would have rewritten the identifiers inside the include. The cloud
+  functions are behind `#if CLOUDS_ENABLED` (it is 0), and two dead `getClouds` calls in `atmosphere()` are gone.
+- Define macros over `drawUser` after the includes (see `planet.glsl`, `star.glsl`).
+- Effects that draw in a scene pass with their own pipeline use the same block: the new `billboard/quad_draw`,
+  `billboard/axis_draw`, `effect/pulsehead_draw` and `effect/beam_draw` read color, alpha, size and seed from
+  `drawUser` (the Legacy effect objects keep the loose-uniform originals). `starbg.glsl` has a group-2
+  `StarBackgroundParams { brightnessScale }`. `wvp_instanced_tex.glsl` has a group-2 `InstanceParams` block and the
+  `instanceDataTex` sampler in group 2.
+
+*Materials.*
+- `CreateBuffer { id, size }`, `WriteBuffer { id, offset, data }` and `DestroyBindGroups { ids }` are new commands;
+  `BindEntry::Uniform { index, buffer, offset, size }` binds a buffer range to the group's `index`-th block when the
+  group is set. Arenas are 256 KiB buffers carved into `UNIFORM_ALIGN` strides; a freed slice goes on a free list
+  keyed by its reserved size. `Material` has no renderer in its `Drop`, so it queues its slice and bind group on a
+  channel that `end_frame_triple_buffered` drains (`drain_releases`).
+- `Material.Create(shader, blend, cull, depthTest, depthWrite)` takes the state directly instead of a
+  `PipelineDesc` template. Pipelines have no attachment formats yet (`TexView` carries none); GL ignores them.
+  `Material:commit()` is one `WriteBuffer` plus a new bind group if a texture changed. `setTexture(name, view,
+  sampler)` panics on an unknown name or a dimension mismatch. A material that is drawn with an uncommitted change is
+  committed by `addItem`, which warns once about samplers without a texture; a resource write in an open pass trips
+  a debug assertion.
+- The Lua side: `Shared/Types/MaterialType.lua` (`MaterialType { name, shader = { vs, fs }, state, defaults,
+  textures, perDraw }`), `Shared/Rendering/Material.lua` (`mat:params()`, `setTexture`, `commit`), the registry
+  `Shared/Registries/Materials.lua` (`Materials.X:instance()`) and `Shared/Definitions/MaterialDefs.lua`. Cull and
+  depth state default to those of the scene pass of the material's blend mode (`Render/Pipelines.lua`:
+  `Pipelines.Opaque/Additive/Alpha`), which is what `RenderingPass` used to push. Textures a type declares with a
+  `tex` are shared by its instances and get their mip chain once; samplers default by texture kind
+  (`Samplers.LinearMipRepeatAniso`, a new preset with 16x anisotropy, for 2D: the state the old `Texture` class gave
+  every material texture). `Material.ReloadAll()` recommits the live materials (pipelines follow the shader's new
+  program by themselves).
+- Parameters moved from per-frame closures into data. Planet (`color1..4`, `oceanLevel`, `rAtmo`), atmosphere
+  (`rAtmo`), moon (`highlandColor`, `mariaColor`, `heightMult`, `enableAtmosphere`) and ring (`rMin`, `rMax`, `seed`, ...)
+  are written once through `Shared/Rendering/PlanetMaterials.lua`. The cloud and ring time, the star's time,
+  temperature and tint, and the travel drive's time, intensity and speed are `perDraw` values. `rAtmo` is the body's
+  scale at creation times `atmoScale`; the old shader var re-read it every frame. Parameters the shaders never
+  declared are gone (`starColor`, the planet's `starTint`, `craterDepth`, the moon's base textures, `ringTex`, the
+  ring's `planetPos`/`planetQuat`/`planetRadius`/`ringQuat`), and with them their "no such uniform" warnings;
+  `enableDebug`/`debugMode` of the ring are real block fields now.
+- `DebugColor` (turret bodies) used to share one color variable between all clones (the clones copied the list of
+  variable objects, not the objects), so the last turret loadout colored every box. Each instance has its own color
+  now. That is the only intended pixel difference: the WeaponSystem testbed at frame 40 differs from the pre-change
+  capture in 91 pixels (max 6/255) around dark turret boxes; the four baseline scenes are bit-identical.
+
+*Scene list.*
+- `SceneList` is described in section 3b and in `batch-rendering.md`. `submit` is a Lua wrapper
+  (`ffi_ext/SceneList.lua`) around the Rust `prepare` (cull, sort, survivor flags) and `emit`. The `perDraw`
+  callbacks run in Lua between the two, for the survivors, so no C-to-Lua call exists and the callbacks stay
+  JIT-friendly. `addTransform()` returns a `SceneTransform*` (`world`, `cx/cy/cz`, `scale`, `index`);
+  `addItem(t.index, mesh, material, entity)` computes the cull radius in Rust (the mesh bound about the origin
+  times the scale). Culling can be turned off per call (`Config.render.general.frustumCulling`); then nothing is
+  sorted either, as before.
+- The sort key `(pipeline, material uid, mesh id)` replaces the old shader-pair key; equal keys keep insertion
+  order, and the alpha bucket does not sort.
+- Removed: `RenderBatch`, `EntityRenderData`, `BatchStats`, `Renderer:beginBatch/addEntity/addCullEntity/cullBatch/
+  flushBatch/getBatchStats`, `command_buffer` and `Renderer:beginFrame/flush`, `SetInstanceUniforms` and
+  `InstanceUniformsCmd`, `GenericUniformName` and `SetUniformMat4ByGenericName`, `MaterialUboData` and its commands,
+  `Shader:iSetInstanceUniforms`, `Enums.UniformType`, and the Lua files listed in the plan (`MaterialDefinition`,
+  `UniformFunc`, `DynamicShaderVar`, `Texture`, `UniformFuncs`, `UniformFuncDefs`, `ShaderVarFuncs`). The generated
+  FFI of removed types (`InstanceBatch`, `BatchStats`) was deleted by hand.
+
+*Render-fn draws in scene passes.* They set their pipeline with `Pipelines.get(shader, state)` (cached per shader
+resource and state table) through `Renderer:currentPass()`: the skybox and star field (shared by eight states in
+`Render/Backdrop.lua`), `AsteroidBeltRenderer` (bind groups created once, `pass:alloc` for `originRelEye`),
+`BeamEntity`, `ImpactEffectEntity` and the point-light markers of `PointLightSystem`. The skybox box and
+`Starfield:draw()` are still legacy immediate draws (S6); they run on the program the pipeline bound. Nothing in
+`script/Legacy` was touched. The one Legacy dependency an active state has in a scene pass is the WeaponSystem
+testbed's `Pulse.Render` (still on `shader:start()`); the testbed wraps the call in the additive pass's
+`RenderState` pushes, marked `S6`.
+
+*wgpu executor.* It handles `BeginFrame` (nothing to wait for), the buffer commands (CPU copies, staged as plain
+uniform blocks when a bind group with a uniform entry is set) and both instanced pass commands (reading the vertex
+ring bytes back into the old instanced paths). Like in S3 it does not render these paths correctly yet.
 
 ### S5. Fullscreen, post-processing and offscreen generation
 - **Engine.** Add `DrawFullscreen` and `vertex/fullscreen.glsl` (NDC quad,

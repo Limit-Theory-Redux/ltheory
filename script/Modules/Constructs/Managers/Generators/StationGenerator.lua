@@ -48,7 +48,7 @@ function StationGenerator:createStation(seed, config, stats)
     mesh:computeAO(0.3 * mesh:getRadius())
 
     -- Get or create material
-    local material = config.material or (Materials.Metal and Materials.Metal())
+    local material = config.material or (Materials.Metal and Materials.Metal:instance())
 
     local meshes = { { mesh = mesh, material = material } }
 

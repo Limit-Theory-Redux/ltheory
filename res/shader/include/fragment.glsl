@@ -10,8 +10,6 @@ in float flogz;
 
 layout (location = 0) out vec4 outColor;
 
-uniform mat4 mWorldIT;
-
 uniform vec3 starColor;
 
 #define FRAGMENT_CORRECT_DEPTH                                                 \

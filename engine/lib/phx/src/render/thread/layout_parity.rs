@@ -18,8 +18,7 @@ use std::path::{Path, PathBuf};
 
 use super::command_executor_wgpu::WgpuCommandExecutor;
 use crate::render::{
-    BlockLayout, DrawBlock, GLSLCode, GlslType, ShaderLayout, TexDim, ViewBlock,
-    blocks_from_naga,
+    BlockLayout, DrawBlock, GLSLCode, GlslType, ShaderLayout, TexDim, ViewBlock, blocks_from_naga,
 };
 
 fn repo_root() -> PathBuf {
@@ -313,8 +312,7 @@ void main() {
         let pre = GLSLCode::preprocess_with(src, None, &mut loader);
         let (layout, errors) = ShaderLayout::merge(&[&pre.layout]);
         assert!(errors.is_empty(), "{label}: {errors:?}");
-        let view =
-            naga_view(&pre.code, stage, &layout).unwrap_or_else(|e| panic!("{label}: {e}"));
+        let view = naga_view(&pre.code, stage, &layout).unwrap_or_else(|e| panic!("{label}: {e}"));
         let block = view
             .blocks
             .iter()

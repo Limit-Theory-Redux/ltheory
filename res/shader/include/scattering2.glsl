@@ -7,10 +7,6 @@
 
 #include math
 
-uniform samplerCube cloudCube;
-uniform sampler3D cloudNoise;
-uniform float rPlanet;
-uniform float rAtmo;
 
 vec2 rsi(vec3 ro, vec3 rd, float sr) {
   float a = dot(rd, rd);
@@ -24,6 +20,9 @@ vec2 rsi(vec3 ro, vec3 rd, float sr) {
   );
 }
 
+// The cloud code needs `uniform sampler3D cloudNoise` from the including
+// shader (group 1) when enabled.
+#if CLOUDS_ENABLED
 float getClouds(vec3 p, float h, float dist) {
   float base = 0.0;
   base = texture(cloudNoise, 1.7 * p.xyz + vec3(355)).x;
@@ -98,6 +97,8 @@ vec4 integrateClouds(
   return vec4(color, 1.0 - visibility);
 }
 
+#endif // CLOUDS_ENABLED
+
 float phaseHG(vec3 rd, vec3 dSun, float g) {
   float u = dot(rd, dSun);
   float g2 = g * g;
@@ -141,8 +142,6 @@ vec4 atmosphere(
     for (int i = 0; i < iSteps; i++) {
       vec3 iPos = ro + rd * (tAtmo.x + iT + 0.5 * stepSize);
       float iHeight = length(iPos) - rPlanet;
-      float iClouds = getClouds(iPos, iHeight, tAtmo.x);
-      iClouds *= 16.0;
 
       /* Accumulate optical depth of primary ray. */
       float odStepRlh = exp(-iHeight / shRlh) * stepSize;
@@ -160,7 +159,6 @@ vec4 atmosphere(
       for (int j = 0; j < jSteps; j++) {
         vec3 jPos = iPos + dSun * (jT + 0.5 * jStepSize);
         float jHeight = length(jPos) - rPlanet;
-        float jClouds = getClouds(jPos, jHeight, tAtmo.x);
         jRlh += exp(-jHeight / shRlh) * jStepSize;
         jMie += exp(-jHeight / shMie) * jStepSize;
         jT += jStepSize;
@@ -200,7 +198,7 @@ const float hRayleigh = 0.1;
 const float hMie = 0.03;
 const float pMie = 0.758;
 
-vec4 atmosphereDefault(vec3 rd, vec3 ro) {
+vec4 atmosphereDefault(vec3 rd, vec3 ro, float rPlanet, float rAtmo) {
   float atmoScale = (rAtmo - rPlanet) / rAtmo;
   return atmosphere(
     rd,

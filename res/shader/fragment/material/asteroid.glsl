@@ -5,10 +5,12 @@
 #include color
 #include math
 #include fog
+#include draw_block
 
+#define scale (drawScale.x)
 
+#group 1
 uniform sampler2D texDiffuse;
-uniform float scale;
 
 void main() {
   vec3 N = normalize(normal);

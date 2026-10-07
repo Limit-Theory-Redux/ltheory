@@ -1,10 +1,9 @@
 use glam::Vec3;
-use tracing::error;
 
 use crate::math::Matrix;
 use crate::render::{
-    BatchStats, BindGroupDesc, BlendMode, CmdPrimitiveType, CullFace, GpuHandle, LightUboData,
-    RenderBatch, RenderPass, RenderPassDesc, Renderer, TexCube,
+    BindGroupDesc, BlendMode, CmdPrimitiveType, CullFace, GpuHandle, LightUboData, RenderPass,
+    RenderPassDesc, Renderer, TexCube,
 };
 
 // =============================================================================
@@ -25,65 +24,6 @@ impl Renderer {
     /// Synchronize with the render thread (wait for all commands to complete)
     pub fn sync(&mut self) -> bool {
         self.sync_intern()
-    }
-
-    // === Batch rendering ===
-
-    pub fn begin_batch(&mut self, view: &Matrix, projection: &Matrix, eye: &Vec3) {
-        match &mut self.data.active_batch {
-            Some(batch) => batch.reset(view, projection, *eye),
-            None => self.data.active_batch = Some(RenderBatch::new(view, projection, *eye)),
-        }
-    }
-
-    /// Add a cull-only entity to the active batch: bounds + sort key, no
-    /// mesh/shader to draw. For callers that want frustum culling and sort
-    /// ordering from `cull_batch` without going through the (unused) batch
-    /// draw path - see `RenderCoreSystem` in Lua, which still applies its
-    /// own per-entity material uniforms and issues its own draws.
-    ///
-    /// `radius < 0.0` is a sentinel meaning "never cull" (e.g. no bounds
-    /// source available for this entity).
-    pub fn add_cull_entity(
-        &mut self,
-        bounds_center: &Vec3,
-        bounds_radius: f32,
-        sort_key: u32,
-        user_id: u32,
-    ) {
-        if let Some(batch) = &mut self.data.active_batch {
-            batch.add_cull_entity(*bounds_center, bounds_radius, sort_key, user_id);
-        } else {
-            error!("There is no active batch started. Use begin_batch() to start it.");
-        }
-    }
-
-    /// Frustum-cull and sort the active batch, writing survivors' `user_id`s
-    /// into `out_indices` in sort-key order. Returns the number written
-    /// (never more than `out_indices`'s length). Emits no draw commands and
-    /// does not clear the batch - `flush_batch` still works afterward.
-    pub fn cull_batch(&mut self, out_indices: &mut [u32]) -> u32 {
-        let Some(batch) = &mut self.data.active_batch else {
-            error!("There is no active batch started. Use begin_batch() to start it.");
-            return 0;
-        };
-
-        batch.cull_and_sort();
-        let visible = batch.visible();
-        let n = visible.len().min(out_indices.len());
-        for (dst, &i) in out_indices[..n].iter_mut().zip(visible.iter()) {
-            *dst = batch.entities[i as usize].user_id;
-        }
-        n as u32
-    }
-
-    pub fn get_batch_stats(&self) -> Option<&BatchStats> {
-        if let Some(batch) = &self.data.active_batch {
-            Some(batch.get_stats())
-        } else {
-            error!("There is no active batch started. Use begin_batch() to start it.");
-            None
-        }
     }
 
     // === Frame stats (last completed frame; used by LTHEORY_CAPTURE) ===

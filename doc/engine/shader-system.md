@@ -311,6 +311,42 @@ part via `mat3(mViewInv)` — so deriving it sidesteps the inconsistency instead
 convention. If a future shader needs `mViewInv`'s translation, this will need to become an
 explicit parameter instead.
 
+### Draw block (group 2, binding 8) and material parameters (group 1)
+
+Scene meshes get their per-draw data from one fixed block, `res/shader/include/draw_block.glsl`
+(vertex side: `include/vertex_scene.glsl`, which is `vertex.glsl` with the block in place of the loose
+`mWorld`/`mWorldIT` uniforms):
+
+```glsl
+#group 2
+layout(std140) uniform DrawBlock {
+    mat4 mWorld;
+    mat4 mWorldIT;     // inverse transpose, computed once per transform
+    vec4 drawScale;    // x = the body's uniform scale
+    vec4 drawUser[7];  // material-defined per-draw values (MaterialType.perDraw)
+};
+```
+
+`SceneList:submit` writes one `DrawBlock` (256 bytes, one ring stride) per drawn mesh straight into the
+uniform ring; its Rust mirror is `DrawBlock` (`render/gpu/draw_block.rs`) and every shader that links it
+is asserted against the struct. It must be the first block a shader declares in group 2.
+
+A material's own parameters are a `MaterialParams` block in group 1, next to its samplers:
+
+```glsl
+#group 1
+layout(std140) uniform MaterialParams { vec3 color1; float heightMult; /* ... */ };
+uniform samplerCube surface;
+```
+
+Lua gets the block as a typed struct (`mat:params()`, the type is `shader:blockType('MaterialParams')`),
+fills it and calls `mat:commit()`, one write per change. Anything that changes between draws of one
+material goes in the draw block instead, through `drawUser`:
+`#define time (drawUser[0].x)` with `perDraw = function(entity, user) user[0].x = ... end`. Define such
+macros after the includes (a macro would also rewrite identifiers inside an include). Other code that draws
+with its own pipeline (`Render/Pipelines.lua`) allocates a `DrawBlock` per draw with `pass:alloc` and uses
+`drawUser` the same way (see `vertex/billboard/quad_draw.glsl`).
+
 ### Light UBO (binding 2)
 
 `res/shader/include/light_ubo.glsl`, included only by `fragment/light/point.glsl`:

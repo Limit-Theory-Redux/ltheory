@@ -3,14 +3,21 @@
 #include math
 #include color
 #include noise
+#include draw_block
 
-uniform float rMin;
-uniform float rMax;
-uniform float ringHeight;
-uniform float seed;
-uniform float time;
-uniform float rotationSpeed;
-uniform float twistFactor;
+#define time (drawUser[0].x)      // ring rotation time (per draw)
+
+#group 1
+layout(std140) uniform MaterialParams {
+  float rMin;
+  float rMax;
+  float ringHeight;
+  float seed;
+  float rotationSpeed;
+  float twistFactor;
+  int enableDebug;
+  int debugMode;
+};
 
 in vec3 objPos;
 

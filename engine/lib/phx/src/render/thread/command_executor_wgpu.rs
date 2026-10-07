@@ -24,11 +24,11 @@ use tracing::warn;
 
 use crate::render::thread::{ExecutorStats, GpuHandle};
 use crate::render::{
-    BindEntry, BindGroupId, BlendMode, BlockLayout, CmdPrimitiveType, CommandReply, CullFace,
-    ImmVertex, InstanceData, LoadOp, PassCmd,
-    PassCommands, PipelineDesc, PipelineId, PolygonMode, RenderCommand, RenderPassDesc,
-    RenderStats, ResourceId, SamplerDesc, SamplerId, ShaderLayout, ShaderReloadResult, TexFilter,
-    TexFormat, TexView, TexWrapMode, VertexFormat, ViewDim, blocks_from_naga, entry_unit,
+    BindEntry, BindGroupId, BlendMode, BlockLayout, BufferId, CmdPrimitiveType, CommandReply,
+    CullFace, ImmVertex, InstanceData, LoadOp, PassCmd, PassCommands, PipelineDesc, PipelineId,
+    PolygonMode, RenderCommand, RenderPassDesc, RenderStats, ResourceId, SamplerDesc, SamplerId,
+    ShaderLayout, ShaderReloadResult, TexFilter, TexFormat, TexView, TexWrapMode, VertexFormat,
+    ViewDim, blocks_from_naga, entry_unit,
 };
 use crate::window::PresentMode;
 
@@ -279,6 +279,9 @@ pub struct WgpuCommandExecutor {
     ring_bytes: HashMap<(u8, u16), Vec<u8>>,
     /// Vertex ring bytes (instance data) by `(slot, chunk)`.
     vertex_ring_bytes: HashMap<(u8, u16), Vec<u8>>,
+    /// Material parameter arenas (CPU copies; slices are staged as plain
+    /// uniform blocks when a bind group is set).
+    arena_bytes: HashMap<BufferId, Vec<u8>>,
     /// Pipeline last set by a pass command.
     current_pipeline: Option<PipelineId>,
 
@@ -307,7 +310,7 @@ pub struct WgpuCommandExecutor {
     /// Scratch buffer for DrawImmediate vertex uploads.
     immediate_buffer: Option<wgpu::Buffer>,
     immediate_capacity: u64,
-    /// Scratch buffer for DrawInstancedWithData per-instance attributes.
+    /// Scratch buffer for the per-instance attributes of instanced pass draws.
     instance_buffer: Option<wgpu::Buffer>,
     instance_capacity: u64,
     /// Screen-sized depth texture backing the surface target (surfaces have
@@ -384,6 +387,7 @@ impl WgpuCommandExecutor {
             bind_groups: HashMap::new(),
             ring_bytes: HashMap::new(),
             vertex_ring_bytes: HashMap::new(),
+            arena_bytes: HashMap::new(),
             current_pipeline: None,
             ubo_buffers: HashMap::new(),
             plain_uniform_staging: HashMap::new(),
@@ -521,10 +525,7 @@ impl WgpuCommandExecutor {
         use crate::render::thread::ubo::LIGHT_UBO_BINDING;
         let mut out = code.replace("#version 330", "#version 440");
         // Legacy fixed blocks, and the frame group's view block.
-        let injections = [
-            ("ViewBlock", 0),
-            ("LightUBO", LIGHT_UBO_BINDING),
-        ];
+        let injections = [("ViewBlock", 0), ("LightUBO", LIGHT_UBO_BINDING)];
         for (name, binding) in injections {
             let pattern = format!("layout(std140) uniform {name}");
             let replacement = format!("layout(std140, binding={binding}) uniform {name}");
@@ -4906,6 +4907,28 @@ impl WgpuCommandExecutor {
         self.sampler_descs.insert(id, *desc);
     }
 
+    pub(super) fn cmd_destroy_bind_groups(&mut self, ids: &[BindGroupId]) {
+        for id in ids {
+            self.bind_groups.remove(id);
+        }
+    }
+
+    pub(super) fn cmd_create_buffer(&mut self, id: BufferId, size: u32) {
+        self.arena_bytes.insert(id, vec![0; size as usize]);
+    }
+
+    pub(super) fn cmd_write_buffer(&mut self, id: BufferId, offset: u32, data: &[u8]) {
+        let Some(bytes) = self.arena_bytes.get_mut(&id) else {
+            warn!("wgpu: WriteBuffer for unknown buffer {id:?}");
+            return;
+        };
+        let end = offset as usize + data.len();
+        if bytes.len() < end {
+            bytes.resize(end, 0);
+        }
+        bytes[offset as usize..end].copy_from_slice(data);
+    }
+
     pub(super) fn cmd_create_bind_group(
         &mut self,
         id: BindGroupId,
@@ -4979,8 +5002,30 @@ impl WgpuCommandExecutor {
                         continue;
                     };
                     for entry in &entries {
-                        let BindEntry::Texture { view, .. } = entry;
-                        self.bind_unit_by_layout(entry_unit(*group, entry), view);
+                        match entry {
+                            BindEntry::Texture { view, .. } => {
+                                if let Some(unit) = entry_unit(*group, entry) {
+                                    self.bind_unit_by_layout(unit, view);
+                                }
+                            }
+                            BindEntry::Uniform {
+                                index,
+                                buffer,
+                                offset,
+                                size,
+                            } => {
+                                // Stage the arena slice like a plain uniform
+                                // block; the draw path uploads it.
+                                let binding = crate::render::block_binding(*group, *index);
+                                let bytes = self.arena_bytes.get(buffer).and_then(|b| {
+                                    b.get(*offset as usize..(*offset + *size) as usize)
+                                });
+                                if let Some(bytes) = bytes {
+                                    self.plain_uniform_staging.insert(binding, bytes.to_vec());
+                                    self.plain_uniform_dirty.insert(binding);
+                                }
+                            }
+                        }
                     }
                 }
                 PassCmd::SetView { block, size } => {
@@ -5064,7 +5109,12 @@ impl WgpuCommandExecutor {
                             for (i, v) in model_matrix.iter_mut().enumerate() {
                                 *v = f(&inst[i * 4..i * 4 + 4]);
                             }
-                            let color = [f(&inst[64..68]), f(&inst[68..72]), f(&inst[72..76]), f(&inst[76..80])];
+                            let color = [
+                                f(&inst[64..68]),
+                                f(&inst[68..72]),
+                                f(&inst[72..76]),
+                                f(&inst[76..80]),
+                            ];
                             InstanceData::new(model_matrix, color, f(&inst[80..84]))
                         })
                         .collect();
@@ -5633,6 +5683,11 @@ impl WgpuCommandExecutor {
                 group,
                 entries,
             } => self.cmd_create_bind_group(id, shader, group, &entries),
+            RenderCommand::DestroyBindGroups { ids } => self.cmd_destroy_bind_groups(&ids),
+            RenderCommand::CreateBuffer { id, size } => self.cmd_create_buffer(id, size),
+            RenderCommand::WriteBuffer { id, offset, data } => {
+                self.cmd_write_buffer(id, offset, &data)
+            }
 
             // === Mesh Operations ===
             RenderCommand::BindMesh { vao } => self.cmd_bind_mesh(vao),
@@ -6235,8 +6290,9 @@ mod tests {
     #[ignore = "opens a real window + needs GPU; run explicitly"]
     #[allow(deprecated)]
     fn all_shaders_compile_through_naga() {
-        use crate::window::{PresentMode, WgpuRenderer};
         use std::path::{Path, PathBuf};
+
+        use crate::window::{PresentMode, WgpuRenderer};
 
         // Window + device (same pattern as the smoke test).
         #[cfg(target_os = "windows")]

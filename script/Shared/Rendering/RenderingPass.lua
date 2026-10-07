@@ -1,9 +1,3 @@
----@class RenderStateSettings
----@field blendMode BlendMode
----@field cullFace CullFace
----@field depthTest boolean
----@field depthWritable boolean
-
 ---@class RenderingPassClear
 ---@field color number[]|nil  { r, g, b, a } clear value for every color attachment; nil keeps the contents (LoadOp.Load)
 ---@field depth number|nil    clear value for the depth attachment; nil keeps the contents (LoadOp.Load)
@@ -11,7 +5,6 @@
 ---@class RenderingPass
 ---@field name string
 ---@field bufferOrder BufferName[]
----@field settings RenderStateSettings
 ---@field onStartFn function | nil
 ---@field clear RenderingPassClear
 ---@field descs table[] small cache of { textures = Tex2D[], desc = RenderPassDesc }
@@ -23,23 +16,21 @@
 local MAX_CACHED_DESCS = 4
 
 ---@class RenderingPass
----@overload fun(self: RenderingPass, name: string, bufferOrder: BufferName[], settings: RenderStateSettings, clear: RenderingPassClear|nil, onStartFn: function|nil)   class internal
----@overload fun(name: string, bufferOrder: BufferName[], settings: RenderStateSettings, clear: RenderingPassClear|nil, onStartFn: function | nil)  class external
-local RenderingPass = Class("RenderingPass", function(self, name, bufferOrder, settings, clear, onStartFn)
+---@overload fun(self: RenderingPass, name: string, bufferOrder: BufferName[], clear: RenderingPassClear|nil, onStartFn: function|nil)   class internal
+---@overload fun(name: string, bufferOrder: BufferName[], clear: RenderingPassClear|nil, onStartFn: function | nil)  class external
+local RenderingPass = Class("RenderingPass", function(self, name, bufferOrder, clear, onStartFn)
     ---@diagnostic disable-next-line: invisible
-    self:registerVars(name, bufferOrder, settings, clear, onStartFn)
+    self:registerVars(name, bufferOrder, clear, onStartFn)
 end)
 
 ---@param name string
 ---@param bufferOrder BufferName[]
----@param settings RenderStateSettings
 ---@param clear RenderingPassClear|nil
 ---@param onStartFn function | nil
 ---@private
-function RenderingPass:registerVars(name, bufferOrder, settings, clear, onStartFn)
+function RenderingPass:registerVars(name, bufferOrder, clear, onStartFn)
     self.name = name
     self.bufferOrder = bufferOrder
-    self.settings = settings
     self.clear = clear or {}
     self.onStartFn = onStartFn
     self.descs = {}
@@ -91,25 +82,20 @@ function RenderingPass:getDesc(buffers)
     return desc
 end
 
+--- Begin the pass. Fixed-function state is not set here: every draw inside a
+--- scene pass brings its own pipeline (a material's, or `Pipelines.get`).
 ---@param buffers table<BufferName, Tex2D>
+---@return RenderPass
 function RenderingPass:start(buffers)
     self.pass = Renderer:beginPass(self:getDesc(buffers))
 
     if self.onStartFn then
         self.onStartFn()
     end
-
-    RenderState.PushBlendMode(self.settings.blendMode)
-    RenderState.PushCullFace(self.settings.cullFace)
-    RenderState.PushDepthTest(self.settings.depthTest)
-    RenderState.PushDepthWritable(self.settings.depthWritable)
+    return self.pass
 end
 
 function RenderingPass:stop()
-    RenderState.PopBlendMode()
-    RenderState.PopCullFace()
-    RenderState.PopDepthTest()
-    RenderState.PopDepthWritable()
     self.pass:finish()
     self.pass = nil
 end

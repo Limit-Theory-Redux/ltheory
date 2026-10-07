@@ -4,16 +4,25 @@
 #include color
 #include noise
 #include scattering2
+#include draw_block
 
+// Per-draw values of the group-2 draw block (see MaterialDefs.lua).
+#define origin (mWorld[3].xyz)    // camera-relative position of the planet
+#define rPlanet (drawScale.x)     // the body's scale
+#define time (drawUser[0].x)      // cloud motion time
+
+#group 1
+layout(std140) uniform MaterialParams {
+  vec3 color1;
+  float heightMult;
+  vec3 color2;
+  float oceanLevel;
+  vec3 color3;
+  float rAtmo;
+  vec3 color4;
+  float _pad0;
+};
 uniform samplerCube surface;
-uniform vec3 origin;
-uniform vec3 color1;
-uniform vec3 color2;
-uniform vec3 color3;
-uniform vec3 color4;
-uniform float heightMult;
-uniform float oceanLevel;
-uniform float time;
 
 const float kSpecular = 1.0;
 const vec3 kOceanColor = vec3(0.01, 0.13, 0.20);
@@ -137,7 +146,7 @@ void main() {
 
     // Atmosphere
     color *= light;
-    vec4 atmo = atmosphereDefault(V, eye - origin);
+    vec4 atmo = atmosphereDefault(V, eye - origin, rPlanet, rAtmo);
     color = atmo.xyz + color * (1.0 - atmo.w);
 
     FRAGMENT_CORRECT_DEPTH;

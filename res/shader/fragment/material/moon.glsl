@@ -6,12 +6,14 @@
 #include scattering2
 #include texcube
 
+#group 1
+layout(std140) uniform MaterialParams {
+  vec3 highlandColor;
+  float heightMult;
+  vec3 mariaColor;
+  float enableAtmosphere;
+};
 uniform samplerCube surface;
-uniform vec3 origin;
-uniform vec3 highlandColor;
-uniform vec3 mariaColor;
-uniform float heightMult;
-uniform float enableAtmosphere;
 
 vec3 calculateDetailedNormal(vec3 p, float delta) {
     float h = texture(surface, p).x;

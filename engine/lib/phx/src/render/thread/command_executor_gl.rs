@@ -12,9 +12,9 @@ use crate::render::thread::{
 };
 use crate::render::{
     BlendMode, BlockLayout, CmdPrimitiveType, CommandCategory, CommandExecutor, CommandReply,
-    CullFace, ImmVertex, LoadOp, MAX_COLOR_ATTACHMENTS,
-    PolygonMode, RenderPassDesc, RenderStats, ResourceId, ShaderLayout, ShaderReloadResult,
-    TexFilter, TexFormat, TexWrapMode, VertexFormat, ViewDim,
+    CullFace, ImmVertex, LoadOp, MAX_COLOR_ATTACHMENTS, PolygonMode, RenderPassDesc, RenderStats,
+    ResourceId, ShaderLayout, ShaderReloadResult, TexFilter, TexFormat, TexWrapMode, VertexFormat,
+    ViewDim,
 };
 use crate::window::{PresentMode, WindowGlContext};
 

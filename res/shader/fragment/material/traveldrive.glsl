@@ -2,11 +2,12 @@
 #include deferred
 #include math
 #include noise
+#include draw_block
 
-uniform float intensity;
-uniform float driveSpeed;
-uniform float time;
-uniform float effectScale;
+// Per-draw values of the group-2 draw block (see MaterialDefs.lua).
+#define time (drawUser[0].x)
+#define intensity (drawUser[0].y)
+#define driveSpeed (drawUser[0].z)
 
 void main() {
   vec3 N = normalize(normal);

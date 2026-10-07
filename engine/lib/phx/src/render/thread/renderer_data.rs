@@ -1,8 +1,8 @@
 use crossbeam::channel::{Receiver, Sender};
 
 use crate::render::{
-    CameraState, ClipManager, DrawState, Environment, PassEncoder, PassState, PipelineCache,
-    PrimitiveBuilder, RenderBatch, RenderStateIntern, ResourceId, ReturnedChunk,
+    CameraState, ClipManager, DrawState, Environment, MaterialArenas, PassEncoder, PassState,
+    PipelineCache, PrimitiveBuilder, Release, RenderStateIntern, ResourceId, ReturnedChunk,
     RingOffset, SamplerCache, ScissorUpdate, Shader, ShaderErrorQueue, ShaderWatcherInner,
     UniformRing, VertexRing, ViewBlock,
 };
@@ -17,8 +17,6 @@ pub struct RendererData {
     /// Consumer end, owned solely by this `Renderer` and drained once per
     /// frame in `end_frame_triple_buffered`.
     pub destroy_rx: Receiver<ResourceId>,
-    /// Active render batch
-    pub active_batch: Option<RenderBatch>,
     /// The open render pass (one at a time) and the size of the last target.
     pub pass: PassState,
     /// Records the open pass's commands until they are flushed.
@@ -35,6 +33,12 @@ pub struct RendererData {
     pub samplers: SamplerCache,
     /// Next `BindGroupId`.
     pub next_bind_group: u32,
+    /// Material parameter arenas.
+    pub arenas: MaterialArenas,
+    /// Dropped materials send their arena slice and bind group back here
+    /// (`Drop` has no renderer); drained once per frame.
+    pub release_tx: Sender<Release>,
+    pub release_rx: Receiver<Release>,
     /// The `ViewBlock` uploaded last, where, and in which frame, so passes
     /// with an identical block reuse the upload.
     pub last_view: Option<(ViewBlock, RingOffset, u64)>,
@@ -76,11 +80,12 @@ impl RendererData {
     }
 
     pub fn new(destroy_tx: Sender<ResourceId>, destroy_rx: Receiver<ResourceId>) -> Self {
+        // Unbounded: `Material::drop` must never block or fail.
+        let (release_tx, release_rx) = crossbeam::channel::unbounded();
         Self {
             next_resource_id: 1,
             destroy_tx,
             destroy_rx,
-            active_batch: None,
             pass: PassState::default(),
             encoder: PassEncoder::new(),
             ring: UniformRing::new(),
@@ -89,6 +94,9 @@ impl RendererData {
             pipelines: PipelineCache::new(),
             samplers: SamplerCache::new(),
             next_bind_group: 0,
+            arenas: MaterialArenas::new(),
+            release_tx,
+            release_rx,
             last_view: None,
             camera: CameraState::default(),
             environment: Environment::default(),

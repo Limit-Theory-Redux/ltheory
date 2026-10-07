@@ -10,11 +10,11 @@ use tracing::{error, info};
 use crate::render::StatsSink;
 use crate::render::thread::RenderThread;
 use crate::render::{
-    BindEntry, BindGroupId, BlendMode, BlockLayout, CmdPrimitiveType, CullFace, GpuHandle,
-    ImmVertex, PassCommands, PipelineDesc, PipelineId, RenderCommand, RenderPassDesc, RenderStats,
-    RenderThreadConfig, RenderThreadError, RendererData, ResourceId, ReturnedChunk, SamplerCache,
-    SamplerDesc, SamplerId, ShaderLayout, ShaderReloadResult, TexFilter, TexFormat, TexWrapMode,
-    VertexFormat,
+    BindEntry, BindGroupId, BlendMode, BlockLayout, BufferId, CmdPrimitiveType, CullFace,
+    GpuHandle, ImmVertex, PassCommands, PipelineDesc, PipelineId, RenderCommand, RenderPassDesc,
+    RenderStats, RenderThreadConfig, RenderThreadError, RendererData, ResourceId, ReturnedChunk,
+    SamplerCache, SamplerDesc, SamplerId, ShaderLayout, ShaderReloadResult, TexFilter, TexFormat,
+    TexWrapMode, VertexFormat,
 };
 use crate::window::{PresentMode, WgpuStartupBundle, WindowError, WindowGlContext};
 
@@ -332,6 +332,7 @@ impl Renderer {
         }
 
         self.pass_end_frame();
+        self.drain_releases();
         self.drain_destroy_queue();
 
         // Track ALL time spent in this function (includes channel blocking)
@@ -1030,6 +1031,18 @@ impl Renderer {
         });
     }
 
+    pub fn destroy_bind_groups(&mut self, ids: Vec<BindGroupId>) {
+        self.submit(RenderCommand::DestroyBindGroups { ids });
+    }
+
+    pub fn create_buffer(&mut self, id: BufferId, size: u32) {
+        self.submit(RenderCommand::CreateBuffer { id, size });
+    }
+
+    pub fn write_buffer(&mut self, id: BufferId, offset: u32, data: Vec<u8>) {
+        self.submit(RenderCommand::WriteBuffer { id, offset, data });
+    }
+
     /// Take back the ring memory the render thread has finished uploading.
     pub(crate) fn reclaim_chunks(&mut self) {
         while let Ok(chunk) = self.chunk_return_rx.try_recv() {
@@ -1163,8 +1176,7 @@ impl Renderer {
     }
 
     /// Block until every previously-submitted GL command has completed
-    /// (`glFinish`). Named to avoid colliding with `flush()`/`flush_intern`,
-    /// which drains the CPU-side batch command buffer - an unrelated concept.
+    /// (`glFinish`).
     pub fn gl_finish(&mut self) {
         self.submit(RenderCommand::Flush);
     }

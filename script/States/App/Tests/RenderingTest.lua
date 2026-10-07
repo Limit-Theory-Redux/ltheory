@@ -20,7 +20,6 @@ local CameraDataComponent = require("Modules.Cameras.Components").CameraData
 
 function RenderingTest:onInit()
     require("Shared.Definitions.MaterialDefs")
-    require("Shared.Definitions.UniformFuncDefs")
 
     Window:setPresentMode(PresentMode.NoVsync)
     Window:setFullscreen(false, true)
@@ -87,7 +86,7 @@ end
 
 function RenderingTest:createBox(relativePos, id, res)
     local mesh      = Mesh.Box(res)
-    local mat       = Materials.DebugColor()
+    local mat       = Materials.DebugColor:instance()
 
     local boxEntity = BoxEntity({ { mesh = mesh, material = mat } })
     local rbCmp     = boxEntity:get(Physics.RigidBody)

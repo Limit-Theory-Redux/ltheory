@@ -631,3 +631,35 @@ impl Renderer {
         self.data.vertex_ring.begin_frame(frame);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::render::CHUNK_SIZE;
+
+    /// The executor hands ring memory back after uploading it, in both
+    /// backends: a chunk that filled up comes back whole and is reused.
+    #[test]
+    fn ring_chunks_come_back_from_the_executor() {
+        let mut r = Renderer::new_headless();
+        r.data.ring.alloc(CHUNK_SIZE as u32 - 256);
+        r.data.ring.alloc(1024); // fills chunk 0, opens chunk 1
+        r.data.vertex_ring.alloc_copy(&[1u8; 64]);
+        r.flush_pass_encoder();
+
+        // A blocking round trip: the executor has processed the commands.
+        assert!(r.sync());
+        r.reclaim_chunks();
+        assert_eq!(r.data.ring.spare_chunks(), 1, "the full uniform chunk");
+        assert_eq!(
+            r.data.vertex_ring.spare_chunks(),
+            0,
+            "a small run is not a chunk"
+        );
+
+        // The next chunk that fills up reuses the returned memory.
+        r.data.ring.alloc(CHUNK_SIZE as u32 - 256);
+        r.data.ring.alloc(1024);
+        assert_eq!(r.data.ring.spare_chunks(), 0);
+    }
+}

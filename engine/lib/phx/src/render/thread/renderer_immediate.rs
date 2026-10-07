@@ -8,8 +8,8 @@ use tracing::{error, info};
 use crate::render::StatsSink;
 use crate::render::thread::{CommandExecutor, CommandReply, RendererData};
 use crate::render::{
-    BindEntry, BindGroupId, BlendMode, BlockLayout, CmdPrimitiveType, CullFace, GpuHandle,
-    ImmVertex, PassCommands, PipelineDesc, PipelineId, RenderPassDesc, RenderStats,
+    BindEntry, BindGroupId, BlendMode, BlockLayout, BufferId, CmdPrimitiveType, CullFace,
+    GpuHandle, ImmVertex, PassCommands, PipelineDesc, PipelineId, RenderPassDesc, RenderStats,
     RenderThreadError, ResourceId, SamplerCache, SamplerDesc, SamplerId, ShaderLayout,
     ShaderReloadResult, TexFilter, TexFormat, TexWrapMode, VertexFormat,
 };
@@ -484,6 +484,18 @@ impl Renderer {
         self.ex().cmd_create_bind_group(id, shader, group, &entries);
     }
 
+    pub fn destroy_bind_groups(&mut self, ids: Vec<BindGroupId>) {
+        self.ex().cmd_destroy_bind_groups(&ids);
+    }
+
+    pub fn create_buffer(&mut self, id: BufferId, size: u32) {
+        self.ex().cmd_create_buffer(id, size);
+    }
+
+    pub fn write_buffer(&mut self, id: BufferId, offset: u32, data: Vec<u8>) {
+        self.ex().cmd_write_buffer(id, offset, &data);
+    }
+
     /// Run the open pass's recorded commands (called by `flush_pass_encoder`;
     /// goes to the executor directly, without flushing again).
     pub(crate) fn send_pass_commands(&mut self, mut commands: Box<PassCommands>) {
@@ -588,8 +600,7 @@ impl Renderer {
     }
 
     /// Block until every previously-submitted GL command has completed
-    /// (`glFinish`). Named to avoid colliding with `flush()`/`flush_intern`,
-    /// which drains the CPU-side batch command buffer - an unrelated concept.
+    /// (`glFinish`).
     pub fn gl_finish(&mut self) {
         self.ex().cmd_flush();
     }
@@ -606,6 +617,7 @@ impl Renderer {
     /// Immediate mode has no frame queue to pace against - just swap.
     pub fn end_frame_triple_buffered(&mut self) {
         self.pass_end_frame();
+        self.drain_releases();
         self.drain_destroy_queue();
         self.ex().cmd_swap_buffers();
         // The next frame's ring slot (see the threaded backend).

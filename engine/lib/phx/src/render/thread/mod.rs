@@ -1,4 +1,3 @@
-mod batch_stats;
 mod camera_render_data;
 mod command_category;
 mod command_executor;
@@ -6,12 +5,10 @@ mod command_executor_gl;
 mod command_executor_gl_binding;
 mod command_executor_wgpu;
 mod config;
-mod entity_render_data;
 mod error;
 mod instance_data;
 #[cfg(test)]
 mod layout_parity;
-mod render_batch;
 mod render_command;
 mod renderer_data;
 mod renderer_ffi;
@@ -37,15 +34,12 @@ mod renderer_immediate;
 #[cfg(not(feature = "immediate"))]
 mod renderer_threaded;
 
-pub use batch_stats::*;
 pub use camera_render_data::*;
 pub use command_category::*;
 pub use command_executor::*;
 pub use config::*;
-pub use entity_render_data::*;
 pub use error::*;
 pub use instance_data::*;
-pub use render_batch::*;
 pub use render_command::*;
 #[cfg(not(feature = "immediate"))]
 pub use render_thread::*;

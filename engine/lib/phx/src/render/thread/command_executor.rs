@@ -736,6 +736,14 @@ impl CommandExecutor {
                 entries,
             } => self.cmd_create_bind_group(id, shader, group, &entries),
 
+            RenderCommand::DestroyBindGroups { ids } => self.cmd_destroy_bind_groups(&ids),
+
+            RenderCommand::CreateBuffer { id, size } => self.cmd_create_buffer(id, size),
+
+            RenderCommand::WriteBuffer { id, offset, data } => {
+                self.cmd_write_buffer(id, offset, &data)
+            }
+
             // === Mesh Operations ===
             RenderCommand::BindMesh { vao } => self.cmd_bind_mesh(vao),
 

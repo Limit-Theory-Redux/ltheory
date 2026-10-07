@@ -7,79 +7,17 @@ local PointLightSystem   = require("Modules.Rendering.Systems.PointLightSystem")
 local LightManager       = require("Modules.Rendering.Managers.LightManager")
 local CameraComponent    = require("Modules.Cameras.Components.CameraDataComponent")
 local RigidBodyComponent = require("Modules.Physics.Components.RigidBodyComponent")
-local UniformFuncs       = require("Shared.Rendering.UniformFuncs")
 local Cache              = require("Render.Cache")
 
-local ffi = require('ffi')
-local libphx = require('libphx').lib
-
--- Frustum-cull scratch (see `cullPassLists`/`buildPassLists`): reused across
--- entities/frames to avoid per-entity allocation.
---   scratchPos       - out-param for RigidBody:getPos (double precision)
---   scratchBoundsVec - mutated in place, then passed by reference to
---                      Renderer:addCullEntity; Rust copies its value out
---                      immediately, so one shared instance is safe to reuse
---                      across every entity in a frame.
---   ZERO_EYE         - eye is always camera-relative (0,0,0) per
---                      CameraManager:beginDraw, so a single constant works
---                      for every Renderer:beginBatch call.
+-- Scratch for `buildPassLists`: out-param of RigidBody:getPos (double precision),
+-- reused across entities and frames to avoid per-entity allocation.
 local scratchPos = Position()
-local scratchBoundsVec = Vec3f(0, 0, 0)
-local scratchCenter = Vec3f(0, 0, 0)
-local ZERO_EYE = Vec3f(0, 0, 0)
-
---- Radius of a sphere centred on the mesh's LOCAL ORIGIN that contains the
---- mesh. The cull bound has to come from the drawn geometry, not from the
---- entity's physics collider: the two are unrelated in general (e.g.
---- PlanetTest's ring mesh spans hundreds of units around a default
---- unit-sphere collider). Centring on the origin rather than the mesh's own
---- bound centre is what lets the caller use the rigid body's position as the
---- sphere centre without having to apply the body's rotation to an offset.
----
---- Mesh's own radius is measured about its bound centre, so shifting the
---- centre to the origin costs `|centre|` - exact for origin-centred meshes
---- (every mesh in play here) and conservative otherwise.
----
---- Both calls are version-cached on the Rust side (MeshShared::update_info),
---- so this is two field copies per mesh per frame, not a vertex re-scan.
---- Mesh_GetCenter is called through libphx rather than `mesh:getCenter()`
---- because ffi_ext/Mesh.lua wraps that to allocate and return a fresh Vec3f
---- per call; this path fills the shared scratch instead.
-local function meshOriginRadius(mesh)
-    libphx.Mesh_GetCenter(mesh, scratchCenter)
-    local cx, cy, cz = scratchCenter.x, scratchCenter.y, scratchCenter.z
-    return math.sqrt(cx * cx + cy * cy + cz * cz) + mesh:getRadius()
-end
-
--- Dense integer ids for (vs, fs) shader-source pairs, used as the batch sort
--- key so `cullPassLists` groups draws by shader program. Keyed on source
--- names (not `shader:resourceId()`) so it survives shader hot-reload, and
--- because `Material:clone()` preserves `vs`/`fs` so per-entity material
--- clones of the same definition still share a key. Memoized on
--- `mat.__sortKey` so the string concat happens once per distinct pair ever.
-local shaderKeys = {}
-local nextShaderKey = 0
-local function shaderKeyFor(mat)
-    local key = mat.__sortKey
-    if key then return key end
-
-    local name = mat.vs .. '|' .. mat.fs
-    key = shaderKeys[name]
-    if not key then
-        key = nextShaderKey
-        nextShaderKey = nextShaderKey + 1
-        shaderKeys[name] = key
-    end
-    mat.__sortKey = key
-    return key
-end
 
 ---@class RenderCoreSystem
 ---@overload fun(self): RenderCoreSystem
 ---@overload fun(): RenderCoreSystem
 local RenderCoreSystem = Class("RenderCoreSystem", function(self)
     require("Shared.Definitions.MaterialDefs")
-    require("Shared.Definitions.UniformFuncDefs")
 
     self:registerVars()
     self:registerPasses()
@@ -97,22 +35,12 @@ function RenderCoreSystem:registerVars()
         frustumCulling  = Config.render.general.frustumCulling,
     }
 
-    -- Per-blend-mode frustum-cull scratch, filled by `cullPassLists`:
-    --   cullBufs[bm]  = { arr = <uint32_t[?]>, cap = n } - grown by doubling,
-    --                   never shrunk, reused across frames.
-    --   passOrder[bm] = { buf = <uint32_t[?]>, n = count } - the surviving,
-    --                   sorted entries for this frame, or nil if culling is
-    --                   off/unavailable (renderInOrder then falls back to
-    --                   walking passMeshes[bm] in full).
-    self.cullBufs  = {}
-    self.passOrder = {}
-
-    -- Per-pass mesh/render-fn buckets, filled by `buildPassLists` and
-    -- persisted across frames: entries and bucket tables are reused in
-    -- place (tracked via an explicit `.n` count, since a reused table can
-    -- have stale entries past the current frame's count) rather than
-    -- reallocated every frame.
-    self.passMeshes    = {}
+    -- What the scene passes draw: filled once per frame by `buildPassLists`
+    -- (entries are reused in place), then culled, sorted and emitted per pass
+    -- by `SceneList:submit`. Render-fn entities are kept apart in
+    -- `passRenderFns` (tracked via an explicit `.n` count, since a reused
+    -- table can have stale entries past the current frame's count).
+    self.scene         = SceneList.Create()
     self.passRenderFns = { n = 0 }
     self.cullStats = { submitted = 0, visible = 0, culled = 0 }
 
@@ -174,25 +102,6 @@ function RenderCoreSystem:getCullStats()
     return self.cullStats
 end
 
---- Grow-by-doubling `uint32_t[?]` scratch buffer for `Renderer:cullBatch`'s
---- out-param, one per blend mode, reused across frames. Never shrinks.
----@param bm integer blend mode key
----@param need integer minimum capacity required this frame
----@return ffi.cdata* buffer of at least `need` uint32_t elements
-function RenderCoreSystem:cullBuffer(bm, need)
-    local buf = self.cullBufs[bm]
-    if not buf then
-        buf = { arr = ffi.new('uint32_t[?]', need), cap = need }
-        self.cullBufs[bm] = buf
-    elseif buf.cap < need then
-        local cap = buf.cap * 2
-        if cap < need then cap = need end
-        buf.arr = ffi.new('uint32_t[?]', cap)
-        buf.cap = cap
-    end
-    return buf.arr
-end
-
 function RenderCoreSystem:initializeBuffers()
     local function create(x, y, fmt)
         local t = Tex2D.Create(x, y, fmt)
@@ -217,15 +126,14 @@ function RenderCoreSystem:initializeBuffers()
 end
 
 function RenderCoreSystem:registerPasses()
-    local function pass(name, blend, cull, dt, dw, bufs, clear, onStart)
-        self.passes[name] = RenderingPass(tostring(name), bufs, {
-            blendMode = blend, cullFace = cull, depthTest = dt, depthWritable = dw
-        }, clear, onStart)
+    -- Fixed-function state (blend, culling, depth) is not part of a pass: every
+    -- scene draw brings its pipeline (see `Render.Pipelines` for the state of
+    -- each pass), so a pass is only its attachments and load ops.
+    local function pass(name, bufs, clear, onStart)
+        self.passes[name] = RenderingPass(tostring(name), bufs, clear, onStart)
     end
 
     pass(Enums.RenderingPasses.Opaque,
-        BlendMode.Disabled, self.settings.cullFace and CullFace.Back or CullFace.None,
-        true, true,
         { Enums.BufferName.buffer0, Enums.BufferName.buffer1, Enums.BufferName.zBufferL, Enums.BufferName.zBuffer },
         { color = { 0, 0, 0, 0 }, depth = 1 },
         function()
@@ -233,15 +141,12 @@ function RenderCoreSystem:registerPasses()
         end)
 
     pass(Enums.RenderingPasses.Additive,
-        BlendMode.Additive, CullFace.None, true, false,
         { Enums.BufferName.buffer0, Enums.BufferName.zBuffer })
 
     pass(Enums.RenderingPasses.Alpha,
-        BlendMode.Alpha, CullFace.None, true, false,
         { Enums.BufferName.buffer0, Enums.BufferName.zBuffer })
 
     pass(Enums.RenderingPasses.UI,
-        BlendMode.Alpha, CullFace.None, false, false,
         { Enums.BufferName.buffer1, Enums.BufferName.zBuffer },
         { color = { 0, 0, 0, 0 } })
 end
@@ -272,15 +177,13 @@ function RenderCoreSystem:render(data)
     -- (including reusable diagnostics) consume this same snapshot.
     PointLightSystem:update(dt)
 
-    -- Sort visible meshes into per-pass lists once (renderInOrder runs 3×).
+    -- Collect what the scene passes draw once (each pass submits its bucket).
     self:buildPassLists()
-    self:cullPassLists()
 
     -- Opaque Pass
     Profiler.Begin('Render.Opaque')
     self.currentPass = Enums.RenderingPasses.Opaque
-    self.passes[self.currentPass]:start(self.buffers)
-    self:renderInOrder(BlendMode.Disabled)
+    self:renderInOrder(self.passes[self.currentPass]:start(self.buffers), BlendMode.Disabled)
     self.passes[self.currentPass]:stop()
     Profiler.End() -- Render.Opaque
 
@@ -294,18 +197,19 @@ function RenderCoreSystem:render(data)
     -- Additive Pass
     Profiler.Begin('Render.Additive')
     self.currentPass = Enums.RenderingPasses.Additive
-    self.passes[self.currentPass]:start(self.buffers)
-    self:renderInOrder(BlendMode.Additive)
+    self:renderInOrder(self.passes[self.currentPass]:start(self.buffers), BlendMode.Additive)
     self.passes[self.currentPass]:stop()
     Profiler.End() -- Render.Additive
 
     -- Alpha Pass
     Profiler.Begin('Render.Alpha')
     self.currentPass = Enums.RenderingPasses.Alpha
-    self.passes[self.currentPass]:start(self.buffers)
-    self:renderInOrder(BlendMode.Alpha)
+    self:renderInOrder(self.passes[self.currentPass]:start(self.buffers), BlendMode.Alpha)
     self.passes[self.currentPass]:stop()
     Profiler.End() -- Render.Alpha
+
+    local scene, st = self.scene, self.cullStats
+    st.submitted, st.visible, st.culled = scene:getSubmitted(), scene:getVisible(), scene:getCulled()
 
     -- UI Pass
     Profiler.Begin('Render.UI')
@@ -427,8 +331,11 @@ function RenderCoreSystem:handleResize()
     self.level = 0
 end
 
-function RenderCoreSystem:renderInOrder(blendMode)
-    local lastMaterial = nil
+--- Draw one scene pass: the custom render fns, then the scene list's bucket
+--- of the pass's blend mode.
+---@param pass RenderPass the open pass
+---@param blendMode BlendMode
+function RenderCoreSystem:renderInOrder(pass, blendMode)
     local eye = CameraManager:getEye()
 
     if blendMode == BlendMode.Additive then
@@ -436,75 +343,32 @@ function RenderCoreSystem:renderInOrder(blendMode)
     end
 
     -- Custom render fns are called in every pass (their blend mode isn't
-    -- queryable). Mesh entities are pre-sorted into per-pass lists by
-    -- buildPassLists, so this loop only touches entities that draw here.
+    -- queryable); they set their own pipeline. Mesh entities are in the scene
+    -- list, so `submit` only touches the meshes that draw in this pass.
     local fns = self.passRenderFns
     Profiler.Begin('Render.Fns')
     for fi = 1, fns.n do
         local fnEntry = fns[fi]
         fnEntry.fn(fnEntry.entity, blendMode)
-        lastMaterial = nil
     end
     Profiler.End()
 
-    local list = self.passMeshes[blendMode]
-    if not list then return end
-
-    -- When cullPassLists ran (frustumCulling on and Renderer:cullBatch
-    -- available), walk only the surviving entries in sort-key order via the
-    -- 0-indexed uint32_t buffer it filled; otherwise fall back to the full,
-    -- unculled list.
-    local order = self.passOrder[blendMode]
-    local count = order and order.n or list.n
-    local buf = order and order.buf
-
-    for k = 1, count do
-        local entry = list[buf and buf[k - 1] or k]
-        local mat = entry.mat
-        local sh = entry.sh
-
-        -- start() resets the texture-unit counter, so it must
-        -- run per mesh (cannot be skipped for shared shaders);
-        -- its auto-var re-application is already skipped inside
-        -- by the var-stack revision check, and the redundant
-        -- BindShader command is suppressed on the main thread.
-        sh:start()
-
-        -- The uniform funcs (UniformFuncs, keyed by UniformType)
-        -- call iSetFloat/iSetFloat3/... which live on the raw
-        -- Shader, not the ShaderState wrapper. Resolve it once
-        -- (sh:shader() - colon form passes the ShaderState as self).
-        local shader = sh:shader()
-
-        -- Material-level vars only change when the material
-        -- changes (they're constant across instances of the
-        -- same material), so apply them once per material.
-        if mat ~= lastMaterial then
-            self:applyMaterialVars(mat, shader, eye, entry.entity)
-            lastMaterial = mat
-        end
-
-        self:applyInstanceVars(mat, shader, eye, entry.entity, entry.instCache)
-
-        entry.mesh:draw()
-    end
+    -- Frustum cull, sort by (pipeline, material, mesh) (alpha keeps insertion
+    -- order), per-draw callbacks of the survivors, then the draws.
+    Profiler.Begin('Render.Scene')
+    self.scene:submit(pass, blendMode, self.settings.frustumCulling)
+    Profiler.End()
 end
 
---- Sort visible render entities into per-pass mesh lists once per frame.
---- renderInOrder runs 3× (Opaque/Additive/Alpha passes); the old code
---- re-iterated every entity × mesh in each pass just to filter on blend
---- mode. Building the lists once turns that into one iteration + three
---- walks of only the meshes that actually draw.
+--- Collect what the scene passes draw, once per frame (the passes run 3x and
+--- each submits its own bucket). One transform per mesh entity, written in
+--- place by the rigid body, and one item per mesh. Culling, sorting and the
+--- per-draw values happen in `SceneList:submit`.
 function RenderCoreSystem:buildPassLists()
-    -- Buckets and their entry tables persist across frames (see
-    -- registerVars) and are refilled in place below, tracked via an
-    -- explicit `.n` count rather than `#list` - entries past `.n` are
-    -- last frame's leftovers and must never be read.
-    local passMeshes = self.passMeshes
+    local scene = self.scene
     local passRenderFns = self.passRenderFns
-    local entityInstCache = {}
 
-    for bm, list in pairs(passMeshes) do list.n = 0 end
+    scene:reset()
     passRenderFns.n = 0
 
     local eye = CameraManager:getEye()
@@ -524,181 +388,43 @@ function RenderCoreSystem:buildPassLists()
             fnEntry.fn = rend:getRenderFn()
             fnEntry.entity = entity
         elseif rend:getMeshes() then
-            -- Per-entity instance-var cache. All meshes of an entity
-            -- (hull/turrets/thrusters) share the same rigid-body transform,
-            -- so perInstance vars (mWorld/mWorldIT/scale) are identical
-            -- across them. Previously each mesh recomputed + reallocated
-            -- the matrices via getToWorldMatrix()/getToLocalMatrix() (each
-            -- a managed Matrix* with a finalizer); the cache computes each
-            -- var once per entity per frame and reuses the values.
-            local instCache = {}
-            entityInstCache[entity.id] = instCache
-
-            -- Cull sphere centre for this entity (cullPassLists): the rigid
-            -- body's position, camera-relative to match the camera-relative
-            -- render (CameraManager:beginDraw pushes eye = (0,0,0)). Plain
-            -- double subtraction rather than Position:relativeTo(), which
-            -- returns a boxed Vec3 by value.
+            -- All meshes of an entity (hull/turrets/thrusters) share the same
+            -- rigid-body transform: one transform, written straight into the
+            -- list, serves them all (mWorldIT is derived once per transform
+            -- when it draws).
             --
-            -- `scale` is the same factor mWorld carries
-            -- (RigidBody::get_to_world_matrix multiplies by get_scale), so
-            -- mesh-local extents must be scaled by it to get world extents.
+            -- Cull sphere centre: the rigid body's position, camera-relative
+            -- to match the camera-relative render (CameraManager:beginDraw
+            -- pushes eye = (0,0,0)). Plain double subtraction rather than
+            -- Position:relativeTo(), which returns a boxed Vec3 by value.
             --
-            -- No rigid body -> `scale = nil`, which becomes the `radius = -1`
-            -- "never cull" sentinel below (mWorldFunc would already fail on
-            -- such an entity, so this never regresses a working case).
-            local cx, cy, cz, scale
+            -- `scale` is the factor mWorld carries (RigidBody::get_to_world_matrix
+            -- multiplies by get_scale), so mesh-local extents are scaled by it
+            -- to get world extents. No rigid body -> `scale = -1`, the "never
+            -- cull" sentinel, and an identity transform.
+            local t = scene:addTransform()
             local rbc = entity:get(RigidBodyComponent)
             if rbc then
                 local rb = rbc:getRigidBody()
                 rb:getPos(scratchPos)
-                cx, cy, cz = scratchPos.x - eye.x, scratchPos.y - eye.y, scratchPos.z - eye.z
-                scale = rbc:getScale()
+                t.cx, t.cy, t.cz = scratchPos.x - eye.x, scratchPos.y - eye.y, scratchPos.z - eye.z
+                t.scale = rbc:getScale()
+                rb:getToWorldMatrixInto(eye, t.world)
             else
-                cx, cy, cz = 0, 0, 0
+                t.cx, t.cy, t.cz = 0, 0, 0
+                t.scale = -1
+                local m = t.world.m
+                m[0], m[5], m[10], m[15] = 1, 1, 1, 1
             end
 
+            local index = t.index
             local meshes = rend:getMeshes()
             for mi = 1, #meshes do
                 local meshmat = meshes[mi]
-                local mat = meshmat.material
-                local bm = mat:getBlendMode() or BlendMode.Disabled
-                local list = passMeshes[bm]
-                if not list then
-                    list = { n = 0 }
-                    passMeshes[bm] = list
-                end
-                local n = list.n + 1
-                list.n = n
-                local e = list[n]
-                if not e then
-                    e = {}
-                    list[n] = e
-                end
-                -- Per-mesh radius, not per-entity: an entity's meshes can
-                -- differ wildly in extent (a planet's atmosphere shell is
-                -- 1.5x its surface), and the physics collider is no guide to
-                -- either - PlanetTest's ring mesh spans hundreds of units
-                -- around a default unit-sphere body.
-                e.mesh = meshmat.mesh
-                e.mat = mat
-                e.sh = mat:getShaderState()
-                e.entity = entity
-                e.instCache = instCache
-                e.cx = cx
-                e.cy = cy
-                e.cz = cz
-                e.radius = scale and (meshOriginRadius(meshmat.mesh) * scale) or -1
-                e.sortKey = shaderKeyFor(mat)
+                scene:addItem(index, meshmat.mesh, meshmat.material, entity)
             end
         end
         ::next_entity::
-    end
-
-    self.entityInstCache = entityInstCache
-end
-
---- Frustum-cull and shader-sort each blend bucket built by buildPassLists,
---- via the Rust RenderBatch cull+sort service (Renderer:beginBatch/
---- addCullEntity/cullBatch - see doc/engine/batch-rendering.md). Populates
---- self.passOrder for renderInOrder to walk; does not draw anything itself
---- and does not touch self.passRenderFns (render-fn entities, e.g. asteroid
---- belts/rings, never enter passMeshes and so are structurally never culled
---- here - they already do their own culling).
-function RenderCoreSystem:cullPassLists()
-    for bm in pairs(self.passOrder) do self.passOrder[bm] = nil end
-
-    if not self.settings.frustumCulling or not Renderer.cullBatch then return end
-
-    Profiler.Begin('Render.Cull')
-
-    local view, proj = CameraManager:getViewMatrix(), CameraManager:getProjectionMatrix()
-    local st = self.cullStats
-    st.submitted, st.visible, st.culled = 0, 0, 0
-
-    for bm, list in pairs(self.passMeshes) do
-        local n = list.n
-        -- cullBatch asserts size > 0 across the FFI boundary - this guard is
-        -- load-bearing, not defensive.
-        if n > 0 then
-            Renderer:beginBatch(view, proj, ZERO_EYE)
-            for i = 1, n do
-                local e = list[i]
-                -- Alpha keeps insertion order: shader-sorting blended draws
-                -- would change which one wins at equal depth, i.e. change
-                -- pixels, not just draw order.
-                local key = (bm == BlendMode.Alpha) and 0 or e.sortKey
-                scratchBoundsVec.x, scratchBoundsVec.y, scratchBoundsVec.z = e.cx, e.cy, e.cz
-                -- user_id = i: the 1-based Lua index into `list`, read back
-                -- directly by renderInOrder.
-                Renderer:addCullEntity(scratchBoundsVec, e.radius, key, i)
-            end
-
-            local buf = self:cullBuffer(bm, n)
-            local vis = Renderer:cullBatch(buf, n)
-            self.passOrder[bm] = { buf = buf, n = vis }
-
-            st.submitted = st.submitted + n
-            st.visible   = st.visible + vis
-            st.culled    = st.culled + (n - vis)
-        end
-    end
-
-    Profiler.End() -- Render.Cull
-end
-
-function RenderCoreSystem:applyMaterialVars(mat, shader, eye, entity)
-    -- material level (constant across all instances of the material)
-    local vars = mat.staticShaderVars
-    if vars then
-        for i = 1, #vars do
-            vars[i]:setShaderVar(eye, shader, entity)
-        end
-    end
-    vars = mat.constShaderVars
-    if vars then
-        for i = 1, #vars do
-            vars[i]:setShaderVar(eye, shader, entity)
-        end
-    end
-    vars = mat.autoShaderVars
-    if vars then
-        for i = 1, #vars do
-            local v = vars[i]
-            if not v.perInstance then
-                v:setShaderVar(eye, shader, entity)
-            end
-        end
-    end
-end
-
-function RenderCoreSystem:applyInstanceVars(mat, shader, eye, entity, instCache)
-    -- instance level (per-entity): values are computed once per entity per
-    -- frame (see buildPassLists) and reused across all of the entity's
-    -- meshes. Missing uniformInt vars fall through to setShaderVar, which
-    -- warns once and skips.
-    local vars = mat.autoShaderVars
-    if vars then
-        for i = 1, #vars do
-            local v = vars[i]
-            if v.perInstance then
-                if not v.uniformInt then
-                    v:setShaderVar(eye, shader, entity)
-                else
-                    -- Key by the var OBJECT, not its name: two materials could
-                    -- have perInstance vars with the same name but different
-                    -- value functions. Same material on multiple meshes of the
-                    -- same entity -> same var object -> cache hit.
-                    local values = instCache and instCache[v]
-                    if not values then
-                        values = v:getValues(eye, entity)
-                        if instCache then instCache[v] = values end
-                    end
-                    local func = UniformFuncs[v.uniformType]
-                    if func then func(shader, v.uniformInt, table.unpack(values)) end
-                end
-            end
-        end
     end
 end
 

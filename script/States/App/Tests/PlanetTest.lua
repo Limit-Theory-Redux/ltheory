@@ -1,5 +1,7 @@
 local Application         = require('States.Application')
 
+local PlanetMaterials = require("Shared.Rendering.PlanetMaterials")
+local Backdrop = require("Render.Backdrop")
 ---@class PlanetTest: Application
 local PlanetTest          = Subclass("PlanetTest", Application)
 
@@ -69,24 +71,7 @@ function PlanetTest:onInit()
             Renderer:setEnvironment(placeholder.envMap, placeholder.irMap)
         end
 
-        if blendMode == BlendMode.Disabled then
-            RenderState.PushDepthWritable(false)
-            local shader = Cache.Shader('farplane', 'skybox')
-            RenderState.PushCullFace(CullFace.None)
-            shader:start()
-            Draw.Box3(Box3f(-1, -1, -1, 1, 1, 1))
-            shader:stop()
-            RenderState.PopCullFace()
-            RenderState.PopDepthWritable()
-        elseif blendMode == BlendMode.Additive then
-            local shader = Cache.Shader('farplane', 'starbg')
-            shader:start()
-            shader:setFloat('brightnessScale', 3)
-            shader:setTexCube('irMap', placeholder.irMap)
-            shader:setTexCube('envMap', placeholder.envMap)
-            placeholder.stars:draw()
-            shader:stop()
-        end
+        Backdrop.draw(placeholder, blendMode)
     end
     self.skybox = SkyboxEntity(self.seed, skyboxFn)
     skyboxFn(self.skybox, nil)
@@ -229,8 +214,8 @@ function PlanetTest:createPlanet(seed)
         coef = self.genOptions.surfaceCoef
     })
 
-    self.matPlanet = Materials.PlanetSurface()
-    self.matAtmo = Materials.PlanetAtmosphere()
+    self.matPlanet = Materials.PlanetSurface:instance()
+    self.matAtmo = Materials.PlanetAtmosphere:instance()
 
     self.planet = PlanetEntity(seed, {
         { mesh = mesh,     material = self.matPlanet },
@@ -247,6 +232,7 @@ function PlanetTest:createPlanet(seed)
     rb:setKinematic(true)
     rb:setPos(Position(self.planetPos.x, self.planetPos.y, self.planetPos.z))
     rb:setScale(planetRNG:getInt(100, 200))
+    PlanetMaterials.planet(self.matPlanet, self.matAtmo, self.genOptions, rb:getScale())
 
     -- add rb to physics world
     self.world:addRigidBody(rb)
@@ -283,19 +269,15 @@ function PlanetTest:createPlanetRing(seed)
     self.ringOuterRadius = outerRadius
 
     local mesh = Primitive.Ring(innerRadius, outerRadius, 128)
-    local ringTex = Tex2D.Create(512, 512, TexFormat.RGBA8)
-    ringTex:clear(1, 1, 1, 1)
 
-    self.matRing = Materials.PlanetRing()
-    self.matRing:setTexture("ringTex", ringTex, Enums.UniformType.Tex2D)
-    self.matRing:addStaticShaderVar("rMin", Enums.UniformType.Float, function() return innerRadius end)
-    self.matRing:addStaticShaderVar("rMax", Enums.UniformType.Float, function() return outerRadius end)
-    self.matRing:addStaticShaderVar("ringHeight", Enums.UniformType.Float, function() return 50 end)
-    self.matRing:addStaticShaderVar("rotationSpeed", Enums.UniformType.Float, function() return 2.0 end)
-    self.matRing:addStaticShaderVar("twistFactor", Enums.UniformType.Float, function() return 0.25 end)
-
-    self.matRing:addStaticShaderVar("enableDebug", Enums.UniformType.Int, function() return self.enableRingDebug end)
-    self.matRing:addStaticShaderVar("debugMode", Enums.UniformType.Int, function() return self.ringDebug end)
+    -- The ring band's parameters (ringHeight, rotationSpeed, twistFactor come
+    -- from the PlanetRing defaults; the debug toggles are MaterialParams too).
+    self.matRing = Materials.PlanetRing:instance()
+    PlanetMaterials.ring(self.matRing, innerRadius, outerRadius, seed)
+    local ringParams = self.matRing:params()
+    ringParams.enableDebug = self.enableRingDebug and 1 or 0
+    ringParams.debugMode = self.ringDebug
+    self.matRing:commit()
 
     self.ring = AsteroidRingEntity(seed, { { mesh = mesh, material = self.matRing } })
 
@@ -403,8 +385,9 @@ function PlanetTest:createMoons(seed, numMoons)
         texSurface:setMagFilter(TexFilter.Linear)
         texSurface:setMinFilter(TexFilter.LinearMipLinear)
 
-        local matPlanet = Materials.MoonSurface()
+        local matPlanet = Materials.MoonSurface:instance()
         matPlanet:setTexture("surface", texSurface)
+        PlanetMaterials.moon(matPlanet, moonOptions)
 
         local moon = MoonEntity(moonSeed, {
             { mesh = mesh, material = matPlanet },

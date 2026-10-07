@@ -5,15 +5,18 @@
 #include color
 #include math
 #include fog
+#include draw_block
 
-
-uniform float scale;
-uniform vec4 paintAttrib;
-uniform vec4 paintColor;
+#define scale (drawScale.x)
 
 // const vec4 paintAttrib = vec4(0.01, 2.0, 0.5, 0.0);
 // const vec4 paintColor = vec4(3.0 * 0.1, 3.0 * 0.6, 3.0 * 1.0, 1.0);
 
+#group 1
+layout(std140) uniform MaterialParams {
+  vec4 paintAttrib;
+  vec4 paintColor;
+};
 uniform sampler2D texDiffuse;
 uniform sampler2D texNormal;
 uniform sampler2D texSpec;

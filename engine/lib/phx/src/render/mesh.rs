@@ -9,8 +9,7 @@ use super::{DataFormat, Draw, LoadOp, PixelFormat, RenderPassDesc, Tex2D, Tex3D,
 use crate::error::Error;
 use crate::math::{Box3, Matrix, Triangle, validate_vec2, validate_vec3};
 use crate::render::{
-    CmdPrimitiveType, RenderState, Renderer, ResourceHandle, ResourceId, Shader,
-    VertexFormat,
+    CmdPrimitiveType, RenderState, Renderer, ResourceHandle, ResourceId, Shader, VertexFormat,
 };
 use crate::rf::Rf;
 use crate::system::*;
@@ -415,13 +414,11 @@ impl Mesh {
         self.ensure_resource(r);
     }
 
-    /// The mesh's GPU resource id (as a plain scalar - see
-    /// `Renderer::add_entity`'s `mesh_id`/`shader_id` params for why this
-    /// isn't `ResourceId` itself), lazily creating (or recreating, if the
-    /// mesh changed) the executor-owned resource just like `draw_bind` does
-    /// - without also drawing. For code that needs to reference the mesh
-    /// instead of calling `draw`/`drawBind` itself (e.g. the batch API,
-    /// `Renderer:addEntity`).
+    /// The mesh's GPU resource id (as a plain scalar: `ResourceId` itself is
+    /// not an FFI type), lazily creating (or recreating, if the mesh changed)
+    /// the executor-owned resource just like `draw_bind` does - without also
+    /// drawing. For code that needs to reference the mesh instead of drawing
+    /// it itself.
     pub fn resource_id(&mut self, r: &mut Renderer) -> u64 {
         self.ensure_resource(r).0
     }

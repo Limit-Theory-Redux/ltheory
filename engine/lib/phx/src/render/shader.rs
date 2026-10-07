@@ -495,12 +495,10 @@ impl Shader {
         self.shared.as_ref().generation
     }
 
-    /// The shader's GPU resource id (as a plain scalar - see
-    /// `Renderer::add_entity`'s `mesh_id`/`shader_id` params for why this
-    /// isn't `ResourceId` itself), e.g. for code that needs to reference the
-    /// shader instead of calling `start`/`stop` itself (the batch API,
-    /// `Renderer:addEntity`). Unlike `Mesh::resource_id`, this is a plain
-    /// getter - `ShaderShared::handle` is always created eagerly in
+    /// The shader's GPU resource id (as a plain scalar: `ResourceId` itself
+    /// is not an FFI type), e.g. for caches keyed by the shader's program
+    /// (`Render.Pipelines`; a hot reload gives the shader a new resource).
+    /// Unlike `Mesh::resource_id`, this is a plain getter - `ShaderShared::handle` is always created eagerly in
     /// `new`/`from_preprocessed`, never lazily.
     pub fn resource_id(&self) -> u64 {
         self.shared.as_ref().handle.id().0

@@ -1,5 +1,7 @@
 local Application                 = require('States.Application')
 
+local PlanetMaterials = require("Shared.Rendering.PlanetMaterials")
+local Backdrop = require("Render.Backdrop")
 ---@class CameraTest: Application
 local CameraTest                  = Subclass("CameraTest", Application)
 
@@ -69,24 +71,7 @@ function CameraTest:onInit()
             Renderer:setEnvironment(placeholder.envMap, placeholder.irMap)
         end
 
-        if blendMode == BlendMode.Disabled then
-            RenderState.PushDepthWritable(false)
-            local shader = Cache.Shader('farplane', 'skybox')
-            RenderState.PushCullFace(CullFace.None)
-            shader:start()
-            Draw.Box3(Box3f(-1, -1, -1, 1, 1, 1))
-            shader:stop()
-            RenderState.PopCullFace()
-            RenderState.PopDepthWritable()
-        elseif blendMode == BlendMode.Additive then
-            local shader = Cache.Shader('farplane', 'starbg')
-            shader:start()
-            shader:setFloat('brightnessScale', 3)
-            shader:setTexCube('irMap', placeholder.irMap)
-            shader:setTexCube('envMap', placeholder.envMap)
-            placeholder.stars:draw()
-            shader:stop()
-        end
+        Backdrop.draw(placeholder, blendMode)
     end
     self.skybox = SkyboxEntity(self.seed, skyboxFn)
     skyboxFn(self.skybox, nil)
@@ -174,8 +159,8 @@ function CameraTest:createPlanet(seed)
         coef = self.genOptions.surfaceCoef
     })
 
-    self.matPlanet = Materials.PlanetSurface()
-    self.matAtmo = Materials.PlanetAtmosphere()
+    self.matPlanet = Materials.PlanetSurface:instance()
+    self.matAtmo = Materials.PlanetAtmosphere:instance()
 
     self.planet = PlanetEntity(seed, {
         { mesh = mesh,     material = self.matPlanet },
@@ -192,6 +177,7 @@ function CameraTest:createPlanet(seed)
     rb:setKinematic(true)
     rb:setPos(Position(self.planetPos.x, self.planetPos.y, self.planetPos.z))
     rb:setScale(planetRNG:getInt(100, 200))
+    PlanetMaterials.planet(self.matPlanet, self.matAtmo, self.genOptions, rb:getScale())
 
     -- add rb to physics world
     self.world:addRigidBody(rb)
@@ -282,8 +268,9 @@ function CameraTest:createMoons(seed, numMoons)
         texSurface:setMagFilter(TexFilter.Linear)
         texSurface:setMinFilter(TexFilter.LinearMipLinear)
 
-        local matPlanet = Materials.MoonSurface()
+        local matPlanet = Materials.MoonSurface:instance()
         matPlanet:setTexture("surface", texSurface)
+        PlanetMaterials.moon(matPlanet, moonOptions)
 
         local moon = MoonEntity(moonSeed, {
             { mesh = mesh, material = matPlanet },
