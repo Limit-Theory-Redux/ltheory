@@ -224,6 +224,12 @@ void main() {
     else if (mode == 11) color = AgX(color);
     else if (mode == 12) color = Illustris(color);
 
+    // The saturation boost of Illustris (and the other curves) can push a channel
+    // below zero, and pow() of a negative is NaN. The NaN used to leak to the
+    // screen through bilinear filtering (a star next to NaN texels lost its red
+    // channel on GL) and is converted differently by every API.
+    color = max(color, vec3(0.0));
+
     // Gamma correction
     color = pow(color, vec3(1.0 / 2.2));
 

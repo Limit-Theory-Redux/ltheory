@@ -1018,7 +1018,11 @@ end
 function RenderCoreSystem:present(pass)
     local sh = Cache.Shader('fullscreen_ndc', 'filter/identity')
     pass:setPipeline(Pipelines.get(sh, FullscreenState))
-    pass:setInputs(self.buffers[Enums.BufferName.buffer0]:mipView(self.level or 0), Samplers.LinearClamp)
+    -- The buffer is the size of the window, so this is a copy: sample exactly one texel per
+    -- pixel. (A linear filter at texel centres is a copy only up to the rounding of the
+    -- interpolated uv, which differs between GL and wgpu: GL blurred every pixel a little,
+    -- and let a NaN texel poison its neighbours.)
+    pass:setInputs(self.buffers[Enums.BufferName.buffer0]:mipView(self.level or 0), Samplers.Point)
     pass:drawFullscreen()
 end
 
