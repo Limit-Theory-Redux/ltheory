@@ -3088,6 +3088,7 @@ dependencies = [
  "pollster",
  "rapier3d-f64",
  "raw-window-handle",
+ "rayon",
  "regex",
  "rodio",
  "serde",

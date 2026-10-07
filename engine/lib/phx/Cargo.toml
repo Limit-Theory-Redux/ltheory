@@ -77,6 +77,8 @@ byteorder = "1.5"
 # If that happens, re-point gpu-allocator's "windows" entry in Cargo.lock.
 wgpu = { version = "30", features = ["glsl", "vulkan", "dx12", "naga-ir"] }
 pollster = "0.4"
+# Belt cull worker pool (render/instance_field.rs); already in Cargo.lock via other deps.
+rayon = "1.10"
 
 [dev-dependencies]
 test-log = "0.2"

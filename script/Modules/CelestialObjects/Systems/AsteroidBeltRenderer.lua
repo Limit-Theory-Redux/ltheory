@@ -7,8 +7,8 @@ local Pipelines = require("Render.Pipelines")
 --- AsteroidBeltRenderer — performant batch renderer for asteroid belts/rings.
 --- Chunked instancing (article-derived): asteroids are partitioned into
 --- angular chunks at generation time; per frame each chunk is culled by
---- its centroid, survivors are LOD-selected and collected into reusable
---- index groups keyed by (mesh variant, LOD level), then flushed with ONE
+--- its centroid, survivors are LOD-selected and collected into per-LOD
+--- index lists (all in Rust: InstanceField), then flushed with ONE
 --- instanced draw per group instead of one draw per
 --- asteroid. Producer cost: ~chunk-count cull tests + per-visible-asteroid
 --- LOD lookup + matrix fill, no per-asteroid draw/start/stop.
@@ -30,6 +30,15 @@ local MAX_DRAWN_PER_FRAME = 5000
 local benchRenderDistSq = nil
 --- Chunk count (angular sectors)
 local CHUNK_COUNT = 32
+
+--- Worker threads for the Rust belt cull: env LTHEORY_BELT_WORKERS wins
+--- (testing), else Config.render.belt.workers. 0 or 1 = single-threaded.
+local envWorkers = tonumber(os.getenv('LTHEORY_BELT_WORKERS') or '')
+local function beltWorkers()
+    if envWorkers then return envWorkers end
+    local cfg = Config.render.belt
+    return cfg and cfg.workers or 0
+end
 
 -- LOD distance ranges (RAW units) live in AsteroidMeshPool.LOD_RANGES
 -- (single source of truth shared by the pool, generator and this file).
@@ -250,26 +259,39 @@ function AsteroidBeltRenderer.createRenderFn(asteroidData, lodMesh)
         end
     end
 
-    -- Flat per-asteroid SoA (hot loop reads these, never the Lua tables):
-    -- position, scale, and a spawned flag array synced once per frame.
-    local posX = ffi.new('float[?]', nAst + 1)
-    local posY = ffi.new('float[?]', nAst + 1)
-    local posZ = ffi.new('float[?]', nAst + 1)
-    local scales = ffi.new('float[?]', nAst + 1)
-    local spawnedFlags = ffi.new('uint8_t[?]', nAst + 1)
+    -- Hand the flat per-asteroid data to the Rust bulk culler (InstanceField,
+    -- engine/lib/phx/src/render/instance_field.rs). It copies the arrays
+    -- once; the per-frame chunk cull, screen-size LOD selection, sub-pixel
+    -- culling and draw cap all run there (optionally on worker threads).
+    -- Asteroid and chunk indices are 0-based on the Rust side.
+    local fPos = ffi.new('float[?]', nAst * 3 + 1)
+    local fScales = ffi.new('float[?]', nAst + 1)
     for i = 1, nAst do
         local a = asteroidData[i]
-        posX[i] = a.px
-        posY[i] = a.py
-        posZ[i] = a.pz
-        scales[i] = a.scale
+        fPos[(i - 1) * 3 + 0] = a.px
+        fPos[(i - 1) * 3 + 1] = a.py
+        fPos[(i - 1) * 3 + 2] = a.pz
+        fScales[i - 1] = a.scale
     end
+    local fOffsets = ffi.new('uint32_t[?]', CHUNK_COUNT + 1)
+    for k = 0, CHUNK_COUNT do fOffsets[k] = chunkOffsets[k + 1] end
+    local fIndices = ffi.new('uint32_t[?]', total + 1)
+    for p = 0, total - 1 do fIndices[p] = chunkIndices[p] - 1 end
+    local fCentroids = ffi.new('float[?]', CHUNK_COUNT * 3)
+    for c = 1, CHUNK_COUNT do
+        fCentroids[(c - 1) * 3 + 0] = chunkCx[c]
+        fCentroids[(c - 1) * 3 + 1] = chunkCy[c]
+        fCentroids[(c - 1) * 3 + 2] = chunkCz[c]
+    end
+    local field = Core.ManagedObject(
+        libphx.InstanceField_Create(fPos, nAst * 3, fScales, nAst, fOffsets, CHUNK_COUNT + 1,
+            fIndices, total, fCentroids, CHUNK_COUNT * 3),
+        libphx.InstanceField_Free)
+    -- 0-based spawned indices, refilled each frame
+    local spawnedBuf = ffi.new('uint32_t[?]', 64)
+    local spawnedCap = 64
 
-    -- Per-frame group state. Keyed by LOD INDEX (stable) not the mesh
-    -- object: LodMesh:get() returns a fresh mesh clone per call, which
-    -- would leak a new group (and instance array) every frame.
-    -- groups[lodIndex] = { mesh, capacity, count, instances }
-    local groups = {}
+    -- groupOrder: LOD indices (0-based) in the order they first had instances.
     local groupOrder = {}
     -- Mesh per LOD index, fetched once per level (LodMesh:get clones; cache
     -- the clone per level instead of per asteroid). Query at the RANGE
@@ -277,20 +299,15 @@ function AsteroidBeltRenderer.createRenderFn(asteroidData, lodMesh)
     -- bounds and ranges share boundaries (e.g. LOD0 max 2000^2 == LOD1 min),
     -- so a boundary query would resolve to the PREVIOUS level's mesh.
     local lodMeshes = {}
-    -- Screen-size LOD thresholds (projected pixels). Bands are geometric
-    -- (halving each level) to match the ~2.3x vertex reduction per LOD.
-    -- LOD 0 = res 96 (16k verts) down to LOD 7 (34 verts). Sub-pixel
-    -- asteroids (below the LOD-7 threshold) are culled entirely.
-    local lodPxMin = ffi.new('float[8]', { 32, 16, 8, 4, 2, 1, 0.5, 0.25 })
-    -- Squared thresholds: the hot loop compares px^2 = s^2 * pxPerUnit^2
-    -- / distSq, avoiding a sqrt + division per asteroid (113K of them).
-    local lodPxMinSq = ffi.new('float[8]')
-    for i = 0, 7 do lodPxMinSq[i] = lodPxMin[i] * lodPxMin[i] end
+    -- Screen-size LOD thresholds live in Rust (instance_field.rs): geometric
+    -- bands (32, 16, 8, 4, 2, 1, 0.5, 0.25 px), sub-pixel rocks are culled.
     for i = 1, #AsteroidMeshPool.getLodRanges() do
         local r = AsteroidMeshPool.getLodRanges()[i]
         local midRaw = (r[1] + r[2]) * 0.5
         lodMeshes[i] = lodMesh:get(midRaw * midRaw)
     end
+    libphx.InstanceField_SetLodCount(field, #lodMeshes)
+    local seenLod = {}
 
     local PhysicsComponents = require("Modules.Physics.Components")
 
@@ -336,115 +353,37 @@ function AsteroidBeltRenderer.createRenderFn(asteroidData, lodMesh)
             entPosX, entPosY, entPosZ = p.x, p.y, p.z
         end
 
-        -- Reset per-frame group counts
-        for i = 1, #groupOrder do
-            groups[groupOrder[i]].count = 0
-        end
-
-        -- Sync spawned flags once per frame (small set, O(spawned) not
-        -- O(n): read the field system's spawned indices into the flat
-        -- byte array so the hot loop never touches the Lua asteroid tables)
+        -- Spawned asteroids are real entities, not drawn here (0-based
+        -- indices into the field). O(spawned) per frame.
         local spawnedIdx = AsteroidFieldSystem:getSpawnedIndices(entity)
-        for s = 1, #spawnedIdx do
-            spawnedFlags[spawnedIdx[s]] = 1
+        local nSpawned = #spawnedIdx
+        if nSpawned > spawnedCap then
+            while spawnedCap < nSpawned do spawnedCap = spawnedCap * 2 end
+            spawnedBuf = ffi.new('uint32_t[?]', spawnedCap)
+        end
+        for s = 1, nSpawned do
+            spawnedBuf[s - 1] = spawnedIdx[s] - 1
         end
 
-        local drawn = 0
-        local done = false
-
-        -- Chunk pass: cull by centroid distance + view cone, then collect
-        -- survivors. The cone test (KSA article: frustum culling before
-        -- LOD) skips whole angular sectors behind or far beside the
-        -- camera - the fly-through only sees ~180deg of the ring, so
-        -- ~half the chunks are dropped before any per-asteroid work.
-        -- All per-asteroid data is flat cdata (posX/Y/Z, scales,
-        -- spawnedFlags) - no Lua table lookups in the loop.
         local fwdX, fwdY, fwdZ = 0, 0, -1
         local camForward = CameraManager:getForward()
         if camForward then fwdX, fwdY, fwdZ = camForward.x, camForward.y, camForward.z end
-        -- Cone half-angle + margin (sectors are wide; the chunk's radius
-        -- is culled by the distance test, this catches the plane split)
-        local fwdLenSq = fwdX * fwdX + fwdY * fwdY + fwdZ * fwdZ
-        for c = 1, CHUNK_COUNT do
-            if done then break end
-            local nIdx = chunkCounts[c]
-            if nIdx == 0 then goto next_chunk end
 
-            -- Centroid eye-distance (world coords = entity pos + centroid)
-            local rcx = entPosX + chunkCx[c] - eyeX
-            local rcy = entPosY + chunkCy[c] - eyeY
-            local rcz = entPosZ + chunkCz[c] - eyeZ
-            local cDistSq = rcx * rcx + rcy * rcy + rcz * rcz
-            if cDistSq > renderDistSq then goto next_chunk end
+        -- Chunk cull (distance + view cone), screen-size LOD, draw cap:
+        -- all in Rust, in f64, in chunk order. Worker threads fill their
+        -- own lists; the join happens inside this call.
+        libphx.InstanceField_SetWorkers(field, beltWorkers())
+        libphx.InstanceField_Cull(field, eyeX, eyeY, eyeZ, fwdX, fwdY, fwdZ,
+            entPosX, entPosY, entPosZ, pxPerUnitSq, renderDistSq, MAX_DRAWN_PER_FRAME,
+            spawnedBuf, nSpawned)
 
-            -- View-cone test: dot(centroidDir, forward) < -0.3 -> chunk is
-            -- more than ~107deg behind the camera plane, cull it. (The
-            -- ring band is ~2x belt radius from the eye on the fly path,
-            -- so this is a conservative but safe cutoff.)
-            if fwdLenSq > 1e-9 and cDistSq > 1e-9 then
-                local invDist = 1.0 / math.sqrt(cDistSq)
-                local dot = (rcx * fwdX + rcy * fwdY + rcz * fwdZ) * invDist / math.sqrt(fwdLenSq)
-                if dot < -0.3 then goto next_chunk end
+        -- Groups keep the order in which a LOD first produced instances.
+        for k = 0, libphx.InstanceField_GetLodOrderLen(field) - 1 do
+            local lod = libphx.InstanceField_GetLodOrder(field, k)
+            if not seenLod[lod] then
+                seenLod[lod] = true
+                groupOrder[#groupOrder + 1] = lod
             end
-
-            local base = chunkOffsets[c]
-            for j = 0, nIdx - 1 do
-                if drawn >= MAX_DRAWN_PER_FRAME then done = true break end
-                local i = chunkIndices[base + j]
-                if spawnedFlags[i] == 0 then
-                    local rx = entPosX + posX[i] - eyeX
-                    local ry = entPosY + posY[i] - eyeY
-                    local rz = entPosZ + posZ[i] - eyeZ
-                    local distSq = rx * rx + ry * ry + rz * rz
-
-                    -- Screen-size LOD selection (GameUnit-agnostic):
-                    -- projected pixel height ≈ scale / dist * pxPerUnit.
-                    -- Compared via multiplication (pxSq >= t  <=>
-                    -- s^2 * pxPerUnitSq >= distSq * t) so the hot loop
-                    -- needs no sqrt and no division per asteroid.
-                    -- LOD 0 (16k verts) only for big/near rocks; sub-pixel
-                    -- rocks are culled entirely.
-                    local s2ppu = scales[i] * scales[i] * pxPerUnitSq
-                    local li = 1
-                    while li < 8 and distSq * lodPxMinSq[li - 1] > s2ppu do
-                        li = li + 1
-                    end
-                    if distSq * lodPxMinSq[li - 1] <= s2ppu then
-                        local mesh = lodMeshes[li]
-                        if mesh then
-                            -- Texture-fetch instancing: the ONLY per-frame
-                            -- per-asteroid write is a 4-byte u32 index into
-                            -- the static data texture. The transform lives
-                            -- on the GPU; the vertex shader texelFetches it
-                            -- and composes wp = rotScale*v + (pos - eye).
-                            local g = groups[li]
-                            if not g then
-                                g = { mesh = mesh, capacity = 64, count = 0, indices = ffi.new('uint32_t[64]') }
-                                groups[li] = g
-                                groupOrder[#groupOrder + 1] = li
-                            end
-                            if g.count >= g.capacity then
-                                local newCap = g.capacity * 2
-                                local newArr = ffi.new('uint32_t[?]', newCap)
-                                ffi.copy(newArr, g.indices, g.count * ffi.sizeof('uint32_t'))
-                                g.indices = newArr
-                                g.capacity = newCap
-                            end
-
-                            g.indices[g.count] = i - 1  -- 0-based for the shader
-                            g.count = g.count + 1
-                            drawn = drawn + 1
-                        end
-                    end
-                end
-            end
-
-            ::next_chunk::
-        end
-
-        -- Clear the spawned flags we set this frame (next frame re-syncs)
-        for s = 1, #spawnedIdx do
-            spawnedFlags[spawnedIdx[s]] = 0
         end
 
         -- Flush: one instanced draw per (mesh variant, LOD level), all
@@ -467,9 +406,9 @@ function AsteroidBeltRenderer.createRenderFn(asteroidData, lodMesh)
             params.originRelEye.y = entPosY - eyeY
             params.originRelEye.z = entPosZ - eyeZ
             for i = 1, #groupOrder do
-                local g = groups[groupOrder[i]]
-                if g.count > 0 then
-                    pass:drawInstancedIndices(g.mesh, g.indices, g.count)
+                local lod = groupOrder[i]
+                if libphx.InstanceField_GetCount(field, lod) > 0 then
+                    libphx.InstanceField_Draw(field, pass, Renderer, lod, lodMeshes[lod + 1])
                 end
             end
         end
