@@ -11,9 +11,9 @@ use crate::render::StatsSink;
 use crate::render::thread::RenderThread;
 use crate::render::{
     BindEntry, BindGroupId, BlockLayout, BufferId, PassCommands, PipelineDesc, PipelineId,
-    RenderCommand, RenderPassDesc, RenderStats, RenderThreadConfig, RenderThreadError,
-    RendererData, ResourceId, ReturnedChunk, SamplerCache, SamplerDesc, SamplerId, ShaderLayout,
-    TexDesc, TexFormat, TexRegion, TexView, VertexFormat,
+    ReadSource, ReadbackSlot, ReadbackTicket, RenderCommand, RenderPassDesc, RenderStats,
+    RenderThreadConfig, RenderThreadError, RendererData, ResourceId, ReturnedChunk, SamplerCache,
+    SamplerDesc, SamplerId, ShaderLayout, TexDesc, TexFormat, TexRegion, TexView, VertexFormat,
 };
 use crate::window::{PresentMode, WgpuStartupBundle, WindowError, WindowGlContext};
 
@@ -567,95 +567,42 @@ impl Renderer {
         });
     }
 
-    pub fn read_texture_1d_data(
+    /// Read `region` of `src` as `format` and wait for it (see
+    /// `RenderCommand::ReadTextureSync`). Screenshots, tests and tools only:
+    /// it stalls the main thread until the render thread and the GPU got
+    /// there. Empty if the read failed.
+    pub fn read_texture_sync(
         &mut self,
-        id: ResourceId,
-        pixel_format: u32,
-        data_format: u32,
+        src: ReadSource,
+        region: TexRegion,
+        format: TexFormat,
     ) -> Vec<u8> {
         let (tx, rx) = bounded(1);
-        self.submit(RenderCommand::ReadTexture1DData {
-            id,
-            pixel_format,
-            data_format,
+        self.submit(RenderCommand::ReadTextureSync {
+            src,
+            region,
+            format,
             reply_tx: tx,
         });
         rx.recv().unwrap_or_default()
     }
 
-    pub fn read_texture_2d_data(
+    /// Start reading `region` of `src` as `format` without waiting. The
+    /// ticket is ready two or three frames later (see `ReadbackTicket`).
+    pub fn read_texture_async(
         &mut self,
-        id: ResourceId,
-        pixel_format: u32,
-        data_format: u32,
-    ) -> Vec<u8> {
-        let (tx, rx) = bounded(1);
-        self.submit(RenderCommand::ReadTexture2DData {
-            id,
-            pixel_format,
-            data_format,
-            reply_tx: tx,
+        src: ReadSource,
+        region: TexRegion,
+        format: TexFormat,
+    ) -> ReadbackTicket {
+        let slot = ReadbackSlot::new();
+        self.submit(RenderCommand::ReadbackAsync {
+            src,
+            region,
+            format,
+            slot: slot.clone(),
         });
-        rx.recv().unwrap_or_default()
-    }
-
-    pub fn read_texture_3d_data(
-        &mut self,
-        id: ResourceId,
-        pixel_format: u32,
-        data_format: u32,
-    ) -> Vec<u8> {
-        let (tx, rx) = bounded(1);
-        self.submit(RenderCommand::ReadTexture3DData {
-            id,
-            pixel_format,
-            data_format,
-            reply_tx: tx,
-        });
-        rx.recv().unwrap_or_default()
-    }
-
-    pub fn read_texture_cube_face_data(
-        &mut self,
-        id: ResourceId,
-        face: u32,
-        level: i32,
-        pixel_format: u32,
-        data_format: u32,
-    ) -> Vec<u8> {
-        let (tx, rx) = bounded(1);
-        self.submit(RenderCommand::ReadTextureCubeFaceData {
-            id,
-            face,
-            level,
-            pixel_format,
-            data_format,
-            reply_tx: tx,
-        });
-        rx.recv().unwrap_or_default()
-    }
-
-    pub fn sample_pixel_2d_by_resource(&mut self, id: ResourceId, x: i32, y: i32) -> [u8; 4] {
-        let (tx, rx) = bounded(1);
-        self.submit(RenderCommand::SamplePixel2DByResource {
-            id,
-            x,
-            y,
-            reply_tx: tx,
-        });
-        rx.recv().unwrap_or([0; 4])
-    }
-
-    pub fn read_framebuffer_pixels(&mut self, x: i32, y: i32, width: i32, height: i32) -> Vec<u8> {
-        let (tx, rx) = bounded(1);
-        self.submit(RenderCommand::ReadFramebufferPixels {
-            x,
-            y,
-            width,
-            height,
-            reply_tx: tx,
-        });
-        rx.recv().unwrap_or_default()
+        ReadbackTicket::new(slot, &region)
     }
 
     // === Render Passes ===

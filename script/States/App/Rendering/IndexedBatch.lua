@@ -1,6 +1,7 @@
 local ffi = require("ffi")
 local Application = require("States.Application")
 local ProbePaths = require("States.App.Rendering.ProbePaths")
+local ProbeRead = require("States.App.Rendering.ProbeRead")
 
 ---@class RenderingIndexedBatch: Application
 local RenderingIndexedBatch = Subclass("RenderingIndexedBatch", Application)
@@ -38,9 +39,9 @@ function RenderingIndexedBatch:onRender()
     pass:drawInstancedIndices(self.mesh, self.indices, 3)
     pass:finish()
 
-    local left = self.target:sample(32, math.floor(TARGET_H / 2))
-    local center = self.target:sample(math.floor(TARGET_W / 2), math.floor(TARGET_H / 2))
-    local right = self.target:sample(160, math.floor(TARGET_H / 2))
+    local left = ProbeRead.sample(self.target, 32, math.floor(TARGET_H / 2))
+    local center = ProbeRead.sample(self.target, math.floor(TARGET_W / 2), math.floor(TARGET_H / 2))
+    local right = ProbeRead.sample(self.target, 160, math.floor(TARGET_H / 2))
     local path = ProbePaths.file("indexed-batch-" .. self.backend .. ".png")
     self.target:save(path)
     Log.Info(string.format(

@@ -1,5 +1,6 @@
 local Application = require("States.Application")
 local ProbePaths = require("States.App.Rendering.ProbePaths")
+local ProbeRead = require("States.App.Rendering.ProbeRead")
 
 ---@class RenderingIndexedMaterial: Application
 local RenderingIndexedMaterial = Subclass("RenderingIndexedMaterial", Application)
@@ -38,9 +39,9 @@ function RenderingIndexedMaterial:onRender()
     pass:drawMesh(self.mesh)
     pass:finish()
 
-    local tl = self.target:sample(0, 0)
-    local center = self.target:sample(math.floor(TARGET_W / 2), math.floor(TARGET_H / 2))
-    local br = self.target:sample(TARGET_W - 1, TARGET_H - 1)
+    local tl = ProbeRead.sample(self.target, 0, 0)
+    local center = ProbeRead.sample(self.target, math.floor(TARGET_W / 2), math.floor(TARGET_H / 2))
+    local br = ProbeRead.sample(self.target, TARGET_W - 1, TARGET_H - 1)
     local path = ProbePaths.file("indexed-material-" .. self.backend .. ".png")
     self.target:save(path)
     Log.Info(string.format(

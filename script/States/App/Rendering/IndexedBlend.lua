@@ -1,5 +1,6 @@
 local Application = require("States.Application")
 local ProbePaths = require("States.App.Rendering.ProbePaths")
+local ProbeRead = require("States.App.Rendering.ProbeRead")
 
 ---@class RenderingIndexedBlend: Application
 local RenderingIndexedBlend = Subclass("RenderingIndexedBlend", Application)
@@ -54,7 +55,7 @@ function RenderingIndexedBlend:onRender()
     pass:drawMesh(self.mesh)
     pass:finish()
 
-    local center = self.target:sample(math.floor(TARGET_W / 2), math.floor(TARGET_H / 2))
+    local center = ProbeRead.sample(self.target, math.floor(TARGET_W / 2), math.floor(TARGET_H / 2))
     local path = ProbePaths.file("indexed-blend-" .. self.backend .. ".png")
     self.target:save(path)
     Log.Info(string.format(

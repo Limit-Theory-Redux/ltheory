@@ -10,7 +10,8 @@ use tracing::info;
 
 use super::command_executor_gl_binding::GlBindingState;
 use crate::render::{
-    CommandCategory, MAX_COLOR_ATTACHMENTS, RenderCommand, RenderStats, ResourceId, ViewDim, gl,
+    CommandCategory, MAX_COLOR_ATTACHMENTS, ReadbackSlot, RenderCommand, RenderStats, ResourceId,
+    ViewDim, gl,
 };
 use crate::window::WindowActiveGlContext;
 
@@ -41,6 +42,18 @@ pub(super) enum GpuResource {
     Texture3D { handle: u32 },
     TextureCube { handle: u32 },
     Mesh { vao: u32, vbo: u32, ebo: u32 },
+}
+
+/// An asynchronous readback in flight on GL: the pixel pack buffer the pixels
+/// are being copied into, the fence behind that copy (a `GLsync` as an
+/// integer, so the executor stays `Send`) and the slot to fill when it
+/// signals.
+#[derive(Debug)]
+pub(super) struct GlPendingReadback {
+    pub pbo: u32,
+    pub fence: usize,
+    pub size: usize,
+    pub slot: Arc<ReadbackSlot>,
 }
 
 /// Statistics from the render thread (local copy)
@@ -156,6 +169,8 @@ pub struct CommandExecutor {
     /// Binding model state: pipelines, samplers, bind groups, GL state cache,
     /// uniform ring buffers.
     pub(super) binding: GlBindingState,
+    /// Asynchronous readbacks waiting for their fence (`poll_readbacks`).
+    pub(super) pending_readbacks: Vec<GlPendingReadback>,
 }
 
 /// RAII guard returned by [`CommandExecutor::record_command`]. Finishes the
@@ -225,6 +240,7 @@ impl CommandExecutor {
             texture_bindings: [TextureBinding::default(); MAX_TEXTURE_SLOTS],
             texture_binds_skipped: 0,
             binding: GlBindingState::new(),
+            pending_readbacks: Vec::new(),
         }
     }
 
@@ -348,68 +364,23 @@ impl CommandExecutor {
                 self.cmd_copy_texture_2d_from_framebuffer_by_resource(id, format, width, height);
             }
 
-            RenderCommand::ReadTexture1DData {
-                id,
-                pixel_format,
-                data_format,
+            RenderCommand::ReadTextureSync {
+                src,
+                region,
+                format,
                 reply_tx,
             } => {
-                let data = self.cmd_read_texture_1d_data(id, pixel_format, data_format);
+                let data = self.cmd_read_texture_sync(src, &region, format);
                 let _ = reply_tx.send(data);
             }
 
-            RenderCommand::ReadTexture2DData {
-                id,
-                pixel_format,
-                data_format,
-                reply_tx,
+            RenderCommand::ReadbackAsync {
+                src,
+                region,
+                format,
+                slot,
             } => {
-                let data = self.cmd_read_texture_2d_data(id, pixel_format, data_format);
-                let _ = reply_tx.send(data);
-            }
-
-            RenderCommand::ReadTexture3DData {
-                id,
-                pixel_format,
-                data_format,
-                reply_tx,
-            } => {
-                let data = self.cmd_read_texture_3d_data(id, pixel_format, data_format);
-                let _ = reply_tx.send(data);
-            }
-
-            RenderCommand::ReadTextureCubeFaceData {
-                id,
-                face,
-                level,
-                pixel_format,
-                data_format,
-                reply_tx,
-            } => {
-                let data = self.cmd_read_texture_cube_face_data(
-                    id,
-                    face,
-                    level,
-                    pixel_format,
-                    data_format,
-                );
-                let _ = reply_tx.send(data);
-            }
-
-            RenderCommand::SamplePixel2DByResource { id, x, y, reply_tx } => {
-                let data = self.cmd_sample_pixel_2d_by_resource(id, x, y);
-                let _ = reply_tx.send(data);
-            }
-
-            RenderCommand::ReadFramebufferPixels {
-                x,
-                y,
-                width,
-                height,
-                reply_tx,
-            } => {
-                let data = self.cmd_read_framebuffer_pixels(x, y, width, height);
-                let _ = reply_tx.send(data);
+                self.cmd_readback_async(src, &region, format, slot);
             }
 
             // === Render Passes ===

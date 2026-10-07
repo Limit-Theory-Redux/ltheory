@@ -1,5 +1,6 @@
 local Application = require("States.Application")
 local ProbePaths = require("States.App.Rendering.ProbePaths")
+local ProbeRead = require("States.App.Rendering.ProbeRead")
 
 ---@class RenderingUiComposite: Application
 local RenderingUiComposite = Subclass("RenderingUiComposite", Application)
@@ -67,8 +68,8 @@ function RenderingUiComposite:onRender()
     pass:drawFullscreen()
     pass:finish()
 
-    local outside = self.target:sample(16, 64)
-    local inside = self.target:sample(64, 64)
+    local outside = ProbeRead.sample(self.target, 16, 64)
+    local inside = ProbeRead.sample(self.target, 64, 64)
     local path = ProbePaths.file("ui-composite-" .. self.backend .. ".png")
     self.target:save(path)
     Log.Info(string.format(

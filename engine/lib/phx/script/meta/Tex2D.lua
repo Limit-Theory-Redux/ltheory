@@ -94,12 +94,3 @@ function Tex2D:setDataBytes(r, data, pf, df) end
 ---@param alpha number
 function Tex2D:setTexel(r, x, y, red, green, blue, alpha) end
 
--- Sample a single pixel at integer coordinates (x, y)
--- Coordinates are in OpenGL convention: (0,0) = bottom-left
--- Returns Vec3f with RGB in [0.0, 1.0] range
----@param r Renderer
----@param x integer
----@param y integer
----@return Vec3f
-function Tex2D:sample(r, x, y) end
-

@@ -1,10 +1,10 @@
-use glam::{IVec2, Vec3};
+use glam::IVec2;
 use image::{DynamicImage, GenericImageView, ImageBuffer, ImageReader, Rgba};
 
 use super::{DataFormat, PixelFormat, TexFormat};
 use crate::render::{
-    LoadOp, RenderPassDesc, Renderer, ResourceHandle, ResourceId, TexDesc, TexRegion, TexUsages,
-    TexView, ViewDim, convert_slice,
+    LoadOp, ReadSource, RenderPassDesc, Renderer, ResourceHandle, ResourceId, TexDesc, TexRegion,
+    TexUsages, TexView, ViewDim, convert_slice, read_layout,
 };
 use crate::rf::Rf;
 use crate::system::{Bytes, Resource, ResourceType};
@@ -49,22 +49,8 @@ impl Tex2D {
         df: DataFormat,
     ) -> Vec<T> {
         let this = self.shared.as_ref();
-
-        let mut size = this.desc.size[0] as i32 * this.desc.size[1] as i32;
-        size *= DataFormat::get_size(df);
-        size *= PixelFormat::components(pf);
-        size /= std::mem::size_of::<T>() as i32;
-
-        let bytes = r.read_texture_2d_data(this.handle.id(), pf as u32, df as u32);
-
-        let mut data = vec![T::default(); size as usize];
-        let byte_len = (data.len() * std::mem::size_of::<T>()).min(bytes.len());
-        #[allow(unsafe_code)] // TODO: refactor
-        unsafe {
-            std::ptr::copy_nonoverlapping(bytes.as_ptr(), data.as_mut_ptr() as *mut u8, byte_len);
-        }
-
-        data
+        let region = TexRegion::level(&this.desc, 0);
+        read_layout(r, this.handle.id(), region, pf, df)
     }
 
     /// A texture of `format` created with `bytes` (tightly packed rows in the
@@ -164,7 +150,8 @@ impl Tex2D {
     pub fn screen_capture(r: &mut Renderer) -> Tex2D {
         let size: IVec2 = r.target_size();
 
-        let raw = r.read_framebuffer_pixels(0, 0, size.x, size.y);
+        let region = TexRegion::rect(0, 0, size.x.max(1) as u32, size.y.max(1) as u32);
+        let raw = r.read_texture_sync(ReadSource::Backbuffer, region, TexFormat::RGBA8);
 
         // Flip vertically (framebuffer readback is bottom-up).
         let stride = (size.x * 4) as usize;
@@ -295,28 +282,5 @@ impl Tex2D {
     ) {
         let this = self.shared.as_ref();
         r.set_texel_2d_by_resource(this.handle.id(), x, y, [red, green, blue, alpha]);
-    }
-
-    /// Sample a single pixel at integer coordinates (x, y)
-    /// Coordinates are in OpenGL convention: (0,0) = bottom-left
-    /// Returns Vec3f with RGB in [0.0, 1.0] range
-    #[bind(name = "Sample")]
-    fn sample_pixel(&self, r: &mut Renderer, x: i32, y: i32) -> Vec3 {
-        let this = self.shared.as_ref();
-        let size = this.size();
-
-        let x = x.clamp(0, size.x - 1);
-        let y = y.clamp(0, size.y - 1);
-
-        // Flip Y for OpenGL bottom-left origin
-        let gl_y = size.y - 1 - y;
-
-        let pixel = r.sample_pixel_2d_by_resource(this.handle.id(), x, gl_y);
-
-        Vec3::new(
-            pixel[0] as f32 / 255.0,
-            pixel[1] as f32 / 255.0,
-            pixel[2] as f32 / 255.0,
-        )
     }
 }

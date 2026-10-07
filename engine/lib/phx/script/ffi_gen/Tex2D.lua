@@ -35,7 +35,6 @@ function Loader.defineType()
             Vec2i     Tex2D_GetSizeLevel  (Tex2D const*, int level);
             void      Tex2D_SetDataBytes  (Tex2D*, Renderer* r, Bytes const* data, PixelFormat pf, DataFormat df);
             void      Tex2D_SetTexel      (Tex2D*, Renderer* r, int x, int y, float red, float green, float blue, float alpha);
-            Vec3f     Tex2D_Sample        (Tex2D const*, Renderer* r, int x, int y);
         ]]
     end
 
@@ -95,7 +94,6 @@ function Loader.defineType()
                 getSizeLevel = libphx.Tex2D_GetSizeLevel,
                 setDataBytes = libphx.Tex2D_SetDataBytes,
                 setTexel     = libphx.Tex2D_SetTexel,
-                sample       = libphx.Tex2D_Sample,
             },
         }
 

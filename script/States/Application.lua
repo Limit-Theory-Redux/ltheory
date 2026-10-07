@@ -309,7 +309,7 @@ function Application:captureTick()
     self.captureDone = true
 
     Renderer:sync()
-    Window:beginDraw() -- ScreenCapture measures and reads the open pass target
+    Window:beginDraw() -- ScreenCapture measures the open pass target and reads the backbuffer (readSync)
     local tex = Tex2D.ScreenCapture()
     Window:endDraw()
     tex:save(self.capturePath)

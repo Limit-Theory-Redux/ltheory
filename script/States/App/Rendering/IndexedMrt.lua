@@ -1,5 +1,6 @@
 local Application = require("States.Application")
 local ProbePaths = require("States.App.Rendering.ProbePaths")
+local ProbeRead = require("States.App.Rendering.ProbeRead")
 
 ---@class RenderingIndexedMrt: Application
 local RenderingIndexedMrt = Subclass("RenderingIndexedMrt", Application)
@@ -47,9 +48,9 @@ function RenderingIndexedMrt:onRender()
     pass:drawMesh(self.mesh)
     pass:finish()
 
-    local p0 = self.buffer0:sample(math.floor(TARGET_W / 2), math.floor(TARGET_H / 2))
-    local p1 = self.buffer1:sample(math.floor(TARGET_W / 2), math.floor(TARGET_H / 2))
-    local pz = self.zBufferL:sample(math.floor(TARGET_W / 2), math.floor(TARGET_H / 2))
+    local p0 = ProbeRead.sample(self.buffer0, math.floor(TARGET_W / 2), math.floor(TARGET_H / 2))
+    local p1 = ProbeRead.sample(self.buffer1, math.floor(TARGET_W / 2), math.floor(TARGET_H / 2))
+    local pz = ProbeRead.sample(self.zBufferL, math.floor(TARGET_W / 2), math.floor(TARGET_H / 2))
     local stem = "indexed-mrt-" .. self.backend
     local path0 = ProbePaths.file(stem .. "-buffer0.png")
     local path1 = ProbePaths.file(stem .. "-buffer1.png")

@@ -1,5 +1,6 @@
 local Gradient = require("States.Application")
 local ProbePaths = require("States.App.Rendering.ProbePaths")
+local ProbeRead = require("States.App.Rendering.ProbeRead")
 
 ---@class RenderingGradient: Application
 local RenderingGradient = Subclass("RenderingGradient", Gradient)
@@ -24,11 +25,11 @@ function RenderingGradient:eventLoop()
         probePass:setPipeline(self.pipeline)
         probePass:drawFullscreen()
         probePass:finish()
-        local tl = probe:sample(0, 0)
-        local tr = probe:sample(self.resX - 1, 0)
-        local bl = probe:sample(0, self.resY - 1)
-        local br = probe:sample(self.resX - 1, self.resY - 1)
-        local center = probe:sample(math.floor(self.resX / 2), math.floor(self.resY / 2))
+        local tl = ProbeRead.sample(probe, 0, 0)
+        local tr = ProbeRead.sample(probe, self.resX - 1, 0)
+        local bl = ProbeRead.sample(probe, 0, self.resY - 1)
+        local br = ProbeRead.sample(probe, self.resX - 1, self.resY - 1)
+        local center = ProbeRead.sample(probe, math.floor(self.resX / 2), math.floor(self.resY / 2))
         Log.Info(string.format(
             "[GradientProbe] samples tl=(%.3f,%.3f,%.3f) tr=(%.3f,%.3f,%.3f) bl=(%.3f,%.3f,%.3f) center=(%.3f,%.3f,%.3f) br=(%.3f,%.3f,%.3f)",
             tl.x, tl.y, tl.z, tr.x, tr.y, tr.z, bl.x, bl.y, bl.z,

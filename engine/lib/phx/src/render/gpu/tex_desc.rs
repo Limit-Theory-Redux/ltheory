@@ -188,6 +188,11 @@ impl TexRegion {
         }
     }
 
+    /// Bytes of the region in `format`, tightly packed.
+    pub fn bytes(&self, format: TexFormat) -> usize {
+        self.texels() * TexFormat::get_size(format) as usize
+    }
+
     pub fn texels(&self) -> usize {
         self.size[0] as usize * self.size[1] as usize * self.size[2] as usize
     }
@@ -260,6 +265,97 @@ pub fn f32_to_f16(value: f32) -> u16 {
         }
         sign | v as u16
     }
+}
+
+/// IEEE half bits to `f32`.
+pub fn f16_to_f32(bits: u16) -> f32 {
+    let sign = if bits & 0x8000 != 0 { -1.0 } else { 1.0 };
+    let exponent = ((bits >> 10) & 0x1f) as i32;
+    let mantissa = (bits & 0x03ff) as u32;
+    match exponent {
+        0 => sign * (mantissa as f32 / 1024.0) * 2.0f32.powi(-14),
+        0x1f => {
+            if mantissa == 0 {
+                sign * f32::INFINITY
+            } else {
+                f32::NAN
+            }
+        }
+        _ => sign * (1.0 + mantissa as f32 / 1024.0) * 2.0f32.powi(exponent - 15),
+    }
+}
+
+/// The `TexFormat` whose layout is `pixel` x `data`, if there is one (the
+/// readback API speaks `TexFormat`; the older `get_data(pixelFormat,
+/// dataFormat)` calls map onto it here).
+pub fn format_for_layout(pixel: PixelFormat, data: DataFormat) -> Option<TexFormat> {
+    use TexFormat as F;
+    let comps = PixelFormat::components(pixel);
+    if matches!(pixel, PixelFormat::BGR | PixelFormat::BGRA) || comps == 3 {
+        return None;
+    }
+    Some(match (comps, data) {
+        (1, DataFormat::U8) => F::R8,
+        (1, DataFormat::U16) => F::R16,
+        (1, DataFormat::Float) => F::R32F,
+        (2, DataFormat::U8) => F::RG8,
+        (2, DataFormat::U16) => F::RG16,
+        (2, DataFormat::Float) => F::RG32F,
+        (4, DataFormat::U8) => F::RGBA8,
+        (4, DataFormat::U16) => F::RGBA16,
+        (4, DataFormat::Float) => F::RGBA32F,
+        _ => return None,
+    })
+}
+
+/// A component of a texel in the native layout of `scalar`, as a float.
+fn decode_component(scalar: Scalar, bytes: &[u8]) -> f32 {
+    match scalar {
+        Scalar::Unorm8 => bytes[0] as f32 / 255.0,
+        Scalar::Unorm16 => u16::from_ne_bytes([bytes[0], bytes[1]]) as f32 / 65535.0,
+        Scalar::Half => f16_to_f32(u16::from_ne_bytes([bytes[0], bytes[1]])),
+        Scalar::Float => f32::from_ne_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]),
+        Scalar::Unorm32 => {
+            (u32::from_ne_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]) as f64 / 4294967295.0)
+                as f32
+        }
+    }
+}
+
+fn scalar_bytes(scalar: Scalar) -> usize {
+    match scalar {
+        Scalar::Unorm8 => 1,
+        Scalar::Unorm16 | Scalar::Half => 2,
+        Scalar::Float | Scalar::Unorm32 => 4,
+    }
+}
+
+/// Convert texels from the native layout of `src` to that of `dst` (both
+/// tightly packed; the readback path of the wgpu executor, which reads in the
+/// texture's own format). Components `src` lacks are 0, alpha is 1, and
+/// components `dst` lacks are dropped; values go through `f32` and are
+/// rounded and clamped as GL does for a `glReadPixels` into a fixed-point
+/// type. Equal formats are returned as they are.
+pub fn convert_format(src: TexFormat, bytes: &[u8], dst: TexFormat) -> Cow<'_, [u8]> {
+    if src == dst {
+        return Cow::Borrowed(bytes);
+    }
+    let (src_comps, src_scalar) = native_layout(src);
+    let (dst_comps, dst_scalar) = native_layout(dst);
+    let size = scalar_bytes(src_scalar);
+    let stride = src_comps * size;
+    let mut out =
+        Vec::with_capacity(bytes.len() / stride.max(1) * dst_comps * scalar_bytes(dst_scalar));
+    for texel in bytes.chunks_exact(stride) {
+        let mut rgba = [0.0f32, 0.0, 0.0, 1.0];
+        for (c, value) in rgba.iter_mut().enumerate().take(src_comps) {
+            *value = decode_component(src_scalar, &texel[c * size..(c + 1) * size]);
+        }
+        for &v in rgba.iter().take(dst_comps) {
+            write_component(dst_scalar, v, &mut out);
+        }
+    }
+    Cow::Owned(out)
 }
 
 fn source_scalar_size(df: DataFormat) -> usize {
@@ -446,6 +542,43 @@ mod tests {
             TexFormat::RGBA8,
         );
         assert_eq!(out.as_ref(), &[30, 20, 10, 255]);
+    }
+
+    #[test]
+    fn layouts_map_to_formats() {
+        assert_eq!(
+            format_for_layout(PixelFormat::Red, DataFormat::Float),
+            Some(TexFormat::R32F)
+        );
+        assert_eq!(
+            format_for_layout(PixelFormat::RGBA, DataFormat::U8),
+            Some(TexFormat::RGBA8)
+        );
+        assert_eq!(format_for_layout(PixelFormat::RGB, DataFormat::Float), None);
+    }
+
+    #[test]
+    fn readback_conversion_between_formats() {
+        // RGBA16F (1.0, 0.5, 0.25, 2.0) -> RGBA8 clamps and rounds.
+        let half = |v: f32| f32_to_f16(v).to_ne_bytes();
+        let src: Vec<u8> = [1.0, 0.5, 0.25, 2.0]
+            .iter()
+            .flat_map(|&v| half(v))
+            .collect();
+        let out = convert_format(TexFormat::RGBA16F, &src, TexFormat::RGBA8);
+        assert_eq!(out.as_ref(), &[255, 128, 64, 255]);
+        // RGBA16F -> R32F keeps the first component as a float.
+        let out = convert_format(TexFormat::RGBA16F, &src, TexFormat::R32F);
+        assert_eq!(out.as_ref(), 1.0f32.to_ne_bytes());
+        // R8 -> RGBA8 fills green and blue with 0 and alpha with 1.
+        let out = convert_format(TexFormat::R8, &[7], TexFormat::RGBA8);
+        assert_eq!(out.as_ref(), &[7, 0, 0, 255]);
+        // Same format: untouched.
+        assert!(matches!(
+            convert_format(TexFormat::RG8, &[1, 2], TexFormat::RG8),
+            Cow::Borrowed(_)
+        ));
+        assert_eq!(f16_to_f32(f32_to_f16(0.75)), 0.75);
     }
 
     #[test]

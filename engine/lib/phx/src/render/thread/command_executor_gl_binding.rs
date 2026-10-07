@@ -620,6 +620,8 @@ impl CommandExecutor {
         if !self.has_gl_context() {
             return;
         }
+        // Readbacks that finished since the last frame (never waits).
+        self.poll_readbacks();
         let fence = std::mem::take(&mut self.binding.slot_fences[slot]);
         if fence == 0 {
             return;

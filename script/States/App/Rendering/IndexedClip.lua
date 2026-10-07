@@ -1,5 +1,6 @@
 local Application = require("States.Application")
 local ProbePaths = require("States.App.Rendering.ProbePaths")
+local ProbeRead = require("States.App.Rendering.ProbeRead")
 
 ---@class RenderingIndexedClip: Application
 local RenderingIndexedClip = Subclass("RenderingIndexedClip", Application)
@@ -48,8 +49,8 @@ function RenderingIndexedClip:onRender()
 
     pass:finish()
 
-    local outside = self.color:sample(16, 64)
-    local inside = self.color:sample(64, 64)
+    local outside = ProbeRead.sample(self.color, 16, 64)
+    local inside = ProbeRead.sample(self.color, 64, 64)
     local path = ProbePaths.file("indexed-clip-" .. self.backend .. ".png")
     self.color:save(path)
     Log.Info(string.format(

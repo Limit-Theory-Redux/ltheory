@@ -1,5 +1,6 @@
 local Application = require("States.Application")
 local ProbePaths = require("States.App.Rendering.ProbePaths")
+local ProbeRead = require("States.App.Rendering.ProbeRead")
 
 ---@class RenderingIndexedCull: Application
 local RenderingIndexedCull = Subclass("RenderingIndexedCull", Application)
@@ -36,7 +37,7 @@ local function drawPair(self, mode, name)
 
     pass:finish()
     self.target:save(ProbePaths.file("indexed-cull-" .. self.backend .. "-" .. name .. ".png"))
-    return self.target:sample(math.floor(TARGET_W / 2), math.floor(TARGET_H / 2))
+    return ProbeRead.sample(self.target, math.floor(TARGET_W / 2), math.floor(TARGET_H / 2))
 end
 
 function RenderingIndexedCull:onInit()

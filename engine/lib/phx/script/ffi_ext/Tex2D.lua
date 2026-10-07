@@ -77,8 +77,4 @@ function onDef_Tex2D_t(t, mt)
     mt.__index.setTexel = function(self, x, y, red, green, blue, alpha)
         libphx.Tex2D_SetTexel(self, Renderer, x, y, red, green, blue, alpha)
     end
-
-    mt.__index.sample = function(self, x, y)
-        return libphx.Tex2D_Sample(self, Renderer, x, y)
-    end
 end

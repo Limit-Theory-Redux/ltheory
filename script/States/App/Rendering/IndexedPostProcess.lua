@@ -1,5 +1,6 @@
 local Application = require("States.Application")
 local ProbePaths = require("States.App.Rendering.ProbePaths")
+local ProbeRead = require("States.App.Rendering.ProbeRead")
 
 ---@class RenderingIndexedPostProcess: Application
 local RenderingIndexedPostProcess = Subclass("RenderingIndexedPostProcess", Application)
@@ -73,8 +74,8 @@ function RenderingIndexedPostProcess:onRender()
     pass:drawFullscreen()
     pass:finish()
 
-    local source = self.source:sample(math.floor(TARGET_W / 2), math.floor(TARGET_H / 2))
-    local post = self.post:sample(math.floor(TARGET_W / 2), math.floor(TARGET_H / 2))
+    local source = ProbeRead.sample(self.source, math.floor(TARGET_W / 2), math.floor(TARGET_H / 2))
+    local post = ProbeRead.sample(self.post, math.floor(TARGET_W / 2), math.floor(TARGET_H / 2))
     local sourcePath = ProbePaths.file("indexed-postprocess-source-" .. self.backend .. ".png")
     local postPath = ProbePaths.file("indexed-postprocess-" .. self.backend .. ".png")
     self.source:save(sourcePath)

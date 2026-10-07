@@ -1,6 +1,6 @@
 # Render API v2 — wgpu-shaped interface on the GL renderer
 
-Status: design. S2 (render passes and attachment views), S3 (binding model, pipelines, samplers, views, frame group), S4 (materials, scene list, uniform ring), S5 (fullscreen, post-processing, offscreen generation), S6 (immediate batching, UI, glyph atlas, and the removal of the legacy API), S7 (sampler/view completion), S9 (mip chains and texture kinds) and S10 (hot reload) are implemented; S8 (async readback) is not. Companion to `wgpu-migration-gaps.md`,
+Status: design. S2 (render passes and attachment views), S3 (binding model, pipelines, samplers, views, frame group), S4 (materials, scene list, uniform ring), S5 (fullscreen, post-processing, offscreen generation), S6 (immediate batching, UI, glyph atlas, and the removal of the legacy API), S7 (sampler/view completion), S8 (async readback), S9 (mip chains and texture kinds) and S10 (hot reload) are implemented. Companion to `wgpu-migration-gaps.md`,
 `render-thread.md`, `batch-rendering.md` and `shader-system.md`.
 
 **Strategy, already decided.** First the GL renderer and the Lua render
@@ -987,7 +987,7 @@ ring bytes back into the old instanced paths). Like in S3 it does not render the
 - `applyFilter(name, fill, extra)` is the helper of section 3c: the sampled input is `buffer0:mipView(level)` with
   `Samplers.LinearClamp` (what the old per-buffer `setMipRange(level, level)` plus Linear filters meant) and the target
   is `buffer1:mipView(level)`. The per-frame mip-range and min-filter reset loop of `handleResize` is gone, and with
-  it its commands. Auto-exposure still uses the legacy mip-range and `sample()` calls (S8).
+  it its commands. Auto-exposure still used `sample()` until S8.
 - Present is one backbuffer pass with `LoadOp.Load`. `presentAll` (the `showBuffers` debug view) uses one viewport per
   quadrant and now really shows four quadrants: the old y-down code drew the bottom two off the top of the window.
 - `radialblur` binds the linear depth it always declared (`depthBuffer`, slot 1; it used to read whatever unit 0
@@ -1252,6 +1252,90 @@ Auto-exposure is off in the default config, which is also why the captures do no
 
 *Verification.* All six capture scenes RMSE 0 and 13/13 supervisors, on both builds.
 
+##### S8 (implemented)
+
+*Commands.* `ReadTextureSync { src, region, format, reply_tx }` and `ReadbackAsync { src, region, format, slot }` replace
+`ReadTexture1DData/2DData/3DData/CubeFaceData`, `SamplePixel2DByResource` and `ReadFramebufferPixels` in both renderer
+files and both executors. Deviation from section 1.5: the source is a `ReadSource` (`Texture(ResourceId)` or `Backbuffer`)
+and the part read is a `TexRegion { level, origin, size }` (the type `UpdateTexture` uses), not a `TexView` plus rectangle:
+a region also says "all layers of a volume" and "the 4th face of a cube", which `get_data` needs. `format` is the layout
+of the **result** (`TexFormat`: tightly packed rows, row 0 of the texture first, no GL enum anywhere); the executor
+converts from the texture's own format (GL: `glReadPixels` does it, as `sample()` always relied on; wgpu: `convert_format`
+in `tex_desc.rs` after the rows are unpadded). Depth formats cannot be read back (nothing active does).
+
+*Lua.* `Renderer:readSync(view, x, y, w, h, fmt) -> Bytes` (empty on failure; stalls, tools and tests only) and
+`Renderer:readAsync(view, x, y, w, h, fmt) -> ReadbackTicket`. The view picks the mip level (`tex:mipView(l)`), cube face
+(`cube:faceView(f)`) or volume layer (`vol:layerView(z)`); `x, y, w, h` are texels of that level, clamped to it. A
+ticket has `:ready()` (the read is over, successfully or not; it never blocks), `:failed()`, `:data()` (a `Bytes` copy,
+empty until ready or after a failure), `:getWidth()/getHeight()` and `:free()` (`release`; the garbage collector frees
+the ticket anyway, and a read still in flight just drops its pixels when it arrives). The Rust side is
+`Renderer::read_texture_sync/read_texture_async(ReadSource, TexRegion, TexFormat)`; `Tex1D/2D/3D/Cube::get_data` (and
+`getDataBytes`, `Tex2D:save`, `TexCube:save`, `Mesh::compute_ao/occlusion`, `SDF.FromTex3D`) are one `read_layout` call over
+it (`(PixelFormat, DataFormat)` mapped to a `TexFormat` by `format_for_layout`; a three-component layout has none and
+reads as zeros with a warning). `Tex2D.ScreenCapture` (and so `LTHEORY_CAPTURE`, which is Lua in `Application:captureTick`,
+not Rust) reads `ReadSource::Backbuffer` synchronously.
+
+*GL.* Sync: the texture goes onto the scratch read framebuffer of `CopyTexture` (`FramebufferTexture1D/2D/Layer` or a cube
+face target, at the region's level; one `glReadPixels` per layer of a volume) and is read with the format and type of
+`TexFormat::to_gl_formats`. Async: the same read into a fresh `GL_PIXEL_PACK_BUFFER` (so the driver queues the copy and
+returns), then `glFenceSync` and `glFlush`. `BeginFrame` polls the pending list with `glClientWaitSync(fence, 0, 0)` and
+maps and copies the buffers that are done into the slot (`poll_readbacks`); it never waits. The poll is part of the
+executor's `BeginFrame` command, so both backends do the same (the render thread in the threaded one, inline in the
+immediate one). Measured latency (`TexKinds`, GL threaded, main-thread frames between request and `ready`): 6 (the main
+thread runs up to three frames ahead of the render thread, which polls once per frame).
+
+*wgpu* (`command_executor_wgpu/readback.rs`). `copy_texture_to_buffer` into a `MAP_READ` staging buffer with
+`bytes_per_row` padded to 256, `map_async`; sync polls the device (5 s cap), async polls once per frame at `BeginFrame` and
+finishes the jobs whose callback has fired (2 frames in `TexKinds`). Rows are unpadded, then brought from the storage
+format to the `TexFormat` layout (`R32F` and `RGBA32F` live in RGBA16F textures: halves widen to f32; the surface is
+BGRA: red and blue swap), then to the requested format. Any texture kind, level, cube face and volume layer works; the
+surface is configured with `COPY_SRC` where the adapter allows it, so `ReadSource::Backbuffer` can read the frame that is
+being drawn. `TexKinds` passes all 23 checks on wgpu, including the RG8, R32F and cube-face readbacks that failed before
+(gap 1 is closed).
+
+*Auto-exposure.* `RenderCoreSystem:tonemap` no longer reads 128 texels, one synchronous round trip each. Each time no read
+is in flight it generates the mip chain of `buffer0` and issues one `readAsync` of the small mip (at most 512 px, at least
+mip 2, `RGBA8`); when the ticket is ready (2 to 6 frames later) the same Lua maths (128 random samples, cap, lowest 65%,
+log-average) runs over its bytes and sets `autoExposure.target`; the adaptation toward it runs every frame as before.
+**Two behaviours that were already wrong:** `sample()` read level 0 at coordinates meant for the small mip, so it measured
+only the top-left `w x h` texels of the full image (a 320 x 180 corner of 1280 x 720), while the new read is the mean of
+the whole frame; and `glGenerateMipmap` had been generating nothing for any texture a sampling view had narrowed to one
+level (`TEXTURE_MAX_LEVEL` is the view's level), which is every post-processing buffer after its first frame, so
+`GenerateMips` on GL now resets the range to the full chain first (the next view binding sets its own range again). The
+`RGBA8` read keeps the old quantization: a uniform frame is either exactly 0 (target = `maxTarget`) or at least 1/255
+(target = `minTarget`), so the dark end of the range is coarse. Reading `RGBA16F` or `RGBA32F` is the obvious follow-up
+and would change exposures.
+
+*Validation scenes.* The 40 `:sample()` calls in 14 files of `States/App/Rendering` (the 13 supervised scenes and
+`Upscale`) are `ProbeRead.sample(tex, x, y)` (`Rendering/ProbeRead.lua`): one `readSync` of one texel as `RGBA8`, with
+the y flip `sample()` had. `TexKinds` gained 13 checks: `readSync` of a whole texture, a sub-rectangle and a mip level,
+`RGBA16F` as floats and as bytes, `R32F` as floats and as clamped bytes, cube `faceView`s, a volume `layerView`, a part of
+a 1D texture, and three `readAsync` tickets polled over the following frames.
+
+*Removed.* `Tex2D:sample` (Rust `sample_pixel`, `Tex2D_Sample`, its `ffi_ext` wrapper), `SamplePixel2DByResource`,
+`ReadFramebufferPixels`, `ReadTexture1DData/2DData/3DData/CubeFaceData`, their `Renderer` methods in both backends, the
+GL and wgpu `cmd_*` handlers, `texel_buffer_size`, and the wgpu pixel decoding (`decode_sample_pixel`, `float_to_u8`; the
+half-to-float conversion lives in `tex_desc.rs` now). No readback payload carries a GL enum any more.
+`CopyTexture2DFromFramebufferByResource` (`deep_clone`) is not a readback and stays.
+
+*Test.* The `AutoExposure` scene (`States/App/Tests`) runs `tonemap` with auto-exposure on over a black and then a
+mid-gray frame (150 frames each, fixed dt) and logs target and adapted exposure per frame.
+`tools/render_validation/auto_exposure_test.py` compares the result with `baseline/auto_exposure.json`, recorded with the
+synchronous code at `197d5bf6`: targets 2.5 and 0.4 exactly; adapted exposure at the end of the phases 2.0725 and 1.1885
+before, 2.054 and 1.209 now (tolerance 0.05, the lag of the asynchronous version). A uniform frame is the one input whose
+measurement does not depend on the part of the frame that is sampled, so it is the one on which old and new must agree.
+The same scene times `tonemap` on the main thread: 12.6 ms per frame before, 0.07 ms after (threaded; 1.1 ms on the
+immediate backend, where the GL calls run inline).
+
+*Cost* (frame 400, three runs each, threaded GL, auto-exposure switched on through a temporary `LTHEORY_AUTOEXPOSE` check
+in `PostFxConfig` that is not committed): PlanetTest 15.6 to 17.0 ms per frame before, 3.3 ms after (2.8 ms with
+auto-exposure off); WeaponSystem 39.4 to 44.1 ms before, 22.8 to 25.3 ms after (23.0 ms off).
+
+*Pixels.* Auto-exposure is off in all capture scenes, so all six are bit-identical to the baseline on both builds (RMSE 0)
+and 13/13 supervisors pass on both builds. The `GL_INVALID_OPERATION` that `LTHEORY_GL_CHECK=1` logs once per run
+("commands before this PassCommands") comes from the first `SwapBuffers` and is in `197d5bf6` too (checked with a worktree
+at that commit); the 12-scene frame-40 smoke shows no new error line on the default and immediate builds.
+
 ##### S9 (implemented)
 
 *Descriptions.* `TexDesc { dim, format, size: [u32; 3], mips, usage }` (`render/gpu/tex_desc.rs`) is what the executors
@@ -1272,7 +1356,7 @@ alpha 1 (what GL did for RGB data into RGBA8), integer and float sources are nor
 to nearest), f32 to half is round to nearest even, and a source that already is native (`RGBA`/`U8` into RGBA8, `RG`/
 `Float` into RG32F, ...) is passed on without a copy. `Tex*::set_data` and `Tex2D::load` use it; the Lua call sites did
 not change. `CopyTexture2DFromFramebufferByResource` takes a `TexFormat` instead of a GL internal format. The
-readback commands still speak `(pixel_format, data_format)`: S8 replaces them. (`TexCube::get_data` passed its
+readback commands still spoke `(pixel_format, data_format)`; S8 replaced them. (`TexCube::get_data` passed its
 `TexFormat` argument as a GL pixel format, which is `GL_INVALID_ENUM` and a zero-filled result; it derives the pixel
 format from the component count now, like `set_data`.) GL uploads set `UNPACK_ALIGNMENT` 1 instead of leaving 4 behind
 after a glyph upload.
@@ -1303,7 +1387,7 @@ without a validation error) but, like everything the wgpu executor does since S3
 
 *Probe.* `States/App/Tests/TexKinds` creates one texture of each kind with mips, uploads in layouts that differ from
 the texture's format (RGB float into RGBA8, RG8, R32F, per cube face), reads everything back and logs a PASS/FAIL line.
-It passes on GL; on wgpu the readbacks of RG8, R32F and cube faces fail (gap 1, readbacks, is S8).
+It passes on GL; on wgpu the readbacks of RG8, R32F and cube faces failed until S8 (gap 1), and pass now.
 
 ##### S10 (implemented)
 

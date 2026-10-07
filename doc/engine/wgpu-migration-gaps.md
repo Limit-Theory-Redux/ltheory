@@ -12,6 +12,12 @@ could be modernized now that wgpu is in the picture. Appended as found.
    usage on textures + a staging buffer + `device.poll`/`queue.on_submitted_work_done`
    before mapping. Engine features relying on readback (screenshots, CPU
    texture inspection) return empty data on the wgpu path.
+    **Closed (S8):** `ReadTextureSync` and `ReadbackAsync` copy the region into a 256-aligned staging buffer
+    (`copy_texture_to_buffer`, `map_async`), for any texture kind, mip level, cube face or volume layer and for the
+    backbuffer; the rows are unpadded and converted to the requested `TexFormat` on the render thread (`R32F` and
+    `RGBA32F` live in RGBA16F textures, the surface may be BGRA). Sync polls the device until the buffer is mapped, async
+    polls once per frame at `BeginFrame`. `TexKinds` passes its readbacks under `LTHEORY_WGPU=1` (RG8, R32F and cube
+    faces included). Depth textures cannot be read back.
 
 2. **Hot-reload pipelines are stale**: `ReloadShader` compiles a fresh module
    pair into `hot_reloaded_shaders`, but the pipeline cache key is the shader
@@ -78,6 +84,8 @@ could be modernized now that wgpu is in the picture. Appended as found.
     protocol counts in-flight frames but wgpu never paces the GPU queue — a
     slow GPU can accumulate unbounded queued work. Fix: reply after
     `queue.on_submitted_work_done` for real pacing.
+    **Still open after S8:** the asynchronous readbacks of S8 do not need it (they poll their own `map_async` state at
+    `BeginFrame`), so frame pacing remains the only user of this fix.
 
 11. **Line width / point size are dropped**: wgpu renders 1px lines and
     point sprites; GL honored `glLineWidth`/`glPointSize`. `line_width` is
@@ -130,8 +138,9 @@ could be modernized now that wgpu is in the picture. Appended as found.
     executor re-maps them. A format-agnostic command payload (TexFormat +
     bpp) would serve both backends without the GL enum layer.
     **Closed (S9):** `UpdateTexture { id, region, data }` carries the texture's own `TexFormat` layout; the
-    `(PixelFormat, DataFormat)` to native conversion is `convert_texels` on the main thread. (The readback commands still
-    carry GL enums: S8.)
+    `(PixelFormat, DataFormat)` to native conversion is `convert_texels` on the main thread. The readback commands went
+    the same way in S8 (`ReadTextureSync`/`ReadbackAsync` speak `TexFormat` and `TexRegion`), so no GL enum is left in a
+    texture payload.
 
 21. **Render-thread executor branch**: `RenderThread` now holds both the GL
     `CommandExecutor` and an `Option<WgpuCommandExecutor>` with a runtime

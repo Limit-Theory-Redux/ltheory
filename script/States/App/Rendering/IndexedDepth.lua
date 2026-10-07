@@ -1,5 +1,6 @@
 local Application = require("States.Application")
 local ProbePaths = require("States.App.Rendering.ProbePaths")
+local ProbeRead = require("States.App.Rendering.ProbeRead")
 
 ---@class RenderingIndexedDepth: Application
 local RenderingIndexedDepth = Subclass("RenderingIndexedDepth", Application)
@@ -50,9 +51,9 @@ function RenderingIndexedDepth:onRender()
 
     pass:finish()
 
-    local tl = self.color:sample(0, 0)
-    local center = self.color:sample(math.floor(TARGET_W / 2), math.floor(TARGET_H / 2))
-    local br = self.color:sample(TARGET_W - 1, TARGET_H - 1)
+    local tl = ProbeRead.sample(self.color, 0, 0)
+    local center = ProbeRead.sample(self.color, math.floor(TARGET_W / 2), math.floor(TARGET_H / 2))
+    local br = ProbeRead.sample(self.color, TARGET_W - 1, TARGET_H - 1)
     local path = ProbePaths.file("indexed-depth-" .. self.backend .. ".png")
     self.color:save(path)
     Log.Info(string.format(

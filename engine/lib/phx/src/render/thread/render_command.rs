@@ -11,8 +11,8 @@ use crossbeam::channel::Sender;
 use super::command_category::CommandCategory;
 use crate::render::{
     BindEntry, BindGroupId, BlockLayout, BufferId, PassCommands, PipelineDesc, PipelineId,
-    RenderPassDesc, SamplerDesc, SamplerId, ShaderLayout, TexDesc, TexFormat, TexRegion, TexView,
-    VertexFormat, gl,
+    ReadSource, ReadbackSlot, RenderPassDesc, SamplerDesc, SamplerId, ShaderLayout, TexDesc,
+    TexFormat, TexRegion, TexView, VertexFormat, gl,
 };
 use crate::window::PresentMode;
 
@@ -115,60 +115,28 @@ pub enum RenderCommand {
         height: i32,
     },
 
-    /// Blocking readback of a 1D texture's full pixel data. The reply is
-    /// sent directly on `reply_tx` by the executor - this works identically
-    /// in both backends: the caller submits the command, then blocks on
-    /// `reply_tx`'s paired receiver.
-    ReadTexture1DData {
-        id: ResourceId,
-        pixel_format: u32,
-        data_format: u32,
+    /// Blocking readback of `region` of `src` in `format` (tightly packed
+    /// rows, row 0 first; the executor converts if the texture is stored
+    /// differently). The reply is sent directly on `reply_tx` by the executor
+    /// - this works identically in both backends: the caller submits the
+    /// command, then blocks on `reply_tx`'s paired receiver. An empty reply
+    /// means the read failed.
+    ReadTextureSync {
+        src: ReadSource,
+        region: TexRegion,
+        format: TexFormat,
         reply_tx: Sender<Vec<u8>>,
     },
 
-    /// Blocking readback of a 2D texture's full pixel data (see above)
-    ReadTexture2DData {
-        id: ResourceId,
-        pixel_format: u32,
-        data_format: u32,
-        reply_tx: Sender<Vec<u8>>,
-    },
-
-    /// Blocking readback of a 3D texture's full pixel data (see above)
-    ReadTexture3DData {
-        id: ResourceId,
-        pixel_format: u32,
-        data_format: u32,
-        reply_tx: Sender<Vec<u8>>,
-    },
-
-    /// Blocking readback of one face/level of a cube texture (see above)
-    ReadTextureCubeFaceData {
-        id: ResourceId,
-        face: u32,
-        level: i32,
-        pixel_format: u32,
-        data_format: u32,
-        reply_tx: Sender<Vec<u8>>,
-    },
-
-    /// Blocking readback of a single RGBA8 pixel from a 2D texture, sampled
-    /// via a temporary FBO (see above)
-    SamplePixel2DByResource {
-        id: ResourceId,
-        x: i32,
-        y: i32,
-        reply_tx: Sender<[u8; 4]>,
-    },
-
-    /// Blocking readback of a rectangle of pixels from the currently-bound
-    /// framebuffer (see above). Used by `Tex2D::screen_capture`.
-    ReadFramebufferPixels {
-        x: i32,
-        y: i32,
-        width: i32,
-        height: i32,
-        reply_tx: Sender<Vec<u8>>,
+    /// Start a readback of `region` of `src` in `format` without waiting
+    /// (GL: a pixel pack buffer and a fence; wgpu: a mappable buffer). The
+    /// executor polls it at `BeginFrame` and fills `slot` when the GPU is
+    /// done (see `ReadbackTicket`).
+    ReadbackAsync {
+        src: ReadSource,
+        region: TexRegion,
+        format: TexFormat,
+        slot: Arc<ReadbackSlot>,
     },
 
     // === Render Passes ===
@@ -308,12 +276,7 @@ impl RenderCommand {
             | CopyTexture2DFromFramebufferByResource { .. } => CommandCategory::TextureData,
 
             // === Blocking Readbacks ===
-            ReadTexture1DData { .. }
-            | ReadTexture2DData { .. }
-            | ReadTexture3DData { .. }
-            | ReadTextureCubeFaceData { .. }
-            | SamplePixel2DByResource { .. }
-            | ReadFramebufferPixels { .. } => CommandCategory::Readback,
+            ReadTextureSync { .. } | ReadbackAsync { .. } => CommandCategory::Readback,
 
             // === Render Passes ===
             BeginRenderPass(_) | EndRenderPass => CommandCategory::Framebuffer,

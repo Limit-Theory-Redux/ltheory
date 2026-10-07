@@ -8,7 +8,7 @@ use super::{
 use crate::math::Rng;
 use crate::render::{
     LoadOp, RenderPassDesc, Renderer, ResourceHandle, ResourceId, Shader, TexDesc, TexRegion,
-    TexUsages, TexView, ViewDim, convert_slice,
+    TexUsages, TexView, ViewDim, convert_slice, read_layout,
 };
 use crate::rf::Rf;
 use crate::system::Bytes;
@@ -83,30 +83,10 @@ impl TexCube {
         df: DataFormat,
     ) -> Vec<T> {
         let this = self.shared.as_ref();
-
-        let mut size = this.desc.size[0] as i32 * this.desc.size[0] as i32;
-        size *= DataFormat::get_size(df);
-        size *= TexFormat::components(tf);
-        size /= std::mem::size_of::<T>() as i32;
-
-        // `tf` describes the layout of the data; GL wants its pixel format.
+        // `tf` says how many components the data has (its `TexFormat` layout).
         let pf = PixelFormat::for_components(TexFormat::components(tf));
-        let bytes = r.read_texture_cube_face_data(
-            this.handle.id(),
-            face as u32,
-            level,
-            pf as u32,
-            df as u32,
-        );
-
-        let mut data = vec![T::default(); size as usize];
-        let byte_len = (data.len() * std::mem::size_of::<T>()).min(bytes.len());
-        #[allow(unsafe_code)] // TODO: refactor
-        unsafe {
-            std::ptr::copy_nonoverlapping(bytes.as_ptr(), data.as_mut_ptr() as *mut u8, byte_len);
-        }
-
-        data
+        let region = TexRegion::face(&this.desc, face, level as u32);
+        read_layout(r, this.handle.id(), region, pf, df)
     }
 
     pub fn set_data<T>(

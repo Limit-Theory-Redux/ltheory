@@ -45,6 +45,33 @@ function Renderer:statsMainWaitUs() end
 ---@return integer
 function Renderer:statsVertices() end
 
+-- Read the `w` x `h` texels at `x`, `y` of `view` (its mip level, face or
+-- layer) as `fmt` and wait for them: rows from the first up, tightly
+-- packed, in the layout of `fmt` (the texture is converted if it is
+-- stored differently). **Stalls until the GPU has produced the data**:
+-- for screenshots, tests and tools only, never in a frame. Empty `Bytes`
+-- if the read failed.
+---@param view TexView
+---@param x integer
+---@param y integer
+---@param w integer
+---@param h integer
+---@param fmt TexFormat
+---@return Bytes
+function Renderer:readSync(view, x, y, w, h, fmt) end
+
+-- Start reading the `w` x `h` texels at `x`, `y` of `view` as `fmt`
+-- without waiting. Poll the ticket (`:ready()`) once per frame; the data
+-- arrives two or three frames later. See `ReadbackTicket`.
+---@param view TexView
+---@param x integer
+---@param y integer
+---@param w integer
+---@param h integer
+---@param fmt TexFormat
+---@return ReadbackTicket
+function Renderer:readAsync(view, x, y, w, h, fmt) end
+
 -- Begin a render pass on `desc`'s attachments. Only one pass may be open
 -- at a time; end it with `RenderPass:finish()`.
 ---@param desc RenderPassDesc

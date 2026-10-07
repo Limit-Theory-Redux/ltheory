@@ -1,5 +1,6 @@
 local Application = require("States.Application")
 local ProbePaths = require("States.App.Rendering.ProbePaths")
+local ProbeRead = require("States.App.Rendering.ProbeRead")
 
 ---@class RenderingUpscale: Application
 local RenderingUpscale = Subclass("RenderingUpscale", Application)
@@ -36,11 +37,11 @@ function RenderingUpscale:eventLoop()
             self.holdFrames
         ))
     elseif self.frames == 10 then
-        local tl = self.source:sample(0, 0)
-        local tr = self.source:sample(SOURCE_W - 1, 0)
-        local bl = self.source:sample(0, SOURCE_H - 1)
-        local center = self.source:sample(math.floor(SOURCE_W / 2), math.floor(SOURCE_H / 2))
-        local br = self.source:sample(SOURCE_W - 1, SOURCE_H - 1)
+        local tl = ProbeRead.sample(self.source, 0, 0)
+        local tr = ProbeRead.sample(self.source, SOURCE_W - 1, 0)
+        local bl = ProbeRead.sample(self.source, 0, SOURCE_H - 1)
+        local center = ProbeRead.sample(self.source, math.floor(SOURCE_W / 2), math.floor(SOURCE_H / 2))
+        local br = ProbeRead.sample(self.source, SOURCE_W - 1, SOURCE_H - 1)
         Log.Info(string.format(
             "[UpscaleProbe] source samples tl=(%.3f,%.3f,%.3f) tr=(%.3f,%.3f,%.3f) bl=(%.3f,%.3f,%.3f) center=(%.3f,%.3f,%.3f) br=(%.3f,%.3f,%.3f)",
             tl.x, tl.y, tl.z, tr.x, tr.y, tr.z, bl.x, bl.y, bl.z,

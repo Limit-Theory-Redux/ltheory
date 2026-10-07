@@ -160,7 +160,7 @@ impl MipBlit {
 
 impl WgpuCommandExecutor {
     /// The texture and description of any texture-kind resource.
-    fn texture_and_desc(&self, id: ResourceId) -> Option<(wgpu::Texture, TexDesc)> {
+    pub(super) fn texture_and_desc(&self, id: ResourceId) -> Option<(wgpu::Texture, TexDesc)> {
         match self.resources.get(&id)? {
             WgpuGpuResource::Texture1D { texture, desc, .. }
             | WgpuGpuResource::Texture2D { texture, desc, .. }

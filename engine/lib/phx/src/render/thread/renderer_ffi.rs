@@ -1,8 +1,11 @@
 use glam::Vec3;
 
 use crate::math::Matrix;
-use crate::render::{BindGroupDesc, RenderPass, RenderPassDesc, Renderer, TexCube};
-use crate::system::Metric;
+use crate::render::{
+    BindGroupDesc, ReadSource, ReadbackTicket, RenderPass, RenderPassDesc, Renderer, TexCube,
+    TexFormat, TexView, view_region,
+};
+use crate::system::{Bytes, Metric};
 
 // =============================================================================
 // FFI-exposed Renderer API
@@ -73,6 +76,43 @@ impl Renderer {
 
     pub fn stats_vertices(&mut self) -> u64 {
         self.get_stats().vertices_drawn
+    }
+
+    // === Readback ===
+
+    /// Read the `w` x `h` texels at `x`, `y` of `view` (its mip level, face or
+    /// layer) as `fmt` and wait for them: rows from the first up, tightly
+    /// packed, in the layout of `fmt` (the texture is converted if it is
+    /// stored differently). **Stalls until the GPU has produced the data**:
+    /// for screenshots, tests and tools only, never in a frame. Empty `Bytes`
+    /// if the read failed.
+    pub fn read_sync(
+        &mut self,
+        view: &TexView,
+        x: i32,
+        y: i32,
+        w: i32,
+        h: i32,
+        fmt: TexFormat,
+    ) -> Bytes {
+        let region = view_region(view, x, y, w, h);
+        Bytes::from_vec(self.read_texture_sync(ReadSource::Texture(view.tex), region, fmt))
+    }
+
+    /// Start reading the `w` x `h` texels at `x`, `y` of `view` as `fmt`
+    /// without waiting. Poll the ticket (`:ready()`) once per frame; the data
+    /// arrives two or three frames later. See `ReadbackTicket`.
+    pub fn read_async(
+        &mut self,
+        view: &TexView,
+        x: i32,
+        y: i32,
+        w: i32,
+        h: i32,
+        fmt: TexFormat,
+    ) -> ReadbackTicket {
+        let region = view_region(view, x, y, w, h);
+        self.read_texture_async(ReadSource::Texture(view.tex), region, fmt)
     }
 
     // === Render Passes ===

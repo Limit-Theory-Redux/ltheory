@@ -9,8 +9,9 @@ use crate::render::StatsSink;
 use crate::render::thread::{CommandExecutor, RendererData};
 use crate::render::{
     BindEntry, BindGroupId, BlockLayout, BufferId, PassCommands, PipelineDesc, PipelineId,
-    RenderPassDesc, RenderStats, RenderThreadError, ResourceId, SamplerCache, SamplerDesc,
-    SamplerId, ShaderLayout, TexDesc, TexFormat, TexRegion, TexView, VertexFormat,
+    ReadSource, ReadbackSlot, ReadbackTicket, RenderPassDesc, RenderStats, RenderThreadError,
+    ResourceId, SamplerCache, SamplerDesc, SamplerId, ShaderLayout, TexDesc, TexFormat, TexRegion,
+    TexView, VertexFormat,
 };
 use crate::window::{PresentMode, WindowGlContext};
 
@@ -143,54 +144,29 @@ impl Renderer {
         self.ex().cmd_generate_mips(id);
     }
 
-    pub fn read_texture_1d_data(
+    /// Read `region` of `src` as `format` and wait for it. Screenshots, tests
+    /// and tools only. Empty if the read failed.
+    pub fn read_texture_sync(
         &mut self,
-        id: ResourceId,
-        pixel_format: u32,
-        data_format: u32,
+        src: ReadSource,
+        region: TexRegion,
+        format: TexFormat,
     ) -> Vec<u8> {
-        self.ex()
-            .cmd_read_texture_1d_data(id, pixel_format, data_format)
+        self.ex().cmd_read_texture_sync(src, &region, format)
     }
 
-    pub fn read_texture_2d_data(
+    /// Start reading `region` of `src` as `format` without waiting. The
+    /// ticket is ready two or three frames later (see `ReadbackTicket`).
+    pub fn read_texture_async(
         &mut self,
-        id: ResourceId,
-        pixel_format: u32,
-        data_format: u32,
-    ) -> Vec<u8> {
+        src: ReadSource,
+        region: TexRegion,
+        format: TexFormat,
+    ) -> ReadbackTicket {
+        let slot = ReadbackSlot::new();
         self.ex()
-            .cmd_read_texture_2d_data(id, pixel_format, data_format)
-    }
-
-    pub fn read_texture_3d_data(
-        &mut self,
-        id: ResourceId,
-        pixel_format: u32,
-        data_format: u32,
-    ) -> Vec<u8> {
-        self.ex()
-            .cmd_read_texture_3d_data(id, pixel_format, data_format)
-    }
-
-    pub fn read_texture_cube_face_data(
-        &mut self,
-        id: ResourceId,
-        face: u32,
-        level: i32,
-        pixel_format: u32,
-        data_format: u32,
-    ) -> Vec<u8> {
-        self.ex()
-            .cmd_read_texture_cube_face_data(id, face, level, pixel_format, data_format)
-    }
-
-    pub fn sample_pixel_2d_by_resource(&mut self, id: ResourceId, x: i32, y: i32) -> [u8; 4] {
-        self.ex().cmd_sample_pixel_2d_by_resource(id, x, y)
-    }
-
-    pub fn read_framebuffer_pixels(&mut self, x: i32, y: i32, width: i32, height: i32) -> Vec<u8> {
-        self.ex().cmd_read_framebuffer_pixels(x, y, width, height)
+            .cmd_readback_async(src, &region, format, slot.clone());
+        ReadbackTicket::new(slot, &region)
     }
 
     // === Render Passes ===

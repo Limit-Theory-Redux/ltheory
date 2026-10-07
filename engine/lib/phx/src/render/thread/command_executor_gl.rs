@@ -1,13 +1,15 @@
 #![allow(unsafe_code)]
 
+use std::sync::Arc;
+
 use tracing::{error, info, warn};
 
 use crate::render::gl::{self};
-use crate::render::thread::{AttachKey, FboKey, GpuResource};
+use crate::render::thread::{AttachKey, FboKey, GlPendingReadback, GpuResource};
 use crate::render::{
     BlockLayout, CommandCategory, CommandExecutor, CommandReply, LoadOp, MAX_COLOR_ATTACHMENTS,
-    RenderPassDesc, RenderStats, ResourceId, ShaderLayout, TexDesc, TexDim, TexFormat, TexRegion,
-    VertexFormat, ViewDim,
+    ReadSource, ReadbackSlot, RenderPassDesc, RenderStats, ResourceId, ShaderLayout, TexDesc,
+    TexDim, TexFormat, TexRegion, VertexFormat, ViewDim,
 };
 use crate::window::{PresentMode, WindowGlContext};
 
@@ -158,202 +160,235 @@ impl CommandExecutor {
         }
     }
 
-    #[inline(always)]
-    pub(super) fn cmd_read_texture_1d_data(
-        &mut self,
-        id: ResourceId,
-        pixel_format: u32,
-        data_format: u32,
-    ) -> Vec<u8> {
-        let _sa = self.record_command(CommandCategory::Readback, false, false);
-        let mut data = Vec::new();
-        if let Some(GpuResource::Texture1D { handle }) = self.resources.get(&id) {
-            unsafe {
-                let mut width = 0;
-                gl::BindTexture(gl::TEXTURE_1D, *handle);
-                gl::GetTexLevelParameteriv(gl::TEXTURE_1D, 0, gl::TEXTURE_WIDTH, &mut width);
-                data = vec![0u8; self.texel_buffer_size(width, 1, 1, pixel_format, data_format)];
-                gl::GetTexImage(
+    /// Attach layer `layer` of mip `level` of texture `id` to the scratch read
+    /// framebuffer (`layer` is the z slice of a 3D texture or the face of a
+    /// cube). False if `id` is not a texture.
+    fn attach_read_layer(&self, id: ResourceId, level: i32, layer: u32) -> bool {
+        unsafe {
+            match self.resources.get(&id) {
+                Some(GpuResource::Texture1D { handle }) => gl::FramebufferTexture1D(
+                    gl::READ_FRAMEBUFFER,
+                    gl::COLOR_ATTACHMENT0,
                     gl::TEXTURE_1D,
-                    0,
-                    pixel_format,
-                    data_format,
-                    data.as_mut_ptr() as *mut _,
-                );
-                gl::BindTexture(gl::TEXTURE_1D, 0);
-            }
-        } else {
-            warn!("ReadTexture1DData: resource {:?} not found", id);
-        }
-        data
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_read_texture_2d_data(
-        &mut self,
-        id: ResourceId,
-        pixel_format: u32,
-        data_format: u32,
-    ) -> Vec<u8> {
-        let _sa = self.record_command(CommandCategory::Readback, false, false);
-        let mut data = Vec::new();
-        if let Some(GpuResource::Texture2D { handle }) = self.resources.get(&id) {
-            unsafe {
-                let (mut width, mut height) = (0, 0);
-                gl::BindTexture(gl::TEXTURE_2D, *handle);
-                gl::GetTexLevelParameteriv(gl::TEXTURE_2D, 0, gl::TEXTURE_WIDTH, &mut width);
-                gl::GetTexLevelParameteriv(gl::TEXTURE_2D, 0, gl::TEXTURE_HEIGHT, &mut height);
-                data =
-                    vec![0u8; self.texel_buffer_size(width, height, 1, pixel_format, data_format)];
-                gl::GetTexImage(
-                    gl::TEXTURE_2D,
-                    0,
-                    pixel_format,
-                    data_format,
-                    data.as_mut_ptr() as *mut _,
-                );
-            }
-            self.restore_active_unit_binding();
-        } else {
-            warn!("ReadTexture2DData: resource {:?} not found", id);
-        }
-        data
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_read_texture_3d_data(
-        &mut self,
-        id: ResourceId,
-        pixel_format: u32,
-        data_format: u32,
-    ) -> Vec<u8> {
-        let _sa = self.record_command(CommandCategory::Readback, false, false);
-        let mut data = Vec::new();
-        if let Some(GpuResource::Texture3D { handle }) = self.resources.get(&id) {
-            unsafe {
-                let (mut width, mut height, mut depth) = (0, 0, 0);
-                gl::BindTexture(gl::TEXTURE_3D, *handle);
-                gl::GetTexLevelParameteriv(gl::TEXTURE_3D, 0, gl::TEXTURE_WIDTH, &mut width);
-                gl::GetTexLevelParameteriv(gl::TEXTURE_3D, 0, gl::TEXTURE_HEIGHT, &mut height);
-                gl::GetTexLevelParameteriv(gl::TEXTURE_3D, 0, gl::TEXTURE_DEPTH, &mut depth);
-                data = vec![
-                    0u8;
-                    self.texel_buffer_size(width, height, depth, pixel_format, data_format)
-                ];
-                gl::GetTexImage(
-                    gl::TEXTURE_3D,
-                    0,
-                    pixel_format,
-                    data_format,
-                    data.as_mut_ptr() as *mut _,
-                );
-                gl::BindTexture(gl::TEXTURE_3D, 0);
-            }
-        } else {
-            warn!("ReadTexture3DData: resource {:?} not found", id);
-        }
-        data
-    }
-
-    #[inline(always)]
-    #[allow(clippy::too_many_arguments)]
-    pub(super) fn cmd_read_texture_cube_face_data(
-        &mut self,
-        id: ResourceId,
-        face: u32,
-        level: i32,
-        pixel_format: u32,
-        data_format: u32,
-    ) -> Vec<u8> {
-        let _sa = self.record_command(CommandCategory::Readback, false, false);
-        let mut data = Vec::new();
-        if let Some(GpuResource::TextureCube { handle }) = self.resources.get(&id) {
-            unsafe {
-                let mut size = 0;
-                gl::BindTexture(gl::TEXTURE_CUBE_MAP, *handle);
-                gl::GetTexLevelParameteriv(face, level, gl::TEXTURE_WIDTH, &mut size);
-                data = vec![0u8; self.texel_buffer_size(size, size, 1, pixel_format, data_format)];
-                gl::GetTexImage(
-                    face,
+                    *handle,
                     level,
-                    pixel_format,
-                    data_format,
-                    data.as_mut_ptr() as *mut _,
-                );
-                gl::BindTexture(gl::TEXTURE_CUBE_MAP, 0);
-            }
-        } else {
-            warn!("ReadTextureCubeFaceData: resource {:?} not found", id);
-        }
-        data
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_sample_pixel_2d_by_resource(
-        &mut self,
-        id: ResourceId,
-        x: i32,
-        y: i32,
-    ) -> [u8; 4] {
-        let _sa = self.record_command(CommandCategory::Readback, false, false);
-        let mut pixel = [0u8; 4];
-        if let Some(GpuResource::Texture2D { handle }) = self.resources.get(&id) {
-            unsafe {
-                let mut fbo = 0;
-                gl::GenFramebuffers(1, &mut fbo);
-                gl::BindFramebuffer(gl::FRAMEBUFFER, fbo);
-                gl::FramebufferTexture2D(
-                    gl::FRAMEBUFFER,
+                ),
+                Some(GpuResource::Texture2D { handle }) => gl::FramebufferTexture2D(
+                    gl::READ_FRAMEBUFFER,
                     gl::COLOR_ATTACHMENT0,
                     gl::TEXTURE_2D,
                     *handle,
-                    0,
-                );
-                if gl::CheckFramebufferStatus(gl::FRAMEBUFFER) == gl::FRAMEBUFFER_COMPLETE {
-                    gl::ReadPixels(
-                        x,
-                        y,
-                        1,
-                        1,
-                        gl::RGBA,
-                        gl::UNSIGNED_BYTE,
-                        pixel.as_mut_ptr() as *mut _,
-                    );
-                } else {
-                    warn!("SamplePixel2DByResource: incomplete framebuffer");
-                }
-                // Restore the framebuffer of the open pass (or the default one).
-                gl::BindFramebuffer(gl::FRAMEBUFFER, self.bound_fbo);
-                gl::DeleteFramebuffers(1, &fbo);
+                    level,
+                ),
+                Some(GpuResource::Texture3D { handle }) => gl::FramebufferTextureLayer(
+                    gl::READ_FRAMEBUFFER,
+                    gl::COLOR_ATTACHMENT0,
+                    *handle,
+                    level,
+                    layer as i32,
+                ),
+                Some(GpuResource::TextureCube { handle }) => gl::FramebufferTexture2D(
+                    gl::READ_FRAMEBUFFER,
+                    gl::COLOR_ATTACHMENT0,
+                    gl::TEXTURE_CUBE_MAP_POSITIVE_X + layer,
+                    *handle,
+                    level,
+                ),
+                _ => return false,
             }
-        } else {
-            warn!("SamplePixel2DByResource: resource {:?} not found", id);
         }
-        pixel
+        true
     }
 
-    #[inline(always)]
-    pub(super) fn cmd_read_framebuffer_pixels(
+    /// `glReadPixels` of `region` of `src` as `format`, through the scratch
+    /// read framebuffer (or the default framebuffer for the backbuffer). GL
+    /// converts from the texture's own format. Rows come out tightly packed,
+    /// row 0 first, one layer after the other, at `dest` (a pointer, or an
+    /// offset into the bound pixel pack buffer). Returns false if the source
+    /// cannot be read; the pass framebuffer binding is restored either way.
+    fn gl_read_region(
         &mut self,
-        x: i32,
-        y: i32,
-        width: i32,
-        height: i32,
+        src: ReadSource,
+        region: &TexRegion,
+        format: TexFormat,
+        dest: *mut u8,
+    ) -> bool {
+        if TexFormat::is_depth(format) {
+            warn!("ReadTexture: depth formats cannot be read back ({format:?})");
+            return false;
+        }
+        let (_, gl_format, gl_type) = format.to_gl_formats();
+        let [x, y, z] = region.origin;
+        let [w, h, depth] = region.size;
+        let layer_bytes = w as usize * h as usize * TexFormat::get_size(format) as usize;
+        let mut ok = true;
+        unsafe {
+            gl::PixelStorei(gl::PACK_ALIGNMENT, 1);
+            if self.binding.copy_fbos[0] == 0 {
+                gl::GenFramebuffers(2, self.binding.copy_fbos.as_mut_ptr());
+            }
+            let read_fbo = self.binding.copy_fbos[0];
+            match src {
+                ReadSource::Backbuffer => {
+                    gl::BindFramebuffer(gl::READ_FRAMEBUFFER, 0);
+                    gl::ReadBuffer(gl::BACK);
+                }
+                ReadSource::Texture(_) => {
+                    gl::BindFramebuffer(gl::READ_FRAMEBUFFER, read_fbo);
+                    gl::ReadBuffer(gl::COLOR_ATTACHMENT0);
+                }
+            }
+            for layer in 0..depth {
+                if let ReadSource::Texture(id) = src {
+                    if !self.attach_read_layer(id, region.level as i32, z + layer) {
+                        warn!("ReadTexture: resource {id:?} is not a texture");
+                        ok = false;
+                        break;
+                    }
+                    if layer == 0 {
+                        let status = gl::CheckFramebufferStatus(gl::READ_FRAMEBUFFER);
+                        if status != gl::FRAMEBUFFER_COMPLETE {
+                            warn!(
+                                "ReadTexture: {id:?} cannot be read ({format:?}, status {status:#x})"
+                            );
+                            ok = false;
+                            break;
+                        }
+                    }
+                }
+                gl::ReadPixels(
+                    x as i32,
+                    y as i32,
+                    w as i32,
+                    h as i32,
+                    gl_format,
+                    gl_type,
+                    dest.wrapping_add(layer as usize * layer_bytes) as *mut _,
+                );
+            }
+            if matches!(src, ReadSource::Texture(_)) {
+                // Detach, so a deleted texture is not kept alive by the scratch FBO.
+                gl::BindFramebuffer(gl::READ_FRAMEBUFFER, read_fbo);
+                gl::FramebufferTexture2D(
+                    gl::READ_FRAMEBUFFER,
+                    gl::COLOR_ATTACHMENT0,
+                    gl::TEXTURE_2D,
+                    0,
+                    0,
+                );
+            }
+            gl::BindFramebuffer(gl::FRAMEBUFFER, self.bound_fbo);
+        }
+        ok
+    }
+
+    /// `ReadTextureSync`: read `region` of `src` as `format` and wait for it.
+    /// Empty if the read failed.
+    pub(super) fn cmd_read_texture_sync(
+        &mut self,
+        src: ReadSource,
+        region: &TexRegion,
+        format: TexFormat,
     ) -> Vec<u8> {
         let _sa = self.record_command(CommandCategory::Readback, false, false);
-        let mut data = vec![0u8; (width * height * 4) as usize];
+        let mut data = vec![0u8; region.bytes(format)];
+        if data.is_empty() || !self.has_gl_context() {
+            return Vec::new();
+        }
         unsafe {
-            gl::ReadPixels(
-                x,
-                y,
-                width,
-                height,
-                gl::RGBA,
-                gl::UNSIGNED_BYTE,
-                data.as_mut_ptr() as *mut _,
-            );
+            gl::BindBuffer(gl::PIXEL_PACK_BUFFER, 0);
+        }
+        if !self.gl_read_region(src, region, format, data.as_mut_ptr()) {
+            data.clear();
         }
         data
+    }
+
+    /// `ReadbackAsync`: `glReadPixels` into a fresh pixel pack buffer (the
+    /// driver queues the copy and returns), then a fence behind it.
+    /// `poll_readbacks` collects the buffer once the fence has signalled.
+    pub(super) fn cmd_readback_async(
+        &mut self,
+        src: ReadSource,
+        region: &TexRegion,
+        format: TexFormat,
+        slot: Arc<ReadbackSlot>,
+    ) {
+        let _sa = self.record_command(CommandCategory::Readback, false, false);
+        let size = region.bytes(format);
+        if size == 0 || !self.has_gl_context() {
+            slot.fail();
+            return;
+        }
+        unsafe {
+            let mut pbo = 0;
+            gl::GenBuffers(1, &mut pbo);
+            gl::BindBuffer(gl::PIXEL_PACK_BUFFER, pbo);
+            gl::BufferData(
+                gl::PIXEL_PACK_BUFFER,
+                size as isize,
+                std::ptr::null(),
+                gl::STREAM_READ,
+            );
+            let ok = self.gl_read_region(src, region, format, std::ptr::null_mut());
+            gl::BindBuffer(gl::PIXEL_PACK_BUFFER, 0);
+            if !ok {
+                gl::DeleteBuffers(1, &pbo);
+                slot.fail();
+                return;
+            }
+            let fence = gl::FenceSync(gl::SYNC_GPU_COMMANDS_COMPLETE, 0);
+            // The fence only counts once the commands before it were sent.
+            gl::Flush();
+            self.pending_readbacks.push(GlPendingReadback {
+                pbo,
+                fence: fence as usize,
+                size,
+                slot,
+            });
+        }
+    }
+
+    /// Collect the asynchronous readbacks whose fence has signalled. Never
+    /// waits: called once per frame at `BeginFrame`.
+    pub(super) fn poll_readbacks(&mut self) {
+        if self.pending_readbacks.is_empty() || !self.has_gl_context() {
+            return;
+        }
+        let pending = std::mem::take(&mut self.pending_readbacks);
+        for read in pending {
+            unsafe {
+                let sync = read.fence as gl::types::GLsync;
+                let status = gl::ClientWaitSync(sync, 0, 0);
+                if status == gl::TIMEOUT_EXPIRED {
+                    self.pending_readbacks.push(read);
+                    continue;
+                }
+                if status == gl::ALREADY_SIGNALED || status == gl::CONDITION_SATISFIED {
+                    gl::BindBuffer(gl::PIXEL_PACK_BUFFER, read.pbo);
+                    let ptr = gl::MapBufferRange(
+                        gl::PIXEL_PACK_BUFFER,
+                        0,
+                        read.size as isize,
+                        gl::MAP_READ_BIT,
+                    );
+                    if ptr.is_null() {
+                        read.slot.fail();
+                    } else {
+                        let bytes =
+                            std::slice::from_raw_parts(ptr as *const u8, read.size).to_vec();
+                        gl::UnmapBuffer(gl::PIXEL_PACK_BUFFER);
+                        read.slot.complete(bytes);
+                    }
+                    gl::BindBuffer(gl::PIXEL_PACK_BUFFER, 0);
+                } else {
+                    error!("Readback: fence wait failed (status {status:#x})");
+                    read.slot.fail();
+                }
+                gl::DeleteSync(sync);
+                gl::DeleteBuffers(1, &read.pbo);
+            }
+        }
     }
 
     /// Framebuffer for `desc`'s attachments, created on first use and cached
@@ -751,8 +786,19 @@ impl CommandExecutor {
     pub(super) fn cmd_generate_mips(&mut self, id: ResourceId) {
         let _sa = self.record_command(CommandCategory::TextureData, false, false);
         if let Some((target, handle)) = self.texture_target_and_handle(id) {
+            // `glGenerateMipmap` fills the levels between the base and the max
+            // level of the texture, which a sampling view narrowed to the one
+            // level it binds (`bind_view`): generate with the full range,
+            // and let the next view binding set its own range again.
+            let full = (0, 1000);
+            let have = self.binding.mip_ranges.get(&id).copied().unwrap_or(full);
             unsafe {
                 gl::BindTexture(target, handle);
+                if have != full {
+                    gl::TexParameteri(target, gl::TEXTURE_BASE_LEVEL, full.0);
+                    gl::TexParameteri(target, gl::TEXTURE_MAX_LEVEL, full.1);
+                    self.binding.mip_ranges.insert(id, full);
+                }
                 gl::GenerateMipmap(target);
             }
             self.restore_active_unit_binding();
@@ -1037,33 +1083,6 @@ impl CommandExecutor {
         }
         loose
     }
-
-    /// Byte size of a `w*h*d` block of texels in the given GL pixel/data
-    /// format - used to size the buffer for a `glGetTexImage` readback.
-    fn texel_buffer_size(
-        &self,
-        w: i32,
-        h: i32,
-        d: i32,
-        pixel_format: gl::types::GLenum,
-        data_format: gl::types::GLenum,
-    ) -> usize {
-        let components: i32 = match pixel_format {
-            gl::RED | gl::DEPTH_COMPONENT => 1,
-            gl::RG => 2,
-            gl::RGB | gl::BGR => 3,
-            gl::RGBA | gl::BGRA => 4,
-            _ => 4,
-        };
-        let element_size: i32 = match data_format {
-            gl::BYTE | gl::UNSIGNED_BYTE => 1,
-            gl::SHORT | gl::UNSIGNED_SHORT => 2,
-            gl::INT | gl::UNSIGNED_INT | gl::FLOAT => 4,
-            _ => 1,
-        };
-        (w * h * d * components * element_size).max(0) as usize
-    }
-
     /// Look up the GL target and handle for any texture-kind resource,
     /// dispatching on which `GpuResource` variant it is.
     fn texture_target_and_handle(&self, id: ResourceId) -> Option<(gl::types::GLenum, u32)> {

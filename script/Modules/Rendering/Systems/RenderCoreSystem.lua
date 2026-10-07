@@ -72,6 +72,7 @@ function RenderCoreSystem:registerVars()
     self.autoExposure    = {
         current = 1.0, -- current adapted exposure
         target  = 1.0, -- what we're adapting toward this frame
+        ticket  = nil, -- the luminance readback in flight (S8: `readAsync` of a small mip of buffer0)
     }
 
     local win            = Window:size()
@@ -768,15 +769,31 @@ function RenderCoreSystem:radialBlur()
     end, self.buffers[Enums.BufferName.zBufferL]:mipView(0))
 end
 
+--- Auto-exposure measurement (render API v2, S8). Resolves the readback that
+--- is in flight, if it has finished, into `autoExposure.target`, then starts
+--- the next one: mip chain of buffer0, then one `readAsync` of a small mip
+--- (~512 px at most, at least mip 2). The read takes a few frames, so
+--- `target` lags the picture by that much and nothing here ever waits for the
+--- GPU. The statistics are the same as when 128 pixels were read one by one
+--- (`Tex2D:sample`): log-average of random luminance samples of the mip, the
+--- brightest 35% ignored, capped per sample, through an RGBA8 read.
+---@param settings table post-processing tonemap settings
 ---@param dt number
-function RenderCoreSystem:tonemap(dt)
-    if not self.postSettings.tonemap.enable then return end
+function RenderCoreSystem:updateAutoExposureTarget(settings, dt)
+    local ae = self.autoExposure
+    local ticket = ae.ticket
 
-    local settings = self.postSettings.tonemap
-    local exposure = settings.exposure
+    if ticket and ticket:ready() then
+        local w, h = ticket:getWidth(), ticket:getHeight()
+        local bytes = ticket:data()
+        ticket:free()
+        ae.ticket = nil
+        if bytes:getSize() >= w * h * 4 then
+            ae.target = self:autoExposureTarget(settings, bytes, w, h, dt)
+        end
+    end
 
-    -- Space-game optimized auto-exposure: extremely stable, ignores bright stars/sun, very slow adaptation
-    if settings.autoExpose.enable then
+    if not ae.ticket then
         local src = self.buffers[Enums.BufferName.buffer0]
         src:genMipmap()
 
@@ -791,58 +808,83 @@ function RenderCoreSystem:tonemap(dt)
         end
         mip = math.max(mip, 2)
 
-        -- `src:sample` reads level 0 of the texture (it always did: the mip range
-        -- this code used to set never reached the framebuffer read); S8 replaces
-        -- the sampling with an async read of this mip.
         local smallSize = src:getSizeLevel(mip)
-        local w, h = smallSize.x, smallSize.y
+        ae.ticket = Renderer:readAsync(src:mipView(mip), 0, 0, smallSize.x, smallSize.y, TexFormat.RGBA8)
+    end
+end
 
-        -- Continuous random sampling: 128 samples
-        local numSamples = 128
-        local lumSamples = {}
-        local maxLumCap = 0.05
+--- The exposure target for the RGBA8 pixels of a `w` x `h` mip (see
+--- `updateAutoExposureTarget`).
+---@param settings table
+---@param bytes Bytes
+---@param w integer
+---@param h integer
+---@param dt number
+---@return number
+function RenderCoreSystem:autoExposureTarget(settings, bytes, w, h, dt)
+    -- Continuous random sampling: 128 samples
+    local numSamples = 128
+    local lumSamples = {}
+    local maxLumCap = 0.05
 
-        local seed = (self.frameCounter or 0) + dt * 1000
-        math.randomseed(math.floor(seed * 1000))
+    local seed = (self.frameCounter or 0) + dt * 1000
+    math.randomseed(math.floor(seed * 1000))
 
-        for i = 1, numSamples do
-            local u = math.random()
-            local v = math.random()
+    for i = 1, numSamples do
+        local u = math.random()
+        local v = math.random()
 
-            local x = math.floor(u * (w - 1) + 0.5)
-            local y = math.floor(v * (h - 1) + 0.5)
+        local x = math.floor(u * (w - 1) + 0.5)
+        local y = math.floor(v * (h - 1) + 0.5)
 
-            local color = src:sample(x, y)
+        bytes:setCursor((y * w + x) * 4)
+        local r = bytes:readU8() / 255
+        local g = bytes:readU8() / 255
+        local b = bytes:readU8() / 255
 
-            local lum = color.x * 0.2126 + color.y * 0.7152 + color.z * 0.0722
-            lum = math.min(lum, maxLumCap)
-            table.insert(lumSamples, math.max(lum, 0.000001))
-        end
+        local lum = r * 0.2126 + g * 0.7152 + b * 0.0722
+        lum = math.min(lum, maxLumCap)
+        table.insert(lumSamples, math.max(lum, 0.000001))
+    end
 
-        table.sort(lumSamples)
+    table.sort(lumSamples)
 
-        -- Keep lowest 65%
-        local validFraction = 0.65
-        local validCount = math.max(1, math.floor(#lumSamples * validFraction))
-        local logSum = 0.0
-        for i = 1, validCount do
-            logSum = logSum + math.log(lumSamples[i])
-        end
+    -- Keep lowest 65%
+    local validFraction = 0.65
+    local validCount = math.max(1, math.floor(#lumSamples * validFraction))
+    local logSum = 0.0
+    for i = 1, validCount do
+        logSum = logSum + math.log(lumSamples[i])
+    end
 
-        local logAvgLum          = logSum / validCount
-        local avgLum             = math.exp(logAvgLum)
+    local logAvgLum      = logSum / validCount
+    local avgLum         = math.exp(logAvgLum)
 
-        -- Base target
-        local targetExposure     = 0.0005 / avgLum
+    -- Base target
+    local targetExposure = 0.0005 / avgLum
 
-        -- Slight dark bias
-        targetExposure           = targetExposure * 0.8
+    -- Slight dark bias
+    targetExposure       = targetExposure * 0.8
 
-        local minTarget          = settings.autoExpose.minTarget
-        local maxTarget          = settings.autoExpose.maxTarget
-        targetExposure           = Math.Clamp(targetExposure, minTarget, maxTarget)
+    local minTarget      = settings.autoExpose.minTarget
+    local maxTarget      = settings.autoExpose.maxTarget
+    return Math.Clamp(targetExposure, minTarget, maxTarget)
+end
 
-        self.autoExposure.target = targetExposure
+---@param dt number
+function RenderCoreSystem:tonemap(dt)
+    if not self.postSettings.tonemap.enable then return end
+
+    local settings = self.postSettings.tonemap
+    local exposure = settings.exposure
+
+    -- Space-game optimized auto-exposure: extremely stable, ignores bright stars/sun, very slow adaptation
+    if settings.autoExpose.enable then
+        -- The target comes from an asynchronous read of a small mip of buffer0
+        -- (a few frames old when it arrives; the adaptation below is slow enough
+        -- that nobody can tell).
+        self:updateAutoExposureTarget(settings, dt)
+        local targetExposure     = self.autoExposure.target
 
         -- Extremely slow adaptation
         local ae                 = self.autoExposure

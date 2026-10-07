@@ -33,6 +33,7 @@ use crate::render::{
 };
 use crate::window::PresentMode;
 
+mod readback;
 mod tex;
 
 /// GPU resource stored on the backend owner — wgpu flavor.
@@ -315,6 +316,8 @@ pub struct WgpuCommandExecutor {
     surface_pending_clear_depth: Option<f32>,
     /// One encoder per frame: draws accumulate into it, the swap submits it.
     current_encoder: Option<wgpu::CommandEncoder>,
+    /// Asynchronous readbacks waiting for their buffer to map (`poll_readbacks`).
+    pending_reads: Vec<readback::WgpuPendingRead>,
     /// 1x1 white texture + linear sampler for unbound sampler slots.
     default_texture: Option<wgpu::Texture>,
     default_sampler: Option<wgpu::Sampler>,
@@ -398,6 +401,7 @@ impl WgpuCommandExecutor {
             surface_pending_clear_color: None,
             surface_pending_clear_depth: None,
             current_encoder: None,
+            pending_reads: Vec::new(),
             default_texture: None,
             default_sampler: None,
             default_cube_texture: None,
@@ -1354,296 +1358,6 @@ impl WgpuCommandExecutor {
         _height: i32,
     ) {
         warn!("wgpu: framebuffer copy not implemented (no-op)");
-    }
-
-    // --- Readbacks (all device-bound) ---
-
-    fn read_texture_region(
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        texture: &wgpu::Texture,
-        origin: wgpu::Origin3d,
-        extent: wgpu::Extent3d,
-    ) -> Option<Vec<u8>> {
-        let bytes_per_pixel = match texture.format() {
-            wgpu::TextureFormat::R8Unorm
-            | wgpu::TextureFormat::R8Snorm
-            | wgpu::TextureFormat::R8Uint
-            | wgpu::TextureFormat::R8Sint => 1,
-            wgpu::TextureFormat::R32Float
-            | wgpu::TextureFormat::R32Uint
-            | wgpu::TextureFormat::R32Sint
-            | wgpu::TextureFormat::Depth32Float => 4,
-            wgpu::TextureFormat::Rgba8Unorm
-            | wgpu::TextureFormat::Rgba8UnormSrgb
-            | wgpu::TextureFormat::Bgra8Unorm
-            | wgpu::TextureFormat::Bgra8UnormSrgb => 4,
-            wgpu::TextureFormat::Rgba16Float => 8,
-            wgpu::TextureFormat::Rgba32Float => 16,
-            _ => return None,
-        };
-        let row_bytes = extent.width as u64 * bytes_per_pixel;
-        let padded_row_bytes = row_bytes.div_ceil(256) * 256;
-        let buffer_size = padded_row_bytes
-            .checked_mul(extent.height as u64)
-            .and_then(|size| size.checked_mul(extent.depth_or_array_layers as u64))?;
-        let staging = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("phx-readback"),
-            size: buffer_size.max(4),
-            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
-            mapped_at_creation: false,
-        });
-        let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("phx-readback-copy"),
-        });
-        encoder.copy_texture_to_buffer(
-            wgpu::TexelCopyTextureInfo {
-                texture,
-                mip_level: 0,
-                origin,
-                aspect: wgpu::TextureAspect::All,
-            },
-            wgpu::TexelCopyBufferInfo {
-                buffer: &staging,
-                layout: wgpu::TexelCopyBufferLayout {
-                    offset: 0,
-                    bytes_per_row: Some(padded_row_bytes as u32),
-                    rows_per_image: Some(extent.height),
-                },
-            },
-            extent,
-        );
-        queue.submit([encoder.finish()]);
-
-        let completion = Arc::new(Mutex::new(None));
-        let callback_completion = completion.clone();
-        staging
-            .slice(..)
-            .map_async(wgpu::MapMode::Read, move |result| {
-                if let Ok(mut state) = callback_completion.lock() {
-                    *state = Some(result);
-                }
-            });
-
-        let deadline = Instant::now() + Duration::from_secs(5);
-        loop {
-            if let Ok(mut state) = completion.lock() {
-                if let Some(result) = state.take() {
-                    if result.is_err() {
-                        staging.unmap();
-                        return None;
-                    }
-                    let Ok(mapped) = staging.slice(..).get_mapped_range() else {
-                        staging.unmap();
-                        return None;
-                    };
-                    let mut output = Vec::with_capacity(
-                        row_bytes as usize
-                            * extent.height as usize
-                            * extent.depth_or_array_layers as usize,
-                    );
-                    for layer in 0..extent.depth_or_array_layers as usize {
-                        let layer_start =
-                            layer * padded_row_bytes as usize * extent.height as usize;
-                        for row in 0..extent.height as usize {
-                            let start = layer_start + row * padded_row_bytes as usize;
-                            output.extend_from_slice(&mapped[start..start + row_bytes as usize]);
-                        }
-                    }
-                    drop(mapped);
-                    staging.unmap();
-                    return Some(output);
-                }
-            }
-            if Instant::now() >= deadline || device.poll(wgpu::PollType::Poll).is_err() {
-                staging.unmap();
-                return None;
-            }
-            std::thread::yield_now();
-        }
-    }
-
-    pub(super) fn cmd_read_texture_1d_data(
-        &mut self,
-        id: ResourceId,
-        _pixel_format: u32,
-        _data_format: u32,
-    ) -> Vec<u8> {
-        let Some((device, queue)) = self.device.as_ref().zip(self.queue.as_ref()) else {
-            return Vec::new();
-        };
-        let Some(WgpuGpuResource::Texture1D { texture, .. }) = self.resources.get(&id) else {
-            return Vec::new();
-        };
-        let size = texture.size();
-        Self::read_texture_region(
-            device,
-            queue,
-            texture,
-            wgpu::Origin3d::ZERO,
-            wgpu::Extent3d {
-                width: size.width,
-                height: 1,
-                depth_or_array_layers: 1,
-            },
-        )
-        .unwrap_or_default()
-    }
-
-    pub(super) fn cmd_read_texture_2d_data(
-        &mut self,
-        id: ResourceId,
-        _pixel_format: u32,
-        _data_format: u32,
-    ) -> Vec<u8> {
-        let Some((device, queue)) = self.device.as_ref().zip(self.queue.as_ref()) else {
-            return Vec::new();
-        };
-        let Some(WgpuGpuResource::Texture2D { texture, .. }) = self.resources.get(&id) else {
-            return Vec::new();
-        };
-        let size = texture.size();
-        Self::read_texture_region(
-            device,
-            queue,
-            texture,
-            wgpu::Origin3d::ZERO,
-            wgpu::Extent3d {
-                width: size.width,
-                height: size.height,
-                depth_or_array_layers: 1,
-            },
-        )
-        .unwrap_or_default()
-    }
-
-    pub(super) fn cmd_read_texture_3d_data(
-        &mut self,
-        id: ResourceId,
-        _pixel_format: u32,
-        _data_format: u32,
-    ) -> Vec<u8> {
-        let Some((device, queue)) = self.device.as_ref().zip(self.queue.as_ref()) else {
-            return Vec::new();
-        };
-        let Some(WgpuGpuResource::Texture3D { texture, .. }) = self.resources.get(&id) else {
-            return Vec::new();
-        };
-        let size = texture.size();
-        Self::read_texture_region(device, queue, texture, wgpu::Origin3d::ZERO, size)
-            .unwrap_or_default()
-    }
-
-    pub(super) fn cmd_read_texture_cube_face_data(
-        &mut self,
-        id: ResourceId,
-        face: u32,
-        _level: i32,
-        _pixel_format: u32,
-        _data_format: u32,
-    ) -> Vec<u8> {
-        let Some((device, queue)) = self.device.as_ref().zip(self.queue.as_ref()) else {
-            return Vec::new();
-        };
-        let Some(WgpuGpuResource::TextureCube { texture, .. }) = self.resources.get(&id) else {
-            return Vec::new();
-        };
-        let size = texture.size();
-        Self::read_texture_region(
-            device,
-            queue,
-            texture,
-            wgpu::Origin3d {
-                x: 0,
-                y: 0,
-                z: face.min(5),
-            },
-            wgpu::Extent3d {
-                width: size.width,
-                height: size.height,
-                depth_or_array_layers: 1,
-            },
-        )
-        .unwrap_or_default()
-    }
-
-    pub(super) fn cmd_sample_pixel_2d_by_resource(
-        &mut self,
-        id: ResourceId,
-        x: i32,
-        y: i32,
-    ) -> [u8; 4] {
-        let Some((device, queue)) = self.device.as_ref().zip(self.queue.as_ref()) else {
-            return [0; 4];
-        };
-        let Some(WgpuGpuResource::Texture2D { texture, .. }) = self.resources.get(&id) else {
-            return [0; 4];
-        };
-        let size = texture.size();
-        if size.width == 0 || size.height == 0 {
-            return [0; 4];
-        }
-        let px = x.clamp(0, size.width.saturating_sub(1) as i32) as u32;
-        let py = y.clamp(0, size.height.saturating_sub(1) as i32) as u32;
-        let Some(bytes) = Self::read_texture_region(
-            device,
-            queue,
-            texture,
-            wgpu::Origin3d { x: px, y: py, z: 0 },
-            wgpu::Extent3d {
-                width: 1,
-                height: 1,
-                depth_or_array_layers: 1,
-            },
-        ) else {
-            return [0; 4];
-        };
-        Self::decode_sample_pixel(texture.format(), &bytes)
-    }
-
-    pub(super) fn cmd_read_framebuffer_pixels(
-        &mut self,
-        x: i32,
-        y: i32,
-        width: i32,
-        height: i32,
-    ) -> Vec<u8> {
-        let Some((device, queue)) = self.device.as_ref().zip(self.queue.as_ref()) else {
-            return Vec::new();
-        };
-        let target = if let Some(fb) = self.framebuffer_stack.last() {
-            fb.color_textures[0]
-                .clone()
-                .map(|texture| (texture, fb.width, fb.height))
-        } else {
-            self.surface_frame.as_ref().map(|frame| {
-                let size = frame.texture.size();
-                (frame.texture.clone(), size.width, size.height)
-            })
-        };
-        let Some((texture, target_width, target_height)) = target else {
-            return Vec::new();
-        };
-        let x = x.clamp(0, target_width.saturating_sub(1) as i32) as u32;
-        let y = y.clamp(0, target_height.saturating_sub(1) as i32) as u32;
-        let width = width.max(0) as u32;
-        let height = height.max(0) as u32;
-        if width == 0 || height == 0 || x >= target_width || y >= target_height {
-            return Vec::new();
-        }
-        let extent = wgpu::Extent3d {
-            width: width.min(target_width - x),
-            height: height.min(target_height - y),
-            depth_or_array_layers: 1,
-        };
-        Self::read_texture_region(
-            device,
-            queue,
-            &texture,
-            wgpu::Origin3d { x, y, z: 0 },
-            extent,
-        )
-        .unwrap_or_default()
     }
 
     // --- Render passes ---
@@ -3651,98 +3365,6 @@ impl WgpuCommandExecutor {
         }
     }
 
-    /// Rgba8UnormSrgb -> Rgba8Unorm distinction for shader-visible textures:
-    /// keep the raw format (the engine's data is raw RGBA); srgb correction
-    /// is applied at the view level if the format demands it. We use the
-    /// non-srgb format to match GL's unmanaged sampling.
-    fn f16_to_f32(bits: u16) -> f32 {
-        let sign = if bits & 0x8000 != 0 { -1.0 } else { 1.0 };
-        let exponent = ((bits >> 10) & 0x1f) as i32;
-        let mantissa = (bits & 0x03ff) as u32;
-        match exponent {
-            0 => sign * (mantissa as f32 / 1024.0) * 2.0f32.powi(-14),
-            0x1f => {
-                if mantissa == 0 {
-                    sign * f32::INFINITY
-                } else {
-                    f32::NAN
-                }
-            }
-            _ => sign * (1.0 + mantissa as f32 / 1024.0) * 2.0f32.powi(exponent - 15),
-        }
-    }
-
-    fn float_to_u8(value: f32) -> u8 {
-        if !value.is_finite() {
-            return 0;
-        }
-        (value.clamp(0.0, 1.0) * 255.0).round() as u8
-    }
-
-    fn decode_sample_pixel(format: wgpu::TextureFormat, bytes: &[u8]) -> [u8; 4] {
-        let half = |offset: usize| -> f32 {
-            bytes
-                .get(offset..offset + 2)
-                .and_then(|raw| raw.try_into().ok())
-                .map(u16::from_le_bytes)
-                .map(Self::f16_to_f32)
-                .unwrap_or(0.0)
-        };
-        let float = |offset: usize| -> f32 {
-            bytes
-                .get(offset..offset + 4)
-                .and_then(|raw| raw.try_into().ok())
-                .map(f32::from_le_bytes)
-                .unwrap_or(0.0)
-        };
-        match format {
-            wgpu::TextureFormat::Rgba16Float => [
-                Self::float_to_u8(half(0)),
-                Self::float_to_u8(half(2)),
-                Self::float_to_u8(half(4)),
-                Self::float_to_u8(half(6)),
-            ],
-            wgpu::TextureFormat::R16Float => [Self::float_to_u8(half(0)), 0, 0, 255],
-            wgpu::TextureFormat::Rg16Float => [
-                Self::float_to_u8(half(0)),
-                Self::float_to_u8(half(2)),
-                0,
-                255,
-            ],
-            wgpu::TextureFormat::R32Float => [Self::float_to_u8(float(0)), 0, 0, 255],
-            wgpu::TextureFormat::Rgba32Float => [
-                Self::float_to_u8(float(0)),
-                Self::float_to_u8(float(4)),
-                Self::float_to_u8(float(8)),
-                Self::float_to_u8(float(12)),
-            ],
-            wgpu::TextureFormat::Rgba8Unorm
-            | wgpu::TextureFormat::Rgba8UnormSrgb
-            | wgpu::TextureFormat::Rgba8Snorm => [
-                *bytes.first().unwrap_or(&0),
-                *bytes.get(1).unwrap_or(&0),
-                *bytes.get(2).unwrap_or(&0),
-                *bytes.get(3).unwrap_or(&255),
-            ],
-            wgpu::TextureFormat::Bgra8Unorm | wgpu::TextureFormat::Bgra8UnormSrgb => [
-                *bytes.get(2).unwrap_or(&0),
-                *bytes.get(1).unwrap_or(&0),
-                *bytes.first().unwrap_or(&0),
-                *bytes.get(3).unwrap_or(&255),
-            ],
-            wgpu::TextureFormat::R8Unorm
-            | wgpu::TextureFormat::R8Snorm
-            | wgpu::TextureFormat::R8Uint
-            | wgpu::TextureFormat::R8Sint => [*bytes.first().unwrap_or(&0), 0, 0, 255],
-            _ => [
-                *bytes.first().unwrap_or(&0),
-                *bytes.get(1).unwrap_or(&0),
-                *bytes.get(2).unwrap_or(&0),
-                *bytes.get(3).unwrap_or(&255),
-            ],
-        }
-    }
-
     /// Convert f32 (4 bytes LE) to f16 (2 bytes LE), round-to-nearest-even.
     fn f32_to_f16_bytes(data: &[u8]) -> Vec<u8> {
         let mut out = Vec::with_capacity(data.len() / 2);
@@ -4566,71 +4188,28 @@ impl WgpuCommandExecutor {
                 width,
                 height,
             } => self.cmd_copy_texture_2d_from_framebuffer_by_resource(id, format, width, height),
-            RenderCommand::ReadTexture1DData {
-                id,
-                pixel_format,
-                data_format,
+            RenderCommand::ReadTextureSync {
+                src,
+                region,
+                format,
                 reply_tx,
             } => {
-                let data = self.cmd_read_texture_1d_data(id, pixel_format, data_format);
+                let data = self.cmd_read_texture_sync(src, &region, format);
                 let _ = reply_tx.send(data);
             }
-            RenderCommand::ReadTexture2DData {
-                id,
-                pixel_format,
-                data_format,
-                reply_tx,
-            } => {
-                let data = self.cmd_read_texture_2d_data(id, pixel_format, data_format);
-                let _ = reply_tx.send(data);
-            }
-            RenderCommand::ReadTexture3DData {
-                id,
-                pixel_format,
-                data_format,
-                reply_tx,
-            } => {
-                let data = self.cmd_read_texture_3d_data(id, pixel_format, data_format);
-                let _ = reply_tx.send(data);
-            }
-            RenderCommand::ReadTextureCubeFaceData {
-                id,
-                face,
-                level,
-                pixel_format,
-                data_format,
-                reply_tx,
-            } => {
-                let data = self.cmd_read_texture_cube_face_data(
-                    id,
-                    face,
-                    level,
-                    pixel_format,
-                    data_format,
-                );
-                let _ = reply_tx.send(data);
-            }
-            RenderCommand::SamplePixel2DByResource { id, x, y, reply_tx } => {
-                let data = self.cmd_sample_pixel_2d_by_resource(id, x, y);
-                let _ = reply_tx.send(data);
-            }
-            RenderCommand::ReadFramebufferPixels {
-                x,
-                y,
-                width,
-                height,
-                reply_tx,
-            } => {
-                let data = self.cmd_read_framebuffer_pixels(x, y, width, height);
-                let _ = reply_tx.send(data);
-            }
+            RenderCommand::ReadbackAsync {
+                src,
+                region,
+                format,
+                slot,
+            } => self.cmd_readback_async(src, &region, format, slot),
 
             // === Render Passes ===
             RenderCommand::BeginRenderPass(desc) => self.cmd_begin_render_pass(&desc),
             RenderCommand::EndRenderPass => self.cmd_end_render_pass(),
             // Ring slots need no fence here: `queue.write_buffer` is ordered
             // before the submission that reads it.
-            RenderCommand::BeginFrame { .. } => {}
+            RenderCommand::BeginFrame { .. } => self.poll_readbacks(),
             RenderCommand::PassCommands(mut commands) => self.cmd_pass_commands(&mut commands),
             RenderCommand::CreatePipeline { id, desc } => self.cmd_create_pipeline(id, &desc),
             RenderCommand::CreateSampler { id, desc } => self.cmd_create_sampler(id, &desc),
@@ -4888,9 +4467,10 @@ mod tests {
             encoded,
             vec![0x00, 0x3a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x3c]
         );
+        // A read of the texture goes back through RGBA16F to an f32.
         assert_eq!(
-            WgpuCommandExecutor::decode_sample_pixel(wgpu::TextureFormat::Rgba16Float, &encoded),
-            [191, 0, 0, 255]
+            crate::render::convert_format(TexFormat::RGBA16F, &encoded, TexFormat::R32F).as_ref(),
+            0.75f32.to_ne_bytes()
         );
     }
 

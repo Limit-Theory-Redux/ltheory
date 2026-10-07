@@ -31,3 +31,7 @@ edits `material/planet.glsl` while `PlanetTest` runs (a tint, a revert, and a ne
 checks the pictures against an unedited run and the logs for errors.
 
 `compare.py` needs Pillow. Baseline `.json` stats (fps, draw calls) are informational.
+
+Auto-exposure (asynchronous readback, S8) has its own test, `python tools/render_validation/auto_exposure_test.py [backend]`: the `AutoExposure` scene
+runs `RenderCoreSystem:tonemap` over a black and then a mid-gray frame and the script checks the exposure it converges to against
+`baseline/auto_exposure.json` (recorded with the synchronous implementation). It is not part of `run_all.py` (whose supervisor count is 13).

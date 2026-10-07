@@ -1,5 +1,6 @@
 local Application = require("States.Application")
 local ProbePaths = require("States.App.Rendering.ProbePaths")
+local ProbeRead = require("States.App.Rendering.ProbeRead")
 
 ---@class RenderingDownsample: Application
 local RenderingDownsample = Subclass("RenderingDownsample", Application)
@@ -49,10 +50,10 @@ function RenderingDownsample:eventLoop()
     self.frames = self.frames + 1
 
     if self.frames == 10 and not self.probed then
-        local sourceCenter = self.source:sample(math.floor(SOURCE_W / 2), math.floor(SOURCE_H / 2))
-        local linearCenter = self.linear:sample(math.floor(TARGET_W / 2), math.floor(TARGET_H / 2))
-        local nearestCenter = self.nearest:sample(math.floor(TARGET_W / 2), math.floor(TARGET_H / 2))
-        local upscaledCenter = self.upscaled:sample(math.floor(OUTPUT_W / 2), math.floor(OUTPUT_H / 2))
+        local sourceCenter = ProbeRead.sample(self.source, math.floor(SOURCE_W / 2), math.floor(SOURCE_H / 2))
+        local linearCenter = ProbeRead.sample(self.linear, math.floor(TARGET_W / 2), math.floor(TARGET_H / 2))
+        local nearestCenter = ProbeRead.sample(self.nearest, math.floor(TARGET_W / 2), math.floor(TARGET_H / 2))
+        local upscaledCenter = ProbeRead.sample(self.upscaled, math.floor(OUTPUT_W / 2), math.floor(OUTPUT_H / 2))
         local sourcePath = ProbePaths.file("downsample-source.png")
         local linearPath = ProbePaths.file("downsample-linear.png")
         local nearestPath = ProbePaths.file("downsample-nearest.png")

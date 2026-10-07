@@ -173,6 +173,15 @@ pub fn create_surface_bundle(
         .get_default_config(&adapter, width, height)
         .ok_or(WgpuError::NoDefaultConfig)?;
     config.present_mode = present_mode.into();
+    // The backbuffer can be read back (screenshots, captures) where the
+    // surface allows copying from it.
+    if surface
+        .get_capabilities(&adapter)
+        .usages
+        .contains(wgpu::TextureUsages::COPY_SRC)
+    {
+        config.usage |= wgpu::TextureUsages::COPY_SRC;
+    }
     surface.configure(&device, &config);
     info!(
         "wgpu surface configured: {}x{} format {:?} present {:?}",
