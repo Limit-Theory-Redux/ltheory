@@ -16,6 +16,8 @@ log_path = artifact_dir / f"indexed-cull-{backend}-latest.log"
 env = os.environ.copy()
 if backend == "wgpu":
     env["LTHEORY_WGPU"] = "1"
+    # Fatal mode: the first wgpu validation error panics instead of being logged.
+    env.setdefault("LTHEORY_WGPU_FATAL", "1")
 else:
     env.pop("LTHEORY_WGPU", None)
 args = [str(exe), "-e", "./script/Main.lua", "Rendering/IndexedCull"]

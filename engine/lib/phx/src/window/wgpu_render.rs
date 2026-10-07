@@ -104,6 +104,18 @@ pub struct WgpuStartupBundle {
     pub surface_config: wgpu::SurfaceConfiguration,
 }
 
+/// The optional features the engine's executor uses when the adapter has them:
+/// filtering and blending of 32-bit float textures (`R32F`/`RGBA32F` render
+/// targets and data textures keep their precision instead of living in 16F),
+/// 16-bit normalized formats and wireframe polygons.
+pub fn wanted_features(available: wgpu::Features) -> wgpu::Features {
+    available
+        & (wgpu::Features::FLOAT32_FILTERABLE
+            | wgpu::Features::FLOAT32_BLENDABLE
+            | wgpu::Features::TEXTURE_FORMAT_16BIT_NORM
+            | wgpu::Features::POLYGON_MODE_LINE)
+}
+
 /// Create instance → adapter → device/queue → surface (owned) from the winit
 /// window, and configure the swapchain for `present_mode`.
 #[allow(unsafe_code)] // raw-handle surface; safety contract documented below
@@ -160,7 +172,7 @@ pub fn create_surface_bundle(
 
     let (device, queue) = poll_startup_future(adapter.request_device(&wgpu::DeviceDescriptor {
         label: Some("phx-wgpu-device"),
-        required_features: wgpu::Features::empty(),
+        required_features: wanted_features(adapter.features()),
         required_limits: wgpu::Limits::default(),
         experimental_features: wgpu::ExperimentalFeatures::default(),
         memory_hints: wgpu::MemoryHints::default(),
@@ -172,6 +184,14 @@ pub fn create_surface_bundle(
     let mut config = surface
         .get_default_config(&adapter, width, height)
         .ok_or(WgpuError::NoDefaultConfig)?;
+    // The default config prefers an sRGB format, which would gamma-encode the
+    // (already display-referred) pixels the engine renders. The GL default
+    // framebuffer is not sRGB either, so take the linear twin of the format.
+    let capabilities = surface.get_capabilities(&adapter);
+    let linear = config.format.remove_srgb_suffix();
+    if capabilities.formats.contains(&linear) {
+        config.format = linear;
+    }
     config.present_mode = present_mode.into();
     // The backbuffer can be read back (screenshots, captures) where the
     // surface allows copying from it.

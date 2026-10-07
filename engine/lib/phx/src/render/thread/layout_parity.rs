@@ -16,9 +16,10 @@
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
-use super::command_executor_wgpu::WgpuCommandExecutor;
+use super::command_executor_wgpu::{adapt_single_stage, parse_adapted};
 use crate::render::{
     BlockLayout, DrawBlock, GLSLCode, GlslType, ShaderLayout, TexDim, ViewBlock, blocks_from_naga,
+    wgpu_block_binding,
 };
 
 fn repo_root() -> PathBuf {
@@ -76,8 +77,8 @@ fn preprocess(root: &Path, file: &Path) -> GLSLCode {
 
 struct NagaView {
     blocks: Vec<BlockLayout>,
-    /// `(block name, binding)` of every uniform-space global with a binding.
-    block_bindings: Vec<(String, u32)>,
+    /// `(block name, set, binding)` of every uniform-space global with a binding.
+    block_bindings: Vec<(String, u32, u32)>,
     /// `(sampler name, dimension)` from the `<name>_tex` image globals.
     textures: Vec<(String, TexDim)>,
 }
@@ -91,17 +92,8 @@ fn naga_view(
 ) -> Result<NagaView, String> {
     use wgpu::naga::{AddressSpace, ImageDimension, TypeInner};
 
-    let adapted = WgpuCommandExecutor::adapt_glsl_for_naga_with_layout(code, 0, layout);
-    let mut frontend = wgpu::naga::front::glsl::Frontend::default();
-    let module = frontend
-        .parse(&wgpu::naga::front::glsl::Options::from(stage), &adapted)
-        .map_err(|e| format!("parse: {e}"))?;
-    wgpu::naga::valid::Validator::new(
-        wgpu::naga::valid::ValidationFlags::all(),
-        wgpu::naga::valid::Capabilities::all(),
-    )
-    .validate(&module)
-    .map_err(|e| format!("validate: {e}"))?;
+    let adapted = adapt_single_stage(code, stage, layout)?;
+    let module = parse_adapted(stage, &adapted)?;
 
     let mut block_bindings = Vec::new();
     let mut textures = Vec::new();
@@ -115,7 +107,7 @@ fn naga_view(
                     .or_else(|| var.name.clone())
                     .unwrap_or_default();
                 if let Some(binding) = var.binding {
-                    block_bindings.push((name, binding.binding));
+                    block_bindings.push((name, binding.group, binding.binding));
                 }
             }
             AddressSpace::Handle => {
@@ -189,12 +181,12 @@ fn recorded_layout_matches_naga_for_every_shader() {
         // Every recorded block exists in naga with the recorded binding.
         for decl in &layout.blocks {
             checked_blocks += 1;
-            match view.block_bindings.iter().find(|(n, _)| n == &decl.name) {
-                Some((_, binding)) if *binding == decl.binding() => {}
-                Some((_, binding)) => problems.push(format!(
-                    "{rel}: block {} recorded at binding {} but naga sees {binding}",
-                    decl.name,
-                    decl.binding()
+            let want = (decl.group as u32, wgpu_block_binding(decl.index));
+            match view.block_bindings.iter().find(|(n, _, _)| n == &decl.name) {
+                Some((_, set, binding)) if (*set, *binding) == want => {}
+                Some((_, set, binding)) => problems.push(format!(
+                    "{rel}: block {} recorded at set {} binding {} but naga sees set {set} binding {binding}",
+                    decl.name, want.0, want.1
                 )),
                 None => problems.push(format!(
                     "{rel}: block {} recorded but naga found no such uniform block",
@@ -203,7 +195,7 @@ fn recorded_layout_matches_naga_for_every_shader() {
             }
         }
         // Every real uniform block naga sees was recorded.
-        for (name, _) in &view.block_bindings {
+        for (name, _, _) in &view.block_bindings {
             let known = layout.block(name).is_some()
                 || name.starts_with("_phx")
                 || matches!(name.as_str(), "MaterialUBO");

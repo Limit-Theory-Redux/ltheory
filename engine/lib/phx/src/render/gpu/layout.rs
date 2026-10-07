@@ -44,6 +44,28 @@ pub const fn texture_unit(group: u8, k: u8) -> u32 {
     GROUP_FIRST_UNIT[group as usize] + k as u32
 }
 
+/// wgpu numbering inside a bind group (`set` = group): the `k`-th uniform block
+/// is binding `k`, the `i`-th sampler is a texture at `WGPU_FIRST_TEXTURE_BINDING
+/// + 2 * i` and its sampler object right after it (naga needs separate texture
+/// and sampler declarations; the combined-sampler split of the wgpu shader
+/// adaptation pairs them again at the use sites).
+pub const WGPU_FIRST_TEXTURE_BINDING: u32 = BLOCKS_PER_GROUP;
+
+/// wgpu binding of the `k`-th uniform block of a group.
+pub const fn wgpu_block_binding(k: u8) -> u32 {
+    k as u32
+}
+
+/// wgpu binding of the texture of the `i`-th sampler of a group.
+pub const fn wgpu_texture_binding(i: u8) -> u32 {
+    WGPU_FIRST_TEXTURE_BINDING + 2 * i as u32
+}
+
+/// wgpu binding of the sampler object of the `i`-th sampler of a group.
+pub const fn wgpu_sampler_binding(i: u8) -> u32 {
+    wgpu_texture_binding(i) + 1
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TexDim {
     D1,

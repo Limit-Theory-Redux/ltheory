@@ -3,6 +3,8 @@ mod command_category;
 mod command_executor;
 mod command_executor_gl;
 mod command_executor_gl_binding;
+// The wgpu executor is driven by `RenderThread` only; the immediate renderer is GL-only.
+#[cfg(any(not(feature = "immediate"), test))]
 mod command_executor_wgpu;
 mod config;
 mod error;

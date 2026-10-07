@@ -107,7 +107,9 @@ impl WgpuCommandExecutor {
         region: &TexRegion,
         format: TexFormat,
     ) -> Option<WgpuPendingRead> {
-        let (device, queue) = (self.device.clone()?, self.queue.clone()?);
+        // The copy reads what the frame has drawn so far.
+        self.submit_frame();
+        let (device, queue) = (self.device.clone(), self.queue.clone());
         let (texture, native, storage, bgra) = match src {
             ReadSource::Texture(id) => {
                 let Some((texture, desc)) = self.texture_and_desc(id) else {
@@ -118,28 +120,24 @@ impl WgpuCommandExecutor {
                     warn!("wgpu: depth textures cannot be read back ({id:?})");
                     return None;
                 }
-                let storage = match desc.format {
-                    TexFormat::R32F => Storage::R32FInRgba16F,
-                    TexFormat::RGBA32F => Storage::Rgba32FInRgba16F,
+                let storage = match (desc.format, self.f32_in_f16(desc.format)) {
+                    (TexFormat::R32F, true) => Storage::R32FInRgba16F,
+                    (TexFormat::RGBA32F, true) => Storage::Rgba32FInRgba16F,
                     _ => Storage::Native,
                 };
                 (texture, desc.format, storage, false)
             }
             ReadSource::Backbuffer => {
-                let Some(frame) = self.surface_frame.as_ref() else {
-                    warn!("wgpu: no surface frame to read the backbuffer from");
-                    return None;
-                };
-                let texture = frame.texture.clone();
-                let bgra = match texture.format() {
-                    wgpu::TextureFormat::Bgra8Unorm | wgpu::TextureFormat::Bgra8UnormSrgb => true,
-                    wgpu::TextureFormat::Rgba8Unorm | wgpu::TextureFormat::Rgba8UnormSrgb => false,
-                    other => {
-                        warn!("wgpu: cannot read the backbuffer ({other:?})");
-                        return None;
-                    }
-                };
-                (texture, TexFormat::RGBA8, Storage::Native, bgra)
+                // The backbuffer is a GL-convention texture (row 0 is the
+                // bottom of the window), so the rows come out as GL's.
+                self.ensure_backbuffer();
+                let backbuffer = self.backbuffer.as_ref().expect("backbuffer");
+                (
+                    backbuffer.color.clone(),
+                    TexFormat::RGBA8,
+                    Storage::Native,
+                    false,
+                )
             }
         };
         if !texture.usage().contains(wgpu::TextureUsages::COPY_SRC) {
@@ -159,7 +157,7 @@ impl WgpuCommandExecutor {
             return None;
         }
 
-        let texel_bytes = Self::format_bpp(texture.format());
+        let texel_bytes = format_bpp(texture.format());
         let row_bytes = w * texel_bytes;
         let padded_row_bytes = row_bytes.div_ceil(ROW_ALIGN) * ROW_ALIGN;
         let size = padded_row_bytes as u64 * h as u64 * depth as u64;
@@ -236,9 +234,7 @@ impl WgpuCommandExecutor {
         let Some(job) = self.begin_read(src, region, format) else {
             return Vec::new();
         };
-        let Some(device) = self.device.clone() else {
-            return Vec::new();
-        };
+        let device = self.device.clone();
         let deadline = Instant::now() + Duration::from_secs(5);
         loop {
             match job.state() {
@@ -278,9 +274,7 @@ impl WgpuCommandExecutor {
         if self.pending_reads.is_empty() {
             return;
         }
-        if let Some(device) = self.device.as_ref() {
-            let _ = device.poll(wgpu::PollType::Poll);
-        }
+        let _ = self.device.poll(wgpu::PollType::Poll);
         let pending = std::mem::take(&mut self.pending_reads);
         for job in pending {
             match job.state() {

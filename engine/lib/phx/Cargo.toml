@@ -75,7 +75,7 @@ byteorder = "1.5"
 # `cargo update` touching the wgpu tree may re-resolve it to 0.54 (pulled in
 # by cpal) and break wgpu-hal's DX12 build with ID3D12Device type mismatches.
 # If that happens, re-point gpu-allocator's "windows" entry in Cargo.lock.
-wgpu = { version = "30", features = ["glsl", "vulkan", "dx12"] }
+wgpu = { version = "30", features = ["glsl", "vulkan", "dx12", "naga-ir"] }
 pollster = "0.4"
 
 [dev-dependencies]

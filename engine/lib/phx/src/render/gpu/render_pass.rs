@@ -399,6 +399,9 @@ impl Renderer {
         pass.user_pipeline = None;
         pass.bound_pipeline = None;
         pass.view = ViewBlock::new(&camera, viewport, desc.backbuffer);
+        // Every pass starts without a scissor on wgpu; the first draw sends
+        // the one the clip stack wants (GL's scissor state outlives a pass).
+        self.data.clip_emitted = None;
 
         self.pass_emit_view();
         self.pass_emit_environment();

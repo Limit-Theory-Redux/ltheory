@@ -20,7 +20,7 @@ function RenderingDownsample:onInit()
 
     self.backend = os.getenv("LTHEORY_WGPU") and "wgpu" or "opengl"
     self.pattern = Cache.Shader("fullscreen", "downsample_pattern")
-    self.downsample = Cache.Shader("fullscreen", self.backend == "wgpu" and "downsample_filter_wgpu" or "downsample_filter")
+    self.downsample = Cache.Shader("fullscreen", "downsample_filter")
     self.blit = Cache.Shader("fullscreen_flip", "blit")
     local function pipelineFor(shader)
         local desc = PipelineDesc.Create(shader)

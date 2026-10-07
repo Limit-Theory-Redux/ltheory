@@ -78,9 +78,12 @@ impl RenderThread {
         category_timing: Arc<AtomicBool>,
     ) -> Self {
         let (width, height) = (bundle.surface_config.width, bundle.surface_config.height);
-        let executor = WgpuCommandExecutor::with_device(Some(bundle.device), Some(bundle.queue))
+        let mut executor = WgpuCommandExecutor::with_device(bundle.device, bundle.queue)
             .with_surface(bundle.surface, bundle.surface_config, width, height);
         executor.set_category_timing(category_timing.clone());
+        // Frame pacing follows the GPU: the executor answers a pacing fence
+        // when `on_submitted_work_done` fires.
+        executor.set_pacing_sender(pacing_fence_tx.clone());
         Self {
             command_rx,
             fence_tx,
@@ -116,7 +119,30 @@ impl RenderThread {
             const STARVATION_THRESHOLD_US: u64 = 20;
 
             let recv_start = std::time::Instant::now();
-            let cmd = self.command_rx.recv();
+            let cmd = if let Some(wgpu) = self.wgpu_executor.as_ref() {
+                // The device's callbacks (pacing fences, readbacks) only run
+                // when it is polled, and the main thread may be waiting for
+                // exactly one of them: poll whenever the channel is idle.
+                loop {
+                    match self
+                        .command_rx
+                        .recv_timeout(std::time::Duration::from_millis(1))
+                    {
+                        Ok(cmd) => break Ok(cmd),
+                        Err(crossbeam::channel::RecvTimeoutError::Timeout) => {
+                            wgpu.poll();
+                            if !self.running.load(Ordering::Relaxed) {
+                                break Err(crossbeam::channel::RecvError);
+                            }
+                        }
+                        Err(crossbeam::channel::RecvTimeoutError::Disconnected) => {
+                            break Err(crossbeam::channel::RecvError);
+                        }
+                    }
+                }
+            } else {
+                self.command_rx.recv()
+            };
             let recv_wait_us = recv_start.elapsed().as_micros() as u64;
 
             match cmd {
@@ -133,9 +159,13 @@ impl RenderThread {
                         self.executor.this_frame_stats.commands += 1;
                     }
 
-                    if self.wgpu_executor.is_none() && recv_wait_us >= STARVATION_THRESHOLD_US {
-                        self.executor.this_frame_stats.recv_wait_us += recv_wait_us;
-                        self.executor.this_frame_stats.recv_wait_count += 1;
+                    if recv_wait_us >= STARVATION_THRESHOLD_US {
+                        if let Some(wgpu) = self.wgpu_executor.as_mut() {
+                            wgpu.note_recv_wait(recv_wait_us);
+                        } else {
+                            self.executor.this_frame_stats.recv_wait_us += recv_wait_us;
+                            self.executor.this_frame_stats.recv_wait_count += 1;
+                        }
                     }
 
                     let reply = if let Some(wgpu) = self.wgpu_executor.as_mut() {
@@ -146,10 +176,12 @@ impl RenderThread {
                     self.dispatch(reply);
                     // Ring memory the command finished uploading goes back to
                     // the main thread for reuse.
-                    if self.wgpu_executor.is_none() {
-                        for chunk in self.executor.take_returned_chunks() {
-                            let _ = self.chunk_return_tx.send(chunk);
-                        }
+                    let returned = match self.wgpu_executor.as_mut() {
+                        Some(wgpu) => wgpu.take_returned_chunks(),
+                        None => self.executor.take_returned_chunks(),
+                    };
+                    for chunk in returned {
+                        let _ = self.chunk_return_tx.send(chunk);
                     }
                 }
                 Err(_) => {
