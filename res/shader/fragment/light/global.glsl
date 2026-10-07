@@ -4,8 +4,6 @@
 #include gamma
 #include math
 
-#autovar samplerCube irMap
-#autovar samplerCube envMap
 
 in vec3 worldOrigin;
 in vec3 worldDir;

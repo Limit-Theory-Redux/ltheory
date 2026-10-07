@@ -15,7 +15,7 @@
 ----------------------------------------------------------------------------- */
 
 #include common
-#include camera_ubo
+#include view_block
 
 in vec3 vertex_position;
 in vec3 vertex_normal;

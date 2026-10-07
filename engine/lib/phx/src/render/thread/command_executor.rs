@@ -8,6 +8,7 @@ use std::time::Instant;
 
 use tracing::info;
 
+use super::command_executor_gl_binding::GlBindingState;
 use crate::render::{
     CommandCategory, MAX_COLOR_ATTACHMENTS, RenderCommand, RenderStats, ResourceId,
     ShaderReloadResult, ViewDim, gl,
@@ -169,8 +170,9 @@ pub struct CommandExecutor {
     pub(super) texture_bindings: [TextureBinding; MAX_TEXTURE_SLOTS],
     /// Stats: number of texture binds skipped due to caching
     pub(super) texture_binds_skipped: u64,
-    /// Camera UBO handle (0 if not created yet)
-    pub(super) camera_ubo: u32,
+    /// Binding model state: pipelines, samplers, bind groups, GL state cache,
+    /// uniform ring buffers.
+    pub(super) binding: GlBindingState,
     /// Material UBO handle (0 if not created yet)
     pub(super) material_ubo: u32,
     /// Light UBO handle (0 if not created yet)
@@ -250,7 +252,7 @@ impl CommandExecutor {
             instance_vbo_capacity_u32: 0,
             texture_bindings: [TextureBinding::default(); MAX_TEXTURE_SLOTS],
             texture_binds_skipped: 0,
-            camera_ubo: 0,
+            binding: GlBindingState::new(),
             material_ubo: 0,
             light_ubo: 0,
         }
@@ -740,6 +742,20 @@ impl CommandExecutor {
 
             RenderCommand::EndRenderPass => self.cmd_end_render_pass(),
 
+            RenderCommand::PassCommands(commands) => self.cmd_pass_commands(&commands),
+
+            // === Binding model objects ===
+            RenderCommand::CreatePipeline { id, desc } => self.cmd_create_pipeline(id, &desc),
+
+            RenderCommand::CreateSampler { id, desc } => self.cmd_create_sampler(id, &desc),
+
+            RenderCommand::CreateBindGroup {
+                id,
+                shader,
+                group,
+                entries,
+            } => self.cmd_create_bind_group(id, shader, group, &entries),
+
             // === Mesh Operations ===
             RenderCommand::BindMesh { vao } => self.cmd_bind_mesh(vao),
 
@@ -817,9 +833,10 @@ impl CommandExecutor {
                 id,
                 vertex_src,
                 fragment_src,
+                layout,
                 reply_tx,
             } => {
-                let data = self.cmd_create_shader(id, vertex_src, fragment_src);
+                let data = self.cmd_create_shader(id, vertex_src, fragment_src, &layout);
                 let _ = reply_tx.send(data);
             }
 
@@ -874,8 +891,6 @@ impl CommandExecutor {
             RenderCommand::DestroyResources { ids } => self.cmd_destroy_resource(&ids),
 
             // === Uniform Buffer Objects ===
-            RenderCommand::CreateCameraUBO => self.cmd_create_camera_ubo(),
-            RenderCommand::UpdateCameraUBO { data } => self.cmd_update_camera_ubo(&data),
             RenderCommand::CreateMaterialUBO => self.cmd_create_material_ubo(),
             RenderCommand::UpdateMaterialUBO { data } => self.cmd_update_material_ubo(&data),
             RenderCommand::CreateLightUBO => self.cmd_create_light_ubo(),

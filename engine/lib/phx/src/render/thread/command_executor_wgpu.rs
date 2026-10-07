@@ -24,10 +24,11 @@ use tracing::warn;
 
 use crate::render::thread::{ExecutorStats, GpuHandle};
 use crate::render::{
-    BlendMode, CmdPrimitiveType, CommandReply, CullFace, GenericUniformName, ImmVertex,
-    InstanceData, InstanceUniformsCmd, LoadOp, RenderCommand, RenderPassDesc, RenderStats,
-    ResourceId, ShaderReloadResult, TexFilter, TexFormat, TexView, TexWrapMode, VertexFormat,
-    ViewDim,
+    BindEntry, BindGroupId, BlendMode, BlockLayout, CmdPrimitiveType, CommandReply, CullFace,
+    GenericUniformName, ImmVertex, InstanceData, InstanceUniformsCmd, LoadOp, PassCmd,
+    PassCommands, PipelineDesc, PipelineId, PolygonMode, RenderCommand, RenderPassDesc,
+    RenderStats, ResourceId, SamplerDesc, SamplerId, ShaderLayout, ShaderReloadResult, TexFilter,
+    TexFormat, TexView, TexWrapMode, VertexFormat, ViewDim, blocks_from_naga, entry_unit,
 };
 use crate::window::PresentMode;
 
@@ -66,6 +67,9 @@ struct ShaderReflection {
     samplers: Vec<SamplerRefl>,
     /// Highest bind-group binding the shader touches (layout sizing).
     max_binding: u32,
+    /// Declared uniform blocks as naga sees them (the same `BlockLayout`
+    /// the GL executor reflects from the linked program).
+    blocks: Vec<BlockLayout>,
 }
 
 impl ShaderReflection {
@@ -151,6 +155,7 @@ enum WgpuGpuResource {
         vertex_src: Arc<str>,
         fragment_src: Arc<str>,
         reflection: ShaderReflection,
+        layout: Arc<ShaderLayout>,
     },
     Texture1D {
         texture: wgpu::Texture,
@@ -263,9 +268,18 @@ pub struct WgpuCommandExecutor {
     named_uniforms: HashMap<Arc<str>, UniformValue>,
 
     // === UBO staging (raw bytes; uploaded at draw time) ===
-    camera_ubo: Option<Vec<u8>>,
+    view_ubo: Option<Vec<u8>>,
     material_ubo: Option<Vec<u8>>,
     light_ubo: Option<Vec<u8>>,
+
+    // === Binding model (S3): objects and the uniform ring ===
+    pipeline_descs: HashMap<PipelineId, PipelineDesc>,
+    sampler_descs: HashMap<SamplerId, SamplerDesc>,
+    bind_groups: HashMap<BindGroupId, (u8, Vec<BindEntry>)>,
+    /// Uniform ring bytes by `(slot, chunk)`.
+    ring_bytes: HashMap<(u8, u16), Vec<u8>>,
+    /// Pipeline last set by a pass command.
+    current_pipeline: Option<PipelineId>,
 
     // === Draw path (stage 5) ===
     /// Per-binding uniform buffers, created lazily on first draw.
@@ -362,9 +376,14 @@ impl WgpuCommandExecutor {
             bound_mesh: None,
             bound_textures: vec![None; 16],
             named_uniforms: HashMap::new(),
-            camera_ubo: None,
+            view_ubo: None,
             material_ubo: None,
             light_ubo: None,
+            pipeline_descs: HashMap::new(),
+            sampler_descs: HashMap::new(),
+            bind_groups: HashMap::new(),
+            ring_bytes: HashMap::new(),
+            current_pipeline: None,
             ubo_buffers: HashMap::new(),
             plain_uniform_staging: HashMap::new(),
             plain_uniform_dirty: std::collections::HashSet::new(),
@@ -465,7 +484,7 @@ impl WgpuCommandExecutor {
 
     /// Compile one GLSL stage into a wgpu ShaderModule via naga's GLSL
     /// frontend. The source must already be engine-preprocessed (includes
-    /// inlined, `#autovar` stripped) — exactly what the producer sends in
+    /// inlined, `#group` stripped) — exactly what the producer sends in
     /// `CreateShader`/`ReloadShader`.
     /// Adapt engine GLSL for naga's frontend WITHOUT touching the on-disk
     /// sources (those stay GL 3.3 / #version 330):
@@ -487,18 +506,37 @@ impl WgpuCommandExecutor {
     /// stage's highest binding — otherwise wgpu fails pipeline creation with
     /// "Conflicting binding at index N".
     pub(crate) fn adapt_glsl_for_naga_with_offset(code: &str, offset: u32) -> String {
-        use crate::render::thread::ubo::{
-            CAMERA_UBO_BINDING, LIGHT_UBO_BINDING, MATERIAL_UBO_BINDING,
-        };
+        Self::adapt_glsl_for_naga_with_layout(code, offset, &ShaderLayout::default())
+    }
+
+    /// Like [`Self::adapt_glsl_for_naga_with_offset`], with the shader's
+    /// `#group` layout: every declared block gets its `group * 4 + k`
+    /// binding (the wgpu path uses one bind group, so `set` stays 0).
+    pub(crate) fn adapt_glsl_for_naga_with_layout(
+        code: &str,
+        offset: u32,
+        layout: &ShaderLayout,
+    ) -> String {
+        use crate::render::thread::ubo::{LIGHT_UBO_BINDING, MATERIAL_UBO_BINDING};
         let mut out = code.replace("#version 330", "#version 440");
+        // Legacy fixed blocks, and the frame group's view block.
         let injections = [
-            ("CameraUBO", CAMERA_UBO_BINDING),
+            ("ViewBlock", 0),
             ("MaterialUBO", MATERIAL_UBO_BINDING),
             ("LightUBO", LIGHT_UBO_BINDING),
         ];
         for (name, binding) in injections {
             let pattern = format!("layout(std140) uniform {name}");
             let replacement = format!("layout(std140, binding={binding}) uniform {name}");
+            out = out.replace(&pattern, &replacement);
+        }
+        for block in &layout.blocks {
+            let pattern = format!("layout(std140) uniform {}", block.name);
+            let replacement = format!(
+                "layout(std140, binding={}) uniform {}",
+                block.binding(),
+                block.name
+            );
             out = out.replace(&pattern, &replacement);
         }
         Self::split_mat4_attributes(&mut out);
@@ -810,11 +848,20 @@ impl WgpuCommandExecutor {
         stage: wgpu::naga::ShaderStage,
         code: &str,
     ) -> Result<(wgpu::ShaderModule, String), String> {
+        self.compile_glsl_stage_adapted_with_layout(stage, code, &ShaderLayout::default())
+    }
+
+    pub(crate) fn compile_glsl_stage_adapted_with_layout(
+        &self,
+        stage: wgpu::naga::ShaderStage,
+        code: &str,
+        layout: &ShaderLayout,
+    ) -> Result<(wgpu::ShaderModule, String), String> {
         // wgpu 30 defers shader errors to pipeline creation, so parse with
         // naga's GLSL frontend FIRST: that is what makes CreateShader/
         // ReloadShader report failures synchronously (GL parity).
         // naga 30: parse is a Frontend method (the free fn was removed).
-        let adapted = Self::adapt_glsl_for_naga(code);
+        let adapted = Self::adapt_glsl_for_naga_with_layout(code, 0, layout);
         let mut frontend = wgpu::naga::front::glsl::Frontend::default();
         let parse_result = frontend.parse(&wgpu::naga::front::glsl::Options::from(stage), &adapted);
         let module = match parse_result {
@@ -841,9 +888,8 @@ impl WgpuCommandExecutor {
         };
         // Validate NOW, not at pipeline creation: wgpu 30 treats validation
         // errors as fatal panics, while the GL path surfaces shader errors
-        // as a compile failure the engine tolerates. Autovar samplers (the
-        // preprocessor drops `#autovar` lines, so the source references
-        // undeclared identifiers) must fail here, exactly like GL.
+        // as a compile failure the engine tolerates. Sources that reference
+        // undeclared identifiers must fail here, exactly like GL.
         let mut validator = wgpu::naga::valid::Validator::new(
             wgpu::naga::valid::ValidationFlags::all(),
             wgpu::naga::valid::Capabilities::all(),
@@ -2196,7 +2242,10 @@ impl WgpuCommandExecutor {
     fn attach_view(&self, fb: &mut WgpuFramebuffer, slot: Option<usize>, view: &TexView) -> bool {
         const GL_TEXTURE_CUBE_MAP_POSITIVE_X: u32 = 0x8515;
         let Some(resource) = self.resources.get(&view.tex) else {
-            warn!("wgpu: render pass attachment for unknown texture {:?}", view.tex);
+            warn!(
+                "wgpu: render pass attachment for unknown texture {:?}",
+                view.tex
+            );
             return false;
         };
         let (texture, format, attach_view) = match (resource, view.dim) {
@@ -2220,7 +2269,14 @@ impl WgpuCommandExecutor {
                 });
                 (texture.clone(), texture.format(), v)
             }
-            (WgpuGpuResource::Texture3D { texture, view: full, .. }, ViewDim::D2Layer(_)) => {
+            (
+                WgpuGpuResource::Texture3D {
+                    texture,
+                    view: full,
+                    ..
+                },
+                ViewDim::D2Layer(_),
+            ) => {
                 // TODO(wgpu port): render to one z-slice (needs `depth_slice`
                 // on the color attachment); for now the whole volume view.
                 (texture.clone(), texture.format(), full.clone())
@@ -2810,10 +2866,12 @@ impl WgpuCommandExecutor {
         id: ResourceId,
         vertex_src: String,
         fragment_src: String,
-    ) -> Option<String> {
-        let error = match self.compile_shader_pair(&vertex_src, &fragment_src) {
+        layout: &Arc<ShaderLayout>,
+    ) -> Result<Vec<BlockLayout>, String> {
+        match self.compile_shader_pair(&vertex_src, &fragment_src, layout) {
             Ok((vertex_module, fragment_module, adapted_vs, adapted_fs, reflection)) => {
                 let _ = (&adapted_vs, &adapted_fs);
+                let blocks = reflection.blocks.clone();
                 self.resources.insert(
                     id,
                     WgpuGpuResource::Shader {
@@ -2822,16 +2880,16 @@ impl WgpuCommandExecutor {
                         vertex_src: Arc::from(vertex_src.as_str()),
                         fragment_src: Arc::from(fragment_src.as_str()),
                         reflection,
+                        layout: layout.clone(),
                     },
                 );
-                None
+                Ok(blocks)
             }
             Err(e) => {
                 tracing::error!("wgpu: failed to create shader {id:?}: {e}");
-                Some(e)
+                Err(e)
             }
-        };
-        error
+        }
     }
 
     /// Highest injected binding (>= 10) in an adapted source, or 9 when the
@@ -2858,9 +2916,11 @@ impl WgpuCommandExecutor {
         &self,
         code: &str,
         vs_max_binding: u32,
+        layout: &ShaderLayout,
     ) -> Result<(wgpu::ShaderModule, String), String> {
         let stage = wgpu::naga::ShaderStage::Fragment;
-        let adapted = Self::adapt_glsl_for_naga_with_offset(code, vs_max_binding.saturating_sub(9));
+        let adapted =
+            Self::adapt_glsl_for_naga_with_layout(code, vs_max_binding.saturating_sub(9), layout);
         let mut frontend = wgpu::naga::front::glsl::Frontend::default();
         let parse_result = frontend.parse(&wgpu::naga::front::glsl::Options::from(stage), &adapted);
         let module = match parse_result {
@@ -2914,6 +2974,7 @@ impl WgpuCommandExecutor {
         &self,
         vertex_src: &str,
         fragment_src: &str,
+        layout: &ShaderLayout,
     ) -> Result<
         (
             wgpu::ShaderModule,
@@ -2924,12 +2985,15 @@ impl WgpuCommandExecutor {
         ),
         String,
     > {
-        let (vs, adapted_vs) =
-            self.compile_glsl_stage_adapted(wgpu::naga::ShaderStage::Vertex, vertex_src)?;
+        let (vs, adapted_vs) = self.compile_glsl_stage_adapted_with_layout(
+            wgpu::naga::ShaderStage::Vertex,
+            vertex_src,
+            layout,
+        )?;
         // Fragment bindings must not collide with the vertex stage's
         // injected bindings (both start at 10 otherwise).
         let vs_max = Self::max_injected_binding(&adapted_vs);
-        let (fs, adapted_fs) = self.compile_glsl_stage_adapted_fs(fragment_src, vs_max)?;
+        let (fs, adapted_fs) = self.compile_glsl_stage_adapted_fs(fragment_src, vs_max, layout)?;
         let reflection = Self::build_reflection(&adapted_vs, &adapted_fs);
         Ok((vs, fs, adapted_vs, adapted_fs, reflection))
     }
@@ -2953,6 +3017,11 @@ impl WgpuCommandExecutor {
             else {
                 continue;
             };
+            for block in blocks_from_naga(&module) {
+                if !refl.blocks.iter().any(|b| b.name == block.name) {
+                    refl.blocks.push(block);
+                }
+            }
             for (_, var) in module.global_variables.iter() {
                 let Some(wgpu::naga::ResourceBinding { group: 0, binding }) = var.binding else {
                     continue;
@@ -4050,7 +4119,7 @@ impl WgpuCommandExecutor {
             return;
         };
         for (binding, data) in [
-            (0u32, self.camera_ubo.as_deref()),
+            (0u32, self.view_ubo.as_deref()),
             (1u32, self.material_ubo.as_deref()),
             (2u32, self.light_ubo.as_deref()),
         ] {
@@ -4202,25 +4271,26 @@ impl WgpuCommandExecutor {
         // Same semantics as the GL path: compile a FRESH pair, store it under
         // shader_key, and let BindShaderByResource prefer it. On failure the
         // old pair stays in effect (reload never destroys the working shader).
-        let result = match self.compile_shader_pair(vertex_src, fragment_src) {
-            Ok((vs, fs, _avs, _afs, reflection)) => {
-                self.hot_reloaded_shaders
-                    .insert(shader_key.to_string(), (vs, fs, reflection));
-                ShaderReloadResult {
-                    shader_key: shader_key.to_string(),
-                    error: None,
-                    program: 0,
+        let result =
+            match self.compile_shader_pair(vertex_src, fragment_src, &ShaderLayout::default()) {
+                Ok((vs, fs, _avs, _afs, reflection)) => {
+                    self.hot_reloaded_shaders
+                        .insert(shader_key.to_string(), (vs, fs, reflection));
+                    ShaderReloadResult {
+                        shader_key: shader_key.to_string(),
+                        error: None,
+                        program: 0,
+                    }
                 }
-            }
-            Err(e) => {
-                tracing::error!("wgpu: shader reload '{shader_key}' failed: {e}");
-                ShaderReloadResult {
-                    shader_key: shader_key.to_string(),
-                    error: Some(e),
-                    program: 0,
+                Err(e) => {
+                    tracing::error!("wgpu: shader reload '{shader_key}' failed: {e}");
+                    ShaderReloadResult {
+                        shader_key: shader_key.to_string(),
+                        error: Some(e),
+                        program: 0,
+                    }
                 }
-            }
-        };
+            };
         CommandReply::ShaderReload(result)
     }
 
@@ -4864,16 +4934,153 @@ impl WgpuCommandExecutor {
 
     // --- Uniform buffer objects (byte staging real; upload = draw stage) ---
 
-    pub(super) fn cmd_create_camera_ubo(&mut self) {
-        self.camera_ubo = Some(Vec::new());
+    // --- Binding model objects and pass commands (S3). The pass commands
+    // map onto the same GL-shaped state this executor already keeps; they do
+    // not render correctly yet (see doc/engine/render-api-v2.md, S3 notes).
+
+    pub(super) fn cmd_create_pipeline(&mut self, id: PipelineId, desc: &PipelineDesc) {
+        self.pipeline_descs.insert(id, desc.clone());
     }
 
-    pub(super) fn cmd_update_camera_ubo(&mut self, data: &[u8]) {
-        if let Some(ubo) = self.camera_ubo.as_mut() {
-            ubo.clear();
-            ubo.extend_from_slice(data);
-        } else {
-            warn!("wgpu: UpdateCameraUBO before CreateCameraUBO");
+    pub(super) fn cmd_create_sampler(&mut self, id: SamplerId, desc: &SamplerDesc) {
+        self.sampler_descs.insert(id, *desc);
+    }
+
+    pub(super) fn cmd_create_bind_group(
+        &mut self,
+        id: BindGroupId,
+        _shader: ResourceId,
+        group: u8,
+        entries: &[BindEntry],
+    ) {
+        self.bind_groups.insert(id, (group, entries.to_vec()));
+    }
+
+    /// Texture unit -> sampler name of the bound shader, from its layout.
+    fn bind_unit_by_layout(&mut self, unit: u32, view: &TexView) {
+        self.bind_texture_slot_by_resource(unit, view.tex);
+        let name = match self
+            .bound_shader
+            .and_then(|h| self.resources.get(&ResourceId(h.0 as u64)))
+        {
+            Some(WgpuGpuResource::Shader { layout, .. }) => layout
+                .textures
+                .iter()
+                .find(|t| t.unit() == unit)
+                .map(|t| Arc::<str>::from(t.name.as_str())),
+            _ => None,
+        };
+        if let Some(name) = name {
+            self.sampler_slots.insert(name, unit);
+        }
+    }
+
+    pub(super) fn cmd_pass_commands(&mut self, commands: &PassCommands) {
+        for chunk in &commands.uniforms {
+            let bytes = self
+                .ring_bytes
+                .entry((commands.slot, chunk.at.buffer))
+                .or_default();
+            let end = chunk.at.offset as usize + chunk.bytes.len();
+            if bytes.len() < end {
+                bytes.resize(end, 0);
+            }
+            bytes[chunk.at.offset as usize..end].copy_from_slice(&chunk.bytes);
+        }
+        for cmd in &commands.cmds {
+            match cmd {
+                PassCmd::SetPipeline(id) => {
+                    self.current_pipeline = Some(*id);
+                    let Some(desc) = self.pipeline_descs.get(id).cloned() else {
+                        warn!("wgpu: SetPipeline for unknown pipeline {id:?}");
+                        continue;
+                    };
+                    self.cmd_bind_shader_by_resource(desc.shader, None);
+                    self.cmd_set_blend_mode(desc.blend);
+                    self.cmd_set_cull_face(desc.cull);
+                    self.cmd_set_depth_test(desc.depth.test);
+                    self.cmd_set_depth_writable(desc.depth.write);
+                    self.cmd_set_wireframe(desc.polygon == PolygonMode::Line);
+                }
+                PassCmd::SetBindGroup { group, id } => {
+                    let Some((_, entries)) = self.bind_groups.get(id).cloned() else {
+                        warn!("wgpu: SetBindGroup for unknown bind group {id:?}");
+                        continue;
+                    };
+                    for entry in &entries {
+                        let BindEntry::Texture { view, .. } = entry;
+                        self.bind_unit_by_layout(entry_unit(*group, entry), view);
+                    }
+                }
+                PassCmd::SetView { block, size } => {
+                    let bytes = self
+                        .ring_bytes
+                        .get(&(commands.slot, block.buffer))
+                        .and_then(|b| b.get(block.offset as usize..(block.offset + size) as usize))
+                        .map(|b| b.to_vec());
+                    self.view_ubo = bytes;
+                }
+                PassCmd::SetEnvironment { env_map, ir_map } => {
+                    for (unit, name, id) in [(0u32, "envMap", env_map), (1, "irMap", ir_map)] {
+                        match id {
+                            Some(id) => {
+                                self.bind_texture_slot_by_resource(unit, *id);
+                                self.sampler_slots.insert(Arc::from(name), unit);
+                            }
+                            None => self.cmd_unbind_texture(unit),
+                        }
+                    }
+                }
+                PassCmd::SetDraw { at, size } => {
+                    let binding = crate::render::block_binding(crate::render::GROUP_DRAW, 0);
+                    let bytes = self
+                        .ring_bytes
+                        .get(&(commands.slot, at.buffer))
+                        .and_then(|b| b.get(at.offset as usize..(at.offset + size) as usize))
+                        .map(|b| b.to_vec());
+                    if let Some(bytes) = bytes {
+                        self.plain_uniform_staging.insert(binding, bytes);
+                        self.plain_uniform_dirty.insert(binding);
+                    }
+                }
+                PassCmd::SetInputs(inputs) => {
+                    for (i, input) in inputs.iter().enumerate() {
+                        if let Some((view, _sampler)) = input {
+                            let unit = crate::render::texture_unit(crate::render::GROUP_INPUTS, 0)
+                                + i as u32;
+                            self.bind_unit_by_layout(unit, view);
+                        }
+                    }
+                }
+                PassCmd::SetViewport([x, y, w, h]) => self.cmd_set_viewport(*x, *y, *w, *h),
+                PassCmd::SetScissor(rect) => match rect {
+                    Some([x, y, w, h]) => {
+                        self.cmd_enable_scissor(true);
+                        self.cmd_set_scissor(*x, *y, *w, *h);
+                    }
+                    None => self.cmd_enable_scissor(false),
+                },
+                PassCmd::DrawMesh {
+                    mesh, index_count, ..
+                } => {
+                    self.cmd_draw_mesh_by_resource(
+                        *mesh,
+                        *index_count as i32,
+                        CmdPrimitiveType::Triangles,
+                    );
+                }
+                PassCmd::DrawFullscreen => {
+                    // Unit quad as an immediate quad, like `Draw.Rect` did.
+                    let v = |x: f32, y: f32| ImmVertex {
+                        pos: [x, y, 0.0],
+                        normal: [0.0; 3],
+                        uv: [x, y],
+                        color: [1.0; 4],
+                    };
+                    let vertices = vec![v(0.0, 0.0), v(0.0, 1.0), v(1.0, 1.0), v(1.0, 0.0)];
+                    self.cmd_draw_immediate(CmdPrimitiveType::Quads, &vertices);
+                }
+            }
         }
     }
 
@@ -5416,6 +5623,15 @@ impl WgpuCommandExecutor {
             // === Render Passes ===
             RenderCommand::BeginRenderPass(desc) => self.cmd_begin_render_pass(&desc),
             RenderCommand::EndRenderPass => self.cmd_end_render_pass(),
+            RenderCommand::PassCommands(commands) => self.cmd_pass_commands(&commands),
+            RenderCommand::CreatePipeline { id, desc } => self.cmd_create_pipeline(id, &desc),
+            RenderCommand::CreateSampler { id, desc } => self.cmd_create_sampler(id, &desc),
+            RenderCommand::CreateBindGroup {
+                id,
+                shader,
+                group,
+                entries,
+            } => self.cmd_create_bind_group(id, shader, group, &entries),
 
             // === Mesh Operations ===
             RenderCommand::BindMesh { vao } => self.cmd_bind_mesh(vao),
@@ -5496,9 +5712,10 @@ impl WgpuCommandExecutor {
                 id,
                 vertex_src,
                 fragment_src,
+                layout,
                 reply_tx,
             } => {
-                let data = self.cmd_create_shader(id, vertex_src, fragment_src);
+                let data = self.cmd_create_shader(id, vertex_src, fragment_src, &layout);
                 let _ = reply_tx.send(data);
             }
             RenderCommand::GetUniformLocationByResource { id, name, reply_tx } => {
@@ -5551,8 +5768,6 @@ impl WgpuCommandExecutor {
             RenderCommand::DestroyResources { ids } => self.cmd_destroy_resource(&ids),
 
             // === Uniform Buffer Objects ===
-            RenderCommand::CreateCameraUBO => self.cmd_create_camera_ubo(),
-            RenderCommand::UpdateCameraUBO { data } => self.cmd_update_camera_ubo(&data[..]),
             RenderCommand::CreateMaterialUBO => self.cmd_create_material_ubo(),
             RenderCommand::UpdateMaterialUBO { data } => self.cmd_update_material_ubo(&data),
             RenderCommand::CreateLightUBO => self.cmd_create_light_ubo(),
@@ -5598,32 +5813,16 @@ impl Default for WgpuCommandExecutor {
 mod tests {
     use super::*;
 
-    /// Test-local stand-in for the engine's (now private) `GLSLCode`
-    /// preprocessor: expands `#include` through `loader`, drops `#autovar`.
+    /// The engine preprocessor (`#include`, `#group`), driven by a test
+    /// loader that reads from `res/shader`.
     struct GLSLCode {
         code: String,
     }
 
     impl GLSLCode {
         fn preprocess_with_loader(code: &str, loader: &mut dyn FnMut(&str) -> String) -> Self {
-            let mut out = String::new();
-            for line in code.lines() {
-                if let Some(include_val) = line.strip_prefix("#include ") {
-                    let inc = Self::preprocess_with_loader(
-                        &loader(&format!("include/{include_val}")),
-                        loader,
-                    );
-                    out += &inc.code;
-                    out += "
-";
-                } else if line.starts_with("#autovar ") {
-                } else {
-                    out += line;
-                    out += "
-";
-                }
-            }
-            Self { code: out }
+            let pre = crate::render::GLSLCode::preprocess_with(code, None, loader);
+            Self { code: pre.code }
         }
     }
     use crate::render::TexFormat;
@@ -5856,12 +6055,24 @@ mod tests {
 
     #[test]
     fn ubo_staging_keeps_latest_bytes() {
+        use crate::render::{PassCmd, PassCommands, RingChunk, RingOffset};
         let mut ex = WgpuCommandExecutor::new();
-        ex.execute(RenderCommand::CreateCameraUBO);
-        ex.execute(RenderCommand::UpdateCameraUBO {
-            data: Box::new([7u8; 288]),
-        });
-        assert_eq!(ex.camera_ubo.as_deref(), Some(&[7u8; 288][..]));
+        let at = RingOffset {
+            buffer: 0,
+            offset: 0,
+        };
+        ex.execute(RenderCommand::PassCommands(Box::new(PassCommands {
+            slot: 0,
+            uniforms: vec![RingChunk {
+                at,
+                bytes: vec![7u8; 448],
+            }],
+            cmds: vec![PassCmd::SetView {
+                block: at,
+                size: 448,
+            }],
+        })));
+        assert_eq!(ex.view_ubo.as_deref(), Some(&[7u8; 448][..]));
         // update before create warns but does not panic
         ex.execute(RenderCommand::UpdateLightUBO { data: [1u8; 32] });
         assert!(ex.light_ubo.is_none());
@@ -6189,9 +6400,13 @@ mod tests {
             id: ResourceId(1),
             vertex_src: vs.code.clone(),
             fragment_src: fs.code.clone(),
+            layout: Arc::new(ShaderLayout::default()),
             reply_tx: create_tx,
         }) {
-            CommandReply::None => create_rx.recv().unwrap_or_else(|e| Some(e.to_string())),
+            CommandReply::None => create_rx
+                .recv()
+                .map(|r| r.err())
+                .unwrap_or_else(|e| Some(e.to_string())),
             other => Some(format!("unexpected create reply: {other:?}")),
         };
         let reload = ex.execute(RenderCommand::ReloadShader {

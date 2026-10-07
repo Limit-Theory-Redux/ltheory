@@ -1,10 +1,11 @@
-use glam::{Mat4, Vec3};
+use glam::Vec3;
 use tracing::error;
 
 use crate::math::Matrix;
 use crate::render::{
-    BatchStats, BlendMode, CameraUboData, CmdPrimitiveType, CullFace, GpuHandle, InstanceData,
+    BatchStats, BindGroupDesc, BlendMode, CmdPrimitiveType, CullFace, GpuHandle, InstanceData,
     LightUboData, MaterialUboData, RenderBatch, RenderPass, RenderPassDesc, Renderer, ResourceId,
+    TexCube,
 };
 
 // =============================================================================
@@ -285,6 +286,13 @@ impl Renderer {
         self.begin_pass_intern(desc)
     }
 
+    /// The open pass, for code that records into it without owning it (for
+    /// example UI widgets calling `pass:setUiTransform`). It cannot `finish`
+    /// the pass. Errors if no pass is open.
+    pub fn current_pass(&self) -> RenderPass {
+        self.current_pass_intern()
+    }
+
     // === Drawing Operations ===
 
     /// Draw a mesh
@@ -348,48 +356,29 @@ impl Renderer {
         self.swap_buffers_intern();
     }
 
-    // === Camera UBO ===
+    // === Frame group (group 0) ===
 
-    /// Create the camera UBO on the render thread
-    pub fn create_camera_ubo(&mut self) {
-        self.create_camera_ubo_intern();
+    /// Set the camera of the passes that begin from now on (and of the open
+    /// pass): view and projection matrices and the direction towards the
+    /// primary light. Rendering is camera-relative, so the eye is the origin.
+    /// Replaces the old shader-variable stack and the camera UBO update.
+    pub fn set_camera(&mut self, view: &Matrix, proj: &Matrix, star_dir: &Vec3) {
+        self.set_camera_intern(view, proj, *star_dir);
     }
 
-    /// Update the camera UBO with new camera data
-    /// Parameters are the matrices and vectors that make up the camera state.
-    #[allow(clippy::too_many_arguments)]
-    pub fn update_camera_ubo(
-        &mut self,
-        m_view: &Matrix,
-        m_proj: &Matrix,
-        eye_x: f32,
-        eye_y: f32,
-        eye_z: f32,
-        star_dir_x: f32,
-        star_dir_y: f32,
-        star_dir_z: f32,
-    ) {
-        let mut data = CameraUboData::new();
-        // Convert Matrix to Mat4 via column array
-        let view = Mat4::from_cols_array(&m_view.to_cols_array());
-        let proj = Mat4::from_cols_array(&m_proj.to_cols_array());
-        data.set_view(&view);
-        // Derived rather than passed in: the two Lua camera paths
-        // (CameraManager vs. legacy Camera) disagree on whether mViewInv's
-        // translation should be the real world-space position or zero, but
-        // both leave its rotation the exact inverse of `view`'s - which is
-        // all worldray.glsl (via mat3(mViewInv)) actually needs.
-        data.set_view_inv(&view.inverse());
-        data.set_proj(&proj);
-        data.set_eye(glam::vec3(eye_x, eye_y, eye_z));
-        data.set_star_dir(glam::vec3(star_dir_x, star_dir_y, star_dir_z));
+    /// Set the environment cube maps (`envMap` and `irMap` of group 0) of the
+    /// passes that begin from now on (and of the open pass). Replaces
+    /// the old per-shader `envMap`/`irMap` variables.
+    pub fn set_environment(&mut self, env_map: &TexCube, ir_map: &TexCube) {
+        self.set_environment_intern(env_map, ir_map);
+    }
 
-        // Convert to boxed array for command
-        let bytes = data.as_bytes();
-        let mut boxed = Box::new([0u8; CameraUboData::SIZE]);
-        boxed.copy_from_slice(bytes);
+    // === Binding model objects ===
 
-        self.update_camera_ubo_intern(boxed);
+    /// Create a bind group from `desc`; bind it in a pass with
+    /// `pass:setBindGroup(group, id)`.
+    pub fn create_bind_group(&mut self, desc: &BindGroupDesc) -> u32 {
+        self.create_bind_group_from_desc(desc).0
     }
 
     /// Create the material UBO on the render thread

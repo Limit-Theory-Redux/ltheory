@@ -1,6 +1,9 @@
 #include fragment
 
-uniform vec3 color;
+#group 2
+layout(std140) uniform Params {
+  vec3 color;
+};
 
 void main() {
   // This is the production solid-color material contract without the

@@ -11,9 +11,12 @@ out vec3 vertNormal;
 out vec3 vertPos;
 out float flogz;
 
-uniform mat4 mProj;
-uniform mat4 mView;
-uniform mat4 mWorld;
+#group 2
+layout(std140) uniform Params {
+  mat4 mProj;
+  mat4 mView;
+  mat4 mWorld;
+};
 
 void main() {
   uv = vertex_uv;

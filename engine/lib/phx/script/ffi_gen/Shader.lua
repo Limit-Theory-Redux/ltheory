@@ -22,6 +22,9 @@ function Loader.defineType()
             Shader*      Shader_Load                 (Renderer* r, cstr vsName, cstr fsName);
             bool         Shader_Reload               (Shader*, Renderer* r);
             cstr         Shader_Name                 (Shader const*);
+            cstr         Shader_BlockDecl            (Shader const*, cstr name);
+            uint32       Shader_BlockSize            (Shader const*, cstr name);
+            uint32       Shader_Generation           (Shader const*);
             uint64       Shader_ResourceId           (Shader const*);
             Shader*      Shader_Clone                (Shader const*);
             ShaderState* Shader_ToShaderState        (Shader const*);
@@ -84,6 +87,9 @@ function Loader.defineType()
             __index = {
                 reload               = libphx.Shader_Reload,
                 name                 = libphx.Shader_Name,
+                blockDecl            = libphx.Shader_BlockDecl,
+                blockSize            = libphx.Shader_BlockSize,
+                generation           = libphx.Shader_Generation,
                 resourceId           = libphx.Shader_ResourceId,
                 clone                = function(self)
                     local _instance = libphx.Shader_Clone(self)

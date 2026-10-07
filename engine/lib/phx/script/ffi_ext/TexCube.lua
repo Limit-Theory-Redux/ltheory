@@ -18,6 +18,18 @@ function onDef_TexCube(t, mt)
 end
 
 function onDef_TexCube_t(t, mt)
+    -- `tex:view()` is the whole texture (level 0 as an attachment);
+    -- `tex:view{ baseMip = 1, mipCount = 3 }` restricts the levels sampled
+    -- (`mipCount` 0 = all remaining).
+    local view = mt.__index.view
+    mt.__index.view = function(self, opts)
+        local v = view(self)
+        if opts then
+            return v:mips(opts.baseMip or 0, opts.mipCount or 0)
+        end
+        return v
+    end
+
     mt.__index.clear = function(self, red, green, blue, alpha)
         libphx.TexCube_Clear(self, Renderer, red, green, blue, alpha)
     end

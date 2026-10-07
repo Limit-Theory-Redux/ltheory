@@ -10,8 +10,9 @@ use crossbeam::channel::Sender;
 
 use super::command_category::CommandCategory;
 use crate::render::{
-    BlendMode, CameraUboArray, CullFace, InstanceData, TexFilter, TexFormat, TexWrapMode,
-    RenderPassDesc, VertexFormat, gl,
+    BindEntry, BindGroupId, BlendMode, BlockLayout, CullFace, InstanceData, PassCommands,
+    PipelineDesc, PipelineId, RenderPassDesc, SamplerDesc, SamplerId, ShaderLayout, TexFilter,
+    TexFormat, TexWrapMode, VertexFormat, gl,
 };
 use crate::window::PresentMode;
 
@@ -469,6 +470,28 @@ pub enum RenderCommand {
     /// End the open render pass and return to the default framebuffer.
     EndRenderPass,
 
+    /// The commands recorded in the open pass since the last flush, with the
+    /// uniform ring bytes they reference (see `PassEncoder`).
+    PassCommands(Box<PassCommands>),
+
+    // === Binding model objects ===
+    /// Create a pipeline (shader + fixed-function state).
+    CreatePipeline {
+        id: PipelineId,
+        desc: Box<PipelineDesc>,
+    },
+
+    /// Create a sampler object.
+    CreateSampler { id: SamplerId, desc: SamplerDesc },
+
+    /// Create a bind group: textures with samplers for one group of `shader`.
+    CreateBindGroup {
+        id: BindGroupId,
+        shader: ResourceId,
+        group: u8,
+        entries: Box<[BindEntry]>,
+    },
+
     // === Mesh Operations ===
     /// Bind a mesh's VAO and enable vertex attributes
     BindMesh { vao: GpuHandle },
@@ -539,15 +562,17 @@ pub enum RenderCommand {
     },
 
     // === Resource Creation (deferred to GL thread) ===
-    /// Create a shader program from source. `reply_tx` receives `None` on
-    /// success, `Some(error)` on a compile/link failure - the caller decides
-    /// whether that's fatal (`Shader::new`/`load` panic) or recoverable
-    /// (`Shader::reload` returns `false`).
+    /// Create a shader program from source and apply its `#group` layout
+    /// (block bindings, sampler units). `reply_tx` receives the reflected
+    /// uniform blocks on success, the error on a compile/link failure - the
+    /// caller decides whether that's fatal (`Shader::new`/`load` panic) or
+    /// recoverable (`Shader::reload` returns `false`).
     CreateShader {
         id: ResourceId,
         vertex_src: String,
         fragment_src: String,
-        reply_tx: Sender<Option<String>>,
+        layout: Arc<ShaderLayout>,
+        reply_tx: Sender<Result<Vec<BlockLayout>, String>>,
     },
 
     /// Blocking lookup of a uniform's location for a specific shader
@@ -614,12 +639,6 @@ pub enum RenderCommand {
     DestroyResources { ids: Vec<ResourceId> },
 
     // === Uniform Buffer Objects ===
-    /// Create camera UBO
-    CreateCameraUBO,
-
-    /// Update camera UBO data
-    UpdateCameraUBO { data: Box<CameraUboArray> },
-
     /// Create material UBO
     CreateMaterialUBO,
 
@@ -759,6 +778,7 @@ impl RenderCommand {
 
             // === Render Passes ===
             BeginRenderPass(_) | EndRenderPass => CommandCategory::Framebuffer,
+            PassCommands(_) => CommandCategory::Draw,
 
             // === Mesh Operations ===
             BindMesh { .. } | BindMeshByResource { .. } | UnbindMesh => CommandCategory::Mesh,
@@ -775,6 +795,9 @@ impl RenderCommand {
             // === Resource Creation / Destruction ===
             CreateShader { .. }
             | GetUniformLocationByResource { .. }
+            | CreatePipeline { .. }
+            | CreateSampler { .. }
+            | CreateBindGroup { .. }
             | ReloadShader { .. }
             | CreateTexture1D { .. }
             | CreateTexture2D { .. }
@@ -784,9 +807,7 @@ impl RenderCommand {
             | DestroyResources { .. } => CommandCategory::Resource,
 
             // === Uniform Buffer Objects ===
-            CreateCameraUBO
-            | UpdateCameraUBO { .. }
-            | CreateMaterialUBO
+            CreateMaterialUBO
             | UpdateMaterialUBO { .. }
             | CreateLightUBO
             | UpdateLightUBO { .. } => CommandCategory::Ubo,

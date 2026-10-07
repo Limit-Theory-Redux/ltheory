@@ -1,7 +1,7 @@
 use super::gl;
 
 #[luajit_ffi_gen::luajit_ffi(repr = "u32")]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TexFilter {
     Point = gl::NEAREST,
     PointMipPoint = gl::NEAREST_MIPMAP_NEAREST,

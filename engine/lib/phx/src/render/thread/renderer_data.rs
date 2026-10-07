@@ -1,9 +1,10 @@
 use crossbeam::channel::{Receiver, Sender};
 
 use crate::render::{
-    ClipManager, DrawState, PrimitiveBuilder, RenderBatch, RenderCommand, RenderStateIntern,
-    ResourceId, Shader, ShaderErrorQueue, ShaderVarMap, ShaderWatcherInner,
-    VpStack,
+    CameraState, ClipManager, DrawState, Environment, PassEncoder, PassState, PipelineCache,
+    PrimitiveBuilder, RenderBatch, RenderCommand, RenderStateIntern, ResourceId, RingOffset,
+    SamplerCache, ScissorUpdate, Shader, ShaderErrorQueue, ShaderWatcherInner, UniformRing,
+    ViewBlock,
 };
 
 pub struct RendererData {
@@ -20,20 +21,38 @@ pub struct RendererData {
     pub command_buffer: Vec<RenderCommand>,
     /// Active render batch
     pub active_batch: Option<RenderBatch>,
-    /// Viewport stack (was `thread_local! VP_STACK` in viewport.rs)
-    pub viewport: VpStack,
-    /// Label of the currently open render pass, if any (one at a time).
-    pub open_pass: Option<std::sync::Arc<str>>,
+    /// The open render pass (one at a time) and the size of the last target.
+    pub pass: PassState,
+    /// Records the open pass's commands until they are flushed.
+    pub encoder: PassEncoder,
+    /// Uniform staging for per-pass and per-draw blocks.
+    pub ring: UniformRing,
+    /// Frames ended so far; selects the ring slot.
+    pub frame_index: u64,
+    /// Pipeline hash cache.
+    pub pipelines: PipelineCache,
+    /// Sampler hash cache (presets pre-registered).
+    pub samplers: SamplerCache,
+    /// Next `BindGroupId`.
+    pub next_bind_group: u32,
+    /// The `ViewBlock` uploaded last, where, and in which frame, so passes
+    /// with an identical block reuse the upload.
+    pub last_view: Option<(ViewBlock, RingOffset, u64)>,
+    /// Camera of the next passes (`Renderer:setCamera`).
+    pub camera: CameraState,
+    /// Group-0 environment maps (`Renderer:setEnvironment`).
+    pub environment: Environment,
     /// Clip-rect stack (was `thread_local! CLIP_MANAGER` in clip_rect.rs)
     pub clip_rect: ClipManager,
+    /// The scissor update last sent to the GPU; the GL scissor is global
+    /// state, so `ClipRect` compares against this, not against the pass.
+    pub clip_emitted: Option<ScissorUpdate>,
     /// GL state stack (was `thread_local! RENDER_STATE` in render_state.rs)
     pub render_state: RenderStateIntern,
     /// Immediate-mode vertex accumulator (was `Draw`'s owned `PrimitiveBuilder`)
     pub imm: PrimitiveBuilder,
     /// `Draw`'s CPU-side alpha/color stack (was static via `Draw::inst()`)
     pub draw_state: DrawState,
-    /// Shader auto-var stack (was `static OnceLock<Mutex<ShaderVar>>`)
-    pub shader_vars: ShaderVarMap,
     /// Shader compile/reload error queue, for the hot-reload error overlay
     pub shader_errors: ShaderErrorQueue,
     /// File-watcher state for shader hot-reload; `None` until `ShaderWatcher::Init` runs
@@ -44,4 +63,36 @@ pub struct RendererData {
     pub occlusion_shader: Option<Shader>,
     /// Lazily-created shader for `TexCube::gen_ir_map` (was `static mut SHADER`)
     pub irmap_shader: Option<Shader>,
+}
+
+impl RendererData {
+    pub fn new(destroy_tx: Sender<ResourceId>, destroy_rx: Receiver<ResourceId>) -> Self {
+        Self {
+            next_resource_id: 1,
+            destroy_tx,
+            destroy_rx,
+            command_buffer: vec![],
+            active_batch: None,
+            pass: PassState::default(),
+            encoder: PassEncoder::new(),
+            ring: UniformRing::new(),
+            frame_index: 0,
+            pipelines: PipelineCache::new(),
+            samplers: SamplerCache::new(),
+            next_bind_group: 0,
+            last_view: None,
+            camera: CameraState::default(),
+            environment: Environment::default(),
+            clip_rect: ClipManager::new(),
+            clip_emitted: None,
+            render_state: RenderStateIntern::new(),
+            imm: PrimitiveBuilder::new(),
+            draw_state: DrawState::new(),
+            shader_errors: ShaderErrorQueue::new(),
+            shader_watcher: None,
+            ao_shader: None,
+            occlusion_shader: None,
+            irmap_shader: None,
+        }
+    }
 }

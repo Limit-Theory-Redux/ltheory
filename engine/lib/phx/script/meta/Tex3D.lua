@@ -12,6 +12,10 @@ Tex3D = {}
 ---@return Tex3D
 function Tex3D.Create(r, sx, sy, sz, format) end
 
+-- View of the whole volume, for sampling.
+---@return TexView
+function Tex3D:view() end
+
 -- View of one z-slice at mip level 0, usable as a render attachment.
 ---@param layer integer
 ---@return TexView

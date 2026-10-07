@@ -195,6 +195,12 @@ function Renderer:unbindTexture(slot) end
 ---@return RenderPass
 function Renderer:beginPass(desc) end
 
+-- The open pass, for code that records into it without owning it (for
+-- example UI widgets calling `pass:setUiTransform`). It cannot `finish`
+-- the pass. Errors if no pass is open.
+---@return RenderPass
+function Renderer:currentPass() end
+
 -- Draw a mesh
 ---@param vao integer
 ---@param indexCount integer
@@ -238,20 +244,27 @@ function Renderer:resize(width, height) end
 -- Signal swap buffers (frame end)
 function Renderer:swapBuffers() end
 
--- Create the camera UBO on the render thread
-function Renderer:createCameraUbo() end
+-- Set the camera of the passes that begin from now on (and of the open
+-- pass): view and projection matrices and the direction towards the
+-- primary light. Rendering is camera-relative, so the eye is the origin.
+-- Replaces the old shader-variable stack and the camera UBO update.
+---@param view Matrix
+---@param proj Matrix
+---@param starDir Vec3f
+function Renderer:setCamera(view, proj, starDir) end
 
--- Update the camera UBO with new camera data
--- Parameters are the matrices and vectors that make up the camera state.
----@param mView Matrix
----@param mProj Matrix
----@param eyeX number
----@param eyeY number
----@param eyeZ number
----@param starDirX number
----@param starDirY number
----@param starDirZ number
-function Renderer:updateCameraUbo(mView, mProj, eyeX, eyeY, eyeZ, starDirX, starDirY, starDirZ) end
+-- Set the environment cube maps (`envMap` and `irMap` of group 0) of the
+-- passes that begin from now on (and of the open pass). Replaces
+-- the old per-shader `envMap`/`irMap` variables.
+---@param envMap TexCube
+---@param irMap TexCube
+function Renderer:setEnvironment(envMap, irMap) end
+
+-- Create a bind group from `desc`; bind it in a pass with
+-- `pass:setBindGroup(group, id)`.
+---@param desc BindGroupDesc
+---@return integer
+function Renderer:createBindGroup(desc) end
 
 -- Create the material UBO on the render thread
 function Renderer:createMaterialUbo() end

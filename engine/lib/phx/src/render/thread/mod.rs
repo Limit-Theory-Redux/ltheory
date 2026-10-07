@@ -3,12 +3,15 @@ mod camera_render_data;
 mod command_category;
 mod command_executor;
 mod command_executor_gl;
+mod command_executor_gl_binding;
 mod command_executor_wgpu;
 mod config;
 mod entity_render_data;
 mod error;
 mod instance_batch;
 mod instance_data;
+#[cfg(test)]
+mod layout_parity;
 mod render_batch;
 mod render_command;
 mod renderer_data;

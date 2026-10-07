@@ -55,6 +55,7 @@ function Loader.defineType()
             void              Renderer_BindTextureCube       (Renderer*, uint32 slot, uint32 handle);
             void              Renderer_UnbindTexture         (Renderer*, uint32 slot);
             RenderPass*       Renderer_BeginPass             (Renderer*, RenderPassDesc const* desc);
+            RenderPass*       Renderer_CurrentPass           (Renderer const*);
             void              Renderer_DrawMesh              (Renderer*, uint32 vao, int indexCount);
             void              Renderer_DrawMeshPrimitive     (Renderer*, uint32 vao, int indexCount, CmdPrimitiveType* primitive);
             void              Renderer_DrawMeshInstanced     (Renderer*, uint32 vao, int indexCount, int instanceCount);
@@ -62,8 +63,9 @@ function Loader.defineType()
             void              Renderer_DrawInstancedIndices  (Renderer*, uint64 meshId, int indexCount, uint32 const* indices, uint64 indices_size, CmdPrimitiveType* primitive);
             void              Renderer_Resize                (Renderer*, uint32 width, uint32 height);
             void              Renderer_SwapBuffers           (Renderer*);
-            void              Renderer_CreateCameraUbo       (Renderer*);
-            void              Renderer_UpdateCameraUbo       (Renderer*, Matrix const* mView, Matrix const* mProj, float eyeX, float eyeY, float eyeZ, float starDirX, float starDirY, float starDirZ);
+            void              Renderer_SetCamera             (Renderer*, Matrix const* view, Matrix const* proj, Vec3f const* starDir);
+            void              Renderer_SetEnvironment        (Renderer*, TexCube const* envMap, TexCube const* irMap);
+            uint32            Renderer_CreateBindGroup       (Renderer*, BindGroupDesc const* desc);
             void              Renderer_CreateMaterialUbo     (Renderer*);
             void              Renderer_UpdateMaterialUbo     (Renderer*, float r, float g, float b, float a, float metallic, float roughness, float emission);
             void              Renderer_CreateLightUbo        (Renderer*);
@@ -122,6 +124,10 @@ function Loader.defineType()
                     local _instance = libphx.Renderer_BeginPass(self, desc)
                     return Core.ManagedObject(_instance, libphx.RenderPass_Free)
                 end,
+                currentPass           = function(self)
+                    local _instance = libphx.Renderer_CurrentPass(self)
+                    return Core.ManagedObject(_instance, libphx.RenderPass_Free)
+                end,
                 drawMesh              = libphx.Renderer_DrawMesh,
                 drawMeshPrimitive     = function(self, vao, indexCount, primitive)
                     ffi.gc(primitive, nil)
@@ -138,8 +144,9 @@ function Loader.defineType()
                 end,
                 resize                = libphx.Renderer_Resize,
                 swapBuffers           = libphx.Renderer_SwapBuffers,
-                createCameraUbo       = libphx.Renderer_CreateCameraUbo,
-                updateCameraUbo       = libphx.Renderer_UpdateCameraUbo,
+                setCamera             = libphx.Renderer_SetCamera,
+                setEnvironment        = libphx.Renderer_SetEnvironment,
+                createBindGroup       = libphx.Renderer_CreateBindGroup,
                 createMaterialUbo     = libphx.Renderer_CreateMaterialUbo,
                 updateMaterialUbo     = libphx.Renderer_UpdateMaterialUbo,
                 createLightUbo        = libphx.Renderer_CreateLightUbo,

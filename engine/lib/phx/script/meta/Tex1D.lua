@@ -10,6 +10,10 @@ Tex1D = {}
 ---@return Tex1D
 function Tex1D.Create(r, size, format) end
 
+-- View of the whole texture, for sampling.
+---@return TexView
+function Tex1D:view() end
+
 ---@return Tex1D
 function Tex1D:clone() end
 

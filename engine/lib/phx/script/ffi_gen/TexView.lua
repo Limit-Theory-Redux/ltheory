@@ -17,10 +17,12 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            void TexView_Free       (TexView*);
-            int  TexView_GetWidth   (TexView const*);
-            int  TexView_GetHeight  (TexView const*);
-            int  TexView_GetBaseMip (TexView const*);
+            void     TexView_Free        (TexView*);
+            int      TexView_GetWidth    (TexView const*);
+            int      TexView_GetHeight   (TexView const*);
+            int      TexView_GetBaseMip  (TexView const*);
+            int      TexView_GetMipCount (TexView const*);
+            TexView* TexView_Mips        (TexView const*, int baseMip, int mipCount);
         ]]
     end
 
@@ -35,9 +37,14 @@ function Loader.defineType()
         local t  = ffi.typeof('TexView')
         local mt = {
             __index = {
-                getWidth   = libphx.TexView_GetWidth,
-                getHeight  = libphx.TexView_GetHeight,
-                getBaseMip = libphx.TexView_GetBaseMip,
+                getWidth    = libphx.TexView_GetWidth,
+                getHeight   = libphx.TexView_GetHeight,
+                getBaseMip  = libphx.TexView_GetBaseMip,
+                getMipCount = libphx.TexView_GetMipCount,
+                mips        = function(self, baseMip, mipCount)
+                    local _instance = libphx.TexView_Mips(self, baseMip, mipCount)
+                    return Core.ManagedObject(_instance, libphx.TexView_Free)
+                end,
             },
         }
 

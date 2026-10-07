@@ -6,9 +6,6 @@
 #include math
 #include fog
 
-#autovar vec3 eye
-#autovar samplerCube envMap
-#autovar samplerCube irMap
 
 uniform sampler2D texDiffuse;
 

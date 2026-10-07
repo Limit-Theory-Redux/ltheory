@@ -27,7 +27,8 @@ function Tex2D.ScreenCapture(r) end
 ---@param path string
 function Tex2D:save(r, path) end
 
--- View of mip level 0, usable as a render attachment.
+-- View of the whole texture: mip level 0 as a render attachment, every
+-- level when sampled (`TexView:mips` narrows it).
 ---@return TexView
 function Tex2D:view() end
 

@@ -23,6 +23,18 @@ function onDef_Tex2D(t, mt)
 end
 
 function onDef_Tex2D_t(t, mt)
+    -- `tex:view()` is the whole texture (level 0 as an attachment);
+    -- `tex:view{ baseMip = 1, mipCount = 3 }` restricts the levels sampled
+    -- (`mipCount` 0 = all remaining).
+    local view = mt.__index.view
+    mt.__index.view = function(self, opts)
+        local v = view(self)
+        if opts then
+            return v:mips(opts.baseMip or 0, opts.mipCount or 0)
+        end
+        return v
+    end
+
     mt.__index.save = function(self, path)
         libphx.Tex2D_Save(self, Renderer, path)
     end

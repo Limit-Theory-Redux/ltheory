@@ -85,6 +85,12 @@ impl Tex3D {
         }
     }
 
+    /// View of the whole volume, for sampling.
+    pub fn view(&self) -> TexView {
+        let size = self.get_size_level(0);
+        TexView::full(self.resource_id(), ViewDim::D3, [size.x, size.y])
+    }
+
     /// View of one z-slice at mip level 0, usable as a render attachment.
     pub fn layer_view(&self, layer: i32) -> TexView {
         self.layer_mip_view(layer, 0)

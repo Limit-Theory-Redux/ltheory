@@ -1,5 +1,5 @@
 use super::{DataFormat, PixelFormat, TexFilter, TexFormat, TexWrapMode};
-use crate::render::{Renderer, ResourceHandle, ResourceId};
+use crate::render::{Renderer, ResourceHandle, ResourceId, TexView, ViewDim};
 use crate::rf::Rf;
 use crate::system::Bytes;
 
@@ -75,6 +75,15 @@ impl Tex1D {
                 format,
             }),
         }
+    }
+
+    /// View of the whole texture, for sampling.
+    pub fn view(&self) -> TexView {
+        TexView::full(
+            self.resource_id(),
+            ViewDim::D1,
+            [self.shared.as_ref().size, 1],
+        )
     }
 
     // This simply forwards calls from Lua to the Clone trait.

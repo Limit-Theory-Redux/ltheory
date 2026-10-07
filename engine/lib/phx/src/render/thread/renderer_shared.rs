@@ -56,9 +56,9 @@ impl Renderer {
             }
 
             // Set per-draw transform uniforms. View/projection come from
-            // `CameraUBO`, bound once per frame - `mWorld`/`mWorldIT` are the
+            // the pass's `ViewBlock` - `mWorld`/`mWorldIT` are the
             // only per-draw uniforms this engine's shaders expect (see
-            // `res/shader/include/vertex.glsl`, `res/shader/include/camera_ubo.glsl`).
+            // `res/shader/include/vertex.glsl`, `res/shader/include/view_block.glsl`).
             command_buffer.push(RenderCommand::SetUniformMat4ByGenericName {
                 name: GenericUniformName::MWorld,
                 value: entity.transform.to_cols_array(),

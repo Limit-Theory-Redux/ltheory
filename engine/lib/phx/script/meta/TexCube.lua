@@ -15,6 +15,10 @@ function TexCube.Create(r, size, format) end
 ---@return TexCube
 function TexCube.Load(r, path) end
 
+-- View of the whole cube, for sampling.
+---@return TexView
+function TexCube:view() end
+
 -- View of one face at mip level 0, usable as a render attachment.
 ---@param face CubeFace
 ---@return TexView

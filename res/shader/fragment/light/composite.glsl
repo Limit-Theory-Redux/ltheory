@@ -2,8 +2,6 @@
 #include deferred
 #include gamma
 
-#autovar samplerCube irMap
-#autovar samplerCube envMap
 
 in vec3 worldOrigin;
 in vec3 worldDir;

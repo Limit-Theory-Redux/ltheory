@@ -6,7 +6,7 @@ use super::layer::UIRendererLayer;
 use super::panel::UIRendererPanel;
 use super::rect::UIRendererRect;
 use super::text::UIRendererText;
-use crate::render::{BlendMode, Color, Font, RenderState, Renderer, Shader, Tex2D, Viewport};
+use crate::render::{BlendMode, Color, Font, RenderState, Renderer, Shader, Tex2D};
 
 pub struct UIRenderer {
     panel_shader: Shader,
@@ -46,7 +46,7 @@ impl UIRenderer {
         self.rects.clear();
         self.texts.clear();
 
-        let vp = Viewport::get_size(r);
+        let vp = r.target_size();
 
         self.begin_layer(Vec2::ZERO, Vec2::new(vp.x as f32, vp.y as f32), true);
     }

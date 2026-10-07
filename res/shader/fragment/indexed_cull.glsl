@@ -1,6 +1,9 @@
 #include fragment
 
-uniform vec4 color;
+#group 2
+layout(std140) uniform Params {
+  vec4 color;
+};
 
 void main() {
   outColor = color;

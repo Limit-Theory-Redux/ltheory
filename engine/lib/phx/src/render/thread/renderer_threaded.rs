@@ -10,11 +10,11 @@ use tracing::{error, info};
 use crate::render::StatsSink;
 use crate::render::thread::RenderThread;
 use crate::render::{
-    BlendMode, CameraUboArray, ClipManager, CmdPrimitiveType, CullFace, DrawState, GpuHandle,
-    ImmVertex, InstanceData, InstanceUniformsCmd, PrimitiveBuilder, RenderCommand, RenderPassDesc,
-    RenderStateIntern, RenderStats, RenderThreadConfig, RenderThreadError,
-    RendererData, ResourceId, ShaderErrorQueue, ShaderReloadResult, ShaderVarMap, TexFilter,
-    TexFormat, TexWrapMode, VertexFormat, VpStack,
+    BindEntry, BindGroupId, BlendMode, BlockLayout, CmdPrimitiveType, CullFace, GpuHandle,
+    ImmVertex, InstanceData, InstanceUniformsCmd, PassCommands, PipelineDesc, PipelineId,
+    RenderCommand, RenderPassDesc, RenderStats, RenderThreadConfig, RenderThreadError,
+    RendererData, ResourceId, SamplerCache, SamplerDesc, SamplerId, ShaderLayout,
+    ShaderReloadResult, TexFilter, TexFormat, TexWrapMode, VertexFormat,
 };
 use crate::window::{PresentMode, WgpuStartupBundle, WindowError, WindowGlContext};
 
@@ -213,7 +213,7 @@ impl Renderer {
 
         info!("Render thread started successfully");
 
-        Ok(Self {
+        let mut renderer = Self {
             command_tx,
             fence_rx,
             pacing_fence_rx,
@@ -233,31 +233,25 @@ impl Renderer {
             stats_sink: None,
             #[cfg(feature = "stats-server")]
             category_timing,
-            data: RendererData {
-                next_resource_id: 1,
-                destroy_tx,
-                destroy_rx,
-                command_buffer: vec![],
-                active_batch: None,
-                viewport: VpStack::new(),
-                open_pass: None,
-                clip_rect: ClipManager::new(),
-                render_state: RenderStateIntern::new(),
-                imm: PrimitiveBuilder::new(),
-                draw_state: DrawState::new(),
-                shader_vars: ShaderVarMap::new(),
-                shader_errors: ShaderErrorQueue::new(),
-                shader_watcher: None,
-                ao_shader: None,
-                occlusion_shader: None,
-                irmap_shader: None,
-            },
+            data: RendererData::new(destroy_tx, destroy_rx),
             last_shader_bind: None,
-        })
+        };
+        for (id, desc) in SamplerCache::presets() {
+            renderer.create_sampler(id, desc);
+        }
+        Ok(renderer)
     }
 
-    /// Submit a command to the render thread
+    /// Submit a non-pass command to the render thread. Anything recorded in
+    /// the open pass goes out first, so old and new commands in one pass
+    /// execute in order.
     fn submit(&mut self, cmd: RenderCommand) {
+        self.flush_pass_encoder();
+        self.send(cmd);
+    }
+
+    /// Send a command to the render thread without flushing the pass encoder.
+    fn send(&mut self, cmd: RenderCommand) {
         if self.running.load(Ordering::Relaxed) {
             // Fast path: non-blocking try_send. Only when the bounded channel
             // is full do we fall back to a blocking send — and only then do we
@@ -330,6 +324,7 @@ impl Renderer {
             return;
         }
 
+        self.pass_end_frame();
         self.drain_destroy_queue();
 
         // Track ALL time spent in this function (includes channel blocking)
@@ -1072,16 +1067,52 @@ impl Renderer {
         id: ResourceId,
         vertex_src: String,
         fragment_src: String,
-    ) -> Option<String> {
+        layout: Arc<ShaderLayout>,
+    ) -> Result<Vec<BlockLayout>, String> {
         let (tx, rx) = bounded(1);
         self.submit(RenderCommand::CreateShader {
             id,
             vertex_src,
             fragment_src,
+            layout,
             reply_tx: tx,
         });
         rx.recv()
-            .unwrap_or_else(|_| Some("Renderer channel closed".to_string()))
+            .unwrap_or_else(|_| Err("Renderer channel closed".to_string()))
+    }
+
+    // === Binding model objects ===
+
+    pub fn create_pipeline(&mut self, id: PipelineId, desc: Box<PipelineDesc>) {
+        self.submit(RenderCommand::CreatePipeline { id, desc });
+    }
+
+    pub fn create_sampler(&mut self, id: SamplerId, desc: SamplerDesc) {
+        self.submit(RenderCommand::CreateSampler { id, desc });
+    }
+
+    pub fn create_bind_group_intern(
+        &mut self,
+        id: BindGroupId,
+        shader: ResourceId,
+        group: u8,
+        entries: Box<[BindEntry]>,
+    ) {
+        self.submit(RenderCommand::CreateBindGroup {
+            id,
+            shader,
+            group,
+            entries,
+        });
+    }
+
+    /// Hand the open pass's recorded commands to the render thread (called by
+    /// `flush_pass_encoder`, so it must not flush again).
+    pub(crate) fn send_pass_commands(&mut self, commands: Box<PassCommands>) {
+        self.send(RenderCommand::PassCommands(commands));
+        // The executor's current program/pipeline changed behind the old
+        // bind-skip cache.
+        self.last_shader_bind = None;
     }
 
     pub fn get_uniform_location_by_resource(&mut self, id: ResourceId, name: Arc<str>) -> i32 {
@@ -1166,14 +1197,6 @@ impl Renderer {
     }
 
     // === Uniform Buffer Objects ===
-
-    pub fn create_camera_ubo_intern(&mut self) {
-        self.submit(RenderCommand::CreateCameraUBO);
-    }
-
-    pub fn update_camera_ubo_intern(&mut self, data: Box<CameraUboArray>) {
-        self.submit(RenderCommand::UpdateCameraUBO { data });
-    }
 
     pub fn create_material_ubo_intern(&mut self) {
         self.submit(RenderCommand::CreateMaterialUBO);

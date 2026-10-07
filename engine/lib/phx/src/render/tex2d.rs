@@ -3,7 +3,7 @@ use image::{DynamicImage, GenericImageView, ImageBuffer, ImageReader, Rgba};
 
 use super::{DataFormat, PixelFormat, TexFilter, TexFormat, TexWrapMode};
 use crate::render::{
-    LoadOp, RenderPassDesc, Renderer, ResourceHandle, ResourceId, TexView, ViewDim, Viewport, gl,
+    LoadOp, RenderPassDesc, Renderer, ResourceHandle, ResourceId, TexView, ViewDim, gl,
 };
 use crate::rf::Rf;
 use crate::system::{Bytes, Resource, ResourceType};
@@ -134,7 +134,7 @@ impl Tex2D {
     }
 
     pub fn screen_capture(r: &mut Renderer) -> Tex2D {
-        let size: IVec2 = Viewport::get_size(r);
+        let size: IVec2 = r.target_size();
 
         let raw = r.read_framebuffer_pixels(0, 0, size.x, size.y);
 
@@ -179,9 +179,11 @@ impl Tex2D {
         }
     }
 
-    /// View of mip level 0, usable as a render attachment.
+    /// View of the whole texture: mip level 0 as a render attachment, every
+    /// level when sampled (`TexView:mips` narrows it).
     pub fn view(&self) -> TexView {
-        self.mip_view(0)
+        let size = self.get_size_level(0);
+        TexView::full(self.resource_id(), ViewDim::D2, [size.x, size.y])
     }
 
     /// View of one mip level, usable as a render attachment.
@@ -202,7 +204,8 @@ impl Tex2D {
     }
 
     pub fn deep_clone(&mut self, r: &mut Renderer) -> Tex2D {
-        let desc = RenderPassDesc::with_color("Tex2D.deepClone", self.view(), LoadOp::Load, [0.0; 4]);
+        let desc =
+            RenderPassDesc::with_color("Tex2D.deepClone", self.view(), LoadOp::Load, [0.0; 4]);
         r.begin_pass_intern(&desc);
 
         let this = self.shared.as_ref();

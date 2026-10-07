@@ -11,10 +11,10 @@ use crate::render::thread::{
     AttachKey, FboKey, GpuResource, MAX_TEXTURE_SLOTS, TextureBinding, TextureType,
 };
 use crate::render::{
-    BlendMode, CameraUboArray, CmdPrimitiveType, CommandCategory, CommandExecutor, CommandReply,
+    BlendMode, BlockLayout, CmdPrimitiveType, CommandCategory, CommandExecutor, CommandReply,
     CullFace, GenericUniformName, ImmVertex, InstanceData, LoadOp, MAX_COLOR_ATTACHMENTS,
-    RenderPassDesc, RenderStats, ResourceId, ShaderReloadResult, TexFilter, TexFormat,
-    TexWrapMode, VertexFormat, ViewDim,
+    PolygonMode, RenderPassDesc, RenderStats, ResourceId, ShaderLayout, ShaderReloadResult,
+    TexFilter, TexFormat, TexWrapMode, VertexFormat, ViewDim,
 };
 use crate::window::{PresentMode, WindowGlContext};
 
@@ -120,6 +120,8 @@ impl CommandExecutor {
 
             gl::BindVertexArray(0);
         }
+
+        self.init_fullscreen_quad();
     }
 
     #[inline(always)]
@@ -153,6 +155,9 @@ impl CommandExecutor {
     #[inline(always)]
     pub(super) fn cmd_set_depth_test(&mut self, enable: bool) {
         let _sa = self.record_command(CommandCategory::State, false, true);
+        // S6: remove the write-through (pipelines own this state).
+        self.binding.gl_state.depth_test = Some(enable);
+        self.invalidate_pipeline();
         unsafe {
             if enable {
                 gl::Enable(gl::DEPTH_TEST);
@@ -165,6 +170,8 @@ impl CommandExecutor {
     #[inline(always)]
     pub(super) fn cmd_set_depth_writable(&mut self, enable: bool) {
         let _sa = self.record_command(CommandCategory::State, false, true);
+        self.binding.gl_state.depth_write = Some(enable); // S6: remove
+        self.invalidate_pipeline();
         unsafe {
             gl::DepthMask(if enable { gl::TRUE } else { gl::FALSE });
         }
@@ -173,6 +180,13 @@ impl CommandExecutor {
     #[inline(always)]
     pub(super) fn cmd_set_wireframe(&mut self, enable: bool) {
         let _sa = self.record_command(CommandCategory::State, false, true);
+        // S6: remove
+        self.binding.gl_state.polygon = Some(if enable {
+            PolygonMode::Line
+        } else {
+            PolygonMode::Fill
+        });
+        self.invalidate_pipeline();
         unsafe {
             gl::PolygonMode(gl::FRONT_AND_BACK, if enable { gl::LINE } else { gl::FILL });
         }
@@ -197,6 +211,7 @@ impl CommandExecutor {
     #[inline(always)]
     pub(super) fn cmd_bind_shader(&mut self, handle: super::GpuHandle) {
         let _sa = self.record_command(CommandCategory::Shader, false, true);
+        self.invalidate_pipeline(); // S6: remove
         self.this_frame_stats.shader_bind_commands += 1;
         if handle.0 == self.current_program {
             self.this_frame_stats.shader_redundant_binds += 1;
@@ -222,6 +237,7 @@ impl CommandExecutor {
         shader_key: Option<String>,
     ) {
         let _sa = self.record_command(CommandCategory::Shader, false, false);
+        self.invalidate_pipeline(); // S6: remove
         // First check if there's a hot-reloaded version of this shader
         let program = if let Some(ref key) = shader_key {
             self.hot_reloaded_shaders.get(key).copied()
@@ -265,6 +281,7 @@ impl CommandExecutor {
         // real texture change. Previously this wiped the cache on every
         // shader stop (~2k/frame), destroying all reuse.
         self.this_frame_stats.texture_invalidations_on_shader_unbind += 1;
+        self.invalidate_pipeline(); // S6: remove
         unsafe {
             gl::UseProgram(0);
         }
@@ -711,6 +728,7 @@ impl CommandExecutor {
                 gl::TexParameteri(target, gl::TEXTURE_BASE_LEVEL, min_level);
                 gl::TexParameteri(target, gl::TEXTURE_MAX_LEVEL, max_level);
             }
+            self.note_mip_range(id, min_level, max_level); // S6: remove
             self.restore_active_unit_binding();
         } else {
             warn!(
@@ -949,8 +967,9 @@ impl CommandExecutor {
                     data_format,
                     data.as_ptr() as *const _,
                 );
-                gl::BindTexture(gl::TEXTURE_CUBE_MAP, 0);
             }
+            // Not `BindTexture(.., 0)`: unit 0 holds the environment cube map.
+            self.restore_active_unit_binding();
         } else {
             warn!(
                 "UpdateTextureCubeFaceDataByResource: resource {:?} not found",
@@ -1761,23 +1780,24 @@ impl CommandExecutor {
         id: ResourceId,
         vertex_src: String,
         fragment_src: String,
-    ) -> Option<String> {
+        layout: &ShaderLayout,
+    ) -> Result<Vec<BlockLayout>, String> {
         let _sa = self.record_command(CommandCategory::Resource, false, false);
         if !self.has_gl_context() {
             // No-op: leave the resource untracked. By-resource commands
             // (e.g. `GetUniformLocationByResource`) already handle a
             // missing id gracefully, so nothing downstream needs a real
             // GL program.
-            return None;
+            return Ok(Vec::new());
         }
-        match self.create_shader(&vertex_src, &fragment_src) {
-            Ok(program) => {
+        match self.create_shader(&vertex_src, &fragment_src, layout) {
+            Ok((program, blocks)) => {
                 self.resources.insert(id, GpuResource::Shader { program });
-                None
+                Ok(blocks)
             }
             Err(e) => {
                 error!("Failed to create shader {:?}: {}", id, e);
-                Some(e)
+                Err(e)
             }
         }
     }
@@ -1866,6 +1886,7 @@ impl CommandExecutor {
     pub(super) fn cmd_destroy_resource(&mut self, ids: &[ResourceId]) {
         let _sa = self.record_command(CommandCategory::Resource, false, false);
         for id in ids {
+            self.forget_texture(*id);
             // Evict every framebuffer that attaches this texture.
             if let Some(keys) = self.texture_fbos.remove(id) {
                 for key in keys {
@@ -1918,7 +1939,12 @@ impl CommandExecutor {
     ) -> CommandReply {
         let _sa = self.record_command(CommandCategory::Resource, false, false);
         // Compile shader on render thread and send result back
-        let result = match self.create_shader(vertex_src, fragment_src) {
+        // The legacy reload command carries no layout; `Shader::reload` (a
+        // fresh `CreateShader`) is what hot reload uses.
+        let result = match self
+            .create_shader(vertex_src, fragment_src, &ShaderLayout::default())
+            .map(|(program, _)| program)
+        {
             Ok(program) => {
                 // Delete old hot-reloaded shader if exists
                 if let Some(old_program) = self.hot_reloaded_shaders.remove(shader_key) {
@@ -2025,6 +2051,8 @@ impl CommandExecutor {
     #[inline(always)]
     pub(super) fn cmd_set_blend_mode(&mut self, mode: BlendMode) {
         let _sa = self.record_command(CommandCategory::State, false, true);
+        self.binding.gl_state.blend = Some(mode); // S6: remove
+        self.invalidate_pipeline();
         unsafe {
             match mode {
                 BlendMode::Disabled => {
@@ -2055,6 +2083,8 @@ impl CommandExecutor {
     #[inline(always)]
     pub(super) fn cmd_set_cull_face(&mut self, face: CullFace) {
         let _sa = self.record_command(CommandCategory::State, false, true);
+        self.binding.gl_state.cull = Some(face); // S6: remove
+        self.invalidate_pipeline();
         unsafe {
             match face {
                 CullFace::None => {
@@ -2114,41 +2144,6 @@ impl CommandExecutor {
             gl::BindVertexArray(0);
         }
         self.this_frame_stats.vertices_drawn += vertices.len() as u64;
-    }
-
-    #[inline(always)]
-    /// Create the camera UBO (binding point 0)
-    pub(super) fn cmd_create_camera_ubo(&mut self) {
-        let _sa = self.record_command(CommandCategory::Ubo, false, false);
-        if self.camera_ubo != 0 {
-            return; // Already created
-        }
-
-        unsafe {
-            gl::GenBuffers(1, &mut self.camera_ubo);
-            gl::BindBuffer(gl::UNIFORM_BUFFER, self.camera_ubo);
-            // Allocate 288 bytes (CameraUboData::SIZE)
-            gl::BufferData(gl::UNIFORM_BUFFER, 288, std::ptr::null(), gl::DYNAMIC_DRAW);
-            // Bind to binding point 0
-            gl::BindBufferBase(gl::UNIFORM_BUFFER, 0, self.camera_ubo);
-            gl::BindBuffer(gl::UNIFORM_BUFFER, 0);
-        }
-        debug!("Created camera UBO with handle {}", self.camera_ubo);
-    }
-
-    #[inline(always)]
-    /// Update camera UBO data
-    pub(super) fn cmd_update_camera_ubo(&mut self, data: &CameraUboArray) {
-        let _sa = self.record_command(CommandCategory::Ubo, false, false);
-        if self.camera_ubo == 0 {
-            self.cmd_create_camera_ubo();
-        }
-
-        unsafe {
-            gl::BindBuffer(gl::UNIFORM_BUFFER, self.camera_ubo);
-            gl::BufferSubData(gl::UNIFORM_BUFFER, 0, 288, data.as_ptr() as *const _);
-            gl::BindBuffer(gl::UNIFORM_BUFFER, 0);
-        }
     }
 
     #[inline(always)]
@@ -2221,7 +2216,12 @@ impl CommandExecutor {
         }
     }
 
-    fn create_shader(&self, vertex_src: &str, fragment_src: &str) -> Result<u32, String> {
+    fn create_shader(
+        &self,
+        vertex_src: &str,
+        fragment_src: &str,
+        layout: &ShaderLayout,
+    ) -> Result<(u32, Vec<BlockLayout>), String> {
         unsafe {
             let vs = gl::CreateShader(gl::VERTEX_SHADER);
             let vs_src = std::ffi::CString::new(vertex_src).unwrap();
@@ -2302,23 +2302,16 @@ impl CommandExecutor {
                 ));
             }
 
-            // Bind CameraUBO to binding point 0 (if present in shader)
-            let block_index = gl::GetUniformBlockIndex(program, c"CameraUBO".as_ptr() as *const _);
-            if block_index != gl::INVALID_INDEX {
-                gl::UniformBlockBinding(program, block_index, 0);
-            }
-
-            // Bind LightUBO to binding point 2 (if present in shader)
-            let light_block_index =
-                gl::GetUniformBlockIndex(program, c"LightUBO".as_ptr() as *const _);
-            if light_block_index != gl::INVALID_INDEX {
-                gl::UniformBlockBinding(program, light_block_index, 2);
-            }
+            // Block binding points and sampler units from the `#group`
+            // layout, then the legacy by-name block bindings.
+            Self::apply_layout(program, layout);
+            Self::bind_legacy_blocks(program);
+            let blocks = Self::reflect_blocks(program);
 
             gl::DeleteShader(vs);
             gl::DeleteShader(fs);
 
-            Ok(program)
+            Ok((program, blocks))
         }
     }
 
@@ -2669,6 +2662,20 @@ impl CommandExecutor {
             }
         }
 
+        // Binding model objects
+        unsafe {
+            for buffer in self.binding.ring_buffers.iter().flatten() {
+                gl::DeleteBuffers(1, buffer);
+            }
+            for sampler in self.binding.samplers.values() {
+                gl::DeleteSamplers(1, sampler);
+            }
+            if self.binding.fullscreen_vao != 0 {
+                gl::DeleteVertexArrays(1, &self.binding.fullscreen_vao);
+                gl::DeleteBuffers(1, &self.binding.fullscreen_vbo);
+            }
+        }
+
         // Cleanup immediate mode resources
         unsafe {
             if self.imm_vao != 0 {
@@ -2716,6 +2723,9 @@ impl CommandExecutor {
     }
 
     fn bind_texture_cached(&mut self, slot: u32, handle: u32, tex_type: TextureType) -> bool {
+        // S6: remove. A legacy bind samples with the parameters stored in
+        // the texture, not with a sampler object a pass left on the unit.
+        self.drop_unit_sampler(slot as usize);
         let slot_idx = slot as usize;
         if slot_idx >= MAX_TEXTURE_SLOTS {
             // Slot out of range, just bind directly

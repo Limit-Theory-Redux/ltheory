@@ -3,76 +3,13 @@
 //! UBOs allow sharing uniform data across multiple shaders with a single buffer update,
 //! reducing per-draw glUniform calls significantly.
 
-use glam::{Mat4, Vec3};
-
 use crate::render::{gl, glcheck};
 
-/// Binding points for standard UBOs
-pub const CAMERA_UBO_BINDING: u32 = 0;
+/// Binding points of the legacy standard UBOs (group 0 of the new binding
+/// model owns 0..3; the per-pass `ViewBlock` is binding 0). The material and
+/// light UBOs go away in S4/S5.
 pub const MATERIAL_UBO_BINDING: u32 = 1;
 pub const LIGHT_UBO_BINDING: u32 = 2;
-
-pub type CameraUboArray = [u8; CameraUboData::SIZE];
-
-/// Camera uniform buffer data with std140 layout.
-///
-/// std140 layout rules:
-/// - mat4: 64 bytes, aligned to 16 bytes
-/// - vec4: 16 bytes, aligned to 16 bytes
-/// - vec3: 12 bytes BUT aligned to 16 bytes (so we use vec4)
-#[repr(C, align(16))]
-#[derive(Clone, Copy, Debug, Default)]
-pub struct CameraUboData {
-    pub m_view: [[f32; 4]; 4],     // 64 bytes
-    pub m_proj: [[f32; 4]; 4],     // 64 bytes
-    pub m_view_inv: [[f32; 4]; 4], // 64 bytes
-    pub m_proj_inv: [[f32; 4]; 4], // 64 bytes
-    pub eye: [f32; 4],             // 16 bytes (xyz + padding)
-    pub star_dir: [f32; 4],        // 16 bytes (xyz + padding)
-}
-
-impl CameraUboData {
-    pub const SIZE: usize = std::mem::size_of::<Self>();
-
-    pub fn new() -> Self {
-        Self {
-            m_view: Mat4::IDENTITY.to_cols_array_2d(),
-            m_proj: Mat4::IDENTITY.to_cols_array_2d(),
-            m_view_inv: Mat4::IDENTITY.to_cols_array_2d(),
-            m_proj_inv: Mat4::IDENTITY.to_cols_array_2d(),
-            eye: [0.0, 0.0, 0.0, 1.0],
-            star_dir: [0.0, 1.0, 0.0, 0.0],
-        }
-    }
-
-    pub fn set_view(&mut self, view: &Mat4) {
-        self.m_view = view.to_cols_array_2d();
-    }
-
-    pub fn set_view_inv(&mut self, view_inv: &Mat4) {
-        self.m_view_inv = view_inv.to_cols_array_2d();
-    }
-
-    pub fn set_proj(&mut self, proj: &Mat4) {
-        self.m_proj = proj.to_cols_array_2d();
-        self.m_proj_inv = proj.inverse().to_cols_array_2d();
-    }
-
-    pub fn set_eye(&mut self, eye: Vec3) {
-        self.eye = [eye.x, eye.y, eye.z, 1.0];
-    }
-
-    pub fn set_star_dir(&mut self, dir: Vec3) {
-        self.star_dir = [dir.x, dir.y, dir.z, 0.0];
-    }
-
-    /// Convert to bytes for GPU upload
-    #[allow(unsafe_code)]
-    pub fn as_bytes(&self) -> &[u8] {
-        // SAFETY: CameraUboData is repr(C) with known size, all fields are POD
-        unsafe { std::slice::from_raw_parts(self as *const Self as *const u8, Self::SIZE) }
-    }
-}
 
 /// Material uniform buffer data with std140 layout.
 ///
@@ -246,76 +183,6 @@ impl Drop for UniformBuffer {
     }
 }
 
-/// Global camera UBO manager
-pub struct CameraUbo {
-    buffer: UniformBuffer,
-    data: CameraUboData,
-    dirty: bool,
-}
-
-impl CameraUbo {
-    pub fn new() -> Self {
-        Self {
-            buffer: UniformBuffer::new(CameraUboData::SIZE, CAMERA_UBO_BINDING),
-            data: CameraUboData::new(),
-            dirty: true,
-        }
-    }
-
-    pub fn set_view(&mut self, view: &Mat4) {
-        self.data.set_view(view);
-        self.dirty = true;
-    }
-
-    pub fn set_view_inv(&mut self, view_inv: &Mat4) {
-        self.data.set_view_inv(view_inv);
-        self.dirty = true;
-    }
-
-    pub fn set_proj(&mut self, proj: &Mat4) {
-        self.data.set_proj(proj);
-        self.dirty = true;
-    }
-
-    pub fn set_eye(&mut self, eye: Vec3) {
-        self.data.set_eye(eye);
-        self.dirty = true;
-    }
-
-    pub fn set_star_dir(&mut self, dir: Vec3) {
-        self.data.set_star_dir(dir);
-        self.dirty = true;
-    }
-
-    /// Flush changes to GPU if dirty
-    pub fn flush(&mut self) {
-        if self.dirty {
-            self.buffer.update(self.data.as_bytes());
-            self.dirty = false;
-        }
-    }
-
-    /// Force upload regardless of dirty flag
-    pub fn force_upload(&mut self) {
-        self.buffer.update(self.data.as_bytes());
-        self.dirty = false;
-    }
-
-    pub fn data(&self) -> &CameraUboData {
-        &self.data
-    }
-
-    pub fn buffer(&self) -> &UniformBuffer {
-        &self.buffer
-    }
-}
-
-impl Default for CameraUbo {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 /// Global light UBO manager
 pub struct LightUbo {
     buffer: UniformBuffer,
@@ -363,23 +230,5 @@ impl LightUbo {
 impl Default for LightUbo {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_camera_ubo_size() {
-        // Verify std140 layout produces expected size
-        // 4 mat4 (64 each) + 2 vec4 (16 each) = 256 + 32 = 288 bytes
-        assert_eq!(CameraUboData::SIZE, 288);
-    }
-
-    #[test]
-    fn test_camera_ubo_alignment() {
-        // Verify alignment is 16 bytes for std140
-        assert_eq!(std::mem::align_of::<CameraUboData>(), 16);
     }
 }

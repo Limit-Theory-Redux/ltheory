@@ -6,7 +6,6 @@
 #include math
 #include fog
 
-#autovar samplerCube envMap
 
 uniform sampler2D texDiffuse;
 uniform float scale;

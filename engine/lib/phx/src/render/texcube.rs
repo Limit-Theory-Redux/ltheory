@@ -224,6 +224,12 @@ impl TexCube {
         }
     }
 
+    /// View of the whole cube, for sampling.
+    pub fn view(&self) -> TexView {
+        let size = self.shared.as_ref().size.max(1);
+        TexView::full(self.resource_id(), ViewDim::Cube, [size, size])
+    }
+
     /// View of one face at mip level 0, usable as a render attachment.
     pub fn face_view(&self, face: CubeFace) -> TexView {
         self.face_mip_view(face, 0)

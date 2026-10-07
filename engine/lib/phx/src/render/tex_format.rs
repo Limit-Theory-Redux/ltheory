@@ -1,7 +1,7 @@
 use super::gl;
 
 #[luajit_ffi_gen::luajit_ffi(with_impl = true, repr = "u32")]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TexFormat {
     R8 = gl::R8,
     R16 = gl::R16,

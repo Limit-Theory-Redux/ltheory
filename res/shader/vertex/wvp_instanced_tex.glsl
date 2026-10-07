@@ -15,8 +15,6 @@
 
 #include vertex
 
-#autovar mat4 mView
-#autovar mat4 mProj
 
 uniform sampler2D instanceDataTex;
 uniform vec3 originRelEye;

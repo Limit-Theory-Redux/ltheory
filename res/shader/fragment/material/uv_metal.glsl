@@ -6,8 +6,6 @@
 #include math
 #include fog
 
-#autovar samplerCube irMap
-#autovar samplerCube envMap
 
 uniform float scale;
 uniform float edgeDarkness;

@@ -76,6 +76,12 @@ const COPY_TYPES: &[&str] = &[
     "CullFace",
     "BspNodeRel",
     "LoadOp",
+    "CompareFn",
+    "Topology",
+    "VertexLayout",
+    "PolygonMode",
+    "SamplerFilter",
+    "MipFilter",
 ];
 
 #[derive(Debug, PartialEq)]

@@ -1,10 +1,6 @@
 #include vertex
 
-uniform mat4 mWorldViewUI;
-uniform mat4 mProjUI;
 
-#autovar mat4 mWorldViewUI
-#autovar mat4 mProjUI
 
 void main() {
   uv = vertex_uv.xy;

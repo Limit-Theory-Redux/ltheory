@@ -161,6 +161,15 @@ impl Mesh {
     }
 }
 
+impl Mesh {
+    /// The mesh's GPU resource (created or rebuilt if the mesh changed) and
+    /// its index count, for `pass:drawMesh`.
+    pub fn resource_and_index_count(&mut self, r: &mut Renderer) -> (ResourceId, u32) {
+        let id = self.ensure_resource(r);
+        (id, self.shared.as_ref().index.len() as u32)
+    }
+}
+
 #[luajit_ffi_gen::luajit_ffi]
 impl Mesh {
     #[bind(name = "Create")]

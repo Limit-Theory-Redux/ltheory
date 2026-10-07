@@ -1,7 +1,10 @@
 use std::sync::Arc;
 
-use super::TexView;
-use crate::render::{Renderer, Viewport};
+use glam::{IVec2, Vec3};
+
+use super::{PASS_FLUSH_LIMIT, PassCmd, PassCommands, PipelineId, SamplerId, TexView, ViewBlock};
+use crate::math::Matrix;
+use crate::render::{Mesh, Renderer, ScissorUpdate};
 use crate::system::{Metric, Profiler};
 
 pub const MAX_COLOR_ATTACHMENTS: usize = 4;
@@ -203,7 +206,8 @@ impl RenderPassDesc {
     }
 }
 
-/// Handle of the one open render pass. `finish` ends it.
+/// Handle of the one open render pass. `finish` ends it; the other methods
+/// record pass commands (see `PassEncoder`).
 pub struct RenderPass {
     label: Arc<str>,
     finished: bool,
@@ -213,19 +217,108 @@ pub struct RenderPass {
 impl RenderPass {
     pub fn finish(&mut self, r: &mut Renderer) {
         if self.finished {
-            panic!("RenderPass '{}': finish() called twice", self.label);
+            panic!(
+                "RenderPass '{}': finish() on a pass that was already finished (or a handle from currentPass(), which only borrows the pass)",
+                self.label
+            );
         }
         self.finished = true;
         r.end_pass_intern();
     }
+
+    /// Bind a pipeline (shader and fixed-function state) for the draws that
+    /// follow.
+    pub fn set_pipeline(&self, r: &mut Renderer, pipeline: u32) {
+        r.pass_record("setPipeline", PassCmd::SetPipeline(PipelineId(pipeline)));
+    }
+
+    /// Stage pass input `slot` (0..3, group 3: texture units 12..15). All
+    /// staged inputs are bound together before the next draw.
+    pub fn set_input(&self, r: &mut Renderer, slot: i32, view: &TexView, sampler: u32) {
+        r.pass_require_open("setInput");
+        r.data
+            .encoder
+            .set_input(slot as usize, Some((*view, SamplerId(sampler as u16))));
+    }
+
+    /// Unbind pass input `slot`.
+    pub fn clear_input(&self, r: &mut Renderer, slot: i32) {
+        r.pass_require_open("clearInput");
+        r.data.encoder.set_input(slot as usize, None);
+    }
+
+    /// Bind a bind group created with `Renderer:createBindGroup` to its
+    /// group's units.
+    pub fn set_bind_group(&self, r: &mut Renderer, group: i32, bind_group: u32) {
+        r.pass_record(
+            "setBindGroup",
+            PassCmd::SetBindGroup {
+                group: group as u8,
+                id: super::BindGroupId(bind_group),
+            },
+        );
+    }
+
+    /// Draw `mesh` with the current pipeline.
+    pub fn draw_mesh(&self, r: &mut Renderer, mesh: &mut Mesh) {
+        r.pass_require_open("drawMesh");
+        let (mesh, index_count) = mesh.resource_and_index_count(r);
+        r.pass_draw(PassCmd::DrawMesh {
+            mesh,
+            first_index: 0,
+            index_count,
+        });
+    }
+
+    /// Draw the built-in unit quad (pipeline vertex layout `Fullscreen`),
+    /// scaled to the viewport by the vertex shader.
+    pub fn draw_fullscreen(&self, r: &mut Renderer) {
+        r.pass_draw(PassCmd::DrawFullscreen);
+    }
+
+    /// Restrict drawing to a sub-rectangle of the target. The UI projection
+    /// follows the new size, like the viewport stack of old did.
+    pub fn set_viewport(&self, r: &mut Renderer, x: i32, y: i32, width: i32, height: i32) {
+        r.pass_set_viewport([x, y, width, height]);
+    }
+
+    pub fn set_scissor(&self, r: &mut Renderer, x: i32, y: i32, width: i32, height: i32) {
+        r.pass_record(
+            "setScissor",
+            PassCmd::SetScissor(Some([x, y, width, height])),
+        );
+    }
+
+    pub fn clear_scissor(&self, r: &mut Renderer) {
+        r.pass_record("clearScissor", PassCmd::SetScissor(None));
+    }
+
+    /// Replace the model-view part of the UI transform (`mWorldViewUI`) for
+    /// the draws that follow.
+    pub fn set_ui_transform(&self, r: &mut Renderer, transform: &Matrix) {
+        r.pass_set_ui_transform(transform.to_cols_array());
+    }
+}
+
+/// `pass:alloc(T)` backend: `size` zeroed bytes of uniform ring staging that
+/// become the group-2 block of the next draw. The pointer is valid until the
+/// next draw is recorded (the pass auto-flushes only at an `alloc` entry or
+/// after a draw), so write the fields, then draw. Hand-written because the
+/// FFI generator cannot return raw pointers; the Lua side casts the result
+/// to `T*` (see `ffi_ext/RenderPass.lua`).
+#[allow(unsafe_code, non_snake_case, improper_ctypes_definitions)]
+#[unsafe(no_mangle)]
+pub extern "C" fn RenderPass_Alloc(_pass: &RenderPass, r: &mut Renderer, size: u32) -> *mut u8 {
+    r.pass_alloc(size)
 }
 
 impl Renderer {
     /// Begin a render pass: bind the attachments, size the viewport, apply
-    /// the load ops. Only one pass may be open at a time.
+    /// the load ops, and set up the pass's group-0 state (view block and
+    /// environment). Only one pass may be open at a time.
     pub fn begin_pass_intern(&mut self, desc: &RenderPassDesc) -> RenderPass {
         Profiler::begin("RenderPass_Begin");
-        if let Some(open) = &self.data.open_pass {
+        if let Some(open) = &self.data.pass.open {
             panic!(
                 "beginPass('{}'): pass '{open}' is still open (passes cannot nest; call finish() first)",
                 desc.label
@@ -233,17 +326,21 @@ impl Renderer {
         }
         desc.validate();
 
-        self.data.open_pass = Some(desc.label.clone());
         Metric::FBOSwap.inc();
         self.begin_render_pass(Box::new(desc.clone()));
-        Viewport::push(
-            self,
-            0,
-            0,
-            desc.extent[0] as i32,
-            desc.extent[1] as i32,
-            desc.backbuffer,
-        );
+
+        let viewport = [0, 0, desc.extent[0] as i32, desc.extent[1] as i32];
+        let camera = self.data.camera;
+        let pass = &mut self.data.pass;
+        pass.open = Some(desc.label.clone());
+        pass.extent = desc.extent;
+        pass.is_window = desc.backbuffer;
+        pass.viewport = viewport;
+        pass.view = ViewBlock::new(&camera, viewport, desc.backbuffer);
+
+        self.pass_emit_view();
+        self.pass_emit_environment();
+        self.sync_scissor();
         Profiler::end();
 
         RenderPass {
@@ -254,12 +351,216 @@ impl Renderer {
 
     pub fn end_pass_intern(&mut self) {
         Profiler::begin("RenderPass_End");
-        if self.data.open_pass.take().is_none() {
+        if self.data.pass.open.take().is_none() {
             panic!("RenderPass finish(): no pass is open");
         }
         Metric::FBOSwap.inc();
+        // Hand the recorded commands over before the pass ends.
+        self.flush_pass_encoder();
         self.end_render_pass();
-        Viewport::pop(self);
         Profiler::end();
+    }
+
+    /// A handle on the open pass for code that records into it without owning
+    /// it (it cannot `finish` it).
+    pub fn current_pass_intern(&self) -> RenderPass {
+        let label = self
+            .data
+            .pass
+            .open
+            .clone()
+            .unwrap_or_else(|| panic!("currentPass(): no render pass is open"));
+        RenderPass {
+            label,
+            finished: true,
+        }
+    }
+
+    /// Size of the open pass's viewport, or of the last pass's target when
+    /// none is open (what `ClipRect` and screen capture measure against).
+    pub fn target_size(&self) -> IVec2 {
+        let pass = &self.data.pass;
+        if pass.open.is_some() {
+            IVec2::new(pass.viewport[2], pass.viewport[3])
+        } else {
+            IVec2::new(pass.extent[0] as i32, pass.extent[1] as i32)
+        }
+    }
+
+    pub(crate) fn pass_require_open(&self, what: &str) {
+        if self.data.pass.open.is_none() {
+            panic!("RenderPass:{what}: the pass is not open (it was finished, or never began)");
+        }
+    }
+
+    /// Record `cmd` into the open pass.
+    pub(crate) fn pass_record(&mut self, what: &str, cmd: PassCmd) {
+        self.pass_require_open(what);
+        self.data.encoder.push(cmd);
+    }
+
+    /// Record a draw: pending inputs go out first, and a full buffer flushes.
+    pub(crate) fn pass_draw(&mut self, cmd: PassCmd) {
+        self.pass_require_open("draw");
+        let encoder = &mut self.data.encoder;
+        if encoder.inputs_dirty {
+            encoder.inputs_dirty = false;
+            let inputs = Box::new(encoder.inputs);
+            encoder.push(PassCmd::SetInputs(inputs));
+        }
+        encoder.push(cmd);
+        if encoder.len() >= PASS_FLUSH_LIMIT {
+            self.flush_pass_encoder();
+        }
+    }
+
+    pub(crate) fn pass_alloc(&mut self, size: u32) -> *mut u8 {
+        self.pass_require_open("alloc");
+        if self.data.encoder.len() >= PASS_FLUSH_LIMIT {
+            self.flush_pass_encoder();
+        }
+        let (at, ptr) = self.data.ring.alloc(size);
+        self.data.encoder.push(PassCmd::SetDraw { at, size });
+        ptr
+    }
+
+    /// Send everything recorded so far, plus the uniform bytes it
+    /// references, to the executor.
+    pub(crate) fn flush_pass_encoder(&mut self) {
+        if self.data.encoder.is_empty() && !self.data.ring.has_pending() {
+            return;
+        }
+        let uniforms = self.data.ring.take_pending();
+        let cmds = self.data.encoder.take();
+        let slot = self.data.ring.slot();
+        self.send_pass_commands(Box::new(PassCommands {
+            slot,
+            uniforms,
+            cmds,
+        }));
+    }
+
+    /// Upload the pass's current `ViewBlock` and bind it. Passes of a frame
+    /// that share a camera, size and UI transform share one upload.
+    fn pass_emit_view(&mut self) {
+        let view = self.data.pass.view;
+        let frame = self.data.frame_index;
+        let at = match self.data.last_view {
+            Some((last, at, last_frame))
+                if last_frame == frame && last.as_bytes() == view.as_bytes() =>
+            {
+                at
+            }
+            _ => {
+                let at = self.data.ring.alloc_copy(view.as_bytes());
+                self.data.last_view = Some((view, at, frame));
+                at
+            }
+        };
+        self.data.encoder.push(PassCmd::SetView {
+            block: at,
+            size: ViewBlock::SIZE,
+        });
+    }
+
+    /// Every pass binds the environment: cheap on the executor (its unit
+    /// cache skips unchanged binds) and robust against anything else that
+    /// touches the group-0 units.
+    fn pass_emit_environment(&mut self) {
+        let env = &self.data.environment;
+        let cmd = PassCmd::SetEnvironment {
+            env_map: env.env_map.as_ref().map(|t| t.resource_id()),
+            ir_map: env.ir_map.as_ref().map(|t| t.resource_id()),
+        };
+        self.data.encoder.push(cmd);
+    }
+
+    fn pass_set_viewport(&mut self, viewport: [i32; 4]) {
+        self.pass_require_open("setViewport");
+        let is_window = self.data.pass.is_window;
+        self.data.pass.viewport = viewport;
+        self.data.pass.view.set_viewport(viewport, is_window);
+        self.data.encoder.push(PassCmd::SetViewport(viewport));
+        self.pass_emit_view();
+        self.sync_scissor();
+    }
+
+    fn pass_set_ui_transform(&mut self, m: [f32; 16]) {
+        self.pass_require_open("setUiTransform");
+        self.data.pass.view.m_world_view_ui = m;
+        self.pass_emit_view();
+    }
+
+    /// Set the camera every pass that begins from now on (and the open pass)
+    /// renders with: view and projection matrices and the direction to the
+    /// primary light. Rendering is camera-relative, so the eye stays at the
+    /// origin.
+    pub fn set_camera_intern(&mut self, view: &Matrix, proj: &Matrix, star_dir: Vec3) {
+        let camera = &mut self.data.camera;
+        camera.view = glam::Mat4::from_cols_array(&view.to_cols_array());
+        camera.proj = glam::Mat4::from_cols_array(&proj.to_cols_array());
+        camera.star_dir = star_dir;
+        if self.data.pass.open.is_some() {
+            let pass = &mut self.data.pass;
+            let rebuilt = ViewBlock::new(&self.data.camera, pass.viewport, pass.is_window);
+            let ui = pass.view.m_world_view_ui;
+            pass.view = ViewBlock {
+                m_world_view_ui: ui,
+                ..rebuilt
+            };
+            self.pass_emit_view();
+        }
+    }
+
+    /// Set the environment cube maps (`envMap`, `irMap`; group 0) for the
+    /// passes that begin from now on and the open pass.
+    pub fn set_environment_intern(
+        &mut self,
+        env_map: &crate::render::TexCube,
+        ir_map: &crate::render::TexCube,
+    ) {
+        self.data.environment.env_map = Some(env_map.clone());
+        self.data.environment.ir_map = Some(ir_map.clone());
+        if self.data.pass.open.is_some() {
+            self.pass_emit_environment();
+        }
+    }
+
+    /// Re-apply the `ClipRect` scissor to the open pass if it differs from
+    /// what the GPU currently has. The GL scissor is global state, so this
+    /// compares against the last update sent, not against the pass.
+    pub fn sync_scissor(&mut self) {
+        if self.data.pass.open.is_none() {
+            return;
+        }
+        let size = self.target_size();
+        let want = self.data.clip_rect.desired(size);
+        if self.data.clip_emitted == Some(want) {
+            return;
+        }
+        self.data.clip_emitted = Some(want);
+        match want {
+            ScissorUpdate::Disable => self.enable_scissor_intern(false),
+            ScissorUpdate::Set {
+                x,
+                y,
+                width,
+                height,
+            } => {
+                self.enable_scissor_intern(true);
+                self.set_scissor_intern(x, y, width, height);
+            }
+        }
+    }
+
+    /// Frame boundary: the uniform ring moves on to the next slot.
+    pub(crate) fn pass_end_frame(&mut self) {
+        if let Some(open) = &self.data.pass.open {
+            panic!("end of frame with render pass '{open}' still open");
+        }
+        self.flush_pass_encoder();
+        self.data.frame_index += 1;
+        let frame = self.data.frame_index;
+        self.data.ring.begin_frame(frame);
     }
 }

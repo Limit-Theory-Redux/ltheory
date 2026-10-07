@@ -25,6 +25,23 @@ function Shader:reload(r) end
 ---@return string
 function Shader:name() end
 
+-- A LuaJIT `ffi.typeof` struct declaration with the byte layout of the
+-- shader's uniform block `name` (empty if the shader has no such block).
+-- The Lua side wraps it as `shader:blockType(name)`.
+---@param name string
+---@return string
+function Shader:blockDecl(name) end
+
+-- Size in bytes of the uniform block `name` (0 if absent).
+---@param name string
+---@return integer
+function Shader:blockSize(name) end
+
+-- Bumped each time hot reload relinks the shader, so cached block types
+-- can be regenerated.
+---@return integer
+function Shader:generation() end
+
 -- The shader's GPU resource id (as a plain scalar - see
 -- `Renderer::add_entity`'s `mesh_id`/`shader_id` params for why this
 -- isn't `ResourceId` itself), e.g. for code that needs to reference the

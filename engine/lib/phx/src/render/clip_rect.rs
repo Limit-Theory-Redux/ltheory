@@ -1,6 +1,6 @@
 use glam::IVec2;
 
-use crate::render::{Renderer, Viewport};
+use crate::render::Renderer;
 
 const MAX_STACK_DEPTH: usize = 128;
 
@@ -21,10 +21,10 @@ pub struct ClipRect {
     enabled: bool,
 }
 
-/// What `ClipManager`'s CPU-side bookkeeping decided the GL scissor state
-/// should become. The caller (which holds `&mut Renderer`) turns this into
-/// the matching `submit()` calls.
-enum ScissorUpdate {
+/// What the scissor state should become. `Renderer::sync_scissor` turns it
+/// into the matching commands.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ScissorUpdate {
     Disable,
     Set {
         x: i32,
@@ -34,58 +34,44 @@ enum ScissorUpdate {
     },
 }
 
-fn apply(r: &mut Renderer, update: Option<ScissorUpdate>) {
-    match update {
-        None => {}
-        Some(ScissorUpdate::Disable) => r.enable_scissor(false),
-        Some(ScissorUpdate::Set {
-            x,
-            y,
-            width,
-            height,
-        }) => {
-            r.enable_scissor(true);
-            r.set_scissor(x, y, width, height);
-        }
-    }
-}
-
+// Every operation re-syncs the open pass's scissor (a no-op outside a pass:
+// the next `beginPass` applies the stack).
 #[luajit_ffi_gen::luajit_ffi]
 impl ClipRect {
     pub fn push(r: &mut Renderer, x: f32, y: f32, sx: f32, sy: f32) {
-        let vp_size = Viewport::get_size(r);
-        let update = r.data.clip_rect.push(vp_size, x, y, sx, sy);
-        apply(r, update);
+        let vp_size = r.target_size();
+        r.data.clip_rect.push(vp_size, x, y, sx, sy);
+        r.sync_scissor();
     }
 
     pub fn push_combined(r: &mut Renderer, x: f32, y: f32, sx: f32, sy: f32) {
-        let vp_size = Viewport::get_size(r);
-        let update = r.data.clip_rect.push_combined(vp_size, x, y, sx, sy);
-        apply(r, update);
+        let vp_size = r.target_size();
+        r.data.clip_rect.push_combined(vp_size, x, y, sx, sy);
+        r.sync_scissor();
     }
 
     pub fn push_disabled(r: &mut Renderer) {
-        let vp_size = Viewport::get_size(r);
-        let update = r.data.clip_rect.push_disabled(vp_size);
-        apply(r, update);
+        let vp_size = r.target_size();
+        r.data.clip_rect.push_disabled(vp_size);
+        r.sync_scissor();
     }
 
     pub fn push_transform(r: &mut Renderer, tx: f32, ty: f32, sx: f32, sy: f32) {
-        let vp_size = Viewport::get_size(r);
-        let update = r.data.clip_rect.push_transform(vp_size, tx, ty, sx, sy);
-        apply(r, update);
+        let vp_size = r.target_size();
+        r.data.clip_rect.push_transform(vp_size, tx, ty, sx, sy);
+        r.sync_scissor();
     }
 
     pub fn pop(r: &mut Renderer) {
-        let vp_size = Viewport::get_size(r);
-        let update = r.data.clip_rect.pop(vp_size);
-        apply(r, update);
+        let vp_size = r.target_size();
+        r.data.clip_rect.pop(vp_size);
+        r.sync_scissor();
     }
 
     pub fn pop_transform(r: &mut Renderer) {
-        let vp_size = Viewport::get_size(r);
-        let update = r.data.clip_rect.pop_transform(vp_size);
-        apply(r, update);
+        let vp_size = r.target_size();
+        r.data.clip_rect.pop_transform(vp_size);
+        r.sync_scissor();
     }
 }
 
@@ -119,6 +105,16 @@ impl ClipManager {
                 enabled: false,
             }; MAX_STACK_DEPTH],
             rects_count: 0,
+        }
+    }
+
+    /// The scissor the current stack asks for, against a target of
+    /// `vp_size`.
+    pub fn desired(&mut self, vp_size: IVec2) -> ScissorUpdate {
+        if self.rects_count > 0 {
+            self.activate(vp_size)
+        } else {
+            ScissorUpdate::Disable
         }
     }
 

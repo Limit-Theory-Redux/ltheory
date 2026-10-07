@@ -19,6 +19,7 @@ function Loader.defineType()
         ffi.cdef [[
             void      Tex3D_Free         (Tex3D*);
             Tex3D*    Tex3D_Create       (Renderer* r, int sx, int sy, int sz, TexFormat format);
+            TexView*  Tex3D_View         (Tex3D const*);
             TexView*  Tex3D_LayerView    (Tex3D const*, int layer);
             TexView*  Tex3D_LayerMipView (Tex3D const*, int layer, int level);
             void      Tex3D_GenMipmap    (Tex3D*, Renderer* r);
@@ -49,6 +50,10 @@ function Loader.defineType()
         local t  = ffi.typeof('Tex3D')
         local mt = {
             __index = {
+                view         = function(self)
+                    local _instance = libphx.Tex3D_View(self)
+                    return Core.ManagedObject(_instance, libphx.TexView_Free)
+                end,
                 layerView    = function(self, layer)
                     local _instance = libphx.Tex3D_LayerView(self, layer)
                     return Core.ManagedObject(_instance, libphx.TexView_Free)
