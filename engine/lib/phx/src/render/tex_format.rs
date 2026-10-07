@@ -7,11 +7,10 @@ pub enum TexFormat {
     R16 = gl::R16,
     R16F = gl::R16F,
     R32F = gl::R32F,
-    RG8 = gl::RGB,
+    RG8 = gl::RG8,
     RG16 = gl::RG16,
     RG16F = gl::RG16F,
     RG32F = gl::RG32F,
-    RGB8 = gl::RGB8,
     RGBA8 = gl::RGBA8,
     RGBA16 = gl::RGBA16,
     RGBA16F = gl::RGBA16F,
@@ -33,7 +32,6 @@ impl TexFormat {
             | Self::Depth24
             | Self::Depth32F => 1,
             Self::RG8 | Self::RG16 | Self::RG16F | Self::RG32F => 2,
-            Self::RGB8 => 3,
             Self::RGBA8 | Self::RGBA16 | Self::RGBA16F | Self::RGBA32F => 4,
         }
     }
@@ -42,7 +40,7 @@ impl TexFormat {
         match this {
             Self::R8 => 1,
             Self::R16 | Self::R16F | Self::RG8 | Self::Depth16 => 2,
-            Self::RGB8 | Self::Depth24 => 3,
+            Self::Depth24 => 3,
             Self::R32F | Self::RG16 | Self::RG16F | Self::RGBA8 | Self::Depth32F => 4,
             Self::RG32F | Self::RGBA16 | Self::RGBA16F => 8,
             Self::RGBA32F => 16,
@@ -71,7 +69,6 @@ impl TexFormat {
             Self::RG16 => (gl::RG16, gl::RG, gl::UNSIGNED_SHORT),
             Self::RG16F => (gl::RG16F, gl::RG, gl::HALF_FLOAT),
             Self::RG32F => (gl::RG32F, gl::RG, gl::FLOAT),
-            Self::RGB8 => (gl::RGB8, gl::RGB, gl::UNSIGNED_BYTE),
             Self::RGBA8 => (gl::RGBA8, gl::RGBA, gl::UNSIGNED_BYTE),
             Self::RGBA16 => (gl::RGBA16, gl::RGBA, gl::UNSIGNED_SHORT),
             Self::RGBA16F => (gl::RGBA16F, gl::RGBA, gl::HALF_FLOAT),

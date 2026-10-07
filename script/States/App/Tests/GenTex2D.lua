@@ -60,7 +60,7 @@ function GenTex2D:onGenerate()
     end
 
     do -- Generate new texture
-        local tex = Tex2D.Create(kTexSize, kTexSize, TexFormat.RGBA16F)
+        local tex = Tex2D.Create(kTexSize, kTexSize, TexFormat.RGBA16F, { mips = true })
 
         local desc = RenderPassDesc.Create('GenTex2D')
         desc:color(0, tex:view(), LoadOp.Clear, 0, 0, 0, 1)

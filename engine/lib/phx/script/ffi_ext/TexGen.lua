@@ -36,7 +36,7 @@ end
 function onDef_TexGen(t, mt)
     t.Cube = function(opts)
         local desc = describe(opts)
-        local _instance = libphx.TexGen_Cube(Renderer, desc, opts.size, opts.format)
+        local _instance = libphx.TexGen_Cube(Renderer, desc, opts.size, opts.format, opts.mips and 0 or 1)
         local cube = Core.ManagedObject(_instance, libphx.TexCube_Free)
         if opts.mips then cube:genMipmap() end
         return cube

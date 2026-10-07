@@ -6,8 +6,8 @@ use crate::render::gl::{self};
 use crate::render::thread::{AttachKey, FboKey, GpuResource};
 use crate::render::{
     BlockLayout, CommandCategory, CommandExecutor, CommandReply, LoadOp, MAX_COLOR_ATTACHMENTS,
-    RenderPassDesc, RenderStats, ResourceId, ShaderLayout, ShaderReloadResult,
-    TexFormat, VertexFormat, ViewDim,
+    RenderPassDesc, RenderStats, ResourceId, ShaderLayout, ShaderReloadResult, TexDesc, TexDim,
+    TexFormat, TexRegion, VertexFormat, ViewDim,
 };
 use crate::window::{PresentMode, WindowGlContext};
 
@@ -75,83 +75,6 @@ impl CommandExecutor {
     }
 
     #[inline(always)]
-    #[allow(clippy::too_many_arguments)]
-    pub(super) fn cmd_update_texture_2d_data_by_resource(
-        &mut self,
-        id: ResourceId,
-        width: i32,
-        height: i32,
-        internal_format: i32,
-        pixel_format: u32,
-        data_format: u32,
-        data: Vec<u8>,
-    ) {
-        let _sa = self.record_command(CommandCategory::TextureData, false, false);
-        if let Some(GpuResource::Texture2D { handle }) = self.resources.get(&id) {
-            unsafe {
-                gl::BindTexture(gl::TEXTURE_2D, *handle);
-                gl::TexImage2D(
-                    gl::TEXTURE_2D,
-                    0,
-                    internal_format,
-                    width,
-                    height,
-                    0,
-                    pixel_format,
-                    data_format,
-                    data.as_ptr() as *const _,
-                );
-                // Re-apply texture parameters after TexImage2D to ensure consistent state
-                // (some drivers may reset parameters on texture reallocation)
-                gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
-                gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
-                gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
-                gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
-            }
-            self.restore_active_unit_binding();
-        } else {
-            warn!("UpdateTexture2DDataByResource: resource {:?} not found", id);
-        }
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    pub(super) fn cmd_update_texture_2d_rect(
-        &mut self,
-        id: ResourceId,
-        x: i32,
-        y: i32,
-        width: i32,
-        height: i32,
-        pixel_format: u32,
-        data_format: u32,
-        data: Vec<u8>,
-    ) {
-        let _sa = self.record_command(CommandCategory::TextureData, false, false);
-        if let Some(GpuResource::Texture2D { handle }) = self.resources.get(&id) {
-            unsafe {
-                gl::BindTexture(gl::TEXTURE_2D, *handle);
-                // Rows are tightly packed (R8 atlas rows are not 4-byte aligned in general).
-                gl::PixelStorei(gl::UNPACK_ALIGNMENT, 1);
-                gl::TexSubImage2D(
-                    gl::TEXTURE_2D,
-                    0,
-                    x,
-                    y,
-                    width,
-                    height,
-                    pixel_format,
-                    data_format,
-                    data.as_ptr() as *const _,
-                );
-                gl::PixelStorei(gl::UNPACK_ALIGNMENT, 4);
-            }
-            self.restore_active_unit_binding();
-        } else {
-            warn!("UpdateTexture2DRect: resource {:?} not found", id);
-        }
-    }
-
-    #[inline(always)]
     pub(super) fn cmd_set_texel_1d_by_resource(&mut self, id: ResourceId, x: i32, color: [f32; 4]) {
         let _sa = self.record_command(CommandCategory::TextureData, false, false);
         if let Some((target, handle)) = self.texture_target_and_handle(id) {
@@ -204,138 +127,10 @@ impl CommandExecutor {
     }
 
     #[inline(always)]
-    pub(super) fn cmd_generate_mipmap_by_resource(&mut self, id: ResourceId) {
-        let _sa = self.record_command(CommandCategory::TextureData, false, false);
-        if let Some((target, handle)) = self.texture_target_and_handle(id) {
-            unsafe {
-                gl::BindTexture(target, handle);
-                gl::GenerateMipmap(target);
-            }
-            self.restore_active_unit_binding();
-        } else {
-            warn!("GenerateMipmapByResource: resource {:?} not found", id);
-        }
-    }
-
-    #[inline(always)]
-    pub(super) fn cmd_update_texture_1d_data_by_resource(
-        &mut self,
-        id: ResourceId,
-        width: i32,
-        internal_format: i32,
-        pixel_format: u32,
-        data_format: u32,
-        data: Vec<u8>,
-    ) {
-        let _sa = self.record_command(CommandCategory::TextureData, false, false);
-        if let Some(GpuResource::Texture1D { handle }) = self.resources.get(&id) {
-            unsafe {
-                gl::BindTexture(gl::TEXTURE_1D, *handle);
-                gl::TexImage1D(
-                    gl::TEXTURE_1D,
-                    0,
-                    internal_format,
-                    width,
-                    0,
-                    pixel_format,
-                    data_format,
-                    data.as_ptr() as *const _,
-                );
-                gl::TexParameteri(gl::TEXTURE_1D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
-                gl::TexParameteri(gl::TEXTURE_1D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
-                gl::TexParameteri(gl::TEXTURE_1D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
-                gl::BindTexture(gl::TEXTURE_1D, 0);
-            }
-        } else {
-            warn!("UpdateTexture1DDataByResource: resource {:?} not found", id);
-        }
-    }
-
-    #[inline(always)]
-    #[allow(clippy::too_many_arguments)]
-    pub(super) fn cmd_update_texture_3d_data_by_resource(
-        &mut self,
-        id: ResourceId,
-        width: i32,
-        height: i32,
-        depth: i32,
-        internal_format: i32,
-        pixel_format: u32,
-        data_format: u32,
-        data: Vec<u8>,
-    ) {
-        let _sa = self.record_command(CommandCategory::TextureData, false, false);
-        if let Some(GpuResource::Texture3D { handle }) = self.resources.get(&id) {
-            unsafe {
-                gl::BindTexture(gl::TEXTURE_3D, *handle);
-                gl::TexImage3D(
-                    gl::TEXTURE_3D,
-                    0,
-                    internal_format,
-                    width,
-                    height,
-                    depth,
-                    0,
-                    pixel_format,
-                    data_format,
-                    data.as_ptr() as *const _,
-                );
-                gl::TexParameteri(gl::TEXTURE_3D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
-                gl::TexParameteri(gl::TEXTURE_3D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
-                gl::TexParameteri(gl::TEXTURE_3D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
-                gl::TexParameteri(gl::TEXTURE_3D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
-                gl::TexParameteri(gl::TEXTURE_3D, gl::TEXTURE_WRAP_R, gl::CLAMP_TO_EDGE as i32);
-                gl::BindTexture(gl::TEXTURE_3D, 0);
-            }
-        } else {
-            warn!("UpdateTexture3DDataByResource: resource {:?} not found", id);
-        }
-    }
-
-    #[inline(always)]
-    #[allow(clippy::too_many_arguments)]
-    pub(super) fn cmd_update_texture_cube_face_data_by_resource(
-        &mut self,
-        id: ResourceId,
-        face: u32,
-        level: i32,
-        size: i32,
-        internal_format: i32,
-        pixel_format: u32,
-        data_format: u32,
-        data: Vec<u8>,
-    ) {
-        let _sa = self.record_command(CommandCategory::TextureData, false, false);
-        if let Some(GpuResource::TextureCube { handle }) = self.resources.get(&id) {
-            unsafe {
-                gl::BindTexture(gl::TEXTURE_CUBE_MAP, *handle);
-                gl::TexImage2D(
-                    face,
-                    level,
-                    internal_format,
-                    size,
-                    size,
-                    0,
-                    pixel_format,
-                    data_format,
-                    data.as_ptr() as *const _,
-                );
-            }
-            // Not `BindTexture(.., 0)`: unit 0 holds the environment cube map.
-            self.restore_active_unit_binding();
-        } else {
-            warn!(
-                "UpdateTextureCubeFaceDataByResource: resource {:?} not found",
-                id
-            );
-        }
-    }
-
-    #[inline(always)]
     pub(super) fn cmd_copy_texture_2d_from_framebuffer_by_resource(
         &mut self,
         id: ResourceId,
-        internal_format: i32,
+        format: TexFormat,
         width: i32,
         height: i32,
     ) {
@@ -346,7 +141,7 @@ impl CommandExecutor {
                 gl::CopyTexImage2D(
                     gl::TEXTURE_2D,
                     0,
-                    internal_format as u32,
+                    format.to_gl_formats().0,
                     0,
                     0,
                     width,
@@ -792,54 +587,178 @@ impl CommandExecutor {
         }
     }
 
-    #[inline(always)]
-    pub(super) fn cmd_create_texture_1d(
+    /// Create a texture. A GL texture has either one level or the whole mip
+    /// chain (`desc.mips > 1` allocates every level, empty, so that
+    /// `GenerateMips` and per-level render targets have storage).
+    pub(super) fn cmd_create_texture(
         &mut self,
         id: ResourceId,
-        width: u32,
-        format: TexFormat,
+        desc: &TexDesc,
         data: Option<Vec<u8>>,
     ) {
         let _sa = self.record_command(CommandCategory::Resource, false, false);
-        let handle = self.create_texture_1d(width, format, data.as_deref());
-        self.resources.insert(id, GpuResource::Texture1D { handle });
+        let resource = self.create_texture(desc, data.as_deref());
+        self.resources.insert(id, resource);
+        self.binding.tex_descs.insert(id, *desc);
     }
 
-    #[inline(always)]
-    pub(super) fn cmd_create_texture_2d(
-        &mut self,
-        id: ResourceId,
-        width: u32,
-        height: u32,
-        format: TexFormat,
-        data: Option<Vec<u8>>,
-    ) {
-        let _sa = self.record_command(CommandCategory::Resource, false, false);
-        let handle = self.create_texture_2d(width, height, format, data.as_deref());
-        self.resources.insert(id, GpuResource::Texture2D { handle });
+    fn create_texture(&self, desc: &TexDesc, data: Option<&[u8]>) -> GpuResource {
+        let (internal_format, gl_format, gl_type) = desc.format.to_gl_formats();
+        let levels = if desc.mips > 1 { desc.full_chain() } else { 1 };
+        let pixels = |level: u32| match (level, data) {
+            (0, Some(d)) => d.as_ptr() as *const std::ffi::c_void,
+            _ => std::ptr::null(),
+        };
+        const CUBE_TARGETS: [gl::types::GLenum; 6] = [
+            gl::TEXTURE_CUBE_MAP_POSITIVE_X,
+            gl::TEXTURE_CUBE_MAP_NEGATIVE_X,
+            gl::TEXTURE_CUBE_MAP_POSITIVE_Y,
+            gl::TEXTURE_CUBE_MAP_NEGATIVE_Y,
+            gl::TEXTURE_CUBE_MAP_POSITIVE_Z,
+            gl::TEXTURE_CUBE_MAP_NEGATIVE_Z,
+        ];
+        unsafe {
+            let mut handle = 0;
+            gl::GenTextures(1, &mut handle);
+            // Rows of uploads are tightly packed whatever their width.
+            gl::PixelStorei(gl::UNPACK_ALIGNMENT, 1);
+            let (target, resource) = match desc.dim {
+                TexDim::D1 => (gl::TEXTURE_1D, GpuResource::Texture1D { handle }),
+                TexDim::D2 => (gl::TEXTURE_2D, GpuResource::Texture2D { handle }),
+                TexDim::D3 => (gl::TEXTURE_3D, GpuResource::Texture3D { handle }),
+                TexDim::Cube => (gl::TEXTURE_CUBE_MAP, GpuResource::TextureCube { handle }),
+            };
+            gl::BindTexture(target, handle);
+            for level in 0..levels {
+                let [w, h, d] = desc.level_size(level);
+                let l = level as i32;
+                match desc.dim {
+                    TexDim::D1 => gl::TexImage1D(
+                        target,
+                        l,
+                        internal_format as i32,
+                        w as i32,
+                        0,
+                        gl_format,
+                        gl_type,
+                        pixels(level),
+                    ),
+                    TexDim::D2 => gl::TexImage2D(
+                        target,
+                        l,
+                        internal_format as i32,
+                        w as i32,
+                        h as i32,
+                        0,
+                        gl_format,
+                        gl_type,
+                        pixels(level),
+                    ),
+                    TexDim::D3 => gl::TexImage3D(
+                        target,
+                        l,
+                        internal_format as i32,
+                        w as i32,
+                        h as i32,
+                        d as i32,
+                        0,
+                        gl_format,
+                        gl_type,
+                        pixels(level),
+                    ),
+                    TexDim::Cube => {
+                        for face in CUBE_TARGETS {
+                            gl::TexImage2D(
+                                face,
+                                l,
+                                internal_format as i32,
+                                w as i32,
+                                h as i32,
+                                0,
+                                gl_format,
+                                gl_type,
+                                std::ptr::null(),
+                            );
+                        }
+                    }
+                }
+            }
+
+            // The texture's own parameters only matter for a bind without a
+            // sampler object, which no draw does; keep the defaults the old
+            // creation paths set.
+            gl::TexParameteri(target, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
+            gl::TexParameteri(target, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
+            gl::TexParameteri(target, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
+            if desc.dim != TexDim::D1 {
+                gl::TexParameteri(target, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
+            }
+            if desc.dim == TexDim::D3 {
+                gl::TexParameteri(target, gl::TEXTURE_WRAP_R, gl::CLAMP_TO_EDGE as i32);
+            }
+
+            self.restore_active_unit_binding();
+            resource
+        }
     }
 
-    #[inline(always)]
-    pub(super) fn cmd_create_texture_3d(
-        &mut self,
-        id: ResourceId,
-        width: u32,
-        height: u32,
-        depth: u32,
-        format: TexFormat,
-        data: Option<Vec<u8>>,
-    ) {
-        let _sa = self.record_command(CommandCategory::Resource, false, false);
-        let handle = self.create_texture_3d(width, height, depth, format, data.as_deref());
-        self.resources.insert(id, GpuResource::Texture3D { handle });
+    /// Write `data` (the texture's own format, tightly packed) to a region.
+    pub(super) fn cmd_update_texture(&mut self, id: ResourceId, region: &TexRegion, data: Vec<u8>) {
+        let _sa = self.record_command(CommandCategory::TextureData, false, false);
+        let (Some(desc), Some((target, handle))) = (
+            self.binding.tex_descs.get(&id).copied(),
+            self.texture_target_and_handle(id),
+        ) else {
+            warn!("UpdateTexture: resource {:?} not found", id);
+            return;
+        };
+        let (_, gl_format, gl_type) = desc.format.to_gl_formats();
+        let [x, y, z] = region.origin.map(|v| v as i32);
+        let [w, h, d] = region.size.map(|v| v as i32);
+        let level = region.level as i32;
+        let expected = region.texels() * TexFormat::get_size(desc.format) as usize;
+        if data.len() < expected {
+            warn!(
+                "UpdateTexture: {:?} needs {expected} bytes for {:?}, got {}",
+                id,
+                region,
+                data.len()
+            );
+            return;
+        }
+        let pixels = data.as_ptr() as *const std::ffi::c_void;
+        unsafe {
+            gl::BindTexture(target, handle);
+            gl::PixelStorei(gl::UNPACK_ALIGNMENT, 1);
+            match desc.dim {
+                TexDim::D1 => gl::TexSubImage1D(target, level, x, w, gl_format, gl_type, pixels),
+                TexDim::D2 => {
+                    gl::TexSubImage2D(target, level, x, y, w, h, gl_format, gl_type, pixels)
+                }
+                TexDim::D3 => {
+                    gl::TexSubImage3D(target, level, x, y, z, w, h, d, gl_format, gl_type, pixels)
+                }
+                TexDim::Cube => {
+                    let face = gl::TEXTURE_CUBE_MAP_POSITIVE_X + region.origin[2];
+                    gl::TexSubImage2D(face, level, x, y, w, h, gl_format, gl_type, pixels)
+                }
+            }
+        }
+        // Not `BindTexture(.., 0)`: unit 0 holds the environment cube map.
+        self.restore_active_unit_binding();
     }
 
-    #[inline(always)]
-    pub(super) fn cmd_create_texture_cube(&mut self, id: ResourceId, size: u32, format: TexFormat) {
-        let _sa = self.record_command(CommandCategory::Resource, false, false);
-        let handle = self.create_texture_cube(size, format);
-        self.resources
-            .insert(id, GpuResource::TextureCube { handle });
+    pub(super) fn cmd_generate_mips(&mut self, id: ResourceId) {
+        let _sa = self.record_command(CommandCategory::TextureData, false, false);
+        if let Some((target, handle)) = self.texture_target_and_handle(id) {
+            unsafe {
+                gl::BindTexture(target, handle);
+                gl::GenerateMipmap(target);
+            }
+            self.restore_active_unit_binding();
+        } else {
+            warn!("GenerateMips: resource {:?} not found", id);
+        }
     }
 
     #[inline(always)]
@@ -1171,167 +1090,6 @@ impl CommandExecutor {
             }
         }
         loose
-    }
-
-    fn create_texture_2d(
-        &self,
-        width: u32,
-        height: u32,
-        format: TexFormat,
-        data: Option<&[u8]>,
-    ) -> u32 {
-        unsafe {
-            let mut handle = 0;
-            gl::GenTextures(1, &mut handle);
-            gl::BindTexture(gl::TEXTURE_2D, handle);
-
-            let (internal_format, gl_format, gl_type) = format.to_gl_formats();
-
-            gl::TexImage2D(
-                gl::TEXTURE_2D,
-                0,
-                internal_format as i32,
-                width as i32,
-                height as i32,
-                0,
-                gl_format,
-                gl_type,
-                data.map_or(std::ptr::null(), |d| d.as_ptr() as *const _),
-            );
-
-            // Use NEAREST filtering to match direct mode behavior (important for fonts/crisp textures)
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
-
-            self.restore_active_unit_binding();
-            handle
-        }
-    }
-
-    fn create_texture_1d(&self, width: u32, format: TexFormat, data: Option<&[u8]>) -> u32 {
-        unsafe {
-            let mut handle = 0;
-            gl::GenTextures(1, &mut handle);
-            gl::BindTexture(gl::TEXTURE_1D, handle);
-
-            let (internal_format, gl_format, gl_type) = format.to_gl_formats();
-
-            gl::TexImage1D(
-                gl::TEXTURE_1D,
-                0,
-                internal_format as i32,
-                width as i32,
-                0,
-                gl_format,
-                gl_type,
-                data.map_or(std::ptr::null(), |d| d.as_ptr() as *const _),
-            );
-
-            gl::TexParameteri(gl::TEXTURE_1D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
-            gl::TexParameteri(gl::TEXTURE_1D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
-            gl::TexParameteri(gl::TEXTURE_1D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
-
-            self.restore_active_unit_binding();
-            handle
-        }
-    }
-
-    fn create_texture_3d(
-        &self,
-        width: u32,
-        height: u32,
-        depth: u32,
-        format: TexFormat,
-        data: Option<&[u8]>,
-    ) -> u32 {
-        unsafe {
-            let mut handle = 0;
-            gl::GenTextures(1, &mut handle);
-            gl::BindTexture(gl::TEXTURE_3D, handle);
-
-            let (internal_format, gl_format, gl_type) = format.to_gl_formats();
-
-            gl::TexImage3D(
-                gl::TEXTURE_3D,
-                0,
-                internal_format as i32,
-                width as i32,
-                height as i32,
-                depth as i32,
-                0,
-                gl_format,
-                gl_type,
-                data.map_or(std::ptr::null(), |d| d.as_ptr() as *const _),
-            );
-
-            gl::TexParameteri(gl::TEXTURE_3D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
-            gl::TexParameteri(gl::TEXTURE_3D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
-            gl::TexParameteri(gl::TEXTURE_3D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
-            gl::TexParameteri(gl::TEXTURE_3D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
-            gl::TexParameteri(gl::TEXTURE_3D, gl::TEXTURE_WRAP_R, gl::CLAMP_TO_EDGE as i32);
-
-            self.restore_active_unit_binding();
-            handle
-        }
-    }
-
-    /// Creates a cube texture with 6 empty faces (matches `TexCube::new`'s
-    /// old direct-GL behavior: null data, `GL_RED`/`GL_BYTE` placeholder
-    /// format regardless of `format`, since nothing is actually uploaded yet)
-    fn create_texture_cube(&self, size: u32, format: TexFormat) -> u32 {
-        unsafe {
-            let mut handle = 0;
-            gl::GenTextures(1, &mut handle);
-            gl::BindTexture(gl::TEXTURE_CUBE_MAP, handle);
-
-            const FACES: [gl::types::GLenum; 6] = [
-                gl::TEXTURE_CUBE_MAP_POSITIVE_X,
-                gl::TEXTURE_CUBE_MAP_POSITIVE_Y,
-                gl::TEXTURE_CUBE_MAP_POSITIVE_Z,
-                gl::TEXTURE_CUBE_MAP_NEGATIVE_X,
-                gl::TEXTURE_CUBE_MAP_NEGATIVE_Y,
-                gl::TEXTURE_CUBE_MAP_NEGATIVE_Z,
-            ];
-            for face in FACES {
-                gl::TexImage2D(
-                    face,
-                    0,
-                    format as i32,
-                    size as i32,
-                    size as i32,
-                    0,
-                    gl::RED,
-                    gl::BYTE,
-                    std::ptr::null(),
-                );
-            }
-
-            gl::TexParameteri(
-                gl::TEXTURE_CUBE_MAP,
-                gl::TEXTURE_MIN_FILTER,
-                gl::NEAREST as i32,
-            );
-            gl::TexParameteri(
-                gl::TEXTURE_CUBE_MAP,
-                gl::TEXTURE_MAG_FILTER,
-                gl::NEAREST as i32,
-            );
-            gl::TexParameteri(
-                gl::TEXTURE_CUBE_MAP,
-                gl::TEXTURE_WRAP_S,
-                gl::CLAMP_TO_EDGE as i32,
-            );
-            gl::TexParameteri(
-                gl::TEXTURE_CUBE_MAP,
-                gl::TEXTURE_WRAP_T,
-                gl::CLAMP_TO_EDGE as i32,
-            );
-
-            self.restore_active_unit_binding();
-            handle
-        }
     }
 
     /// Byte size of a `w*h*d` block of texels in the given GL pixel/data

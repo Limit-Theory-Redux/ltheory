@@ -3,9 +3,22 @@ local libphx = require('libphx').lib
 -- These now take the current Renderer as an explicit argument (see
 -- doc/engine/render-thread.md); inject the global `Renderer` set by
 -- SetEngine so call sites don't change.
+-- The optional `desc` of `Create`: `{ mips = true | <levels>, usage = <TexUsage bits> }`.
+-- `mips = true` allocates the full mip chain; no `mips` is a single level, no
+-- `usage` is the default for the texture kind.
+local function mipsOf(desc)
+    if desc.mips == true then return 0 end
+    return desc.mips or 1
+end
+
 function onDef_Tex3D(t, mt)
-    t.Create = function(sx, sy, sz, format)
-        local _instance = libphx.Tex3D_Create(Renderer, sx, sy, sz, format)
+    t.Create = function(sx, sy, sz, format, desc)
+        local _instance
+        if desc then
+            _instance = libphx.Tex3D_CreateDesc(Renderer, sx, sy, sz, format, mipsOf(desc), desc.usage or 0)
+        else
+            _instance = libphx.Tex3D_Create(Renderer, sx, sy, sz, format)
+        end
         return Core.ManagedObject(_instance, libphx.Tex3D_Free)
     end
 end

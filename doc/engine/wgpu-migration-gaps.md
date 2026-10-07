@@ -33,25 +33,34 @@ could be modernized now that wgpu is in the picture. Appended as found.
    Linear filtering without mips degrades (aliasing in minification). Fix: a
    blit-based mip chain (render pass per level) or `mip_level_count` +
    COPY_DST levels uploaded from CPU-side generation.
+    **Closed (S9):** `GenerateMips` is a blit chain on wgpu (one pass per level and face or slice,
+    `command_executor_wgpu/tex.rs`); textures are created with their mip chain (`TexDesc.mips`). GL keeps
+    `glGenerateMipmap`.
 
 5. **Texture wrap mode is ignored** (`cmd_set_texture_2d_wrap_mode`): the
    sampler is rebuilt on filter changes but always uses the default Clamp
    wrap. GL's Repeat/MirroredRepeat/ClampToEdge semantics are lost. Fix: track
    wrap state per texture and apply in `recreate_sampler`.
+    **Closed (S3/S7/S9):** the texture-level setters are gone; `CreateSampler` makes a real `wgpu::Sampler` (wrap on all
+    three axes) that is bound with the texture.
 
 6. **Anisotropy is ignored** (`cmd_set_texture_2d_anisotropy`): no-op.
    `wgpu::SamplerDescriptor::max_anisotropy` exists — needs device limits
    (MAX_SAMPLER_ANISOTROPY) + re-create sampler on change.
+    **Closed (S9):** `SamplerDesc.anisotropy` reaches `anisotropy_clamp` (when min, mag and mip are all linear).
 
 7. **3D textures are placeholders** (`cmd_create_texture_3d` creates a 2D
    texture): any shader sampling a 3D texture will fail pipeline creation.
    Fix: real 3D textures + `TextureViewDimension::D3` in the bind-group
    layout (per-sampler dimension from reflection).
+    **Closed (S9):** `CreateTexture` makes a real `D3` texture (view dimension `D3`), updates and mips work per slice.
 
 8. **1D textures are 1xN 2D textures** (`cmd_create_texture_1d`): sampling
    works only because naga GLSL maps sampler1D to texture_1d — the layout
    entry declares D2, so 1D samplers fail validation. Fix: D1 views +
    per-sampler view dimension from reflection.
+    **Closed (S9):** real `D1` textures and views (they were already real before S9; updates, which were no-ops, are
+    implemented). WebGPU limits 1D textures to one mip level.
 
 9. **Cube framebuffer attachments ignore the face**:
    `cmd_framebuffer_attach_texture_cube` attaches the whole-cube view; GL
@@ -98,6 +107,9 @@ could be modernized now that wgpu is in the picture. Appended as found.
 18. **`cmd_set_texture_2d_mip_range` no-op**: GL restricts the sampled mip
     range; wgpu sampler base/max mip-level fields exist
     (`lod_min_clamp`/`lod_max_clamp`) — wire them.
+    **Partly closed (S9):** the command is deleted (S7) and a sampler carries the LOD clamps (`lod_min_clamp`/`lod_max_clamp` are set
+    from `SamplerDesc`). Restricting a sampled view to `base_mip`/`mip_count` is not applied on wgpu yet (it binds the
+    whole texture), so only the sampler half is closed.
 
 ## Engine-side modernization opportunities (found during the port)
 
@@ -111,6 +123,9 @@ could be modernized now that wgpu is in the picture. Appended as found.
     `internal_format`/`pixel_format`/`data_format` as GL constants; the wgpu
     executor re-maps them. A format-agnostic command payload (TexFormat +
     bpp) would serve both backends without the GL enum layer.
+    **Closed (S9):** `UpdateTexture { id, region, data }` carries the texture's own `TexFormat` layout; the
+    `(PixelFormat, DataFormat)` to native conversion is `convert_texels` on the main thread. (The readback commands still
+    carry GL enums: S8.)
 
 21. **Render-thread executor branch**: `RenderThread` now holds both the GL
     `CommandExecutor` and an `Option<WgpuCommandExecutor>` with a runtime

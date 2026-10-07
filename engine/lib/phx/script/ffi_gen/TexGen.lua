@@ -13,7 +13,7 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            TexCube* TexGen_Cube     (Renderer* r, GenDesc const* desc, int size, TexFormat format);
+            TexCube* TexGen_Cube     (Renderer* r, GenDesc const* desc, int size, TexFormat format, int mips);
             void     TexGen_CubeInto (Renderer* r, GenDesc const* desc, TexCube const* cube);
             Tex3D*   TexGen_Volume   (Renderer* r, GenDesc const* desc, int size, TexFormat format);
         ]]
@@ -21,8 +21,8 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         TexGen = {
-            Cube     = function(r, desc, size, format)
-                local _instance = libphx.TexGen_Cube(r, desc, size, format)
+            Cube     = function(r, desc, size, format, mips)
+                local _instance = libphx.TexGen_Cube(r, desc, size, format, mips)
                 return Core.ManagedObject(_instance, libphx.TexCube_Free)
             end,
             CubeInto = libphx.TexGen_CubeInto,

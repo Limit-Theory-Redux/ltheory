@@ -5,9 +5,22 @@ local libphx = require('libphx').lib
 -- (see doc/engine/render-thread.md). Inject the global `Renderer` set by
 -- SetEngine so call sites don't change.
 
+-- The optional `desc` of `Create`: `{ mips = true | <levels>, usage = <TexUsage bits> }`.
+-- `mips = true` allocates the full mip chain; no `mips` is a single level, no
+-- `usage` is the default for the texture kind.
+local function mipsOf(desc)
+    if desc.mips == true then return 0 end
+    return desc.mips or 1
+end
+
 function onDef_Tex2D(t, mt)
-    t.Create = function(sx, sy, format)
-        local _instance = libphx.Tex2D_Create(Renderer, sx, sy, format)
+    t.Create = function(sx, sy, format, desc)
+        local _instance
+        if desc then
+            _instance = libphx.Tex2D_CreateDesc(Renderer, sx, sy, format, mipsOf(desc), desc.usage or 0)
+        else
+            _instance = libphx.Tex2D_Create(Renderer, sx, sy, format)
+        end
         return Core.ManagedObject(_instance, libphx.Tex2D_Free)
     end
 

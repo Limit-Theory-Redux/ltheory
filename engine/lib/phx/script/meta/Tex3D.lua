@@ -12,6 +12,18 @@ Tex3D = {}
 ---@return Tex3D
 function Tex3D.Create(r, sx, sy, sz, format) end
 
+-- A texture with `mips` levels (0 = the full chain) and the `TexUsage`
+-- bits in `usage` (0 = the default for the kind).
+---@param r Renderer
+---@param sx integer
+---@param sy integer
+---@param sz integer
+---@param format TexFormat
+---@param mips integer
+---@param usage integer
+---@return Tex3D
+function Tex3D.CreateDesc(r, sx, sy, sz, format, mips, usage) end
+
 -- View of the whole volume, for sampling.
 ---@return TexView
 function Tex3D:view() end

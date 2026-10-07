@@ -10,6 +10,16 @@ TexCube = {}
 ---@return TexCube
 function TexCube.Create(r, size, format) end
 
+-- A cube with `mips` levels (0 = the full chain) and the `TexUsage` bits
+-- in `usage` (0 = the default for the kind).
+---@param r Renderer
+---@param size integer
+---@param format TexFormat
+---@param mips integer
+---@param usage integer
+---@return TexCube
+function TexCube.CreateDesc(r, size, format, mips, usage) end
+
 ---@param r Renderer
 ---@param path string
 ---@return TexCube

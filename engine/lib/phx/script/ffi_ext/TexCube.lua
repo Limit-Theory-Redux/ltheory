@@ -5,9 +5,22 @@ local libphx = require('libphx').lib
 -- (see doc/engine/render-thread.md). Inject the global `Renderer` set by
 -- SetEngine so call sites don't change.
 
+-- The optional `desc` of `Create`: `{ mips = true | <levels>, usage = <TexUsage bits> }`.
+-- `mips = true` allocates the full mip chain; no `mips` is a single level, no
+-- `usage` is the default for the texture kind.
+local function mipsOf(desc)
+    if desc.mips == true then return 0 end
+    return desc.mips or 1
+end
+
 function onDef_TexCube(t, mt)
-    t.Create = function(size, format)
-        local _instance = libphx.TexCube_Create(Renderer, size, format)
+    t.Create = function(size, format, desc)
+        local _instance
+        if desc then
+            _instance = libphx.TexCube_CreateDesc(Renderer, size, format, mipsOf(desc), desc.usage or 0)
+        else
+            _instance = libphx.TexCube_Create(Renderer, size, format)
+        end
         return Core.ManagedObject(_instance, libphx.TexCube_Free)
     end
 

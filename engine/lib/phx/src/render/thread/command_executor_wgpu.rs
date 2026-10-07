@@ -25,12 +25,15 @@ use tracing::warn;
 use crate::render::thread::ExecutorStats;
 use crate::render::{
     BindEntry, BindGroupId, BlendMode, BlockLayout, BufferId, CmdPrimitiveType, CommandReply,
-    CullFace, ImmLayout, ImmVertex, InstanceData, LoadOp, PassCmd, PassCommands, PipelineDesc,
-    PipelineId, PolygonMode, RenderCommand, RenderPassDesc, RenderStats, ResourceId, SamplerDesc,
-    SamplerId, ShaderLayout, ShaderReloadResult, TexFilter, TexFormat, TexView, TexWrapMode,
+    CompareFn, CullFace, ImmLayout, ImmVertex, InstanceData, LoadOp, MipFilter, PassCmd,
+    PassCommands, PipelineDesc, PipelineId, PolygonMode, RenderCommand, RenderPassDesc,
+    RenderStats, ResourceId, SamplerDesc, SamplerFilter, SamplerId, ShaderLayout,
+    ShaderReloadResult, TexDesc, TexFilter, TexFormat, TexRegion, TexView, TexWrapMode,
     VertexFormat, ViewDim, blocks_from_naga, entry_unit,
 };
 use crate::window::PresentMode;
+
+mod tex;
 
 /// GPU resource stored on the backend owner — wgpu flavor.
 ///
@@ -155,21 +158,25 @@ enum WgpuGpuResource {
         texture: wgpu::Texture,
         view: wgpu::TextureView,
         sampler: wgpu::Sampler,
+        desc: TexDesc,
     },
     Texture2D {
         texture: wgpu::Texture,
         view: wgpu::TextureView,
         sampler: wgpu::Sampler,
+        desc: TexDesc,
     },
     Texture3D {
         texture: wgpu::Texture,
         view: wgpu::TextureView,
         sampler: wgpu::Sampler,
+        desc: TexDesc,
     },
     TextureCube {
         texture: wgpu::Texture,
         view: wgpu::TextureView,
         sampler: wgpu::Sampler,
+        desc: TexDesc,
     },
     Mesh {
         vertex_buffer: wgpu::Buffer,
@@ -226,11 +233,11 @@ pub struct WgpuCommandExecutor {
 
     /// Resources by id (mirrors `CommandExecutor::resources`)
     resources: HashMap<ResourceId, WgpuGpuResource>,
-    /// Requested `(mag_filter, min_filter)` per texture. Wgpu samplers are
-    /// immutable, while the GL API updates one texture parameter at a time;
-    /// retaining both axes prevents a sequential setter from resetting the
-    /// other axis to its default.
-    texture_filter_modes: HashMap<ResourceId, (wgpu::FilterMode, wgpu::FilterMode)>,
+    /// `wgpu::Sampler`s of the engine's sampler descs (`CreateSampler`).
+    wgpu_samplers: HashMap<SamplerId, wgpu::Sampler>,
+    /// Sampler id last bound with the texture of each unit (`SetInputs`,
+    /// `SetBindGroup`).
+    unit_samplers: Vec<Option<SamplerId>>,
 
     // === Cached render state (mirrors the GL executor's cache) ===
     viewport: Option<(i32, i32, i32, i32)>,
@@ -318,6 +325,8 @@ pub struct WgpuCommandExecutor {
     default_1d_texture: Option<wgpu::Texture>,
     /// 1x1x1 white D3 texture for unbound 3D sampler slots.
     default_3d_texture: Option<wgpu::Texture>,
+    /// Pipelines of the `GenerateMips` blit chain.
+    mip_blit: tex::MipBlit,
 
     // === Stats (mirrors ExecutorStats + RenderStats plumbing) ===
     stats: ExecutorStats,
@@ -350,7 +359,8 @@ impl WgpuCommandExecutor {
             device,
             queue,
             resources: HashMap::new(),
-            texture_filter_modes: HashMap::new(),
+            wgpu_samplers: HashMap::new(),
+            unit_samplers: vec![None; 16],
             viewport: None,
             scissor: None,
             scissor_enabled: false,
@@ -394,6 +404,7 @@ impl WgpuCommandExecutor {
             default_cube_texture: None,
             default_1d_texture: None,
             default_3d_texture: None,
+            mip_blit: tex::MipBlit::default(),
             stats: ExecutorStats::default(),
             last_stats: RenderStats::default(),
             draw_mesh_calls_this_frame: 0,
@@ -437,7 +448,7 @@ impl WgpuCommandExecutor {
         self.bind_group_cache.clear();
         self.pipeline_cache.clear();
         self.ubo_buffers.clear();
-        self.texture_filter_modes.clear();
+        self.wgpu_samplers.clear();
         self.resources.clear();
         self.hot_reloaded_shaders.clear();
         self.immediate_buffer.take();
@@ -989,8 +1000,8 @@ impl WgpuCommandExecutor {
         }
     }
 
-    /// `TexFormat` -> `wgpu::TextureFormat`. RGB8 has no wgpu equivalent
-    /// (closest is RGBA8); reported as `None` so callers decide.
+    /// `TexFormat` -> `wgpu::TextureFormat`. Every engine format has an
+    /// equivalent (`RGB8` is gone); the `Option` is kept for callers.
     pub(crate) fn tex_format_to_wgpu(format: TexFormat) -> Option<wgpu::TextureFormat> {
         use wgpu::TextureFormat as F;
         Some(match format {
@@ -1002,10 +1013,6 @@ impl WgpuCommandExecutor {
             TexFormat::RG16 => F::Rg16Unorm,
             TexFormat::RG16F => F::Rg16Float,
             TexFormat::RG32F => F::Rg32Float,
-            TexFormat::RGB8 => {
-                warn!("TexFormat::RGB8 has no wgpu equivalent; callers should use RGBA8");
-                return None;
-            }
             TexFormat::RGBA8 => F::Rgba8Unorm,
             TexFormat::RGBA16 => F::Rgba16Unorm,
             TexFormat::RGBA16F => F::Rgba16Float,
@@ -1134,190 +1141,7 @@ impl WgpuCommandExecutor {
         self.bind_texture_slot(slot, id);
     }
 
-    pub(super) fn cmd_update_texture_2d_data_by_resource(
-        &mut self,
-        id: ResourceId,
-        width: i32,
-        height: i32,
-        _internal_format: i32,
-        pixel_format: u32,
-        data_format: u32,
-        data: Vec<u8>,
-    ) {
-        self.update_texture_2d_impl(id, [0, 0], width, height, pixel_format, data_format, &data);
-    }
-
     #[allow(clippy::too_many_arguments)]
-    pub(super) fn cmd_update_texture_2d_rect(
-        &mut self,
-        id: ResourceId,
-        x: i32,
-        y: i32,
-        width: i32,
-        height: i32,
-        pixel_format: u32,
-        data_format: u32,
-        data: Vec<u8>,
-    ) {
-        self.update_texture_2d_impl(
-            id,
-            [x.max(0) as u32, y.max(0) as u32],
-            width,
-            height,
-            pixel_format,
-            data_format,
-            &data,
-        );
-    }
-
-    /// GL pixel-format enum -> component count; GL data-format enum -> bytes
-    /// per component. The engine's update carries the DATA layout in these
-    /// (GL_RED/RGB/RGBA + GL_UNSIGNED_BYTE/FLOAT/HALF_FLOAT); the resource
-    /// format alone is not enough (an RGB8 texture's wgpu format is
-    /// Rgba8Unorm after expansion; an RGBA16F texture's rows are 8 bytes).
-    fn pixel_format_components(pixel_format: u32) -> u32 {
-        const GL_RED: u32 = 0x1903;
-        const GL_RG: u32 = 0x8227;
-        const GL_RGB: u32 = 0x1907;
-        const GL_RGBA: u32 = 0x1908;
-        const GL_LUMINANCE: u32 = 0x1909;
-        const GL_DEPTH_COMPONENT: u32 = 0x1902;
-        match pixel_format {
-            GL_RED | GL_LUMINANCE | GL_DEPTH_COMPONENT => 1,
-            GL_RG => 2,
-            GL_RGB => 3,
-            GL_RGBA => 4,
-            _ => 0,
-        }
-    }
-
-    fn data_format_bytes(data_format: u32) -> u32 {
-        const GL_UNSIGNED_BYTE: u32 = 0x1401;
-        const GL_BYTE: u32 = 0x1400;
-        const GL_UNSIGNED_SHORT: u32 = 0x1403;
-        const GL_SHORT: u32 = 0x1402;
-        const GL_UNSIGNED_INT: u32 = 0x1405;
-        const GL_INT: u32 = 0x1404;
-        const GL_FLOAT: u32 = 0x1406;
-        const GL_HALF_FLOAT: u32 = 0x140B;
-        match data_format {
-            GL_BYTE | GL_UNSIGNED_BYTE => 1,
-            GL_SHORT | GL_UNSIGNED_SHORT | GL_HALF_FLOAT => 2,
-            GL_INT | GL_UNSIGNED_INT | GL_FLOAT => 4,
-            _ => 0,
-        }
-    }
-
-    fn update_texture_2d_impl(
-        &mut self,
-        handle: ResourceId,
-        origin: [u32; 2],
-        width: i32,
-        height: i32,
-        pixel_format: u32,
-        data_format: u32,
-        data: &[u8],
-    ) {
-        let Some(queue) = self.queue.clone() else {
-            return;
-        };
-        let Some(resource) = self.resources.get(&handle) else {
-            warn!("wgpu: update texture for unknown resource {handle:?}");
-            return;
-        };
-        let (texture, tex_width, tex_height, resource_bpp) = match resource {
-            WgpuGpuResource::Texture2D { texture, .. } => {
-                let tex = texture;
-                let info = tex.size();
-                (
-                    tex.clone(),
-                    info.width,
-                    info.height,
-                    Self::format_bpp(tex.format()),
-                )
-            }
-            _ => {
-                warn!("wgpu: update texture for non-2D resource {handle:?}");
-                return;
-            }
-        };
-        let w = width.max(1) as u32;
-        let h = height.max(1) as u32;
-        if origin[0] + w > tex_width || origin[1] + h > tex_height {
-            warn!("wgpu: texture update larger than texture ({w}x{h} vs {tex_width}x{tex_height})");
-            return;
-        }
-        // Row stride comes from the DATA's pixel format x data format (the
-        // engine sends tightly packed rows: RED/RGB/RGBA components at
-        // 1/2/4 bytes each — RGBA16F rows are 8 bytes).
-        let comps = Self::pixel_format_components(pixel_format);
-        let comp_bytes = Self::data_format_bytes(data_format);
-        let src_bpp = if comps > 0 && comp_bytes > 0 {
-            comps * comp_bytes
-        } else {
-            0
-        };
-        let bpp = if src_bpp > 0 { src_bpp } else { resource_bpp };
-        let need_expand = bpp == 3 && resource_bpp == 4;
-        // f32 payload into an R16Float texture (created from TexFormat::R32F):
-        // convert CPU-side, the WebGPU model forbids filtering on 32F formats.
-        let need_half = src_bpp == 4 && texture.format() == wgpu::TextureFormat::R16Float;
-        let bpr = (w * bpp).max(1);
-        // wgpu needs 256-aligned bytes_per_row; RGB rows expand to RGBA, so
-        // the padded stride must be aligned on the EXPANDED row size (w*4),
-        // not the source bpr (w*3 can under-align).
-        let padded_bpr = if need_expand {
-            (w * 4 + 255) & !255
-        } else {
-            (bpr + 255) & !255
-        };
-        let mut padded = Vec::with_capacity(padded_bpr as usize * h as usize);
-        for row in data.chunks(bpr as usize).take(h as usize) {
-            if need_half {
-                let half = Self::f32_to_f16_bytes(row);
-                padded.extend_from_slice(&half);
-                padded.resize(padded.len() + (padded_bpr as usize - half.len()), 0);
-            } else if need_expand {
-                let mut rgba = Vec::with_capacity(w as usize * 4);
-                for px in row.chunks(3).take(w as usize) {
-                    rgba.extend_from_slice(&[px[0], px[1], px[2], 255]);
-                }
-                padded.extend_from_slice(&rgba);
-                padded.resize(padded.len() + (padded_bpr as usize - rgba.len()), 0);
-            } else {
-                padded.extend_from_slice(row);
-                padded.resize(padded.len() + (padded_bpr as usize - row.len()), 0);
-            }
-        }
-        if padded.is_empty() || w == 0 || h == 0 {
-            // GL tolerates zero-sized uploads; wgpu rejects them.
-            return;
-        }
-        queue.write_texture(
-            wgpu::TexelCopyTextureInfo {
-                texture: &texture,
-                mip_level: 0,
-                origin: wgpu::Origin3d {
-                    x: origin[0],
-                    y: origin[1],
-                    z: 0,
-                },
-                aspect: wgpu::TextureAspect::All,
-            },
-            &padded,
-            wgpu::TexelCopyBufferLayout {
-                offset: 0,
-                bytes_per_row: Some(padded_bpr),
-                rows_per_image: Some(h),
-            },
-            wgpu::Extent3d {
-                width: w,
-                height: h,
-                depth_or_array_layers: 1,
-            },
-        );
-    }
-
     pub(super) fn cmd_set_texel_1d_by_resource(
         &mut self,
         _id: ResourceId,
@@ -1484,7 +1308,7 @@ impl WgpuCommandExecutor {
     }
 
     /// `CopyTexture` between two 2D or cube-face views (mip levels the wgpu
-    /// textures do not have yet are skipped, see `GenerateMipmapByResource`).
+    /// textures do not have yet are skipped, see `GenerateMips`).
     pub(super) fn cmd_copy_texture(&mut self, src: &TexView, dst: &TexView, size: [u32; 3]) {
         let (Some(device), Some(queue)) = (self.device.as_ref(), self.queue.as_ref()) else {
             return;
@@ -1531,55 +1355,10 @@ impl WgpuCommandExecutor {
         queue.submit([encoder.finish()]);
     }
 
-    pub(super) fn cmd_generate_mipmap_by_resource(&mut self, _id: ResourceId) {
-        // No mipmap generation yet (see ai/wgpu-modernization-list.md #4);
-        // textures are created with mip_level_count 1.
-    }
-
-    pub(super) fn cmd_update_texture_1d_data_by_resource(
-        &mut self,
-        _id: ResourceId,
-        _width: i32,
-        _internal_format: i32,
-        _pixel_format: u32,
-        _data_format: u32,
-        _data: Vec<u8>,
-    ) {
-        warn!("wgpu: texture upload variant not implemented (no-op)");
-    }
-
-    pub(super) fn cmd_update_texture_3d_data_by_resource(
-        &mut self,
-        _id: ResourceId,
-        _width: i32,
-        _height: i32,
-        _depth: i32,
-        _internal_format: i32,
-        _pixel_format: u32,
-        _data_format: u32,
-        _data: Vec<u8>,
-    ) {
-        warn!("wgpu: texture upload variant not implemented (no-op)");
-    }
-
-    pub(super) fn cmd_update_texture_cube_face_data_by_resource(
-        &mut self,
-        _id: ResourceId,
-        _face: u32,
-        _level: i32,
-        _size: i32,
-        _internal_format: i32,
-        _pixel_format: u32,
-        _data_format: u32,
-        _data: Vec<u8>,
-    ) {
-        warn!("wgpu: cube-face upload not implemented (no-op)");
-    }
-
     pub(super) fn cmd_copy_texture_2d_from_framebuffer_by_resource(
         &mut self,
         _id: ResourceId,
-        _internal_format: i32,
+        _format: TexFormat,
         _width: i32,
         _height: i32,
     ) {
@@ -3562,11 +3341,19 @@ impl WgpuCommandExecutor {
                 .and_then(|h| h.as_ref())
                 .map(|h| h.0 as u64)
                 .unwrap_or(u64::MAX);
+            let sampler = self
+                .unit_samplers
+                .get(slot as usize)
+                .copied()
+                .flatten()
+                .map_or(u64::MAX, |id| id.0 as u64);
             slot_hash = slot_hash
                 .wrapping_mul(31)
                 .wrapping_add(slot as u64)
                 .wrapping_mul(31)
-                .wrapping_add(handle);
+                .wrapping_add(handle)
+                .wrapping_mul(31)
+                .wrapping_add(sampler);
         }
         let cache_key = (shader_id, slot_hash);
         if let Some(bg) = self.bind_group_cache.get(&cache_key) {
@@ -3625,7 +3412,12 @@ impl WgpuCommandExecutor {
             match self.bound_textures.get(slot as usize).and_then(|h| {
                 h.as_ref().and_then(|handle| {
                     match self.resources.get(&handle) {
-                        Some(WgpuGpuResource::Texture2D { view, sampler, .. }) => {
+                        Some(WgpuGpuResource::Texture2D {
+                            texture,
+                            view,
+                            sampler,
+                            ..
+                        }) => {
                             // The engine's texture-unit counters are per-shader,
                             // so another shader's 2D texture can sit in a slot
                             // the current shader binds a Cube/1D/3D sampler to.
@@ -3633,21 +3425,31 @@ impl WgpuCommandExecutor {
                             // wgpu rejects a mismatched view dimension, so fall
                             // back to the per-dimension default instead.
                             if s.view_dimension == wgpu::TextureViewDimension::D2 {
-                                Some((view.clone(), sampler.clone()))
+                                Some((view.clone(), self.sampler_for_unit(slot, texture, sampler)))
                             } else {
                                 None
                             }
                         }
-                        Some(WgpuGpuResource::TextureCube { view, sampler, .. }) => {
+                        Some(WgpuGpuResource::TextureCube {
+                            texture,
+                            view,
+                            sampler,
+                            ..
+                        }) => {
                             if s.view_dimension == wgpu::TextureViewDimension::Cube {
-                                Some((view.clone(), sampler.clone()))
+                                Some((view.clone(), self.sampler_for_unit(slot, texture, sampler)))
                             } else {
                                 None
                             }
                         }
-                        Some(WgpuGpuResource::Texture1D { view, sampler, .. }) => {
+                        Some(WgpuGpuResource::Texture1D {
+                            texture,
+                            view,
+                            sampler,
+                            ..
+                        }) => {
                             if s.view_dimension == wgpu::TextureViewDimension::D1 {
-                                Some((view.clone(), sampler.clone()))
+                                Some((view.clone(), self.sampler_for_unit(slot, texture, sampler)))
                             } else {
                                 None
                             }
@@ -3888,174 +3690,6 @@ impl WgpuCommandExecutor {
         CommandReply::ShaderReload(result)
     }
 
-    pub(super) fn cmd_create_texture_1d(
-        &mut self,
-        id: ResourceId,
-        width: u32,
-        format: TexFormat,
-        data: Option<Vec<u8>>,
-    ) {
-        // REAL D1 texture: backing 1D textures with a 1xN 2D texture makes
-        // bind-group validation fail for sampler1D bindings (the layout
-        // expects dimension D1, the 2D view is D2 -> probe-verified crash).
-        let Some(device) = self.device.clone() else {
-            return;
-        };
-        let Some(queue) = self.queue.clone() else {
-            return;
-        };
-        let (wgpu_format, bpp, converted) = Self::tex_format_to_wgpu_with_bpp(format);
-        let texture = device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("phx-tex1d"),
-            size: wgpu::Extent3d {
-                width: width.max(1),
-                height: 1,
-                depth_or_array_layers: 1,
-            },
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D1,
-            format: wgpu_format,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING
-                | wgpu::TextureUsages::COPY_DST
-                | wgpu::TextureUsages::COPY_SRC,
-            view_formats: &[],
-        });
-        if let Some(raw) = data {
-            let expected = width as usize * bpp;
-            if raw.len() >= expected {
-                let bytes = if converted {
-                    match format {
-                        TexFormat::R32F => Self::f32_to_rgba16f_bytes(&raw),
-                        TexFormat::RGBA32F => Self::f32_to_f16_bytes(&raw),
-                        _ => Self::rgb_to_rgba(&raw, width, 1),
-                    }
-                } else {
-                    raw
-                };
-                let dest_bpp = if converted {
-                    match format {
-                        TexFormat::R32F | TexFormat::RGBA32F => 8,
-                        _ => 4,
-                    }
-                } else {
-                    bpp
-                } as u32;
-                Self::upload_texture_2d(&queue, &texture, width, 1, &bytes, dest_bpp);
-            }
-        }
-        let view = texture.create_view(&wgpu::TextureViewDescriptor {
-            dimension: Some(wgpu::TextureViewDimension::D1),
-            ..Default::default()
-        });
-        let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-            label: Some("phx-sampler"),
-            mag_filter: wgpu::FilterMode::Linear,
-            min_filter: wgpu::FilterMode::Linear,
-            address_mode_u: wgpu::AddressMode::ClampToEdge,
-            address_mode_v: wgpu::AddressMode::ClampToEdge,
-            address_mode_w: wgpu::AddressMode::ClampToEdge,
-            mipmap_filter: wgpu::MipmapFilterMode::Nearest,
-            lod_min_clamp: 0.0,
-            lod_max_clamp: 0.0,
-            compare: None,
-            anisotropy_clamp: 1,
-            border_color: None,
-        });
-        self.resources.insert(
-            id,
-            WgpuGpuResource::Texture1D {
-                texture,
-                view,
-                sampler,
-            },
-        );
-    }
-
-    pub(super) fn cmd_create_texture_2d(
-        &mut self,
-        id: ResourceId,
-        width: u32,
-        height: u32,
-        format: TexFormat,
-        data: Option<Vec<u8>>,
-    ) {
-        let Some(device) = self.device.clone() else {
-            return;
-        };
-        let Some(queue) = self.queue.clone() else {
-            return;
-        };
-        let (wgpu_format, bpp, converted) = Self::tex_format_to_wgpu_with_bpp(format);
-        let texture = device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("phx-tex2d"),
-            size: wgpu::Extent3d {
-                width: width.max(1),
-                height: height.max(1),
-                depth_or_array_layers: 1,
-            },
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D2,
-            format: wgpu_format,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING
-                | wgpu::TextureUsages::COPY_DST
-                | wgpu::TextureUsages::RENDER_ATTACHMENT
-                | wgpu::TextureUsages::COPY_SRC,
-            view_formats: &[],
-        });
-        if let Some(raw) = data {
-            let expected = (width * height) as usize * bpp;
-            if raw.len() >= expected {
-                let (bytes, dest_bpp) = if converted {
-                    match format {
-                        TexFormat::R32F => (Self::f32_to_rgba16f_bytes(&raw), 8),
-                        TexFormat::RGBA32F => (Self::f32_to_f16_bytes(&raw), 8),
-                        _ => (Self::rgb_to_rgba(&raw, width, height), 4),
-                    }
-                } else {
-                    (raw, bpp)
-                };
-                Self::upload_texture_2d(&queue, &texture, width, height, &bytes, dest_bpp as u32);
-            }
-        }
-        let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-        // 32F formats are NOT filterable in WebGPU: a Linear sampler for an
-        // Rgba32Float texture fails bind-group validation. Use Nearest for
-        // those (the shaders texelFetch them anyway).
-        let filterable = !matches!(
-            wgpu_format,
-            wgpu::TextureFormat::Rgba32Float | wgpu::TextureFormat::R32Float
-        );
-        let filter = if filterable {
-            wgpu::FilterMode::Linear
-        } else {
-            wgpu::FilterMode::Nearest
-        };
-        let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-            label: Some("phx-sampler"),
-            mag_filter: filter,
-            min_filter: filter,
-            address_mode_u: wgpu::AddressMode::ClampToEdge,
-            address_mode_v: wgpu::AddressMode::ClampToEdge,
-            address_mode_w: wgpu::AddressMode::ClampToEdge,
-            mipmap_filter: wgpu::MipmapFilterMode::Nearest,
-            lod_min_clamp: 0.0,
-            lod_max_clamp: 0.0,
-            compare: None,
-            anisotropy_clamp: 1,
-            border_color: None,
-        });
-        self.resources.insert(
-            id,
-            WgpuGpuResource::Texture2D {
-                texture,
-                view,
-                sampler,
-            },
-        );
-    }
-
     /// Rgba8UnormSrgb -> Rgba8Unorm distinction for shader-visible textures:
     /// keep the raw format (the engine's data is raw RGBA); srgb correction
     /// is applied at the view level if the format demands it. We use the
@@ -4203,17 +3837,14 @@ impl WgpuCommandExecutor {
     pub(crate) fn tex_format_to_wgpu_with_bpp(
         format: TexFormat,
     ) -> (wgpu::TextureFormat, usize, bool) {
-        // RGB8: payload is 3 bpp, texture is Rgba8Unorm (expanded).
         // R32F/RGBA32F: the WebGPU portability model forbids filtering on
         // 32F formats, but the engine's shaders sample them with filtering
         // samplers (lighting depth + the instanced asteroid transforms) —
         // so create them as 16F (filterable) and convert the f32 payload
         // CPU-side. A 32F texture can never satisfy a filterable sampler
         // binding regardless of the sampler's filter mode.
-        let converted =
-            format == TexFormat::RGB8 || format == TexFormat::R32F || format == TexFormat::RGBA32F;
+        let converted = format == TexFormat::R32F || format == TexFormat::RGBA32F;
         let wf = match format {
-            TexFormat::RGB8 => wgpu::TextureFormat::Rgba8Unorm,
             TexFormat::RGBA8 => wgpu::TextureFormat::Rgba8Unorm,
             TexFormat::RGBA16F => wgpu::TextureFormat::Rgba16Float,
             TexFormat::R16F => wgpu::TextureFormat::R16Float,
@@ -4232,13 +3863,11 @@ impl WgpuCommandExecutor {
         };
         let bpp = if converted {
             match format {
-                TexFormat::R32F => 4,     // f32 payload, expanded to RGBA16F
-                TexFormat::RGBA32F => 16, // 4 x f32, converted to f16
-                _ => 3,
+                TexFormat::R32F => 4, // f32 payload, expanded to RGBA16F
+                _ => 16,              // RGBA32F: 4 x f32, converted to f16
             }
         } else {
             match format {
-                TexFormat::RGB8 => 3,
                 TexFormat::RGBA8 => 4,
                 TexFormat::RGBA16F => 8,
                 TexFormat::R16F => 2,
@@ -4255,15 +3884,6 @@ impl WgpuCommandExecutor {
             }
         };
         (wf, bpp, converted)
-    }
-
-    fn rgb_to_rgba(raw: &[u8], width: u32, height: u32) -> Vec<u8> {
-        let count = (width * height) as usize;
-        let mut out = Vec::with_capacity(count * 4);
-        for px in raw.chunks(3).take(count) {
-            out.extend_from_slice(&[px[0], px[1], px[2], 255]);
-        }
-        out
     }
 
     /// Bytes per pixel for the formats the engine actually uploads.
@@ -4283,152 +3903,6 @@ impl WgpuCommandExecutor {
             wgpu::TextureFormat::Rgba32Float => 16,
             _ => 4,
         }
-    }
-
-    fn upload_texture_2d(
-        queue: &wgpu::Queue,
-        texture: &wgpu::Texture,
-        width: u32,
-        height: u32,
-        bytes: &[u8],
-        bpp: u32,
-    ) {
-        // wgpu write_texture requires bytes_per_row aligned to 256.
-        let bpr = (width * bpp).max(1);
-        let padded_bpr = (bpr + 255) & !255;
-        let mut padded = Vec::with_capacity(padded_bpr as usize * height as usize);
-        for row in bytes.chunks(bpr as usize).take(height as usize) {
-            padded.extend_from_slice(row);
-            padded.resize(padded.len() + (padded_bpr as usize - row.len()), 0);
-        }
-        queue.write_texture(
-            wgpu::TexelCopyTextureInfo {
-                texture,
-                mip_level: 0,
-                origin: wgpu::Origin3d::ZERO,
-                aspect: wgpu::TextureAspect::All,
-            },
-            &padded,
-            wgpu::TexelCopyBufferLayout {
-                offset: 0,
-                bytes_per_row: Some(padded_bpr),
-                rows_per_image: Some(height.max(1)),
-            },
-            wgpu::Extent3d {
-                width: width.max(1),
-                height: height.max(1),
-                depth_or_array_layers: 1,
-            },
-        );
-    }
-
-    pub(super) fn cmd_create_texture_3d(
-        &mut self,
-        _id: ResourceId,
-        _width: u32,
-        _height: u32,
-        _depth: u32,
-        _format: TexFormat,
-        _data: Option<Vec<u8>>,
-    ) {
-        // 3D textures are not sampled by the benchmark scene; create a
-        // placeholder 2D texture so bind-group lookups never panic.
-        self.cmd_create_texture_2d(_id, _width.max(1), _height.max(1), _format, None);
-    }
-
-    pub(super) fn cmd_create_texture_cube(&mut self, id: ResourceId, size: u32, format: TexFormat) {
-        let Some(device) = self.device.clone() else {
-            return;
-        };
-        let Some(queue) = self.queue.clone() else {
-            return;
-        };
-        let (wgpu_format, bpp, _converted) = Self::tex_format_to_wgpu_with_bpp(format);
-        let texture = device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("phx-texcube"),
-            size: wgpu::Extent3d {
-                width: size.max(1),
-                height: size.max(1),
-                depth_or_array_layers: 6,
-            },
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D2,
-            format: wgpu_format,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING
-                | wgpu::TextureUsages::COPY_DST
-                | wgpu::TextureUsages::RENDER_ATTACHMENT
-                | wgpu::TextureUsages::COPY_SRC,
-            view_formats: &[],
-        });
-        // fill each face with magenta so unloaded faces are visibly wrong
-        let face_bytes = (size * size) as usize * bpp;
-        let mut face = vec![0u8; face_bytes.max(4)];
-        if bpp >= 4 {
-            for px in face.chunks_mut(4) {
-                px[0] = 255;
-                px[2] = 255;
-                px[3] = 255;
-            }
-        }
-        for layer in 0..6u32 {
-            let bpr = (size * bpp as u32).max(1);
-            let padded_bpr = (bpr + 255) & !255;
-            let mut padded = Vec::with_capacity(padded_bpr as usize * size.max(1) as usize);
-            for row in face.chunks(bpr as usize).take(size.max(1) as usize) {
-                padded.extend_from_slice(row);
-                padded.resize(padded.len() + (padded_bpr as usize - row.len()), 0);
-            }
-            queue.write_texture(
-                wgpu::TexelCopyTextureInfo {
-                    texture: &texture,
-                    mip_level: 0,
-                    origin: wgpu::Origin3d {
-                        x: 0,
-                        y: 0,
-                        z: layer,
-                    },
-                    aspect: wgpu::TextureAspect::All,
-                },
-                &padded,
-                wgpu::TexelCopyBufferLayout {
-                    offset: 0,
-                    bytes_per_row: Some(padded_bpr),
-                    rows_per_image: Some(size.max(1)),
-                },
-                wgpu::Extent3d {
-                    width: size.max(1),
-                    height: size.max(1),
-                    depth_or_array_layers: 1,
-                },
-            );
-        }
-        let view = texture.create_view(&wgpu::TextureViewDescriptor {
-            dimension: Some(wgpu::TextureViewDimension::Cube),
-            ..Default::default()
-        });
-        let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-            label: Some("phx-sampler-cube"),
-            mag_filter: wgpu::FilterMode::Linear,
-            min_filter: wgpu::FilterMode::Linear,
-            address_mode_u: wgpu::AddressMode::ClampToEdge,
-            address_mode_v: wgpu::AddressMode::ClampToEdge,
-            address_mode_w: wgpu::AddressMode::ClampToEdge,
-            mipmap_filter: wgpu::MipmapFilterMode::Nearest,
-            lod_min_clamp: 0.0,
-            lod_max_clamp: 0.0,
-            compare: None,
-            anisotropy_clamp: 1,
-            border_color: None,
-        });
-        self.resources.insert(
-            id,
-            WgpuGpuResource::TextureCube {
-                texture,
-                view,
-                sampler,
-            },
-        );
     }
 
     pub(super) fn cmd_create_mesh(
@@ -4522,7 +3996,6 @@ impl WgpuCommandExecutor {
     pub(super) fn cmd_destroy_resource(&mut self, ids: &[ResourceId]) {
         for id in ids {
             self.resources.remove(id);
-            self.texture_filter_modes.remove(id);
         }
     }
 
@@ -4538,6 +4011,95 @@ impl WgpuCommandExecutor {
 
     pub(super) fn cmd_create_sampler(&mut self, id: SamplerId, desc: &SamplerDesc) {
         self.sampler_descs.insert(id, *desc);
+        if let Some(device) = &self.device {
+            self.wgpu_samplers
+                .insert(id, device.create_sampler(&Self::sampler_descriptor(desc)));
+        }
+    }
+
+    /// `SamplerDesc` -> `wgpu::SamplerDescriptor`: filters, wrap on all three
+    /// axes, anisotropy and the LOD clamps (a sampler without a mip filter
+    /// reads level 0 only, like GL's non-mipmap min filters). A comparison
+    /// sampler is created like the rest; binding one needs a `Comparison`
+    /// layout entry, which the shader layouts do not declare yet.
+    pub(crate) fn sampler_descriptor(desc: &SamplerDesc) -> wgpu::SamplerDescriptor<'static> {
+        let filter = |f: SamplerFilter| match f {
+            SamplerFilter::Point => wgpu::FilterMode::Nearest,
+            SamplerFilter::Linear => wgpu::FilterMode::Linear,
+        };
+        let mip = match desc.mip {
+            MipFilter::None | MipFilter::Point => wgpu::MipmapFilterMode::Nearest,
+            MipFilter::Linear => wgpu::MipmapFilterMode::Linear,
+        };
+        // wgpu: anisotropy needs linear min, mag and mip filtering.
+        let all_linear = desc.min == SamplerFilter::Linear
+            && desc.mag == SamplerFilter::Linear
+            && desc.mip == MipFilter::Linear;
+        wgpu::SamplerDescriptor {
+            label: Some("phx-sampler-desc"),
+            address_mode_u: Self::wrap_mode_to_wgpu(desc.wrap[0]),
+            address_mode_v: Self::wrap_mode_to_wgpu(desc.wrap[1]),
+            address_mode_w: Self::wrap_mode_to_wgpu(desc.wrap[2]),
+            mag_filter: filter(desc.mag),
+            min_filter: filter(desc.min),
+            mipmap_filter: mip,
+            lod_min_clamp: desc.lod_min as f32,
+            lod_max_clamp: if desc.mip == MipFilter::None {
+                desc.lod_min as f32
+            } else if desc.lod_max == 255 {
+                32.0
+            } else {
+                desc.lod_max as f32
+            },
+            compare: desc.compare.map(|c| match c {
+                CompareFn::Never => wgpu::CompareFunction::Never,
+                CompareFn::Less => wgpu::CompareFunction::Less,
+                CompareFn::Equal => wgpu::CompareFunction::Equal,
+                CompareFn::LessEqual => wgpu::CompareFunction::LessEqual,
+                CompareFn::Greater => wgpu::CompareFunction::Greater,
+                CompareFn::NotEqual => wgpu::CompareFunction::NotEqual,
+                CompareFn::GreaterEqual => wgpu::CompareFunction::GreaterEqual,
+                CompareFn::Always => wgpu::CompareFunction::Always,
+            }),
+            anisotropy_clamp: if all_linear {
+                desc.anisotropy.max(1) as u16
+            } else {
+                1
+            },
+            border_color: None,
+        }
+    }
+
+    /// The sampler to bind with `texture` in `unit`: the one of the sampler id
+    /// bound there, unless the texture's format cannot be filtered (32F) or
+    /// the sampler compares, in which case the texture's own sampler stays.
+    fn sampler_for_unit(
+        &self,
+        unit: u32,
+        texture: &wgpu::Texture,
+        own: &wgpu::Sampler,
+    ) -> wgpu::Sampler {
+        let filterable = !matches!(
+            texture.format(),
+            wgpu::TextureFormat::R32Float
+                | wgpu::TextureFormat::Rg32Float
+                | wgpu::TextureFormat::Rgba32Float
+        );
+        let wanted = self
+            .unit_samplers
+            .get(unit as usize)
+            .copied()
+            .flatten()
+            .filter(|id| {
+                self.sampler_descs
+                    .get(id)
+                    .is_some_and(|d| d.compare.is_none())
+            })
+            .and_then(|id| self.wgpu_samplers.get(&id));
+        match wanted {
+            Some(sampler) if filterable => sampler.clone(),
+            _ => own.clone(),
+        }
     }
 
     pub(super) fn cmd_destroy_bind_groups(&mut self, ids: &[BindGroupId]) {
@@ -4573,8 +4135,11 @@ impl WgpuCommandExecutor {
     }
 
     /// Texture unit -> sampler name of the bound shader, from its layout.
-    fn bind_unit_by_layout(&mut self, unit: u32, view: &TexView) {
+    fn bind_unit_by_layout(&mut self, unit: u32, view: &TexView, sampler: SamplerId) {
         self.bind_texture_slot_by_resource(unit, view.tex);
+        if let Some(entry) = self.unit_samplers.get_mut(unit as usize) {
+            *entry = Some(sampler);
+        }
         let name = match self
             .bound_shader
             .and_then(|h| self.resources.get(&ResourceId(h.0 as u64)))
@@ -4636,9 +4201,9 @@ impl WgpuCommandExecutor {
                     };
                     for entry in &entries {
                         match entry {
-                            BindEntry::Texture { view, .. } => {
+                            BindEntry::Texture { view, sampler, .. } => {
                                 if let Some(unit) = entry_unit(*group, entry) {
-                                    self.bind_unit_by_layout(unit, view);
+                                    self.bind_unit_by_layout(unit, view, *sampler);
                                 }
                             }
                             BindEntry::Uniform {
@@ -4694,10 +4259,10 @@ impl WgpuCommandExecutor {
                 }
                 PassCmd::SetInputs(inputs) => {
                     for (i, input) in inputs.iter().enumerate() {
-                        if let Some((view, _sampler)) = input {
+                        if let Some((view, sampler)) = input {
                             let unit = crate::render::texture_unit(crate::render::GROUP_INPUTS, 0)
                                 + i as u32;
-                            self.bind_unit_by_layout(unit, view);
+                            self.bind_unit_by_layout(unit, view, *sampler);
                         }
                     }
                 }
@@ -5008,118 +4573,25 @@ impl WgpuCommandExecutor {
             // === Name-based Uniform Operations ===
             // === Texture Operations ===
             // === Texture State Commands ===
-            RenderCommand::UpdateTexture2DDataByResource {
-                id,
-                width,
-                height,
-                internal_format,
-                pixel_format,
-                data_format,
-                data,
-            } => self.cmd_update_texture_2d_data_by_resource(
-                id,
-                width,
-                height,
-                internal_format,
-                pixel_format,
-                data_format,
-                data,
-            ),
-            RenderCommand::UpdateTexture2DRect {
-                id,
-                x,
-                y,
-                width,
-                height,
-                pixel_format,
-                data_format,
-                data,
-            } => self.cmd_update_texture_2d_rect(
-                id,
-                x,
-                y,
-                width,
-                height,
-                pixel_format,
-                data_format,
-                data,
-            ),
+            RenderCommand::UpdateTexture { id, region, data } => {
+                self.cmd_update_texture(id, &region, data);
+            }
             RenderCommand::SetTexel1DByResource { id, x, color } => {
                 self.cmd_set_texel_1d_by_resource(id, x, color);
             }
             RenderCommand::SetTexel2DByResource { id, x, y, color } => {
                 self.cmd_set_texel_2d_by_resource(id, x, y, color);
             }
-            RenderCommand::GenerateMipmapByResource { id } => {
-                self.cmd_generate_mipmap_by_resource(id)
-            }
+            RenderCommand::GenerateMips { id } => self.cmd_generate_mips(id),
             RenderCommand::CopyTexture { src, dst, size } => {
                 self.cmd_copy_texture(&src, &dst, size)
             }
-            RenderCommand::UpdateTexture1DDataByResource {
-                id,
-                width,
-                internal_format,
-                pixel_format,
-                data_format,
-                data,
-            } => self.cmd_update_texture_1d_data_by_resource(
-                id,
-                width,
-                internal_format,
-                pixel_format,
-                data_format,
-                data,
-            ),
-            RenderCommand::UpdateTexture3DDataByResource {
-                id,
-                width,
-                height,
-                depth,
-                internal_format,
-                pixel_format,
-                data_format,
-                data,
-            } => self.cmd_update_texture_3d_data_by_resource(
-                id,
-                width,
-                height,
-                depth,
-                internal_format,
-                pixel_format,
-                data_format,
-                data,
-            ),
-            RenderCommand::UpdateTextureCubeFaceDataByResource {
-                id,
-                face,
-                level,
-                size,
-                internal_format,
-                pixel_format,
-                data_format,
-                data,
-            } => self.cmd_update_texture_cube_face_data_by_resource(
-                id,
-                face,
-                level,
-                size,
-                internal_format,
-                pixel_format,
-                data_format,
-                data,
-            ),
             RenderCommand::CopyTexture2DFromFramebufferByResource {
                 id,
-                internal_format,
+                format,
                 width,
                 height,
-            } => self.cmd_copy_texture_2d_from_framebuffer_by_resource(
-                id,
-                internal_format,
-                width,
-                height,
-            ),
+            } => self.cmd_copy_texture_2d_from_framebuffer_by_resource(id, format, width, height),
             RenderCommand::ReadTexture1DData {
                 id,
                 pixel_format,
@@ -5220,35 +4692,8 @@ impl WgpuCommandExecutor {
             } => {
                 reply = self.cmd_reload_shader(&shader_key, &vertex_src, &fragment_src);
             }
-            RenderCommand::CreateTexture1D {
-                id,
-                width,
-                format,
-                data,
-            } => {
-                self.cmd_create_texture_1d(id, width, format, data);
-            }
-            RenderCommand::CreateTexture2D {
-                id,
-                width,
-                height,
-                format,
-                data,
-            } => {
-                self.cmd_create_texture_2d(id, width, height, format, data);
-            }
-            RenderCommand::CreateTexture3D {
-                id,
-                width,
-                height,
-                depth,
-                format,
-                data,
-            } => {
-                self.cmd_create_texture_3d(id, width, height, depth, format, data);
-            }
-            RenderCommand::CreateTextureCube { id, size, format } => {
-                self.cmd_create_texture_cube(id, size, format);
+            RenderCommand::CreateTexture { id, desc, data } => {
+                self.cmd_create_texture(id, &desc, data);
             }
             RenderCommand::CreateMesh {
                 id,
@@ -5456,10 +4901,9 @@ mod tests {
             WgpuCommandExecutor::tex_format_to_wgpu(TexFormat::Depth24),
             Some(wgpu::TextureFormat::Depth24Plus)
         );
-        // RGB8 has no wgpu equivalent
         assert_eq!(
-            WgpuCommandExecutor::tex_format_to_wgpu(TexFormat::RGB8),
-            None
+            WgpuCommandExecutor::tex_format_to_wgpu(TexFormat::RG8),
+            Some(wgpu::TextureFormat::Rg8Unorm)
         );
     }
 

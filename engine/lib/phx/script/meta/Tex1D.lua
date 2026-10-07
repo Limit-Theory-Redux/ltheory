@@ -10,6 +10,16 @@ Tex1D = {}
 ---@return Tex1D
 function Tex1D.Create(r, size, format) end
 
+-- A texture with `mips` levels (0 = the full chain) and the `TexUsage`
+-- bits in `usage` (0 = the default for the kind).
+---@param r Renderer
+---@param size integer
+---@param format TexFormat
+---@param mips integer
+---@param usage integer
+---@return Tex1D
+function Tex1D.CreateDesc(r, size, format, mips, usage) end
+
 -- View of the whole texture, for sampling.
 ---@return TexView
 function Tex1D:view() end

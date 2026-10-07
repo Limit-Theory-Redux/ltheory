@@ -117,7 +117,7 @@ end
 
 function RenderCoreSystem:initializeBuffers()
     local function create(x, y, fmt)
-        local t = Tex2D.Create(x, y, fmt)
+        local t = Tex2D.Create(x, y, fmt, { mips = true })
         -- A depth buffer has nothing to clear here (the opaque pass clears it).
         if not TexFormat.IsDepth(fmt) then t:clear(0, 0, 0, 0) end
         t:genMipmap()

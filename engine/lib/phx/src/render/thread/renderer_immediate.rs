@@ -10,7 +10,7 @@ use crate::render::thread::{CommandExecutor, CommandReply, RendererData};
 use crate::render::{
     BindEntry, BindGroupId, BlockLayout, BufferId, PassCommands, PipelineDesc, PipelineId,
     RenderPassDesc, RenderStats, RenderThreadError, ResourceId, SamplerCache, SamplerDesc,
-    SamplerId, ShaderLayout, ShaderReloadResult, TexFormat, TexView,
+    SamplerId, ShaderLayout, ShaderReloadResult, TexDesc, TexFormat, TexRegion, TexView,
     VertexFormat,
 };
 use crate::window::{PresentMode, WindowGlContext};
@@ -103,52 +103,6 @@ impl Renderer {
 
     // === Texture Operations ===
 
-    #[allow(clippy::too_many_arguments)]
-    pub fn update_texture_2d_data_by_resource(
-        &mut self,
-        id: ResourceId,
-        width: i32,
-        height: i32,
-        internal_format: i32,
-        pixel_format: u32,
-        data_format: u32,
-        data: Vec<u8>,
-    ) {
-        self.ex().cmd_update_texture_2d_data_by_resource(
-            id,
-            width,
-            height,
-            internal_format,
-            pixel_format,
-            data_format,
-            data,
-        );
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    pub fn update_texture_2d_rect(
-        &mut self,
-        id: ResourceId,
-        x: i32,
-        y: i32,
-        width: i32,
-        height: i32,
-        pixel_format: u32,
-        data_format: u32,
-        data: Vec<u8>,
-    ) {
-        self.ex().cmd_update_texture_2d_rect(
-            id,
-            x,
-            y,
-            width,
-            height,
-            pixel_format,
-            data_format,
-            data,
-        );
-    }
-
     pub fn set_texel_1d_by_resource(&mut self, id: ResourceId, x: i32, color: [f32; 4]) {
         self.ex().cmd_set_texel_1d_by_resource(id, x, color);
     }
@@ -157,96 +111,37 @@ impl Renderer {
         self.ex().cmd_set_texel_2d_by_resource(id, x, y, color);
     }
 
-    pub fn generate_mipmap_by_resource(&mut self, id: ResourceId) {
-        self.ex().cmd_generate_mipmap_by_resource(id);
-    }
-
     /// Copy `size` texels (width, height, layers) from the origin of `src`
     /// to the origin of `dst` (see `RenderCommand::CopyTexture`).
     pub fn copy_texture(&mut self, src: TexView, dst: TexView, size: [u32; 3]) {
         self.ex().cmd_copy_texture(&src, &dst, size);
     }
 
-    pub fn update_texture_1d_data_by_resource(
-        &mut self,
-        id: ResourceId,
-        width: i32,
-        internal_format: i32,
-        pixel_format: u32,
-        data_format: u32,
-        data: Vec<u8>,
-    ) {
-        self.ex().cmd_update_texture_1d_data_by_resource(
-            id,
-            width,
-            internal_format,
-            pixel_format,
-            data_format,
-            data,
-        );
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    pub fn update_texture_3d_data_by_resource(
-        &mut self,
-        id: ResourceId,
-        width: i32,
-        height: i32,
-        depth: i32,
-        internal_format: i32,
-        pixel_format: u32,
-        data_format: u32,
-        data: Vec<u8>,
-    ) {
-        self.ex().cmd_update_texture_3d_data_by_resource(
-            id,
-            width,
-            height,
-            depth,
-            internal_format,
-            pixel_format,
-            data_format,
-            data,
-        );
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    pub fn update_texture_cube_face_data_by_resource(
-        &mut self,
-        id: ResourceId,
-        face: u32,
-        level: i32,
-        size: i32,
-        internal_format: i32,
-        pixel_format: u32,
-        data_format: u32,
-        data: Vec<u8>,
-    ) {
-        self.ex().cmd_update_texture_cube_face_data_by_resource(
-            id,
-            face,
-            level,
-            size,
-            internal_format,
-            pixel_format,
-            data_format,
-            data,
-        );
-    }
-
     pub fn copy_texture_2d_from_framebuffer_by_resource(
         &mut self,
         id: ResourceId,
-        internal_format: i32,
+        format: TexFormat,
         width: i32,
         height: i32,
     ) {
-        self.ex().cmd_copy_texture_2d_from_framebuffer_by_resource(
-            id,
-            internal_format,
-            width,
-            height,
-        );
+        self.ex()
+            .cmd_copy_texture_2d_from_framebuffer_by_resource(id, format, width, height);
+    }
+
+    /// Create a texture. `data` is level 0 in the texture's own `TexFormat`
+    /// layout (see `convert_texels`).
+    pub fn create_texture(&mut self, id: ResourceId, desc: &TexDesc, data: Option<Vec<u8>>) {
+        self.ex().cmd_create_texture(id, desc, data);
+    }
+
+    /// Write `data`, in the texture's own format, to `region` of a texture.
+    pub fn update_texture(&mut self, id: ResourceId, region: TexRegion, data: Vec<u8>) {
+        self.ex().cmd_update_texture(id, &region, data);
+    }
+
+    /// Fill the mip levels below 0 of a texture from level 0.
+    pub fn generate_mips(&mut self, id: ResourceId) {
+        self.ex().cmd_generate_mips(id);
     }
 
     pub fn read_texture_1d_data(
@@ -368,46 +263,6 @@ impl Renderer {
 
     /// Ring memory comes back inline in `send_pass_commands`; nothing queued.
     pub(crate) fn reclaim_chunks(&mut self) {}
-
-    pub fn create_texture_1d(
-        &mut self,
-        id: ResourceId,
-        width: u32,
-        format: TexFormat,
-        data: Option<Vec<u8>>,
-    ) {
-        self.ex().cmd_create_texture_1d(id, width, format, data);
-    }
-
-    pub fn create_texture_2d(
-        &mut self,
-        id: ResourceId,
-        width: u32,
-        height: u32,
-        format: TexFormat,
-        data: Option<Vec<u8>>,
-    ) {
-        self.ex()
-            .cmd_create_texture_2d(id, width, height, format, data);
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    pub fn create_texture_3d(
-        &mut self,
-        id: ResourceId,
-        width: u32,
-        height: u32,
-        depth: u32,
-        format: TexFormat,
-        data: Option<Vec<u8>>,
-    ) {
-        self.ex()
-            .cmd_create_texture_3d(id, width, height, depth, format, data);
-    }
-
-    pub fn create_texture_cube(&mut self, id: ResourceId, size: u32, format: TexFormat) {
-        self.ex().cmd_create_texture_cube(id, size, format);
-    }
 
     pub fn create_mesh(
         &mut self,

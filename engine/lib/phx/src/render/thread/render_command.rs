@@ -11,7 +11,8 @@ use crossbeam::channel::Sender;
 use super::command_category::CommandCategory;
 use crate::render::{
     BindEntry, BindGroupId, BlockLayout, BufferId, PassCommands, PipelineDesc, PipelineId,
-    RenderPassDesc, SamplerDesc, SamplerId, ShaderLayout, TexFormat, TexView, VertexFormat, gl,
+    RenderPassDesc, SamplerDesc, SamplerId, ShaderLayout, TexDesc, TexFormat, TexRegion, TexView,
+    VertexFormat, gl,
 };
 use crate::window::PresentMode;
 
@@ -64,27 +65,12 @@ pub struct ImmVertex {
 /// 3. Efficiently batchable
 #[derive(Debug, Clone)]
 pub enum RenderCommand {
-    /// Update data for a 2D texture by ResourceId (for textures created in command mode)
-    UpdateTexture2DDataByResource {
+    /// Write `data`, tightly packed texels in the texture's own `TexFormat`
+    /// layout (see `convert_texels`), to `region` of a texture. `GpuResource`
+    /// kind decides the target (1D, 2D, 3D, or a cube face by `origin[2]`).
+    UpdateTexture {
         id: ResourceId,
-        width: i32,
-        height: i32,
-        internal_format: i32,
-        pixel_format: u32,
-        data_format: u32,
-        data: Vec<u8>,
-    },
-
-    /// Replace the `width` x `height` rectangle at (`x`, `y`) of a 2D texture
-    /// with tightly packed `data` (the glyph atlas upload).
-    UpdateTexture2DRect {
-        id: ResourceId,
-        x: i32,
-        y: i32,
-        width: i32,
-        height: i32,
-        pixel_format: u32,
-        data_format: u32,
+        region: TexRegion,
         data: Vec<u8>,
     },
 
@@ -103,8 +89,9 @@ pub enum RenderCommand {
         color: [f32; 4],
     },
 
-    /// Generate mipmaps for a texture by resource ID
-    GenerateMipmapByResource { id: ResourceId },
+    /// Fill every mip level below 0 from level 0. GL: `glGenerateMipmap`.
+    /// wgpu: a chain of blit passes, one per level (and face or slice).
+    GenerateMips { id: ResourceId },
 
     /// Copy a `size[0]` x `size[1]` rectangle (`size[2]` layers, always 1 on
     /// GL) from the origin of `src` to the origin of `dst`. Both views are
@@ -117,47 +104,13 @@ pub enum RenderCommand {
         size: [u32; 3],
     },
 
-    /// Update data for a 1D texture by ResourceId
-    UpdateTexture1DDataByResource {
-        id: ResourceId,
-        width: i32,
-        internal_format: i32,
-        pixel_format: u32,
-        data_format: u32,
-        data: Vec<u8>,
-    },
-
-    /// Update data for a 3D texture by ResourceId
-    UpdateTexture3DDataByResource {
-        id: ResourceId,
-        width: i32,
-        height: i32,
-        depth: i32,
-        internal_format: i32,
-        pixel_format: u32,
-        data_format: u32,
-        data: Vec<u8>,
-    },
-
-    /// Update data for one face of a cube texture by ResourceId
-    UpdateTextureCubeFaceDataByResource {
-        id: ResourceId,
-        face: u32,
-        level: i32,
-        size: i32,
-        internal_format: i32,
-        pixel_format: u32,
-        data_format: u32,
-        data: Vec<u8>,
-    },
-
     /// Copy the currently-bound read framebuffer into a (already-created,
     /// empty) 2D texture by resource ID. Used by `Tex2D::deep_clone` - the
     /// caller is expected to have already bound the source by opening
     /// a render pass on it.
     CopyTexture2DFromFramebufferByResource {
         id: ResourceId,
-        internal_format: i32,
+        format: TexFormat,
         width: i32,
         height: i32,
     },
@@ -290,38 +243,13 @@ pub enum RenderCommand {
         fragment_src: String,
     },
 
-    /// Create a 1D texture
-    CreateTexture1D {
+    /// Create a texture. `data` (optional, 1D/2D/3D only) is level 0 in the
+    /// texture's own `TexFormat` layout; the other levels are allocated
+    /// (`desc.mips`) but not filled, see `GenerateMips`.
+    CreateTexture {
         id: ResourceId,
-        width: u32,
-        format: TexFormat,
+        desc: Box<TexDesc>,
         data: Option<Vec<u8>>,
-    },
-
-    /// Create a 2D texture
-    CreateTexture2D {
-        id: ResourceId,
-        width: u32,
-        height: u32,
-        format: TexFormat,
-        data: Option<Vec<u8>>,
-    },
-
-    /// Create a 3D texture
-    CreateTexture3D {
-        id: ResourceId,
-        width: u32,
-        height: u32,
-        depth: u32,
-        format: TexFormat,
-        data: Option<Vec<u8>>,
-    },
-
-    /// Create a cube texture (6 empty faces, matching `TexCube::new`)
-    CreateTextureCube {
-        id: ResourceId,
-        size: u32,
-        format: TexFormat,
     },
 
     /// Create a mesh from vertex/index data
@@ -379,15 +307,11 @@ impl RenderCommand {
         use RenderCommand::*;
         match self {
             // === Texture State / Data ===
-            UpdateTexture2DDataByResource { .. }
-            | UpdateTexture2DRect { .. }
+            UpdateTexture { .. }
             | SetTexel1DByResource { .. }
             | SetTexel2DByResource { .. }
-            | GenerateMipmapByResource { .. }
+            | GenerateMips { .. }
             | CopyTexture { .. }
-            | UpdateTexture1DDataByResource { .. }
-            | UpdateTexture3DDataByResource { .. }
-            | UpdateTextureCubeFaceDataByResource { .. }
             | CopyTexture2DFromFramebufferByResource { .. } => CommandCategory::TextureData,
 
             // === Blocking Readbacks ===
@@ -412,10 +336,7 @@ impl RenderCommand {
             | CreateBuffer { .. }
             | WriteBuffer { .. }
             | ReloadShader { .. }
-            | CreateTexture1D { .. }
-            | CreateTexture2D { .. }
-            | CreateTexture3D { .. }
-            | CreateTextureCube { .. }
+            | CreateTexture { .. }
             | CreateMesh { .. }
             | DestroyResources { .. } => CommandCategory::Resource,
 
@@ -439,7 +360,7 @@ impl RenderCommand {
                 | RenderCommand::PacingFence { .. }
                 | RenderCommand::Shutdown
                 | RenderCommand::CreateShader { .. }
-                | RenderCommand::CreateTexture2D { .. }
+                | RenderCommand::CreateTexture { .. }
                 | RenderCommand::CreateMesh { .. }
         )
     }

@@ -3,7 +3,8 @@ use image::{DynamicImage, GenericImageView, ImageBuffer, ImageReader, Rgba};
 
 use super::{DataFormat, PixelFormat, TexFormat};
 use crate::render::{
-    LoadOp, RenderPassDesc, Renderer, ResourceHandle, ResourceId, TexView, ViewDim, gl,
+    LoadOp, RenderPassDesc, Renderer, ResourceHandle, ResourceId, TexDesc, TexRegion, TexUsages,
+    TexView, ViewDim, convert_slice,
 };
 use crate::rf::Rf;
 use crate::system::{Bytes, Resource, ResourceType};
@@ -16,13 +17,29 @@ pub struct Tex2D {
 #[derive(Debug)]
 pub struct Tex2DShared {
     handle: ResourceHandle,
-    pub size: IVec2,
-    pub format: TexFormat,
+    pub desc: TexDesc,
+}
+
+impl Tex2DShared {
+    fn size(&self) -> IVec2 {
+        IVec2::new(self.desc.size[0] as i32, self.desc.size[1] as i32)
+    }
 }
 
 impl Tex2D {
     pub fn resource_id(&self) -> ResourceId {
         self.shared.as_ref().handle.id()
+    }
+
+    /// A texture of `desc`, optionally with level 0 in the texture's own
+    /// format (tightly packed rows).
+    pub fn create(r: &mut Renderer, desc: TexDesc, bytes: Option<Vec<u8>>) -> Tex2D {
+        let handle = r.create_resource();
+        r.create_texture(handle.id(), &desc, bytes);
+
+        Tex2D {
+            shared: Rf::new(Tex2DShared { handle, desc }),
+        }
     }
 
     pub fn get_data<T: Clone + Default>(
@@ -33,7 +50,7 @@ impl Tex2D {
     ) -> Vec<T> {
         let this = self.shared.as_ref();
 
-        let mut size = this.size.x * this.size.y;
+        let mut size = this.desc.size[0] as i32 * this.desc.size[1] as i32;
         size *= DataFormat::get_size(df);
         size *= PixelFormat::components(pf);
         size /= std::mem::size_of::<T>() as i32;
@@ -50,7 +67,8 @@ impl Tex2D {
         data
     }
 
-    /// A texture of `format` created with `bytes` (tightly packed rows).
+    /// A texture of `format` created with `bytes` (tightly packed rows in the
+    /// texture's own format).
     pub fn new_with_bytes(
         r: &mut Renderer,
         sx: i32,
@@ -58,16 +76,7 @@ impl Tex2D {
         format: TexFormat,
         bytes: Vec<u8>,
     ) -> Tex2D {
-        let handle = r.create_resource();
-        r.create_texture_2d(handle.id(), sx as u32, sy as u32, format, Some(bytes));
-
-        Tex2D {
-            shared: Rf::new(Tex2DShared {
-                handle,
-                size: IVec2::new(sx, sy),
-                format,
-            }),
-        }
+        Self::create(r, TexDesc::d2(sx as u32, sy as u32, format), Some(bytes))
     }
 
     /// Replace a rectangle of a one-byte-per-texel texture (tightly packed rows).
@@ -81,34 +90,18 @@ impl Tex2D {
         bytes: Vec<u8>,
     ) {
         let this = self.shared.as_ref();
-        debug_assert_eq!(this.format, TexFormat::R8);
-        r.update_texture_2d_rect(
+        debug_assert_eq!(this.desc.format, TexFormat::R8);
+        r.update_texture(
             this.handle.id(),
-            x,
-            y,
-            width,
-            height,
-            gl::RED,
-            gl::UNSIGNED_BYTE,
+            TexRegion::rect(x as u32, y as u32, width as u32, height as u32),
             bytes,
         );
     }
 
     pub fn set_data<T>(&mut self, r: &mut Renderer, data: &[T], pf: PixelFormat, df: DataFormat) {
         let this = self.shared.as_ref();
-        let byte_len = std::mem::size_of_val(data);
-        #[allow(unsafe_code)] // TODO: refactor
-        let bytes = unsafe { std::slice::from_raw_parts(data.as_ptr() as *const u8, byte_len) };
-
-        r.update_texture_2d_data_by_resource(
-            this.handle.id(),
-            this.size.x,
-            this.size.y,
-            this.format as i32,
-            pf as u32,
-            df as u32,
-            bytes.to_vec(),
-        );
+        let bytes = convert_slice(data, pf, df, this.desc.format);
+        r.update_texture(this.handle.id(), TexRegion::level(&this.desc, 0), bytes);
     }
 }
 
@@ -116,16 +109,25 @@ impl Tex2D {
 impl Tex2D {
     #[bind(name = "Create")]
     pub fn new(r: &mut Renderer, sx: i32, sy: i32, format: TexFormat) -> Tex2D {
-        let handle = r.create_resource();
-        r.create_texture_2d(handle.id(), sx as u32, sy as u32, format, None);
+        Self::create(r, TexDesc::d2(sx as u32, sy as u32, format), None)
+    }
 
-        Tex2D {
-            shared: Rf::new(Tex2DShared {
-                handle,
-                size: IVec2::new(sx, sy),
-                format,
-            }),
+    /// A texture with `mips` levels (0 = the full chain) and the `TexUsage`
+    /// bits in `usage` (0 = the default for the kind).
+    #[bind(name = "CreateDesc")]
+    pub fn new_desc(
+        r: &mut Renderer,
+        sx: i32,
+        sy: i32,
+        format: TexFormat,
+        mips: i32,
+        usage: u32,
+    ) -> Tex2D {
+        let mut desc = TexDesc::d2(sx as u32, sy as u32, format).with_mips(mips.max(0) as u32);
+        if usage != 0 {
+            desc = desc.with_usage(TexUsages(usage));
         }
+        Self::create(r, desc, None)
     }
 
     pub fn load(r: &mut Renderer, name: &str) -> Tex2D {
@@ -138,37 +140,19 @@ impl Tex2D {
             .unwrap_or_else(|_| panic!("Failed to load image from '{path}', decode failed"));
         let (width, height) = img.dimensions();
 
-        let (pixel_format, buffer) = match img {
-            DynamicImage::ImageRgba8(buf) => (gl::RGBA, buf.into_raw()),
-            DynamicImage::ImageRgb8(buf) => (gl::RGB, buf.into_raw()),
+        // Textures are RGBA8: an RGB image gets an opaque alpha, which is what
+        // the GL upload of RGB data into an RGBA8 texture did.
+        let buffer = match img {
+            DynamicImage::ImageRgba8(buf) => buf.into_raw(),
+            DynamicImage::ImageRgb8(buf) => DynamicImage::ImageRgb8(buf).into_rgba8().into_raw(),
             _ => panic!("Failed to load image from '{path}', unsupported image format"),
         };
 
-        let size = IVec2::new(width as i32, height as i32);
-        let format = TexFormat::RGBA8;
-        let handle = r.create_resource();
-        // Create empty first, then upload with the source image's own pixel
-        // format (RGB or RGBA, whichever it decoded as) - the internal
-        // storage format (RGBA8) doesn't have to match the source layout,
-        // GL converts on upload.
-        r.create_texture_2d(handle.id(), size.x as u32, size.y as u32, format, None);
-        r.update_texture_2d_data_by_resource(
-            handle.id(),
-            size.x,
-            size.y,
-            format as i32,
-            pixel_format,
-            gl::UNSIGNED_BYTE,
-            buffer,
-        );
-
-        Tex2D {
-            shared: Rf::new(Tex2DShared {
-                handle,
-                size,
-                format,
-            }),
-        }
+        Self::create(
+            r,
+            TexDesc::d2(width, height, TexFormat::RGBA8),
+            Some(buffer),
+        )
     }
 
     // This simply forwards calls from Lua to the Clone trait.
@@ -194,26 +178,15 @@ impl Tex2D {
             }
         }
 
-        let handle = r.create_resource();
-        r.create_texture_2d(
-            handle.id(),
-            size.x as u32,
-            size.y as u32,
-            TexFormat::RGBA8,
+        Self::create(
+            r,
+            TexDesc::d2(size.x as u32, size.y as u32, TexFormat::RGBA8),
             Some(buf),
-        );
-
-        Tex2D {
-            shared: Rf::new(Tex2DShared {
-                handle,
-                size,
-                format: TexFormat::RGBA8,
-            }),
-        }
+        )
     }
 
     pub fn save(&mut self, r: &mut Renderer, path: &str) {
-        let size = self.shared.as_ref().size;
+        let size = self.shared.as_ref().size();
         let data: Vec<u8> = self.get_data(r, PixelFormat::RGBA, DataFormat::U8);
 
         if let Some(buffer) =
@@ -253,27 +226,26 @@ impl Tex2D {
         r.begin_pass_intern(&desc);
 
         let this = self.shared.as_ref();
-        let size = this.size;
-        let format = this.format;
+        let size = this.size();
+        let format = this.desc.format;
 
-        let handle = r.create_resource();
-        r.create_texture_2d(handle.id(), size.x as u32, size.y as u32, format, None);
-        r.copy_texture_2d_from_framebuffer_by_resource(handle.id(), format as i32, size.x, size.y);
+        let result = Self::create(r, TexDesc::d2(size.x as u32, size.y as u32, format), None);
+        r.copy_texture_2d_from_framebuffer_by_resource(
+            result.resource_id(),
+            format,
+            size.x,
+            size.y,
+        );
 
         r.end_pass_intern();
 
-        Tex2D {
-            shared: Rf::new(Tex2DShared {
-                handle,
-                size,
-                format,
-            }),
-        }
+        result
     }
 
+    /// Fill the mip levels below 0 from level 0.
     pub fn gen_mipmap(&mut self, r: &mut Renderer) {
         let this = self.shared.as_ref();
-        r.generate_mipmap_by_resource(this.handle.id());
+        r.generate_mips(this.handle.id());
     }
 
     pub fn get_data_bytes(&self, r: &mut Renderer, pf: PixelFormat, df: DataFormat) -> Bytes {
@@ -282,18 +254,18 @@ impl Tex2D {
 
     pub fn get_format(&self) -> TexFormat {
         let this = self.shared.as_ref();
-        this.format
+        this.desc.format
     }
 
     pub fn get_size(&self) -> IVec2 {
         let this = self.shared.as_ref();
-        this.size
+        this.size()
     }
 
     pub fn get_size_level(&self, level: i32) -> IVec2 {
         let this = self.shared.as_ref();
 
-        let mut out = this.size;
+        let mut out = this.size();
         for _ in 0..level {
             out.x /= 2;
             out.y /= 2;
@@ -311,15 +283,6 @@ impl Tex2D {
         self.set_data(r, data.as_slice(), pf, df);
     }
 
-    /* NOTE : In general, using BASE_LEVEL, MAX_LEVEL, and MIN/MAX_LOD params is
-     *        dangerous due to known bugs in old Radeon & Intel drivers. See:
-     *        (https://www.opengl.org/discussion_boards/showthread.php/
-     *         166266-Using-GL_TEXTURE_BASE_LEVEL-with-a-comple-texture)
-     *
-     *        However, constraining the mip range to a single level (min_level ==
-     *        max_level) seems to be acceptable even on bad drivers. Thus, it is
-     *        strongly advised to use this function only to constrain sampling to
-     *        a single mip level. */
     pub fn set_texel(
         &mut self,
         r: &mut Renderer,
@@ -340,7 +303,7 @@ impl Tex2D {
     #[bind(name = "Sample")]
     fn sample_pixel(&self, r: &mut Renderer, x: i32, y: i32) -> Vec3 {
         let this = self.shared.as_ref();
-        let size = this.size;
+        let size = this.size();
 
         let x = x.clamp(0, size.x - 1);
         let y = y.clamp(0, size.y - 1);

@@ -4,13 +4,15 @@
 ---@class TexGen
 TexGen = {}
 
--- A new cube map of `size` and `format`, generated with `desc`.
+-- A new cube map of `size` and `format` with `mips` levels (0 = the full
+-- chain, the caller then generates it), generated with `desc`.
 ---@param r Renderer
 ---@param desc GenDesc
 ---@param size integer
 ---@param format TexFormat
+---@param mips integer
 ---@return TexCube
-function TexGen.Cube(r, desc, size, format) end
+function TexGen.Cube(r, desc, size, format, mips) end
 
 -- Regenerate an existing cube map (ping-pong generation).
 ---@param r Renderer

@@ -19,6 +19,7 @@ function Loader.defineType()
         ffi.cdef [[
             void      Tex3D_Free         (Tex3D*);
             Tex3D*    Tex3D_Create       (Renderer* r, int sx, int sy, int sz, TexFormat format);
+            Tex3D*    Tex3D_CreateDesc   (Renderer* r, int sx, int sy, int sz, TexFormat format, int mips, uint32 usage);
             TexView*  Tex3D_View         (Tex3D const*);
             TexView*  Tex3D_LayerView    (Tex3D const*, int layer);
             TexView*  Tex3D_LayerMipView (Tex3D const*, int layer, int level);
@@ -35,6 +36,10 @@ function Loader.defineType()
         Tex3D = {
             Create       = function(r, sx, sy, sz, format)
                 local _instance = libphx.Tex3D_Create(r, sx, sy, sz, format)
+                return Core.ManagedObject(_instance, libphx.Tex3D_Free)
+            end,
+            CreateDesc   = function(r, sx, sy, sz, format, mips, usage)
+                local _instance = libphx.Tex3D_CreateDesc(r, sx, sy, sz, format, mips, usage)
                 return Core.ManagedObject(_instance, libphx.Tex3D_Free)
             end,
         }

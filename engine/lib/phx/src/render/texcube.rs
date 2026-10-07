@@ -7,7 +7,8 @@ use super::{
 };
 use crate::math::Rng;
 use crate::render::{
-    LoadOp, RenderPassDesc, Renderer, ResourceHandle, ResourceId, Shader, TexView, ViewDim, gl,
+    LoadOp, RenderPassDesc, Renderer, ResourceHandle, ResourceId, Shader, TexDesc, TexRegion,
+    TexUsages, TexView, ViewDim, convert_slice,
 };
 use crate::rf::Rf;
 use crate::system::Bytes;
@@ -22,8 +23,7 @@ pub struct TexCube {
 
 struct TexCubeShared {
     handle: ResourceHandle,
-    size: i32,
-    format: TexFormat,
+    desc: TexDesc,
 }
 
 #[derive(Copy, Clone)]
@@ -84,16 +84,18 @@ impl TexCube {
     ) -> Vec<T> {
         let this = self.shared.as_ref();
 
-        let mut size = this.size * this.size;
+        let mut size = this.desc.size[0] as i32 * this.desc.size[0] as i32;
         size *= DataFormat::get_size(df);
         size *= TexFormat::components(tf);
         size /= std::mem::size_of::<T>() as i32;
 
+        // `tf` describes the layout of the data; GL wants its pixel format.
+        let pf = PixelFormat::for_components(TexFormat::components(tf));
         let bytes = r.read_texture_cube_face_data(
             this.handle.id(),
             face as u32,
             level,
-            tf as u32,
+            pf as u32,
             df as u32,
         );
 
@@ -117,20 +119,32 @@ impl TexCube {
         df: DataFormat,
     ) {
         let this = self.shared.as_ref();
-        let byte_len = std::mem::size_of_val(data);
-        #[allow(unsafe_code)] // TODO: refactor
-        let bytes = unsafe { std::slice::from_raw_parts(data.as_ptr() as *const u8, byte_len) };
-
-        r.update_texture_cube_face_data_by_resource(
+        // `tf` says how many components the data has (its `TexFormat` layout);
+        // the texture takes it in its own format.
+        let pf = PixelFormat::for_components(TexFormat::components(tf));
+        let bytes = convert_slice(data, pf, df, this.desc.format);
+        r.update_texture(
             this.handle.id(),
-            face as u32,
-            level,
-            this.size,
-            this.format as i32,
-            tf as u32,
-            df as u32,
-            bytes.to_vec(),
+            TexRegion::face(&this.desc, face, level as u32),
+            bytes,
         );
+    }
+
+    fn create(r: &mut Renderer, desc: TexDesc) -> TexCube {
+        if TexFormat::is_depth(desc.format) {
+            panic!("Cannot create cubemap with depth format");
+        }
+
+        let handle = r.create_resource();
+        r.create_texture(handle.id(), &desc, None);
+
+        TexCube {
+            shared: Rf::new(TexCubeShared { handle, desc }),
+        }
+    }
+
+    fn size(&self) -> i32 {
+        self.shared.as_ref().desc.size[0] as i32
     }
 }
 
@@ -138,26 +152,29 @@ impl TexCube {
 impl TexCube {
     #[bind(name = "Create")]
     pub fn new(r: &mut Renderer, size: i32, format: TexFormat) -> TexCube {
-        if TexFormat::is_depth(format) {
-            panic!("Cannot create cubemap with depth format");
-        }
+        Self::create(r, TexDesc::cube(size as u32, format))
+    }
 
-        let handle = r.create_resource();
-        r.create_texture_cube(handle.id(), size as u32, format);
-
-        TexCube {
-            shared: Rf::new(TexCubeShared {
-                handle,
-                size,
-                format,
-            }),
+    /// A cube with `mips` levels (0 = the full chain) and the `TexUsage` bits
+    /// in `usage` (0 = the default for the kind).
+    #[bind(name = "CreateDesc")]
+    pub fn new_desc(
+        r: &mut Renderer,
+        size: i32,
+        format: TexFormat,
+        mips: i32,
+        usage: u32,
+    ) -> TexCube {
+        let mut desc = TexDesc::cube(size as u32, format).with_mips(mips.max(0) as u32);
+        if usage != 0 {
+            desc = desc.with_usage(TexUsages(usage));
         }
+        Self::create(r, desc)
     }
 
     pub fn load(r: &mut Renderer, path: &str) -> TexCube {
         let mut size = 0;
-        let mut format = TexFormat::RGB8;
-        let mut faces: Vec<(gl::types::GLenum, u32, Vec<u8>)> = Vec::with_capacity(6);
+        let mut faces: Vec<Vec<u8>> = Vec::with_capacity(6);
 
         for i in 0..6 {
             let face_path = format!("{}{}.jpg", path, K_FACE_EXT[i as usize]);
@@ -170,9 +187,12 @@ impl TexCube {
             });
             let (width, height) = img.dimensions();
 
-            let (pixel_format, data_format, buffer) = match img {
-                DynamicImage::ImageRgba8(buf) => (gl::RGBA, TexFormat::RGBA8, buf.into_raw()),
-                DynamicImage::ImageRgb8(buf) => (gl::RGB, TexFormat::RGB8, buf.into_raw()),
+            // Cubes are RGBA8: an RGB face gets an opaque alpha.
+            let buffer = match img {
+                DynamicImage::ImageRgba8(buf) => buf.into_raw(),
+                DynamicImage::ImageRgb8(buf) => {
+                    DynamicImage::ImageRgb8(buf).into_rgba8().into_raw()
+                }
                 _ => panic!(
                     "Failed to load cubemap face from '{face_path}', unsupported image format"
                 ),
@@ -186,49 +206,27 @@ impl TexCube {
                 if width != size as u32 || height != size as u32 {
                     panic!("Cubemap face {i} has a different resolution");
                 }
-
-                if format != data_format {
-                    panic!("Cubemap face {i} has a different number of components");
-                }
             } else {
                 size = width as i32;
-                format = data_format;
             }
 
-            faces.push((
-                K_FACES[i as usize].face as gl::types::GLenum,
-                pixel_format,
-                buffer,
-            ));
+            faces.push(buffer);
         }
 
-        let handle = r.create_resource();
-        r.create_texture_cube(handle.id(), size as u32, format);
-        for (face, pixel_format, buffer) in faces {
-            r.update_texture_cube_face_data_by_resource(
-                handle.id(),
-                face,
-                0,
-                size,
-                format as i32,
-                pixel_format,
-                gl::UNSIGNED_BYTE,
-                buffer,
-            );
+        let cube = Self::create(r, TexDesc::cube(size as u32, TexFormat::RGBA8));
+        let (id, desc) = {
+            let this = cube.shared.as_ref();
+            (this.handle.id(), this.desc)
+        };
+        for (i, buffer) in faces.into_iter().enumerate() {
+            r.update_texture(id, TexRegion::face(&desc, K_FACES[i].face, 0), buffer);
         }
-
-        TexCube {
-            shared: Rf::new(TexCubeShared {
-                handle,
-                size,
-                format,
-            }),
-        }
+        cube
     }
 
     /// View of the whole cube, for sampling.
     pub fn view(&self) -> TexView {
-        let size = self.shared.as_ref().size.max(1);
+        let size = self.size().max(1);
         TexView::full(self.resource_id(), ViewDim::Cube, [size, size])
     }
 
@@ -239,7 +237,7 @@ impl TexCube {
 
     /// View of one face at the given mip level, usable as a render attachment.
     pub fn face_mip_view(&self, face: CubeFace, level: i32) -> TexView {
-        let size = (self.shared.as_ref().size >> level).max(1);
+        let size = (self.size() >> level).max(1);
         TexView::new(
             self.resource_id(),
             ViewDim::CubeFace(face),
@@ -268,7 +266,7 @@ impl TexCube {
 
     pub fn save_level(&mut self, r: &mut Renderer, path: &str, level: i32) {
         let this = self.shared.as_ref();
-        let size = this.size >> level;
+        let size = this.desc.size[0] as i32 >> level;
 
         for i in 0..6 {
             let face = K_FACES[i as usize].face;
@@ -296,17 +294,17 @@ impl TexCube {
 
     pub fn get_format(&self) -> TexFormat {
         let this = self.shared.as_ref();
-        this.format
+        this.desc.format
     }
 
     pub fn get_size(&self) -> i32 {
         let this = self.shared.as_ref();
-        this.size
+        this.desc.size[0] as i32
     }
 
     pub fn gen_mipmap(&mut self, r: &mut Renderer) {
         let this = self.shared.as_ref();
-        r.generate_mipmap_by_resource(this.handle.id());
+        r.generate_mips(this.handle.id());
     }
 
     pub fn set_data_bytes(
@@ -328,7 +326,7 @@ impl TexCube {
 
         // Level 0 is a straight copy of this cube (a blit per face); the
         // other levels are filtered below.
-        let mut result = TexCube::new(r, size, pf);
+        let mut result = TexCube::new_desc(r, size, pf, 0, 0);
         for face in CUBE_FACES {
             r.copy_texture(
                 self.face_view(face),
@@ -338,9 +336,10 @@ impl TexCube {
         }
         result.gen_mipmap(r);
 
-        let shader = r.data.irmap_shader.take().unwrap_or_else(|| {
-            Shader::load(r, "vertex/fullscreen_ndc", "fragment/compute/irmap")
-        });
+        let shader =
+            r.data.irmap_shader.take().unwrap_or_else(|| {
+                Shader::load(r, "vertex/fullscreen_ndc", "fragment/compute/irmap")
+            });
         let mut pipeline = PipelineDesc::new(shader.resource());
         pipeline.vertex = VertexLayout::Fullscreen;
         let pipeline = r.get_pipeline(&pipeline);
@@ -352,7 +351,12 @@ impl TexCube {
                 .iter()
                 .find(|b| b.name == "Params")
                 .expect("irmap shader has no Params block");
-            for (name, offset) in [("genLook", 0), ("genUp", 16), ("angle", 32), ("samples", 36)] {
+            for (name, offset) in [
+                ("genLook", 0),
+                ("genUp", 16),
+                ("angle", 32),
+                ("samples", 36),
+            ] {
                 assert_eq!(
                     block.member(name).map(|m| m.offset),
                     Some(offset),
@@ -428,19 +432,15 @@ impl TexCube {
                 );
                 r.begin_pass_intern(&desc);
                 r.pass_record("setPipeline", PassCmd::SetPipeline(pipeline));
-                r.data.encoder.set_input(
-                    0,
-                    Some((self.view(), Samplers::LinearMipClamp.id())),
-                );
+                r.data
+                    .encoder
+                    .set_input(0, Some((self.view(), Samplers::LinearMipClamp.id())));
                 r.data
                     .encoder
                     .set_input(1, Some((sample_tex.view(), Samplers::Point.id())));
 
                 let mut block = vec![0u8; block_size];
-                for (at, v) in [
-                    (0, look[i].extend(0.0)),
-                    (16, up[i].extend(0.0)),
-                ] {
+                for (at, v) in [(0, look[i].extend(0.0)), (16, up[i].extend(0.0))] {
                     for (k, f) in v.to_array().iter().enumerate() {
                         block[at + k * 4..at + k * 4 + 4].copy_from_slice(&f.to_ne_bytes());
                     }

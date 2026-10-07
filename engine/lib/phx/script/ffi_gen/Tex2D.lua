@@ -19,6 +19,7 @@ function Loader.defineType()
         ffi.cdef [[
             void      Tex2D_Free          (Tex2D*);
             Tex2D*    Tex2D_Create        (Renderer* r, int sx, int sy, TexFormat format);
+            Tex2D*    Tex2D_CreateDesc    (Renderer* r, int sx, int sy, TexFormat format, int mips, uint32 usage);
             Tex2D*    Tex2D_Load          (Renderer* r, cstr name);
             Tex2D*    Tex2D_Clone         (Tex2D const*);
             Tex2D*    Tex2D_ScreenCapture (Renderer* r);
@@ -42,6 +43,10 @@ function Loader.defineType()
         Tex2D = {
             Create        = function(r, sx, sy, format)
                 local _instance = libphx.Tex2D_Create(r, sx, sy, format)
+                return Core.ManagedObject(_instance, libphx.Tex2D_Free)
+            end,
+            CreateDesc    = function(r, sx, sy, format, mips, usage)
+                local _instance = libphx.Tex2D_CreateDesc(r, sx, sy, format, mips, usage)
                 return Core.ManagedObject(_instance, libphx.Tex2D_Free)
             end,
             Load          = function(r, name)

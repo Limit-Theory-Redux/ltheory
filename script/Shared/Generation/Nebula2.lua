@@ -2,8 +2,9 @@ local Generator = require('Shared.Generation.Generator')
 
 local function generateNebulaLightTransport(rng, res, starDir)
     Profiler.Begin('Nebula.Generate.LightTransport')
-    local buffDst = TexCube.Create(res, TexFormat.RGBA16F)
-    local buffSrc = TexCube.Create(res, TexFormat.RGBA16F)
+    -- Either cube ends up as the result, so both get a mip chain.
+    local buffDst = TexCube.Create(res, TexFormat.RGBA16F, { mips = true })
+    local buffSrc = TexCube.Create(res, TexFormat.RGBA16F, { mips = true })
     buffSrc:clear(0.05, 0.05, 0.05, 0)
 
     local emit   = Cache.Shader('fullscreen_ndc', 'gen/nebula_emit')

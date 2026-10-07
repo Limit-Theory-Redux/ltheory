@@ -1,6 +1,6 @@
 # Render API v2 — wgpu-shaped interface on the GL renderer
 
-Status: design. S2 (render passes and attachment views), S3 (binding model, pipelines, samplers, views, frame group), S4 (materials, scene list, uniform ring), S5 (fullscreen, post-processing, offscreen generation) S6 (immediate batching, UI, glyph atlas, and the removal of the legacy API) and S7 (sampler/view completion) are implemented; later steps are not. Companion to `wgpu-migration-gaps.md`,
+Status: design. S2 (render passes and attachment views), S3 (binding model, pipelines, samplers, views, frame group), S4 (materials, scene list, uniform ring), S5 (fullscreen, post-processing, offscreen generation) S6 (immediate batching, UI, glyph atlas, and the removal of the legacy API) and S7 (sampler/view completion) and S9 (mip chains and texture kinds) are implemented; later steps are not. Companion to `wgpu-migration-gaps.md`,
 `render-thread.md`, `batch-rendering.md` and `shader-system.md`.
 
 **Strategy, already decided.** First the GL renderer and the Lua render
@@ -1240,7 +1240,7 @@ executor's per-texture filter state (`recreate_sampler`, `texture_filter_modes`)
 
 *Nothing had to be folded.* Every sampled texture already went through an explicit sampler (S3 to S6: `Samplers.*`
 presets, `MaterialType.textures`, `pass:setInputs`, `Imm.Image`), and a GL sampler object overrides the texture's own
-parameters, so all 35 Lua call sites (15 files, 11 of them active) were dead. They were deleted, not translated, and
+parameters, so all 41 Lua call sites (15 files, 12 of them active) were dead. They were deleted, not translated, and
 the effective filters are the ones the samplers already name: that keeps the accidents of S5 (nebula LUTs sample
 `Samplers.Point`; `gen/moon`'s `baseMoonTex` is black) as they were. `Cache.Texture(name, true)` now only generates the
 mip chain. The environment, moon, planet and generated cube textures are sampled with `LinearMipClamp`, 2D material
@@ -1251,6 +1251,59 @@ through a framebuffer, so the range never reached it; the call is deleted and th
 Auto-exposure is off in the default config, which is also why the captures do not depend on it.
 
 *Verification.* All six capture scenes RMSE 0 and 13/13 supervisors, on both builds.
+
+##### S9 (implemented)
+
+*Descriptions.* `TexDesc { dim, format, size: [u32; 3], mips, usage }` (`render/gpu/tex_desc.rs`) is what the executors
+create a texture from: one command, `CreateTexture { id, desc, data }`, replaces `CreateTexture1D/2D/3D/Cube`. `dim`
+is the existing `TexDim` (D1, D2, D3, Cube), `usage` a `TexUsages` bit set (`TexUsage.Sampled/Attachment/CopySrc/
+CopyDst` in Lua; the default is everything, minus attachment for 1D). `mips` is resolved when the desc is built:
+0 asks for the full chain, a larger number than the chain is clamped, depth formats always get 1. GL has either one
+level or the whole chain (a request for more than one allocates every level, empty, so `GenerateMips` and per-level
+render targets have storage; `glGenerateMipmap` still fills them). wgpu allocates exactly `mips` levels, except for 1D
+textures, which WebGPU limits to one.
+
+*Updates.* One command, `UpdateTexture { id, region, data }`, replaces `UpdateTexture2DDataByResource`,
+`UpdateTexture2DRect` and the 1D, 3D and cube-face variants. `TexRegion { level, origin, size }` addresses a box of one
+mip level (a cube face is the z layer, `face_layer(face)`), and **`data` is already in the texture's own `TexFormat`
+layout, tightly packed**: no GL enum is left in the payload. `convert_texels` (`tex_desc.rs`) turns the engine's
+`(PixelFormat, DataFormat)` source layouts into that layout on the main thread: components the source lacks are 0 and
+alpha 1 (what GL did for RGB data into RGBA8), integer and float sources are normalized and rounded as GL does (round
+to nearest), f32 to half is round to nearest even, and a source that already is native (`RGBA`/`U8` into RGBA8, `RG`/
+`Float` into RG32F, ...) is passed on without a copy. `Tex*::set_data` and `Tex2D::load` use it; the Lua call sites did
+not change. `CopyTexture2DFromFramebufferByResource` takes a `TexFormat` instead of a GL internal format. The
+readback commands still speak `(pixel_format, data_format)`: S8 replaces them. (`TexCube::get_data` passed its
+`TexFormat` argument as a GL pixel format, which is `GL_INVALID_ENUM` and a zero-filled result; it derives the pixel
+format from the component count now, like `set_data`.) GL uploads set `UNPACK_ALIGNMENT` 1 instead of leaving 4 behind
+after a glyph upload.
+
+*Formats.* `TexFormat::RG8` was `gl::RGB` (the value used as the internal format of cube textures and of
+`CopyTexImage2D`); it is `gl::RG8` now. `RGB8` is removed: it has no wgpu equivalent and the only users were
+`ColorLUT` (a 1D LUT, now `RGBA8`, still uploaded as `RGB`/`Float` and converted, alpha 1) and `TexCube::load`
+(JPEG faces, now RGBA8; `Tex2D::load` already stored RGBA8). The LUT pixels are bit-identical (captures with a nebula
+sky: RMSE 0 on both builds).
+
+*Lua.* `Tex1D/2D/3D/Cube.Create(..., desc)` takes an optional `{ mips = true | <levels>, usage = <bits> }` (no `mips` is
+one level), through new `Tex*_CreateDesc(r, ..., mips, usage)` functions. `genMipmap` keeps its name on all four.
+Sites that sample a mip chain now say so at creation: the post-processing buffers of `RenderCoreSystem`, GenTex2D's
+texture, both cubes of Nebula2's ping-pong, `TexGen.Cube { mips = true }` and the irradiance cube of `GenIRMap`.
+Loaded textures stay single level until `genMipmap` (GL), because allocating a chain would also make a texture complete
+that was sampled with a mip sampler before it had one (it read black).
+
+*wgpu.* The texture code is in `command_executor_wgpu/tex.rs`: real `D1`, `D2`, `D3` and cube (six-layer 2D with a cube
+view) textures (gaps 7 and 8; the 3D placeholder is gone), updates by region with `write_texture` (rows are repacked by
+wgpu, so no 256-byte padding), the 16F backing of `R32F`/`RGBA32F` converted on update, and `GenerateMips` as a blit chain
+(gap 4): one pass per level and face (or 3D slice, with `depth_slice`), sampling the level above with a bilinear
+filter (nearest for 32F formats), pipelines cached per target format. A texture created with one level has no chain to
+fill: `GenerateMips` warns and does nothing, so the sites above ask for mips at creation. Samplers
+(`CreateSampler`) are real `wgpu::Sampler`s now, bound with the texture of the unit they came with (`SetInputs`,
+`SetBindGroup`) unless the format is 32F: filters, wrap, anisotropy and LOD clamps reach the GPU (gaps 5, 6 and 18).
+These paths run (`TexKinds` under `LTHEORY_WGPU=1` creates 2D, 3D, 1D and cube textures, uploads, and generates mips
+without a validation error) but, like everything the wgpu executor does since S3, they do not render scenes correctly.
+
+*Probe.* `States/App/Tests/TexKinds` creates one texture of each kind with mips, uploads in layouts that differ from
+the texture's format (RGB float into RGBA8, RG8, R32F, per cube face), reads everything back and logs a PASS/FAIL line.
+It passes on GL; on wgpu the readbacks of RG8, R32F and cube faces fail (gap 1, readbacks, is S8).
 
 ---
 

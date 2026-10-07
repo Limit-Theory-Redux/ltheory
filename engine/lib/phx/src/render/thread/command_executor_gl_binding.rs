@@ -15,8 +15,8 @@ use crate::render::{
     CommandCategory, CommandExecutor, CompareFn, CullFace, GROUP_COUNT, GROUP_DRAW, GROUP_FRAME,
     GROUP_INPUTS, GlslType, ImmLayout, InstanceData, MAX_FRAMES_IN_FLIGHT, MAX_INPUTS, PassCmd,
     PassCommands, PipelineDesc, PipelineId, PolygonMode, ResourceId, ReturnedChunk, RingChunk,
-    SamplerDesc, SamplerId, Samplers, ShaderLayout, TexView, UNIFORM_ALIGN, VERTEX_CHUNK_SIZE,
-    ViewDim, block_binding, entry_unit, gl, texture_unit,
+    SamplerDesc, SamplerId, Samplers, ShaderLayout, TexDesc, TexView, UNIFORM_ALIGN,
+    VERTEX_CHUNK_SIZE, ViewDim, block_binding, entry_unit, gl, texture_unit,
 };
 
 /// Uniform block binding points (`group * 4 + k`) the passes drive.
@@ -86,6 +86,8 @@ pub(super) struct GlBindingState {
     pub unit_samplers: [u32; MAX_TEXTURE_SLOTS],
     /// Mip range last set on each texture (`TEXTURE_BASE_LEVEL`, `MAX_LEVEL`).
     pub mip_ranges: HashMap<ResourceId, (i32, i32)>,
+    /// What every live texture was created as (an update needs its format and kind).
+    pub tex_descs: HashMap<ResourceId, TexDesc>,
     /// Unit quad for `DrawFullscreen`.
     pub fullscreen_vao: u32,
     pub fullscreen_vbo: u32,
@@ -115,6 +117,7 @@ impl GlBindingState {
             ubo_bound: [UboBinding::default(); UBO_BINDINGS],
             unit_samplers: [0; MAX_TEXTURE_SLOTS],
             mip_ranges: HashMap::new(),
+            tex_descs: HashMap::new(),
             fullscreen_vao: 0,
             fullscreen_vbo: 0,
             imm2d_vao: 0,
@@ -1133,6 +1136,7 @@ impl CommandExecutor {
     /// Texture destroyed: forget its caches and unbind it from the units.
     pub(super) fn forget_texture(&mut self, id: ResourceId) {
         self.binding.mip_ranges.remove(&id);
+        self.binding.tex_descs.remove(&id);
     }
 
     /// Attachment key helper kept next to the pass state for symmetry with

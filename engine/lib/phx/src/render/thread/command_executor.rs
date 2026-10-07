@@ -329,46 +329,12 @@ impl CommandExecutor {
             // subsequent GL operations that expect TEXTURE0 to be active will fail with
             // "unit 0 GLD_TEXTURE_INDEX_2D is unloadable" errors.
             // === Texture State Commands ===
-            RenderCommand::UpdateTexture2DDataByResource {
-                id,
-                width,
-                height,
-                internal_format,
-                pixel_format,
-                data_format,
-                data,
-            } => {
-                self.cmd_update_texture_2d_data_by_resource(
-                    id,
-                    width,
-                    height,
-                    internal_format,
-                    pixel_format,
-                    data_format,
-                    data,
-                );
+            RenderCommand::UpdateTexture { id, region, data } => {
+                self.cmd_update_texture(id, &region, data);
             }
 
-            RenderCommand::UpdateTexture2DRect {
-                id,
-                x,
-                y,
-                width,
-                height,
-                pixel_format,
-                data_format,
-                data,
-            } => {
-                self.cmd_update_texture_2d_rect(
-                    id,
-                    x,
-                    y,
-                    width,
-                    height,
-                    pixel_format,
-                    data_format,
-                    data,
-                );
+            RenderCommand::GenerateMips { id } => {
+                self.cmd_generate_mips(id);
             }
 
             RenderCommand::SetTexel1DByResource { id, x, color } => {
@@ -379,88 +345,17 @@ impl CommandExecutor {
                 self.cmd_set_texel_2d_by_resource(id, x, y, color);
             }
 
-            RenderCommand::GenerateMipmapByResource { id } => {
-                self.cmd_generate_mipmap_by_resource(id);
-            }
-
             RenderCommand::CopyTexture { src, dst, size } => {
                 self.cmd_copy_texture(&src, &dst, size);
             }
 
-            RenderCommand::UpdateTexture1DDataByResource {
-                id,
-                width,
-                internal_format,
-                pixel_format,
-                data_format,
-                data,
-            } => {
-                self.cmd_update_texture_1d_data_by_resource(
-                    id,
-                    width,
-                    internal_format,
-                    pixel_format,
-                    data_format,
-                    data,
-                );
-            }
-
-            RenderCommand::UpdateTexture3DDataByResource {
-                id,
-                width,
-                height,
-                depth,
-                internal_format,
-                pixel_format,
-                data_format,
-                data,
-            } => {
-                self.cmd_update_texture_3d_data_by_resource(
-                    id,
-                    width,
-                    height,
-                    depth,
-                    internal_format,
-                    pixel_format,
-                    data_format,
-                    data,
-                );
-            }
-
-            RenderCommand::UpdateTextureCubeFaceDataByResource {
-                id,
-                face,
-                level,
-                size,
-                internal_format,
-                pixel_format,
-                data_format,
-                data,
-            } => {
-                self.cmd_update_texture_cube_face_data_by_resource(
-                    id,
-                    face,
-                    level,
-                    size,
-                    internal_format,
-                    pixel_format,
-                    data_format,
-                    data,
-                );
-            }
-
             RenderCommand::CopyTexture2DFromFramebufferByResource {
                 id,
-                internal_format,
+                format,
                 width,
                 height,
             } => {
-                self.cmd_copy_texture_2d_from_framebuffer_by_resource(
-                    id,
-                    internal_format,
-                    width,
-                    height,
-                );
+                self.cmd_copy_texture_2d_from_framebuffer_by_resource(id, format, width, height);
             }
 
             RenderCommand::ReadTexture1DData {
@@ -578,32 +473,8 @@ impl CommandExecutor {
                 reply = self.cmd_reload_shader(&shader_key, &vertex_src, &fragment_src);
             }
 
-            RenderCommand::CreateTexture1D {
-                id,
-                width,
-                format,
-                data,
-            } => self.cmd_create_texture_1d(id, width, format, data),
-
-            RenderCommand::CreateTexture2D {
-                id,
-                width,
-                height,
-                format,
-                data,
-            } => self.cmd_create_texture_2d(id, width, height, format, data),
-
-            RenderCommand::CreateTexture3D {
-                id,
-                width,
-                height,
-                depth,
-                format,
-                data,
-            } => self.cmd_create_texture_3d(id, width, height, depth, format, data),
-
-            RenderCommand::CreateTextureCube { id, size, format } => {
-                self.cmd_create_texture_cube(id, size, format);
+            RenderCommand::CreateTexture { id, desc, data } => {
+                self.cmd_create_texture(id, &desc, data);
             }
 
             RenderCommand::CreateMesh {

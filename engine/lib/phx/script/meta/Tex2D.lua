@@ -11,6 +11,17 @@ Tex2D = {}
 ---@return Tex2D
 function Tex2D.Create(r, sx, sy, format) end
 
+-- A texture with `mips` levels (0 = the full chain) and the `TexUsage`
+-- bits in `usage` (0 = the default for the kind).
+---@param r Renderer
+---@param sx integer
+---@param sy integer
+---@param format TexFormat
+---@param mips integer
+---@param usage integer
+---@return Tex2D
+function Tex2D.CreateDesc(r, sx, sy, format, mips, usage) end
+
 ---@param r Renderer
 ---@param name string
 ---@return Tex2D
@@ -48,6 +59,7 @@ function Tex2D:clear(r, red, green, blue, alpha) end
 ---@return Tex2D
 function Tex2D:deepClone(r) end
 
+-- Fill the mip levels below 0 from level 0.
 ---@param r Renderer
 function Tex2D:genMipmap(r) end
 

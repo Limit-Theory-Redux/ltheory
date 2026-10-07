@@ -19,6 +19,7 @@ function Loader.defineType()
         ffi.cdef [[
             void      Tex1D_Free         (Tex1D*);
             Tex1D*    Tex1D_Create       (Renderer* r, int size, TexFormat format);
+            Tex1D*    Tex1D_CreateDesc   (Renderer* r, int size, TexFormat format, int mips, uint32 usage);
             TexView*  Tex1D_View         (Tex1D const*);
             Tex1D*    Tex1D_Clone        (Tex1D const*);
             void      Tex1D_GenMipmap    (Tex1D*, Renderer* r);
@@ -34,6 +35,10 @@ function Loader.defineType()
         Tex1D = {
             Create       = function(r, size, format)
                 local _instance = libphx.Tex1D_Create(r, size, format)
+                return Core.ManagedObject(_instance, libphx.Tex1D_Free)
+            end,
+            CreateDesc   = function(r, size, format, mips, usage)
+                local _instance = libphx.Tex1D_CreateDesc(r, size, format, mips, usage)
                 return Core.ManagedObject(_instance, libphx.Tex1D_Free)
             end,
         }

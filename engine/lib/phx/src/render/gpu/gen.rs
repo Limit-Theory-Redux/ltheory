@@ -231,9 +231,16 @@ pub struct TexGen;
 
 #[luajit_ffi_gen::luajit_ffi]
 impl TexGen {
-    /// A new cube map of `size` and `format`, generated with `desc`.
-    pub fn cube(r: &mut Renderer, desc: &GenDesc, size: i32, format: TexFormat) -> TexCube {
-        let cube = TexCube::new(r, size, format);
+    /// A new cube map of `size` and `format` with `mips` levels (0 = the full
+    /// chain, the caller then generates it), generated with `desc`.
+    pub fn cube(
+        r: &mut Renderer,
+        desc: &GenDesc,
+        size: i32,
+        format: TexFormat,
+        mips: i32,
+    ) -> TexCube {
+        let cube = TexCube::new_desc(r, size, format, mips, 0);
         r.generate_cube(desc, &cube);
         cube
     }

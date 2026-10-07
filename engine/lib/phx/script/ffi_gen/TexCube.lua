@@ -19,6 +19,7 @@ function Loader.defineType()
         ffi.cdef [[
             void      TexCube_Free         (TexCube*);
             TexCube*  TexCube_Create       (Renderer* r, int size, TexFormat format);
+            TexCube*  TexCube_CreateDesc   (Renderer* r, int size, TexFormat format, int mips, uint32 usage);
             TexCube*  TexCube_Load         (Renderer* r, cstr path);
             TexView*  TexCube_View         (TexCube const*);
             TexView*  TexCube_FaceView     (TexCube const*, CubeFace face);
@@ -39,6 +40,10 @@ function Loader.defineType()
         TexCube = {
             Create       = function(r, size, format)
                 local _instance = libphx.TexCube_Create(r, size, format)
+                return Core.ManagedObject(_instance, libphx.TexCube_Free)
+            end,
+            CreateDesc   = function(r, size, format, mips, usage)
+                local _instance = libphx.TexCube_CreateDesc(r, size, format, mips, usage)
                 return Core.ManagedObject(_instance, libphx.TexCube_Free)
             end,
             Load         = function(r, path)

@@ -23,3 +23,16 @@ impl PixelFormat {
         }
     }
 }
+
+impl PixelFormat {
+    /// The layout with `n` components (1 to 4), for a payload described by a
+    /// `TexFormat`.
+    pub fn for_components(n: i32) -> Self {
+        match n {
+            1 => Self::Red,
+            2 => Self::RG,
+            3 => Self::RGB,
+            _ => Self::RGBA,
+        }
+    }
+}
