@@ -341,7 +341,7 @@ function RenderCoreSystem:render(data)
     Profiler.End()
 
     Profiler.Begin('Render.Post.Bloom')
-    self:bloom(dt)
+    self:bloom(self.postSettings.bloom.radius)
     Profiler.End()
 
     Profiler.Begin('Render.Post.FXAA')
