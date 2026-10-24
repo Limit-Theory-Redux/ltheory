@@ -54,7 +54,7 @@ float visibility(samplerCube map, vec3 p, int octaves, float roughness, float of
 // Sample cloud texture with zonal wind (east-west flow)
 float getCloudLayer(vec3 samplePos, float layerSpeed, float scale, float t) {
     float r = length(samplePos);
-    float theta = acos(samplePos.y / r);  // Polar angle
+    float theta = acos(clamp(samplePos.y / r, -1.0, 1.0));  // Polar angle
     float phi = atan(samplePos.z, samplePos.x);  // Azimuth
 
     phi += layerSpeed * t;  // Zonal wind
@@ -83,7 +83,7 @@ void main() {
     vec3 N = normalize(normal);
     vec3 V = normalize(pos - eye);
     float NL = dot(N, L);
-    float light = mix(exp(-max(0.0, pow(1.0 - NL, 4.0))), 1.0, 0.01);
+    float light = mix(exp(-max(0.0, pow(max(0.0, 1.0 - NL), 4.0))), 1.0, 0.01);
 
     // Sample terrain map
     vec4 map = texture(surface, vertPos);
@@ -125,7 +125,7 @@ void main() {
     vec3 cloudLit = cloudColor * (0.8 + 0.5 * cloudNL);
 
     // Subtle rim lighting
-    float fresnel = pow(1.0 - max(0.0, dot(N, -V)), 4.0);
+    float fresnel = pow(1.0 - saturate(dot(N, -V)), 4.0);
     cloudLit += vec3(0.2, 0.25, 0.3) * fresnel * cloudDensity * 0.8;
 
     vec3 ambient = vec3(0.22, 0.25, 0.28);
