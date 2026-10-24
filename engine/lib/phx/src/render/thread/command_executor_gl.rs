@@ -1869,6 +1869,25 @@ impl CommandExecutor {
         let _sa = self.record_command(CommandCategory::Resource, false, false);
         for id in ids {
             if let Some(resource) = self.resources.remove(id) {
+                // GL frees the name for reuse (and unbinds a deleted texture),
+                // so caches keyed by it must forget it or a recycled name
+                // inherits stale state, e.g. a skipped texture bind
+                match &resource {
+                    GpuResource::Texture1D { handle }
+                    | GpuResource::Texture2D { handle }
+                    | GpuResource::Texture3D { handle }
+                    | GpuResource::TextureCube { handle } => {
+                        for binding in &mut self.texture_bindings {
+                            if binding.handle == *handle {
+                                *binding = TextureBinding::unbound();
+                            }
+                        }
+                    }
+                    GpuResource::Shader { program } => {
+                        self.uniform_caches.remove(program);
+                    }
+                    _ => {}
+                }
                 self.destroy_resource(resource);
             }
         }
