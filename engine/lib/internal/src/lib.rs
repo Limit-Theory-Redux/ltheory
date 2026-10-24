@@ -24,7 +24,7 @@ macro_rules! static_cstring {
 #[macro_export]
 macro_rules! static_string {
     ($str:expr) => {
-        internal::static_cstring!(std::ffi::CString::new($str).unwrap());
+        internal::static_cstring!(std::ffi::CString::new($str).unwrap())
     };
 }
 
