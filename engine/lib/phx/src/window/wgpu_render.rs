@@ -51,7 +51,7 @@ pub(crate) fn poll_startup_future<F: Future>(future: F) -> Result<F::Output, &'s
 pub enum WgpuError {
     /// `Instance::create_surface` failed (unsupported window/backend).
     CreateSurface(String),
-    /// No adapter matched (no Vulkan/DX12 driver, or surface incompatible).
+    /// No adapter matched (no Vulkan/Metal/DX12 driver, or surface incompatible).
     Adapter(String),
     /// `request_device` failed.
     Device(String),
@@ -130,9 +130,9 @@ pub fn create_surface_bundle(
 ) -> Result<WgpuStartupBundle, WgpuError> {
     let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
         // WGPU_BACKEND (e.g. `dx12`) and the WGPU_VALIDATION/WGPU_DEBUG
-        // variables override the defaults (diagnostics).
-        backends: wgpu::Backends::from_env()
-            .unwrap_or(wgpu::Backends::VULKAN | wgpu::Backends::DX12),
+        // variables override the defaults (diagnostics). The default is the
+        // native API of each platform: Vulkan, Metal or DX12.
+        backends: wgpu::Backends::from_env().unwrap_or(wgpu::Backends::PRIMARY),
         flags: wgpu::InstanceFlags::default().with_env(),
         memory_budget_thresholds: wgpu::MemoryBudgetThresholds::default(),
         backend_options: wgpu::BackendOptions::default(),

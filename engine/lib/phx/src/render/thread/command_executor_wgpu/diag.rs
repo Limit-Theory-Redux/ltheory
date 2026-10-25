@@ -19,7 +19,7 @@
 //! Two dumps of the same frame from different runs show the first pass whose
 //! output differs.
 //!
-//! `WGPU_BACKEND` (`vulkan`, `dx12`) picks the backend (`window/wgpu_render.rs`).
+//! `WGPU_BACKEND` (`vulkan`, `metal`, `dx12`) picks the backend (`window/wgpu_render.rs`).
 
 use super::pass::PassRt;
 use super::*;
