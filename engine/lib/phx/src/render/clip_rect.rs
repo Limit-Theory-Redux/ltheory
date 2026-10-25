@@ -35,6 +35,38 @@ pub enum ScissorUpdate {
     },
 }
 
+impl ScissorUpdate {
+    /// This scissor restricted to `rect` (`[x, y, width, height]`, in the
+    /// same coordinates): the overlap of both, empty if they do not overlap.
+    pub fn within(self, rect: Option<[i32; 4]>) -> ScissorUpdate {
+        let Some([x, y, width, height]) = rect else {
+            return self;
+        };
+        let ScissorUpdate::Set {
+            x: sx,
+            y: sy,
+            width: sw,
+            height: sh,
+        } = self
+        else {
+            return ScissorUpdate::Set {
+                x,
+                y,
+                width,
+                height,
+            };
+        };
+        let (x0, y0) = (x.max(sx), y.max(sy));
+        let (x1, y1) = ((x + width).min(sx + sw), (y + height).min(sy + sh));
+        ScissorUpdate::Set {
+            x: x0,
+            y: y0,
+            width: (x1 - x0).max(0),
+            height: (y1 - y0).max(0),
+        }
+    }
+}
+
 // The operations only edit the stack. The open pass applies the resulting
 // scissor lazily, right before the next draw that needs it (see
 // `Renderer::pass_apply_scissor`, and `ImmBatcher` whose runs are keyed by it).
@@ -264,5 +296,34 @@ impl ClipManager {
 impl Default for ClipManager {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ScissorUpdate;
+
+    fn set(x: i32, y: i32, width: i32, height: i32) -> ScissorUpdate {
+        ScissorUpdate::Set {
+            x,
+            y,
+            width,
+            height,
+        }
+    }
+
+    #[test]
+    fn within_is_the_overlap() {
+        assert_eq!(set(0, 0, 10, 10).within(None), set(0, 0, 10, 10));
+        assert_eq!(
+            ScissorUpdate::Disable.within(Some([1, 2, 3, 4])),
+            set(1, 2, 3, 4)
+        );
+        assert_eq!(
+            set(0, 0, 10, 10).within(Some([5, 5, 10, 10])),
+            set(5, 5, 5, 5)
+        );
+        // No overlap: an empty rectangle, never a negative one.
+        assert_eq!(set(0, 0, 4, 4).within(Some([8, 8, 2, 2])), set(8, 8, 0, 0));
     }
 }

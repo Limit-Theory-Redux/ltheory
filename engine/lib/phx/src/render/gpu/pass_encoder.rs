@@ -168,6 +168,9 @@ pub struct PassState {
     /// binds its own shape pipelines in between).
     pub user_pipeline: Option<PipelineId>,
     pub bound_pipeline: Option<PipelineId>,
+    /// The pass's own scissor (`pass:setScissor`), `[x, y, w, h]`. The
+    /// scissor a draw gets is this intersected with the `ClipRect` stack.
+    pub scissor: Option<[i32; 4]>,
 }
 
 impl Default for PassState {
@@ -180,6 +183,7 @@ impl Default for PassState {
             view: ViewBlock::new(&CameraState::default(), [0, 0, 1, 1], false),
             user_pipeline: None,
             bound_pipeline: None,
+            scissor: None,
         }
     }
 }

@@ -49,8 +49,8 @@ pub struct RendererData {
     pub environment: Environment,
     /// Clip-rect stack (was `thread_local! CLIP_MANAGER` in clip_rect.rs)
     pub clip_rect: ClipManager,
-    /// The scissor update last sent to the GPU; the GL scissor is global
-    /// state, so `ClipRect` compares against this, not against the pass.
+    /// The scissor update last recorded in the open pass (`None` at its
+    /// start), so a draw records `SetScissor` only when it changes.
     pub clip_emitted: Option<ScissorUpdate>,
     /// The immediate batcher (`Imm`): the current run of UI/debug vertices.
     pub imm_batch: ImmBatcher,

@@ -317,10 +317,12 @@ impl Renderer {
         id
     }
 
-    /// The scissor the clip stack asks for now.
+    /// The scissor a draw recorded now gets: the `ClipRect` stack's,
+    /// within the pass's own scissor.
     pub(crate) fn imm_scissor(&mut self) -> ScissorUpdate {
         let size = self.target_size();
-        self.data.clip_rect.desired(size)
+        let pass_scissor = self.data.pass.scissor;
+        self.data.clip_rect.desired(size).within(pass_scissor)
     }
 
     /// Append `verts` to the current run, starting a new one if the key

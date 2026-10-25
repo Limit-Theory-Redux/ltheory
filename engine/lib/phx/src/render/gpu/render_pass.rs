@@ -342,15 +342,16 @@ impl RenderPass {
         r.pass_set_viewport([x, y, width, height]);
     }
 
+    /// Restrict the draws that follow to `[x, y, width, height]`, until
+    /// `clearScissor` or the end of the pass. A `ClipRect` pushed inside
+    /// clips further: draws get the overlap of both.
     pub fn set_scissor(&self, r: &mut Renderer, x: i32, y: i32, width: i32, height: i32) {
-        r.pass_record(
-            "setScissor",
-            PassCmd::SetScissor(Some([x, y, width, height])),
-        );
+        r.pass_set_scissor(Some([x, y, width.max(0), height.max(0)]));
     }
 
+    /// Drop the pass's own scissor; the `ClipRect` stack still applies.
     pub fn clear_scissor(&self, r: &mut Renderer) {
-        r.pass_record("clearScissor", PassCmd::SetScissor(None));
+        r.pass_set_scissor(None);
     }
 
     /// Replace the model-view part of the UI transform (`mWorldViewUI`) for
@@ -398,9 +399,10 @@ impl Renderer {
         pass.viewport = viewport;
         pass.user_pipeline = None;
         pass.bound_pipeline = None;
+        pass.scissor = None;
         pass.view = ViewBlock::new(&camera, viewport, desc.backbuffer);
-        // Every pass starts without a scissor on wgpu; the first draw sends
-        // the one the clip stack wants (GL's scissor state outlives a pass).
+        // Every wgpu pass starts without a scissor; the first draw sends the
+        // one it needs.
         self.data.clip_emitted = None;
         // Group-3 inputs belong to one pass. Staged inputs used to outlive it,
         // so a later pass re-sent every slot ever set, including views of
@@ -624,9 +626,14 @@ impl Renderer {
         }
     }
 
-    /// Send `want` (the `ClipRect` scissor) to the open pass if the GPU does
-    /// not have it yet. The GL scissor is global state, so this compares
-    /// against the last update sent, not against the pass.
+    /// Set the open pass's own scissor (see `RenderPass::set_scissor`).
+    pub(crate) fn pass_set_scissor(&mut self, rect: Option<[i32; 4]>) {
+        self.pass_require_open("setScissor");
+        self.data.pass.scissor = rect;
+    }
+
+    /// Send `want` (see `imm_scissor`) to the open pass if the pass does not
+    /// have it yet. This is the only place that records `SetScissor`.
     pub(crate) fn pass_apply_scissor(&mut self, want: ScissorUpdate) {
         if self.data.clip_emitted == Some(want) {
             return;
@@ -660,10 +667,10 @@ impl Renderer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::render::CHUNK_SIZE;
+    use crate::render::{CHUNK_SIZE, ClipRect};
 
-    /// The executor hands ring memory back after uploading it, in both
-    /// backends: a chunk that filled up comes back whole and is reused.
+    /// The executor hands ring memory back after uploading it: a chunk that
+    /// filled up comes back whole and is reused.
     #[test]
     fn ring_chunks_come_back_from_the_executor() {
         let mut r = Renderer::new_headless();
@@ -686,5 +693,45 @@ mod tests {
         r.data.ring.alloc(CHUNK_SIZE as u32 - 256);
         r.data.ring.alloc(1024);
         assert_eq!(r.data.ring.spare_chunks(), 0);
+    }
+
+    fn recorded_scissors(r: &Renderer) -> Vec<Option<[i32; 4]>> {
+        r.data
+            .encoder
+            .cmds
+            .iter()
+            .filter_map(|cmd| match cmd {
+                PassCmd::SetScissor(rect) => Some(*rect),
+                _ => None,
+            })
+            .collect()
+    }
+
+    /// The pass scissor holds from the first draw on (the first draw of a
+    /// pass used to replace it with the empty clip stack's "no scissor"),
+    /// and a `ClipRect` inside it clips to the overlap of both.
+    #[test]
+    fn pass_scissor_applies_from_the_first_draw_and_meets_the_clip_stack() {
+        let mut r = Renderer::new_headless();
+        let mut desc = RenderPassDesc::new("scissor");
+        desc.backbuffer(64, 64, LoadOp::Load, 0.0, 0.0, 0.0, 0.0);
+        let mut pass = r.begin_pass_intern(&desc);
+
+        pass.set_scissor(&mut r, 8, 8, 32, 32);
+        pass.draw_fullscreen(&mut r);
+        pass.draw_fullscreen(&mut r);
+        assert_eq!(recorded_scissors(&r), [Some([8, 8, 32, 32])]);
+
+        // Rows 0..16 from the top of a 64-high target are y 48..64.
+        ClipRect::push(&mut r, 0.0, 0.0, 64.0, 16.0);
+        pass.draw_fullscreen(&mut r);
+        ClipRect::pop(&mut r);
+        pass.clear_scissor(&mut r);
+        pass.draw_fullscreen(&mut r);
+        assert_eq!(
+            recorded_scissors(&r),
+            [Some([8, 8, 32, 32]), Some([8, 48, 32, 0]), None]
+        );
+        pass.finish(&mut r);
     }
 }

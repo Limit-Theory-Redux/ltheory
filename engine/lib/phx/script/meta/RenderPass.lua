@@ -71,6 +71,9 @@ function RenderPass:drawFullscreen(r) end
 ---@param height integer
 function RenderPass:setViewport(r, x, y, width, height) end
 
+-- Restrict the draws that follow to `[x, y, width, height]`, until
+-- `clearScissor` or the end of the pass. A `ClipRect` pushed inside
+-- clips further: draws get the overlap of both.
 ---@param r Renderer
 ---@param x integer
 ---@param y integer
@@ -78,6 +81,7 @@ function RenderPass:setViewport(r, x, y, width, height) end
 ---@param height integer
 function RenderPass:setScissor(r, x, y, width, height) end
 
+-- Drop the pass's own scissor; the `ClipRect` stack still applies.
 ---@param r Renderer
 function RenderPass:clearScissor(r) end
 
