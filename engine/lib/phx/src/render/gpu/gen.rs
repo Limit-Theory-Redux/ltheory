@@ -148,9 +148,10 @@ impl Renderer {
     }
 
     /// Fill all six faces of `cube` with `desc`'s shader. Each face is one pass,
-    /// drawn as scissored row slices: the slice height adapts to the measured
-    /// time per slice (a quarter of a second at most), which bounds the time
-    /// one submit can take (TDR).
+    /// drawn as scissored row slices, each submitted and waited for on its
+    /// own: the slice height adapts to the GPU time of the last slice (aiming
+    /// at a quarter of a second), which bounds the work of one submission
+    /// (a driver resets the GPU after a few seconds of work, TDR).
     pub fn generate_cube(&mut self, desc: &GenDesc, cube: &TexCube) {
         let size = cube.get_size();
         let size_f = size as f32;
@@ -181,6 +182,8 @@ impl Renderer {
                 ClipRect::push(self, 0.0f32, (j - 1) as f32, size_f, job_size as f32);
                 self.pass_draw(PassCmd::DrawFullscreen);
                 ClipRect::pop(self);
+                // Recording takes microseconds; the slice's cost is the GPU's.
+                self.wait_for_gpu();
 
                 j += job_size;
                 let elapsed = time.get_elapsed();

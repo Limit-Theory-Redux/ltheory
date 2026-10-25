@@ -8,8 +8,8 @@ Renderer = {}
 ---@return boolean
 function Renderer:sync() end
 
--- Block until the GPU has finished everything submitted so far
--- e.g. to time a piece of GPU work.
+-- Block until the GPU has finished everything recorded so far, e.g. to
+-- time a piece of GPU work. `sync` only waits for the render thread.
 function Renderer:gpuFinish() end
 
 -- Draw calls of the last frame (mesh + immediate + instanced).

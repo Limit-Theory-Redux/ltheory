@@ -27,11 +27,11 @@ impl Renderer {
         self.sync_intern()
     }
 
-    /// Block until the GPU has finished everything submitted so far
-    /// e.g. to time a piece of GPU work.
+    /// Block until the GPU has finished everything recorded so far, e.g. to
+    /// time a piece of GPU work. `sync` only waits for the render thread.
     pub fn gpu_finish(&mut self) {
         Metric::Flush.inc();
-        self.finish_gpu();
+        self.wait_for_gpu();
     }
 
     // === Frame stats (last completed frame; used by LTHEORY_CAPTURE) ===

@@ -610,10 +610,14 @@ impl Renderer {
         self.submit(RenderCommand::SetPresentMode { mode });
     }
 
-    /// Block the render thread until the GPU has finished every command
-    /// submitted before this one.
-    pub fn finish_gpu(&mut self) {
+    /// Block the caller until the GPU has finished everything recorded so
+    /// far: `Flush` submits it and makes the render thread wait for the GPU,
+    /// and the fence behind it comes back once that wait is over. `false` if
+    /// the render thread is gone. Not for frame rendering (it stalls the
+    /// pipeline); for bounding offline GPU work and timing it.
+    pub fn wait_for_gpu(&mut self) -> bool {
         self.submit(RenderCommand::Flush);
+        self.sync_intern()
     }
 
     /// A `Renderer` without a GPU device - every command becomes a no-op.
