@@ -66,8 +66,8 @@ function Loader.defineType()
                 local _instance = libphx.Bytes_CreateWithCapacity(capacity)
                 return Core.ManagedObject(_instance, libphx.Bytes_Free)
             end,
-            FromData           = function(data)
-                local _instance = libphx.Bytes_FromData(data)
+            FromData           = function(data, data_size)
+                local _instance = libphx.Bytes_FromData(data, data_size)
                 return Core.ManagedObject(_instance, libphx.Bytes_Free)
             end,
             Load               = function(path)

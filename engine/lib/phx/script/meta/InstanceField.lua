@@ -30,13 +30,10 @@ function InstanceField:setWorkers(workers) end
 function InstanceField:setLodCount(count) end
 
 -- 0-based indices of asteroids that are real entities and are not drawn
--- by the next `Cull`. Copied.
+-- by the next `Cull` (none for an empty set). Copied.
 ---@param spawned integer[]
 ---@param spawned_size integer
 function InstanceField:setSpawned(spawned, spawned_size) end
-
--- No spawned asteroids for the next `Cull`.
-function InstanceField:clearSpawned() end
 
 -- Cull the field (see the module docs), skipping the asteroids given to
 -- `SetSpawned`. Returns the number of instances to draw.

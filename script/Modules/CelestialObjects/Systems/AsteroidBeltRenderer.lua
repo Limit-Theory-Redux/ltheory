@@ -185,7 +185,7 @@ function AsteroidBeltRenderer.createRenderFn(asteroidData, lodMesh)
     local staticTex = Tex2D.Create(STATIC_TEX_W, staticTexH, TexFormat.RGBA32F,
         { usage = bit.bor(TexUsage.Data, TexUsage.CopyDst) })
     staticTex:setDataBytes(
-        Core.ManagedObject(libphx.Bytes_FromData(staticTexBytes, STATIC_TEX_W * staticTexH * 16), libphx.Bytes_Free),
+        Bytes.FromData(staticTexBytes, STATIC_TEX_W * staticTexH * 16),
         PixelFormat.RGBA, DataFormat.Float)
 
     -- Bind groups, created once: group 1 has the rock texture, group 2 the
@@ -287,10 +287,8 @@ function AsteroidBeltRenderer.createRenderFn(asteroidData, lodMesh)
         fCentroids[(c - 1) * 3 + 1] = chunkCy[c]
         fCentroids[(c - 1) * 3 + 2] = chunkCz[c]
     end
-    local field = Core.ManagedObject(
-        libphx.InstanceField_Create(fPos, nAst * 3, fScales, nAst, fOffsets, CHUNK_COUNT + 1,
-            fIndices, total, fCentroids, CHUNK_COUNT * 3),
-        libphx.InstanceField_Free)
+    local field = InstanceField.Create(fPos, nAst * 3, fScales, nAst, fOffsets, CHUNK_COUNT + 1,
+        fIndices, total, fCentroids, CHUNK_COUNT * 3)
     -- 0-based spawned indices, refilled each frame
     local spawnedBuf = ffi.new('uint32_t[?]', 64)
     local spawnedCap = 64
@@ -377,12 +375,7 @@ function AsteroidBeltRenderer.createRenderFn(asteroidData, lodMesh)
         -- all in Rust, in f64, in chunk order. Worker threads fill their
         -- own lists; the join happens inside this call.
         libphx.InstanceField_SetWorkers(field, beltWorkers())
-        -- The FFI rejects empty slices, so an empty spawned set is a clear
-        if nSpawned > 0 then
-            libphx.InstanceField_SetSpawned(field, spawnedBuf, nSpawned)
-        else
-            libphx.InstanceField_ClearSpawned(field)
-        end
+        libphx.InstanceField_SetSpawned(field, spawnedBuf, nSpawned)
         libphx.InstanceField_Cull(field, eyeX, eyeY, eyeZ, fwdX, fwdY, fwdZ,
             entPosX, entPosY, entPosZ, pxPerUnitSq, renderDistSq, MAX_DRAWN_PER_FRAME)
 

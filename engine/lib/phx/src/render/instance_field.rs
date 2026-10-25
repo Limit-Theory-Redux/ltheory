@@ -163,8 +163,7 @@ pub struct InstanceField {
     data: FieldData,
     outs: Vec<ChunkOut>,
     spawned: Vec<u8>,
-    /// Spawned indices for the next FFI `Cull`, set by `SetSpawned` (an
-    /// empty set goes through `ClearSpawned`: the FFI rejects empty slices).
+    /// Spawned indices for the next FFI `Cull`, set by `SetSpawned`.
     pending_spawned: Vec<u32>,
     /// Merged, capped result: asteroid indices per LOD.
     lists: [Vec<u32>; LOD_COUNT],
@@ -348,17 +347,11 @@ impl InstanceField {
     }
 
     /// 0-based indices of asteroids that are real entities and are not drawn
-    /// by the next `Cull`. Copied.
+    /// by the next `Cull` (none for an empty set). Copied.
     #[bind(name = "SetSpawned")]
     pub fn set_spawned(&mut self, spawned: &[u32]) {
         self.pending_spawned.clear();
         self.pending_spawned.extend_from_slice(spawned);
-    }
-
-    /// No spawned asteroids for the next `Cull`.
-    #[bind(name = "ClearSpawned")]
-    pub fn clear_spawned(&mut self) {
-        self.pending_spawned.clear();
     }
 
     /// Cull the field (see the module docs), skipping the asteroids given to

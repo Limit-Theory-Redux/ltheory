@@ -22,7 +22,6 @@ function Loader.defineType()
             void           InstanceField_SetWorkers     (InstanceField*, uint32 workers);
             void           InstanceField_SetLodCount    (InstanceField*, uint32 count);
             void           InstanceField_SetSpawned     (InstanceField*, uint32 const* spawned, uint64 spawned_size);
-            void           InstanceField_ClearSpawned   (InstanceField*);
             uint32         InstanceField_Cull           (InstanceField*, double eyeX, double eyeY, double eyeZ, double fwdX, double fwdY, double fwdZ, double originX, double originY, double originZ, double pxPerUnitSq, double renderDistSq, uint32 maxDrawn);
             uint32         InstanceField_GetCount       (InstanceField const*, uint32 lod);
             uint32         InstanceField_GetLodOrderLen (InstanceField const*);
@@ -33,8 +32,8 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         InstanceField = {
-            Create         = function(pos, scales, chunkOffsets, chunkIndices, chunkCentroids)
-                local _instance = libphx.InstanceField_Create(pos, scales, chunkOffsets, chunkIndices, chunkCentroids)
+            Create         = function(pos, pos_size, scales, scales_size, chunkOffsets, chunkOffsets_size, chunkIndices, chunkIndices_size, chunkCentroids, chunkCentroids_size)
+                local _instance = libphx.InstanceField_Create(pos, pos_size, scales, scales_size, chunkOffsets, chunkOffsets_size, chunkIndices, chunkIndices_size, chunkCentroids, chunkCentroids_size)
                 return Core.ManagedObject(_instance, libphx.InstanceField_Free)
             end,
         }
@@ -50,7 +49,6 @@ function Loader.defineType()
                 setWorkers     = libphx.InstanceField_SetWorkers,
                 setLodCount    = libphx.InstanceField_SetLodCount,
                 setSpawned     = libphx.InstanceField_SetSpawned,
-                clearSpawned   = libphx.InstanceField_ClearSpawned,
                 cull           = libphx.InstanceField_Cull,
                 getCount       = libphx.InstanceField_GetCount,
                 getLodOrderLen = libphx.InstanceField_GetLodOrderLen,
