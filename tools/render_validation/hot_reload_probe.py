@@ -54,6 +54,17 @@ def edit(text, mode):
     return text
 
 
+def wait_for_reloads(log_path, count, timeout=120.0):
+    """Wait until the log reports `count` shader reloads (or time out)."""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        text = log_path.read_text(encoding="utf-8", errors="replace")
+        if len(re.findall(r"Reloaded shader", text)) >= count:
+            return True
+        time.sleep(0.5)
+    return False
+
+
 def capture(mode, original):
     png = artifact_dir / f"{mode}.png"
     log_path = artifact_dir / f"{mode}.log"
@@ -70,7 +81,10 @@ def capture(mode, original):
             if mode != "C":
                 shader.write_bytes(edit(original, mode).encode("utf-8"))
             if mode == "B":
-                time.sleep(4)
+                # Revert only once the tint has been reloaded: edits that
+                # arrive while the scene is still loading reach the watcher
+                # together and reload once.
+                wait_for_reloads(log_path, 1)
                 shader.write_bytes(original.encode("utf-8"))
             proc.wait(timeout=180)
         finally:
