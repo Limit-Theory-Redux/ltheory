@@ -466,6 +466,9 @@ impl WgpuCommandExecutor {
         }) {
             warn!("wgpu GPU finish did not complete: {error:?}");
         }
+        // The GPU is done: the async readbacks it finished are handed over now,
+        // not only at the next `BeginFrame` (`ReadbackTicket::wait`).
+        self.poll_readbacks();
     }
 
     /// `PacingFence`: answer once the GPU has finished everything submitted

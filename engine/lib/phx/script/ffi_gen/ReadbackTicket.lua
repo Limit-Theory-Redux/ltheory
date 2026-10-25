@@ -19,6 +19,7 @@ function Loader.defineType()
         ffi.cdef [[
             void   ReadbackTicket_Free      (ReadbackTicket*);
             bool   ReadbackTicket_Ready     (ReadbackTicket const*);
+            bool   ReadbackTicket_Wait      (ReadbackTicket const*, Renderer* r);
             bool   ReadbackTicket_Failed    (ReadbackTicket const*);
             Bytes* ReadbackTicket_Data      (ReadbackTicket const*);
             int    ReadbackTicket_GetWidth  (ReadbackTicket const*);
@@ -39,6 +40,7 @@ function Loader.defineType()
         local mt = {
             __index = {
                 ready     = libphx.ReadbackTicket_Ready,
+                wait      = libphx.ReadbackTicket_Wait,
                 failed    = libphx.ReadbackTicket_Failed,
                 data      = function(self)
                     local _instance = libphx.ReadbackTicket_Data(self)

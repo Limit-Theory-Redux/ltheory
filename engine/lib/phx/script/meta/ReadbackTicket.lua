@@ -9,6 +9,13 @@ ReadbackTicket = {}
 ---@return boolean
 function ReadbackTicket:ready() end
 
+-- Block until the read is over (see `ready`); `false` if it failed.
+-- For code that must see the pixels at a fixed frame, such as
+-- deterministic captures; anything else polls `ready` and never waits.
+---@param r Renderer
+---@return boolean
+function ReadbackTicket:wait(r) end
+
 -- The read could not be done; `data` is empty.
 ---@return boolean
 function ReadbackTicket:failed() end

@@ -14,6 +14,11 @@ local Pipelines          = require("Render.Pipelines")
 -- built-in unit quad to the viewport, so no state besides blending matters.
 ---@type PipelineState
 local FullscreenState = { vertex = VertexLayout.Fullscreen }
+
+-- Captures run on a fixed time step and must not depend on GPU timing (see
+-- `updateAutoExposureTarget`); the latency is the frames in flight.
+local CAPTURE_DETERMINISTIC = os.getenv('LTHEORY_CAPTURE') ~= nil
+local CAPTURE_READBACK_FRAMES = 3
 ---@type PipelineState
 local FullscreenAdditive = { vertex = VertexLayout.Fullscreen, blend = BlendMode.Additive }
 
@@ -784,13 +789,24 @@ end
 --- GPU. The statistics are the same as when 128 pixels were read one by one
 --- (`Tex2D:sample`): log-average of random luminance samples of the mip, the
 --- brightest 35% ignored, capped per sample, through an RGBA8 read.
+---
+--- Deterministic captures (`LTHEORY_CAPTURE`, fixed time step) take each
+--- measurement exactly `CAPTURE_READBACK_FRAMES` frames after starting it,
+--- waiting for it if needed: when a read completes otherwise depends on GPU
+--- timing, and with the slow adaptation that timing stays visible.
 ---@param settings table post-processing tonemap settings
 ---@param dt number
 function RenderCoreSystem:updateAutoExposureTarget(settings, dt)
     local ae = self.autoExposure
     local ticket = ae.ticket
 
-    if ticket and ticket:ready() then
+    local resolve = ticket and ticket:ready()
+    if ticket and CAPTURE_DETERMINISTIC then
+        ae.ticketAge = ae.ticketAge + 1
+        resolve = ae.ticketAge >= CAPTURE_READBACK_FRAMES
+        if resolve then ticket:wait(Renderer) end
+    end
+    if resolve then
         local w, h = ticket:getWidth(), ticket:getHeight()
         local bytes = ticket:data()
         ticket:free()
@@ -817,6 +833,7 @@ function RenderCoreSystem:updateAutoExposureTarget(settings, dt)
 
         local smallSize = src:getSizeLevel(mip)
         ae.ticket = Renderer:readAsync(src:mipView(mip), 0, 0, smallSize.x, smallSize.y, TexFormat.RGBA8)
+        ae.ticketAge = 0
     end
 end
 

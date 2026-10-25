@@ -133,6 +133,21 @@ impl ReadbackTicket {
         self.slot.as_ref().is_some_and(|s| !s.is_pending())
     }
 
+    /// Block until the read is over (see `ready`); `false` if it failed.
+    /// For code that must see the pixels at a fixed frame, such as
+    /// deterministic captures; anything else polls `ready` and never waits.
+    pub fn wait(&self, r: &mut Renderer) -> bool {
+        // A GPU wait hands over every read the GPU has finished; the read is
+        // in the work before it, so one suffices, the rest is a safety bound.
+        for _ in 0..3 {
+            if self.ready() {
+                break;
+            }
+            r.wait_for_gpu();
+        }
+        self.ready() && !self.failed()
+    }
+
     /// The read could not be done; `data` is empty.
     pub fn failed(&self) -> bool {
         self.slot.as_ref().is_none_or(|s| s.is_failed())
