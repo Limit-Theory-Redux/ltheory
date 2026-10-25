@@ -59,7 +59,7 @@ function Loader.defineType()
             void            Renderer_SwapBuffers            (Renderer*);
             void            Renderer_SetCamera              (Renderer*, Matrix const* view, Matrix const* proj, Vec3f const* starDir);
             void            Renderer_SetEnvironment         (Renderer*, TexCube const* envMap, TexCube const* irMap);
-            uint32          Renderer_CreateBindGroup        (Renderer*, BindGroupDesc const* desc);
+            BindGroup*      Renderer_CreateBindGroup        (Renderer*, BindGroupDesc const* desc);
         ]]
     end
 
@@ -127,7 +127,10 @@ function Loader.defineType()
                 swapBuffers            = libphx.Renderer_SwapBuffers,
                 setCamera              = libphx.Renderer_SetCamera,
                 setEnvironment         = libphx.Renderer_SetEnvironment,
-                createBindGroup        = libphx.Renderer_CreateBindGroup,
+                createBindGroup        = function(self, desc)
+                    local _instance = libphx.Renderer_CreateBindGroup(self, desc)
+                    return Core.ManagedObject(_instance, libphx.BindGroup_Free)
+                end,
             },
         }
 

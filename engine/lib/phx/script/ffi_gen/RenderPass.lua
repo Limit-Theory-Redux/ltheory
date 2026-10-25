@@ -22,7 +22,7 @@ function Loader.defineType()
             void RenderPass_SetPipeline          (RenderPass const*, Renderer* r, uint32 pipeline);
             void RenderPass_SetInput             (RenderPass const*, Renderer* r, int slot, TexView const* view, uint32 sampler);
             void RenderPass_ClearInput           (RenderPass const*, Renderer* r, int slot);
-            void RenderPass_SetBindGroup         (RenderPass const*, Renderer* r, int group, uint32 bindGroup);
+            void RenderPass_SetBindGroup         (RenderPass const*, Renderer* r, int group, BindGroup const* bindGroup);
             void RenderPass_DrawMesh             (RenderPass const*, Renderer* r, Mesh* mesh);
             void RenderPass_DrawMeshInstanced    (RenderPass const*, Renderer* r, Mesh* mesh, InstanceData const* instances, uint64 instances_size);
             void RenderPass_DrawInstancedIndices (RenderPass const*, Renderer* r, Mesh* mesh, uint32 const* indices, uint64 indices_size);

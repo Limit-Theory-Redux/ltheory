@@ -1,13 +1,14 @@
 //! Bind groups (doc/engine/render-api-v2.md, section 1.3): a set of textures
-//! with their samplers and uniform blocks, bound to a group's fixed texture
-//! units and block bindings by `pass:setBindGroup`. A uniform entry is a
-//! slice of a material parameter arena (`buffer.rs`).
+//! with their samplers and uniform blocks, bound to one group of a shader by
+//! `pass:setBindGroup`. A uniform entry is a slice of a material parameter
+//! arena (`buffer.rs`).
 
 use std::collections::HashMap;
 
+use crossbeam::channel::Sender;
 use tracing::info;
 
-use super::{BufferId, SamplerId, ShaderLayout, TexView};
+use super::{BufferId, Release, SamplerId, ShaderLayout, TexView};
 use crate::render::{Renderer, ResourceId, Shader};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -100,13 +101,44 @@ impl BindGroupDesc {
     }
 }
 
+/// A bind group made from a `BindGroupDesc` (`Renderer:createBindGroup`),
+/// owned by its creator. Dropping it releases the group the way a dropped
+/// `Material` releases its own: `Renderer::drain_releases`, at the end of the
+/// frame after the frame's pass commands went out, unpins its textures and
+/// destroys it on the executor, which keeps the GPU object alive for work
+/// already submitted.
+pub struct BindGroup {
+    id: BindGroupId,
+    release: Sender<Release>,
+}
+
+impl BindGroup {
+    pub fn group_id(&self) -> BindGroupId {
+        self.id
+    }
+}
+
+impl Drop for BindGroup {
+    fn drop(&mut self) {
+        // Fails only once the renderer is gone, and with it the group.
+        let _ = self.release.send(Release::BindGroup(self.id));
+    }
+}
+
+#[luajit_ffi_gen::luajit_ffi]
+impl BindGroup {
+    /// The group's id, for diagnostics.
+    pub fn id(&self) -> u32 {
+        self.id.0
+    }
+}
+
 /// The textures live bind groups sample. A `TexView` is a plain id, so a bind
 /// group does not own its textures: when the Lua `Tex*` object behind one is
 /// collected, its `ResourceHandle` queues the GPU texture for destruction while
-/// the bind group still names it (on GL the unit then keeps whatever texture
-/// was bound last, on wgpu a default texture is sampled). Every bind group
-/// therefore pins its textures here, and the destroy queue holds a dropped
-/// texture back until no bind group references it any more.
+/// the bind group still names it (a default texture would be sampled instead).
+/// Every bind group therefore pins its textures here, and the destroy queue
+/// holds a dropped texture back until no bind group references it any more.
 #[derive(Debug, Default)]
 pub struct TexturePins {
     /// Number of live bind groups referencing each texture.
@@ -186,12 +218,13 @@ impl TexturePins {
 }
 
 impl Renderer {
-    /// Create the bind group on the render thread. Bind groups made from a
-    /// `BindGroupDesc` live until the renderer shuts down, and so do the
-    /// textures they sample (see `TexturePins`); materials own and free
-    /// theirs.
-    pub fn create_bind_group_from_desc(&mut self, desc: &BindGroupDesc) -> BindGroupId {
-        self.create_bind_group_entries(desc.shader, desc.group, desc.entries.clone())
+    /// Create the bind group on the render thread, owned by the returned
+    /// `BindGroup` (see there for its release).
+    pub fn create_bind_group_from_desc(&mut self, desc: &BindGroupDesc) -> BindGroup {
+        BindGroup {
+            id: self.create_bind_group_entries(desc.shader, desc.group, desc.entries.clone()),
+            release: self.data.release_tx.clone(),
+        }
     }
 
     /// Create a bind group from `entries` and return its id.
@@ -253,5 +286,26 @@ mod tests {
         pins.pin_group(BindGroupId(1), &[]); // uniform-only groups pin nothing
         pins.unpin_group(BindGroupId(7)); // unknown group: no-op
         assert_eq!(pins.destroyable(vec![ResourceId(3)]), vec![ResourceId(3)]);
+    }
+
+    /// A dropped `BindGroup` lets its texture go: until the end-of-frame
+    /// release drain the texture is held back, after it nothing pins it.
+    #[test]
+    fn dropping_a_bind_group_releases_its_texture() {
+        let mut r = crate::render::Renderer::new_headless();
+        let group = BindGroup {
+            id: r.create_bind_group_entries(ResourceId(1), 1, vec![tex_entry(0, 10)]),
+            release: r.data.release_tx.clone(),
+        };
+        // The Lua texture is collected while the group still samples it.
+        assert!(r.data.tex_pins.destroyable(vec![ResourceId(10)]).is_empty());
+
+        drop(group);
+        r.drain_releases();
+        assert_eq!(
+            r.data.tex_pins.destroyable(Vec::new()),
+            vec![ResourceId(10)]
+        );
+        assert_eq!(r.data.tex_pins.deferred_count(), 0);
     }
 }

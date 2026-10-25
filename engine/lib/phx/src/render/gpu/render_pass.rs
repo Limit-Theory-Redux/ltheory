@@ -2,7 +2,9 @@ use std::sync::Arc;
 
 use glam::{IVec2, Vec3};
 
-use super::{PASS_FLUSH_LIMIT, PassCmd, PassCommands, PipelineId, SamplerId, TexView, ViewBlock};
+use super::{
+    BindGroup, PASS_FLUSH_LIMIT, PassCmd, PassCommands, PipelineId, SamplerId, TexView, ViewBlock,
+};
 use crate::math::Matrix;
 use crate::render::{InstanceData, Mesh, Renderer, ScissorUpdate};
 use crate::system::{Metric, Profiler};
@@ -282,13 +284,13 @@ impl RenderPass {
 
     /// Bind a bind group created with `Renderer:createBindGroup` to its
     /// group's units.
-    pub fn set_bind_group(&self, r: &mut Renderer, group: i32, bind_group: u32) {
+    pub fn set_bind_group(&self, r: &mut Renderer, group: i32, bind_group: &BindGroup) {
         self.check(r, "setBindGroup");
         r.pass_record(
             "setBindGroup",
             PassCmd::SetBindGroup {
                 group: group as u8,
-                id: super::BindGroupId(bind_group),
+                id: bind_group.group_id(),
             },
         );
     }

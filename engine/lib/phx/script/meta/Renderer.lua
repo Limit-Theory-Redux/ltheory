@@ -206,8 +206,9 @@ function Renderer:setCamera(view, proj, starDir) end
 function Renderer:setEnvironment(envMap, irMap) end
 
 -- Create a bind group from `desc`; bind it in a pass with
--- `pass:setBindGroup(group, id)`.
+-- `pass:setBindGroup(group, bindGroup)`. It is released when the returned
+-- object is collected.
 ---@param desc BindGroupDesc
----@return integer
+---@return BindGroup
 function Renderer:createBindGroup(desc) end
 

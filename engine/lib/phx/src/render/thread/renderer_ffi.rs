@@ -2,8 +2,8 @@ use glam::Vec3;
 
 use crate::math::Matrix;
 use crate::render::{
-    BindGroupDesc, ReadSource, ReadbackTicket, RenderPass, RenderPassDesc, Renderer, TexCube,
-    TexFormat, TexView, view_region,
+    BindGroup, BindGroupDesc, ReadSource, ReadbackTicket, RenderPass, RenderPassDesc, Renderer,
+    TexCube, TexFormat, TexView, view_region,
 };
 use crate::system::{Bytes, Metric};
 
@@ -301,8 +301,9 @@ impl Renderer {
     // === Binding model objects ===
 
     /// Create a bind group from `desc`; bind it in a pass with
-    /// `pass:setBindGroup(group, id)`.
-    pub fn create_bind_group(&mut self, desc: &BindGroupDesc) -> u32 {
-        self.create_bind_group_from_desc(desc).0
+    /// `pass:setBindGroup(group, bindGroup)`. It is released when the returned
+    /// object is collected.
+    pub fn create_bind_group(&mut self, desc: &BindGroupDesc) -> BindGroup {
+        self.create_bind_group_from_desc(desc)
     }
 }

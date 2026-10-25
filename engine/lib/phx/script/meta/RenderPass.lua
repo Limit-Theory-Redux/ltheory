@@ -30,7 +30,7 @@ function RenderPass:clearInput(r, slot) end
 -- group's units.
 ---@param r Renderer
 ---@param group integer
----@param bindGroup integer
+---@param bindGroup BindGroup
 function RenderPass:setBindGroup(r, group, bindGroup) end
 
 -- Draw `mesh` with the current pipeline.
