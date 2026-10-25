@@ -932,8 +932,9 @@ impl WgpuCommandExecutor {
         if let Some(module) = self.fs_clamped.get(&key) {
             return Some(module.clone());
         }
+        // The stage was checked for read loose uniforms when it was created.
         let wrapped = shader::wrap_fragment_clamp(&shader.fs_code, &shader.fs_named_outputs, mask)
-            .and_then(|code| shader::parse_stage(wgpu::naga::ShaderStage::Fragment, &code));
+            .and_then(|code| shader::parse_stage(wgpu::naga::ShaderStage::Fragment, &code, &[]));
         let module = match wrapped {
             Ok(module) => self.shader_module("phx-fragment-clamped", module),
             Err(e) => {

@@ -81,7 +81,7 @@ use formats::*;
 use pass::{PassRt, Quad, VariantKey, ViewKey};
 use shader::VertexInput;
 #[cfg(test)]
-pub(crate) use shader::{adapt_single_stage, parse_adapted};
+pub(crate) use shader::{READ_LOOSE_UNIFORM, adapt_single_stage, parse_adapted};
 
 /// A compiled shader program: the two modules, the layout it was declared
 /// with and what the executor reflected from it.

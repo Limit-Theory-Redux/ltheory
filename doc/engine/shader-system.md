@@ -402,9 +402,10 @@ nebula generators use a distinctly-named `uniform vec3 genStarDir` instead, set 
 
 Every uniform a shader reads must be a member of a `#group` uniform block or a sampler declared
 under a `#group`. There is no `shader:setFloat(name, ...)` any more. A sampler outside any
-`#group` is dropped, so a shader that reads it fails to compile; a loose non-sampler uniform
-becomes a zero-valued global and is **not** reported (the former GL backend rejected active ones at
-link time), so a stray `uniform float x;` silently reads 0.
+`#group` is dropped, so a shader that reads it fails to compile. A loose non-sampler uniform that
+the shader reads (from `main`, or from any function `main` calls) fails the compile too, naming the
+uniform, since it has no binding and would read 0; one that is declared but never read is allowed,
+as an inactive uniform was on GL.
 
 The UI shaders (`fragment/ui/*`, drawn through `Imm`, see `render-api-v2.md` section 3d and the
 S6 notes) have no uniform at all: `vertex/imm2d.glsl` passes the vertex color and the shape

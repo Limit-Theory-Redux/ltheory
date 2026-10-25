@@ -16,7 +16,7 @@
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
-use super::command_executor_wgpu::{adapt_single_stage, parse_adapted};
+use super::command_executor_wgpu::{READ_LOOSE_UNIFORM, adapt_single_stage, parse_adapted};
 use crate::render::{
     BlockLayout, DrawBlock, GLSLCode, GlslType, ShaderLayout, TexDim, ViewBlock, blocks_from_naga,
     wgpu_block_binding,
@@ -187,10 +187,9 @@ fn recorded_layout_matches_naga_for_every_shader() {
         let view = match naga_view(&pre.code, stage, &layout) {
             Ok(view) => view,
             Err(e) => {
-                // Unported shaders declare samplers outside any `#group` (GL gives
-                // them all unit 0, and `create_shader` rejects their loose
-                // uniforms): they cannot compile on wgpu either.
-                if has_loose_sampler(&pre.code, &layout) {
+                // Unported shaders declare samplers or read uniforms outside
+                // any `#group`: they cannot compile on wgpu.
+                if has_loose_sampler(&pre.code, &layout) || e.contains(READ_LOOSE_UNIFORM) {
                     unported += 1;
                     continue;
                 }
@@ -244,7 +243,7 @@ fn recorded_layout_matches_naga_for_every_shader() {
     }
 
     println!(
-        "layout parity: {grouped_shaders} grouped shader stages, {checked_blocks} blocks, {checked_textures} samplers ({unported} unported shaders with loose samplers skipped)"
+        "layout parity: {grouped_shaders} grouped shader stages, {checked_blocks} blocks, {checked_textures} samplers ({unported} unported shaders with loose samplers or uniforms skipped)"
     );
     assert!(
         problems.is_empty(),

@@ -113,10 +113,18 @@ fn parse_io(line: &str) -> Option<IoDecl<'_>> {
     })
 }
 
+/// A stage after `adapt_stage`: the GLSL for naga, and the loose uniforms it
+/// turned into plain globals (`parse_stage` rejects any of them a shader reads).
+pub(crate) struct AdaptedStage {
+    pub code: String,
+    pub loose: Vec<String>,
+}
+
 /// Per-stage rewrites: version, block and sampler bindings, loose uniforms,
 /// `mat4` attributes.
-pub(super) fn adapt_stage(code: &str, layout: &ShaderLayout) -> Result<String, String> {
+pub(super) fn adapt_stage(code: &str, layout: &ShaderLayout) -> Result<AdaptedStage, String> {
     let mut out_lines: Vec<String> = Vec::with_capacity(code.lines().count() + 16);
+    let mut loose: Vec<String> = Vec::new();
     // (sampler name, GLSL dimension suffix, shadow)
     let mut samplers: Vec<(String, String)> = Vec::new();
     for line in code.lines() {
@@ -187,10 +195,11 @@ pub(super) fn adapt_stage(code: &str, layout: &ShaderLayout) -> Result<String, S
                 ));
                 samplers.push((name.to_string(), dim.to_string()));
             } else {
-                // A loose uniform that nothing reads at run time (GL rejects
-                // active ones at link time): a zero-valued global keeps the
-                // source compiling.
+                // A loose uniform has no binding. As a plain global it keeps a
+                // shader compiling that declares but never reads it;
+                // `parse_stage` rejects one that is read (it would read 0).
                 out_lines.push(format!("{indent}{ty} {name};"));
+                loose.push(name.to_string());
             }
             continue;
         }
@@ -244,7 +253,10 @@ pub(super) fn adapt_stage(code: &str, layout: &ShaderLayout) -> Result<String, S
             joined = joined.replace(&pattern, &replacement);
         }
     }
-    Ok(joined)
+    Ok(AdaptedStage {
+        code: joined,
+        loose,
+    })
 }
 
 /// Locations of the interface between the two stages of a program. Rewrites
@@ -445,24 +457,28 @@ pub(crate) fn adapt_single_stage(
     code: &str,
     stage: naga::ShaderStage,
     layout: &ShaderLayout,
-) -> Result<String, String> {
+) -> Result<AdaptedStage, String> {
     let adapted = adapt_stage(code, layout)?;
-    match stage {
+    let code = match stage {
         naga::ShaderStage::Vertex => {
-            let (vs, _) = assign_interface(&adapted, "")?;
-            wrap_vertex_main(&vs)
+            let (vs, _) = assign_interface(&adapted.code, "")?;
+            wrap_vertex_main(&vs)?
         }
-        _ => Ok(assign_interface("", &adapted)?.1),
-    }
+        _ => assign_interface("", &adapted.code)?.1,
+    };
+    Ok(AdaptedStage {
+        code,
+        loose: adapted.loose,
+    })
 }
 
 /// Parse and validate one adapted stage (tests).
 #[cfg(test)]
 pub(crate) fn parse_adapted(
     stage: naga::ShaderStage,
-    source: &str,
+    adapted: &AdaptedStage,
 ) -> Result<naga::Module, String> {
-    parse_stage(stage, source)
+    parse_stage(stage, &adapted.code, &adapted.loose)
 }
 
 /// What the wgpu side needs to know about one vertex shader input.
@@ -550,7 +566,11 @@ fn entry_interface(module: &naga::Module) -> (Vec<VertexInput>, Vec<u32>) {
     (inputs, outputs)
 }
 
-pub(super) fn parse_stage(stage: naga::ShaderStage, source: &str) -> Result<naga::Module, String> {
+pub(super) fn parse_stage(
+    stage: naga::ShaderStage,
+    source: &str,
+    loose: &[String],
+) -> Result<naga::Module, String> {
     let mut frontend = naga::front::glsl::Frontend::default();
     let module = frontend
         .parse(&naga::front::glsl::Options::from(stage), source)
@@ -570,7 +590,7 @@ pub(super) fn parse_stage(stage: naga::ShaderStage, source: &str) -> Result<naga
             }
             format!("naga GLSL {stage:?} parse failed: {errors}{detail}")
         })?;
-    naga::valid::Validator::new(
+    let info = naga::valid::Validator::new(
         naga::valid::ValidationFlags::all(),
         naga::valid::Capabilities::all(),
     )
@@ -581,7 +601,37 @@ pub(super) fn parse_stage(stage: naga::ShaderStage, source: &str) -> Result<naga
             e.emit_to_string(source)
         )
     })?;
+    reject_read_loose_uniforms(&module, &info, loose)?;
     Ok(module)
+}
+
+/// Part of the error `parse_stage` returns for a read loose uniform.
+pub(crate) const READ_LOOSE_UNIFORM: &str = "is read but not declared in a #group uniform block";
+
+/// A loose uniform (outside any `#group` block) has no binding, so a shader
+/// that reads one would silently read 0. Uses count the way GL counts active
+/// uniforms: from the entry point, through every function it calls.
+fn reject_read_loose_uniforms(
+    module: &naga::Module,
+    info: &naga::valid::ModuleInfo,
+    loose: &[String],
+) -> Result<(), String> {
+    for (handle, var) in module.global_variables.iter() {
+        let Some(name) = var.name.as_deref() else {
+            continue;
+        };
+        if !loose.iter().any(|l| l == name) {
+            continue;
+        }
+        let read =
+            (0..module.entry_points.len()).any(|i| !info.get_entry_point(i)[handle].is_empty());
+        if read {
+            return Err(format!(
+                "uniform '{name}' {READ_LOOSE_UNIFORM} (move it into a block such as Params)"
+            ));
+        }
+    }
+    Ok(())
 }
 
 /// Both stages of a program as validated naga modules, with what the executor
@@ -604,12 +654,12 @@ pub(super) fn compile_pair(
     fragment_src: &str,
     layout: &ShaderLayout,
 ) -> Result<CompiledPair, String> {
-    let vs = adapt_stage(vertex_src, layout)?;
-    let fs = adapt_stage(fragment_src, layout)?;
-    let (vs, fs_code) = assign_interface(&vs, &fs)?;
+    let vs_adapted = adapt_stage(vertex_src, layout)?;
+    let fs_adapted = adapt_stage(fragment_src, layout)?;
+    let (vs, fs_code) = assign_interface(&vs_adapted.code, &fs_adapted.code)?;
     let vs = wrap_vertex_main(&vs)?;
-    let vs = parse_stage(naga::ShaderStage::Vertex, &vs)?;
-    let fs = parse_stage(naga::ShaderStage::Fragment, &fs_code)?;
+    let vs = parse_stage(naga::ShaderStage::Vertex, &vs, &vs_adapted.loose)?;
+    let fs = parse_stage(naga::ShaderStage::Fragment, &fs_code, &fs_adapted.loose)?;
     let fs_named_outputs = fragment_outputs(&fs_code);
 
     let mut blocks = blocks_from_naga(&vs);
@@ -676,6 +726,32 @@ mod tests {
         assert_eq!(d.location, Some(0));
         assert!(parse_io("void main() {").is_none());
         assert!(parse_io("  in_range = 3;").is_none());
+    }
+
+    #[test]
+    fn read_loose_uniforms_are_rejected() {
+        let compile = |body: &str| {
+            let vs = "#version 330\nin vec3 vertex_position;\n\
+                void main() { gl_Position = vec4(vertex_position, 1.0); }\n";
+            let fs = format!("#version 330\nuniform float alpha;\nout vec4 outColor;\n{body}");
+            let (vs, _) = layout_of(vs);
+            let (fs, _) = layout_of(&fs);
+            compile_pair(&vs, &fs, &ShaderLayout::default()).map(|_| ())
+        };
+
+        let direct = compile("void main() { outColor = vec4(alpha); }\n").unwrap_err();
+        assert!(
+            direct.contains("'alpha'") && direct.contains(READ_LOOSE_UNIFORM),
+            "{direct}"
+        );
+
+        let through_call =
+            compile("float a() { return alpha; }\nvoid main() { outColor = vec4(a()); }\n")
+                .unwrap_err();
+        assert!(through_call.contains(READ_LOOSE_UNIFORM), "{through_call}");
+
+        // Declared and never read: compiles, as an inactive uniform did on GL.
+        compile("void main() { outColor = vec4(1.0); }\n").unwrap();
     }
 
     #[test]
