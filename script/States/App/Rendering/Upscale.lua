@@ -30,7 +30,7 @@ function RenderingUpscale:eventLoop()
     Application.eventLoop(self)
     self.frames = self.frames + 1
     if self.frames == 1 then
-        local sourceGeometry = os.getenv("LTHEORY_WGPU") and "1280x720 logical" or "320x180 target"
+        local sourceGeometry = "1280x720 logical"
         Log.Info(string.format(
             "[UpscaleProbe] source=320x180 destination=1280x720 filter=Linear wrap=Clamp geometry=%s hold=%d",
             sourceGeometry,

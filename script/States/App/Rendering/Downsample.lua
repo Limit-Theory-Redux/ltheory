@@ -18,7 +18,7 @@ function RenderingDownsample:onInit()
     self.nearest = Tex2D.Create(TARGET_W, TARGET_H, TexFormat.RGBA8)
     self.upscaled = Tex2D.Create(OUTPUT_W, OUTPUT_H, TexFormat.RGBA8)
 
-    self.backend = os.getenv("LTHEORY_WGPU") and "wgpu" or "opengl"
+    self.backend = "wgpu"
     self.pattern = Cache.Shader("fullscreen", "downsample_pattern")
     self.downsample = Cache.Shader("fullscreen", "downsample_filter")
     self.blit = Cache.Shader("fullscreen_flip", "blit")

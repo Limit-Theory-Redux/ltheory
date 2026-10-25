@@ -38,7 +38,7 @@ function RenderingIndexedPostProcess:onInit()
     local blitDesc = PipelineDesc.Create(self.blit)
     blitDesc:vertex(VertexLayout.Fullscreen)
     self.blitPipeline = Pipeline.Get(blitDesc)
-    self.backend = os.getenv("LTHEORY_WGPU") and "wgpu" or "opengl"
+    self.backend = "wgpu"
     self.frames = 0
     self.probed = false
 end

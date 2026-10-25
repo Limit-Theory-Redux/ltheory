@@ -5,7 +5,7 @@
 
 Writes target/render_validation/captures/<backend>/<scene>.png and .json
 (stats parsed from the CAPTURE log line printed by Application:captureTick).
---baseline copies the gl captures into tools/render_validation/baseline/.
+--baseline copies the wgpu captures into tools/render_validation/baseline/.
 
 Every capture runs a full Lua GC halfway to its (first) capture frame
 (LTHEORY_CAPTURE_GC_FRAME): a GPU resource whose only strong reference was a
@@ -19,6 +19,8 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+
+import launch
 
 SCENES = ["PlanetTest", "Benchmark", "SolarSystemPlayable", "MoonTest", "PlanetTestRing", "WeaponSystem",
           "BenchmarkPhases", "Benchmark1080"]
@@ -54,7 +56,7 @@ artifact_dir = Path(
 )
 baseline_dir = Path(__file__).resolve().parent / "baseline"
 target_dir = Path(os.environ.get("CARGO_TARGET_DIR", workdir / "target"))
-exe = Path(os.environ.get("LTHEORY_EXE", target_dir / "debug" / "ltr.exe"))
+exe = launch.exe(target_dir)
 STATS_RE = re.compile(r"CAPTURE (frame=.*)")
 
 
@@ -73,23 +75,17 @@ def capture(backend, scene):
     # Full GC halfway to the first captured frame.
     frames = [env["LTHEORY_CAPTURE_FRAME"], *env.get("LTHEORY_CAPTURE_EXTRA_FRAMES", "").split(",")]
     env.setdefault("LTHEORY_CAPTURE_GC_FRAME", str(max(1, min(int(f) for f in frames if f) // 2)))
-    if backend == "wgpu":
-        env["LTHEORY_WGPU"] = "1"
-        # Fatal mode: the first wgpu validation error panics instead of being logged.
-        env.setdefault("LTHEORY_WGPU_FATAL", "1")
-    else:
-        env.pop("LTHEORY_WGPU", None)
+    launch.prepare_env(env, backend)
     with log_path.open("w", encoding="utf-8", newline="") as log:
         proc = subprocess.Popen(
             [str(exe), "-e", "./script/Main.lua", state],
             cwd=workdir, env=env, stdout=log, stderr=subprocess.STDOUT,
-            creationflags=getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0),
+            **launch.POPEN_GROUP,
         )
         try:
             proc.wait(timeout=TIMEOUT)
         except subprocess.TimeoutExpired:
-            subprocess.run(["taskkill.exe", "/PID", str(proc.pid), "/T", "/F"], check=False)
-            proc.wait(timeout=5.0)
+            launch.kill_tree(proc)
             print(f"{scene}: TIMEOUT after {TIMEOUT}s (log {log_path})")
             return False
     text = re.sub(r"\x1b\[[0-9;]*m", "", log_path.read_text(encoding="utf-8", errors="replace"))
@@ -121,7 +117,7 @@ def capture(backend, scene):
 def main():
     args = sys.argv[1:]
     if args[:1] == ["--baseline"]:
-        src = artifact_dir / "captures" / "gl"
+        src = artifact_dir / "captures" / "wgpu"
         baseline_dir.mkdir(parents=True, exist_ok=True)
         only = set(args[1:])  # optional scene names: bless just these
         names = {n for s in only for n in outputs(s)}

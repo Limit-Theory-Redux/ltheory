@@ -15,34 +15,31 @@ import subprocess
 import sys
 from pathlib import Path
 
-backend = sys.argv[1] if len(sys.argv) > 1 else "gl"
+import launch
+
+backend = launch.check_backend(sys.argv[1] if len(sys.argv) > 1 else "wgpu")
 workdir = Path(__file__).resolve().parents[2]
 artifact_dir = Path(
     os.environ.get("LTHEORY_VALIDATION_ARTIFACT_DIR", workdir / "target" / "render_validation")
 )
 artifact_dir.mkdir(parents=True, exist_ok=True)
 target_dir = Path(os.environ.get("CARGO_TARGET_DIR", workdir / "target"))
-exe = Path(os.environ.get("LTHEORY_EXE", target_dir / "debug" / "ltr.exe"))
+exe = launch.exe(target_dir)
 reference = json.loads((Path(__file__).resolve().parent / "baseline" / "auto_exposure.json").read_text())
 log_path = artifact_dir / f"auto-exposure-{backend}.log"
 
 env = os.environ.copy()
-if backend == "wgpu":
-    env["LTHEORY_WGPU"] = "1"
-    # Fatal mode: the first wgpu validation error panics instead of being logged.
-    env.setdefault("LTHEORY_WGPU_FATAL", "1")
-else:
-    env.pop("LTHEORY_WGPU", None)
+launch.prepare_env(env, backend)
 with log_path.open("w", encoding="utf-8", newline="") as log:
     proc = subprocess.Popen(
         [str(exe), "-e", "./script/Main.lua", "AutoExposure"],
         cwd=workdir, env=env, stdout=log, stderr=subprocess.STDOUT,
-        creationflags=getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0),
+        **launch.POPEN_GROUP,
     )
     try:
         proc.wait(timeout=float(os.environ.get("AUTO_EXPOSURE_TIMEOUT_SECONDS", "90")))
     except subprocess.TimeoutExpired:
-        subprocess.run(["taskkill.exe", "/PID", str(proc.pid), "/T", "/F"], check=False)
+        launch.kill_tree(proc)
         print("timeout")
         sys.exit(124)
 

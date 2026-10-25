@@ -20,7 +20,7 @@ function RenderingIndexedClip:onInit()
     self.shader = Cache.Shader("indexed_material", "indexed_material")
     self.Params = self.shader:blockType("Params")
     self.pipeline = Pipeline.Get(PipelineDesc.Create(self.shader))
-    self.backend = os.getenv("LTHEORY_WGPU") and "wgpu" or "opengl"
+    self.backend = "wgpu"
     self.frames = 0
     self.probed = false
 end

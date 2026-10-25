@@ -27,7 +27,7 @@ function RenderingUiComposite:onInit()
     local blit = PipelineDesc.Create(self.blit)
     blit:vertex(VertexLayout.Fullscreen)
     self.blitPipeline = Pipeline.Get(blit)
-    self.backend = os.getenv("LTHEORY_WGPU") and "wgpu" or "opengl"
+    self.backend = "wgpu"
     self.frames = 0
     self.probed = false
 end

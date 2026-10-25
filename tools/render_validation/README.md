@@ -1,16 +1,22 @@
 # Render validation
 
-Each script launches `ltr` with one `script/States/App/Rendering/*` scene on a
-given backend, waits for it to exit, and checks the probe values the scene
-logs (pixel readbacks) against expected thresholds.
+Each script launches `ltr` with one `script/States/App/Rendering/*` scene,
+waits for it to exit, and checks the probe values the scene logs (pixel
+readbacks) against expected thresholds.
 
 ```sh
-python tools/render_validation/indexed_mrt_supervisor.py gl
-python tools/render_validation/indexed_mrt_supervisor.py wgpu   # sets LTHEORY_WGPU=1
+python tools/render_validation/indexed_mrt_supervisor.py wgpu
 ```
+
+The renderer has one backend, wgpu; the backend argument only labels the
+artifacts, and anything but `wgpu` is rejected. Every run sets
+`LTHEORY_WGPU_FATAL=1`, so the first wgpu validation error fails the scene.
+`WGPU_BACKEND` (`vulkan`, `metal`, `dx12`) overrides the platform's native API.
 
 Build `ltr` first. Logs go to `target/render_validation/`. Override the binary
 with `LTHEORY_EXE` or `CARGO_TARGET_DIR`. Exit code 0 means the scene passed.
+A run that times out is killed together with its process group
+(`launch.py`), on every platform.
 
 ## Capture baseline / regression diff
 
@@ -31,13 +37,24 @@ Benchmark variants cover what frame 120 at 1280x720 does not: `BenchmarkPhases` 
 minimized window saves nothing (`CAPTURE_SKIPPED`), so the scene fails as missing rather than diffing a 1x1 image.
 
 ```sh
-python tools/render_validation/capture.py gl [scene...]   # -> target/render_validation/captures/gl/
-python tools/render_validation/capture.py --baseline      # copy gl captures into baseline/
-python tools/render_validation/compare.py gl              # RMSE / max / % pixels over threshold, heatmaps in captures/gl/diff/
-python tools/render_validation/run_all.py gl              # supervisors + capture + compare
+python tools/render_validation/capture.py wgpu [scene...]   # -> target/render_validation/captures/wgpu/
+python tools/render_validation/capture.py --baseline        # copy wgpu captures into baseline/
+python tools/render_validation/compare.py wgpu              # RMSE / max / % pixels over threshold, heatmaps in captures/wgpu/diff/
+python tools/render_validation/run_all.py wgpu              # supervisors + capture + compare
 ```
 
-Hot reload is covered by a separate probe (about two minutes): `python tools/render_validation/hot_reload_probe.py`
+The committed `baseline/` was recorded with the former OpenGL backend on
+Windows. Captures differ per driver and platform, so for a change that must
+not alter pixels, compare against captures of a reference build instead:
+check out the earlier commit in a separate worktree, build it there, run
+`capture.py` from that worktree with its own `LTHEORY_VALIDATION_ARTIFACT_DIR`,
+then
+
+```sh
+python tools/render_validation/compare.py wgpu --reference <ref-artifacts>/captures/wgpu
+```
+
+Hot reload is covered by a separate probe (about two minutes): `python tools/render_validation/hot_reload_probe.py [wgpu]`
 edits `material/planet.glsl` while `PlanetTest` runs (a tint, a revert, and a new first `MaterialParams` member) and
 checks the pictures against an unedited run and the logs for errors.
 

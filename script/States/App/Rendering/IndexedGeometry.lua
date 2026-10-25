@@ -24,7 +24,7 @@ function RenderingIndexedGeometry:onInit()
     self.mProj = Matrix.Scaling(0.75, 0.75, 0.25)
     self.mView = Matrix.Identity()
     self.mWorld = Matrix.Identity()
-    self.backend = os.getenv("LTHEORY_WGPU") and "wgpu" or "opengl"
+    self.backend = "wgpu"
     self.frames = 0
     self.probed = false
 end

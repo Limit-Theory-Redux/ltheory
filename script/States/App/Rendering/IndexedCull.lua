@@ -54,7 +54,7 @@ function RenderingIndexedCull:onInit()
         desc:cull(mode)
         self.pipelines[mode] = Pipeline.Get(desc)
     end
-    self.backend = os.getenv("LTHEORY_WGPU") and "wgpu" or "opengl"
+    self.backend = "wgpu"
     self.frames = 0
     self.probed = false
 end

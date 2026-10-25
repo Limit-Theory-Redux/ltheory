@@ -17,7 +17,7 @@ function RenderingIndexedBatch:onInit()
     self.indices = ffi.new("uint32_t[3]", {0, 1, 2})
     self.shader = Cache.Shader("indexed_batch", "indexed_batch")
     self.pipeline = Pipeline.Get(PipelineDesc.Create(self.shader))
-    self.backend = os.getenv("LTHEORY_WGPU") and "wgpu" or "opengl"
+    self.backend = "wgpu"
     self.frames = 0
     self.probed = false
 end

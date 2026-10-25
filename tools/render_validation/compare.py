@@ -2,6 +2,12 @@
 
     python tools/render_validation/compare.py <backend> [scene...]
         [--max-rmse 2.0] [--pixel-threshold 8] [--max-bad-pct 1.0]
+        [--reference <dir>]
+
+`--reference` compares against another capture directory instead of the
+baseline, e.g. the captures of a reference build of an earlier commit (run
+`capture.py` for it with its own `LTHEORY_EXE`, working tree and
+`LTHEORY_VALIDATION_ARTIFACT_DIR`).
 
 Per image: RMSE (0-255, RGB), max abs diff, % of pixels whose max channel diff
 exceeds --pixel-threshold. Exit 1 if RMSE > --max-rmse or bad pixels >
@@ -36,7 +42,9 @@ def diff_one(ref_path, cur_path, heat_path, px_thr):
     cur = Image.open(cur_path).convert("RGB")
     if ref.size != cur.size:
         return None
-    px = list(ImageChops.difference(ref, cur).getdata())
+    d = ImageChops.difference(ref, cur)
+    # Pillow 13 renamed getdata (deprecated, removed in Pillow 14).
+    px = list(getattr(d, "get_flattened_data", d.getdata)())
     n = len(px)
     per_px = [max(p) for p in px]
     sq = sum(v * v for p in px for v in p) / (3 * n)
@@ -55,14 +63,15 @@ def main():
     ap.add_argument("--max-rmse", type=float, default=2.0)
     ap.add_argument("--pixel-threshold", type=int, default=8)
     ap.add_argument("--max-bad-pct", type=float, default=1.0)
+    ap.add_argument("--reference", type=Path, default=baseline_dir)
     a = ap.parse_args()
     cap_dir = artifact_dir / "captures" / a.backend
     print(f"{'scene':<22}{'rmse':>8}{'max':>6}{'%>thr':>9}  result")
     failed = False
     for scene in [n for s in (a.scenes or SCENES) for n in outputs(s)]:
-        ref, cur = baseline_dir / f"{scene}.png", cap_dir / f"{scene}.png"
+        ref, cur = a.reference / f"{scene}.png", cap_dir / f"{scene}.png"
         if not ref.exists() or not cur.exists():
-            print(f"{scene:<22}{'-':>8}{'-':>6}{'-':>9}  FAIL (missing {'baseline' if not ref.exists() else 'capture'})")
+            print(f"{scene:<22}{'-':>8}{'-':>6}{'-':>9}  FAIL (missing {'reference' if not ref.exists() else 'capture'})")
             failed = True
             continue
         r = diff_one(ref, cur, cap_dir / "diff" / f"{scene}.png", a.pixel_threshold)

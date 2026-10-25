@@ -4,6 +4,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import launch
+
 backend = sys.argv[1]
 workdir = Path(__file__).resolve().parents[2]
 artifact_dir = Path(
@@ -11,15 +13,10 @@ artifact_dir = Path(
 )
 artifact_dir.mkdir(parents=True, exist_ok=True)
 target_dir = Path(os.environ.get("CARGO_TARGET_DIR", workdir / "target"))
-exe = Path(os.environ.get("LTHEORY_EXE", target_dir / "debug" / "ltr.exe"))
+exe = launch.exe(target_dir)
 log_path = artifact_dir / f"indexed-clip-{backend}-latest.log"
 env = os.environ.copy()
-if backend == "wgpu":
-    env["LTHEORY_WGPU"] = "1"
-    # Fatal mode: the first wgpu validation error panics instead of being logged.
-    env.setdefault("LTHEORY_WGPU_FATAL", "1")
-else:
-    env.pop("LTHEORY_WGPU", None)
+launch.prepare_env(env, backend)
 args = [str(exe), "-e", "./script/Main.lua", "Rendering/IndexedClip"]
 timeout_seconds = float(os.environ.get("INDEXED_CLIP_TIMEOUT_SECONDS", "20"))
 
@@ -30,15 +27,15 @@ with log_path.open("w", encoding="utf-8", newline="") as log:
         env=env,
         stdout=log,
         stderr=subprocess.STDOUT,
-        creationflags=getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0),
+        **launch.POPEN_GROUP,
     )
     print(f"backend={backend} pid={proc.pid} log={log_path}", flush=True)
     try:
         code = proc.wait(timeout=timeout_seconds)
     except subprocess.TimeoutExpired:
         print(f"backend={backend} timeout=true; terminating process tree", flush=True)
-        subprocess.run(["taskkill.exe", "/PID", str(proc.pid), "/T", "/F"], check=False)
-        code = proc.wait(timeout=5.0)
+        launch.kill_tree(proc)
+        code = proc.returncode
         print(f"backend={backend} returncode={code} normal_exit=false", flush=True)
         sys.exit(124)
 

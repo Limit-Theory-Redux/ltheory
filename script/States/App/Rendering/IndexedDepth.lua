@@ -20,7 +20,7 @@ function RenderingIndexedDepth:onInit()
     local desc = PipelineDesc.Create(self.shader)
     desc:depth(true, true, CompareFn.LessEqual)
     self.pipeline = Pipeline.Get(desc)
-    self.backend = os.getenv("LTHEORY_WGPU") and "wgpu" or "opengl"
+    self.backend = "wgpu"
     self.frames = 0
     self.probed = false
 end

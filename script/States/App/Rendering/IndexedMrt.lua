@@ -27,7 +27,7 @@ function RenderingIndexedMrt:onInit()
     desc:colorFormat(2, TexFormat.R32F)
     desc:depthFormat(TexFormat.Depth32F)
     self.pipeline = Pipeline.Get(desc)
-    self.backend = os.getenv("LTHEORY_WGPU") and "wgpu" or "opengl"
+    self.backend = "wgpu"
     self.frames = 0
     self.probed = false
 end

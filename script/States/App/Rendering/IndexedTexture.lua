@@ -40,7 +40,7 @@ function RenderingIndexedTexture:onInit()
     local group = BindGroupDesc.Create(self.shader, 1)
     group:texture("tex", self.texture:view(), Samplers.LinearClamp)
     self.bindGroup = Renderer:createBindGroup(group)
-    self.backend = os.getenv("LTHEORY_WGPU") and "wgpu" or "opengl"
+    self.backend = "wgpu"
     self.frames = 0
     self.probed = false
 end

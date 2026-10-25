@@ -1,6 +1,6 @@
 """Hot-reload probe: edit a material shader while PlanetTest runs.
 
-    python tools/render_validation/hot_reload_probe.py [gl]
+    python tools/render_validation/hot_reload_probe.py [wgpu]
 
 Four captures of PlanetTest at the same frame (the engine uses a fixed time
 step, so equal scenes give equal pixels). While the later ones run, the script
@@ -14,8 +14,7 @@ edits `res/shader/fragment/material/planet.glsl` after the scene is up:
      others by 16 bytes)               parameters had to be copied by name into
                                        the regenerated type
 
-and the logs must show the reloads and no `ERROR`/panic lines (the
-GL_INVALID_OPERATION of the first pass is old and ignored). The shader file is
+and the logs must show the reloads and no `ERROR`/panic lines. The shader file is
 restored at the end, also on failure. Needs Pillow. Override the binary with
 `LTHEORY_EXE`. Exit code 0 means pass.
 """
@@ -28,12 +27,15 @@ import sys
 import time
 from pathlib import Path
 
+import launch
+
 from PIL import Image, ImageChops
 
+backend = launch.check_backend(sys.argv[1] if len(sys.argv) > 1 else "wgpu")
 workdir = Path(__file__).resolve().parents[2]
 artifact_dir = Path(os.environ.get("LTHEORY_VALIDATION_ARTIFACT_DIR", workdir / "target" / "render_validation")) / "hot_reload"
 target_dir = Path(os.environ.get("CARGO_TARGET_DIR", workdir / "target"))
-exe = Path(os.environ.get("LTHEORY_EXE", target_dir / "debug" / "ltr.exe"))
+exe = launch.exe(target_dir)
 shader = workdir / "res" / "shader" / "fragment" / "material" / "planet.glsl"
 FRAME = os.environ.get("HOT_RELOAD_FRAME", "9000")  # ~20 s: after every edit below
 ANSI = re.compile(r"\x1b\[[0-9;]*m")
@@ -58,11 +60,11 @@ def capture(mode, original):
     png.unlink(missing_ok=True)
     env = os.environ.copy()
     env.update(LTHEORY_CAPTURE=str(png), LTHEORY_CAPTURE_FRAME=FRAME)
-    env.pop("LTHEORY_WGPU", None)
-    env["LTHEORY_GL_CHECK"] = "1"
+    launch.prepare_env(env, backend)
     with log_path.open("w", encoding="utf-8", newline="") as log:
         proc = subprocess.Popen([str(exe), "-e", "./script/Main.lua", "PlanetTest"],
-                                cwd=workdir, env=env, stdout=log, stderr=subprocess.STDOUT)
+                                cwd=workdir, env=env, stdout=log, stderr=subprocess.STDOUT,
+                                **launch.POPEN_GROUP)
         try:
             time.sleep(8)  # the scene is running
             if mode != "C":
@@ -73,8 +75,7 @@ def capture(mode, original):
             proc.wait(timeout=180)
         finally:
             shader.write_bytes(original.encode("utf-8"))
-            if proc.poll() is None:
-                subprocess.run(["taskkill.exe", "/PID", str(proc.pid), "/T", "/F"], check=False)
+            launch.kill_tree(proc)
     text = ANSI.sub("", log_path.read_text(encoding="utf-8", errors="replace"))
     return png, text
 

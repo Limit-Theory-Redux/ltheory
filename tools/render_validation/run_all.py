@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 here = Path(__file__).resolve().parent
-backend = sys.argv[1] if len(sys.argv) > 1 else "gl"
+backend = sys.argv[1] if len(sys.argv) > 1 else "wgpu"
 
 
 def run(*args):
