@@ -313,7 +313,11 @@ mod tests {
         let mut got = 0;
         while got < 200 {
             let _ = worker.tasks_in_progress();
-            if worker.recv_timeout(Duration::from_secs(5)).unwrap().is_some() {
+            if worker
+                .recv_timeout(Duration::from_secs(5))
+                .unwrap()
+                .is_some()
+            {
                 got += 1;
             }
         }

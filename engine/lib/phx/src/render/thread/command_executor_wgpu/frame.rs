@@ -406,9 +406,15 @@ impl WgpuCommandExecutor {
             match r {
                 WgpuResource::Texture { desc, .. } => {
                     textures += 1;
-                    let faces = if matches!(desc.dim, crate::render::TexDim::Cube) { 6 } else { 1 };
+                    let faces = if matches!(desc.dim, crate::render::TexDim::Cube) {
+                        6
+                    } else {
+                        1
+                    };
                     texture_bytes += faces
-                        * (0..desc.mips.max(1)).map(|l| desc.level_bytes(l) as u64).sum::<u64>();
+                        * (0..desc.mips.max(1))
+                            .map(|l| desc.level_bytes(l) as u64)
+                            .sum::<u64>();
                 }
                 WgpuResource::Mesh(_) => meshes += 1,
                 WgpuResource::Shader(_) => {}

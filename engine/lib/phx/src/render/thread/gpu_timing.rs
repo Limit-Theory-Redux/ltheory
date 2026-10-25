@@ -182,7 +182,11 @@ impl GpuTimingState {
             }
             let us = (ns / 1000).min(u32::MAX as u64) as u32;
             let s = &mut self.smooth[id as usize];
-            *s = if *s == 0.0 { us as f64 } else { *s + (us as f64 - *s) * SMOOTH };
+            *s = if *s == 0.0 {
+                us as f64
+            } else {
+                *s + (us as f64 - *s) * SMOOTH
+            };
             let mut pos = n;
             while pos > 0 && r.us[pos - 1] < us {
                 pos -= 1;

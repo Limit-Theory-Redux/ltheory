@@ -118,10 +118,8 @@ mod tests {
     use crate::engine::{Worker, WorkerBase};
 
     fn script(name: &str, body: &str) -> PathBuf {
-        let path = std::env::temp_dir().join(format!(
-            "ltr_lua_worker_{name}_{}.lua",
-            std::process::id()
-        ));
+        let path =
+            std::env::temp_dir().join(format!("ltr_lua_worker_{name}_{}.lua", std::process::id()));
         std::fs::File::create(&path)
             .unwrap()
             .write_all(body.as_bytes())
@@ -131,8 +129,8 @@ mod tests {
 
     /// `mk_payload(n)` builds an I64 payload, `take_payload(ptr)` consumes one and returns its value.
     fn setup(lua: &Lua) -> mlua::Result<()> {
-        let mk = lua
-            .create_function(|_, n: i64| Ok(Box::into_raw(Box::new(Payload::I64(n))) as usize))?;
+        let mk =
+            lua.create_function(|_, n: i64| Ok(Box::into_raw(Box::new(Payload::I64(n))) as usize))?;
         let take = lua.create_function(|_, p: usize| {
             #[allow(unsafe_code)]
             let b = unsafe { Box::from_raw(p as *mut Payload) };
@@ -165,11 +163,7 @@ end
     #[test]
     fn lua_error_and_nil_do_not_kill_worker() {
         let path = script("err", SCRIPT);
-        let mut worker = Worker::new(
-            "TestLua",
-            1,
-            lua_worker_body("TestLua".into(), path, setup),
-        );
+        let mut worker = Worker::new("TestLua", 1, lua_worker_body("TestLua".into(), path, setup));
 
         let ids: Vec<_> = [3, 1, 2, 4]
             .iter()

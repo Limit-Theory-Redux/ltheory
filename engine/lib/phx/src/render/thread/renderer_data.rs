@@ -2,8 +2,8 @@ use crossbeam::channel::{Receiver, Sender};
 
 use crate::render::{
     CameraState, ClipManager, Environment, ImmBatcher, MaterialArenas, PassEncoder, PassState,
-    PipelineCache, Release, ResourceId, TexturePins, ReturnedChunk, RingOffset, SamplerCache, ScissorUpdate,
-    Shader, ShaderErrorQueue, ShaderWatcherInner, UniformRing, VertexRing, ViewBlock,
+    PipelineCache, Release, ResourceId, ReturnedChunk, RingOffset, SamplerCache, ScissorUpdate,
+    Shader, ShaderErrorQueue, ShaderWatcherInner, TexturePins, UniformRing, VertexRing, ViewBlock,
 };
 
 pub struct RendererData {

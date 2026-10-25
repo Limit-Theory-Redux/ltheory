@@ -102,8 +102,8 @@ impl FieldData {
         }
         if p.fwd_len_sq > 1e-9 && c_dist_sq > 1e-9 {
             let inv_dist = 1.0 / c_dist_sq.sqrt();
-            let dot = (rcx * p.fwd[0] + rcy * p.fwd[1] + rcz * p.fwd[2]) * inv_dist
-                / p.fwd_len_sq.sqrt();
+            let dot =
+                (rcx * p.fwd[0] + rcy * p.fwd[1] + rcz * p.fwd[2]) * inv_dist / p.fwd_len_sq.sqrt();
             if dot < CONE_COS_MIN {
                 return;
             }
@@ -204,7 +204,10 @@ impl InstanceField {
         );
         Self {
             data: FieldData {
-                pos: pos[..n * 3].chunks_exact(3).map(|v| [v[0], v[1], v[2]]).collect(),
+                pos: pos[..n * 3]
+                    .chunks_exact(3)
+                    .map(|v| [v[0], v[1], v[2]])
+                    .collect(),
                 scales: scales.to_vec(),
                 chunk_offsets: chunk_offsets.to_vec(),
                 chunk_indices: chunk_indices.to_vec(),
@@ -512,8 +515,8 @@ mod tests {
                 continue;
             }
             if fl > 1e-9 && cd > 1e-9 {
-                let dot = (r[0] * fwd[0] + r[1] * fwd[1] + r[2] * fwd[2]) * (1.0 / cd.sqrt())
-                    / fl.sqrt();
+                let dot =
+                    (r[0] * fwd[0] + r[1] * fwd[1] + r[2] * fwd[2]) * (1.0 / cd.sqrt()) / fl.sqrt();
                 if dot < -0.3 {
                     continue;
                 }
@@ -618,7 +621,15 @@ mod tests {
     fn lod_count_skips_missing_levels() {
         let (mut f, _, _) = make_belt(5_000, 3);
         f.lod_count = 3;
-        f.cull_field([0.0; 3], [0.0, 0.0, -1.0], [0.0; 3], ppu(), 4.0e12, 100_000, &[]);
+        f.cull_field(
+            [0.0; 3],
+            [0.0, 0.0, -1.0],
+            [0.0; 3],
+            ppu(),
+            4.0e12,
+            100_000,
+            &[],
+        );
         for l in 3..LOD_COUNT {
             assert!(f.indices(l).is_empty());
         }

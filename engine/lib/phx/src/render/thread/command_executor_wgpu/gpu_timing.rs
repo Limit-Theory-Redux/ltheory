@@ -196,7 +196,10 @@ impl WgpuCommandExecutor {
 
     /// The published GPU timings, for `RenderStats`.
     pub(super) fn timer_timings(&self) -> crate::render::GpuTimings {
-        self.timer.as_ref().map(|t| t.state.timings().clone()).unwrap_or_default()
+        self.timer
+            .as_ref()
+            .map(|t| t.state.timings().clone())
+            .unwrap_or_default()
     }
 }
 
@@ -228,7 +231,11 @@ mod tests {
         ex.timer_begin_frame(0);
         let s = &ex.timer.as_ref().unwrap().slots[0];
         assert!(s.skip, "a pending slot skips timing");
-        assert_eq!(s.labels, [7, 9], "the pending result still needs its labels");
+        assert_eq!(
+            s.labels,
+            [7, 9],
+            "the pending result still needs its labels"
+        );
         assert!(s.mapping.is_some());
 
         flag.store(FAILED, Ordering::Release);
