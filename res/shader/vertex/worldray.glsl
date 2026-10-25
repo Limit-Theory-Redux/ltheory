@@ -9,7 +9,8 @@ void main () {
   // point far from the origin and subtracting it back out.
   worldOrigin = vec3(0.0);
 
-  vec4 p2 = mProjInv * vec4(vertex_position.xy, 1.0, 1.0);
+  // Near plane, not far: with far/near this large the far plane unprojects to w = 0 in float32
+  vec4 p2 = mProjInv * vec4(vertex_position.xy, -1.0, 1.0);
   p2 /= p2.w;
   worldDir = mat3(mViewInv) * p2.xyz;
 
