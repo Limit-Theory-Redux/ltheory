@@ -430,6 +430,8 @@ function RenderCoreSystem:renderInOrder(blendMode)
 
     if blendMode == BlendMode.Additive then
         PointLightSystem:renderDiagnostics(blendMode, eye)
+    elseif blendMode == BlendMode.Alpha then
+        self:renderPhysicsWireframes(eye)
     end
 
     -- Custom render fns are called in every pass (their blend mode isn't
@@ -787,6 +789,26 @@ end
 ---@param enabled boolean
 function RenderCoreSystem:setDeferredLightingEnabled(enabled)
     self.settings.deferredLighting = enabled == true
+end
+
+--- Physics world whose colliders the alpha pass draws while
+--- GameState.debug.physics.drawWireframes is on.
+---@param world Physics|nil
+function RenderCoreSystem:setDebugPhysics(world)
+    self.debugPhysics = world
+end
+
+---@param eye Position
+function RenderCoreSystem:renderPhysicsWireframes(eye)
+    if not (self.debugPhysics and GameState.debug.physics.drawWireframes) then return end
+
+    local shader = Cache.Shader('wvp', 'material/alphacolor')
+    shader:start()
+    shader:setMatrix('mWorld', Matrix.Identity())
+    shader:setMatrixT('mWorldIT', Matrix.Identity())
+    shader:setFloat('scale', 1)
+    self.debugPhysics:drawWireframes(shader, eye)
+    shader:stop()
 end
 
 -- Deferred lighting pass: global environment + point lights → composite with albedo

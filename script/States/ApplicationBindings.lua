@@ -3,7 +3,6 @@ local Control = require('Legacy.Systems.Controls.Control')
 local self = {
     Escape            = Button.KeyboardEscape,
     SystemMap         = Button.KeyboardTab,
-    Reload            = Button.KeyboardF7,
     ToggleSound       = Button.KeyboardF8,
     ToggleProfiler    = Button.KeyboardF10,
     ToggleFullscreen  = Button.KeyboardF11,
