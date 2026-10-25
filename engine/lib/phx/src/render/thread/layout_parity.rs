@@ -1,17 +1,12 @@
 //! Layout parity (doc/engine/render-api-v2.md, section 2, rule 3).
 //!
-//! The preprocessor records every `#group` declaration of a shader; the GL
-//! executor applies that record at link time and reflects the real block
-//! layout from the linked program. This test covers the half that needs no GL
-//! context: it runs every shader in `res/shader` through the preprocessor and
-//! through naga's GLSL frontend (the wgpu path, with the recorded block
-//! bindings injected) and asserts the two agree on what the shader declares
-//! (blocks, their bindings and member layout; sampler names and dimensions).
-//!
-//! What it cannot cover: the GL side of the comparison (`glGetActiveUniform*`
-//! reflection of the same programs) needs a context. The GL reflection is
-//! checked when each shader links (`ViewBlock` is asserted against the
-//! reflected block there), and the validation scenes exercise it end to end.
+//! The preprocessor records every `#group` declaration of a shader, and the
+//! executor binds by that record. This test runs every shader in `res/shader`
+//! through the preprocessor and through naga's GLSL frontend (with the
+//! recorded bindings injected, as the executor does) and asserts the two agree
+//! on what the shader declares: blocks, their bindings and member layout;
+//! sampler names and dimensions. The shared blocks (`ViewBlock`, `DrawBlock`)
+//! are also checked against their Rust mirrors.
 
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
