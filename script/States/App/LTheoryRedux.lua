@@ -103,6 +103,7 @@ function LimitTheoryRedux:onInit()
     Window:setPresentMode(PresentMode.NoVsync)
     -- Presentation: borderless fullscreen keeps the desktop refresh rate
     -- (exclusive mode forces a mode switch that lowers frame rates).
+    GameState.render.fullscreen = true
     Window:setFullscreen(true, false)
 
     Window:setCursorPosition(Vec2f(GameState.ui.cursorX, GameState.ui.cursorY))
@@ -259,6 +260,16 @@ function LimitTheoryRedux:closePauseMenu()
     end
 end
 
+--- P freezes the sim without opening the pause menu.
+function LimitTheoryRedux:togglePause()
+    if self.pauseMenuOpen then return end
+    if GameState.paused then GameState:Unpause() else GameState:Pause() end
+end
+
+function LimitTheoryRedux:toggleHUD()
+    self.hudHidden = not self.hudHidden
+end
+
 --- Tear down the gameplay scene and return to the main menu.
 function LimitTheoryRedux:returnToMainMenu()
     self:closePauseMenu()
@@ -290,6 +301,7 @@ function LimitTheoryRedux:returnToMainMenu()
     self.starEntity = nil
     self.beltEntities = {}
     AsteroidFieldSystem:cleanup(self.world)
+    RenderCoreSystem:setDebugPhysics(nil)
 
     self.playerShip = nil
     self.stations = {}
@@ -326,6 +338,7 @@ function LimitTheoryRedux:startGame(seed)
     self.rng = RNG.Create(self.seed)
     self.world = Physics.Create()
     self.constructManager = ConstructManager(Registry, self.world)
+    RenderCoreSystem:setDebugPhysics(self.world)
 
     self:createSkybox()
     self:generateUniverse()
@@ -606,11 +619,13 @@ function LimitTheoryRedux:onRender(data)
         self:immediateUI(function()
             Gui:draw()
             LensFlareSystem:draw(self.starEntity, self.labeledEntities)
-            GameplayHUDSystem:draw(self.playerShip, self.player:getModeName(), self.player:isPiloting())
-            WorldLabelRenderSystem:draw(self.labeledEntities)
+            if not self.hudHidden then
+                GameplayHUDSystem:draw(self.playerShip, self.player:getModeName(), self.player:isPiloting())
+                WorldLabelRenderSystem:draw(self.labeledEntities)
+            end
 
             local spawned = AsteroidFieldSystem:getSpawnedEntities()
-            if #spawned > 0 then
+            if #spawned > 0 and not self.hudHidden then
                 local eye = CameraManager:getEye()
                 if eye then
                     for _, aInfo in ipairs(spawned) do
@@ -652,6 +667,7 @@ end
 
 ---@param data EventData
 function LimitTheoryRedux:onInput(data)
+    if self:handleAppInput() then return end
     if not self.playerShip then return end
     local dt = data:deltaTime()
 

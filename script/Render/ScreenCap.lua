@@ -30,7 +30,6 @@ local function screenshot()
         path = getPath(n)
     end
     self:save(path)
-    self:free()
     Log.Info('Screenshot saved to <%s>', path)
 end
 

@@ -73,6 +73,9 @@ function GameplayHUDSystem:draw(shipEntity, modeName, piloting)
         string.format("Zone: %s | Max Drive: x%d", zoneName, maxDriveSpeed),
         apLine,
     }
+    if GameState.paused then
+        infoLines[#infoLines + 1] = "PAUSED"
+    end
 
     for _, line in ipairs(infoLines) do
         DrawEx.TextAdditive('Unageo-Medium', line, 11, 40, y, 400, 20, 0.9, 0.9, 0.9, 0.9, 0.0, 0.5)
