@@ -43,17 +43,17 @@ function RigidBody:applyTorque(torque) end
 
 -- Adds another rigid body as a child of this rigid body. This means that
 -- the child's position will be controlled by `self`.
--- 
+--
 -- Only a single level of attachment is supported. Child objects do not
 -- affect the mass or inertia of the parent. Position is relative to the
 -- unscaled parent. i.e. it will be multiplied by the current scale. This
 -- function is O(1). Warning: if one object is attached to another and a
 -- third object happens to be between them this may trap the third object.
 -- The same issue may occur when spawning one compound inside another.
--- 
+--
 -- This function expects that the child is not already in the physics
 -- world, as it will add it if the parent is already in the world.
--- 
+--
 -- This function assumes that `self` is not already a child.
 ---@param child RigidBody
 ---@param pos Vec3f
@@ -62,10 +62,10 @@ function RigidBody:attach(child, pos, rot) end
 
 -- Removes a rigid body as a child of this rigid body. This means that
 -- the child's will be under control of it's own position.
--- 
+--
 -- This function will result in a child that is not in the world anymore,
 -- so it will need to be re-added with physics.add_rigid_body(...).
--- 
+--
 -- This function assumes that `self` is not already a child.
 ---@param child RigidBody
 function RigidBody:detach(child) end
@@ -96,7 +96,7 @@ function RigidBody:getBoundingRadiusCompound() end
 function RigidBody:getSpeed() end
 
 -- Returns the local -> world matrix for this rigid body.
--- 
+--
 -- This assumes that the world matrix relative to the cameras frame of reference i.e. the camera is always at the origin.
 ---@param cameraPos Position
 ---@return Matrix
@@ -111,7 +111,7 @@ function RigidBody:getToWorldMatrix(cameraPos) end
 function RigidBody:getToWorldMatrixInto(cameraPos, out) end
 
 -- Returns the world -> local matrix for this rigid body.
--- 
+--
 -- This assumes that the world matrix relative to the cameras frame of reference i.e. the camera is always at the origin.
 ---@param cameraPos Position
 ---@return Matrix

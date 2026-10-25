@@ -3,13 +3,13 @@
 
 -- Primitive type for drawing operations (command buffer version)
 ---@class CmdPrimitiveType
----@field Points integer 
----@field Lines integer 
----@field LineStrip integer 
----@field Triangles integer 
----@field TriangleStrip integer 
----@field TriangleFan integer 
----@field Quads integer 
+---@field Points integer
+---@field Lines integer
+---@field LineStrip integer
+---@field Triangles integer
+---@field TriangleStrip integer
+---@field TriangleFan integer
+---@field Quads integer
 CmdPrimitiveType = {
     Points = 0,
     Lines = 1,

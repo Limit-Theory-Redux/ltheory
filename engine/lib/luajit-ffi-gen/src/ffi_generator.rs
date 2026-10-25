@@ -84,7 +84,11 @@ impl FFIGenerator {
     }
 
     pub fn add_class_definition(&mut self, value: impl Into<String>) {
-        self.class_definitions.push(value.into());
+        // An empty doc comment or field description would end the line in a
+        // space.
+        let value: String = value.into();
+        self.class_definitions
+            .push(value.trim_end_matches([' ', '\t']).to_string());
     }
 
     pub fn has_class_definitions(&self) -> bool {

@@ -2,12 +2,12 @@
 ---@meta
 
 ---@class TexFilter
----@field Point integer 
----@field PointMipPoint integer 
----@field PointMipLinear integer 
----@field Linear integer 
----@field LinearMipPoint integer 
----@field LinearMipLinear integer 
+---@field Point integer
+---@field PointMipPoint integer
+---@field PointMipLinear integer
+---@field Linear integer
+---@field LinearMipPoint integer
+---@field LinearMipLinear integer
 TexFilter = {
     Point = 0,
     PointMipPoint = 1,

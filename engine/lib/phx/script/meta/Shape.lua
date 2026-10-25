@@ -3,7 +3,7 @@
 
 -- The 2D primitives, each with its own pipeline (fragment shader, blend mode
 -- baked in). Parameters (`a..d` of `Imm.Shape`):
--- 
+--
 -- | shape | a | b | c | d |
 -- |---|---|---|---|---|
 -- | Circle, Hex, Ring, RingGlow, RingDim | radius | | | |
@@ -11,29 +11,29 @@
 -- | Wedge | r1 | r2 | to | tw |
 -- | Annulus | inner radius | outer radius | | |
 -- | Box, Grid, PanelGlow, Point, PointGlow | none | | | |
--- 
+--
 -- `Triangle` and `LineGlow*` have their own entry points (`Imm.TriGlow`,
 -- `Imm.LineGlow`).
 ---@class Shape
----@field Solid integer 
----@field Image integer 
----@field Text integer 
----@field Box integer 
----@field Circle integer 
----@field Grid integer 
----@field Hex integer 
----@field Icon integer 
----@field Panel integer 
----@field PanelGlow integer 
----@field Point integer 
----@field PointGlow integer 
----@field Ring integer 
----@field RingGlow integer 
----@field RingDim integer 
----@field Triangle integer 
----@field Wedge integer 
----@field Annulus integer 
----@field LineGlow integer 
+---@field Solid integer
+---@field Image integer
+---@field Text integer
+---@field Box integer
+---@field Circle integer
+---@field Grid integer
+---@field Hex integer
+---@field Icon integer
+---@field Panel integer
+---@field PanelGlow integer
+---@field Point integer
+---@field PointGlow integer
+---@field Ring integer
+---@field RingGlow integer
+---@field RingDim integer
+---@field Triangle integer
+---@field Wedge integer
+---@field Annulus integer
+---@field LineGlow integer
 Shape = {
     Solid = 0,
     Image = 1,

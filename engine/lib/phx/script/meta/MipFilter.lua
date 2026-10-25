@@ -3,8 +3,8 @@
 
 ---@class MipFilter
 ---@field None integer Sample level 0 only.
----@field Point integer 
----@field Linear integer 
+---@field Point integer
+---@field Linear integer
 MipFilter = {
     -- Sample level 0 only.
     None = 0,

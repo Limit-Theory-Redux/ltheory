@@ -2,10 +2,10 @@
 ---@meta
 
 ---@class TexWrapMode
----@field Clamp integer 
----@field MirrorClamp integer 
----@field MirrorRepeat integer 
----@field Repeat integer 
+---@field Clamp integer
+---@field MirrorClamp integer
+---@field MirrorRepeat integer
+---@field Repeat integer
 TexWrapMode = {
     Clamp = 0,
     MirrorClamp = 1,

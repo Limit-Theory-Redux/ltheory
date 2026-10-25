@@ -2,7 +2,7 @@
 ---@meta
 
 ---@class PolygonMode
----@field Fill integer 
+---@field Fill integer
 ---@field Line integer Wireframe (GL; wgpu needs `POLYGON_MODE_LINE`).
 PolygonMode = {
     Fill = 0,

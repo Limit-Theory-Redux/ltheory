@@ -2,19 +2,19 @@
 ---@meta
 
 ---@class MouseControl
----@field Left integer 
----@field Middle integer 
----@field Right integer 
----@field Forward integer 
----@field Back integer 
----@field X1 integer 
----@field X2 integer 
----@field DeltaX integer 
----@field DeltaY integer 
----@field ScrollX integer 
----@field ScrollY integer 
----@field ScrollPixelX integer 
----@field ScrollPixelY integer 
+---@field Left integer
+---@field Middle integer
+---@field Right integer
+---@field Forward integer
+---@field Back integer
+---@field X1 integer
+---@field X2 integer
+---@field DeltaX integer
+---@field DeltaY integer
+---@field ScrollX integer
+---@field ScrollY integer
+---@field ScrollPixelX integer
+---@field ScrollPixelY integer
 MouseControl = {
     Left = 0,
     Middle = 1,

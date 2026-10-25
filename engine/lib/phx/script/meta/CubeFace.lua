@@ -2,12 +2,12 @@
 ---@meta
 
 ---@class CubeFace
----@field PX integer 
----@field NX integer 
----@field PY integer 
----@field NY integer 
----@field PZ integer 
----@field NZ integer 
+---@field PX integer
+---@field NX integer
+---@field PY integer
+---@field NY integer
+---@field PZ integer
+---@field NZ integer
 CubeFace = {
     PX = 0,
     NX = 1,

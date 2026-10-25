@@ -2,14 +2,14 @@
 ---@meta
 
 ---@class CompareFn
----@field Never integer 
----@field Less integer 
----@field Equal integer 
----@field LessEqual integer 
----@field Greater integer 
----@field NotEqual integer 
----@field GreaterEqual integer 
----@field Always integer 
+---@field Never integer
+---@field Less integer
+---@field Equal integer
+---@field LessEqual integer
+---@field Greater integer
+---@field NotEqual integer
+---@field GreaterEqual integer
+---@field Always integer
 CompareFn = {
     Never = 0,
     Less = 1,

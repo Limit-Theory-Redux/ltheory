@@ -2,12 +2,12 @@
 ---@meta
 
 ---@class InputDeviceType
----@field Cursor integer 
----@field Gamepad integer 
----@field Keyboard integer 
----@field Mouse integer 
----@field Touchpad integer 
----@field SystemEvent integer 
+---@field Cursor integer
+---@field Gamepad integer
+---@field Keyboard integer
+---@field Mouse integer
+---@field Touchpad integer
+---@field SystemEvent integer
 InputDeviceType = {
     Cursor = 0,
     Gamepad = 1,

@@ -2,10 +2,10 @@
 ---@meta
 
 ---@class TouchpadAxis
----@field X integer 
----@field Y integer 
----@field MagnifyDelta integer 
----@field RotateDelta integer 
+---@field X integer
+---@field Y integer
+---@field MagnifyDelta integer
+---@field RotateDelta integer
 TouchpadAxis = {
     X = 0,
     Y = 1,

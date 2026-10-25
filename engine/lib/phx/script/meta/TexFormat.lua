@@ -2,21 +2,21 @@
 ---@meta
 
 ---@class TexFormat
----@field R8 integer 
----@field R16 integer 
----@field R16F integer 
----@field R32F integer 
----@field RG8 integer 
----@field RG16 integer 
----@field RG16F integer 
----@field RG32F integer 
----@field RGBA8 integer 
----@field RGBA16 integer 
----@field RGBA16F integer 
----@field RGBA32F integer 
----@field Depth16 integer 
----@field Depth24 integer 
----@field Depth32F integer 
+---@field R8 integer
+---@field R16 integer
+---@field R16F integer
+---@field R32F integer
+---@field RG8 integer
+---@field RG16 integer
+---@field RG16F integer
+---@field RG32F integer
+---@field RGBA8 integer
+---@field RGBA16 integer
+---@field RGBA16F integer
+---@field RGBA32F integer
+---@field Depth16 integer
+---@field Depth24 integer
+---@field Depth32F integer
 TexFormat = {
     R8 = 0,
     R16 = 1,

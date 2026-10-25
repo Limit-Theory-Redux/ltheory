@@ -2,8 +2,8 @@
 ---@meta
 
 ---@class SamplerFilter
----@field Point integer 
----@field Linear integer 
+---@field Point integer
+---@field Linear integer
 SamplerFilter = {
     Point = 0,
     Linear = 1,

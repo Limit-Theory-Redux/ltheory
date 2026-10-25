@@ -2,9 +2,9 @@
 ---@meta
 
 ---@class DragAndDropEvent
----@field DroppedFile integer 
----@field HoveredFile integer 
----@field HoveredFileCancelled integer 
+---@field DroppedFile integer
+---@field HoveredFile integer
+---@field HoveredFileCancelled integer
 DragAndDropEvent = {
     DroppedFile = 0,
     HoveredFile = 1,

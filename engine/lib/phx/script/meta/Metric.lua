@@ -2,15 +2,15 @@
 ---@meta
 
 ---@class Metric
----@field None integer 
----@field DrawCalls integer 
----@field Immediate integer 
----@field PolysDrawn integer 
----@field TrisDrawn integer 
----@field VertsDrawn integer 
----@field Flush integer 
----@field FBOSwap integer 
----@field SIZE integer 
+---@field None integer
+---@field DrawCalls integer
+---@field Immediate integer
+---@field PolysDrawn integer
+---@field TrisDrawn integer
+---@field VertsDrawn integer
+---@field Flush integer
+---@field FBOSwap integer
+---@field SIZE integer
 Metric = {
     None = 0,
     DrawCalls = 1,

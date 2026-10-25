@@ -2,13 +2,13 @@
 ---@meta
 
 ---@class PixelFormat
----@field DepthComponent integer 
----@field Red integer 
----@field RGB integer 
----@field RGBA integer 
----@field BGR integer 
----@field BGRA integer 
----@field RG integer 
+---@field DepthComponent integer
+---@field Red integer
+---@field RGB integer
+---@field RGBA integer
+---@field BGR integer
+---@field BGRA integer
+---@field RG integer
 PixelFormat = {
     DepthComponent = 0,
     Red = 1,

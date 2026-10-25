@@ -20,7 +20,7 @@ function ShaderWatcher.Shutdown(r) end
 function ShaderWatcher.IsActive(r) end
 
 -- Registers a shader for hot-reload tracking.
--- 
+--
 -- * `shader_key` - The shader cache key (format: "vs_name:fs_name")
 -- * `vs_path` - Resolved path to the vertex shader file
 -- * `fs_path` - Resolved path to the fragment shader file
