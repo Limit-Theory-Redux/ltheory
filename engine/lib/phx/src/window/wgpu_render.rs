@@ -7,8 +7,7 @@
 //! (`Vsync -> Fifo`, `NoVsync -> Immediate`).
 
 use std::future::Future;
-use std::sync::Arc;
-use std::task::{Context, Poll, Wake, Waker};
+use std::task::{Context, Poll, Waker};
 use std::time::{Duration, Instant};
 
 use tracing::info;
@@ -17,19 +16,12 @@ use crate::window::PresentMode;
 
 const WGPU_STARTUP_DEADLINE: Duration = Duration::from_secs(10);
 
-struct StartupWaker;
-
-impl Wake for StartupWaker {
-    fn wake(self: Arc<Self>) {}
-}
-
 /// Poll a wgpu startup future with an application-level deadline. Dropping a
 /// pending future bounds Rust-owned startup state; it cannot interrupt a
 /// foreign driver call that is already executing inside one `poll`.
 pub(crate) fn poll_startup_future<F: Future>(future: F) -> Result<F::Output, &'static str> {
     let mut future = Box::pin(future);
-    let waker: Waker = Arc::new(StartupWaker).into();
-    let mut context = Context::from_waker(&waker);
+    let mut context = Context::from_waker(Waker::noop());
     let deadline = Instant::now() + WGPU_STARTUP_DEADLINE;
 
     loop {
