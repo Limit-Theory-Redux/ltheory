@@ -3,11 +3,11 @@
 
    Requires:
      * An active camera to provide view & projection matrices
-     * mWorld matrix providing object's local->world transform
-     * mWorldIT matrix (inverse-transpose of mWorld)
+     * The group-2 DrawBlock (see draw_block.glsl): mWorld, the object's
+       local->world transform, and mWorldIT, its inverse-transpose
 ----------------------------------------------------------------------------- */
 
-#include vertex
+#include vertex_scene
 
 out vec3 objPos;
 

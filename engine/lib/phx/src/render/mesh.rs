@@ -5,15 +5,55 @@ use std::time::SystemTime;
 use glam::{Vec2, Vec3, Vec4};
 use tobj::LoadError;
 
-use super::{DataFormat, Draw, PixelFormat, RenderTarget, Tex2D, Tex3D, TexFormat};
+use super::{
+    Color, DataFormat, ImmDebugState, LoadOp, PassCmd, PipelineDesc, PixelFormat, RenderPassDesc,
+    Samplers, Tex2D, Tex3D, TexFormat, TexView, VertexLayout,
+};
 use crate::error::Error;
 use crate::math::{Box3, Matrix, Triangle, validate_vec2, validate_vec3};
-use crate::render::{
-    CmdPrimitiveType, InstanceData, RenderState, Renderer, ResourceHandle, ResourceId, Shader,
-    VertexFormat,
-};
+use crate::render::{Renderer, ResourceHandle, ResourceId, Shader, VertexFormat};
 use crate::rf::Rf;
 use crate::system::*;
+
+/// One fullscreen pass of the compute-style mesh baking shaders: `inputs` are
+/// sampled with nearest filtering (they hold data, not images), `params` fill
+/// the shader's `Params` block, the result is written to `output`.
+fn compute_pass(
+    r: &mut Renderer,
+    shader: &Shader,
+    output: &Tex2D,
+    inputs: &[TexView],
+    params: &[u8],
+) {
+    let mut pipeline = PipelineDesc::for_shader(shader);
+    pipeline.vertex = VertexLayout::Fullscreen;
+    let pipeline = r.get_pipeline(&pipeline);
+
+    let pass_desc =
+        RenderPassDesc::with_color("Mesh.compute", output.view(), LoadOp::DontCare, [0.0; 4]);
+    r.begin_pass_intern(&pass_desc);
+    r.pass_record("setPipeline", PassCmd::SetPipeline(pipeline));
+    for (slot, view) in inputs.iter().enumerate() {
+        r.data
+            .encoder
+            .set_input(slot, Some((*view, Samplers::Point.id())));
+    }
+
+    let block_size = shader.block_size("Params") as usize;
+    assert!(
+        params.len() <= block_size,
+        "mesh compute shader: {} bytes of params for a {block_size}-byte `Params` block",
+        params.len()
+    );
+    let ptr = r.pass_alloc(block_size as u32);
+    #[allow(unsafe_code)]
+    // SAFETY: `pass_alloc` returns `block_size` writable bytes of ring staging.
+    unsafe {
+        std::ptr::copy_nonoverlapping(params.as_ptr(), ptr, params.len());
+    }
+    r.pass_draw(PassCmd::DrawFullscreen);
+    r.end_pass_intern();
+}
 
 #[derive(Clone)]
 pub struct Mesh {
@@ -158,6 +198,15 @@ impl Mesh {
         }
 
         this.handle.as_ref().expect("just ensured above").id()
+    }
+}
+
+impl Mesh {
+    /// The mesh's GPU resource (created or rebuilt if the mesh changed) and
+    /// its index count, for `pass:drawMesh`.
+    pub fn resource_and_index_count(&mut self, r: &mut Renderer) -> (ResourceId, u32) {
+        let id = self.ensure_resource(r);
+        (id, self.shared.as_ref().index.len() as u32)
     }
 }
 
@@ -402,96 +451,24 @@ impl Mesh {
         self.shared.as_mut().version += 1;
     }
 
-    pub fn draw_bind(&mut self, r: &mut Renderer) {
-        self.ensure_resource(r);
-    }
-
-    /// The mesh's GPU resource id (as a plain scalar - see
-    /// `Renderer::add_entity`'s `mesh_id`/`shader_id` params for why this
-    /// isn't `ResourceId` itself), lazily creating (or recreating, if the
-    /// mesh changed) the executor-owned resource just like `draw_bind` does
-    /// - without also drawing. For code that needs to reference the mesh
-    /// instead of calling `draw`/`drawBind` itself (e.g. the batch API,
-    /// `Renderer:addEntity`).
+    /// The mesh's GPU resource id (as a plain scalar: `ResourceId` itself is
+    /// not an FFI type), lazily creating (or recreating, if the mesh changed)
+    /// the executor-owned resource just like `draw_bind` does - without also
+    /// drawing. For code that needs to reference the mesh instead of drawing
+    /// it itself.
     pub fn resource_id(&mut self, r: &mut Renderer) -> u64 {
         self.ensure_resource(r).0
     }
 
-    pub fn draw_bound(&self, r: &mut Renderer) {
-        let this = self.shared.as_ref();
-
-        Metric::add_draw(
-            this.index.len() as u64 / 3,
-            this.index.len() as u64 / 3,
-            this.vertex.len() as u64,
-        );
-
-        if let Some(handle) = &this.handle {
-            r.draw_mesh_by_resource(
-                handle.id(),
-                this.index.len() as i32,
-                CmdPrimitiveType::Triangles,
-            );
-        }
-    }
-
-    /// No-op: `DrawMeshByResource` binds/draws/unbinds in one self-contained
-    /// command (see `draw_bound`), so there is nothing left to unbind here.
-    /// Kept as a method - and still takes `r` - so `drawBind`/`drawBound`/
-    /// `drawUnbind` stay a matched FFI triple for existing Lua call sites
-    /// that interleave shader uniform changes between multiple `drawBound`
-    /// calls (e.g. per-instance rendering without true GPU instancing).
-    pub fn draw_unbind(&self, _r: &mut Renderer) {}
-
-    pub fn draw(&mut self, r: &mut Renderer) {
-        self.draw_bind(r);
-        self.draw_bound(r);
-        self.draw_unbind(r);
-    }
-
-    /// Instanced draw with per-instance data (triangles). Ensures the GPU
-    /// resource exists (same lazy path as draw_bind), then submits ONE
-    /// DrawInstancedWithData command. `instances` is a Lua cdata array of
-    /// InstanceData (ffi.new("InstanceData[?]", count)); ffi_gen passes the
-    /// array pointer + element count. The render thread copies the data, so
-    /// the Lua array can be reused/GC'd after the call.
-    pub fn draw_instanced_with_data(&mut self, r: &mut Renderer, instances: &[InstanceData]) {
-        self.draw_bind(r);
-        let this = self.shared.as_ref();
-        let index_count = this.index.len() as i32;
-        if let Some(handle) = &this.handle {
-            r.draw_instanced_with_data(
-                handle.id().0,
-                index_count,
-                instances,
-                CmdPrimitiveType::Triangles,
-            );
-        }
-    }
-
-    /// Texture-fetch instanced draw: per-instance attribute is a u32 INDEX
-    /// into a static data texture (see wvp_instanced_tex). `indices` is a
-    /// Lua cdata array of u32 (ffi.new("uint32_t[?]", count)); the render
-    /// thread copies it, so the Lua array can be reused/GC'd after the call.
-    /// The static data texture must be bound (setTex2D on the shader) before
-    /// this call - the vertex shader texelFetches per instance.
-    pub fn draw_instanced_indices(&mut self, r: &mut Renderer, indices: &[u32]) {
-        self.draw_bind(r);
-        let this = self.shared.as_ref();
-        let index_count = this.index.len() as i32;
-        if let Some(handle) = &this.handle {
-            r.draw_instanced_indices(
-                handle.id().0,
-                index_count,
-                indices,
-                CmdPrimitiveType::Triangles,
-            );
-        }
-    }
-
     pub fn draw_normals(&self, r: &mut Renderer, scale: f32) {
         for v in &self.shared.as_ref().vertex {
-            Draw::line3(r, &v.p, &(v.p + scale * v.n));
+            r.imm_debug_line3(
+                ImmDebugState::default(),
+                v.p,
+                v.p + scale * v.n,
+                &Color::WHITE,
+                1.0,
+            );
         }
     }
 
@@ -797,26 +774,26 @@ impl Mesh {
 
         let tex_output = Tex2D::new(r, v_dim as i32, v_dim as i32, TexFormat::R32F);
 
-        let mut shader =
-            r.data.ao_shader.take().unwrap_or_else(|| {
-                Shader::load(r, "vertex/identity", "fragment/compute/occlusion")
-            });
+        let shader = r.data.ao_shader.take().unwrap_or_else(|| {
+            Shader::load(r, "vertex/fullscreen_ndc", "fragment/compute/occlusion")
+        });
 
-        RenderState::push_all_defaults(r);
-        RenderTarget::push_tex2d(r, &tex_output);
-
-        shader.start(r);
-        shader.set_int(r, "sDim", s_dim as i32);
-        shader.set_float(r, "radius", radius);
-        shader.set_tex2d(r, "sPointBuffer", &tex_spoints);
-        shader.set_tex2d(r, "sNormalBuffer", &tex_snormals);
-        shader.set_tex2d(r, "vPointBuffer", &tex_vpoints);
-        shader.set_tex2d(r, "vNormalBuffer", &tex_vnormals);
-        Draw::rect(r, -1.0, -1.0, 2.0, 2.0);
-        shader.stop(r);
-
-        RenderTarget::pop(r);
-        RenderState::pop_all(r);
+        // Params { int sDim; float radius; }
+        let mut params = Vec::with_capacity(8);
+        params.extend_from_slice(&(s_dim as i32).to_ne_bytes());
+        params.extend_from_slice(&radius.to_ne_bytes());
+        compute_pass(
+            r,
+            &shader,
+            &tex_output,
+            &[
+                tex_spoints.view(),
+                tex_snormals.view(),
+                tex_vpoints.view(),
+                tex_vnormals.view(),
+            ],
+            &params,
+        );
 
         r.data.ao_shader = Some(shader);
 
@@ -840,22 +817,18 @@ impl Mesh {
 
         tex_points.set_data(r, &point_buffer, PixelFormat::RGB, DataFormat::Float);
 
-        let mut shader = r.data.occlusion_shader.take().unwrap_or_else(|| {
-            Shader::load(r, "vertex/identity", "fragment/compute/occlusion_sdf")
+        let shader = r.data.occlusion_shader.take().unwrap_or_else(|| {
+            Shader::load(r, "vertex/fullscreen_ndc", "fragment/compute/occlusion_sdf")
         });
 
-        RenderState::push_all_defaults(r);
-        RenderTarget::push_tex2d(r, &tex_output);
-
-        shader.start(r);
-        shader.set_float(r, "radius", radius);
-        shader.set_tex2d(r, "points", &tex_points);
-        shader.set_tex3d(r, "sdf", sdf);
-        Draw::rect(r, -1.0, -1.0, 2.0, 2.0);
-        shader.stop(r);
-
-        RenderTarget::pop(r);
-        RenderState::pop_all(r);
+        // Params { float radius; }
+        compute_pass(
+            r,
+            &shader,
+            &tex_output,
+            &[tex_points.view(), sdf.view()],
+            &radius.to_ne_bytes(),
+        );
 
         r.data.occlusion_shader = Some(shader);
 

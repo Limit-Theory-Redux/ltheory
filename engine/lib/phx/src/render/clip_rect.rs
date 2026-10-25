@@ -1,6 +1,6 @@
 use glam::IVec2;
 
-use crate::render::{Renderer, Viewport};
+use crate::render::Renderer;
 
 const MAX_STACK_DEPTH: usize = 128;
 
@@ -21,10 +21,11 @@ pub struct ClipRect {
     enabled: bool,
 }
 
-/// What `ClipManager`'s CPU-side bookkeeping decided the GL scissor state
-/// should become. The caller (which holds `&mut Renderer`) turns this into
-/// the matching `submit()` calls.
-enum ScissorUpdate {
+/// What the scissor state should become. The pass records it lazily: a draw
+/// (or an immediate batch) emits `SetScissor` when the wanted scissor differs
+/// from the one last sent.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ScissorUpdate {
     Disable,
     Set {
         x: i32,
@@ -34,58 +35,71 @@ enum ScissorUpdate {
     },
 }
 
-fn apply(r: &mut Renderer, update: Option<ScissorUpdate>) {
-    match update {
-        None => {}
-        Some(ScissorUpdate::Disable) => r.enable_scissor(false),
-        Some(ScissorUpdate::Set {
-            x,
-            y,
-            width,
-            height,
-        }) => {
-            r.enable_scissor(true);
-            r.set_scissor(x, y, width, height);
+impl ScissorUpdate {
+    /// This scissor restricted to `rect` (`[x, y, width, height]`, in the
+    /// same coordinates): the overlap of both, empty if they do not overlap.
+    pub fn within(self, rect: Option<[i32; 4]>) -> ScissorUpdate {
+        let Some([x, y, width, height]) = rect else {
+            return self;
+        };
+        let ScissorUpdate::Set {
+            x: sx,
+            y: sy,
+            width: sw,
+            height: sh,
+        } = self
+        else {
+            return ScissorUpdate::Set {
+                x,
+                y,
+                width,
+                height,
+            };
+        };
+        let (x0, y0) = (x.max(sx), y.max(sy));
+        let (x1, y1) = ((x + width).min(sx + sw), (y + height).min(sy + sh));
+        ScissorUpdate::Set {
+            x: x0,
+            y: y0,
+            width: (x1 - x0).max(0),
+            height: (y1 - y0).max(0),
         }
     }
 }
 
+// The operations only edit the stack. The open pass applies the resulting
+// scissor lazily, right before the next draw that needs it (see
+// `Renderer::pass_apply_scissor`, and `ImmBatcher` whose runs are keyed by it).
 #[luajit_ffi_gen::luajit_ffi]
 impl ClipRect {
     pub fn push(r: &mut Renderer, x: f32, y: f32, sx: f32, sy: f32) {
-        let vp_size = Viewport::get_size(r);
-        let update = r.data.clip_rect.push(vp_size, x, y, sx, sy);
-        apply(r, update);
+        let vp_size = r.target_size();
+        r.data.clip_rect.push(vp_size, x, y, sx, sy);
     }
 
     pub fn push_combined(r: &mut Renderer, x: f32, y: f32, sx: f32, sy: f32) {
-        let vp_size = Viewport::get_size(r);
-        let update = r.data.clip_rect.push_combined(vp_size, x, y, sx, sy);
-        apply(r, update);
+        let vp_size = r.target_size();
+        r.data.clip_rect.push_combined(vp_size, x, y, sx, sy);
     }
 
     pub fn push_disabled(r: &mut Renderer) {
-        let vp_size = Viewport::get_size(r);
-        let update = r.data.clip_rect.push_disabled(vp_size);
-        apply(r, update);
+        let vp_size = r.target_size();
+        r.data.clip_rect.push_disabled(vp_size);
     }
 
     pub fn push_transform(r: &mut Renderer, tx: f32, ty: f32, sx: f32, sy: f32) {
-        let vp_size = Viewport::get_size(r);
-        let update = r.data.clip_rect.push_transform(vp_size, tx, ty, sx, sy);
-        apply(r, update);
+        let vp_size = r.target_size();
+        r.data.clip_rect.push_transform(vp_size, tx, ty, sx, sy);
     }
 
     pub fn pop(r: &mut Renderer) {
-        let vp_size = Viewport::get_size(r);
-        let update = r.data.clip_rect.pop(vp_size);
-        apply(r, update);
+        let vp_size = r.target_size();
+        r.data.clip_rect.pop(vp_size);
     }
 
     pub fn pop_transform(r: &mut Renderer) {
-        let vp_size = Viewport::get_size(r);
-        let update = r.data.clip_rect.pop_transform(vp_size);
-        apply(r, update);
+        let vp_size = r.target_size();
+        r.data.clip_rect.pop_transform(vp_size);
     }
 }
 
@@ -122,6 +136,16 @@ impl ClipManager {
         }
     }
 
+    /// The scissor the current stack asks for, against a target of
+    /// `vp_size`.
+    pub fn desired(&mut self, vp_size: IVec2) -> ScissorUpdate {
+        if self.rects_count > 0 {
+            self.activate(vp_size)
+        } else {
+            ScissorUpdate::Disable
+        }
+    }
+
     #[inline]
     fn transform_rect(&self, x: &mut f32, y: &mut f32, sx: &mut f32, sy: &mut f32) {
         if self.transforms_count > 0 {
@@ -149,8 +173,10 @@ impl ClipManager {
         ScissorUpdate::Set {
             x: x as i32,
             y: vp_size.y - (y + sy) as i32,
-            width: sx as i32,
-            height: sy as i32,
+            // A rectangle clipped away entirely has a negative extent: GL rejects
+            // that (and would keep the previous scissor), so it becomes empty.
+            width: (sx as i32).max(0),
+            height: (sy as i32).max(0),
         }
     }
 
@@ -270,5 +296,34 @@ impl ClipManager {
 impl Default for ClipManager {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ScissorUpdate;
+
+    fn set(x: i32, y: i32, width: i32, height: i32) -> ScissorUpdate {
+        ScissorUpdate::Set {
+            x,
+            y,
+            width,
+            height,
+        }
+    }
+
+    #[test]
+    fn within_is_the_overlap() {
+        assert_eq!(set(0, 0, 10, 10).within(None), set(0, 0, 10, 10));
+        assert_eq!(
+            ScissorUpdate::Disable.within(Some([1, 2, 3, 4])),
+            set(1, 2, 3, 4)
+        );
+        assert_eq!(
+            set(0, 0, 10, 10).within(Some([5, 5, 10, 10])),
+            set(5, 5, 5, 5)
+        );
+        // No overlap: an empty rectangle, never a negative one.
+        assert_eq!(set(0, 0, 4, 4).within(Some([8, 8, 2, 2])), set(8, 8, 0, 0));
     }
 }

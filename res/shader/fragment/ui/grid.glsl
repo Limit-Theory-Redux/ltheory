@@ -1,7 +1,9 @@
 #include fragment
 
-uniform vec4 color;
-uniform vec2 size;
+#include imm
+
+#define size (imm_p.xy)
+#define color imm_color
 
 const float scale = 1.0;
 

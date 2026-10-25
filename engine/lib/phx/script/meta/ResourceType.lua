@@ -2,17 +2,17 @@
 ---@meta
 
 ---@class ResourceType
----@field Font integer 
----@field Mesh integer 
----@field Script integer 
----@field Shader integer 
----@field Sound integer 
----@field Tex1D integer 
----@field Tex2D integer 
----@field Tex3D integer 
----@field TexCube integer 
----@field Theme integer 
----@field Other integer 
+---@field Font integer
+---@field Mesh integer
+---@field Script integer
+---@field Shader integer
+---@field Sound integer
+---@field Tex1D integer
+---@field Tex2D integer
+---@field Tex3D integer
+---@field TexCube integer
+---@field Theme integer
+---@field Other integer
 ResourceType = {
     Font = 0,
     Mesh = 1,
@@ -26,4 +26,3 @@ ResourceType = {
     Theme = 9,
     Other = 10,
 }
-

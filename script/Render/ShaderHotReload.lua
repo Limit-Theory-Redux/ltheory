@@ -13,8 +13,9 @@
         -- Once per frame:
         ShaderHotReload:update()
 
-        -- Wherever a material is created:
-        ShaderHotReload:registerMaterial(material, vsName, fsName)
+        -- Materials need no registration: `Cache.ReloadShader` tells every
+        -- live `Material` (Shared/Rendering/Material.lua) that draws with the
+        -- reloaded shader.
 ]]
 
 local Cache = require('Render.Cache')
@@ -160,23 +161,14 @@ function ShaderHotReload:update()
             Log.Warn("ShaderHotReload: No cached shader for changed key '%s'", key)
         else
             Log.Info("ShaderHotReload: Reloading '%s'", key)
-            local ok = shader:reload()
+            -- Relinks the shader and, through the reload hooks, refreshes the
+            -- materials that draw with it (regenerated parameter types, copied
+            -- parameters, new arena slices and bind groups).
+            local ok = Cache.ReloadShader(key)
             if ok then
                 reloadedCount = reloadedCount + 1
                 if ShaderError then
                     ShaderError.ClearForShader(key)
-                end
-
-                local materials = materialsByShader[key]
-                if materials then
-                    for _, material in ipairs(materials) do
-                        if material.reloadShader then
-                            local reloadOk = pcall(function() material:reloadShader() end)
-                            if not reloadOk then
-                                Log.Warn("ShaderHotReload: Failed to reload material for shader '%s'", key)
-                            end
-                        end
-                    end
                 end
             else
                 -- Compilation failed - error is already in the ShaderError queue.

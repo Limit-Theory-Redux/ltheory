@@ -2,12 +2,19 @@
 #include math
 #include noise
 
-uniform vec3 origin;
-uniform vec3 du;
-uniform vec3 dv;
-uniform int octaves;
-uniform float seed;
-uniform float smoothness;
+// `TexGen.Volume` writes the slice's origin, du and dv into the first three members.
+#group 2
+layout(std140) uniform Params {
+    vec4 genOrigin;
+    vec4 genDu;
+    vec4 genDv;
+    int octaves;
+    float seed;
+    float smoothness;
+};
+#define origin genOrigin.xyz
+#define du genDu.xyz
+#define dv genDv.xyz
 
 void main() {
   vec3 p = origin + du * uv.x + dv * uv.y;

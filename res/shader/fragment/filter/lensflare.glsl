@@ -1,11 +1,14 @@
 #include fragment
 #include math
 
-uniform vec2 lightPos;
-uniform vec3 lightColor;
-uniform float intensity;
-uniform vec2 screenSize;
-uniform float xStreak;    // 0-1: how much X-shaped streak to add (only at high intensity)
+#group 2
+layout(std140) uniform Params {
+    vec2 lightPos;
+    vec2 screenSize;
+    vec3 lightColor;
+    float intensity;
+    float xStreak;    // 0-1: how much X-shaped streak to add (only at high intensity)
+};
 
 void main() {
   vec2 screenUV = vec2(gl_FragCoord.x / screenSize.x, 1.0 - gl_FragCoord.y / screenSize.y);

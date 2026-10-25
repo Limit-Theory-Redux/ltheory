@@ -4,6 +4,14 @@ local SpatialComponents     = require("Modules.Spatial.Components")
 local CelestialComponents   = require("Modules.CelestialObjects.Components")
 local UniverseScaleConfig   = require("Config.Gen.UniverseScaleConfig")
 local DrawEx                = require("UI.DrawEx")
+local Pipelines             = require("Render.Pipelines")
+
+-- Scratch color for the shapes below (the batcher copies it at the call).
+local shapeColor = Color(0, 0, 0, 0)
+
+-- Pipeline state of the asteroid dots: the dot mesh, alpha blended.
+local dotState = { blend = BlendMode.Alpha }
+local dotParamsType
 
 local function formatDistance(gameUnits)
     return UniverseScaleConfig:formatDistance(gameUnits)
@@ -400,7 +408,6 @@ function SystemMap:draw(state, x, y, sx, sy)
     local cx, cy = x + hx, y + hy
 
     -- Background (use SimpleRect — DrawEx.Rect uses additive blend which can't darken)
-    RenderState.PushBlendMode(BlendMode.Alpha)
     DrawEx.SimpleRect(x, y, sx, sy, Color(0.02, 0.02, 0.03, 0.97))
 
     -- Title
@@ -433,16 +440,9 @@ function SystemMap:draw(state, x, y, sx, sy)
                    and ocx + r > x and ocx - r < x + sx
                    and ocy + r > y and ocy - r < y + sy then
                     local pad = 8
-                    local shader = Cache.Shader('ui', 'ui/ring')
-                    RenderState.PushBlendMode(BlendMode.Alpha)
-                    shader:start()
-                    shader:setFloat('radius', r)
-                    shader:setFloat2('size', 2 * r + 2 * pad, 2 * r + 2 * pad)
-                    shader:setFloat4('color', c.r, c.g, c.b, c.a)
-                    shader:setInt('glow', 0)
-                    Draw.Rect(ocx - r - pad, ocy - r - pad, 2 * r + 2 * pad, 2 * r + 2 * pad)
-                    shader:stop()
-                    RenderState.PopBlendMode()
+                    shapeColor.r, shapeColor.g, shapeColor.b, shapeColor.a = c.r, c.g, c.b, c.a
+                    Imm.Shape(Shape.Ring, ocx - r - pad, ocy - r - pad, 2 * r + 2 * pad, 2 * r + 2 * pad,
+                        shapeColor, r)
                 end
             end
         end
@@ -474,16 +474,10 @@ function SystemMap:draw(state, x, y, sx, sy)
                     if outerR * 2 < maxQuadSize then
                         local pad = 4
                         local totalSize = 2 * outerR + 2 * pad
-                        local shader = Cache.Shader('ui', 'ui/annulus')
-                        RenderState.PushBlendMode(BlendMode.Alpha)
-                        shader:start()
-                        shader:setFloat('innerRadius', innerR)
-                        shader:setFloat('outerRadius', outerR)
-                        shader:setFloat2('size', totalSize, totalSize)
-                        shader:setFloat4('color', entry.color[1], entry.color[2], entry.color[3], 0.25)
-                        Draw.Rect(ocx - outerR - pad, ocy - outerR - pad, totalSize, totalSize)
-                        shader:stop()
-                        RenderState.PopBlendMode()
+                        shapeColor.r, shapeColor.g, shapeColor.b, shapeColor.a =
+                            entry.color[1], entry.color[2], entry.color[3], 0.25
+                        Imm.Shape(Shape.Annulus, ocx - outerR - pad, ocy - outerR - pad, totalSize, totalSize,
+                            shapeColor, innerR, outerR)
                     end
                 end
             end
@@ -537,16 +531,14 @@ function SystemMap:draw(state, x, y, sx, sy)
 
                 if cache.count > 0 then
                     local dotShader = Cache.Shader('mappoints', 'ui/mappoints')
-                    RenderState.PushBlendMode(BlendMode.Alpha)
-                    dotShader:start()
-                    dotShader:setFloat4('color', 0.8, 0.6, 0.3, 0.7)
-                    dotShader:setFloat2('mapOffset', dotOcx, dotOcy)
-                    dotShader:setFloat('mapZoom', state.zoom)
-                    dotShader:setFloat2('screenSize', sx, sy)
-                    dotShader:setFloat('dotSize', 3.0)
-                    cache.mesh:draw()
-                    dotShader:stop()
-                    RenderState.PopBlendMode()
+                    local pass = Renderer:currentPass()
+                    pass:setPipeline(Pipelines.get(dotShader, dotState))
+                    dotParamsType = dotParamsType or dotShader:blockType('Params')
+                    local p = pass:alloc(dotParamsType)
+                    p.mapGeom.x, p.mapGeom.y, p.mapGeom.z, p.mapGeom.w = dotOcx, dotOcy, sx, sy
+                    p.mapParams.x, p.mapParams.y = state.zoom, 3.0
+                    p.dotColor.x, p.dotColor.y, p.dotColor.z, p.dotColor.w = 0.8, 0.6, 0.3, 0.7
+                    pass:drawMesh(cache.mesh)
                 end
             end
             ::skip_dots::
@@ -726,8 +718,6 @@ function SystemMap:draw(state, x, y, sx, sy)
     -- Draw zoom level
     DrawEx.TextAlpha('Unageo-Medium', string.format("Zoom: %.5f", state.zoom), 10,
         x + 10, y + sy - 25, 200, 14, 0.7, 0.7, 0.7, 0.7, 0.0, 0.5)
-
-    RenderState.PopBlendMode()
 end
 
 --- Draw info panel for selected entity

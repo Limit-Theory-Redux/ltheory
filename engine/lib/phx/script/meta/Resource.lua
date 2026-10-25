@@ -23,4 +23,3 @@ function Resource.LoadBytes(ty, name) end
 ---@param name string
 ---@return string
 function Resource.LoadString(ty, name) end
-

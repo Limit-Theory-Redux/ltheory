@@ -33,11 +33,15 @@ pub struct ShaderWatcherInner {
 
 impl ShaderWatcherInner {
     fn new() -> Result<Self, notify::Error> {
-        let (tx, rx) = mpsc::channel();
+        // File notifications are advisory: bounded, nonblocking delivery keeps
+        // a noisy editor from growing renderer-owned memory or blocking the
+        // notify callback. The next file change still re-invalidates the
+        // registered shader key.
+        let (tx, rx) = mpsc::sync_channel(256);
 
         let watcher = notify::recommended_watcher(move |res| {
-            if let Err(e) = tx.send(res) {
-                error!("Failed to send file change event: {}", e);
+            if let Err(e) = tx.try_send(res) {
+                warn!("Dropping shader file-change event: {}", e);
             }
         })?;
 

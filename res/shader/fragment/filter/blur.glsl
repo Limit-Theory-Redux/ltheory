@@ -3,11 +3,15 @@
 in vec2 uv;
 out vec4 outColor;
 
+#group 2
+layout(std140) uniform Params {
+    vec2 dir;
+    vec2 size;
+    int radius;
+    float variance;
+};
+#group 3
 uniform sampler2D src;
-uniform vec2 dir;
-uniform vec2 size;
-uniform int radius;
-uniform float variance;
 
 void main() {
   vec4 total = vec4(0.0);

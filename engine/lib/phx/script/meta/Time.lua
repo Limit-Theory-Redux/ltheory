@@ -12,4 +12,3 @@ function Time.GetUtc() end
 
 ---@return integer
 function Time.GetRaw() end
-

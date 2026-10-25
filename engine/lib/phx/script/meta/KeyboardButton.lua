@@ -103,7 +103,7 @@
 ---@field NumpadComma integer <kbd>,</kbd> (thousands separator). For locales where the thousands separator is a "." (e.g., Brazil), this key may generate a <kbd>.</kbd>.
 ---@field NumpadDecimal integer <kbd>. Del</kbd>. For locales where the decimal separator is "," (e.g., Brazil), this key may generate a <kbd>,</kbd>.
 ---@field NumpadDivide integer <kbd>/</kbd>
----@field NumpadEnter integer 
+---@field NumpadEnter integer
 ---@field NumpadEqual integer <kbd>=</kbd>
 ---@field NumpadHash integer <kbd>#</kbd> on a phone or remote control device. This key is typically found below the <kbd>9</kbd> key and to the right of the <kbd>0</kbd> key.
 ---@field NumpadMemoryAdd integer <kbd>M</kbd> Add current entry to the value stored in memory.
@@ -123,33 +123,33 @@
 ---@field ScrollLock integer <kbd>Scroll Lock</kbd>
 ---@field Pause integer <kbd>Pause Break</kbd>
 ---@field BrowserBack integer Some laptops place this key to the left of the <kbd>↑</kbd> key.  This also the "back" button (triangle) on Android.
----@field BrowserFavorites integer 
+---@field BrowserFavorites integer
 ---@field BrowserForward integer Some laptops place this key to the right of the <kbd>↑</kbd> key.
 ---@field BrowserHome integer The "home" button on Android.
----@field BrowserRefresh integer 
----@field BrowserSearch integer 
----@field BrowserStop integer 
+---@field BrowserRefresh integer
+---@field BrowserSearch integer
+---@field BrowserStop integer
 ---@field Eject integer <kbd>Eject</kbd> or <kbd>⏏</kbd>. This key is placed in the function section on some Apple keyboards.
 ---@field LaunchApp1 integer Sometimes labelled <kbd>My Computer</kbd> on the keyboard
 ---@field LaunchApp2 integer Sometimes labelled <kbd>Calculator</kbd> on the keyboard
----@field LaunchMail integer 
----@field MediaPlayPause integer 
----@field MediaSelect integer 
----@field MediaStop integer 
----@field MediaTrackNext integer 
----@field MediaTrackPrevious integer 
+---@field LaunchMail integer
+---@field MediaPlayPause integer
+---@field MediaSelect integer
+---@field MediaStop integer
+---@field MediaTrackNext integer
+---@field MediaTrackPrevious integer
 ---@field Power integer This key is placed in the function section on some Apple keyboards, replacing the <kbd>Eject</kbd> key.
----@field Sleep integer 
----@field AudioVolumeDown integer 
----@field AudioVolumeMute integer 
----@field AudioVolumeUp integer 
----@field WakeUp integer 
----@field Meta integer 
----@field Hyper integer 
----@field Turbo integer 
----@field Abort integer 
----@field Resume integer 
----@field Suspend integer 
+---@field Sleep integer
+---@field AudioVolumeDown integer
+---@field AudioVolumeMute integer
+---@field AudioVolumeUp integer
+---@field WakeUp integer
+---@field Meta integer
+---@field Hyper integer
+---@field Turbo integer
+---@field Abort integer
+---@field Resume integer
+---@field Suspend integer
 ---@field Again integer Found on Sun’s USB keyboard.
 ---@field Copy integer Found on Sun’s USB keyboard.
 ---@field Cut integer Found on Sun’s USB keyboard.
@@ -348,11 +348,11 @@ KeyboardButton = {
     -- Japanese: <kbd>カタカナ</kbd>/<kbd>ひらがな</kbd>/<kbd>ローマ字</kbd> (katakana/hiragana/romaji)
     KanaMode = 65,
     -- Korean: HangulMode <kbd>한/영</kbd> (han/yeong)
-    -- 
+    --
     -- Japanese (Mac keyboard): <kbd>か</kbd> (kana)
     Lang1 = 66,
     -- Korean: Hanja <kbd>한</kbd> (hanja)
-    -- 
+    --
     -- Japanese (Mac keyboard): <kbd>英</kbd> (eisu)
     Lang2 = 67,
     -- Japanese (word-processing keyboard): Katakana
@@ -366,7 +366,7 @@ KeyboardButton = {
     -- <kbd>⌦</kbd>. The forward delete key.
     -- Note that on Apple keyboards, the key labelled <kbd>Delete</kbd> on the main part of
     -- the keyboard is encoded as [`Backspace`].
-    -- 
+    --
     -- [`Backspace`]: Self::Backspace
     Delete = 72,
     -- <kbd>Page Down</kbd>, <kbd>End</kbd>, or <kbd>↘</kbd>
@@ -420,7 +420,7 @@ KeyboardButton = {
     -- <kbd>C</kbd> or <kbd>A</kbd> (All Clear). Also for use with numpads that have a
     -- <kbd>Clear</kbd> key that is separate from the <kbd>NumLock</kbd> key. On the Mac, the
     -- numpad <kbd>Clear</kbd> key is encoded as [`NumLock`].
-    -- 
+    --
     -- [`NumLock`]: Self::NumLock
     NumpadClear = 96,
     -- <kbd>C</kbd> (Clear Entry)
@@ -451,7 +451,7 @@ KeyboardButton = {
     NumpadMemorySubtract = 108,
     -- <kbd>*</kbd> on a keyboard. For use with numpads that provide mathematical
     -- operations (<kbd>+</kbd>, <kbd>-</kbd> <kbd>*</kbd> and <kbd>/</kbd>).
-    -- 
+    --
     -- Use `NumpadStar` for the <kbd>*</kbd> key on phones and remote controls.
     NumpadMultiply = 109,
     -- <kbd>(</kbd> Found on the Microsoft Natural Keyboard.
@@ -459,10 +459,10 @@ KeyboardButton = {
     -- <kbd>)</kbd> Found on the Microsoft Natural Keyboard.
     NumpadParenRight = 111,
     -- <kbd>*</kbd> on a phone or remote control device.
-    -- 
+    --
     -- This key is typically found below the <kbd>7</kbd> key and to the left of
     -- the <kbd>0</kbd> key.
-    -- 
+    --
     -- Use <kbd>"NumpadMultiply"</kbd> for the <kbd>*</kbd> key on
     -- numeric keypads.
     NumpadStar = 112,
@@ -482,7 +482,7 @@ KeyboardButton = {
     -- <kbd>Pause Break</kbd>
     Pause = 119,
     -- Some laptops place this key to the left of the <kbd>↑</kbd> key.
-    -- 
+    --
     -- This also the "back" button (triangle) on Android.
     BrowserBack = 120,
     BrowserFavorites = 121,
@@ -637,4 +637,3 @@ KeyboardButton = {
     -- General-purpose function key.
     F35 = 193,
 }
-

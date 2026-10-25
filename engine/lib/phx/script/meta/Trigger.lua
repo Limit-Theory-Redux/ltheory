@@ -43,4 +43,3 @@ function Trigger:getPosLocal(result) end
 
 ---@return RigidBody?
 function Trigger:getParent() end
-

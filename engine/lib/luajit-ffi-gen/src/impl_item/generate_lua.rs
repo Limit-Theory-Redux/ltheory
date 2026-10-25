@@ -394,6 +394,14 @@ fn write_method_map<F: FnMut(String)>(
 
     method.params.iter().for_each(|param_info| {
         args.push(param_info.as_ffi_name());
+        // A slice or array is a pointer and a length in C (see the
+        // declarations): the wrapper passes both on.
+        if matches!(
+            param_info.ty,
+            TypeInfo::Slice { .. } | TypeInfo::Array { .. }
+        ) {
+            args.push(format!("{}_size", param_info.as_ffi_name()));
+        }
         if let TypeInfo::Plain { is_ref, ty } = &param_info.ty
             && *is_ref == TypeRef::Value
             && !ty.is_copyable(module_name)

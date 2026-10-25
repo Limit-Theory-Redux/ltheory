@@ -6,10 +6,8 @@
 #include math
 #include fog
 
-#autovar vec3 eye
-#autovar samplerCube envMap
-#autovar samplerCube irMap
 
+#group 1
 uniform sampler2D texDiffuse;
 
 in float vertScale;
@@ -17,7 +15,14 @@ in float vertScale;
 void main() {
   vec3 N = normalize(normal);
   vec3 V = normalize(pos - eye);
-  vec3 c = linear(sampleFDM(texDiffuse, vertScale * vertPos.xyz).xyz);
+  float fdmLo, fdmHi, fdmT;
+  getFDMParams(fdmLo, fdmHi, fdmT);
+  vec3 fdmPos = vertScale * vertPos.xyz;
+  vec4 fdmColor = mix(
+    texture(texDiffuse, triplanarCoords(fdmLo * fdmPos)),
+    texture(texDiffuse, triplanarCoords(fdmHi * fdmPos)),
+    fdmT);
+  vec3 c = linear(fdmColor.xyz);
   c *= radians(360.0);
   c *= uv.x;
   c *= c;

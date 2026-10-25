@@ -1,8 +1,10 @@
 #include fragment
 
-uniform float radius;
-uniform vec2 size;
-uniform vec4 color;
+#include imm
+
+#define radius (imm_p.x)
+#define size (imm_p.yz)
+#define color imm_color
 
 const float k = sqrt(3.0) / 2.0;
 

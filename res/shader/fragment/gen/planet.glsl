@@ -1,12 +1,19 @@
 #include fragment
 #include math
 #include noise
-#include texcube
 
-uniform float seed;
-uniform float freq;
-uniform float power;
-uniform vec4 coef;
+#group 2
+layout(std140) uniform Params {
+    vec4 genLook;   // face data written by TexGen.Cube (must stay the first three members)
+    vec4 genUp;
+    vec4 genSize;   // x = face size in pixels
+    float seed;
+    float freq;
+    float power;
+    vec4 coef;
+};
+
+#include texcube
 
 float genClouds(vec3 p) {
   p += 0.5 * vec3(

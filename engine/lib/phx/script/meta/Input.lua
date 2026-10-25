@@ -70,4 +70,3 @@ function Input:isKeyboardShiftPressed() end
 
 ---@return boolean
 function Input:isKeyboardShiftDown() end
-

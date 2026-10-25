@@ -1,4 +1,4 @@
-local Generator       = require('Legacy.Systems.Gen.Generator')
+local Generator       = require('Shared.Generation.Generator')
 local SystemGenerator = require('Legacy.Systems.Gen.SystemGenerator')
 local Asteroid        = require('Legacy.GameObjects.Entities.Objects.Asteroid')
 local Planet          = require('Legacy.GameObjects.Entities.Objects.Planet')

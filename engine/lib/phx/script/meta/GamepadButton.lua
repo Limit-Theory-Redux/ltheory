@@ -61,4 +61,3 @@ GamepadButton = {
     -- The right button of the D-Pad.
     DPadRight = 18,
 }
-

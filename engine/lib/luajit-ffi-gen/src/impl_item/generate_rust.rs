@@ -485,9 +485,11 @@ impl ImplInfo {
             } => {
                 let size_param_ident = format_ident!("{}_size", name);
 
+                // An empty slice may come with any pointer (Lua passes nil for
+                // an empty array) and never touches it; a non-empty one needs
+                // a real one.
                 prelude.push(quote! {
-                    assert!(!#name_accessor.is_null(), "array pointer is null");
-                    assert!(#size_param_ident > 0, "array length must be greater than 0");
+                    assert!(#size_param_ident == 0 || !#name_accessor.is_null(), "array pointer is null");
                 });
 
                 match ty {
@@ -500,18 +502,30 @@ impl ImplInfo {
                             _ => panic!("Unhandled pointer conversion."),
                         };
                         prelude.push(quote! {
-                            let #name_accessor: Vec<_> = std::slice::from_raw_parts(#name_accessor, #size_param_ident).iter().map(|ptr| #ptr_conversion).collect();
+                            let #name_accessor: Vec<_> = if #size_param_ident == 0 {
+                                Vec::new()
+                            } else {
+                                std::slice::from_raw_parts(#name_accessor, #size_param_ident).iter().map(|ptr| #ptr_conversion).collect()
+                            };
                         });
                         quote! { #name_accessor.as_slice() }
                     }
                     _ => {
                         if *is_ref == TypeRef::MutableReference {
                             quote! {
-                                std::slice::from_raw_parts_mut(#name_accessor, #size_param_ident)
+                                if #size_param_ident == 0 {
+                                    Default::default()
+                                } else {
+                                    std::slice::from_raw_parts_mut(#name_accessor, #size_param_ident)
+                                }
                             }
                         } else {
                             quote! {
-                                std::slice::from_raw_parts(#name_accessor, #size_param_ident)
+                                if #size_param_ident == 0 {
+                                    Default::default()
+                                } else {
+                                    std::slice::from_raw_parts(#name_accessor, #size_param_ident)
+                                }
                             }
                         }
                     }

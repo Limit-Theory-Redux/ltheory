@@ -1,12 +1,14 @@
 #include fragment
 #include math
 
-uniform vec2 size;
-uniform vec4 color;
-uniform float r1;
-uniform float r2;
-uniform float to;
-uniform float tw;
+#include imm
+
+#define r1 (imm_p.x)
+#define r2 (imm_p.y)
+#define to (imm_p.z)
+#define tw (imm_p.w)
+#define size (imm_q.xy)
+#define color imm_color
 
 const float bevel = 2.0;
 

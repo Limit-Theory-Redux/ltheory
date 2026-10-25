@@ -52,9 +52,6 @@ function Dust:render(state)
             shader:stop()
             texDust:pop()
             texDust:genMipmap()
-            texDust:setMagFilter(TexFilter.Linear)
-            texDust:setMinFilter(TexFilter.LinearMipLinear)
-            texDust:setWrapMode(TexWrapMode.Clamp)
         end
 
         local cam = Systems.Camera.Camera.get()

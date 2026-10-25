@@ -19,18 +19,16 @@ function Loader.defineType()
         ffi.cdef [[
             void      Tex3D_Free         (Tex3D*);
             Tex3D*    Tex3D_Create       (Renderer* r, int sx, int sy, int sz, TexFormat format);
-            void      Tex3D_Pop          (Tex3D const*, Renderer* r);
-            void      Tex3D_Push         (Tex3D const*, Renderer* r, int layer);
-            void      Tex3D_PushLevel    (Tex3D const*, Renderer* r, int layer, int level);
+            Tex3D*    Tex3D_CreateDesc   (Renderer* r, int sx, int sy, int sz, TexFormat format, int mips, uint32 usage);
+            TexView*  Tex3D_View         (Tex3D const*);
+            TexView*  Tex3D_LayerView    (Tex3D const*, int layer);
+            TexView*  Tex3D_LayerMipView (Tex3D const*, int layer, int level);
             void      Tex3D_GenMipmap    (Tex3D*, Renderer* r);
             Bytes*    Tex3D_GetDataBytes (Tex3D*, Renderer* r, PixelFormat pf, DataFormat df);
             TexFormat Tex3D_GetFormat    (Tex3D const*);
             Vec3i     Tex3D_GetSize      (Tex3D const*);
             Vec3i     Tex3D_GetSizeLevel (Tex3D const*, int level);
             void      Tex3D_SetDataBytes (Tex3D*, Renderer* r, Bytes* data, PixelFormat pf, DataFormat df);
-            void      Tex3D_SetMagFilter (Tex3D*, Renderer* r, TexFilter filter);
-            void      Tex3D_SetMinFilter (Tex3D*, Renderer* r, TexFilter filter);
-            void      Tex3D_SetWrapMode  (Tex3D*, Renderer* r, TexWrapMode mode);
         ]]
     end
 
@@ -38,6 +36,10 @@ function Loader.defineType()
         Tex3D = {
             Create       = function(r, sx, sy, sz, format)
                 local _instance = libphx.Tex3D_Create(r, sx, sy, sz, format)
+                return Core.ManagedObject(_instance, libphx.Tex3D_Free)
+            end,
+            CreateDesc   = function(r, sx, sy, sz, format, mips, usage)
+                local _instance = libphx.Tex3D_CreateDesc(r, sx, sy, sz, format, mips, usage)
                 return Core.ManagedObject(_instance, libphx.Tex3D_Free)
             end,
         }
@@ -50,9 +52,18 @@ function Loader.defineType()
         local t  = ffi.typeof('Tex3D')
         local mt = {
             __index = {
-                pop          = libphx.Tex3D_Pop,
-                push         = libphx.Tex3D_Push,
-                pushLevel    = libphx.Tex3D_PushLevel,
+                view         = function(self)
+                    local _instance = libphx.Tex3D_View(self)
+                    return Core.ManagedObject(_instance, libphx.TexView_Free)
+                end,
+                layerView    = function(self, layer)
+                    local _instance = libphx.Tex3D_LayerView(self, layer)
+                    return Core.ManagedObject(_instance, libphx.TexView_Free)
+                end,
+                layerMipView = function(self, layer, level)
+                    local _instance = libphx.Tex3D_LayerMipView(self, layer, level)
+                    return Core.ManagedObject(_instance, libphx.TexView_Free)
+                end,
                 genMipmap    = libphx.Tex3D_GenMipmap,
                 getDataBytes = function(self, r, pf, df)
                     local _instance = libphx.Tex3D_GetDataBytes(self, r, pf, df)
@@ -62,9 +73,6 @@ function Loader.defineType()
                 getSize      = libphx.Tex3D_GetSize,
                 getSizeLevel = libphx.Tex3D_GetSizeLevel,
                 setDataBytes = libphx.Tex3D_SetDataBytes,
-                setMagFilter = libphx.Tex3D_SetMagFilter,
-                setMinFilter = libphx.Tex3D_SetMinFilter,
-                setWrapMode  = libphx.Tex3D_SetWrapMode,
             },
         }
 

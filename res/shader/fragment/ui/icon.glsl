@@ -1,6 +1,10 @@
 #include fragment
 
-uniform vec4 color;
+#include imm
+
+#define color imm_color
+
+#group 3
 uniform sampler2D icon;
 
 void main() {

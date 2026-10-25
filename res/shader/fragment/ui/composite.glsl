@@ -4,6 +4,7 @@
 #include math
 #include noise
 
+#group 3
 uniform sampler2D srcBottom;
 uniform sampler2D srcTop;
 

@@ -4,15 +4,23 @@
 #include color
 #include math
 #include noise
-#include texcube
 
-uniform vec3 color;
+#group 2
+layout(std140) uniform Params {
+    vec4 genLook;   // face data written by TexGen.Cube (must stay the first three members)
+    vec4 genUp;
+    vec4 genSize;   // x = face size in pixels
+    vec3 color;
+    float roughness;
+    float seed;
+    vec3 genStarDir;
+};
+#group 3
 uniform sampler1D lutR;
 uniform sampler1D lutG;
 uniform sampler1D lutB;
-uniform float roughness;
-uniform float seed;
-uniform vec3 genStarDir;
+
+#include texcube
 
 const float kScale      = 0.030;
 const float kSamples    = 96.00;

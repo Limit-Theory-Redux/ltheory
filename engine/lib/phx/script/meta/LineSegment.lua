@@ -13,4 +13,3 @@ function LineSegment.FromRay(ray) end
 
 ---@return string
 function LineSegment:toString() end
-

@@ -1,11 +1,7 @@
 local Test = require('States.Application')
 local rng = RNG.FromTime()
 
-local useRenderer = true
-
-
 function Test:onInit()
-    self.renderer = RenderPipeline()
     self.fading = true
 end
 
@@ -56,17 +52,8 @@ function Test:onUpdate(dt)
     Profiler.End()
 end
 
-function Test:onDraw()
-    if useRenderer then
-        self.renderer:start(self.resX, self.resY)
-        Viewport.Push(0, 0, self.resX, self.resY, true)
-        Gui:draw()
-        Viewport.Pop()
-        self.renderer:stop()
-        self.renderer:present(0, 0, self.resX, self.resY)
-    else
-        Gui:draw()
-    end
+function Test:onRender()
+    self:immediateUI(function() Gui:draw() end)
 end
 
 return Test

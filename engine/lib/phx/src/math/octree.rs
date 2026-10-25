@@ -202,13 +202,12 @@ impl Octree {
     }
 
     pub fn draw(&mut self, r: &mut Renderer) {
-        Draw::color(r, 1.0, 1.0, 1.0, 1.0);
-        Draw::box3(r, &self.box_0);
-        Draw::color(r, 0.0, 1.0, 0.0, 1.0);
+        let state = ImmDebugState::default();
+        r.imm_debug_box3(state, &self.box_0, &Color::WHITE, 1.0);
 
         let mut elem = self.elems.as_ref();
         while let Some(node) = elem {
-            Draw::box3(r, &node.box_0);
+            r.imm_debug_box3(state, &node.box_0, &Color::GREEN, 1.0);
             elem = node.next.as_ref();
         }
         for child in self.child.iter_mut().flatten() {

@@ -1,5 +1,7 @@
 #version 330
 
+#include math
+
 in vec2 uv;
 out vec4 outColor;
 
@@ -11,10 +13,6 @@ uniform float variance;
 
 float lum(vec3 c) {
   return dot(c, vec3(0.2126, 0.7152, 0.0722));
-}
-
-vec2 saturate(vec2 x) {
-  return clamp(x, vec2(0.0, 0.0), vec2(1.0, 1.0));
 }
 
 void main() {

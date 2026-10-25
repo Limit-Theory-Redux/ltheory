@@ -1,5 +1,6 @@
 #include filter
 
+uniform vec2 size;
 uniform int radius;
 uniform float sigma;
 

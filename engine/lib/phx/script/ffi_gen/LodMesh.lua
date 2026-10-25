@@ -21,7 +21,6 @@ function Loader.defineType()
             LodMesh* LodMesh_Create ();
             LodMesh* LodMesh_Clone  (LodMesh const*);
             void     LodMesh_Add    (LodMesh*, Mesh* mesh, float distanceMin, float distanceMax);
-            void     LodMesh_Draw   (LodMesh*, Renderer* r, float distanceSquared);
             Mesh*    LodMesh_Get    (LodMesh*, float distanceSquared);
         ]]
     end
@@ -50,7 +49,6 @@ function Loader.defineType()
                     ffi.gc(mesh, nil)
                     libphx.LodMesh_Add(self, mesh, distanceMin, distanceMax)
                 end,
-                draw  = libphx.LodMesh_Draw,
                 get   = function(self, distanceSquared)
                     local _instance = libphx.LodMesh_Get(self, distanceSquared)
                     return Core.ManagedObject(_instance, libphx.Mesh_Free)

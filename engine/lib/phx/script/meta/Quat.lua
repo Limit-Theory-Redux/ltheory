@@ -135,4 +135,3 @@ function Quat:toString() end
 
 ---@return Error
 function Quat:validate() end
-

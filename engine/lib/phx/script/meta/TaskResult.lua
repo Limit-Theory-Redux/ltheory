@@ -17,4 +17,3 @@ function TaskResult:payload() end
 
 ---@return string?
 function TaskResult:error() end
-

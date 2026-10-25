@@ -1,8 +1,11 @@
-#include vertex
+#include vertex_scene
 
 out vec3 objPos;
 
-uniform float effectScale;
+#group 1
+layout(std140) uniform MaterialParams {
+  float effectScale;
+};
 
 void main() {
   VS_BEGIN

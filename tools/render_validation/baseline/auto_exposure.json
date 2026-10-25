@@ -1,0 +1,10 @@
+{
+  "commit": "197d5bf6",
+  "note": "Recorded with the synchronous auto-exposure (128 Tex2D:sample reads per frame) before render API v2 S8. 'target' is the unsmoothed exposure target, 'current' the adapted exposure at the end of each 150-frame phase (dt 1/60). The targets of the two uniform scenes sit on the minTarget/maxTarget clamps of PostFxConfig; 'current' lags by the few frames an async readback takes.",
+  "dark_target": 2.5,
+  "dark_current": 2.07249,
+  "bright_target": 0.4,
+  "bright_current": 1.18854,
+  "target_tolerance": 0.0001,
+  "current_tolerance": 0.05
+}

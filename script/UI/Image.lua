@@ -8,14 +8,11 @@ Image.name = 'Image'
 Image:setStretch(0, 0)
 
 local default
+local white = Color(1, 1, 1, 1)
 
 function Image:onDraw(focus, active)
-    local shader = Cache.Shader('ui', 'simple_image')
-    shader:start()
-    shader:setTex2D("image", self.tex)
     local x, y, sx, sy = self:getRectGlobal()
-    Draw.Rect(x, y, sx, sy)
-    shader:stop()
+    Imm.Image(self.tex, Samplers.Point, x, y, sx, sy, 0, 0, 1, 1, white)
 end
 
 function Image:setTex(tex)

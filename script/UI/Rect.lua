@@ -1,7 +1,9 @@
 local self = {}
+local white = Color(1, 1, 1, 1)
 
-function self.draw(x, y, sx, sy)
-    Draw.Rect(x, y, sx, sy)
+--- A solid rectangle (alpha blended).
+function self.draw(x, y, sx, sy, color)
+    UI.DrawEx.SimpleRect(x, y, sx, sy, color or white)
 end
 
 function self.containsPoint(x, y, sx, sy, px, py)

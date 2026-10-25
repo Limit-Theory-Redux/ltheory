@@ -1,5 +1,7 @@
 local Application                 = require('States.Application')
 
+local PlanetMaterials = require("Shared.Rendering.PlanetMaterials")
+local Backdrop = require("Render.Backdrop")
 ---@class CameraTest: Application
 local CameraTest                  = Subclass("CameraTest", Application)
 
@@ -35,9 +37,9 @@ local RTSCameraController         = require('Modules.Cameras.Managers.CameraCont
 
 ---! still using legacy
 local Primitive                   = require("Legacy.Systems.Gen.Primitive")
-local GenUtil                     = require("Legacy.Systems.Gen.GenUtil")
-local Generator                   = require("Legacy.Systems.Gen.Generator")
-local Starfield                   = require("Legacy.Systems.Gen.Starfield")
+local GenUtil                     = require("Core.ECS.Mesh.Util.GenUtil")
+local Generator                   = require("Shared.Generation.Generator")
+local Starfield                   = require("Shared.Generation.Starfield")
 
 function CameraTest:onInit()
     Window:setPresentMode(PresentMode.NoVsync)
@@ -48,14 +50,17 @@ function CameraTest:onInit()
     self.world = Physics.Create()
 
     -- Skybox
-    self.skybox = SkyboxEntity(self.seed, function(entity, blendMode)
+    -- The skybox closure also builds the nebula maps, which renders to textures,
+    -- so run it once now (blendMode nil draws nothing): a render pass cannot be
+    -- open while another begins.
+    local skyboxFn = function(entity, blendMode)
         local placeholder = entity:get(CoreComponents.Empty)
         if not placeholder then
             placeholder = entity:add(CoreComponents.Empty)
         end
 
         if not placeholder.envMap then
-            require("Legacy.Systems.Gen.Nebula.Nebula1")
+            require("Shared.Generation.Nebula1")
             local nebulaRNG     = RNG.Create(entity:get(CoreComponents.Seed):getSeed() + 0xC0104FULL)
             local starAngle     = nebulaRNG:getDir2()
             placeholder.starDir = Vec3f(starAngle.x, 0, starAngle.y)
@@ -63,29 +68,13 @@ function CameraTest:onInit()
             placeholder.irMap   = placeholder.envMap:genIRMap(256)
             placeholder.stars   = Starfield(nebulaRNG, Config.gen.nStars(nebulaRNG))
             CameraManager:setStarDir(placeholder.starDir)
-            ShaderVar.PushTexCube('envMap', placeholder.envMap)
-            ShaderVar.PushTexCube('irMap', placeholder.irMap)
+            Renderer:setEnvironment(placeholder.envMap, placeholder.irMap)
         end
 
-        if blendMode == BlendMode.Disabled then
-            RenderState.PushDepthWritable(false)
-            local shader = Cache.Shader('farplane', 'skybox')
-            RenderState.PushCullFace(CullFace.None)
-            shader:start()
-            Draw.Box3(Box3f(-1, -1, -1, 1, 1, 1))
-            shader:stop()
-            RenderState.PopCullFace()
-            RenderState.PopDepthWritable()
-        elseif blendMode == BlendMode.Additive then
-            local shader = Cache.Shader('farplane', 'starbg')
-            shader:start()
-            shader:setFloat('brightnessScale', 3)
-            shader:setTexCube('irMap', placeholder.irMap)
-            shader:setTexCube('envMap', placeholder.envMap)
-            placeholder.stars:draw()
-            shader:stop()
-        end
-    end)
+        Backdrop.draw(placeholder, blendMode)
+    end
+    self.skybox = SkyboxEntity(self.seed, skyboxFn)
+    skyboxFn(self.skybox, nil)
 
     -- Camera setup with FreeCameraController
     local cam = CameraEntity()
@@ -170,8 +159,8 @@ function CameraTest:createPlanet(seed)
         coef = self.genOptions.surfaceCoef
     })
 
-    self.matPlanet = Materials.PlanetSurface()
-    self.matAtmo = Materials.PlanetAtmosphere()
+    self.matPlanet = Materials.PlanetSurface:instance()
+    self.matAtmo = Materials.PlanetAtmosphere:instance()
 
     self.planet = PlanetEntity(seed, {
         { mesh = mesh,     material = self.matPlanet },
@@ -188,6 +177,7 @@ function CameraTest:createPlanet(seed)
     rb:setKinematic(true)
     rb:setPos(Position(self.planetPos.x, self.planetPos.y, self.planetPos.z))
     rb:setScale(planetRNG:getInt(100, 200))
+    PlanetMaterials.planet(self.matPlanet, self.matAtmo, self.genOptions)
 
     -- add rb to physics world
     self.world:addRigidBody(rb)
@@ -275,11 +265,10 @@ function CameraTest:createMoons(seed, numMoons)
         })
 
         texSurface:genMipmap()
-        texSurface:setMagFilter(TexFilter.Linear)
-        texSurface:setMinFilter(TexFilter.LinearMipLinear)
 
-        local matPlanet = Materials.MoonSurface()
+        local matPlanet = Materials.MoonSurface:instance()
         matPlanet:setTexture("surface", texSurface)
+        PlanetMaterials.moon(matPlanet, moonOptions)
 
         local moon = MoonEntity(moonSeed, {
             { mesh = mesh, material = matPlanet },

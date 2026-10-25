@@ -15,12 +15,7 @@ bench = true
 workspace = true
 
 [features]
-# Execute RenderCommands inline on the calling thread instead of on a
-# dedicated render thread. The dedicated render thread (feat/multithreaded_rendering)
-# is now the default; enable this feature to fall back to single-threaded
-# execution for debugging/comparison.
 default = []
-immediate = []
 # Serve a live render-stats dashboard over HTTP (embedded tiny_http server,
 # self-contained HTML page at /, JSON snapshot at /stats.json). Start with
 # the ltr `--stats-server <port>` flag; inactive unless enabled.
@@ -41,8 +36,6 @@ flate2 = "1.1"
 freetype-sys = "0.20"
 gilrs = "0.11"
 glam = { version = "0.29", features = ["scalar-math"] }
-glutin = "0.32"
-glutin-winit = "0.5"
 image = "0.25"
 indexmap = "2.14"
 kira = { version = "0.9", features = ["symphonia", "cpal", "serde"] }
@@ -70,13 +63,19 @@ strum = "0.28"
 strum_macros = "0.28"
 tobj = "4.0"
 byteorder = "1.5"
+# NOTE: Cargo.lock pins gpu-allocator's `windows` dependency to 0.62 (the
+# version wgpu-hal uses). gpu-allocator accepts 0.53..=0.62, so a
+# `cargo update` touching the wgpu tree may re-resolve it to 0.54 (pulled in
+# by cpal) and break wgpu-hal's DX12 build with ID3D12Device type mismatches.
+# If that happens, re-point gpu-allocator's "windows" entry in Cargo.lock.
+wgpu = { version = "30", features = ["glsl", "vulkan", "dx12", "naga-ir"] }
+pollster = "0.4"
+# Belt cull worker pool (render/instance_field.rs); already in Cargo.lock via other deps.
+rayon = "1.10"
 
 [dev-dependencies]
 test-log = "0.2"
 criterion = "0.8"
-
-[build-dependencies]
-gl_generator = "0.14"
 
 [[bench]]
 name = "worker"

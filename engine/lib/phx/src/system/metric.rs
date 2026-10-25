@@ -47,6 +47,15 @@ impl Metric {
         value_curr[Self::VertsDrawn as usize] += verts as u64;
     }
 
+    /// `count` mesh draws at once (one lock instead of one per draw).
+    pub fn add_draws(count: u64, polys: u64, tris: u64, verts: u64) {
+        let mut value_curr = VALUE_CURR.lock().expect("Cannot lock metric values");
+        value_curr[Self::DrawCalls as usize] += count;
+        value_curr[Self::PolysDrawn as usize] += polys;
+        value_curr[Self::TrisDrawn as usize] += tris;
+        value_curr[Self::VertsDrawn as usize] += verts;
+    }
+
     pub fn add_draw_imm(polys: u64, tris: u64, verts: u64) {
         let mut value_curr = VALUE_CURR.lock().expect("Cannot lock metric values");
         value_curr[Self::Immediate as usize] += 1;

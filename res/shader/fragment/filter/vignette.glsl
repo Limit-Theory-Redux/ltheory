@@ -3,9 +3,13 @@
 in vec2 uv;
 out vec4 outColor;
 
+#group 2
+layout(std140) uniform Params {
+    float hardness;
+    float strength;
+};
+#group 3
 uniform sampler2D src;
-uniform float hardness;
-uniform float strength;
 
 void main() {
   float a = 1.0;

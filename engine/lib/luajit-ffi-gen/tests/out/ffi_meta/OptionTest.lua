@@ -75,4 +75,3 @@ function OptionTest:getString() end
 
 ---@return string?
 function OptionTest:getStringRef() end
-

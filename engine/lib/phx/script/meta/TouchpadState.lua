@@ -16,4 +16,3 @@ function TouchpadState:magnifyDelta() end
 
 ---@return number
 function TouchpadState:rotateDelta() end
-

@@ -1,7 +1,6 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::thread::{self, JoinHandle};
-use std::time::Duration;
 
 use crossbeam::channel::{Receiver, Sender, TrySendError, bounded, unbounded};
 use tracing::{error, info};
@@ -10,13 +9,12 @@ use tracing::{error, info};
 use crate::render::StatsSink;
 use crate::render::thread::RenderThread;
 use crate::render::{
-    BlendMode, CameraUboArray, ClipManager, CmdPrimitiveType, CullFace, DrawState, GpuHandle,
-    ImmVertex, InstanceData, InstanceUniformsCmd, PrimitiveBuilder, RenderCommand,
-    RenderStateIntern, RenderStats, RenderTargetStack, RenderThreadConfig, RenderThreadError,
-    RendererData, ResourceId, ShaderErrorQueue, ShaderReloadResult, ShaderVarMap, TexFilter,
-    TexFormat, TexWrapMode, VertexFormat, VpStack,
+    BindEntry, BindGroupId, BlockLayout, BufferId, PassCommands, PipelineDesc, PipelineId,
+    ReadSource, ReadbackSlot, ReadbackTicket, RenderCommand, RenderPassDesc, RenderStats,
+    RenderThreadConfig, RenderThreadError, RendererData, ResourceId, ReturnedChunk, SamplerCache,
+    SamplerDesc, SamplerId, ShaderLayout, TexDesc, TexFormat, TexRegion, TexView, VertexFormat,
 };
-use crate::window::{PresentMode, WindowError, WindowGlContext};
+use crate::window::{PresentMode, WgpuStartupBundle};
 
 /// Maximum frames in flight for triple buffering
 const MAX_FRAMES_IN_FLIGHT: u64 = 3;
@@ -32,18 +30,16 @@ pub struct Renderer {
     /// so `end_frame_triple_buffered` can never consume a fence meant for a
     /// concurrently-blocked `sync_intern` call, or vice versa.
     pacing_fence_rx: Receiver<u64>,
-    /// Receive shader reload results from the render thread
-    shader_result_rx: Receiver<ShaderReloadResult>,
-    /// Receive returned GL context when render thread shuts down
-    context_rx: Receiver<Option<WindowGlContext>>,
+    /// Ring memory the executor has uploaded, coming back for reuse.
+    chunk_return_rx: Receiver<ReturnedChunk>,
     /// Next fence ID to use
     next_fence_id: AtomicU64,
     /// Number of frames currently in flight (submitted but not rendered)
     frames_in_flight: AtomicU64,
     /// Whether the render thread is running
     running: Arc<AtomicBool>,
-    /// Thread handle for joining
-    thread_handle: JoinHandle<()>,
+    /// Thread handle for joining; taken by `Drop`
+    thread_handle: Option<JoinHandle<()>>,
     /// Receives a stats snapshot from the render thread once per frame
     stats_rx: Receiver<RenderStats>,
     /// Most recent snapshot received over `stats_rx`
@@ -65,129 +61,64 @@ pub struct Renderer {
     // carry none of the publishing path.
     #[cfg(feature = "stats-server")]
     pub(super) stats_sink: Option<StatsSink>,
-    /// Shared with the executor: enables per-category timing when the sink is
-    /// attached (dashboard mode). Kept on the renderer so `attach_stats_sink`
-    /// can flip it after the executor has moved to the render thread.
-    #[cfg(feature = "stats-server")]
-    pub(super) category_timing: Arc<AtomicBool>,
+    /// Backend description (`key=value` lines), empty for a headless renderer.
+    backend_info: String,
     /// Generic renderer data
     pub(crate) data: RendererData,
-    /// Last shader bind submitted, so identical consecutive binds can skip
-    /// the channel send entirely (the executor's current_program is already
-    /// that program). Mirrors the executor's program state across all bind
-    /// paths: raw-handle binds and unbinds invalidate it.
-    last_shader_bind: Option<u64>,
 }
 
 impl Renderer {
-    pub fn start(context: WindowGlContext) -> Result<Self, RenderThreadError> {
-        Self::create_intern(Some(context))
+    /// Start the render thread: the surface bundle (device, queue, surface)
+    /// moves to it, where `WgpuCommandExecutor` executes the commands.
+    pub fn start(bundle: WgpuStartupBundle) -> Result<Self, RenderThreadError> {
+        Self::create_intern(Some(bundle))
     }
 
-    pub fn stop(self) -> Option<WindowGlContext> {
-        // We have exclusive access - shutdown and get context
-        info!("Calling shutdown...");
-        let returned_ctx = self.shutdown();
-        info!("Render thread stopped");
-
-        returned_ctx
-    }
-
-    fn create_intern(context: Option<WindowGlContext>) -> Result<Self, RenderThreadError> {
-        const SHADER_RESULT_BUFFER_SIZE: usize = 16;
-
-        // Spawn the render thread with the GL context
+    fn create_intern(bundle: Option<WgpuStartupBundle>) -> Result<Self, RenderThreadError> {
         let config = RenderThreadConfig::default();
         // Use bounded channel for backpressure - SwapBuffers will block to sync with render thread
         let (command_tx, command_rx) = bounded(config.command_buffer_size);
         let (fence_tx, fence_rx) = bounded(config.fence_buffer_size);
         let (pacing_fence_tx, pacing_fence_rx) = bounded(config.fence_buffer_size);
-        let (shader_result_tx, shader_result_rx) = bounded(SHADER_RESULT_BUFFER_SIZE); // Buffer for shader reload results
-        let (context_tx, context_rx) = bounded(1); // Only one context to return
+        // Unbounded: the executor must never block returning ring memory.
+        let (chunk_return_tx, chunk_return_rx) = unbounded();
         let (stats_tx, stats_rx) = bounded(1); // Only the latest snapshot matters
         // Unbounded: `ResourceHandle::drop` must never block or fail.
         let (destroy_tx, destroy_rx) = unbounded();
-        // Bounded(1): the render thread reports whether it managed to activate
-        // the GL context before doing anything else, so `create_intern` can
-        // fail synchronously instead of silently running with a no-op
-        // executor (see `RenderThreadError::ContextActivationFailed`).
-        let (ready_tx, ready_rx) = bounded::<Result<(), WindowError>>(1);
         let running = Arc::new(AtomicBool::new(true));
         let running_clone = running.clone();
-        // Shared with the executor: flipped on by the main thread when a stats
-        // sink is attached (dashboard mode), enabling per-category timing.
-        let category_timing = Arc::new(AtomicBool::new(false));
-        let category_timing_executor = category_timing.clone();
+        let backend_info = bundle
+            .as_ref()
+            .map(|b| super::render_thread::wgpu_backend_info(&b.adapter, &b.surface_config))
+            .unwrap_or_default();
 
         let thread_handle =
             thread::Builder::new()
                 .name("RenderThread".into())
                 .spawn(move || {
-                    // Make GL context current on this thread
-                    let gl_context = if let Some(active_context) = context {
-                        match active_context.make_current() {
-                            Ok(ctx) => {
-                                info!("GL context made current on render thread");
-                                if let Err(err) = ready_tx.send(Ok(())) {
-                                    error!("Cannot report GL contaxt activation success: {err}");
-                                }
-                                Some(ctx)
-                            }
-                            Err(e) => {
-                                error!("Failed to make GL context current on render thread: {e}");
-                                if let Err(err) = ready_tx.send(Err(e)) {
-                                    error!("Cannot report GL contaxt activation failure: {err}");
-                                }
-                                // Nothing to run without a context - exit before
-                                // constructing `RenderThread` at all.
-                                return;
-                            }
-                        }
-                    } else {
-                        if let Err(err) = ready_tx.send(Ok(())) {
-                            error!("Cannot report GL contaxt activation success: {err}");
-                        }
-                        None
-                    };
-
-                    // Pass GL context to render thread for buffer swapping
-                    let mut render_thread = RenderThread::new(
+                    RenderThread::new(
                         command_rx,
                         fence_tx,
                         pacing_fence_tx,
-                        shader_result_tx,
-                        context_tx,
                         stats_tx,
+                        chunk_return_tx,
                         running_clone,
-                        gl_context,
-                        category_timing_executor,
-                    );
-                    render_thread.run();
-
-                    // GL context will be returned via channel or dropped if cleanup fails
+                        bundle,
+                    )
+                    .run();
                 })?;
 
         info!("Render thread spawned");
 
-        // Block until the render thread reports whether it managed to
-        // activate the GL context - this is the one synchronous handshake
-        // in an otherwise fire-and-forget startup, and it's what lets a
-        // context-activation failure surface as `Err` here instead of
-        // silently degrading to a no-op executor down the line.
-        ready_rx.recv()??;
-
-        info!("Render thread started successfully");
-
-        Ok(Self {
+        let mut renderer = Self {
             command_tx,
             fence_rx,
             pacing_fence_rx,
-            shader_result_rx,
-            context_rx,
+            chunk_return_rx,
             next_fence_id: AtomicU64::new(1),
             frames_in_flight: AtomicU64::new(0),
             running,
-            thread_handle,
+            thread_handle: Some(thread_handle),
             stats_rx,
             last_stats: RenderStats::default(),
             main_thread_wait_us: 0,
@@ -196,33 +127,25 @@ impl Renderer {
             channel_high_water: 0,
             #[cfg(feature = "stats-server")]
             stats_sink: None,
-            #[cfg(feature = "stats-server")]
-            category_timing,
-            data: RendererData {
-                next_resource_id: 1,
-                destroy_tx,
-                destroy_rx,
-                command_buffer: vec![],
-                active_batch: None,
-                viewport: VpStack::new(),
-                render_target: RenderTargetStack::new(),
-                clip_rect: ClipManager::new(),
-                render_state: RenderStateIntern::new(),
-                imm: PrimitiveBuilder::new(),
-                draw_state: DrawState::new(),
-                shader_vars: ShaderVarMap::new(),
-                shader_errors: ShaderErrorQueue::new(),
-                shader_watcher: None,
-                ao_shader: None,
-                occlusion_shader: None,
-                irmap_shader: None,
-            },
-            last_shader_bind: None,
-        })
+            backend_info,
+            data: RendererData::new(destroy_tx, destroy_rx),
+        };
+        for (id, desc) in SamplerCache::presets() {
+            renderer.create_sampler(id, desc);
+        }
+        Ok(renderer)
     }
 
-    /// Submit a command to the render thread
+    /// Submit a non-pass command to the render thread. Anything recorded in
+    /// the open pass goes out first, so old and new commands in one pass
+    /// execute in order.
     fn submit(&mut self, cmd: RenderCommand) {
+        self.flush_pass_encoder();
+        self.send(cmd);
+    }
+
+    /// Send a command to the render thread without flushing the pass encoder.
+    fn send(&mut self, cmd: RenderCommand) {
         if self.running.load(Ordering::Relaxed) {
             // Fast path: non-blocking try_send. Only when the bounded channel
             // is full do we fall back to a blocking send — and only then do we
@@ -282,7 +205,9 @@ impl Renderer {
     fn drain_destroy_queue(&mut self) {
         // Collect first: the `destroy_rx` borrow has to end before `submit`
         // takes `&mut self`.
-        let ids: Vec<_> = self.data.destroy_rx.try_iter().collect();
+        let dropped: Vec<_> = self.data.destroy_rx.try_iter().collect();
+        // Textures a live bind group still samples wait (see `TexturePins`).
+        let ids = self.data.tex_pins.destroyable(dropped);
 
         self.submit(RenderCommand::DestroyResources { ids });
     }
@@ -295,6 +220,8 @@ impl Renderer {
             return;
         }
 
+        self.pass_end_frame();
+        self.drain_releases();
         self.drain_destroy_queue();
 
         // Track ALL time spent in this function (includes channel blocking)
@@ -321,6 +248,10 @@ impl Renderer {
         let fence_id = self.next_fence_id.fetch_add(1, Ordering::Relaxed);
         self.submit(RenderCommand::PacingFence { fence_id });
         self.frames_in_flight.fetch_add(1, Ordering::Relaxed);
+        // The next frame's ring slot: the executor waits for the GPU to be
+        // done with that slot's previous frame before its buffers are reused.
+        let slot = self.data.ring.slot();
+        self.submit(RenderCommand::BeginFrame { slot });
 
         // Store total time spent in frame end (all blocking)
         self.main_thread_wait_us = frame_end_start.elapsed().as_micros() as u64;
@@ -352,6 +283,11 @@ impl Renderer {
         while let Ok(stats) = self.stats_rx.try_recv() {
             self.last_stats = stats;
         }
+    }
+
+    /// `key=value` lines describing the backend (empty without a device).
+    pub fn backend_info_intern(&self) -> String {
+        self.backend_info.clone()
     }
 
     /// Get current render stats snapshot
@@ -412,109 +348,35 @@ impl Renderer {
         self.refresh_stats();
         self.last_stats.texture_binds_skipped_cumulative
     }
+}
 
-    /// Reload a shader on the render thread.
-    /// Returns the result with success/failure and new program handle.
-    /// This blocks until the shader is compiled on the render thread.
-    pub fn reload_shader(
-        &mut self,
-        shader_key: &str,
-        vertex_src: &str,
-        fragment_src: &str,
-    ) -> ShaderReloadResult {
-        if !self.running.load(Ordering::Relaxed) {
-            return ShaderReloadResult {
-                shader_key: shader_key.to_string(),
-                error: Some("Render thread not running".to_string()),
-                program: 0,
-            };
-        }
-
-        // Send the reload command
-        self.submit(RenderCommand::ReloadShader {
-            shader_key: shader_key.to_string(),
-            vertex_src: vertex_src.to_string(),
-            fragment_src: fragment_src.to_string(),
-        });
-
-        // Wait for the result (blocking)
-        match self.shader_result_rx.recv() {
-            Ok(result) => result,
-            Err(_) => ShaderReloadResult {
-                shader_key: shader_key.to_string(),
-                error: Some("Channel closed while waiting for shader result".to_string()),
-                program: 0,
-            },
-        }
-    }
-
-    /// Request the render thread to shutdown.
-    /// Wait for the GL context to be returned from the render thread (blocking with timeout).
-    /// This should be called after shutdown() to retrieve the context for
-    /// restoring direct GL mode on the main thread.
-    fn shutdown(mut self) -> Option<WindowGlContext> {
+impl Drop for Renderer {
+    /// Stop the render thread and wait for it. The executor owns the wgpu
+    /// surface, which was created from the window's raw handles: it has to be
+    /// gone before `Engine` drops the window (see `create_surface_bundle`).
+    fn drop(&mut self) {
         if self.running.load(Ordering::Relaxed) {
             info!("Requesting render thread shutdown");
             self.submit(RenderCommand::Shutdown);
             self.running.store(false, Ordering::Relaxed);
-
-            // Wait for thread to finish
-            if let Err(e) = &self.thread_handle.join() {
+        }
+        if let Some(handle) = self.thread_handle.take() {
+            if let Err(e) = handle.join() {
                 error!("Render thread panicked: {e:?}");
-            } else {
-                // Wait up to 5 seconds for the context to be returned
-                const CONTEXT_WAIT_TIMEOUT_SEC: u64 = 5;
-                match self
-                    .context_rx
-                    .recv_timeout(Duration::from_secs(CONTEXT_WAIT_TIMEOUT_SEC))
-                {
-                    Ok(ctx) => return ctx,
-                    Err(e) => {
-                        error!("Timeout or error waiting for GL context return: {e:?}");
-                    }
-                }
             }
         }
-        None
-    }
-
-    /// Get the GL context returned from the render thread after shutdown (non-blocking).
-    /// This should be called after shutdown() to retrieve the context for
-    /// restoring direct GL mode on the main thread.
-    pub fn take_returned_context(&self) -> Option<WindowGlContext> {
-        // Try to receive the context (non-blocking since shutdown already waited)
-        self.context_rx.try_recv().unwrap_or_default()
     }
 }
 
 // =========================================================================
 // Per-command API - one method per `RenderCommand` variant that any code
 // outside `render::thread` needs. Each constructs the matching
-// `RenderCommand` and calls `submit`/`try_submit`; see `renderer_immediate.rs`
-// for the immediate-mode counterpart that skips the enum entirely.
+// `RenderCommand` and calls `submit`/`try_submit`.
 // =========================================================================
 
 // === State Management ===
 
 impl Renderer {
-    /// Begin a new frame
-    pub(super) fn begin_frame_intern(&mut self) {
-        self.data.command_buffer.clear();
-    }
-
-    /// Flush all queued commands to the render thread
-    pub(super) fn flush_intern(&mut self) {
-        if self.running.load(Ordering::Relaxed) {
-            // TODO: send vector of commands instead of one by one
-            for cmd in self.data.command_buffer.drain(..) {
-                if let Err(e) = self.command_tx.send(cmd) {
-                    error!("Failed to send render command: {e:?}");
-                    break;
-                }
-            }
-        }
-    }
-
     /// Synchronize with the render thread (wait for all commands to complete)
     pub(super) fn sync_intern(&mut self) -> bool {
         if !self.running.load(Ordering::Relaxed) {
@@ -534,210 +396,28 @@ impl Renderer {
         }
     }
 
-    pub fn set_viewport_intern(&mut self, x: i32, y: i32, width: i32, height: i32) {
-        self.submit(RenderCommand::SetViewport {
-            x,
-            y,
-            width,
-            height,
-        });
-    }
-
-    pub fn set_scissor_intern(&mut self, x: i32, y: i32, width: i32, height: i32) {
-        self.submit(RenderCommand::SetScissor {
-            x,
-            y,
-            width,
-            height,
-        });
-    }
-
-    pub fn enable_scissor_intern(&mut self, enable: bool) {
-        self.submit(RenderCommand::EnableScissor(enable));
-    }
-
-    pub fn set_blend_mode_intern(&mut self, mode: BlendMode) {
-        self.submit(RenderCommand::SetBlendMode(mode));
-    }
-
-    pub fn set_cull_face_intern(&mut self, face: CullFace) {
-        self.submit(RenderCommand::SetCullFace(face));
-    }
-
-    pub fn set_depth_test_intern(&mut self, enable: bool) {
-        self.submit(RenderCommand::SetDepthTest(enable));
-    }
-
-    pub fn set_depth_writable_intern(&mut self, enable: bool) {
-        self.submit(RenderCommand::SetDepthWritable(enable));
-    }
-
-    pub fn set_wireframe_intern(&mut self, enable: bool) {
-        self.submit(RenderCommand::SetWireframe(enable));
-    }
-
-    pub fn set_line_width(&mut self, width: f32) {
-        self.submit(RenderCommand::SetLineWidth(width));
-    }
-
-    pub fn set_point_size(&mut self, size: f32) {
-        self.submit(RenderCommand::SetPointSize(size));
-    }
-
     // === Shader Operations ===
-
-    pub fn bind_shader_intern(&mut self, handle: GpuHandle) {
-        self.submit(RenderCommand::BindShader { handle });
-        self.last_shader_bind = Some(handle.0 as u64);
-    }
-
-    pub fn bind_shader_by_resource(&mut self, id: ResourceId, shader_key: Option<String>) {
-        // Skip identical consecutive binds: the executor's current_program is
-        // already this program (uniform/texture commands between two binds of
-        // the same shader don't change the program), so the command would
-        // only be deduped on the render thread anyway. Saves the channel
-        // send + executor dispatch per redundant bind (~1,900/frame in the
-        // main menu, where every mesh re-binds its material's shader).
-        if shader_key.is_none() && self.last_shader_bind == Some(id.0) {
-            return;
-        }
-        self.submit(RenderCommand::BindShaderByResource { id, shader_key });
-        self.last_shader_bind = Some(id.0);
-    }
-
-    pub fn unbind_shader_intern(&mut self) {
-        self.submit(RenderCommand::UnbindShader);
-        self.last_shader_bind = None;
-    }
-
-    pub fn set_uniform_int_intern(&mut self, location: i32, value: i32) {
-        self.submit(RenderCommand::SetUniformInt { location, value });
-    }
-
-    pub fn set_uniform_int2(&mut self, location: i32, value: [i32; 2]) {
-        self.submit(RenderCommand::SetUniformInt2 { location, value });
-    }
-
-    pub fn set_uniform_int3(&mut self, location: i32, value: [i32; 3]) {
-        self.submit(RenderCommand::SetUniformInt3 { location, value });
-    }
-
-    pub fn set_uniform_int4(&mut self, location: i32, value: [i32; 4]) {
-        self.submit(RenderCommand::SetUniformInt4 { location, value });
-    }
-
-    pub fn set_uniform_float_intern(&mut self, location: i32, value: f32) {
-        self.submit(RenderCommand::SetUniformFloat { location, value });
-    }
-
-    pub fn set_uniform_float2_intern(&mut self, location: i32, value: [f32; 2]) {
-        self.submit(RenderCommand::SetUniformFloat2 { location, value });
-    }
-
-    pub fn set_uniform_float3_intern(&mut self, location: i32, value: [f32; 3]) {
-        self.submit(RenderCommand::SetUniformFloat3 { location, value });
-    }
-
-    pub fn set_uniform_float4_intern(&mut self, location: i32, value: [f32; 4]) {
-        self.submit(RenderCommand::SetUniformFloat4 { location, value });
-    }
-
-    pub fn set_uniform_mat4(&mut self, location: i32, value: [f32; 16]) {
-        self.submit(RenderCommand::SetUniformMat4 { location, value });
-    }
-
-    pub fn set_instance_uniforms(
-        &mut self,
-        world_loc: i32,
-        world_it_loc: i32,
-        scale_loc: i32,
-        world: [f32; 16],
-        world_it: [f32; 16],
-        scale: f32,
-    ) {
-        self.submit(RenderCommand::SetInstanceUniforms(Box::new(
-            InstanceUniformsCmd {
-                world_loc,
-                world_it_loc,
-                scale_loc,
-                world,
-                world_it,
-                scale,
-            },
-        )));
-    }
 
     // === Texture Operations ===
 
-    pub fn bind_texture_2d_intern(&mut self, slot: u32, handle: GpuHandle) {
-        self.submit(RenderCommand::BindTexture2D { slot, handle });
-    }
-
-    pub fn bind_texture_2d_by_resource(&mut self, slot: u32, id: ResourceId) {
-        self.submit(RenderCommand::BindTexture2DByResource { slot, id });
-    }
-
-    pub fn bind_texture_1d_by_resource(&mut self, slot: u32, id: ResourceId) {
-        self.submit(RenderCommand::BindTexture1DByResource { slot, id });
-    }
-
-    pub fn bind_texture_3d_intern(&mut self, slot: u32, handle: GpuHandle) {
-        self.submit(RenderCommand::BindTexture3D { slot, handle });
-    }
-
-    pub fn bind_texture_3d_by_resource(&mut self, slot: u32, id: ResourceId) {
-        self.submit(RenderCommand::BindTexture3DByResource { slot, id });
-    }
-
-    pub fn bind_texture_cube_intern(&mut self, slot: u32, handle: GpuHandle) {
-        self.submit(RenderCommand::BindTextureCube { slot, handle });
-    }
-
-    pub fn bind_texture_cube_by_resource(&mut self, slot: u32, id: ResourceId) {
-        self.submit(RenderCommand::BindTextureCubeByResource { slot, id });
-    }
-
-    pub fn unbind_texture_intern(&mut self, slot: u32) {
-        self.submit(RenderCommand::UnbindTexture { slot });
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    pub fn update_texture_2d_data_by_resource(
-        &mut self,
-        id: ResourceId,
-        width: i32,
-        height: i32,
-        internal_format: i32,
-        pixel_format: u32,
-        data_format: u32,
-        data: Vec<u8>,
-    ) {
-        self.submit(RenderCommand::UpdateTexture2DDataByResource {
+    /// Create a texture. `data` is level 0 in the texture's own `TexFormat`
+    /// layout (see `convert_texels`).
+    pub fn create_texture(&mut self, id: ResourceId, desc: &TexDesc, data: Option<Vec<u8>>) {
+        self.submit(RenderCommand::CreateTexture {
             id,
-            width,
-            height,
-            internal_format,
-            pixel_format,
-            data_format,
+            desc: Box::new(*desc),
             data,
         });
     }
 
-    pub fn set_texture_2d_anisotropy_by_resource(&mut self, id: ResourceId, factor: f32) {
-        self.submit(RenderCommand::SetTexture2DAnisotropyByResource { id, factor });
+    /// Write `data`, in the texture's own format, to `region` of a texture.
+    pub fn update_texture(&mut self, id: ResourceId, region: TexRegion, data: Vec<u8>) {
+        self.submit(RenderCommand::UpdateTexture { id, region, data });
     }
 
-    pub fn set_texture_2d_mip_range_by_resource(
-        &mut self,
-        id: ResourceId,
-        min_level: i32,
-        max_level: i32,
-    ) {
-        self.submit(RenderCommand::SetTexture2DMipRangeByResource {
-            id,
-            min_level,
-            max_level,
-        });
+    /// Fill the mip levels below 0 of a texture from level 0.
+    pub fn generate_mips(&mut self, id: ResourceId) {
+        self.submit(RenderCommand::GenerateMips { id });
     }
 
     pub fn set_texel_1d_by_resource(&mut self, id: ResourceId, x: i32, color: [f32; 4]) {
@@ -748,342 +428,76 @@ impl Renderer {
         self.submit(RenderCommand::SetTexel2DByResource { id, x, y, color });
     }
 
-    pub fn set_texture_mag_filter_by_resource(&mut self, id: ResourceId, filter: TexFilter) {
-        self.submit(RenderCommand::SetTextureMagFilterByResource { id, filter });
-    }
-
-    pub fn set_texture_min_filter_by_resource(&mut self, id: ResourceId, filter: TexFilter) {
-        self.submit(RenderCommand::SetTextureMinFilterByResource { id, filter });
-    }
-
-    pub fn set_texture_wrap_mode_by_resource(&mut self, id: ResourceId, mode: TexWrapMode) {
-        self.submit(RenderCommand::SetTextureWrapModeByResource { id, mode });
-    }
-
-    pub fn generate_mipmap_by_resource(&mut self, id: ResourceId) {
-        self.submit(RenderCommand::GenerateMipmapByResource { id });
-    }
-
-    pub fn update_texture_1d_data_by_resource(
-        &mut self,
-        id: ResourceId,
-        width: i32,
-        internal_format: i32,
-        pixel_format: u32,
-        data_format: u32,
-        data: Vec<u8>,
-    ) {
-        self.submit(RenderCommand::UpdateTexture1DDataByResource {
-            id,
-            width,
-            internal_format,
-            pixel_format,
-            data_format,
-            data,
-        });
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    pub fn update_texture_3d_data_by_resource(
-        &mut self,
-        id: ResourceId,
-        width: i32,
-        height: i32,
-        depth: i32,
-        internal_format: i32,
-        pixel_format: u32,
-        data_format: u32,
-        data: Vec<u8>,
-    ) {
-        self.submit(RenderCommand::UpdateTexture3DDataByResource {
-            id,
-            width,
-            height,
-            depth,
-            internal_format,
-            pixel_format,
-            data_format,
-            data,
-        });
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    pub fn update_texture_cube_face_data_by_resource(
-        &mut self,
-        id: ResourceId,
-        face: u32,
-        level: i32,
-        size: i32,
-        internal_format: i32,
-        pixel_format: u32,
-        data_format: u32,
-        data: Vec<u8>,
-    ) {
-        self.submit(RenderCommand::UpdateTextureCubeFaceDataByResource {
-            id,
-            face,
-            level,
-            size,
-            internal_format,
-            pixel_format,
-            data_format,
-            data,
-        });
+    /// Copy `size` texels (width, height, layers) from the origin of `src`
+    /// to the origin of `dst` (see `RenderCommand::CopyTexture`).
+    pub fn copy_texture(&mut self, src: TexView, dst: TexView, size: [u32; 3]) {
+        self.submit(RenderCommand::CopyTexture { src, dst, size });
     }
 
     pub fn copy_texture_2d_from_framebuffer_by_resource(
         &mut self,
         id: ResourceId,
-        internal_format: i32,
+        format: TexFormat,
         width: i32,
         height: i32,
     ) {
         self.submit(RenderCommand::CopyTexture2DFromFramebufferByResource {
             id,
-            internal_format,
+            format,
             width,
             height,
         });
     }
 
-    pub fn read_texture_1d_data(
+    /// Read `region` of `src` as `format` and wait for it (see
+    /// `RenderCommand::ReadTextureSync`). Screenshots, tests and tools only:
+    /// it stalls the main thread until the render thread and the GPU got
+    /// there. Empty if the read failed.
+    pub fn read_texture_sync(
         &mut self,
-        id: ResourceId,
-        pixel_format: u32,
-        data_format: u32,
+        src: ReadSource,
+        region: TexRegion,
+        format: TexFormat,
     ) -> Vec<u8> {
         let (tx, rx) = bounded(1);
-        self.submit(RenderCommand::ReadTexture1DData {
-            id,
-            pixel_format,
-            data_format,
+        self.submit(RenderCommand::ReadTextureSync {
+            src,
+            region,
+            format,
             reply_tx: tx,
         });
         rx.recv().unwrap_or_default()
     }
 
-    pub fn read_texture_2d_data(
+    /// Start reading `region` of `src` as `format` without waiting. The
+    /// ticket is ready two or three frames later (see `ReadbackTicket`).
+    pub fn read_texture_async(
         &mut self,
-        id: ResourceId,
-        pixel_format: u32,
-        data_format: u32,
-    ) -> Vec<u8> {
-        let (tx, rx) = bounded(1);
-        self.submit(RenderCommand::ReadTexture2DData {
-            id,
-            pixel_format,
-            data_format,
-            reply_tx: tx,
+        src: ReadSource,
+        region: TexRegion,
+        format: TexFormat,
+    ) -> ReadbackTicket {
+        let slot = ReadbackSlot::new();
+        self.submit(RenderCommand::ReadbackAsync {
+            src,
+            region,
+            format,
+            slot: slot.clone(),
         });
-        rx.recv().unwrap_or_default()
+        ReadbackTicket::new(slot, &region)
     }
 
-    pub fn read_texture_3d_data(
-        &mut self,
-        id: ResourceId,
-        pixel_format: u32,
-        data_format: u32,
-    ) -> Vec<u8> {
-        let (tx, rx) = bounded(1);
-        self.submit(RenderCommand::ReadTexture3DData {
-            id,
-            pixel_format,
-            data_format,
-            reply_tx: tx,
-        });
-        rx.recv().unwrap_or_default()
+    // === Render Passes ===
+
+    pub fn begin_render_pass(&mut self, desc: Box<RenderPassDesc>) {
+        self.submit(RenderCommand::BeginRenderPass(desc));
     }
 
-    pub fn read_texture_cube_face_data(
-        &mut self,
-        id: ResourceId,
-        face: u32,
-        level: i32,
-        pixel_format: u32,
-        data_format: u32,
-    ) -> Vec<u8> {
-        let (tx, rx) = bounded(1);
-        self.submit(RenderCommand::ReadTextureCubeFaceData {
-            id,
-            face,
-            level,
-            pixel_format,
-            data_format,
-            reply_tx: tx,
-        });
-        rx.recv().unwrap_or_default()
-    }
-
-    pub fn sample_pixel_2d_by_resource(&mut self, id: ResourceId, x: i32, y: i32) -> [u8; 4] {
-        let (tx, rx) = bounded(1);
-        self.submit(RenderCommand::SamplePixel2DByResource {
-            id,
-            x,
-            y,
-            reply_tx: tx,
-        });
-        rx.recv().unwrap_or([0; 4])
-    }
-
-    pub fn read_framebuffer_pixels(&mut self, x: i32, y: i32, width: i32, height: i32) -> Vec<u8> {
-        let (tx, rx) = bounded(1);
-        self.submit(RenderCommand::ReadFramebufferPixels {
-            x,
-            y,
-            width,
-            height,
-            reply_tx: tx,
-        });
-        rx.recv().unwrap_or_default()
-    }
-
-    // === Framebuffer Operations ===
-
-    pub fn push_framebuffer(&mut self, id: u64, width: i32, height: i32) {
-        self.submit(RenderCommand::PushFramebuffer { id, width, height });
-    }
-
-    pub fn pop_framebuffer(&mut self) {
-        self.submit(RenderCommand::PopFramebuffer);
-    }
-
-    pub fn framebuffer_attach_texture_2d_by_resource(
-        &mut self,
-        attachment: u32,
-        id: ResourceId,
-        level: i32,
-    ) {
-        self.submit(RenderCommand::FramebufferAttachTexture2DByResource {
-            attachment,
-            id,
-            level,
-        });
-    }
-
-    pub fn framebuffer_attach_texture_3d_by_resource(
-        &mut self,
-        attachment: u32,
-        id: ResourceId,
-        layer: i32,
-        level: i32,
-    ) {
-        self.submit(RenderCommand::FramebufferAttachTexture3DByResource {
-            attachment,
-            id,
-            layer,
-            level,
-        });
-    }
-
-    pub fn framebuffer_attach_texture_cube_by_resource(
-        &mut self,
-        attachment: u32,
-        id: ResourceId,
-        face: u32,
-        level: i32,
-    ) {
-        self.submit(RenderCommand::FramebufferAttachTextureCubeByResource {
-            attachment,
-            id,
-            face,
-            level,
-        });
-    }
-
-    pub fn bind_framebuffer_intern(&mut self, handle: GpuHandle) {
-        self.submit(RenderCommand::BindFramebuffer { handle });
-    }
-
-    pub fn bind_default_framebuffer_intern(&mut self) {
-        self.submit(RenderCommand::BindDefaultFramebuffer);
-    }
-
-    pub fn clear_intern(&mut self, color: Option<[f32; 4]>, depth: Option<f32>) {
-        self.submit(RenderCommand::Clear { color, depth });
+    pub fn end_render_pass(&mut self) {
+        self.submit(RenderCommand::EndRenderPass);
     }
 
     // === Drawing Operations ===
-
-    pub fn draw_mesh_intern(
-        &mut self,
-        vao: GpuHandle,
-        index_count: i32,
-        primitive: CmdPrimitiveType,
-    ) {
-        self.submit(RenderCommand::DrawMesh {
-            vao,
-            index_count,
-            primitive,
-        });
-    }
-
-    /// Texture-fetch instancing: submit per-instance u32 indices into a
-    /// static data texture. The data is copied into the command so the
-    /// render thread owns it (Lua array reusable after the call).
-    pub fn draw_instanced_indices_intern(
-        &mut self,
-        mesh_id: ResourceId,
-        index_count: i32,
-        indices: &[u32],
-        primitive: CmdPrimitiveType,
-    ) {
-        self.submit(RenderCommand::DrawInstancedIndices {
-            mesh_id,
-            index_count,
-            indices: indices.to_vec(),
-            primitive,
-        });
-    }
-
-    pub fn draw_mesh_instanced_intern(
-        &mut self,
-        vao: GpuHandle,
-        index_count: i32,
-        instance_count: i32,
-        primitive: CmdPrimitiveType,
-    ) {
-        self.submit(RenderCommand::DrawMeshInstanced {
-            vao,
-            index_count,
-            instance_count,
-            primitive,
-        });
-    }
-
-    pub fn draw_mesh_by_resource(
-        &mut self,
-        id: ResourceId,
-        index_count: i32,
-        primitive: CmdPrimitiveType,
-    ) {
-        self.submit(RenderCommand::DrawMeshByResource {
-            id,
-            index_count,
-            primitive,
-        });
-    }
-
-    pub fn draw_instanced_with_data_intern(
-        &mut self,
-        mesh_id: ResourceId,
-        index_count: i32,
-        instances: &[InstanceData],
-        primitive: CmdPrimitiveType,
-    ) {
-        self.submit(RenderCommand::DrawInstancedWithData {
-            mesh_id,
-            index_count,
-            instances: instances.to_vec(),
-            primitive,
-        });
-    }
-
-    pub fn draw_immediate(&mut self, primitive: CmdPrimitiveType, vertices: Vec<ImmVertex>) {
-        self.submit(RenderCommand::DrawImmediate {
-            primitive,
-            vertices,
-        });
-    }
 
     // === Resource Creation ===
 
@@ -1092,82 +506,68 @@ impl Renderer {
         id: ResourceId,
         vertex_src: String,
         fragment_src: String,
-    ) -> Option<String> {
+        layout: Arc<ShaderLayout>,
+    ) -> Result<Vec<BlockLayout>, String> {
         let (tx, rx) = bounded(1);
         self.submit(RenderCommand::CreateShader {
             id,
             vertex_src,
             fragment_src,
+            layout,
             reply_tx: tx,
         });
         rx.recv()
-            .unwrap_or_else(|_| Some("Renderer channel closed".to_string()))
+            .unwrap_or_else(|_| Err("Renderer channel closed".to_string()))
     }
 
-    pub fn get_uniform_location_by_resource(&mut self, id: ResourceId, name: Arc<str>) -> i32 {
-        let (tx, rx) = bounded(1);
-        self.submit(RenderCommand::GetUniformLocationByResource {
-            id,
-            name,
-            reply_tx: tx,
-        });
-        rx.recv().unwrap_or(-1)
+    // === Binding model objects ===
+
+    pub fn create_pipeline(&mut self, id: PipelineId, desc: Box<PipelineDesc>) {
+        self.submit(RenderCommand::CreatePipeline { id, desc });
     }
 
-    pub fn create_texture_1d(
+    pub fn create_sampler(&mut self, id: SamplerId, desc: SamplerDesc) {
+        self.submit(RenderCommand::CreateSampler { id, desc });
+    }
+
+    pub fn create_bind_group_intern(
         &mut self,
-        id: ResourceId,
-        width: u32,
-        format: TexFormat,
-        data: Option<Vec<u8>>,
+        id: BindGroupId,
+        shader: ResourceId,
+        group: u8,
+        entries: Box<[BindEntry]>,
     ) {
-        self.submit(RenderCommand::CreateTexture1D {
+        self.submit(RenderCommand::CreateBindGroup {
             id,
-            width,
-            format,
-            data,
+            shader,
+            group,
+            entries,
         });
     }
 
-    pub fn create_texture_2d(
-        &mut self,
-        id: ResourceId,
-        width: u32,
-        height: u32,
-        format: TexFormat,
-        data: Option<Vec<u8>>,
-    ) {
-        self.submit(RenderCommand::CreateTexture2D {
-            id,
-            width,
-            height,
-            format,
-            data,
-        });
+    pub fn destroy_bind_groups(&mut self, ids: Vec<BindGroupId>) {
+        self.submit(RenderCommand::DestroyBindGroups { ids });
     }
 
-    #[allow(clippy::too_many_arguments)]
-    pub fn create_texture_3d(
-        &mut self,
-        id: ResourceId,
-        width: u32,
-        height: u32,
-        depth: u32,
-        format: TexFormat,
-        data: Option<Vec<u8>>,
-    ) {
-        self.submit(RenderCommand::CreateTexture3D {
-            id,
-            width,
-            height,
-            depth,
-            format,
-            data,
-        });
+    pub fn create_buffer(&mut self, id: BufferId, size: u32) {
+        self.submit(RenderCommand::CreateBuffer { id, size });
     }
 
-    pub fn create_texture_cube(&mut self, id: ResourceId, size: u32, format: TexFormat) {
-        self.submit(RenderCommand::CreateTextureCube { id, size, format });
+    pub fn write_buffer(&mut self, id: BufferId, offset: u32, data: Vec<u8>) {
+        self.submit(RenderCommand::WriteBuffer { id, offset, data });
+    }
+
+    /// Take back the ring memory the render thread has finished uploading.
+    pub(crate) fn reclaim_chunks(&mut self) {
+        while let Ok(chunk) = self.chunk_return_rx.try_recv() {
+            self.data.recycle_chunk(chunk);
+        }
+    }
+
+    /// Hand the open pass's recorded commands to the render thread (called by
+    /// `flush_pass_encoder`, so it must not flush again).
+    pub(crate) fn send_pass_commands(&mut self, commands: Box<PassCommands>) {
+        self.send(RenderCommand::PassCommands(commands));
     }
 
     pub fn create_mesh(
@@ -1183,32 +583,6 @@ impl Renderer {
             indices,
             vertex_format,
         });
-    }
-
-    // === Uniform Buffer Objects ===
-
-    pub fn create_camera_ubo_intern(&mut self) {
-        self.submit(RenderCommand::CreateCameraUBO);
-    }
-
-    pub fn update_camera_ubo_intern(&mut self, data: Box<CameraUboArray>) {
-        self.submit(RenderCommand::UpdateCameraUBO { data });
-    }
-
-    pub fn create_material_ubo_intern(&mut self) {
-        self.submit(RenderCommand::CreateMaterialUBO);
-    }
-
-    pub fn update_material_ubo_intern(&mut self, data: [u8; 32]) {
-        self.submit(RenderCommand::UpdateMaterialUBO { data });
-    }
-
-    pub fn create_light_ubo_intern(&mut self) {
-        self.submit(RenderCommand::CreateLightUBO);
-    }
-
-    pub fn update_light_ubo_intern(&mut self, data: [u8; 32]) {
-        self.submit(RenderCommand::UpdateLightUBO { data });
     }
 
     // === Window Operations ===
@@ -1236,17 +610,19 @@ impl Renderer {
         self.submit(RenderCommand::SetPresentMode { mode });
     }
 
-    /// Block until every previously-submitted GL command has completed
-    /// (`glFinish`). Named to avoid colliding with `flush()`/`flush_intern`,
-    /// which drains the CPU-side batch command buffer - an unrelated concept.
-    pub fn gl_finish(&mut self) {
+    /// Block the caller until the GPU has finished everything recorded so
+    /// far: `Flush` submits it and makes the render thread wait for the GPU,
+    /// and the fence behind it comes back once that wait is over. `false` if
+    /// the render thread is gone. Not for frame rendering (it stalls the
+    /// pipeline); for bounding offline GPU work and timing it.
+    pub fn wait_for_gpu(&mut self) -> bool {
         self.submit(RenderCommand::Flush);
+        self.sync_intern()
     }
 
-    /// A `Renderer` with no GL context at all - every command becomes a
-    /// no-op (see `CommandExecutor::has_gl_context`). Only for unit tests
-    /// that exercise CPU-side logic (e.g. HmGui layout) and have no window
-    /// to draw a real `WindowGlContext` from.
+    /// A `Renderer` without a GPU device - every command becomes a no-op.
+    /// Only for unit tests that exercise CPU-side logic (e.g. HmGui layout)
+    /// and have no window to create a surface from.
     #[cfg(test)]
     pub fn new_headless() -> Self {
         Renderer::create_intern(None).expect("Cannot create renderer")

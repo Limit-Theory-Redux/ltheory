@@ -2,8 +2,12 @@
 #include math
 #include color
 
+#group 2
+layout(std140) uniform Params {
+    vec2 size;
+};
+#group 3
 uniform sampler2D src;
-uniform vec2 size;
 
 void main() {
   vec2 d = 1.0 / size;

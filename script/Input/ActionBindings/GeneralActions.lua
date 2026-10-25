@@ -24,6 +24,17 @@ local GeneralActions = {
         keyboard = { Control.Single(Button.KeyboardF5) },
     }),
 
+    --- Render info overlay (Application): Ctrl+Shift+F3, either Ctrl and either Shift
+    ---@type ActionBinding
+    RenderInfoOverlay = ActionBinding({
+        keyboard = {
+            Control.Combo(Button.KeyboardControlLeft, Button.KeyboardShiftLeft, Button.KeyboardF3),
+            Control.Combo(Button.KeyboardControlLeft, Button.KeyboardShiftRight, Button.KeyboardF3),
+            Control.Combo(Button.KeyboardControlRight, Button.KeyboardShiftLeft, Button.KeyboardF3),
+            Control.Combo(Button.KeyboardControlRight, Button.KeyboardShiftRight, Button.KeyboardF3),
+        },
+    }),
+
     ---@type ActionBinding
     Regenerate = ActionBinding({
         keyboard = { Control.Single(Button.KeyboardB) },

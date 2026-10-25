@@ -97,4 +97,3 @@ function RNG:getVec4(lower, upper, result) end
 
 ---@param result Quat [out]
 function RNG:getQuat(result) end
-

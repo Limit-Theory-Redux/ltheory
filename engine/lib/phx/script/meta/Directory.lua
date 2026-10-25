@@ -30,4 +30,3 @@ function Directory.GetPrefPath(org, app) end
 ---@param path string
 ---@return boolean
 function Directory.Remove(path) end
-

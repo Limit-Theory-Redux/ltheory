@@ -278,7 +278,7 @@ function AsteroidFieldSystem:update(dt, beltEntities, physicsWorld, refEntity)
             local lodMesh = beltCmp:getLodMesh() or AsteroidMeshPool:getFromSeed(a.rotSeed)
             local mesh = lodMesh and lodMesh:get(0)
             if mesh then
-                entity:add(RenderComp({ { mesh = mesh, material = Materials.Asteroid() } }))
+                entity:add(RenderComp({ { mesh = mesh, material = Materials.Asteroid:instance() } }))
             end
 
             -- Sphere collider

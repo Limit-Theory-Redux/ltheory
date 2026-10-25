@@ -1,7 +1,9 @@
 #include fragment
 
-uniform vec2 size;
-uniform vec4 color;
+#include imm
+
+#define size (imm_p.xy)
+#define color imm_color
 
 const float kRadius = 8.0;
 

@@ -1,6 +1,6 @@
 use glam::Vec3;
 
-use super::{Draw, Mesh, Renderer};
+use super::{Color, ImmDebugState, Mesh, Renderer};
 use crate::math::{Box3, Matrix};
 
 #[derive(Clone)]
@@ -185,11 +185,9 @@ impl Node {
             return;
         }
         if self.sub[0].is_some() || self.sub[1].is_some() {
-            Draw::color(r, 1.0f32, 1.0f32, 1.0f32, 1.0f32);
-            Draw::box3(r, &self.box3);
+            r.imm_debug_box3(ImmDebugState::default(), &self.box3, &Color::WHITE, 1.0);
         } else {
-            Draw::color(r, 0.0f32, 1.0f32, 0.0f32, 1.0f32);
-            Draw::box3(r, &self.box3);
+            r.imm_debug_box3(ImmDebugState::default(), &self.box3, &Color::GREEN, 1.0);
         }
         if let Some(sub) = &self.sub[0] {
             sub.draw_node(r, max_depth - 1);

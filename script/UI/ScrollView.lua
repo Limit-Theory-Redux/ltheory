@@ -151,16 +151,14 @@ function ScrollView:onDrawChildren(focus, active)
     ClipRect.PushCombined(x, y, sx, sy)
     for i = 1, #self.children do self.children[i]:draw(focus, active) end
 
---    Config.ui.color.textTitle:set(self.scrollAlphaValue)
-
     if self.hScrollMax > 0 then
         self.hBarX = x + ((self.hScrollValue + self.hDrag) / self.hScrollMax) * (sx - self.hBarSX)
-        Draw.Rect(self.hBarX, self.hBarY, self.hBarSX, self.hBarSY)
+        UI.DrawEx.SimpleRect(self.hBarX, self.hBarY, self.hBarSX, self.hBarSY, Config.ui.color.textTitle)
     end
 
     if self.vScrollMax > 0 then
         self.vBarY = y + ((self.vScrollValue + self.vDrag) / self.vScrollMax) * (sy - self.vBarSY)
-        Draw.Rect(self.vBarX, self.vBarY, self.vBarSX, self.vBarSY)
+        UI.DrawEx.SimpleRect(self.vBarX, self.vBarY, self.vBarSX, self.vBarSY, Config.ui.color.textTitle)
     end
     ClipRect.Pop()
 end

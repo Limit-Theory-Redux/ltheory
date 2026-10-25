@@ -1,3 +1,7 @@
+-- The generator registry and starfield moved out of Legacy (Shared.Generation).
+local Generator = require('Shared.Generation.Generator')
+local Starfield = require('Shared.Generation.Starfield')
+
 local Nebula = Class("Nebula", function(self, seed, starDir)
     self.seed = seed
     self.starDir = starDir
@@ -6,9 +10,9 @@ end)
 function Nebula:forceLoad()
     if self.envMap then return end
     local rng = RNG.Create(self.seed + 0xC0104FULL)
-    self.envMap = Gen.Generator.Get('Nebula', rng)(rng, Config.gen.nebulaRes, self.starDir)
+    self.envMap = Generator.Get('Nebula', rng)(rng, Config.gen.nebulaRes, self.starDir)
     self.irMap = self.envMap:genIRMap(256)
-    self.stars = Gen.Starfield(rng, Config.gen.nStars(rng))
+    self.stars = Starfield(rng, Config.gen.nStars(rng))
 end
 
 function Nebula:render(state)

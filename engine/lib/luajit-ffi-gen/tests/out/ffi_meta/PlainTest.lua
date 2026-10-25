@@ -89,4 +89,3 @@ function PlainTest:getString() end
 
 ---@return string
 function PlainTest:getStringRef() end
-

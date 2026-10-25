@@ -2,11 +2,12 @@
 #include deferred
 #include math
 #include pbr
-#include light_ubo
+#include light_block
 
 in vec3 worldOrigin;
 in vec3 worldDir;
 
+#group 3
 uniform sampler2D texNormalMat;
 uniform sampler2D texDepth;
 

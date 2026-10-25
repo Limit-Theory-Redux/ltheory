@@ -1,118 +1,12 @@
-use std::num::NonZeroU32;
-
-use glutin::config::ConfigTemplateBuilder;
-use glutin::context::{
-    ContextApi, ContextAttributesBuilder, GlProfile, NotCurrentContext, PossiblyCurrentContext,
-    Version,
-};
-use glutin::display::GetGlDisplay;
-use glutin::prelude::{GlConfig, GlDisplay, NotCurrentGlContext, PossiblyCurrentGlContext};
-use glutin::surface::{GlSurface, Surface, SurfaceAttributes, WindowSurface};
-use glutin_winit::{DisplayBuilder, GlWindow};
-use raw_window_handle::HasWindowHandle;
 use tracing::{debug, error, info, warn};
 use winit::dpi::{LogicalSize, PhysicalPosition};
 use winit::monitor::MonitorHandle;
 
-use super::{
-    CursorGrabMode, PresentMode, Window, WindowMode, WindowPosition, WindowResolution,
-    glutin_render,
-};
-use crate::window::{WindowError, WindowGlContext};
-
-// TODO: Add GlStateManager with state: Option<GlState> field to avoid std::mem::replace
-#[derive(Debug)]
-enum GlState {
-    Current {
-        context: PossiblyCurrentContext,
-        surface: Surface<WindowSurface>,
-    },
-    NotCurrent {
-        context: NotCurrentContext,
-    },
-    Undefined,
-}
-
-impl GlState {
-    fn make_current(
-        &mut self,
-        config: &glutin::config::Config,
-        attrs: &SurfaceAttributes<WindowSurface>,
-        present_mode: PresentMode,
-    ) -> bool {
-        if matches!(self, Self::NotCurrent { .. }) {
-            let old_self = std::mem::replace(self, Self::Undefined);
-            let Self::NotCurrent { context } = old_self else {
-                unreachable!()
-            };
-
-            #[allow(unsafe_code)] // TODO: remove
-            let surface = unsafe {
-                config
-                    .display()
-                    .create_window_surface(config, attrs)
-                    .unwrap()
-            };
-
-            let context = context
-                .make_current(&surface)
-                .expect("Cannot make context current");
-
-            // Try setting vsync.
-            if let Err(res) = surface.set_swap_interval(&context, present_mode.into()) {
-                warn!("Error setting vsync: {res:?}");
-            }
-
-            *self = Self::Current { context, surface };
-
-            true
-        } else if matches!(self, Self::Current { .. }) {
-            warn!("Context is already current");
-
-            false
-        } else {
-            // `Undefined` is now also the steady state once the context has
-            // been permanently handed off to `Renderer` (see
-            // Engine::new/extract_gl_context) - nothing for WinitWindow to do.
-            debug!("No GL context to make current - already owned by Renderer");
-
-            false
-        }
-    }
-
-    fn make_not_current(&mut self) -> bool {
-        if matches!(self, Self::NotCurrent { .. }) {
-            warn!("Context is already not current");
-
-            false
-        } else if matches!(self, Self::Current { .. }) {
-            let old_self = std::mem::replace(self, Self::Undefined);
-            let Self::Current { context, .. } = old_self else {
-                unreachable!()
-            };
-
-            let context = context
-                .make_not_current()
-                .expect("Cannot make context not current");
-
-            *self = Self::NotCurrent { context };
-
-            true
-        } else {
-            // See the matching branch in `make_current`.
-            debug!("No GL context to make not current - already owned by Renderer");
-
-            false
-        }
-    }
-}
+use super::{CursorGrabMode, PresentMode, Window, WindowMode, WindowPosition, WindowResolution};
 
 #[derive(Debug)]
 pub struct WinitWindow {
     window: winit::window::Window,
-    present_mode: PresentMode,
-    gl_config: glutin::config::Config,
-    gl_state: GlState,
 }
 
 impl WinitWindow {
@@ -185,49 +79,9 @@ impl WinitWindow {
 
         window_attributes = window_attributes.with_title(window.title.as_str());
 
-        let template = ConfigTemplateBuilder::new().with_alpha_size(8);
-        let display_builder = DisplayBuilder::new().with_window_attributes(Some(window_attributes));
-        let (winit_window, gl_config) = display_builder
-            .build(event_loop, template, |configs| {
-                // Find the config with the maximum number of samples, so our triangle will
-                // be smooth.
-                configs
-                    .reduce(|accum, config| {
-                        let transparency_check = config.supports_transparency().unwrap_or(false)
-                            & !accum.supports_transparency().unwrap_or(false);
-
-                        if transparency_check || config.num_samples() > accum.num_samples() {
-                            config
-                        } else {
-                            accum
-                        }
-                    })
-                    .unwrap()
-            })
-            .unwrap();
-
-        let winit_window = winit_window.unwrap();
-
-        debug!("Picked a config with {} samples", gl_config.num_samples());
-
-        let gl_display = gl_config.display();
-        let context_attributes = ContextAttributesBuilder::new()
-            .with_context_api(ContextApi::OpenGl(Some(Version::new(3, 3))))
-            .with_profile(GlProfile::Core)
-            .build(
-                winit_window
-                    .window_handle()
-                    .as_ref()
-                    .ok()
-                    .map(|wh| wh.as_raw()),
-            );
-
-        #[allow(unsafe_code)] // TODO: remove
-        let gl_context = unsafe {
-            gl_display
-                .create_context(&gl_config, &context_attributes)
-                .expect("failed to create context")
-        };
+        let winit_window = event_loop
+            .create_window(window_attributes)
+            .expect("Cannot create window");
 
         // Do not set the grab mode on window creation if it's none, this can fail on mobile
         if window.cursor.grab_mode != CursorGrabMode::None {
@@ -249,11 +103,6 @@ impl WinitWindow {
 
         Self {
             window: winit_window,
-            present_mode: window.present_mode,
-            gl_config,
-            gl_state: GlState::NotCurrent {
-                context: gl_context,
-            },
         }
     }
 
@@ -261,132 +110,20 @@ impl WinitWindow {
         &self.window
     }
 
-    /// Keep the main thread's copy of the present mode in sync with runtime
-    /// changes, so `restore_gl_context` re-applies the *current* mode rather
-    /// than the one captured at window construction. The actual GL call
-    /// lives on the render thread (`CommandExecutor::cmd_set_present_mode`);
-    /// after `Engine::new`'s `extract_gl_context`, `gl_state` is `Undefined`
-    /// here and this window owns no context to set an interval on, so this
-    /// is deliberately field-only.
-    pub fn set_present_mode(&mut self, present_mode: PresentMode) {
-        self.present_mode = present_mode;
-    }
-
-    pub fn resume(&mut self) {
-        debug!("WinitWindow::resume");
-
-        let attrs = self
-            .window
-            .build_surface_attributes(<_>::default())
-            .unwrap();
-
-        if self
-            .gl_state
-            .make_current(&self.gl_config, &attrs, self.present_mode)
-        {
-            // The context needs to be current for the Renderer to set up shaders and
-            // buffers. It also performs function loading, which needs a current context on
-            // WGL.
-            glutin_render::init_renderer(&self.gl_config.display());
-        }
-    }
-
-    pub fn suspend(&mut self) {
-        debug!("WinitWindow::suspend");
-
-        self.gl_state.make_not_current();
-    }
-
-    pub fn resize(&self, width: u32, height: u32) {
-        if let Some(width) = NonZeroU32::new(width) {
-            if let Some(height) = NonZeroU32::new(height) {
-                // Some platforms like EGL require resizing GL surface to update the size
-                // Notable platforms here are Wayland and macOS, other don't require it
-                // and the function is no-op, but it's wise to resize it for portability
-                // reasons.
-                if let GlState::Current { context, surface } = &self.gl_state {
-                    surface.resize(context, width, height);
-
-                    glutin_render::resize(width.get() as i32, height.get() as i32);
-                }
-            }
-        }
-    }
-
     pub fn redraw(&self) {
         self.window.request_redraw();
-
-        if let GlState::Current { context, surface } = &self.gl_state {
-            surface.swap_buffers(context).expect("Cannot redraw");
-        }
     }
 
-    /// Extract the GL context for transfer to the render thread.
-    ///
-    /// This makes the context not-current on the main thread and returns
-    /// the data needed to initialize the context on the render thread.
-    ///
-    /// After calling this, the WinitWindow can no longer perform GL operations
-    /// directly. All GL operations must go through the render thread.
-    pub fn extract_gl_context(&mut self) -> Result<WindowGlContext, WindowError> {
-        debug!("Extracting GL context for render thread");
-
-        // Extract both context and surface from Current state
-        // We need to transfer the existing surface because macOS doesn't allow
-        // creating window surfaces from non-main threads.
-        let old_state = std::mem::replace(&mut self.gl_state, GlState::Undefined);
-        if let GlState::Current { context, surface } = old_state {
-            // Make context not current before transferring
-            let context = context.make_not_current()?;
-
-            info!("GL context extracted for render thread");
-
-            Ok(WindowGlContext { context, surface })
-        } else {
-            Err(WindowError::CurrentGlState)
-        }
-    }
-
-    /// Restore the GL context from the render thread.
-    ///
-    /// This is called when the render thread shuts down and returns the GL context
-    /// back to the main thread for direct GL rendering.
-    pub fn restore_gl_context(&mut self, context: WindowGlContext) -> Result<(), WindowError> {
-        info!(
-            "Attempting to restore GL context, current state: {:?}",
-            match &self.gl_state {
-                GlState::Current { .. } => "Current",
-                GlState::NotCurrent { .. } => "NotCurrent",
-                GlState::Undefined => "Undefined",
-            }
-        );
-
-        if !matches!(self.gl_state, GlState::Undefined) {
-            return Err(WindowError::UndefinedGlState);
-        }
-
-        // Make the context current on the main thread
-        info!("Making context current on main thread...");
-        let current_context = context.context.make_current(&context.surface)?;
-
-        // Try setting vsync
-        if let Err(err) = context
-            .surface
-            .set_swap_interval(&current_context, self.present_mode.into())
-        {
-            warn!("Error setting vsync after restoring context: {err:?}");
-        }
-
-        self.gl_state = GlState::Current {
-            context: current_context,
-            surface: context.surface,
-        };
-
-        // Clear the GL unavailable flag since context is restored
-        // TODO: clear_gl_unavailable();
-        info!("GL context restored to main thread successfully");
-
-        Ok(())
+    /// Create the wgpu surface/device/queue bundle from this window, for the
+    /// render thread to own.
+    pub fn create_wgpu_surface(
+        &self,
+        present_mode: PresentMode,
+        width: u32,
+        height: u32,
+    ) -> Result<crate::window::WgpuStartupBundle, crate::window::WgpuError> {
+        debug!("Creating wgpu surface bundle for render thread");
+        crate::window::create_surface_bundle(&self.window, present_mode, width, height)
     }
 }
 

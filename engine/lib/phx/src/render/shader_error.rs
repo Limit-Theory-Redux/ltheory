@@ -21,7 +21,7 @@ pub struct ShaderErrorInfo {
 }
 
 /// Owned by `RendererData` (see `render/thread/renderer_data.rs`) and reached
-/// via `r.data.shader_errors` - no `static`/global, matching `ShaderVarMap`.
+/// via `r.data.shader_errors` - no `static`/global.
 pub struct ShaderErrorQueue {
     errors: VecDeque<ShaderErrorInfo>,
     frame_counter: u64,

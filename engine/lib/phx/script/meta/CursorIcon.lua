@@ -2,7 +2,7 @@
 ---@meta
 
 -- The icon to display for a [`Window`](crate::window::Window)'s [`Cursor`](crate::window::Cursor).
--- 
+--
 -- Examples of all of these cursors can be found [here](https://www.w3schools.com/cssref/playit.php?filename=playcss_cursor&preval=crosshair).
 -- This `enum` is simply a copy of a similar `enum` found in [`winit`](https://docs.rs/winit/latest/winit/window/enum.CursorIcon.html).
 -- `winit`, in turn, mostly copied cursor types available in the browser.
@@ -57,7 +57,7 @@ CursorIcon = {
     -- Help indicator (often rendered as a "?")
     Help = 6,
     -- Progress indicator. Shows that processing is being done.
-    -- 
+    --
     -- But in contrast with "Wait" the user may still interact with the program.
     -- Often rendered as a spinning beach ball, or an arrow with a watch or hourglass.
     Progress = 7,
@@ -114,4 +114,3 @@ CursorIcon = {
     -- Indicates that the row can be resized vertically.
     RowResize = 33,
 }
-

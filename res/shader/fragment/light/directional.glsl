@@ -6,9 +6,13 @@
 in vec3 worldOrigin;
 in vec3 worldDir;
 
-uniform vec3 lightDir;    // normalized direction FROM light TO scene (toward objects)
-uniform vec3 lightColor;  // light color and intensity
+#group 2
+layout(std140) uniform Params {
+    vec3 lightDir;    // normalized direction FROM light TO scene (toward objects)
+    vec3 lightColor;  // light color and intensity
+};
 
+#group 3
 uniform sampler2D texNormalMat;
 uniform sampler2D texDepth;
 

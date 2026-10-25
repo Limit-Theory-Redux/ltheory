@@ -9,13 +9,13 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum CommandCategory {
-    /// Viewport/scissor/blend/depth/cull/wireframe state changes
+    /// Fixed-function state changes (no command of this category is left)
     State,
-    /// Shader bind/unbind (also what invalidates the texture cache)
+    /// Shader bind/unbind (no command of this category is left)
     Shader,
-    /// SetUniform* by location or by name
+    /// Loose uniform sets (no command of this category is left)
     Uniform,
-    /// BindTexture*/UnbindTexture
+    /// Texture binds (no command of this category is left)
     Texture,
     /// Texture parameter/upload/texel commands
     TextureData,
@@ -23,14 +23,12 @@ pub enum CommandCategory {
     Readback,
     /// FBO push/pop/attach, draw buffers, clear
     Framebuffer,
-    /// Mesh bind/unbind
+    /// Mesh bind/unbind (no command of this category is left)
     Mesh,
-    /// DrawMesh*/DrawImmediate
+    /// Pass commands (`PassCommands`: draws and the state around them)
     Draw,
     /// Shader/texture/mesh creation, destroy, reload
     Resource,
-    /// Camera/material/light UBO updates
-    Ubo,
     /// SwapBuffers, fences, flush, resize, shutdown. `SwapBuffers`'s own
     /// blocking present (vsync/vblank wait) is deliberately excluded from
     /// this category's timing and reported separately as
@@ -39,7 +37,7 @@ pub enum CommandCategory {
 }
 
 impl CommandCategory {
-    pub const ALL: [Self; 12] = [
+    pub const ALL: [Self; 11] = [
         Self::State,
         Self::Shader,
         Self::Uniform,
@@ -50,7 +48,6 @@ impl CommandCategory {
         Self::Mesh,
         Self::Draw,
         Self::Resource,
-        Self::Ubo,
         Self::Sync,
     ];
 
@@ -66,7 +63,6 @@ impl CommandCategory {
             Self::Mesh => "mesh",
             Self::Draw => "draw",
             Self::Resource => "resource",
-            Self::Ubo => "ubo",
             Self::Sync => "sync",
         }
     }

@@ -1,3 +1,5 @@
+local Pipelines = require('Render.Pipelines')
+local ffi = require('ffi')
 local Entity = require('Legacy.GameObjects.Entity')
 
 local Pulse = CType.Struct('Pulse')
@@ -11,36 +13,26 @@ Pulse:add(CType.Float32, 'life')
 Pulse:add(CType.Float32, 'dist')
 Pulse:add(CType.Matrix, 'matrix')
 
-local cacheHead
-local cacheTail
 local meshHead
 local meshTail
 local shaderHead
 local shaderTail
 local shaderMissileHead
 local shaderMissileTail
-local cacheMissileHead
-local cacheMissileTail
 local shaderLaserBoltHead
 local shaderLaserBoltTail
-local cacheLaserBoltHead
-local cacheLaserBoltTail
+local DrawBlock
 
 Preload.Add(function()
     meshHead = Gen.Primitive.Billboard(-1, -1, 1, 1)
     meshTail = Gen.Primitive.Billboard(-1, -1, 1, 0)
-    shaderHead = Cache.Shader('billboard/quad', 'effect/pulsehead')
-    shaderTail = Cache.Shader('billboard/axis', 'effect/pulsetail')
-    shaderMissileHead = Cache.Shader('billboard/quad', 'effect/missilehead')
-    shaderMissileTail = Cache.Shader('billboard/axis', 'effect/missiletail')
-    shaderLaserBoltHead = Cache.Shader('billboard/quad', 'effect/laserbolthead')
-    shaderLaserBoltTail = Cache.Shader('billboard/axis', 'effect/laserbolttail')
-    cacheHead = ShaderVarCache(shaderHead, { 'size', 'alpha', 'mWorld' })
-    cacheTail = ShaderVarCache(shaderTail, { 'alpha', 'size', 'axis', 'mWorld' })
-    cacheMissileHead = ShaderVarCache(shaderMissileHead, { 'size', 'alpha', 'mWorld' })
-    cacheMissileTail = ShaderVarCache(shaderMissileTail, { 'alpha', 'size', 'axis', 'mWorld' })
-    cacheLaserBoltHead = ShaderVarCache(shaderLaserBoltHead, { 'size', 'alpha', 'mWorld' })
-    cacheLaserBoltTail = ShaderVarCache(shaderLaserBoltTail, { 'alpha', 'size', 'axis', 'mWorld' })
+    shaderHead = Cache.Shader('billboard/quad_draw', 'effect/pulsehead_draw')
+    shaderTail = Cache.Shader('billboard/axis_draw', 'effect/pulsetail_draw')
+    shaderMissileHead = Cache.Shader('billboard/quad_draw', 'effect/missilehead_draw')
+    shaderMissileTail = Cache.Shader('billboard/axis_draw', 'effect/missiletail_draw')
+    shaderLaserBoltHead = Cache.Shader('billboard/quad_draw', 'effect/laserbolthead_draw')
+    shaderLaserBoltTail = Cache.Shader('billboard/axis_draw', 'effect/laserbolttail_draw')
+    DrawBlock = shaderHead:blockType('DrawBlock')
 end)
 
 Pulse:setInitializer(function(self)
@@ -57,6 +49,38 @@ function Pulse:refreshMatrix(eye)
     self.matrix = Matrix.LookUp(self.pos:relativeTo(eye), -self.dir, Math.OrthoVector(self.dir))
 end
 
+local function isPulse(proj)
+    return proj.shaderKey ~= 'missile' and proj.shaderKey ~= 'laserbolt'
+end
+
+local function isMissile(proj)
+    return proj.shaderKey == 'missile'
+end
+
+local function isLaserBolt(proj)
+    return proj.shaderKey == 'laserbolt'
+end
+
+--- Draw `mesh` once per projectile `want` selects, in the additive pass: the
+--- pipeline carries the shader and the additive scene state, the draw block
+--- the transform (`drawUser[0]` color and alpha, `drawUser[1]` sprite size).
+local function drawSprites(pass, shader, mesh, projectiles, want, fillSize)
+    pass:setPipeline(Pipelines.get(shader, Pipelines.Additive))
+    for i = 1, #projectiles do
+        local proj = projectiles[i]
+        if want(proj) then
+            local pulse = proj.effect
+            local d = pass:alloc(DrawBlock)
+            ffi.copy(d.mWorld, pulse.matrix.m, 64)
+            local user = d.drawUser
+            user[0], user[1], user[2] = proj.pColorR, proj.pColorG, proj.pColorB
+            user[3] = pulse.life / pulse.lifeMax
+            fillSize(user, proj, pulse)
+            pass:drawMesh(mesh)
+        end
+    end
+end
+
 function Pulse.Render(projectiles, state)
     if state.mode == BlendMode.Additive then
         do -- Recalculate matrices.
@@ -67,137 +91,30 @@ function Pulse.Render(projectiles, state)
             end
         end
 
+        local pass = Renderer:currentPass()
+
+        local function headSize(user, proj)
+            user[4] = proj.pulseHeadSize or state.headSize or 16
+        end
+        local function tailSize(user, proj, pulse)
+            user[4] = proj.pulseTailWidth or state.tailWidth or 16
+            user[5] = min(proj.pulseTailLength or state.tailLength or Config.gen.compTurretPulseStats.size,
+                1.5 * pulse.dist)
+        end
+
         do -- Heads
             Profiler.Begin('Pulse.RenderAdditive.Head')
-            local shader = shaderHead
-            shader:start()
-            meshHead:drawBind()
-            for i = 1, #projectiles do
-                local proj  = projectiles[i]
-                local pulse = proj.effect
-                if proj.shaderKey ~= 'missile' and proj.shaderKey ~= 'laserbolt' then
-                    shader:setFloat3('color', proj.pColorR,
-                        proj.pColorG,
-                        proj.pColorB)
-                    shader:iSetFloat(cacheHead.size, proj.pulseHeadSize or state.headSize or 16)
-                    shader:iSetFloat(cacheHead.alpha, pulse.life / pulse.lifeMax)
-                    shader:iSetMatrix(cacheHead.mWorld, pulse.matrix)
-                    meshHead:drawBound()
-                end
-            end
-            meshHead:drawUnbind()
-            shader:stop()
-
-            shaderMissileHead:start()
-            meshHead:drawBind()
-            for i = 1, #projectiles do
-                local proj = projectiles[i]
-                if proj.shaderKey == 'missile' then
-                    local pulse = proj.effect
-                    shaderMissileHead:setFloat3('color', proj.pColorR,
-                        proj.pColorG,
-                        proj.pColorB)
-                    shaderMissileHead:iSetFloat(cacheMissileHead.size,
-                        proj.pulseHeadSize or state.headSize or 16)
-                    shaderMissileHead:iSetFloat(cacheMissileHead.alpha, pulse.life / pulse.lifeMax)
-                    shaderMissileHead:iSetMatrix(cacheMissileHead.mWorld, pulse.matrix)
-                    meshHead:drawBound()
-                end
-            end
-            meshHead:drawUnbind()
-            shaderMissileHead:stop()
-
-            shaderLaserBoltHead:start()
-            meshHead:drawBind()
-            for i = 1, #projectiles do
-                local proj = projectiles[i]
-                if proj.shaderKey == 'laserbolt' then
-                    local pulse = proj.effect
-                    shaderLaserBoltHead:setFloat3('color', proj.pColorR,
-                        proj.pColorG,
-                        proj.pColorB)
-                    shaderLaserBoltHead:iSetFloat(cacheLaserBoltHead.size,
-                        proj.pulseHeadSize or state.headSize or 16)
-                    shaderLaserBoltHead:iSetFloat(cacheLaserBoltHead.alpha, pulse.life / pulse.lifeMax)
-                    shaderLaserBoltHead:iSetMatrix(cacheLaserBoltHead.mWorld, pulse.matrix)
-                    meshHead:drawBound()
-                end
-            end
-            meshHead:drawUnbind()
-            shaderLaserBoltHead:stop()
+            drawSprites(pass, shaderHead, meshHead, projectiles, isPulse, headSize)
+            drawSprites(pass, shaderMissileHead, meshHead, projectiles, isMissile, headSize)
+            drawSprites(pass, shaderLaserBoltHead, meshHead, projectiles, isLaserBolt, headSize)
             Profiler.End()
         end
 
         do -- Tails
             Profiler.Begin('Pulse.RenderAdditive.Tail')
-            local shader = shaderTail
-            shader:start()
-            meshTail:drawBind()
-            for i = 1, #projectiles do
-                local proj  = projectiles[i]
-                local pulse = proj.effect
-                if proj.shaderKey ~= 'missile' and proj.shaderKey ~= 'laserbolt' then
-                    shader:setFloat3('color', proj.pColorR,
-                        proj.pColorG,
-                        proj.pColorB)
-                    shader:iSetFloat(cacheTail.alpha, pulse.life / pulse.lifeMax)
-                    shader:iSetFloat2(
-                        cacheTail.size,
-                        proj.pulseTailWidth or state.tailWidth or 16,
-                        min(proj.pulseTailLength or state.tailLength or Config.gen.compTurretPulseStats.size, 1.5 * pulse.dist))
-                    shader:iSetFloat3(cacheTail.axis, pulse.dir.x, pulse.dir.y, pulse.dir.z)
-                    shader:iSetMatrix(cacheTail.mWorld, pulse.matrix)
-                    meshTail:drawBound()
-                end
-            end
-            meshTail:drawUnbind()
-            shader:stop()
-
-            shaderMissileTail:start()
-            meshTail:drawBind()
-            for i = 1, #projectiles do
-                local proj = projectiles[i]
-                if proj.shaderKey == 'missile' then
-                    local pulse = proj.effect
-                    shaderMissileTail:setFloat3('color', proj.pColorR,
-                        proj.pColorG,
-                        proj.pColorB)
-                    shaderMissileTail:iSetFloat(cacheMissileTail.alpha, pulse.life / pulse.lifeMax)
-                    shaderMissileTail:iSetFloat2(
-                        cacheMissileTail.size,
-                        proj.pulseTailWidth or state.tailWidth or 16,
-                        min(proj.pulseTailLength or state.tailLength or Config.gen.compTurretPulseStats.size, 1.5 * pulse.dist))
-                    shaderMissileTail:iSetFloat3(cacheMissileTail.axis,
-                        pulse.dir.x, pulse.dir.y, pulse.dir.z)
-                    shaderMissileTail:iSetMatrix(cacheMissileTail.mWorld, pulse.matrix)
-                    meshTail:drawBound()
-                end
-            end
-            meshTail:drawUnbind()
-            shaderMissileTail:stop()
-
-            shaderLaserBoltTail:start()
-            meshTail:drawBind()
-            for i = 1, #projectiles do
-                local proj = projectiles[i]
-                if proj.shaderKey == 'laserbolt' then
-                    local pulse = proj.effect
-                    shaderLaserBoltTail:setFloat3('color', proj.pColorR,
-                        proj.pColorG,
-                        proj.pColorB)
-                    shaderLaserBoltTail:iSetFloat(cacheLaserBoltTail.alpha, pulse.life / pulse.lifeMax)
-                    shaderLaserBoltTail:iSetFloat2(
-                        cacheLaserBoltTail.size,
-                        proj.pulseTailWidth or state.tailWidth or 16,
-                        min(proj.pulseTailLength or state.tailLength or Config.gen.compTurretPulseStats.size, 1.5 * pulse.dist))
-                    shaderLaserBoltTail:iSetFloat3(cacheLaserBoltTail.axis,
-                        pulse.dir.x, pulse.dir.y, pulse.dir.z)
-                    shaderLaserBoltTail:iSetMatrix(cacheLaserBoltTail.mWorld, pulse.matrix)
-                    meshTail:drawBound()
-                end
-            end
-            meshTail:drawUnbind()
-            shaderLaserBoltTail:stop()
+            drawSprites(pass, shaderTail, meshTail, projectiles, isPulse, tailSize)
+            drawSprites(pass, shaderMissileTail, meshTail, projectiles, isMissile, tailSize)
+            drawSprites(pass, shaderLaserBoltTail, meshTail, projectiles, isLaserBolt, tailSize)
             Profiler.End()
         end
     end

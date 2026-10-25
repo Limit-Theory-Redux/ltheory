@@ -15,4 +15,3 @@ function ResultTest.ResultOption() end
 
 ---@return string
 function ResultTest.ResultString() end
-

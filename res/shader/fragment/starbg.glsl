@@ -4,7 +4,11 @@
 #include color
 #include math
 
-uniform float brightnessScale;
+// Group 2: set with `pass:alloc` before drawing the stars.
+#group 2
+layout(std140) uniform StarBackgroundParams {
+  float brightnessScale;
+};
 
 void main() {
   float r = length(uv);

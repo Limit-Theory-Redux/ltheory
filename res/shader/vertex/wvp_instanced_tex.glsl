@@ -15,11 +15,13 @@
 
 #include vertex
 
-#autovar mat4 mView
-#autovar mat4 mProj
 
+// Group 2: the per-draw block (`pass:alloc`) and the instance data texture.
+#group 2
+layout(std140) uniform InstanceParams {
+  vec3 originRelEye;
+};
 uniform sampler2D instanceDataTex;
-uniform vec3 originRelEye;
 
 layout(location = 10) in uint instanceIndex;
 

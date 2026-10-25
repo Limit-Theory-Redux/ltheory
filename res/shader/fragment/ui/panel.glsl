@@ -1,11 +1,13 @@
 #include fragment
 #include math
 
-uniform float padding;
-uniform vec2 size;
-uniform vec4 color;
-uniform float innerAlpha;
-uniform float bevel;
+#include imm
+
+const float padding = 64.0;
+#define innerAlpha (imm_p.x)
+#define size (imm_p.yz)
+#define bevel (imm_p.w)
+#define color imm_color
 
 float dbox(vec2 p, vec2 s, float b) {
   return length(max(vec2(0.0, 0.0), abs(p) - (s - 2.0 * vec2(b, b)))) - b;
