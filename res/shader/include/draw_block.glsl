@@ -1,9 +1,9 @@
 /* -- Draw block (group 2) -------------------------------------------------------
    Per-draw data of scene meshes, std140, written into the uniform ring for
-   every drawn mesh by `SceneList:submit` and bound to block binding 8 (group 2,
-   dynamic offset). The Rust mirror is `DrawBlock` (render/gpu/draw_block.rs); a
-   check at shader link compares size and offsets against what the linker
-   reports.
+   every drawn mesh by `SceneList:submit` and bound as the first block of
+   group 2 (dynamic offset). The Rust mirror is `DrawBlock`
+   (render/gpu/draw_block.rs); shader creation and the layout parity test
+   compare its size and offsets with the reflected block.
 
    Usage: #include draw_block
 

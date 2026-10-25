@@ -7,6 +7,8 @@
 
 ## Rendering
 
+Start with the [renderer guide](renderer.md).
+
 1. [Render thread](render-thread.md)
 2. [Scene list and instancing](batch-rendering.md)
 3. [Shader system](shader-system.md)

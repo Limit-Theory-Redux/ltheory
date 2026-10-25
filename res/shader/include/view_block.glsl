@@ -1,9 +1,9 @@
 /* -- View block (group 0) -------------------------------------------------------
    Per-pass frame data, std140, ring-allocated by the engine at `beginPass` and
-   bound to block binding 0 (group 0). `Renderer:setCamera` supplies the camera,
-   the pass supplies the UI projection and viewport. The Rust mirror is
-   `ViewBlock` (render/gpu/view_block.rs); a startup assert checks size and
-   offsets against what the linker reports.
+   bound as the first block of group 0. `Renderer:setCamera` supplies the
+   camera, the pass supplies the UI projection and viewport. The Rust mirror is
+   `ViewBlock` (render/gpu/view_block.rs); shader creation checks its size and
+   offsets against the reflected block.
 
    Usage: #include view_block
 
