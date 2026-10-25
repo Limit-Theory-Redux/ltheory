@@ -12,10 +12,13 @@ fn main() {
         println!("cargo::rustc-link-lib=framework=CoreHaptics");
     }
 
+    // Only for the shipped libphx.dylib: its install name, and DWARF unwind
+    // tables instead of compact unwind info. Test and bench binaries keep the
+    // default tables, without which a panic cannot unwind on macOS (a failing
+    // test aborts the whole test binary).
     if cfg!(target_os = "macos") {
-        println!("cargo::rustc-link-arg=-Wl,-keep_dwarf_unwind");
-        println!("cargo::rustc-link-arg=-Wl,-no_compact_unwind");
-        println!("cargo::rustc-link-arg=-Wl,-install_name,@rpath/libphx.dylib");
+        println!("cargo::rustc-link-arg-cdylib=-Wl,-no_compact_unwind");
+        println!("cargo::rustc-link-arg-cdylib=-Wl,-install_name,@rpath/libphx.dylib");
     }
 
     // Set rpath correctly for libphx.
