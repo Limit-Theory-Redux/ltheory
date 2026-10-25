@@ -1,5 +1,10 @@
 # wgpu Migration — Modernization List
 
+> **History.** This document was written while the engine moved from OpenGL to wgpu, when GL was
+> still the default backend; GL references describe that time. The OpenGL backend has since been
+> removed: wgpu is the only renderer. For the current architecture see
+> [render-thread.md](render-thread.md) and [shader-system.md](shader-system.md).
+
 Tracked during the feat/wgpu port (stages 1-5). Items are things found while
 implementing that are either (a) known gaps in the wgpu backend that should be
 fixed for full GL parity, or (b) places where the engine's legacy GL-era design

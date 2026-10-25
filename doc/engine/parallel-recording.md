@@ -1,5 +1,10 @@
 # Parallel Pass Recording: Profile and Design
 
+> **History.** This document was written while the engine moved from OpenGL to wgpu, when GL was
+> still the default backend; GL references describe that time. The OpenGL backend has since been
+> removed: wgpu is the only renderer. For the current architecture see
+> [render-thread.md](render-thread.md) and [shader-system.md](shader-system.md).
+
 Status: analysis and design, nothing implemented. The request was to "add parallel pass recording across
 worker threads". This document measures where frame time goes after the render API v2 refactor
 (`render-api-v2.md`, S2 to S11) and ranks the parallel and non-parallel options against that data.

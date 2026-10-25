@@ -66,11 +66,11 @@ copied per call into a command and chunk memory is recycled like the uniform rin
 - `pass:drawInstancedIndices(mesh, indices, count)`: `indices` is a `uint32_t[?]` array, 4 bytes per
   instance, read as the divisor-1 attribute at location 10. The vertex shader pulls the transform from a
   static data texture with `texelFetch` (`vertex/wvp_instanced_tex.glsl`, used by `AsteroidBeltRenderer`
-  for 100k+ asteroids on GL 3.3). The data texture and the per-draw block (`InstanceParams`) are group 2.
-  This maps one to one onto a storage buffer under wgpu.
+  for 100k+ asteroids). The data texture and the per-draw block (`InstanceParams`) are group 2.
+  It maps one to one onto a storage buffer, should the shaders move off GLSL 330.
 
 The ring itself: `render/gpu/uniform_ring.rs` (`StagingRing`, `UniformRing`, `VertexRing`). The main
 thread allocates into fixed-capacity staging chunks, a chunk that fills up moves to the executor whole,
-and the executor hands the memory back after uploading it (threaded: a return channel, immediate:
-inline). GL buffers of a frame slot are reused behind a fence: `SwapBuffers` inserts `glFenceSync`
-after the frame's last pass and `BeginFrame{slot}` waits (`glClientWaitSync`) before the slot is reused.
+and the executor hands the memory back after uploading it, over a return channel. The GPU buffers of a
+frame slot are reused only once the GPU is done with them: `BeginFrame{slot}` waits for the
+`on_submitted_work_done` of the frame that last used the slot.

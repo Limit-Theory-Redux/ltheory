@@ -4,11 +4,10 @@ The shader system provides GLSL compilation and caching (`render/shader.rs`), au
 hot-reload via file watching (`render/shader_watcher.rs`, `render/shader_error.rs`), and
 two uniform buffer objects shared by every shader (`render/thread/ubo.rs`).
 
-There is a single rendering path: all GL work happens on the render thread and is reached
-through `Renderer`/`RenderCommand`, whether that thread is the dedicated render thread
-(default) or running inline on the calling thread (`immediate` cargo feature, for
-debugging/comparison). Nothing here branches on that distinction — it's an implementation
-detail of `Renderer`, not something shader code or Lua callers need to know about.
+There is a single rendering path: all GPU work happens on the render thread (wgpu) and is
+reached through `Renderer`/`RenderCommand`. The engine's GLSL 330 sources are adapted to
+the form naga's GLSL frontend accepts (`render/thread/command_executor_wgpu/shader.rs`:
+version, `set`/`binding` layout, split texture/sampler declarations) and validated by naga.
 
 ## Hot-Reload System
 
@@ -25,7 +24,7 @@ File System Watch (Rust, via `notify`)
          ↓
    Changed shader key detected
          ↓
-  Cache.GetShader(key):reload()  -- in-place: swaps the GL program inside the
+  Cache.GetShader(key):reload()  -- in-place: swaps the GPU program inside the
          │                           shared Rf<ShaderShared>, so every existing
    ┌─────┴─────┐                     Shader clone picks it up
    │           │
@@ -41,7 +40,7 @@ File System Watch (Rust, via `notify`)
 ```
 
 Unlike a cache-swap design, this repo's `Shader::reload()` mutates the existing `Shader`'s
-GL handle in place inside its shared `Rf<ShaderShared>` cell. That's what makes "keep the
+GPU program in place inside its shared `Rf<ShaderShared>` cell. That's what makes "keep the
 last working version on failure" free: on success the handle is swapped; on failure it
 simply isn't touched, so every clone of that `Shader`
 automatically keeps rendering the previous program with no separate fallback cache.
@@ -53,7 +52,7 @@ automatically keeps rendering the previous program with no separate fallback cac
 | `render/shader_watcher.rs` | File watching (`notify` crate), `#include` dependency tracking |
 | `render/shader_error.rs` | Capped (10, FIFO) compile/reload error queue |
 | `render/shader.rs` | Preprocessing (`#include`/`#group`), compilation, in-place reload, error-shader fallback |
-| `render/thread/command_executor_gl.rs` | Actual GL shader compile/link (`create_shader`), including applying the `#group` layout and reflecting the blocks |
+| `render/thread/command_executor_wgpu/shader.rs` | GLSL adaptation and naga compilation (`compile_pair`), including applying the `#group` layout and reflecting the blocks (`blocks_from_naga`) |
 | `render/gpu/layout.rs` | `ShaderLayout` (recorded `#group` declarations), `BlockLayout` (reflected blocks) |
 
 Both `ShaderWatcherInner` and the error queue (`ShaderErrorQueue`) are fields on
@@ -112,7 +111,7 @@ duplicated rather than plumbing a visited-file list out of the compile path.
 pub struct ShaderErrorInfo {
     pub shader_key: String,   // canonical "vertex/wvp:fragment/material/metal"
     pub error_type: String,   // "compile" (this repo doesn't yet push "link" separately)
-    pub message: String,      // OpenGL info-log, null bytes stripped
+    pub message: String,      // compiler (naga) message, null bytes stripped
     pub timestamp: u64,       // ShaderError::Update()'s frame counter
 }
 ```
@@ -243,22 +242,22 @@ INFO  Reloaded shader [vs: vertex/wvp, fs: fragment/material/metal]   -- on the 
 GLSL 330 has no `layout(binding=)`, so the preprocessor (`GLSLCode::preprocess`) owns the binding
 assignment. A `#group N` line (N in 0..3) marks the uniform blocks and samplers that follow it as
 belonging to bind group N; the directive is stripped from the GLSL, the declarations are recorded in a
-`ShaderLayout`, and at link the GL executor applies the layout (`glUniformBlockBinding`, and `glUniform1i`
-for each sampler) and reflects every active block (`glGetActiveUniformBlockiv`/`glGetActiveUniformsiv`).
+`ShaderLayout`, and the executor rewrites the declarations to `layout(set=, binding=)` form and
+reflects every block from naga's module (`blocks_from_naga`).
 Includes inherit the includer's group; a `#group` inside an include does not leak out of it.
 
-| group | block bindings | texture units | contents |
+| group | blocks | samplers | contents |
 |---|---|---|---|
-| 0 frame | 0..3 | 0..2 | `ViewBlock` (per pass), `envMap`, `irMap` |
-| 1 material | 4..7 | 3..9 | material params and textures (bind group) |
-| 2 draw | 8..11 | 10..11 | per-draw block (`pass:alloc(T)`) |
-| 3 pass inputs | 12..15 | 12..15 | `pass:setInputs(...)` textures |
+| 0 frame | up to 4 | up to 3 | `ViewBlock` (per pass), `envMap`, `irMap` |
+| 1 material | up to 4 | up to 7 | material params and textures (bind group) |
+| 2 draw | up to 4 | up to 2 | per-draw block (`pass:alloc(T)`) |
+| 3 pass inputs | up to 4 | up to 4 | `pass:setInputs(...)` textures |
 
-The k-th block (sampler) declared in a group gets binding `group*4+k` (unit `first_unit(group)+k`).
+Within a group (wgpu `set = group`) the k-th block gets binding `k`, and the i-th sampler a texture at
+binding `4 + 2i` with its sampler object at `4 + 2i + 1` (`render/gpu/layout.rs`).
 A shader's own blocks are reachable from Lua: `shader:blockType('Params')` returns a LuaJIT struct type
 with the block's exact byte layout, and `pass:alloc(Params)` returns a zeroed `Params*` that becomes the
-group-2 block of the next draw. Loose `uniform` declarations outside any group still work through the old
-`Shader:set*` API until S6.
+group-2 block of the next draw.
 
 ### View block (group 0, binding 0)
 
@@ -401,9 +400,11 @@ nebula generators use a distinctly-named `uniform vec3 genStarDir` instead, set 
 
 ### No Loose Uniforms; the Immediate (UI) Shaders
 
-Every active uniform of a program must be a member of a `#group` uniform block or a sampler:
-`create_shader` (GL) fails the link otherwise, naming the offending uniforms, and the shader
-falls back to the error shader. There is no `shader:setFloat(name, ...)` any more.
+Every uniform a shader reads must be a member of a `#group` uniform block or a sampler declared
+under a `#group`. There is no `shader:setFloat(name, ...)` any more. A sampler outside any
+`#group` is dropped, so a shader that reads it fails to compile; a loose non-sampler uniform
+becomes a zero-valued global and is **not** reported (the former GL backend rejected active ones at
+link time), so a stray `uniform float x;` silently reads 0.
 
 The UI shaders (`fragment/ui/*`, drawn through `Imm`, see `render-api-v2.md` section 3d and the
 S6 notes) have no uniform at all: `vertex/imm2d.glsl` passes the vertex color and the shape

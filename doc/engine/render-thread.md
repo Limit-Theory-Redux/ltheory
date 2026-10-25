@@ -1,59 +1,56 @@
 # Render Thread
 
-All OpenGL work happens through `Renderer`/`RenderCommand`
-(`render/thread/`): every GL-touching type (`Mesh`, `Shader`, `Tex2D`, `Imm`,
+All GPU work happens through `Renderer`/`RenderCommand`
+(`render/thread/`): every GPU-touching type (`Mesh`, `Shader`, `Tex2D`, `Imm`,
 `Font`, ...) takes an explicit `&mut Renderer` parameter and encodes
-its work as a `RenderCommand` rather than calling `gl::*` directly. `Engine`
-owns a single `Renderer` (`engine.renderer: Renderer`) created
-at startup and reachable from Lua via `Engine:renderer()`.
+its work as a `RenderCommand`. `Engine` owns a single `Renderer`
+(`engine.renderer: Renderer`) created at startup and reachable from Lua via
+`Engine:renderer()`.
 
-## Two Backends, One API
+## One Backend
 
-`render/thread/mod.rs` selects one of two implementations by `#[cfg]`; both
-expose an identical public/FFI surface, so nothing above `Renderer` needs to
-know which is active:
+The renderer runs on wgpu (Vulkan, Metal or DX12, the platform's native API;
+`WGPU_BACKEND` overrides it for diagnostics). `Renderer`
+(`renderer_threaded.rs`) spawns a dedicated `"RenderThread"` OS thread, moves
+the wgpu surface bundle into it and communicates over bounded `crossbeam`
+channels.
 
-| Backend | File | Selected by | Behavior |
-|---|---|---|---|
-| Threaded (default) | `renderer_threaded.rs` | no feature flag | Spawns a dedicated `"RenderThread"` OS thread, moves the `WindowGlContext` into it, communicates over bounded `crossbeam` channels |
-| Immediate | `renderer_immediate.rs` | `immediate` cargo feature | Executes every command inline on the calling thread, no channels, no second thread |
-
-The immediate backend exists for debugging/comparison (e.g. ruling out
-threading as the cause of a rendering bug); production builds use the
-threaded backend.
-
-Both backends drive the same `CommandExecutor` (`command_executor.rs`,
-GL implementation in `command_executor_gl.rs`), which owns all GL state:
-`resources: HashMap<ResourceId, GpuResource>`, per-program uniform-location
-caches, cached texture bindings, the FBO cache (framebuffers keyed by attachment set, evicted when a texture is destroyed), UBO handles. `RenderThread`
-(`render_thread.rs`) is only the plumbing around it for the threaded
-backend — it pulls `RenderCommand`s off a channel, hands them to the
-executor, and forwards whatever the executor replies (`CommandReply`) back
-over the matching channel.
+The render thread drives one `WgpuCommandExecutor`
+(`command_executor_wgpu.rs` and `command_executor_wgpu/`), which owns every
+GPU object: textures, meshes, shader modules, pipelines, bind groups, the
+uniform and vertex ring buffers, the backbuffer and the surface.
+`RenderThread` (`render_thread.rs`) is only the plumbing around it - it pulls
+`RenderCommand`s off a channel, hands them to the executor, and forwards
+whatever the executor replies (`CommandReply`) back over the matching
+channel. While the channel is idle it polls the device, so map and
+submission-done callbacks run even when the main thread is blocked on one.
 
 ```
-Main thread (game + Lua)                      Render thread (owns GL context)
+Main thread (game + Lua)                      Render thread (owns the device)
 ────────────────────────                      ───────────────────────────────
 Renderer (renderer_threaded.rs)
   submit(RenderCommand) ──► bounded crossbeam channel ──► RenderThread.run()
-  fence_rx ◄──────────────  Fence replies             ◄──  execute(cmd) → gl::*
-  pacing_fence_rx ◄────────  PacingFence replies       ◄── (CommandExecutor)
+  fence_rx ◄──────────────  Fence replies             ◄──  execute(cmd) → wgpu
+  pacing_fence_rx ◄────────  PacingFence replies       ◄── (WgpuCommandExecutor)
   stats_rx ◄───────────────  per-frame RenderStats snapshot
-  context_rx ◄─────────────  GL context returned on shutdown
+  chunk_return_rx ◄────────  ring memory after upload
 ```
+
+A headless `Renderer` (`Renderer::new_headless`, unit tests only) has no
+device: the render thread answers fences and reply channels and returns ring
+memory, and draws nothing.
 
 ## RenderCommand
 
-`render_command.rs` defines the command enum sent across the channel (or
-executed inline, in immediate mode): texture updates (whole image, or a rectangle for the
-glyph atlas), render passes
+`render_command.rs` defines the command enum sent across the channel: texture
+updates (whole image, or a rectangle for the glyph atlas), render passes
 (`BeginRenderPass`/`EndRenderPass`, with the draws recorded in between sent as `PassCommands`, which
 also carry the uniform and vertex ring uploads), frame slots (`BeginFrame`), material parameter buffers
 (`CreateBuffer`/`WriteBuffer`) and bind groups, draws (mesh, instanced, scene and immediate-batch
 draws are `PassCmd`s inside `PassCommands`), resource lifecycle
-(`CreateShader`/`CreateTexture2D`/`CreateMesh`/`DestroyResources` and their
-`*ByResource` counterparts), `Resize`,
-`SetPresentMode`, `SwapBuffers`, `Fence`, `PacingFence`, `Shutdown`.
+(`CreateShader`/`CreateTexture`/`CreateMesh`/`DestroyResources`), readbacks,
+`Resize`, `SetPresentMode`, `SwapBuffers`, `Flush`, `Fence`, `PacingFence`,
+`Shutdown`.
 
 `ResourceId(u64)` identifies a render-thread-managed resource (see below).
 
@@ -79,10 +76,14 @@ per-frame pacing:
 
 - `fence_rx` — used only by `sync_intern()` (`Renderer::sync()`): submits
   `RenderCommand::Fence { fence_id }`, blocks until that exact id comes back,
-  discards any other id it happens to receive.
+  discards any other id it happens to receive. A `Fence` means the render
+  thread has *executed* everything before it, not that the GPU has finished
+  it; `Renderer:gpuFinish()` (`Flush`) is the GPU wait.
 - `pacing_fence_rx` — used only by `end_frame_triple_buffered()`: submits
   `SwapBuffers` + `PacingFence`, tracks `frames_in_flight`, and blocks only
-  when `frames_in_flight >= MAX_FRAMES_IN_FLIGHT` (currently `3`).
+  when `frames_in_flight >= MAX_FRAMES_IN_FLIGHT` (currently `3`). The
+  executor answers a `PacingFence` from `queue.on_submitted_work_done`, so
+  pacing follows the GPU.
 
 `Renderer::submit()` is non-blocking (`try_send`) on the fast path and only
 falls back to a blocking `send` when the channel is full, timing the stall
@@ -90,27 +91,22 @@ into `send_blocked_us`; `channel_high_water` tracks peak channel occupancy
 per frame. `try_submit()` is the non-blocking-only variant that drops the
 command if the channel is full instead of stalling.
 
-## Activation & Context Handoff
+## Startup & Shutdown
 
-`Engine::new` extracts the GL context from the window
-(`WinitWindow::extract_gl_context`) and calls `Renderer::start(context)`
-once, unconditionally — `WinitWindow` no longer performs any GL operations
-itself after this point (its own `swap_buffers` is a no-op); frame end is
-driven by `Renderer::end_frame_triple_buffered()`, called from
-`MainLoop::about_to_wait`.
+`Engine::new` creates the window with winit, builds the wgpu surface bundle
+from it (`WinitWindow::create_wgpu_surface`, `window/wgpu_render.rs`) and
+calls `Renderer::start(bundle)` once. Frame end is driven by
+`Renderer::end_frame_triple_buffered()`, called from `MainLoop::about_to_wait`.
 
-`WindowGlContext`/`WindowActiveGlContext` (`window/window_gl_context.rs`)
-carry the not-yet-current GL context and surface across the thread boundary;
-`make_current`/`release_for_main_thread` mediate context ownership at
-startup/shutdown (macOS cannot cleanly release the context back to the main
-thread — see that file's `release_for_main_thread`).
+The surface lives on the render thread, so anything that reconfigures it
+goes through a `RenderCommand`: window resizes (`Resize`) and runtime vsync
+changes (`Window:setPresentMode` → `SetPresentMode`). `NoVsync` maps to
+`AutoNoVsync`, which falls back to the modes the surface supports.
 
-Because the handoff is unconditional, anything that needs the context
-current - not just draws, but calls like `set_swap_interval` - has to go
-through a `RenderCommand` rather than a direct `WinitWindow` call. That's
-why runtime vsync changes (`Window:setPresentMode`) are routed as
-`RenderCommand::SetPresentMode` instead of being applied in
-`Engine::changed_window` directly.
+The surface is created from the window's raw handles, so it must be gone
+before the window is. Dropping `Renderer` sends `Shutdown` and joins the
+render thread (which drops the executor and the surface), and `Engine`
+declares `winit_window` after `renderer`, so it drops after it.
 
 ## Stats
 
@@ -124,16 +120,15 @@ override) — see `doc/STAT_SERVER.md`.
 
 | Concern | File |
 |---|---|
-| Main-thread handle (threaded backend): submit, fences, frame pacing | `render/thread/renderer_threaded.rs` |
-| Main-thread handle (immediate backend): same API, inline execution | `render/thread/renderer_immediate.rs` |
+| Main-thread handle: submit, fences, frame pacing, shutdown | `render/thread/renderer_threaded.rs` |
 | Lua-facing FFI (`Renderer` class) | `render/thread/renderer_ffi.rs` |
 | Command enum | `render/thread/render_command.rs` |
-| Threaded-mode plumbing (channel loop) | `render/thread/render_thread.rs` |
-| Command execution + GPU resource table | `render/thread/command_executor.rs`, `command_executor_gl.rs` |
+| Render-thread loop, headless answers | `render/thread/render_thread.rs` |
+| Command execution + GPU objects | `render/thread/command_executor_wgpu.rs`, `command_executor_wgpu/` |
+| Surface, device and queue creation | `window/wgpu_render.rs` |
 | Resource id/handle | `render/thread/resource_handle.rs` |
 | Renderer configuration (channel sizes) | `render/thread/config.rs` |
 | Per-frame stats | `render/thread/renderer_stats.rs` |
 | Stats HTTP dashboard (`stats-server` feature) | `render/thread/stats_server.rs`, `stats_snapshot.rs` |
-| GL context handoff | `window/window_gl_context.rs` |
 | Batch rendering + GPU instancing (built on this layer) | `doc/engine/batch-rendering.md` |
 | Shader compilation, hot-reload, UBOs | `doc/engine/shader-system.md` |

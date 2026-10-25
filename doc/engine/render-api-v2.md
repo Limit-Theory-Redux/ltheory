@@ -1,5 +1,10 @@
 # Render API v2 — wgpu-shaped interface on the GL renderer
 
+> **History.** This document was written while the engine moved from OpenGL to wgpu, when GL was
+> still the default backend; GL references describe that time. The OpenGL backend has since been
+> removed: wgpu is the only renderer. For the current architecture see
+> [render-thread.md](render-thread.md) and [shader-system.md](shader-system.md).
+
 Status: design. S2 (render passes and attachment views), S3 (binding model, pipelines, samplers, views, frame group), S4 (materials, scene list, uniform ring), S5 (fullscreen, post-processing, offscreen generation), S6 (immediate batching, UI, glyph atlas, and the removal of the legacy API), S7 (sampler/view completion), S8 (async readback), S9 (mip chains and texture kinds), S10 (hot reload) and S11 (the wgpu executor) are implemented. Companion to `wgpu-migration-gaps.md`,
 `render-thread.md`, `batch-rendering.md` and `shader-system.md`.
 
