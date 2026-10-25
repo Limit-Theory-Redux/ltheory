@@ -206,35 +206,65 @@ impl RenderPassDesc {
     }
 }
 
-/// Handle of the one open render pass. `finish` ends it; the other methods
-/// record pass commands (see `PassEncoder`).
+/// Handle of one render pass. `finish` ends it; the other methods record
+/// pass commands (see `PassEncoder`). Every method checks that the handle's
+/// pass is the open one, so a handle kept past `finish` cannot record into a
+/// later pass.
 pub struct RenderPass {
     label: Arc<str>,
-    finished: bool,
+    /// `PassState::serial` of the pass this handle belongs to.
+    serial: u64,
+    /// Whether this handle may finish the pass (`beginPass`), or only records
+    /// into it (`currentPass`).
+    owner: bool,
+}
+
+impl RenderPass {
+    /// See `RenderPass_Alloc`.
+    pub fn alloc(&self, r: &mut Renderer, size: u32) -> *mut u8 {
+        self.check(r, "alloc");
+        r.pass_alloc(size)
+    }
+
+    fn check(&self, r: &Renderer, what: &str) {
+        let pass = &r.data.pass;
+        if pass.serial != self.serial || pass.open.is_none() {
+            let now = match &pass.open {
+                Some(open) => format!("the open pass is '{open}'"),
+                None => "no pass is open".to_string(),
+            };
+            panic!(
+                "RenderPass '{}':{what}: this pass has ended ({now}); a handle is valid only until its pass finishes",
+                self.label
+            );
+        }
+    }
 }
 
 #[luajit_ffi_gen::luajit_ffi]
 impl RenderPass {
     pub fn finish(&mut self, r: &mut Renderer) {
-        if self.finished {
+        if !self.owner {
             panic!(
-                "RenderPass '{}': finish() on a pass that was already finished (or a handle from currentPass(), which only borrows the pass)",
+                "RenderPass '{}':finish: a handle from currentPass() only borrows the pass; the code that began it finishes it",
                 self.label
             );
         }
-        self.finished = true;
+        self.check(r, "finish");
         r.end_pass_intern();
     }
 
     /// Bind a pipeline (shader and fixed-function state) for the draws that
     /// follow.
     pub fn set_pipeline(&self, r: &mut Renderer, pipeline: u32) {
+        self.check(r, "setPipeline");
         r.pass_record("setPipeline", PassCmd::SetPipeline(PipelineId(pipeline)));
     }
 
     /// Stage pass input `slot` (0..3, group 3: texture units 12..15). All
     /// staged inputs are bound together before the next draw.
     pub fn set_input(&self, r: &mut Renderer, slot: i32, view: &TexView, sampler: u32) {
+        self.check(r, "setInput");
         r.pass_require_open("setInput");
         r.imm_flush();
         r.data
@@ -244,6 +274,7 @@ impl RenderPass {
 
     /// Unbind pass input `slot`.
     pub fn clear_input(&self, r: &mut Renderer, slot: i32) {
+        self.check(r, "clearInput");
         r.pass_require_open("clearInput");
         r.imm_flush();
         r.data.encoder.set_input(slot as usize, None);
@@ -252,6 +283,7 @@ impl RenderPass {
     /// Bind a bind group created with `Renderer:createBindGroup` to its
     /// group's units.
     pub fn set_bind_group(&self, r: &mut Renderer, group: i32, bind_group: u32) {
+        self.check(r, "setBindGroup");
         r.pass_record(
             "setBindGroup",
             PassCmd::SetBindGroup {
@@ -263,6 +295,7 @@ impl RenderPass {
 
     /// Draw `mesh` with the current pipeline.
     pub fn draw_mesh(&self, r: &mut Renderer, mesh: &mut Mesh) {
+        self.check(r, "drawMesh");
         r.pass_require_open("drawMesh");
         let (mesh, index_count) = mesh.resource_and_index_count(r);
         r.pass_draw(PassCmd::DrawMesh {
@@ -281,6 +314,7 @@ impl RenderPass {
         mesh: &mut Mesh,
         instances: &[InstanceData],
     ) {
+        self.check(r, "drawMeshInstanced");
         r.pass_require_open("drawMeshInstanced");
         if instances.is_empty() {
             return;
@@ -308,6 +342,7 @@ impl RenderPass {
     /// transform from a static data texture (see `wvp_instanced_tex.glsl`).
     /// The indices are copied into the vertex ring (4 bytes per instance).
     pub fn draw_instanced_indices(&self, r: &mut Renderer, mesh: &mut Mesh, indices: &[u32]) {
+        self.check(r, "drawInstancedIndices");
         r.pass_require_open("drawInstancedIndices");
         if indices.is_empty() {
             return;
@@ -333,12 +368,14 @@ impl RenderPass {
     /// Draw the built-in unit quad (pipeline vertex layout `Fullscreen`),
     /// scaled to the viewport by the vertex shader.
     pub fn draw_fullscreen(&self, r: &mut Renderer) {
+        self.check(r, "drawFullscreen");
         r.pass_draw(PassCmd::DrawFullscreen);
     }
 
     /// Restrict drawing to a sub-rectangle of the target. The UI projection
     /// follows the new size, like the viewport stack of old did.
     pub fn set_viewport(&self, r: &mut Renderer, x: i32, y: i32, width: i32, height: i32) {
+        self.check(r, "setViewport");
         r.pass_set_viewport([x, y, width, height]);
     }
 
@@ -346,17 +383,20 @@ impl RenderPass {
     /// `clearScissor` or the end of the pass. A `ClipRect` pushed inside
     /// clips further: draws get the overlap of both.
     pub fn set_scissor(&self, r: &mut Renderer, x: i32, y: i32, width: i32, height: i32) {
+        self.check(r, "setScissor");
         r.pass_set_scissor(Some([x, y, width.max(0), height.max(0)]));
     }
 
     /// Drop the pass's own scissor; the `ClipRect` stack still applies.
     pub fn clear_scissor(&self, r: &mut Renderer) {
+        self.check(r, "clearScissor");
         r.pass_set_scissor(None);
     }
 
     /// Replace the model-view part of the UI transform (`mWorldViewUI`) for
     /// the draws that follow.
     pub fn set_ui_transform(&self, r: &mut Renderer, transform: &Matrix) {
+        self.check(r, "setUiTransform");
         r.pass_set_ui_transform(transform.to_cols_array());
     }
 }
@@ -369,8 +409,8 @@ impl RenderPass {
 /// to `T*` (see `ffi_ext/RenderPass.lua`).
 #[allow(unsafe_code, non_snake_case, improper_ctypes_definitions)]
 #[unsafe(no_mangle)]
-pub extern "C" fn RenderPass_Alloc(_pass: &RenderPass, r: &mut Renderer, size: u32) -> *mut u8 {
-    r.pass_alloc(size)
+pub extern "C" fn RenderPass_Alloc(pass: &RenderPass, r: &mut Renderer, size: u32) -> *mut u8 {
+    pass.alloc(r, size)
 }
 
 impl Renderer {
@@ -394,6 +434,7 @@ impl Renderer {
         let camera = self.data.camera;
         let pass = &mut self.data.pass;
         pass.open = Some(desc.label.clone());
+        pass.serial += 1;
         pass.extent = desc.extent;
         pass.is_window = desc.backbuffer;
         pass.viewport = viewport;
@@ -416,7 +457,8 @@ impl Renderer {
 
         RenderPass {
             label: desc.label.clone(),
-            finished: false,
+            serial: self.data.pass.serial,
+            owner: true,
         }
     }
 
@@ -443,7 +485,8 @@ impl Renderer {
             .unwrap_or_else(|| panic!("currentPass(): no render pass is open"));
         RenderPass {
             label,
-            finished: true,
+            serial: self.data.pass.serial,
+            owner: false,
         }
     }
 
@@ -733,5 +776,42 @@ mod tests {
             [Some([8, 8, 32, 32]), Some([8, 48, 32, 0]), None]
         );
         pass.finish(&mut r);
+    }
+
+    fn window_pass(r: &mut Renderer, label: &str) -> RenderPass {
+        let mut desc = RenderPassDesc::new(label);
+        desc.backbuffer(16, 16, LoadOp::Load, 0.0, 0.0, 0.0, 0.0);
+        r.begin_pass_intern(&desc)
+    }
+
+    #[test]
+    #[should_panic(
+        expected = "RenderPass 'first':drawFullscreen: this pass has ended (the open pass is 'second')"
+    )]
+    fn a_finished_pass_handle_cannot_draw_into_the_next_pass() {
+        let mut r = Renderer::new_headless();
+        let mut first = window_pass(&mut r, "first");
+        first.finish(&mut r);
+        let _second = window_pass(&mut r, "second");
+        first.draw_fullscreen(&mut r);
+    }
+
+    #[test]
+    #[should_panic(expected = "RenderPass 'first':alloc: this pass has ended (no pass is open)")]
+    fn a_finished_pass_handle_cannot_alloc() {
+        let mut r = Renderer::new_headless();
+        let mut first = window_pass(&mut r, "first");
+        first.finish(&mut r);
+        first.alloc(&mut r, 16);
+    }
+
+    #[test]
+    #[should_panic(expected = "only borrows the pass")]
+    fn a_borrowed_handle_cannot_finish() {
+        let mut r = Renderer::new_headless();
+        let _owner = window_pass(&mut r, "owned");
+        let mut borrowed = r.current_pass_intern();
+        borrowed.draw_fullscreen(&mut r); // recording through it is fine
+        borrowed.finish(&mut r);
     }
 }

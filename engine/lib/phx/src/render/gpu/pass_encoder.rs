@@ -156,6 +156,9 @@ impl PassEncoder {
 pub struct PassState {
     /// Label of the open pass, if any.
     pub open: Option<Arc<str>>,
+    /// Serial number of the open (or last) pass; a `RenderPass` handle
+    /// records only into the pass whose serial it carries.
+    pub serial: u64,
     /// Size of the last pass's attachments (kept after `finish`).
     pub extent: [u32; 2],
     pub is_window: bool,
@@ -177,6 +180,7 @@ impl Default for PassState {
     fn default() -> Self {
         Self {
             open: None,
+            serial: 0,
             extent: [0, 0],
             is_window: false,
             viewport: [0, 0, 0, 0],
