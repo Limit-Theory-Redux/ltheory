@@ -138,7 +138,7 @@ function RenderInfoOverlay:buildLines()
         add(string.format("Device    %s", info.device_type or "?"))
         add(string.format("Driver    %s %s", info.driver or "", info.driver_info or ""))
         add(string.format("Surface   %s", info.surface_format or "?"))
-        add(string.format("Present   %s (%s)", pm, pm == "Vsync" and "Fifo" or "Immediate"))
+        add(string.format("Present   %s (%s)", pm, pm == "Vsync" and "Fifo" or "AutoNoVsync"))
     else
         add("API       (no device)")
     end

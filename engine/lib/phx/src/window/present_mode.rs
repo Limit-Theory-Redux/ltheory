@@ -24,9 +24,12 @@ impl From<internal::PresentMode> for PresentMode {
 impl From<PresentMode> for wgpu::PresentMode {
     fn from(value: PresentMode) -> Self {
         match value {
-            // Fifo waits for the display refresh; Immediate presents at once.
+            // Fifo waits for the display refresh and is supported everywhere.
+            // AutoNoVsync is Immediate where the surface supports it, else
+            // Mailbox, else Fifo: a surface may support Fifo only, and
+            // configuring an unsupported mode is an error.
             PresentMode::Vsync => Self::Fifo,
-            PresentMode::NoVsync => Self::Immediate,
+            PresentMode::NoVsync => Self::AutoNoVsync,
         }
     }
 }
@@ -43,7 +46,7 @@ mod tests {
         );
         assert_eq!(
             wgpu::PresentMode::from(PresentMode::NoVsync),
-            wgpu::PresentMode::Immediate
+            wgpu::PresentMode::AutoNoVsync
         );
     }
 }
