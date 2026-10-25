@@ -199,6 +199,15 @@ impl WgpuCommandExecutor {
         data: Option<Vec<u8>>,
     ) {
         let (wgpu_format, _) = self.storage_format(desc.format);
+        if self.f32_in_f16(desc.format) {
+            // Values above 65504 become infinite and precision drops to about
+            // three digits: wrong for data textures, not just less exact.
+            self.warn_once(format!(
+                "{:?} textures are stored as RGBA16F: the adapter lacks FLOAT32_FILTERABLE \
+                 and FLOAT32_BLENDABLE",
+                desc.format
+            ));
+        }
         let (dimension, layers) = match desc.dim {
             TexDim::D1 => (wgpu::TextureDimension::D1, 1),
             TexDim::D2 => (wgpu::TextureDimension::D2, 1),
