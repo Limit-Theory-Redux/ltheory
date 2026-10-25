@@ -69,7 +69,7 @@ void main() {
     vec3 color = albedo * lighting;
 
     // Very subtle rim lighting at terminator
-    float fresnel = pow(1.0 - max(dot(V, N), 0.0), 5.0);
+    float fresnel = pow(1.0 - saturate(dot(V, N)), 5.0);
     color += vec3(0.008) * fresnel * NL;  // Only visible near edge
 
     // No atmosphere on Moon

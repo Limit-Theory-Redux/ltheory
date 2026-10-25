@@ -23,7 +23,7 @@ void main() {
   vec3 c = c1;
 
   vec3 dark = sqrt(c1 * c2);
-  vec3 f1 = (c2 / avg(c2)) * (1.0 - exp(-1.25 * avg(c2))) * exp(-4.0 * c1);
+  vec3 f1 = (c2 / max(avg(c2), 1e-8)) * (1.0 - exp(-1.25 * avg(c2))) * exp(-4.0 * c1);
   // vec3 f1 = c2 * exp(-4.0 * c1);
   float f2 = exp(-l1);
 

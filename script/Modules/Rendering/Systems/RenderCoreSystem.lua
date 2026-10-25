@@ -320,7 +320,7 @@ function RenderCoreSystem:render(data)
     Profiler.End()
 
     Profiler.Begin('Render.Post.Bloom')
-    self:bloom(dt)
+    self:bloom(self.postSettings.bloom.radius)
     Profiler.End()
 
     Profiler.Begin('Render.Post.FXAA')
@@ -389,7 +389,7 @@ function RenderCoreSystem:handleResize()
     local ssx = rx * self.settings.superSampleRate
     local dsx = rx / self.settings.downSampleRate
 
-    if self.resX ~= rx or self.ssResX ~= ssx then
+    if self.resX ~= rx or self.resY ~= ry or self.ssResX ~= ssx then
         self.resX, self.resY = rx, ry
         self.ssResX, self.ssResY = ssx, ry * self.settings.superSampleRate
         self.dsResX, self.dsResY = dsx, ry / self.settings.downSampleRate
@@ -700,6 +700,13 @@ function RenderCoreSystem:bloom(radius)
         local pass = Renderer:beginPass(self:colorPassDesc('Post.bloompre', A, 0, false))
         pass:setPipeline(Pipelines.get(shader, FullscreenState))
         pass:setInputs(self.buffers[Enums.BufferName.buffer0]:mipView(self.level or 0), Samplers.LinearClamp)
+        local T = paramsTypes['bloompre']
+        if not T then
+            T = shader:blockType('Params')
+            paramsTypes['bloompre'] = T
+        end
+        local p = pass:alloc(T)
+        p.size.x, p.size.y = self.resX, self.resY
         pass:drawFullscreen()
         pass:finish()
     end

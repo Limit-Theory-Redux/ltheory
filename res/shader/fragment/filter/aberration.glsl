@@ -18,7 +18,8 @@ void main() {
   vec2 dir = uv - 0.5;
   dir *= k;
   dir = sign(dir) * pow2(dir);
-  dir = a * normalize(dir);
+  float dirLen = length(dir);
+  dir = dirLen > 0.0 ? a * dir / dirLen : vec2(0.0);
   vec2 uvp = uv;
   for (int i = -8; i <= 8; ++i) {
     vec3 w = pow(vec3(1.5, 1.00, 0.50), vec3(float(i) / 4.0));
@@ -26,7 +27,7 @@ void main() {
     tw += w;
   }
   c /= tw;
-  c = lum(cc) * (c / lum(c));
+  c *= lum(cc) / max(lum(c), 1e-8);
   c = mix(cc, c, strength);
   outColor = vec4(c, 1.0);
 }

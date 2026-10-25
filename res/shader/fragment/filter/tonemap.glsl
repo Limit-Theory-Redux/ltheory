@@ -231,7 +231,7 @@ void main() {
     color = max(color, vec3(0.0));
 
     // Gamma correction
-    color = pow(color, vec3(1.0 / 2.2));
+    color = pow(max(color, vec3(0.0)), vec3(1.0 / 2.2));
 
     fragColor = vec4(color, 1.0);
 }

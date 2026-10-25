@@ -27,7 +27,7 @@ void main() {
   float pulse = 0.7 + 0.3 * sin(t * 3.0 + P.z * 5.0);
 
   // Edge glow (energy shell)
-  float fresnel = pow(1.0 - abs(dot(N, V)), 1.5);
+  float fresnel = pow(1.0 - saturate(abs(dot(N, V))), 1.5);
 
   // Overall brightness — visible everywhere but brighter at edges
   float effect = (0.15 + energy * 0.5 + fresnel * 0.5) * pulse * intensity;

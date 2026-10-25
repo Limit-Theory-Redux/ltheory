@@ -24,6 +24,9 @@ function RenderingTest:onInit()
     Window:setPresentMode(PresentMode.NoVsync)
     Window:setFullscreen(false, true)
 
+    -- No lights or env map here: deferred lighting would render the boxes black
+    RenderCoreSystem:setDeferredLightingEnabled(false)
+
     -- Timers
     self.timer = DeltaTimer("RenderingTest")
     self.timer:start("camLoop", 0.01, true)
@@ -140,7 +143,7 @@ function RenderingTest:updateBoxes(data)
             rb:setRot(self.gridRotation * boxData.rotation)
 
             local relVec = Vec3f(boxData.relativePos.x, boxData.relativePos.y, boxData.relativePos.z)
-            local rotatedVec = self.gridRotation + relVec
+            local rotatedVec = self.gridRotation:mulV(relVec)
             rb:setPos(Position(
                 self.gridCenter.x + rotatedVec.x,
                 self.gridCenter.y + rotatedVec.y,
