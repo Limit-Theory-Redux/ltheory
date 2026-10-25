@@ -15,12 +15,7 @@ bench = true
 workspace = true
 
 [features]
-# Execute RenderCommands inline on the calling thread instead of on a
-# dedicated render thread. The dedicated render thread (feat/multithreaded_rendering)
-# is now the default; enable this feature to fall back to single-threaded
-# execution for debugging/comparison.
 default = []
-immediate = []
 # Serve a live render-stats dashboard over HTTP (embedded tiny_http server,
 # self-contained HTML page at /, JSON snapshot at /stats.json). Start with
 # the ltr `--stats-server <port>` flag; inactive unless enabled.
@@ -41,8 +36,6 @@ flate2 = "1.1"
 freetype-sys = "0.20"
 gilrs = "0.11"
 glam = { version = "0.29", features = ["scalar-math"] }
-glutin = "0.32"
-glutin-winit = "0.5"
 image = "0.25"
 indexmap = "2.14"
 kira = { version = "0.9", features = ["symphonia", "cpal", "serde"] }
@@ -83,9 +76,6 @@ rayon = "1.10"
 [dev-dependencies]
 test-log = "0.2"
 criterion = "0.8"
-
-[build-dependencies]
-gl_generator = "0.14"
 
 [[bench]]
 name = "worker"

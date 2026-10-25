@@ -12,7 +12,7 @@ use super::command_category::CommandCategory;
 use crate::render::{
     BindEntry, BindGroupId, BlockLayout, BufferId, PassCommands, PipelineDesc, PipelineId,
     ReadSource, ReadbackSlot, RenderPassDesc, SamplerDesc, SamplerId, ShaderLayout, TexDesc,
-    TexFormat, TexRegion, TexView, VertexFormat, gl,
+    TexFormat, TexRegion, TexView, VertexFormat,
 };
 use crate::window::PresentMode;
 
@@ -31,20 +31,6 @@ pub enum CmdPrimitiveType {
     TriangleStrip,
     TriangleFan,
     Quads,
-}
-
-impl CmdPrimitiveType {
-    pub fn to_gl(&self) -> u32 {
-        match self {
-            Self::Points => gl::POINTS,
-            Self::Lines => gl::LINES,
-            Self::LineStrip => gl::LINE_STRIP,
-            Self::Triangles => gl::TRIANGLES,
-            Self::TriangleStrip => gl::TRIANGLE_STRIP,
-            Self::TriangleFan => gl::TRIANGLE_FAN,
-            Self::Quads => gl::TRIANGLES, // Quads converted to triangles
-        }
-    }
 }
 
 /// Vertex data for immediate mode drawing
@@ -66,7 +52,7 @@ pub struct ImmVertex {
 #[derive(Debug, Clone)]
 pub enum RenderCommand {
     /// Write `data`, tightly packed texels in the texture's own `TexFormat`
-    /// layout (see `convert_texels`), to `region` of a texture. `GpuResource`
+    /// layout (see `convert_texels`), to `region` of a texture. The texture's
     /// kind decides the target (1D, 2D, 3D, or a cube face by `origin[2]`).
     UpdateTexture {
         id: ResourceId,
@@ -237,7 +223,7 @@ pub enum RenderCommand {
     SwapBuffers,
 
     // === Synchronization ===
-    /// Flush all pending GL commands (gl::Finish)
+    /// Wait until the GPU has finished all submitted work
     Flush,
 
     /// Fence for synchronization - render thread sends fence_id back when reached.

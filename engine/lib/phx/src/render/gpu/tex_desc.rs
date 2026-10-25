@@ -10,7 +10,7 @@
 
 use std::borrow::Cow;
 
-use crate::render::{CubeFace, DataFormat, PixelFormat, TexDim, TexFormat, gl};
+use crate::render::{CubeFace, DataFormat, PixelFormat, TexDim, TexFormat};
 
 /// Usage bits for `TexUsages` and for the Lua `desc.usage` field
 /// (`bit.bor(TexUsage.Sampled, TexUsage.CopySrc)`).
@@ -198,9 +198,9 @@ impl TexRegion {
     }
 }
 
-/// Array layer of a cube face (0 to 5).
+/// Array layer of a cube face (0 to 5, in `CUBE_FACES` order).
 pub fn face_layer(face: CubeFace) -> u32 {
-    face as u32 - gl::TEXTURE_CUBE_MAP_POSITIVE_X
+    face as u32
 }
 
 // ----------------------------------------------------------------------------
@@ -466,6 +466,15 @@ pub fn convert_slice<T>(data: &[T], pixel: PixelFormat, df: DataFormat, dst: Tex
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::render::CUBE_FACES;
+
+    #[test]
+    fn face_layers_follow_cube_face_order() {
+        for (layer, face) in CUBE_FACES.iter().enumerate() {
+            assert_eq!(face_layer(*face), layer as u32);
+            assert_eq!(CubeFace::get(layer as i32), *face);
+        }
+    }
 
     #[test]
     fn mip_counts() {
@@ -579,12 +588,5 @@ mod tests {
             Cow::Borrowed(_)
         ));
         assert_eq!(f16_to_f32(f32_to_f16(0.75)), 0.75);
-    }
-
-    #[test]
-    fn face_layers_follow_cube_face_order() {
-        assert_eq!(face_layer(CubeFace::PX), 0);
-        assert_eq!(face_layer(CubeFace::NX), 1);
-        assert_eq!(face_layer(CubeFace::NZ), 5);
     }
 }

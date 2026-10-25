@@ -7,7 +7,7 @@ use std::collections::HashMap;
 
 use tracing::info;
 
-use super::{BufferId, SamplerId, ShaderLayout, TexView, block_binding, texture_unit};
+use super::{BufferId, SamplerId, ShaderLayout, TexView};
 use crate::render::{Renderer, ResourceId, Shader};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -24,7 +24,7 @@ pub enum BindEntry {
         size: u32,
     },
     Texture {
-        /// Index within the group; the unit is `GROUP_FIRST_UNIT[group] + index`.
+        /// Index within the group (see `wgpu_texture_binding`).
         index: u8,
         view: TexView,
         sampler: SamplerId,
@@ -206,23 +206,6 @@ impl Renderer {
         self.data.tex_pins.pin_group(id, &entries);
         self.create_bind_group_intern(id, shader, group, entries.into_boxed_slice());
         id
-    }
-}
-
-/// The GL texture unit of a texture `entry` in `group` (`None` for uniform
-/// entries, which bind a block instead).
-pub fn entry_unit(group: u8, entry: &BindEntry) -> Option<u32> {
-    match entry {
-        BindEntry::Texture { index, .. } => Some(texture_unit(group, *index)),
-        BindEntry::Uniform { .. } => None,
-    }
-}
-
-/// The block binding point of a uniform `entry` in `group`.
-pub fn entry_block_binding(group: u8, entry: &BindEntry) -> Option<u32> {
-    match entry {
-        BindEntry::Uniform { index, .. } => Some(block_binding(group, *index)),
-        BindEntry::Texture { .. } => None,
     }
 }
 

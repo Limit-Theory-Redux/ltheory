@@ -17,22 +17,6 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            TexFormat TexFormat_R8;
-            TexFormat TexFormat_R16;
-            TexFormat TexFormat_R16F;
-            TexFormat TexFormat_R32F;
-            TexFormat TexFormat_RG8;
-            TexFormat TexFormat_RG16;
-            TexFormat TexFormat_RG16F;
-            TexFormat TexFormat_RG32F;
-            TexFormat TexFormat_RGBA8;
-            TexFormat TexFormat_RGBA16;
-            TexFormat TexFormat_RGBA16F;
-            TexFormat TexFormat_RGBA32F;
-            TexFormat TexFormat_Depth16;
-            TexFormat TexFormat_Depth24;
-            TexFormat TexFormat_Depth32F;
-
             cstr      TexFormat_ToString(TexFormat);
 
             int  TexFormat_Components (TexFormat this);
@@ -44,21 +28,21 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         TexFormat = {
-            R8       = libphx.TexFormat_R8,
-            R16      = libphx.TexFormat_R16,
-            R16F     = libphx.TexFormat_R16F,
-            R32F     = libphx.TexFormat_R32F,
-            RG8      = libphx.TexFormat_RG8,
-            RG16     = libphx.TexFormat_RG16,
-            RG16F    = libphx.TexFormat_RG16F,
-            RG32F    = libphx.TexFormat_RG32F,
-            RGBA8    = libphx.TexFormat_RGBA8,
-            RGBA16   = libphx.TexFormat_RGBA16,
-            RGBA16F  = libphx.TexFormat_RGBA16F,
-            RGBA32F  = libphx.TexFormat_RGBA32F,
-            Depth16  = libphx.TexFormat_Depth16,
-            Depth24  = libphx.TexFormat_Depth24,
-            Depth32F = libphx.TexFormat_Depth32F,
+            R8       = 0,
+            R16      = 1,
+            R16F     = 2,
+            R32F     = 3,
+            RG8      = 4,
+            RG16     = 5,
+            RG16F    = 6,
+            RG32F    = 7,
+            RGBA8    = 8,
+            RGBA16   = 9,
+            RGBA16F  = 10,
+            RGBA32F  = 11,
+            Depth16  = 12,
+            Depth24  = 13,
+            Depth32F = 14,
 
             ToString = libphx.TexFormat_ToString,
 

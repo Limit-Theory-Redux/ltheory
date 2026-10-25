@@ -1,20 +1,25 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Duration;
 
-use crossbeam::channel::{Receiver, Sender};
-use tracing::{debug, error, info, warn};
+use crossbeam::channel::{Receiver, RecvTimeoutError, Sender};
+use tracing::{debug, info, warn};
 
+use crate::render::thread::CommandReply;
 use crate::render::thread::command_executor_wgpu::WgpuCommandExecutor;
-use crate::render::thread::{CommandExecutor, CommandReply};
-use crate::render::{RenderCommand, RenderStats, ReturnedChunk};
-use crate::window::{WgpuStartupBundle, WindowActiveGlContext, WindowGlContext};
+use crate::render::{PassCommands, RenderCommand, RenderStats, ReturnedChunk};
+use crate::window::WgpuStartupBundle;
 
-/// Drives a [`CommandExecutor`] on a dedicated thread.
+/// How long the loop waits for a command before polling the device. The
+/// device's callbacks (pacing fences, readbacks) only run when it is polled,
+/// and the main thread may be blocked on exactly one of them.
+const IDLE_POLL_INTERVAL: Duration = Duration::from_millis(1);
+
+/// Drives a [`WgpuCommandExecutor`] on a dedicated thread.
 ///
 /// This type owns only the plumbing: it pulls commands off a channel, hands
 /// them to the executor, and forwards whatever the executor answers back to
-/// the main thread. All GL work and all GPU state live in the executor, which
-/// is why the same executor can also be driven inline in immediate mode.
+/// the main thread. All GPU work and all GPU state live in the executor.
 pub struct RenderThread {
     command_rx: Receiver<RenderCommand>,
     fence_tx: Sender<u64>,
@@ -23,104 +28,53 @@ pub struct RenderThread {
     /// round-trip fences can never be consumed by the wrong consumer (see
     /// `RenderCommand::PacingFence`'s docs).
     pacing_fence_tx: Sender<u64>,
-    /// Channel to return GL context to main thread on shutdown
-    context_tx: Sender<Option<WindowGlContext>>,
     /// Channel to publish a stats snapshot to the main thread on every frame
     stats_tx: Sender<RenderStats>,
     /// Channel returning uploaded ring memory to the main thread
     chunk_return_tx: Sender<ReturnedChunk>,
     running: Arc<AtomicBool>,
-    /// Executes commands in thread
-    executor: CommandExecutor,
-    /// Parallel wgpu backend; when set, commands go to it instead of the GL
-    /// executor (which then has no context). Exactly one of the two is active.
-    wgpu_executor: Option<WgpuCommandExecutor>,
-    /// Where the startup backend description goes (see `Renderer::backend_info`).
-    backend_info: Option<std::sync::Arc<std::sync::Mutex<String>>>,
+    /// `None` only for a headless renderer (unit tests without a window):
+    /// commands are then answered by [`headless_execute`].
+    executor: Option<WgpuCommandExecutor>,
 }
 
 impl RenderThread {
-    /// Publish the backend description to `cell` once the backend is up.
-    pub fn with_backend_info(mut self, cell: std::sync::Arc<std::sync::Mutex<String>>) -> Self {
-        self.backend_info = Some(cell);
-        self
-    }
-
-    #[allow(clippy::too_many_arguments)]
+    /// The executor is built from the surface bundle (device, queue, surface
+    /// and initial size all move here).
     pub fn new(
         command_rx: Receiver<RenderCommand>,
         fence_tx: Sender<u64>,
         pacing_fence_tx: Sender<u64>,
-        context_tx: Sender<Option<WindowGlContext>>,
         stats_tx: Sender<RenderStats>,
         chunk_return_tx: Sender<ReturnedChunk>,
         running: Arc<AtomicBool>,
-        gl_context: Option<WindowActiveGlContext>,
-        category_timing: Arc<AtomicBool>,
+        bundle: Option<WgpuStartupBundle>,
     ) -> Self {
+        let executor = bundle.map(|bundle| {
+            let (width, height) = (bundle.surface_config.width, bundle.surface_config.height);
+            let mut executor = WgpuCommandExecutor::with_device(bundle.device, bundle.queue)
+                .with_surface(bundle.surface, bundle.surface_config, width, height);
+            // Frame pacing follows the GPU: the executor answers a pacing
+            // fence when `on_submitted_work_done` fires.
+            executor.set_pacing_sender(pacing_fence_tx.clone());
+            executor
+        });
         Self {
             command_rx,
             fence_tx,
             pacing_fence_tx,
-            context_tx,
             stats_tx,
             chunk_return_tx,
             running,
-            executor: CommandExecutor::new_with_timing(gl_context, category_timing),
-            wgpu_executor: None,
-            backend_info: None,
-        }
-    }
-
-    /// wgpu flavor: the executor is built from the surface bundle (device,
-    /// queue, surface and initial size all move here; no GL anywhere).
-    #[allow(clippy::too_many_arguments)]
-    pub fn new_wgpu(
-        command_rx: Receiver<RenderCommand>,
-        fence_tx: Sender<u64>,
-        pacing_fence_tx: Sender<u64>,
-        context_tx: Sender<Option<WindowGlContext>>,
-        stats_tx: Sender<RenderStats>,
-        chunk_return_tx: Sender<ReturnedChunk>,
-        running: Arc<AtomicBool>,
-        bundle: WgpuStartupBundle,
-        category_timing: Arc<AtomicBool>,
-    ) -> Self {
-        let (width, height) = (bundle.surface_config.width, bundle.surface_config.height);
-        let mut executor = WgpuCommandExecutor::with_device(bundle.device, bundle.queue)
-            .with_surface(bundle.surface, bundle.surface_config, width, height);
-        executor.set_category_timing(category_timing.clone());
-        // Frame pacing follows the GPU: the executor answers a pacing fence
-        // when `on_submitted_work_done` fires.
-        executor.set_pacing_sender(pacing_fence_tx.clone());
-        Self {
-            command_rx,
-            fence_tx,
-            pacing_fence_tx,
-            context_tx,
-            stats_tx,
-            chunk_return_tx,
-            running,
-            executor: CommandExecutor::new_with_timing(None, category_timing),
-            wgpu_executor: Some(executor),
-            backend_info: None,
+            executor,
         }
     }
 
     /// Main render loop
     pub fn run(&mut self) {
         info!("Render thread started");
-
-        // Only initialize GL resources if we have a valid context
-        if self.wgpu_executor.is_some() {
-            info!("Render thread running the wgpu backend");
-        } else if self.executor.has_gl_context() {
-            self.executor.init_gl();
-            if let Some(cell) = &self.backend_info {
-                *cell.lock().unwrap() = self.executor.gl_backend_info();
-            }
-        } else {
-            warn!("Render thread running without GL context - commands will be no-ops");
+        if self.executor.is_none() {
+            warn!("Render thread running without a GPU device - commands will be no-ops");
         }
 
         while self.running.load(Ordering::Relaxed) {
@@ -132,89 +86,60 @@ impl RenderThread {
             const STARVATION_THRESHOLD_US: u64 = 20;
 
             let recv_start = std::time::Instant::now();
-            let cmd = if let Some(wgpu) = self.wgpu_executor.as_ref() {
-                // The device's callbacks (pacing fences, readbacks) only run
-                // when it is polled, and the main thread may be waiting for
-                // exactly one of them: poll whenever the channel is idle.
-                loop {
-                    match self
-                        .command_rx
-                        .recv_timeout(std::time::Duration::from_millis(1))
-                    {
-                        Ok(cmd) => break Ok(cmd),
-                        Err(crossbeam::channel::RecvTimeoutError::Timeout) => {
-                            wgpu.poll();
-                            if !self.running.load(Ordering::Relaxed) {
-                                break Err(crossbeam::channel::RecvError);
-                            }
-                        }
-                        Err(crossbeam::channel::RecvTimeoutError::Disconnected) => {
-                            break Err(crossbeam::channel::RecvError);
-                        }
-                    }
-                }
-            } else {
-                self.command_rx.recv()
+            let Some(cmd) = self.next_command() else {
+                debug!("Command channel closed, render thread exiting");
+                break;
             };
             let recv_wait_us = recv_start.elapsed().as_micros() as u64;
 
-            match cmd {
-                Ok(cmd) => {
-                    if matches!(cmd, RenderCommand::Shutdown) {
-                        info!("Render thread received shutdown command");
-                        break;
-                    }
+            if matches!(cmd, RenderCommand::Shutdown) {
+                info!("Render thread received shutdown command");
+                break;
+            }
 
-                    // Per-frame command count (record_command does this when
-                    // the stats-server feature is on).
-                    #[cfg(not(feature = "stats-server"))]
-                    if self.wgpu_executor.is_none() {
-                        self.executor.this_frame_stats.commands += 1;
-                    }
-
-                    if recv_wait_us >= STARVATION_THRESHOLD_US {
-                        if let Some(wgpu) = self.wgpu_executor.as_mut() {
-                            wgpu.note_recv_wait(recv_wait_us);
-                        } else {
-                            self.executor.this_frame_stats.recv_wait_us += recv_wait_us;
-                            self.executor.this_frame_stats.recv_wait_count += 1;
-                        }
-                    }
-
-                    let reply = if let Some(wgpu) = self.wgpu_executor.as_mut() {
-                        wgpu.execute(cmd)
-                    } else {
-                        self.executor.execute(cmd)
-                    };
-                    self.dispatch(reply);
-                    // Ring memory the command finished uploading goes back to
-                    // the main thread for reuse.
-                    let returned = match self.wgpu_executor.as_mut() {
-                        Some(wgpu) => wgpu.take_returned_chunks(),
-                        None => self.executor.take_returned_chunks(),
-                    };
-                    for chunk in returned {
-                        let _ = self.chunk_return_tx.send(chunk);
-                    }
+            let Some(executor) = self.executor.as_mut() else {
+                let (reply, returned) = headless_execute(cmd);
+                self.dispatch(reply);
+                for chunk in returned {
+                    let _ = self.chunk_return_tx.send(chunk);
                 }
-                Err(_) => {
-                    debug!("Command channel closed, render thread exiting");
-                    break;
-                }
+                continue;
+            };
+            if recv_wait_us >= STARVATION_THRESHOLD_US {
+                executor.note_recv_wait(recv_wait_us);
+            }
+            let reply = executor.execute(cmd);
+            // Ring memory the command finished uploading goes back to the
+            // main thread for reuse.
+            let returned = executor.take_returned_chunks();
+            self.dispatch(reply);
+            for chunk in returned {
+                let _ = self.chunk_return_tx.send(chunk);
             }
         }
 
-        let context = if let Some(wgpu) = self.wgpu_executor.as_ref() {
-            // wgpu: nothing to hand back (no GL context exists).
-            info!("Render thread stopped. wgpu stats: {:?}", wgpu.stats());
-            None
-        } else {
-            let context = self.executor.cleanup();
-            info!("Render thread stopped. Stats: {:?}", self.executor.stats());
-            context
+        if let Some(executor) = &self.executor {
+            info!("Render thread stopped. Stats: {:?}", executor.stats());
+        }
+    }
+
+    /// Wait for the next command, polling the device while the channel is
+    /// idle. `None` once the channel is closed or the renderer stops running.
+    fn next_command(&self) -> Option<RenderCommand> {
+        let Some(executor) = self.executor.as_ref() else {
+            return self.command_rx.recv().ok();
         };
-        if let Err(e) = self.context_tx.send(context) {
-            error!("Failed to signal main thread on shutdown: {e:?}");
+        loop {
+            match self.command_rx.recv_timeout(IDLE_POLL_INTERVAL) {
+                Ok(cmd) => return Some(cmd),
+                Err(RecvTimeoutError::Timeout) => {
+                    executor.poll();
+                    if !self.running.load(Ordering::Relaxed) {
+                        return None;
+                    }
+                }
+                Err(RecvTimeoutError::Disconnected) => return None,
+            }
         }
     }
 
@@ -246,7 +171,40 @@ impl RenderThread {
     }
 }
 
-/// The `key=value` lines `Renderer::backend_info` returns for a wgpu backend.
+/// What a renderer without a GPU device answers: nothing is drawn, but every
+/// caller blocked on a reply is released (fences, shader creation, readbacks)
+/// and ring memory goes back to the main thread as it would after an upload.
+fn headless_execute(cmd: RenderCommand) -> (CommandReply, Vec<ReturnedChunk>) {
+    let mut returned = Vec::new();
+    let reply = match cmd {
+        RenderCommand::Fence { fence_id } => CommandReply::Fence(fence_id),
+        RenderCommand::PacingFence { fence_id } => CommandReply::PacingFence(fence_id),
+        RenderCommand::CreateShader { reply_tx, .. } => {
+            let _ = reply_tx.send(Ok(Vec::new()));
+            CommandReply::None
+        }
+        RenderCommand::ReadTextureSync { reply_tx, .. } => {
+            let _ = reply_tx.send(Vec::new());
+            CommandReply::None
+        }
+        RenderCommand::PassCommands(commands) => {
+            let PassCommands {
+                uniforms, vertices, ..
+            } = *commands;
+            for (vertex, chunks) in [(false, uniforms), (true, vertices)] {
+                returned.extend(chunks.into_iter().map(|chunk| ReturnedChunk {
+                    vertex,
+                    bytes: chunk.bytes,
+                }));
+            }
+            CommandReply::None
+        }
+        _ => CommandReply::None,
+    };
+    (reply, returned)
+}
+
+/// The `key=value` lines `Renderer::backend_info` returns.
 pub(super) fn wgpu_backend_info(
     adapter: &wgpu::Adapter,
     config: &wgpu::SurfaceConfiguration,
@@ -254,6 +212,14 @@ pub(super) fn wgpu_backend_info(
     let i = adapter.get_info();
     format!(
         "backend=wgpu\nwgpu_backend={:?}\nadapter={}\ndevice_type={:?}\ndriver={}\ndriver_info={}\nvendor_id=0x{:04x}\ndevice_id=0x{:04x}\nsurface_format={:?}\npresent_mode={:?}\n",
-        i.backend, i.name, i.device_type, i.driver, i.driver_info, i.vendor, i.device, config.format, config.present_mode
+        i.backend,
+        i.name,
+        i.device_type,
+        i.driver,
+        i.driver_info,
+        i.vendor,
+        i.device,
+        config.format,
+        config.present_mode
     )
 }

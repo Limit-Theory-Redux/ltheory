@@ -514,8 +514,14 @@ mod tests {
         );
         let (layout, errors) = ShaderLayout::merge(&[&vs.layout, &fs.layout]);
         assert!(errors.is_empty());
-        assert_eq!(layout.block("V").unwrap().binding(), 0);
-        assert_eq!(layout.texture("e").unwrap().unit(), 0);
-        assert_eq!(layout.texture("i").unwrap().unit(), 1);
+        assert_eq!(layout.block("V").map(|b| (b.group, b.index)), Some((0, 0)));
+        assert_eq!(
+            layout.texture("e").map(|t| (t.group, t.index)),
+            Some((0, 0))
+        );
+        assert_eq!(
+            layout.texture("i").map(|t| (t.group, t.index)),
+            Some((0, 1))
+        );
     }
 }

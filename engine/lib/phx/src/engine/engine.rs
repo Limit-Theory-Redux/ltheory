@@ -20,7 +20,6 @@ pub struct Engine {
     pub init_time: TimeStamp,
     pub window: Window,
     pub cache: CachedWindow,
-    pub winit_window: WinitWindow,
     pub hmgui: HmGui,
     pub input: Input,
     pub exit_app: bool,
@@ -35,6 +34,10 @@ pub struct Engine {
     /// Whether `changed_window` has already logged that a script's present
     /// mode request was overridden - logged once, not every frame.
     present_mode_override_logged: bool,
+    /// Declared after `renderer`, so it drops after it: the wgpu surface the
+    /// render thread owns was created from this window's raw handles, and
+    /// dropping the renderer joins that thread.
+    pub winit_window: WinitWindow,
 }
 
 // This thread local variable contains a ref counted instance of the current Lua VM.
@@ -115,43 +118,22 @@ impl Engine {
         let cache = CachedWindow {
             window: window.clone(),
         };
-        let mut winit_window = WinitWindow::new(event_loop, &window);
-        winit_window.resume();
+        let winit_window = WinitWindow::new(event_loop, &window);
         let scale_factor = window.scale_factor();
 
-        // Every GL-touching type submits through this renderer - see
-        // doc/engine/render-thread.md. Extracting the context here hands it
-        // off for good: WinitWindow no longer performs GL operations itself
-        // (its own swap_buffers is a no-op from this point on; frame end goes
-        // through `renderer.end_frame_triple_buffered()` instead, driven from
-        // `MainLoop::about_to_wait`).
-        //
-        // `LTHEORY_WGPU` selects the wgpu backend instead: `resume()` above
-        // already created a live GL context on the window, so it is dropped
-        // first (GL and wgpu must never coexist on one native window), then
-        // the surface bundle is built from the winit window.
-        // The immediate-renderer build is GL-only and ignores the variable.
-        let use_wgpu = cfg!(not(feature = "immediate")) && std::env::var("LTHEORY_WGPU").is_ok();
-        let mut renderer = if use_wgpu {
-            #[cfg(feature = "immediate")]
-            unreachable!("wgpu backend is not available in the immediate renderer build");
-            #[cfg(not(feature = "immediate"))]
-            {
-                info!("Starting renderer with wgpu backend (LTHEORY_WGPU)");
-                winit_window
-                    .disable_gl_backend()
-                    .expect("Failed to disable GL backend before wgpu startup");
-                let bundle = winit_window
-                    .extract_wgpu_surface(window.width() as u32, window.height() as u32)
-                    .expect("Failed to create wgpu surface bundle for renderer");
-                Renderer::start_wgpu(bundle).expect("Failed to start renderer")
-            }
-        } else {
-            let context = winit_window
-                .extract_gl_context()
-                .expect("Failed to extract GL context for renderer");
-            Renderer::start(context).expect("Failed to start renderer")
-        };
+        // Every GPU-touching type submits through this renderer - see
+        // doc/engine/render-thread.md. The surface bundle moves to the render
+        // thread for good; frame end goes through
+        // `renderer.end_frame_triple_buffered()`, driven from
+        // `MainLoop::about_to_wait`.
+        let bundle = winit_window
+            .create_wgpu_surface(
+                window.present_mode,
+                window.width() as u32,
+                window.height() as u32,
+            )
+            .expect("Failed to create wgpu surface bundle for renderer");
+        let mut renderer = Renderer::start(bundle).expect("Failed to start renderer");
 
         // Optional live stats dashboard (feature `stats-server`, activated by
         // the ltr `--stats-server <port>` flag).
@@ -237,14 +219,9 @@ impl Engine {
             }
         }
 
-        // Handle suspend/resume
-        if let Some(state) = self.window.state {
-            match state {
-                WindowState::Suspended => self.winit_window.suspend(),
-                WindowState::Resumed => self.winit_window.resume(),
-            }
-            self.window.state = None;
-        }
+        // Suspend/resume needs no action: the surface lives on the render
+        // thread for the whole run.
+        self.window.state = None;
 
         // Update title
         if self.window.title != self.cache.window.title {
@@ -319,9 +296,8 @@ impl Engine {
             let height = self.window.resolution.physical_height();
             let physical_size = PhysicalSize::new(width, height);
 
-            if let Some(new_size) = self.winit_window.window().request_inner_size(physical_size) {
-                self.winit_window.resize(new_size.width, new_size.height);
-            }
+            // The renderer follows the `Resized` event the request produces.
+            let _ = self.winit_window.window().request_inner_size(physical_size);
         }
 
         // === Handle cursor position ===
@@ -473,12 +449,9 @@ impl Engine {
                     self.present_mode_override_logged = true;
                 }
             } else {
-                // The GL context lives on the render thread (see
-                // Engine::new's extract_gl_context handoff), and
-                // set_swap_interval needs it current, so this goes through a
-                // command instead of being applied here directly.
+                // The surface lives on the render thread, so the new mode is
+                // applied there through a command.
                 self.renderer.set_present_mode(self.window.present_mode);
-                self.winit_window.set_present_mode(self.window.present_mode);
             }
         }
 

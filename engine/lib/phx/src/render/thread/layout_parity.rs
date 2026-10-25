@@ -281,7 +281,8 @@ fn view_block_matches_the_rust_struct() {
             .find(|b| b.name == ViewBlock::NAME)
             .unwrap_or_else(|| panic!("{rel}: no ViewBlock"));
         ViewBlock::check_layout(block).unwrap_or_else(|e| panic!("{rel}: {e}"));
-        assert_eq!(layout.block(ViewBlock::NAME).unwrap().binding(), 0);
+        let view_block = layout.block(ViewBlock::NAME).unwrap();
+        assert_eq!((view_block.group, view_block.index), (0, 0));
     }
 }
 
@@ -332,11 +333,8 @@ void main() {
             .find(|b| b.name == DrawBlock::NAME)
             .unwrap_or_else(|| panic!("{label}: no DrawBlock"));
         DrawBlock::check_layout(block).unwrap_or_else(|e| panic!("{label}: {e}"));
-        assert_eq!(
-            layout.block(DrawBlock::NAME).unwrap().binding(),
-            8,
-            "{label}"
-        );
+        let draw_block = layout.block(DrawBlock::NAME).unwrap();
+        assert_eq!((draw_block.group, draw_block.index), (2, 0), "{label}");
     }
 }
 
@@ -357,7 +355,8 @@ fn naga_reflection_reports_std140_offsets() {
     let pre = GLSLCode::preprocess_with(src, None, &mut |_| String::new());
     let (layout, errors) = ShaderLayout::merge(&[&pre.layout]);
     assert!(errors.is_empty(), "{errors:?}");
-    assert_eq!(layout.block("Params").unwrap().binding(), 8);
+    let params_block = layout.block("Params").unwrap();
+    assert_eq!((params_block.group, params_block.index), (2, 0));
     let view = naga_view(&pre.code, wgpu::naga::ShaderStage::Fragment, &layout).expect("naga");
     let params = view
         .blocks

@@ -293,10 +293,6 @@ impl WgpuCommandExecutor {
         self.pacing_tx = Some(tx);
     }
 
-    /// Accepted for interface parity with the GL executor (the stats
-    /// dashboard's per-category timing is not collected here).
-    pub fn set_category_timing(&self, _timing: Arc<AtomicBool>) {}
-
     pub fn stats(&self) -> &ExecutorStats {
         &self.stats
     }

@@ -9,7 +9,7 @@ Renderer = {}
 function Renderer:sync() end
 
 -- Block until the GPU has finished everything submitted so far
--- (`glFinish`), e.g. to time a piece of GPU work.
+-- e.g. to time a piece of GPU work.
 function Renderer:gpuFinish() end
 
 -- Draw calls of the last frame (mesh + immediate + instanced).

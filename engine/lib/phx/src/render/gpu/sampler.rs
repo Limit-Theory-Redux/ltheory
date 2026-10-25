@@ -54,27 +54,6 @@ impl SamplerDesc {
             compare: None,
         }
     }
-
-    /// `GL_TEXTURE_MIN_FILTER` for this min/mip combination.
-    pub fn gl_min_filter(&self) -> u32 {
-        use crate::render::gl;
-        match (self.min, self.mip) {
-            (SamplerFilter::Point, MipFilter::None) => gl::NEAREST,
-            (SamplerFilter::Point, MipFilter::Point) => gl::NEAREST_MIPMAP_NEAREST,
-            (SamplerFilter::Point, MipFilter::Linear) => gl::NEAREST_MIPMAP_LINEAR,
-            (SamplerFilter::Linear, MipFilter::None) => gl::LINEAR,
-            (SamplerFilter::Linear, MipFilter::Point) => gl::LINEAR_MIPMAP_NEAREST,
-            (SamplerFilter::Linear, MipFilter::Linear) => gl::LINEAR_MIPMAP_LINEAR,
-        }
-    }
-
-    pub fn gl_mag_filter(&self) -> u32 {
-        use crate::render::gl;
-        match self.mag {
-            SamplerFilter::Point => gl::NEAREST,
-            SamplerFilter::Linear => gl::LINEAR,
-        }
-    }
 }
 
 #[luajit_ffi_gen::luajit_ffi]
@@ -252,14 +231,5 @@ mod tests {
         assert!(created);
         assert_eq!(id.0 as usize, Samplers::ALL.len());
         assert_eq!(cache.get_or_insert(&custom), (id, false));
-    }
-
-    #[test]
-    fn gl_filters_follow_min_and_mip() {
-        use crate::render::gl;
-        let d = Samplers::LinearMipClamp.desc();
-        assert_eq!(d.gl_min_filter(), gl::LINEAR_MIPMAP_LINEAR);
-        assert_eq!(d.gl_mag_filter(), gl::LINEAR);
-        assert_eq!(Samplers::Point.desc().gl_min_filter(), gl::NEAREST);
     }
 }

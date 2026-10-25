@@ -28,10 +28,10 @@ impl Renderer {
     }
 
     /// Block until the GPU has finished everything submitted so far
-    /// (`glFinish`), e.g. to time a piece of GPU work.
+    /// e.g. to time a piece of GPU work.
     pub fn gpu_finish(&mut self) {
         Metric::Flush.inc();
-        self.gl_finish();
+        self.finish_gpu();
     }
 
     // === Frame stats (last completed frame; used by LTHEORY_CAPTURE) ===
@@ -86,7 +86,8 @@ impl Renderer {
     /// Pipeline (program) switches in the last frame: binds that changed the program.
     pub fn stats_pipeline_switches(&mut self) -> u64 {
         let s = self.get_stats();
-        s.shader_bind_commands.saturating_sub(s.shader_redundant_binds)
+        s.shader_bind_commands
+            .saturating_sub(s.shader_redundant_binds)
     }
 
     /// Bind groups bound in the last frame.
@@ -174,7 +175,11 @@ impl Renderer {
     /// Exponential average of the GPU time of the `i`-th heaviest pass, microseconds.
     pub fn stats_gpu_pass_smooth_us(&mut self, i: u32) -> u32 {
         let g = self.get_stats().gpu;
-        if i < g.count { g.smooth_us[i as usize] } else { 0 }
+        if i < g.count {
+            g.smooth_us[i as usize]
+        } else {
+            0
+        }
     }
 
     /// The `n` heaviest passes (smoothed ms) as `label=ms` pairs separated by `,`

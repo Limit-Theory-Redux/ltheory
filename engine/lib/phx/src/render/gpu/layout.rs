@@ -4,45 +4,31 @@
 //! group/binding assignment. `#group N` marks the declarations that follow
 //! (uniform blocks and samplers) as belonging to bind group N. The
 //! preprocessor strips the directive, records the declarations in a
-//! [`ShaderLayout`], and the GL executor applies them at link time
-//! (`glUniformBlockBinding` / `glUniform1i`). The wgpu path rewrites the same
-//! declarations to `set`/`binding` form.
+//! [`ShaderLayout`], and the executor rewrites them to `set`/`binding` form
+//! (see `WGPU_FIRST_TEXTURE_BINDING`).
 //!
-//! Fixed assignment, identical for every shader:
+//! Fixed limits, identical for every shader:
 //!
-//! | group | uniform block bindings | texture units |
+//! | group | uniform blocks | samplers |
 //! |---|---|---|
-//! | 0 frame/view | 0..3 | 0..2 |
-//! | 1 material | 4..7 | 3..9 |
-//! | 2 draw | 8..11 | 10..11 |
-//! | 3 pass inputs | 12..15 | 12..15 |
+//! | 0 frame/view | 4 | 3 |
+//! | 1 material | 4 | 7 |
+//! | 2 draw | 4 | 2 |
+//! | 3 pass inputs | 4 | 4 |
 
 use std::collections::HashMap;
 
 pub const GROUP_COUNT: usize = 4;
-/// First GL texture unit of each group.
-pub const GROUP_FIRST_UNIT: [u32; GROUP_COUNT] = [0, 3, 10, 12];
-/// Number of texture units each group owns.
+/// Number of samplers each group can declare. Sixteen in total, which is
+/// also what the shaders were written against (`MAX_TEXTURE_IMAGE_UNITS`).
 pub const GROUP_UNIT_COUNT: [u32; GROUP_COUNT] = [3, 7, 2, 4];
-/// Uniform block binding points per group (`binding = group * 4 + k`).
+/// Number of uniform blocks each group can declare.
 pub const BLOCKS_PER_GROUP: u32 = 4;
-/// Total GL texture units the layout uses (the GL 3.3 minimum).
-pub const TOTAL_UNITS: u32 = 16;
 
 pub const GROUP_FRAME: u8 = 0;
 pub const GROUP_MATERIAL: u8 = 1;
 pub const GROUP_DRAW: u8 = 2;
 pub const GROUP_INPUTS: u8 = 3;
-
-/// Block binding point of the `k`-th block in `group`.
-pub const fn block_binding(group: u8, k: u8) -> u32 {
-    group as u32 * BLOCKS_PER_GROUP + k as u32
-}
-
-/// Texture unit of the `k`-th sampler in `group`.
-pub const fn texture_unit(group: u8, k: u8) -> u32 {
-    GROUP_FIRST_UNIT[group as usize] + k as u32
-}
 
 /// wgpu numbering inside a bind group (`set` = group): the `k`-th uniform block
 /// is binding `k`, the `i`-th sampler is a texture at `WGPU_FIRST_TEXTURE_BINDING
@@ -95,12 +81,6 @@ pub struct BlockDecl {
     pub index: u8,
 }
 
-impl BlockDecl {
-    pub fn binding(&self) -> u32 {
-        block_binding(self.group, self.index)
-    }
-}
-
 /// One sampler declared under a `#group`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TextureDecl {
@@ -108,12 +88,6 @@ pub struct TextureDecl {
     pub group: u8,
     pub index: u8,
     pub dim: TexDim,
-}
-
-impl TextureDecl {
-    pub fn unit(&self) -> u32 {
-        texture_unit(self.group, self.index)
-    }
 }
 
 /// What the preprocessor recorded for one stage, before the vertex and
@@ -585,22 +559,13 @@ mod tests {
     use super::*;
 
     #[test]
-    fn units_and_bindings_are_fixed() {
-        assert_eq!(block_binding(0, 0), 0);
-        assert_eq!(block_binding(1, 0), 4);
-        assert_eq!(block_binding(2, 1), 9);
-        assert_eq!(block_binding(3, 3), 15);
-        assert_eq!(texture_unit(0, 1), 1);
-        assert_eq!(texture_unit(1, 0), 3);
-        assert_eq!(texture_unit(2, 1), 11);
-        assert_eq!(texture_unit(3, 3), 15);
-        // The unit ranges tile 0..16 with no overlap.
-        let mut next = 0;
-        for g in 0..GROUP_COUNT {
-            assert_eq!(GROUP_FIRST_UNIT[g], next);
-            next += GROUP_UNIT_COUNT[g];
-        }
-        assert_eq!(next, TOTAL_UNITS);
+    fn wgpu_bindings_do_not_overlap() {
+        // Blocks take 0..BLOCKS_PER_GROUP, then texture/sampler pairs follow.
+        assert_eq!(wgpu_block_binding(3), 3);
+        assert_eq!(wgpu_texture_binding(0), BLOCKS_PER_GROUP);
+        assert_eq!(wgpu_sampler_binding(0), BLOCKS_PER_GROUP + 1);
+        assert_eq!(wgpu_texture_binding(1), BLOCKS_PER_GROUP + 2);
+        assert_eq!(GROUP_UNIT_COUNT.iter().sum::<u32>(), 16);
     }
 
     #[test]
@@ -621,11 +586,13 @@ mod tests {
         };
         let (layout, errors) = ShaderLayout::merge(&[&vs, &fs]);
         assert!(errors.is_empty(), "{errors:?}");
-        assert_eq!(layout.block("ViewBlock").unwrap().binding(), 0);
-        assert_eq!(layout.block("Params").unwrap().binding(), 8);
-        assert_eq!(layout.texture("envMap").unwrap().unit(), 0);
-        assert_eq!(layout.texture("irMap").unwrap().unit(), 1);
-        assert_eq!(layout.texture("src").unwrap().unit(), 12);
+        let block = |n| layout.block(n).map(|b| (b.group, b.index));
+        let texture = |n| layout.texture(n).map(|t| (t.group, t.index));
+        assert_eq!(block("ViewBlock"), Some((0, 0)));
+        assert_eq!(block("Params"), Some((2, 0)));
+        assert_eq!(texture("envMap"), Some((0, 0)));
+        assert_eq!(texture("irMap"), Some((0, 1)));
+        assert_eq!(texture("src"), Some((3, 0)));
     }
 
     #[test]

@@ -1,22 +1,19 @@
-//! wgpu surface/device/queue creation from the existing winit 0.30 window.
-//!
-//! Stage 3 of the wgpu migration: this is the wgpu counterpart of
-//! `glutin_render` + `window_gl_context` — it turns the same `winit::window::Window`
-//! into a wgpu instance/adapter/device/queue with a configured swapchain, and
-//! can present frames. The active renderer drives the owned startup bundle
-//! through `WgpuCommandExecutor`; the legacy `WgpuRenderer::render_frame`
-//! helper remains for the isolated surface smoke test.
+//! wgpu surface/device/queue creation from the winit 0.30 window: turns the
+//! `winit::window::Window` into a wgpu instance/adapter/device/queue with a
+//! configured swapchain. The bundle moves to the render thread, where
+//! `WgpuCommandExecutor` owns it.
 //!
 //! Present-mode mapping lives in [`crate::window::present_mode`]
-//! (`Vsync -> Fifo`, `NoVsync -> Immediate`, mirroring the GL SwapInterval
-//! Wait/DontWait semantics).
+//! (`Vsync -> Fifo`, `NoVsync -> Immediate`).
 
-use crate::window::PresentMode;
 use std::future::Future;
 use std::sync::Arc;
 use std::task::{Context, Poll, Wake, Waker};
 use std::time::{Duration, Instant};
+
 use tracing::info;
+
+use crate::window::PresentMode;
 
 const WGPU_STARTUP_DEADLINE: Duration = Duration::from_secs(10);
 
@@ -75,27 +72,11 @@ impl std::fmt::Display for WgpuError {
 
 impl std::error::Error for WgpuError {}
 
-/// Owns the wgpu instance/adapter/device/queue and the window's swapchain.
+/// Owned wgpu startup handles, transferred to the render thread.
 ///
-/// Borrows the winit window for the surface's lifetime. This helper is kept
-/// separate from the active owned-bundle renderer for smoke testing.
-pub struct WgpuRenderer<'a> {
-    #[expect(dead_code)] // kept for re-adapting on surface loss
-    adapter: wgpu::Adapter,
-    pub device: wgpu::Device,
-    pub queue: wgpu::Queue,
-    surface: wgpu::Surface<'a>,
-    config: wgpu::SurfaceConfiguration,
-    pub size: (u32, u32),
-    frames_presented: u64,
-}
-
-/// Owned wgpu startup handles, transferred to the application-thread backend
-/// owner.
-///
-/// Unlike [`WgpuRenderer`] this borrows nothing at the Rust type level: the
-/// surface uses raw window handles and therefore requires the `Engine` field
-/// order to drop the renderer before `WinitWindow`.
+/// This borrows nothing at the Rust type level: the surface uses raw window
+/// handles, so the renderer (which joins the render thread on drop) must be
+/// dropped before `WinitWindow`.
 pub struct WgpuStartupBundle {
     pub adapter: wgpu::Adapter,
     pub surface: wgpu::Surface<'static>,
@@ -140,12 +121,13 @@ pub fn create_surface_bundle(
     });
 
     // winit 0.30 windows are NOT Clone (owned, Drop-closes), so the unsafe
-    // raw-handle route is used for a 'static Surface. `Engine` declares the
-    // renderer before `WinitWindow`, making the surface drop first.
+    // raw-handle route is used for a 'static Surface.
     //
     // Safety: the raw handles must remain valid until the Surface is dropped.
-    // The engine owns both the window (inside WinitWindow) and this surface;
-    // declaration order makes the renderer/backend drop before WinitWindow.
+    // The engine owns both the window (inside WinitWindow) and, through the
+    // renderer, this surface: `Engine` declares `winit_window` after
+    // `renderer`, and dropping the renderer joins the render thread that owns
+    // the surface, so the surface is gone before the window.
     let surface: wgpu::Surface<'static> = {
         use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
         let window_handle = window
@@ -221,166 +203,4 @@ pub fn create_surface_bundle(
         queue,
         surface_config: config,
     })
-}
-
-impl<'a> WgpuRenderer<'a> {
-    /// Create instance → adapter → device/queue → surface from the winit
-    /// window, and configure the swapchain for `present_mode`.
-    pub fn new(
-        window: &'a winit::window::Window,
-        present_mode: PresentMode,
-        width: u32,
-        height: u32,
-    ) -> Result<Self, WgpuError> {
-        let bundle = create_surface_bundle(window, present_mode, width, height)?;
-        Ok(Self {
-            adapter: bundle.adapter,
-            device: bundle.device,
-            queue: bundle.queue,
-            surface: bundle.surface,
-            config: bundle.surface_config,
-            size: (width, height),
-            frames_presented: 0,
-        })
-    }
-
-    /// Re-configure the swapchain after a window resize.
-    pub fn resize(&mut self, width: u32, height: u32) {
-        if (width, height) == self.size {
-            return;
-        }
-        self.config.width = width;
-        self.config.height = height;
-        self.surface.configure(&self.device, &self.config);
-        self.size = (width, height);
-    }
-
-    /// Acquire a frame, clear it to `color`, and present.
-    pub fn render_frame(&mut self, color: [f32; 4]) -> Result<(), WgpuError> {
-        let frame = match self.surface.get_current_texture() {
-            wgpu::CurrentSurfaceTexture::Success(frame)
-            | wgpu::CurrentSurfaceTexture::Suboptimal(frame) => frame,
-            wgpu::CurrentSurfaceTexture::Outdated | wgpu::CurrentSurfaceTexture::Lost => {
-                // Swapchain was invalidated (resize/minimize) — reconfigure and
-                // let the caller decide whether to retry this frame.
-                self.surface.configure(&self.device, &self.config);
-                return Err(WgpuError::Present("surface outdated/lost".to_string()));
-            }
-            other => {
-                return Err(WgpuError::Present(format!("frame acquisition: {other:?}")));
-            }
-        };
-
-        let view = frame
-            .texture
-            .create_view(&wgpu::TextureViewDescriptor::default());
-        let mut encoder = self
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("phx-wgpu-frame"),
-            });
-
-        {
-            let _pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("phx-wgpu-clear"),
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &view,
-                    depth_slice: None,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: color[0] as f64,
-                            g: color[1] as f64,
-                            b: color[2] as f64,
-                            a: color[3] as f64,
-                        }),
-                        store: wgpu::StoreOp::Store,
-                    },
-                })],
-                depth_stencil_attachment: None,
-                timestamp_writes: None,
-                occlusion_query_set: None,
-                multiview_mask: None,
-            });
-        }
-
-        self.queue.submit([encoder.finish()]);
-        self.queue.present(frame); // wgpu 30: present moved to the queue
-        self.frames_presented += 1;
-        Ok(())
-    }
-
-    /// Number of successfully presented frames (smoke-test evidence).
-    pub fn frames_presented(&self) -> u64 {
-        self.frames_presented
-    }
-
-    /// Swapchain format (useful for pipeline creation in the shader stage).
-    pub fn surface_format(&self) -> wgpu::TextureFormat {
-        self.config.format
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    /// Real-window smoke test: opens a winit window, creates the wgpu
-    /// surface/device/queue, presents 30 frames, and drops cleanly.
-    /// Ignored by default (opens a visible window); run with:
-    /// `cargo test -p phx --lib wgpu_window_smoke -- --ignored --nocapture`
-    #[test]
-    #[ignore = "opens a real window; run explicitly"]
-    #[allow(deprecated)] // EventLoop::create_window predates the ActiveEventLoop API
-    fn wgpu_window_smoke_presents_frames() {
-        use winit::window::WindowAttributes;
-
-        // Tests run on a worker thread; winit requires main-thread event loops
-        // unless explicitly opted out (Windows).
-        #[cfg(target_os = "windows")]
-        let event_loop = {
-            use winit::platform::windows::EventLoopBuilderExtWindows;
-            winit::event_loop::EventLoopBuilder::new()
-                .with_any_thread(true)
-                .build()
-                .expect("create winit event loop")
-        };
-        #[cfg(not(target_os = "windows"))]
-        let event_loop = {
-            use winit::event_loop::EventLoop;
-            EventLoop::new().expect("create winit event loop")
-        };
-        let window = event_loop
-            .create_window(
-                WindowAttributes::default()
-                    .with_title("phx wgpu smoke test")
-                    .with_inner_size(winit::dpi::LogicalSize::new(320.0, 240.0)),
-            )
-            .expect("create winit window");
-
-        let mut renderer =
-            WgpuRenderer::new(&window, PresentMode::Vsync, 320, 240).expect("create wgpu renderer");
-
-        // Rainbow sweep — proves each frame actually presents.
-        for i in 0..30u32 {
-            let t = i as f64 / 30.0;
-            let color = [
-                (0.5 + 0.5 * (t * std::f64::consts::TAU).sin()) as f32,
-                (0.5 + 0.5 * (t * std::f64::consts::TAU + 2.094).sin()) as f32,
-                (0.5 + 0.5 * (t * std::f64::consts::TAU + 4.189).sin()) as f32,
-                1.0,
-            ];
-            renderer
-                .render_frame(color)
-                .expect("present frame without crash");
-        }
-
-        assert_eq!(renderer.frames_presented(), 30);
-        println!(
-            "OK: presented {} frames at {:?} on {:?}",
-            renderer.frames_presented(),
-            renderer.surface_format(),
-            renderer.size,
-        );
-    }
 }

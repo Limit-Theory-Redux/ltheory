@@ -132,14 +132,7 @@ function RenderInfoOverlay:buildLines()
 
     add(string.format("Render info (Ctrl+Shift+F3)"), 'header')
     add("Backend", 'section')
-    local isGL = (info.backend or ""):find("OpenGL") ~= nil
-    if isGL then
-        add(string.format("API       %s", info.backend))
-        add(string.format("Renderer  %s", info.gl_renderer or "?"))
-        add(string.format("Vendor    %s", info.gl_vendor or "?"))
-        add(string.format("Version   %s", info.gl_version or "?"))
-        add(string.format("Present   %s", pm))
-    elseif info.backend then
+    if info.backend then
         add(string.format("API       wgpu / %s", info.wgpu_backend or "?"))
         add(string.format("Adapter   %s", info.adapter or "?"))
         add(string.format("Device    %s", info.device_type or "?"))
@@ -147,10 +140,9 @@ function RenderInfoOverlay:buildLines()
         add(string.format("Surface   %s", info.surface_format or "?"))
         add(string.format("Present   %s (%s)", pm, pm == "Vsync" and "Fifo" or "Immediate"))
     else
-        add("API       (starting...)")
+        add("API       (no device)")
     end
-    local threaded = info.renderer_mode == "threaded"
-    add(string.format("Mode      %s renderer, %dx%d", info.renderer_mode or "?", size.x, size.y))
+    add(string.format("Size      %dx%d", size.x, size.y))
 
     add("Frame", 'section')
     local fpsColor = fps >= 55 and 'good' or (fps >= 30 and 'warn' or 'bad')
@@ -183,21 +175,13 @@ function RenderInfoOverlay:buildLines()
     end
 
     add("Threads", 'section')
-    if threaded then
-        local idle = avg > 0 and math.max(0, 100 * (1 - (execMs + presentMs) / avg)) or 0
-        local bound = idle >= 15 and "producer-bound (main/Lua)" or "consumer-bound (render)"
-        add(string.format("Main       %6.2f ms  (waited %.2f)", mainMs, mainWaitUs / 1000))
-        add(string.format("Render     %6.2f ms exec  %5.2f present", execMs, presentMs))
-        add(string.format("Idle       %5.1f %%  %s", idle, bound), idle >= 15 and 'warn' or 'good')
-        local name, c = limiter(mainMs, execMs, gpuMs)
-        add(string.format("Limit      %s", name), c)
-    else
-        add(string.format("Main       %6.2f ms  (render inline)", avg))
-        add(string.format("Present    %6.2f ms", presentMs))
-        add("Idle       n/a")
-        local name, c = limiter(mainMs, nil, gpuMs)
-        add(string.format("Limit      %s", name), c)
-    end
+    local idle = avg > 0 and math.max(0, 100 * (1 - (execMs + presentMs) / avg)) or 0
+    local bound = idle >= 15 and "producer-bound (main/Lua)" or "consumer-bound (render)"
+    add(string.format("Main       %6.2f ms  (waited %.2f)", mainMs, mainWaitUs / 1000))
+    add(string.format("Render     %6.2f ms exec  %5.2f present", execMs, presentMs))
+    add(string.format("Idle       %5.1f %%  %s", idle, bound), idle >= 15 and 'warn' or 'good')
+    local name, c = limiter(mainMs, execMs, gpuMs)
+    add(string.format("Limit      %s", name), c)
 
     add("GPU", 'section')
     if gpuOn then

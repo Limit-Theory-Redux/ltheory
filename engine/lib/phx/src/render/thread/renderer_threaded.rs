@@ -1,7 +1,6 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::thread::{self, JoinHandle};
-use std::time::Duration;
 
 use crossbeam::channel::{Receiver, Sender, TrySendError, bounded, unbounded};
 use tracing::{error, info};
@@ -15,7 +14,7 @@ use crate::render::{
     RenderThreadConfig, RenderThreadError, RendererData, ResourceId, ReturnedChunk, SamplerCache,
     SamplerDesc, SamplerId, ShaderLayout, TexDesc, TexFormat, TexRegion, TexView, VertexFormat,
 };
-use crate::window::{PresentMode, WgpuStartupBundle, WindowError, WindowGlContext};
+use crate::window::{PresentMode, WgpuStartupBundle};
 
 /// Maximum frames in flight for triple buffering
 const MAX_FRAMES_IN_FLIGHT: u64 = 3;
@@ -31,8 +30,6 @@ pub struct Renderer {
     /// so `end_frame_triple_buffered` can never consume a fence meant for a
     /// concurrently-blocked `sync_intern` call, or vice versa.
     pacing_fence_rx: Receiver<u64>,
-    /// Receive returned GL context when render thread shuts down
-    context_rx: Receiver<Option<WindowGlContext>>,
     /// Ring memory the executor has uploaded, coming back for reuse.
     chunk_return_rx: Receiver<ReturnedChunk>,
     /// Next fence ID to use
@@ -41,8 +38,8 @@ pub struct Renderer {
     frames_in_flight: AtomicU64,
     /// Whether the render thread is running
     running: Arc<AtomicBool>,
-    /// Thread handle for joining
-    thread_handle: JoinHandle<()>,
+    /// Thread handle for joining; taken by `Drop`
+    thread_handle: Option<JoinHandle<()>>,
     /// Receives a stats snapshot from the render thread once per frame
     stats_rx: Receiver<RenderStats>,
     /// Most recent snapshot received over `stats_rx`
@@ -64,170 +61,64 @@ pub struct Renderer {
     // carry none of the publishing path.
     #[cfg(feature = "stats-server")]
     pub(super) stats_sink: Option<StatsSink>,
-    /// Shared with the executor: enables per-category timing when the sink is
-    /// attached (dashboard mode). Kept on the renderer so `attach_stats_sink`
-    /// can flip it after the executor has moved to the render thread.
-    #[cfg(feature = "stats-server")]
-    pub(super) category_timing: Arc<AtomicBool>,
-    /// Startup backend description, filled by the render thread once up.
-    backend_info: Arc<std::sync::Mutex<String>>,
+    /// Backend description (`key=value` lines), empty for a headless renderer.
+    backend_info: String,
     /// Generic renderer data
     pub(crate) data: RendererData,
-    /// Last shader bind submitted, so identical consecutive binds can skip
-    /// the channel send entirely (the executor's current_program is already
-    /// that program). Mirrors the executor's program state across all bind
-    /// paths: raw-handle binds and unbinds invalidate it.
-    last_shader_bind: Option<u64>,
-}
-
-/// What the render thread drives: chosen once at startup.
-enum RenderBackend {
-    Gl(Option<WindowGlContext>),
-    Wgpu(Box<WgpuStartupBundle>),
 }
 
 impl Renderer {
-    pub fn start(context: WindowGlContext) -> Result<Self, RenderThreadError> {
-        Self::create_intern(RenderBackend::Gl(Some(context)))
+    /// Start the render thread: the surface bundle (device, queue, surface)
+    /// moves to it, where `WgpuCommandExecutor` executes the commands.
+    pub fn start(bundle: WgpuStartupBundle) -> Result<Self, RenderThreadError> {
+        Self::create_intern(Some(bundle))
     }
 
-    /// Start the render thread with the wgpu backend (selected at runtime by
-    /// `LTHEORY_WGPU`): the surface bundle (device/queue/surface) moves to the
-    /// render thread, where `WgpuCommandExecutor` runs the same command loop
-    /// as the GL path. No GL context is involved.
-    pub fn start_wgpu(bundle: WgpuStartupBundle) -> Result<Self, RenderThreadError> {
-        Self::create_intern(RenderBackend::Wgpu(Box::new(bundle)))
-    }
-
-    pub fn stop(self) -> Option<WindowGlContext> {
-        // We have exclusive access - shutdown and get context
-        info!("Calling shutdown...");
-        let returned_ctx = self.shutdown();
-        info!("Render thread stopped");
-
-        returned_ctx
-    }
-
-    fn create_intern(backend: RenderBackend) -> Result<Self, RenderThreadError> {
-        // Spawn the render thread with the GL context
+    fn create_intern(bundle: Option<WgpuStartupBundle>) -> Result<Self, RenderThreadError> {
         let config = RenderThreadConfig::default();
         // Use bounded channel for backpressure - SwapBuffers will block to sync with render thread
         let (command_tx, command_rx) = bounded(config.command_buffer_size);
         let (fence_tx, fence_rx) = bounded(config.fence_buffer_size);
         let (pacing_fence_tx, pacing_fence_rx) = bounded(config.fence_buffer_size);
-        let (context_tx, context_rx) = bounded(1); // Only one context to return
         // Unbounded: the executor must never block returning ring memory.
         let (chunk_return_tx, chunk_return_rx) = unbounded();
         let (stats_tx, stats_rx) = bounded(1); // Only the latest snapshot matters
         // Unbounded: `ResourceHandle::drop` must never block or fail.
         let (destroy_tx, destroy_rx) = unbounded();
-        // Bounded(1): the render thread reports whether it managed to activate
-        // the GL context before doing anything else, so `create_intern` can
-        // fail synchronously instead of silently running with a no-op
-        // executor (see `RenderThreadError::ContextActivationFailed`).
-        let (ready_tx, ready_rx) = bounded::<Result<(), WindowError>>(1);
         let running = Arc::new(AtomicBool::new(true));
         let running_clone = running.clone();
-        // Shared with the executor: flipped on by the main thread when a stats
-        // sink is attached (dashboard mode), enabling per-category timing.
-        let category_timing = Arc::new(AtomicBool::new(false));
-        let category_timing_executor = category_timing.clone();
-        let backend_info = Arc::new(std::sync::Mutex::new(String::new()));
-        let backend_info_thread = backend_info.clone();
-
-        // The wgpu bundle needs no activation handshake: with no GL context the
-        // thread below reports ready immediately and builds the wgpu executor.
-        let (context, wgpu_bundle) = match backend {
-            RenderBackend::Gl(context) => (context, None),
-            RenderBackend::Wgpu(bundle) => (None, Some(*bundle)),
-        };
+        let backend_info = bundle
+            .as_ref()
+            .map(|b| super::render_thread::wgpu_backend_info(&b.adapter, &b.surface_config))
+            .unwrap_or_default();
 
         let thread_handle =
             thread::Builder::new()
                 .name("RenderThread".into())
                 .spawn(move || {
-                    // Make GL context current on this thread
-                    let gl_context = if let Some(active_context) = context {
-                        match active_context.make_current() {
-                            Ok(ctx) => {
-                                info!("GL context made current on render thread");
-                                if let Err(err) = ready_tx.send(Ok(())) {
-                                    error!("Cannot report GL contaxt activation success: {err}");
-                                }
-                                Some(ctx)
-                            }
-                            Err(e) => {
-                                error!("Failed to make GL context current on render thread: {e}");
-                                if let Err(err) = ready_tx.send(Err(e)) {
-                                    error!("Cannot report GL contaxt activation failure: {err}");
-                                }
-                                // Nothing to run without a context - exit before
-                                // constructing `RenderThread` at all.
-                                return;
-                            }
-                        }
-                    } else {
-                        if let Err(err) = ready_tx.send(Ok(())) {
-                            error!("Cannot report GL contaxt activation success: {err}");
-                        }
-                        None
-                    };
-
-                    // Pass GL context to render thread for buffer swapping
-                    let render_thread = if let Some(bundle) = wgpu_bundle {
-                        let info = super::render_thread::wgpu_backend_info(&bundle.adapter, &bundle.surface_config);
-                        *backend_info_thread.lock().unwrap() = info;
-                        RenderThread::new_wgpu(
-                            command_rx,
-                            fence_tx,
-                            pacing_fence_tx,
-                            context_tx,
-                            stats_tx,
-                            chunk_return_tx,
-                            running_clone,
-                            bundle,
-                            category_timing_executor,
-                        )
-                    } else {
-                        RenderThread::new(
-                            command_rx,
-                            fence_tx,
-                            pacing_fence_tx,
-                            context_tx,
-                            stats_tx,
-                            chunk_return_tx,
-                            running_clone,
-                            gl_context,
-                            category_timing_executor,
-                        )
-                    };
-                    let mut render_thread = render_thread.with_backend_info(backend_info_thread);
-                    render_thread.run();
-
-                    // GL context will be returned via channel or dropped if cleanup fails
+                    RenderThread::new(
+                        command_rx,
+                        fence_tx,
+                        pacing_fence_tx,
+                        stats_tx,
+                        chunk_return_tx,
+                        running_clone,
+                        bundle,
+                    )
+                    .run();
                 })?;
 
         info!("Render thread spawned");
-
-        // Block until the render thread reports whether it managed to
-        // activate the GL context - this is the one synchronous handshake
-        // in an otherwise fire-and-forget startup, and it's what lets a
-        // context-activation failure surface as `Err` here instead of
-        // silently degrading to a no-op executor down the line.
-        ready_rx.recv()??;
-
-        info!("Render thread started successfully");
 
         let mut renderer = Self {
             command_tx,
             fence_rx,
             pacing_fence_rx,
-            context_rx,
             chunk_return_rx,
             next_fence_id: AtomicU64::new(1),
             frames_in_flight: AtomicU64::new(0),
             running,
-            thread_handle,
+            thread_handle: Some(thread_handle),
             stats_rx,
             last_stats: RenderStats::default(),
             main_thread_wait_us: 0,
@@ -236,11 +127,8 @@ impl Renderer {
             channel_high_water: 0,
             #[cfg(feature = "stats-server")]
             stats_sink: None,
-            #[cfg(feature = "stats-server")]
-            category_timing,
             backend_info,
             data: RendererData::new(destroy_tx, destroy_rx),
-            last_shader_bind: None,
         };
         for (id, desc) in SamplerCache::presets() {
             renderer.create_sampler(id, desc);
@@ -397,16 +285,9 @@ impl Renderer {
         }
     }
 
-    /// `key=value` lines describing the backend (empty until the render
-    /// thread is up).
+    /// `key=value` lines describing the backend (empty without a device).
     pub fn backend_info_intern(&self) -> String {
-        let info = self.backend_info.lock().map(|s| s.clone()).unwrap_or_default();
-        if info.is_empty() {
-            info
-        } else {
-            format!("{info}renderer_mode=threaded
-")
-        }
+        self.backend_info.clone()
     }
 
     /// Get current render stats snapshot
@@ -467,51 +348,30 @@ impl Renderer {
         self.refresh_stats();
         self.last_stats.texture_binds_skipped_cumulative
     }
+}
 
-    /// Request the render thread to shutdown.
-    /// Wait for the GL context to be returned from the render thread (blocking with timeout).
-    /// This should be called after shutdown() to retrieve the context for
-    /// restoring direct GL mode on the main thread.
-    fn shutdown(mut self) -> Option<WindowGlContext> {
+impl Drop for Renderer {
+    /// Stop the render thread and wait for it. The executor owns the wgpu
+    /// surface, which was created from the window's raw handles: it has to be
+    /// gone before `Engine` drops the window (see `create_surface_bundle`).
+    fn drop(&mut self) {
         if self.running.load(Ordering::Relaxed) {
             info!("Requesting render thread shutdown");
             self.submit(RenderCommand::Shutdown);
             self.running.store(false, Ordering::Relaxed);
-
-            // Wait for thread to finish
-            if let Err(e) = &self.thread_handle.join() {
+        }
+        if let Some(handle) = self.thread_handle.take() {
+            if let Err(e) = handle.join() {
                 error!("Render thread panicked: {e:?}");
-            } else {
-                // Wait up to 5 seconds for the context to be returned
-                const CONTEXT_WAIT_TIMEOUT_SEC: u64 = 5;
-                match self
-                    .context_rx
-                    .recv_timeout(Duration::from_secs(CONTEXT_WAIT_TIMEOUT_SEC))
-                {
-                    Ok(ctx) => return ctx,
-                    Err(e) => {
-                        error!("Timeout or error waiting for GL context return: {e:?}");
-                    }
-                }
             }
         }
-        None
-    }
-
-    /// Get the GL context returned from the render thread after shutdown (non-blocking).
-    /// This should be called after shutdown() to retrieve the context for
-    /// restoring direct GL mode on the main thread.
-    pub fn take_returned_context(&self) -> Option<WindowGlContext> {
-        // Try to receive the context (non-blocking since shutdown already waited)
-        self.context_rx.try_recv().unwrap_or_default()
     }
 }
 
 // =========================================================================
 // Per-command API - one method per `RenderCommand` variant that any code
 // outside `render::thread` needs. Each constructs the matching
-// `RenderCommand` and calls `submit`/`try_submit`; see `renderer_immediate.rs`
-// for the immediate-mode counterpart that skips the enum entirely.
+// `RenderCommand` and calls `submit`/`try_submit`.
 // =========================================================================
 
 // === State Management ===
@@ -708,9 +568,6 @@ impl Renderer {
     /// `flush_pass_encoder`, so it must not flush again).
     pub(crate) fn send_pass_commands(&mut self, commands: Box<PassCommands>) {
         self.send(RenderCommand::PassCommands(commands));
-        // The executor's current program/pipeline changed behind the old
-        // bind-skip cache.
-        self.last_shader_bind = None;
     }
 
     pub fn create_mesh(
@@ -753,18 +610,17 @@ impl Renderer {
         self.submit(RenderCommand::SetPresentMode { mode });
     }
 
-    /// Block until every previously-submitted GL command has completed
-    /// (`glFinish`).
-    pub fn gl_finish(&mut self) {
+    /// Block the render thread until the GPU has finished every command
+    /// submitted before this one.
+    pub fn finish_gpu(&mut self) {
         self.submit(RenderCommand::Flush);
     }
 
-    /// A `Renderer` with no GL context at all - every command becomes a
-    /// no-op (see `CommandExecutor::has_gl_context`). Only for unit tests
-    /// that exercise CPU-side logic (e.g. HmGui layout) and have no window
-    /// to draw a real `WindowGlContext` from.
+    /// A `Renderer` without a GPU device - every command becomes a no-op.
+    /// Only for unit tests that exercise CPU-side logic (e.g. HmGui layout)
+    /// and have no window to create a surface from.
     #[cfg(test)]
     pub fn new_headless() -> Self {
-        Renderer::create_intern(RenderBackend::Gl(None)).expect("Cannot create renderer")
+        Renderer::create_intern(None).expect("Cannot create renderer")
     }
 }

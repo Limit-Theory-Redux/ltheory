@@ -26,22 +26,6 @@ pub enum CompareFn {
     Always,
 }
 
-impl CompareFn {
-    pub fn to_gl(self) -> u32 {
-        use crate::render::gl;
-        match self {
-            CompareFn::Never => gl::NEVER,
-            CompareFn::Less => gl::LESS,
-            CompareFn::Equal => gl::EQUAL,
-            CompareFn::LessEqual => gl::LEQUAL,
-            CompareFn::Greater => gl::GREATER,
-            CompareFn::NotEqual => gl::NOTEQUAL,
-            CompareFn::GreaterEqual => gl::GEQUAL,
-            CompareFn::Always => gl::ALWAYS,
-        }
-    }
-}
-
 /// Primitive topology of indexed mesh draws (`CmdPrimitiveType` minus the
 /// quad emulation).
 #[luajit_ffi_gen::luajit_ffi(repr = "u32")]
