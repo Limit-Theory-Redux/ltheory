@@ -25,6 +25,10 @@ pub enum TexUsage {
     CopySrc = 4,
     /// Uploaded to or copied into.
     CopyDst = 8,
+    /// Data read only with `texelFetch` (never filtered or blended): `R32F`
+    /// and `RGBA32F` keep full precision on every adapter, also on those that
+    /// cannot filter 32-bit floats. Implies `Sampled`.
+    Data = 16,
 }
 
 /// A set of [`TexUsage`] bits. GL ignores it (every texture can do everything);
@@ -37,6 +41,7 @@ impl TexUsages {
     pub const ATTACHMENT: u32 = TexUsage::Attachment as u32;
     pub const COPY_SRC: u32 = TexUsage::CopySrc as u32;
     pub const COPY_DST: u32 = TexUsage::CopyDst as u32;
+    pub const DATA: u32 = TexUsage::Data as u32;
 
     /// What a texture of this kind gets when the caller does not say: sampled,
     /// copied from and to, and rendered to unless it is 1D.

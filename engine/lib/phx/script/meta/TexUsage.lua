@@ -8,6 +8,7 @@
 ---@field Attachment integer Rendered to (a pass attachment). Not valid for 1D textures.
 ---@field CopySrc integer Read back or copied from.
 ---@field CopyDst integer Uploaded to or copied into.
+---@field Data integer Data read only with `texelFetch` (never filtered or blended): `R32F` and `RGBA32F` keep full precision on every adapter, also on those that cannot filter 32-bit floats. Implies `Sampled`.
 TexUsage = {
     -- Sampled by shaders.
     Sampled = 1,
@@ -17,5 +18,9 @@ TexUsage = {
     CopySrc = 4,
     -- Uploaded to or copied into.
     CopyDst = 8,
+    -- Data read only with `texelFetch` (never filtered or blended): `R32F`
+    -- and `RGBA32F` keep full precision on every adapter, also on those that
+    -- cannot filter 32-bit floats. Implies `Sampled`.
+    Data = 16,
 }
 

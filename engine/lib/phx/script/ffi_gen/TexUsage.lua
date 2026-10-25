@@ -27,6 +27,7 @@ function Loader.defineType()
             Attachment = 2,
             CopySrc    = 4,
             CopyDst    = 8,
+            Data       = 16,
 
             ToString   = libphx.TexUsage_ToString,
         }

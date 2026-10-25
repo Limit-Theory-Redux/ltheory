@@ -122,7 +122,7 @@ impl WgpuCommandExecutor {
                     warn!("wgpu: depth textures cannot be read back ({id:?})");
                     return None;
                 }
-                let storage = match (desc.format, self.f32_in_f16(desc.format)) {
+                let storage = match (desc.format, self.f32_in_f16(&desc)) {
                     (TexFormat::R32F, true) => Storage::R32FInRgba16F,
                     (TexFormat::RGBA32F, true) => Storage::Rgba32FInRgba16F,
                     _ => Storage::Native,

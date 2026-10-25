@@ -61,8 +61,8 @@ use crate::render::{
     BindEntry, BindGroupId, BlendMode, BlockLayout, BufferId, CommandReply, CompareFn, CullFace,
     ImmLayout, InstanceData, LoadOp, MipFilter, PassCmd, PassCommands, PipelineDesc, PipelineId,
     RenderCommand, RenderPassDesc, RenderStats, ResourceId, ReturnedChunk, SamplerDesc,
-    SamplerFilter, SamplerId, ShaderLayout, TexDesc, TexFormat, TexRegion, TexView, TexWrapMode,
-    Topology, VertexFormat, ViewDim,
+    SamplerFilter, SamplerId, ShaderLayout, TexDesc, TexFormat, TexRegion, TexUsages, TexView,
+    TexWrapMode, Topology, VertexFormat, ViewDim,
 };
 use crate::window::PresentMode;
 
@@ -334,16 +334,18 @@ impl WgpuCommandExecutor {
         *self.generations.entry(id).or_insert(0) += 1;
     }
 
-    /// Storage format of an engine texture format, and its bytes per texel.
-    /// 32-bit float textures are native when the adapter filters and blends
-    /// them (`wanted_features`); otherwise `R32F` and `RGBA32F` live in
-    /// 16-bit float textures (lossy, but filterable).
-    pub(super) fn storage_format(&self, format: TexFormat) -> (wgpu::TextureFormat, u32) {
+    /// Storage format of a texture, and its bytes per texel. 32-bit float
+    /// textures are native when the adapter filters and blends them
+    /// (`wanted_features`) or when they are `TexUsage::Data` (only fetched);
+    /// otherwise `R32F` and `RGBA32F` live in 16-bit float textures (lossy,
+    /// but filterable).
+    pub(super) fn storage_format(&self, desc: &TexDesc) -> (wgpu::TextureFormat, u32) {
         use wgpu::TextureFormat as F;
-        let native32 = self
-            .features
-            .contains(wgpu::Features::FLOAT32_FILTERABLE | wgpu::Features::FLOAT32_BLENDABLE);
-        let (f, bpp) = match format {
+        let native32 = desc.usage.contains(TexUsages::DATA)
+            || self
+                .features
+                .contains(wgpu::Features::FLOAT32_FILTERABLE | wgpu::Features::FLOAT32_BLENDABLE);
+        let (f, bpp) = match desc.format {
             TexFormat::R8 => (F::R8Unorm, 1),
             TexFormat::R16 => (F::R16Unorm, 2),
             TexFormat::R16F => (F::R16Float, 2),
@@ -365,10 +367,10 @@ impl WgpuCommandExecutor {
         (f, bpp)
     }
 
-    /// Does the texture of `format` keep its 32-bit floats as 16-bit ones?
-    pub(super) fn f32_in_f16(&self, format: TexFormat) -> bool {
-        matches!(format, TexFormat::R32F | TexFormat::RGBA32F)
-            && self.storage_format(format).0 == wgpu::TextureFormat::Rgba16Float
+    /// Does the texture of `desc` keep its 32-bit floats as 16-bit ones?
+    pub(super) fn f32_in_f16(&self, desc: &TexDesc) -> bool {
+        matches!(desc.format, TexFormat::R32F | TexFormat::RGBA32F)
+            && self.storage_format(desc).0 == wgpu::TextureFormat::Rgba16Float
     }
 
     pub(super) fn cmd_create_shader(
@@ -384,7 +386,7 @@ impl WgpuCommandExecutor {
             |label: &'static str, module: wgpu::naga::Module| self.shader_module(label, module);
         let vs = module("phx-vertex", pair.vs);
         let fs = module("phx-fragment", pair.fs);
-        let groups = self.shader_group_layouts(layout, &pair.blocks);
+        let groups = self.shader_group_layouts(layout, &pair.blocks, &pair.fetch_only);
         let bgls: Vec<Option<&wgpu::BindGroupLayout>> =
             groups.iter().map(|g| Some(&g.bgl)).collect();
         let pipeline_layout = self
@@ -663,6 +665,12 @@ mod tests {
     /// tests are `#[ignore]`d; run them one at a time
     /// (`cargo test -p phx wgpu -- --ignored --test-threads=1`).
     pub(super) fn headless() -> Option<WgpuCommandExecutor> {
+        headless_without(wgpu::Features::empty())
+    }
+
+    /// `headless`, on a device that lacks `withheld` even where the adapter
+    /// has it (to run the paths of weaker adapters).
+    fn headless_without(withheld: wgpu::Features) -> Option<WgpuCommandExecutor> {
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor::new_without_display_handle());
         let adapter = crate::window::poll_startup_future(
             instance.request_adapter(&wgpu::RequestAdapterOptions::default()),
@@ -671,7 +679,7 @@ mod tests {
         .ok()?;
         let (device, queue) =
             crate::window::poll_startup_future(adapter.request_device(&wgpu::DeviceDescriptor {
-                required_features: crate::window::wanted_features(adapter.features()),
+                required_features: crate::window::wanted_features(adapter.features()) - withheld,
                 ..Default::default()
             }))
             .ok()?
@@ -700,6 +708,116 @@ mod tests {
             reply_tx: tx,
         });
         rx.recv().unwrap()
+    }
+
+    /// A `TexUsage::Data` RGBA32F texture keeps values a 16-bit float cannot
+    /// hold, on a device that can neither filter nor blend 32-bit floats: it
+    /// is stored natively, binds to the shader's fetch-only slot (with the
+    /// linear sampler the caller gave replaced by a point one) and
+    /// `texelFetch` returns it exactly.
+    #[test]
+    #[ignore = "needs a GPU adapter"]
+    fn float32_data_keeps_full_precision_without_float32_filtering() {
+        use crate::render::{BindEntry, BindGroupId, GLSLCode, SamplerId, Samplers, TexUsages};
+        let withheld = wgpu::Features::FLOAT32_FILTERABLE | wgpu::Features::FLOAT32_BLENDABLE;
+        let Some(mut ex) = headless_without(withheld) else {
+            eprintln!("no adapter, skipping");
+            return;
+        };
+        assert!(!ex.features.intersects(withheld));
+
+        let vs = "#version 330\nin vec3 vertex_position;\n\
+            void main() { gl_Position = vec4(2.0 * vertex_position.xy - 1.0, 0.0, 1.0); }\n";
+        let fs = "#version 330\n#group 1\nuniform sampler2D data;\n\
+            layout(location = 0) out vec4 outColor;\n\
+            void main() { outColor = texelFetch(data, ivec2(0, 0), 0); }\n";
+        let pre = |code: &str| GLSLCode::preprocess_with(code, None, &mut |_| String::new());
+        let (vs, fs) = (pre(vs), pre(fs));
+        let (layout, errors) = ShaderLayout::merge(&[&vs.layout, &fs.layout]);
+        assert!(errors.is_empty(), "{errors:?}");
+        let (tx, rx) = crossbeam::channel::unbounded();
+        ex.execute(RenderCommand::CreateShader {
+            id: ResourceId(1),
+            vertex_src: vs.code,
+            fragment_src: fs.code,
+            layout: Arc::new(layout),
+            reply_tx: tx,
+        });
+        rx.recv().unwrap().expect("shader compiles");
+
+        let values: [f32; 4] = [100000.0, -3.25, 1.0e-7, 70000.5];
+        let bytes: Vec<u8> = values.iter().flat_map(|v| v.to_le_bytes()).collect();
+        let data_desc = TexDesc::d2(1, 1, TexFormat::RGBA32F).with_usage(TexUsages(
+            TexUsages::DATA | TexUsages::COPY_DST | TexUsages::COPY_SRC,
+        ));
+        let target_desc = TexDesc::d2(1, 1, TexFormat::RGBA32F).with_usage(TexUsages(
+            TexUsages::DATA | TexUsages::ATTACHMENT | TexUsages::COPY_SRC,
+        ));
+        ex.execute(RenderCommand::CreateTexture {
+            id: ResourceId(2),
+            desc: Box::new(data_desc),
+            data: Some(bytes),
+        });
+        ex.execute(RenderCommand::CreateTexture {
+            id: ResourceId(3),
+            desc: Box::new(target_desc),
+            data: None,
+        });
+        ex.execute(RenderCommand::CreateSampler {
+            id: SamplerId(0),
+            desc: Samplers::LinearClamp.desc(),
+        });
+        ex.execute(RenderCommand::CreateBindGroup {
+            id: BindGroupId(0),
+            shader: ResourceId(1),
+            group: 1,
+            entries: Box::new([BindEntry::Texture {
+                index: 0,
+                view: TexView::full(ResourceId(2), ViewDim::D2, [1, 1]),
+                sampler: SamplerId(0),
+            }]),
+        });
+        let mut pipeline = PipelineDesc::new(ResourceId(1));
+        pipeline.vertex = VertexLayout::Fullscreen;
+        ex.execute(RenderCommand::CreatePipeline {
+            id: PipelineId(0),
+            desc: Box::new(pipeline),
+        });
+        let view = TexView::new(ResourceId(3), ViewDim::D2, 0, [1, 1]);
+        ex.execute(RenderCommand::BeginRenderPass(Box::new(
+            RenderPassDesc::with_color("float32", view, LoadOp::Clear, [0.0; 4]),
+        )));
+        ex.execute(RenderCommand::PassCommands(Box::new(PassCommands {
+            slot: 0,
+            uniforms: Vec::new(),
+            vertices: Vec::new(),
+            cmds: vec![
+                PassCmd::SetPipeline(PipelineId(0)),
+                PassCmd::SetBindGroup {
+                    group: 1,
+                    id: BindGroupId(0),
+                },
+                PassCmd::DrawFullscreen,
+            ],
+        })));
+        ex.execute(RenderCommand::EndRenderPass);
+
+        let read_f32 = |ex: &mut WgpuCommandExecutor, id: u64, desc: &TexDesc| -> Vec<f32> {
+            let (tx, rx) = crossbeam::channel::unbounded();
+            ex.execute(RenderCommand::ReadTextureSync {
+                src: crate::render::ReadSource::Texture(ResourceId(id)),
+                region: TexRegion::level(desc, 0),
+                format: TexFormat::RGBA32F,
+                reply_tx: tx,
+            });
+            rx.recv()
+                .unwrap()
+                .chunks_exact(4)
+                .map(|b| f32::from_le_bytes(b.try_into().unwrap()))
+                .collect()
+        };
+        assert_eq!(read_f32(&mut ex, 2, &data_desc), values, "stored");
+        assert_eq!(read_f32(&mut ex, 3, &target_desc), values, "fetched");
     }
 
     /// The convention of the module docs: a fullscreen pass writing its uv

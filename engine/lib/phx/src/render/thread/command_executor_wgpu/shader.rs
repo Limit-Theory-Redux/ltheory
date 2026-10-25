@@ -646,6 +646,9 @@ pub(super) struct CompiledPair {
     pub blocks: Vec<BlockLayout>,
     pub vs_inputs: Vec<VertexInput>,
     pub fs_outputs: Vec<u32>,
+    /// Declared samplers no stage samples through (only `texelFetch`, size
+    /// queries): their layout slots need not be filterable.
+    pub fetch_only: Vec<String>,
 }
 
 /// Preprocessed GLSL of both stages to naga modules (no device needed).
@@ -677,6 +680,16 @@ pub(super) fn compile_pair(
     }
     let (vs_inputs, _) = entry_interface(&vs);
     let (_, fs_outputs) = entry_interface(&fs);
+    let fetch_only = match (sampled_textures(&vs), sampled_textures(&fs)) {
+        (Some(a), Some(b)) => layout
+            .textures
+            .iter()
+            .map(|t| t.name.clone())
+            .filter(|name| !a.contains(name) && !b.contains(name))
+            .collect(),
+        // A sample through a texture passed as an argument: assume all are.
+        _ => Vec::new(),
+    };
     Ok(CompiledPair {
         vs,
         fs,
@@ -685,7 +698,37 @@ pub(super) fn compile_pair(
         blocks,
         vs_inputs,
         fs_outputs,
+        fetch_only,
     })
+}
+
+/// Names of the declared samplers `module` samples through (`texture`,
+/// `textureLod`, ...: an `ImageSample`), or `None` if a sample's image is not
+/// a global and so cannot be told apart.
+fn sampled_textures(module: &naga::Module) -> Option<Vec<String>> {
+    let mut names = Vec::new();
+    let functions = module
+        .functions
+        .iter()
+        .map(|(_, f)| f)
+        .chain(module.entry_points.iter().map(|e| &e.function));
+    for function in functions {
+        for (_, expr) in function.expressions.iter() {
+            let naga::Expression::ImageSample { image, .. } = expr else {
+                continue;
+            };
+            let naga::Expression::GlobalVariable(global) = function.expressions[*image] else {
+                return None;
+            };
+            // The adaptation names a sampler's texture `<name>_tex`.
+            let name = module.global_variables[global]
+                .name
+                .as_deref()
+                .unwrap_or("");
+            names.push(name.strip_suffix("_tex").unwrap_or(name).to_string());
+        }
+    }
+    Some(names)
 }
 
 /// Dimension of a declared sampler as wgpu names it.

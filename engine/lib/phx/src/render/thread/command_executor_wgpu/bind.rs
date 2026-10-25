@@ -25,6 +25,10 @@ pub(super) struct BlockSlot {
 pub(super) struct TexSlot {
     pub index: u8,
     pub dim: TexDim,
+    /// False for a texture the shader only fetches from: the slot then takes
+    /// textures that cannot be filtered (32-bit floats without
+    /// `FLOAT32_FILTERABLE`), with a non-filtering sampler.
+    pub filterable: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -152,6 +156,10 @@ pub(super) struct Defaults {
     pub d3: wgpu::TextureView,
     pub cube: wgpu::TextureView,
     pub sampler: wgpu::Sampler,
+    /// Nearest filtering: what a fetch-only slot binds, whatever sampler the
+    /// caller gave (`texelFetch` does not read it, and the slot accepts only a
+    /// non-filtering one).
+    pub point: wgpu::Sampler,
     /// A block of zeros for uniform bindings nothing filled.
     pub zero: wgpu::Buffer,
     /// 32 zero bytes the constant vertex attributes read (stride 0).
@@ -164,6 +172,7 @@ impl WgpuCommandExecutor {
         &mut self,
         layout: &ShaderLayout,
         blocks: &[BlockLayout],
+        fetch_only: &[String],
     ) -> [Arc<GroupLayout>; 4] {
         std::array::from_fn(|g| {
             let g = g as u8;
@@ -185,6 +194,7 @@ impl WgpuCommandExecutor {
                 key.textures.push(TexSlot {
                     index: decl.index,
                     dim: decl.dim,
+                    filterable: !fetch_only.contains(&decl.name),
                 });
             }
             key.blocks.sort_by_key(|b| b.index);
@@ -216,7 +226,9 @@ impl WgpuCommandExecutor {
                 binding: wgpu_texture_binding(tex.index),
                 visibility,
                 ty: wgpu::BindingType::Texture {
-                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                    sample_type: wgpu::TextureSampleType::Float {
+                        filterable: tex.filterable,
+                    },
                     view_dimension: shader::view_dimension(tex.dim),
                     multisampled: false,
                 },
@@ -225,7 +237,11 @@ impl WgpuCommandExecutor {
             entries.push(wgpu::BindGroupLayoutEntry {
                 binding: wgpu_sampler_binding(tex.index),
                 visibility,
-                ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                ty: wgpu::BindingType::Sampler(if tex.filterable {
+                    wgpu::SamplerBindingType::Filtering
+                } else {
+                    wgpu::SamplerBindingType::NonFiltering
+                }),
                 count: None,
             });
         }
@@ -315,6 +331,10 @@ impl WgpuCommandExecutor {
                     label: Some("phx-default-sampler"),
                     mag_filter: wgpu::FilterMode::Linear,
                     min_filter: wgpu::FilterMode::Linear,
+                    ..Default::default()
+                }),
+                point: self.device.create_sampler(&wgpu::SamplerDescriptor {
+                    label: Some("phx-point-sampler"),
                     ..Default::default()
                 }),
                 zero: self.device.create_buffer(&wgpu::BufferDescriptor {
@@ -413,6 +433,12 @@ impl WgpuCommandExecutor {
                     };
                     (v, defaults.sampler.clone())
                 }
+            };
+            let sampler = if tex.filterable {
+                sampler
+            } else {
+                key.push(6);
+                self.defaults.as_ref().expect("defaults").point.clone()
             };
             resources.push((tex_binding, Res::View(view)));
             resources.push((wgpu_sampler_binding(tex.index), Res::Sampler(sampler)));

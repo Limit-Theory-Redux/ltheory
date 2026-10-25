@@ -179,7 +179,11 @@ function AsteroidBeltRenderer.createRenderFn(asteroidData, lodMesh)
     local staticTexBytes = ffi.new('uint8_t[?]', STATIC_TEX_W * staticTexH * 16)
     ffi.copy(staticTexBytes, staticTexData, nAst * 64)
     local libphx = require('libphx').lib
-    local staticTex = Tex2D.Create(STATIC_TEX_W, staticTexH, TexFormat.RGBA32F)
+    -- Data usage: only read with texelFetch, so the floats stay 32-bit even
+    -- on adapters that cannot filter 32-bit float textures (16-bit would
+    -- turn positions beyond 65504 into infinity).
+    local staticTex = Tex2D.Create(STATIC_TEX_W, staticTexH, TexFormat.RGBA32F,
+        { usage = bit.bor(TexUsage.Data, TexUsage.CopyDst) })
     staticTex:setDataBytes(
         Core.ManagedObject(libphx.Bytes_FromData(staticTexBytes, STATIC_TEX_W * staticTexH * 16), libphx.Bytes_Free),
         PixelFormat.RGBA, DataFormat.Float)

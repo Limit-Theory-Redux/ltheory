@@ -170,7 +170,7 @@ impl WgpuCommandExecutor {
 
     fn texture_usages(&self, desc: &TexDesc) -> wgpu::TextureUsages {
         let mut usage = self.diag.texture_usage();
-        if desc.usage.contains(TexUsages::SAMPLED) {
+        if desc.usage.contains(TexUsages::SAMPLED | TexUsages::DATA) {
             usage |= wgpu::TextureUsages::TEXTURE_BINDING;
         }
         if desc.usage.contains(TexUsages::COPY_SRC) {
@@ -198,13 +198,14 @@ impl WgpuCommandExecutor {
         desc: &TexDesc,
         data: Option<Vec<u8>>,
     ) {
-        let (wgpu_format, _) = self.storage_format(desc.format);
-        if self.f32_in_f16(desc.format) {
+        let (wgpu_format, _) = self.storage_format(desc);
+        if self.f32_in_f16(desc) {
             // Values above 65504 become infinite and precision drops to about
             // three digits: wrong for data textures, not just less exact.
             self.warn_once(format!(
                 "{:?} textures are stored as RGBA16F: the adapter lacks FLOAT32_FILTERABLE \
-                 and FLOAT32_BLENDABLE",
+                 and FLOAT32_BLENDABLE (data only read with texelFetch keeps full precision \
+                 with TexUsage.Data)",
                 desc.format
             ));
         }
@@ -274,7 +275,7 @@ impl WgpuCommandExecutor {
             );
             return;
         }
-        let storage: Cow<[u8]> = match (desc.format, self.f32_in_f16(desc.format)) {
+        let storage: Cow<[u8]> = match (desc.format, self.f32_in_f16(&desc)) {
             (TexFormat::R32F, true) => Cow::Owned(f32_to_rgba16f_bytes(&data)),
             (TexFormat::RGBA32F, true) => Cow::Owned(f32_to_f16_bytes(&data)),
             _ => Cow::Borrowed(&data[..]),
@@ -331,7 +332,7 @@ impl WgpuCommandExecutor {
             return;
         }
         let texel = convert_floats(crate::render::PixelFormat::RGBA, &color, desc.format);
-        let texel: Cow<[u8]> = match (desc.format, self.f32_in_f16(desc.format)) {
+        let texel: Cow<[u8]> = match (desc.format, self.f32_in_f16(&desc)) {
             (TexFormat::R32F, true) => Cow::Owned(f32_to_rgba16f_bytes(&texel)),
             (TexFormat::RGBA32F, true) => Cow::Owned(f32_to_f16_bytes(&texel)),
             _ => Cow::Owned(texel),
@@ -382,7 +383,7 @@ impl WgpuCommandExecutor {
         if grown_desc.mips <= 1 {
             return None;
         }
-        let (format, _) = self.storage_format(desc.format);
+        let (format, _) = self.storage_format(desc);
         let layers = match desc.dim {
             TexDim::D3 => desc.size[2],
             TexDim::Cube => 6,
