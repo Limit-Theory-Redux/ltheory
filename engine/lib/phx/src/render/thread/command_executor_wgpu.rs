@@ -662,7 +662,7 @@ mod tests {
     /// A headless executor (no surface), or `None` without an adapter. The GPU
     /// tests are `#[ignore]`d; run them one at a time
     /// (`cargo test -p phx wgpu -- --ignored --test-threads=1`).
-    fn headless() -> Option<WgpuCommandExecutor> {
+    pub(super) fn headless() -> Option<WgpuCommandExecutor> {
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor::new_without_display_handle());
         let adapter = crate::window::poll_startup_future(
             instance.request_adapter(&wgpu::RequestAdapterOptions::default()),

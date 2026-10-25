@@ -100,7 +100,13 @@ impl WgpuCommandExecutor {
         s.skip = false;
         if let Some(flag) = s.mapping.clone() {
             match flag.load(Ordering::Acquire) {
-                PENDING => s.skip = true, // still mapping: leave it alone this round
+                PENDING => {
+                    // Still mapping: this frame is not timed, and the labels
+                    // stay, since they are what decodes the result once the
+                    // map completes.
+                    s.skip = true;
+                    return;
+                }
                 state => {
                     s.mapping = None;
                     if state == MAPPED {
@@ -191,5 +197,45 @@ impl WgpuCommandExecutor {
     /// The published GPU timings, for `RenderStats`.
     pub(super) fn timer_timings(&self) -> crate::render::GpuTimings {
         self.timer.as_ref().map(|t| t.state.timings().clone()).unwrap_or_default()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A slot whose map is still pending when its frame comes round again
+    /// keeps the labels of the frame being mapped; they are dropped only once
+    /// the map has completed (or failed).
+    #[test]
+    #[ignore = "needs a GPU adapter"]
+    fn pending_map_keeps_its_labels() {
+        let Some(mut ex) = super::super::tests::headless() else {
+            eprintln!("no adapter, skipping");
+            return;
+        };
+        if ex.timer.is_none() {
+            eprintln!("no TIMESTAMP_QUERY, skipping");
+            return;
+        }
+        let flag = Arc::new(AtomicU8::new(PENDING));
+        {
+            let s = &mut ex.timer.as_mut().unwrap().slots[0];
+            s.labels = vec![7, 9];
+            s.mapping = Some(flag.clone());
+        }
+
+        ex.timer_begin_frame(0);
+        let s = &ex.timer.as_ref().unwrap().slots[0];
+        assert!(s.skip, "a pending slot skips timing");
+        assert_eq!(s.labels, [7, 9], "the pending result still needs its labels");
+        assert!(s.mapping.is_some());
+
+        flag.store(FAILED, Ordering::Release);
+        ex.timer_begin_frame(0);
+        let s = &ex.timer.as_ref().unwrap().slots[0];
+        assert!(!s.skip);
+        assert!(s.labels.is_empty());
+        assert!(s.mapping.is_none());
     }
 }
