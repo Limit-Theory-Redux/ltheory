@@ -13,4 +13,3 @@ FocusType = {
     Mouse = 0,
     Scroll = 1,
 }
-

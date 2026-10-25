@@ -20,4 +20,3 @@ CompareFn = {
     GreaterEqual = 6,
     Always = 7,
 }
-

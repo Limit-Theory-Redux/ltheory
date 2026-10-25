@@ -114,4 +114,3 @@ CursorIcon = {
     -- Indicates that the row can be resized vertically.
     RowResize = 33,
 }
-

@@ -9,4 +9,3 @@ Pipeline = {}
 ---@param desc PipelineDesc
 ---@return integer
 function Pipeline.Get(r, desc) end
-

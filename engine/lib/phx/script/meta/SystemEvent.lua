@@ -6,4 +6,3 @@
 SystemEvent = {
     Exit = 0,
 }
-

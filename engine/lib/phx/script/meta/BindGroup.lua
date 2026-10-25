@@ -7,4 +7,3 @@ BindGroup = {}
 -- The group's id, for diagnostics.
 ---@return integer
 function BindGroup:id() end
-

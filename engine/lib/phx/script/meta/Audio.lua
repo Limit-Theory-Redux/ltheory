@@ -49,4 +49,3 @@ function Audio:getLoadedCount() end
 
 ---@return integer
 function Audio:getTotalCount() end
-

@@ -478,4 +478,3 @@ Button = {
     TouchpadRotateDelta = 235,
     SystemExit = 236,
 }
-

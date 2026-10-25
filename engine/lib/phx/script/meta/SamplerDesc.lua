@@ -36,4 +36,3 @@ function SamplerDesc:lodRange(min, max) end
 -- Depth-comparison sampler (shadow lookups).
 ---@param func CompareFn
 function SamplerDesc:compare(func) end
-

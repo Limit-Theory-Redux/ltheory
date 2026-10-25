@@ -50,4 +50,3 @@ function TexFormat.IsColor(this) end
 ---@param this TexFormat
 ---@return boolean
 function TexFormat.IsDepth(this) end
-

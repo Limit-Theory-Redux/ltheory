@@ -10,4 +10,3 @@ DragAndDropEvent = {
     HoveredFile = 1,
     HoveredFileCancelled = 2,
 }
-

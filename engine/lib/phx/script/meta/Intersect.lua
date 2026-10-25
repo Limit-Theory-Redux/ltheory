@@ -60,4 +60,3 @@ function Intersect.RectRectFast(a, b) end
 ---@param pHit Vec3f
 ---@return boolean
 function Intersect.SphereTriangle(sphere, triangle, pHit) end
-

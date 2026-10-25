@@ -16,4 +16,3 @@ TexFilter = {
     LinearMipPoint = 4,
     LinearMipLinear = 5,
 }
-

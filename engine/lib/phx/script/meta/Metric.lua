@@ -30,4 +30,3 @@ function Metric.Get(this) end
 ---@param this Metric
 ---@return string?
 function Metric.GetName(this) end
-

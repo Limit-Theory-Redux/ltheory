@@ -169,4 +169,3 @@ function Window:physicalCursorPosition() end
 -- See [`WindowResolution`] for an explanation about logical/physical sizes.
 ---@param position Vec2d?
 function Window:setPhysicalCursorPosition(position) end
-

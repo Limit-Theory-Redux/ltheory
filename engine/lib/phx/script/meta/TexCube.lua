@@ -85,4 +85,3 @@ function TexCube:setDataBytes(r, data, face, level, tf, df) end
 ---@param sampleCount integer
 ---@return TexCube
 function TexCube:genIRMap(r, sampleCount) end
-

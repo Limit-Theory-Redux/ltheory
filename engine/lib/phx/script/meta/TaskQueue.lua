@@ -62,4 +62,3 @@ function TaskQueue:sendEcho(data) end
 -- Get a response from the echo worker.
 ---@return string?
 function TaskQueue:getEcho() end
-

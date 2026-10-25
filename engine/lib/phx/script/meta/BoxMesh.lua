@@ -16,4 +16,3 @@ function BoxMesh:add(p, s, r, b) end
 ---@param res integer
 ---@return Mesh
 function BoxMesh:getMesh(res) end
-

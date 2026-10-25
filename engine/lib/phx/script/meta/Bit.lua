@@ -89,4 +89,3 @@ function Bit.Rshift64(x, n) end
 ---@param pos integer
 ---@return integer
 function Bit.Bitmask64(pos) end
-

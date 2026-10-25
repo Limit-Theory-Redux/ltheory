@@ -30,4 +30,3 @@ MouseControl = {
     ScrollPixelX = 11,
     ScrollPixelY = 12,
 }
-

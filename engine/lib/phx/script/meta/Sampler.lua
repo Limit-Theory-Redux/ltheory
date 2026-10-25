@@ -9,4 +9,3 @@ Sampler = {}
 ---@param desc SamplerDesc
 ---@return integer
 function Sampler.Get(r, desc) end
-

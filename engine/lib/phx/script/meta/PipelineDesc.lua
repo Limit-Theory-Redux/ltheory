@@ -38,4 +38,3 @@ function PipelineDesc:colorFormat(index, format) end
 
 ---@param format TexFormat
 function PipelineDesc:depthFormat(format) end
-

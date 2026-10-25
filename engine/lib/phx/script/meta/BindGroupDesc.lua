@@ -16,4 +16,3 @@ function BindGroupDesc.Create(shader, group) end
 ---@param view TexView
 ---@param sampler integer
 function BindGroupDesc:texture(name, view, sampler) end
-

@@ -12,4 +12,3 @@ TextAlignment = {
     End = 2,
     Justified = 3,
 }
-

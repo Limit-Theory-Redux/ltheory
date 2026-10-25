@@ -78,4 +78,3 @@ function TextStyle:setWordSpacing(size) end
 -- Extra spacing between letters.
 ---@param size number
 function TextStyle:setLetterSpacing(size) end
-

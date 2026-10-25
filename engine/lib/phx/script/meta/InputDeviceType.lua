@@ -16,4 +16,3 @@ InputDeviceType = {
     Touchpad = 4,
     SystemEvent = 5,
 }
-

@@ -16,4 +16,3 @@ Topology = {
     Triangles = 3,
     TriangleStrip = 4,
 }
-

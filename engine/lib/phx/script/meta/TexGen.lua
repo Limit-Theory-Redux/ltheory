@@ -27,4 +27,3 @@ function TexGen.CubeInto(r, desc, cube) end
 ---@param format TexFormat
 ---@return Tex3D
 function TexGen.Volume(r, desc, size, format) end
-

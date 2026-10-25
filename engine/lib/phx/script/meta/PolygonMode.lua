@@ -9,4 +9,3 @@ PolygonMode = {
     -- Wireframe (GL; wgpu needs `POLYGON_MODE_LINE`).
     Line = 1,
 }
-

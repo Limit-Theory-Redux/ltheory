@@ -44,4 +44,3 @@ function PayloadTable:getPayloadByName(name) end
 ---@param name string
 ---@param value Payload
 function PayloadTable:add(name, value) end
-

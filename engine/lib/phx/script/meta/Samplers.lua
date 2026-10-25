@@ -22,4 +22,3 @@ Samplers = {
     -- `Texture` class gave every material texture.
     LinearMipRepeatAniso = 6,
 }
-

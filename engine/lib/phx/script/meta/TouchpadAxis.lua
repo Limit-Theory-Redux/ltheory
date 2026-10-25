@@ -12,4 +12,3 @@ TouchpadAxis = {
     MagnifyDelta = 2,
     RotateDelta = 3,
 }
-

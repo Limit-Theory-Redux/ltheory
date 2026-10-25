@@ -141,4 +141,3 @@ function Imm.Line3(r, p1, p2, color, width, depth) end
 ---@param size number
 ---@param depth boolean
 function Imm.Point3(r, p, color, size, depth) end
-

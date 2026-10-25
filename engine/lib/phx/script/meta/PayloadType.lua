@@ -57,4 +57,3 @@ PayloadType = {
     StringArray = 24,
     Table = 25,
 }
-

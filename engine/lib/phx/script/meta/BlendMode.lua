@@ -12,4 +12,3 @@ BlendMode = {
     Alpha = 2,
     PreMultAlpha = 3,
 }
-

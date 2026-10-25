@@ -11,4 +11,3 @@ MipFilter = {
     Point = 1,
     Linear = 2,
 }
-

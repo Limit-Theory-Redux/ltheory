@@ -21,4 +21,3 @@ function BoxTest:setCopyable(val) end
 
 ---@return CopyableData
 function BoxTest:getCopyable() end
-

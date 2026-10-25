@@ -11,4 +11,3 @@ GuiLayoutType = {
     Horizontal = 1,
     Vertical = 2,
 }
-

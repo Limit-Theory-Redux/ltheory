@@ -34,4 +34,3 @@ function ReadbackTicket:getHeight() end
 -- Give the ticket up. `data` is empty afterwards; the pixels of a read
 -- still in flight are dropped when they arrive.
 function ReadbackTicket:release() end
-

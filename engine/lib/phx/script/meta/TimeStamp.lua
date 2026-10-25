@@ -42,4 +42,3 @@ function TimeStamp:toSeconds() end
 -- Returns the fractional part in whole milliseconds.
 ---@return integer
 function TimeStamp:toSubsecMillis() end
-

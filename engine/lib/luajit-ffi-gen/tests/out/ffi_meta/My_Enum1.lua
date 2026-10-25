@@ -8,4 +8,3 @@ My_Enum1 = {
     Var1 = 3,
     Var2 = 4,
 }
-

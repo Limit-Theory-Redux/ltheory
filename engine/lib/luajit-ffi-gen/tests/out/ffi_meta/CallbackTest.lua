@@ -88,4 +88,3 @@ function CallbackTest:getMultipleAndReplace(index, callback) end
 ---@param callback fun(arg1: integer): integer
 ---@return integer
 function CallbackTest.Passthrough(input, callback) end
-

@@ -18,4 +18,3 @@ function LodMesh:add(mesh, distanceMin, distanceMax) end
 ---@param distanceSquared number
 ---@return Mesh?
 function LodMesh:get(distanceSquared) end
-

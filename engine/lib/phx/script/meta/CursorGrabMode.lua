@@ -22,4 +22,3 @@ CursorGrabMode = {
     -- The cursor is locked inside the window area to a certain position.
     Locked = 2,
 }
-

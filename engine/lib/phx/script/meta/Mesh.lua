@@ -182,4 +182,3 @@ function Mesh:computeAO(r, radius) end
 ---@param sdf Tex3D
 ---@param radius number
 function Mesh:computeOcclusion(r, sdf, radius) end
-

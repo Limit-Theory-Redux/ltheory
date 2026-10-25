@@ -218,4 +218,3 @@ function Payload:getTable() end
 
 ---@return PayloadType
 function Payload:getType() end
-

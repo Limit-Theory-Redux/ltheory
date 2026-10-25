@@ -14,4 +14,3 @@ LoadOp = {
     -- Contents are undefined; the pass overwrites every pixel it reads back.
     DontCare = 2,
 }
-

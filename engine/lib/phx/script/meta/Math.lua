@@ -83,4 +83,3 @@ function Math.Lerp(a, b, t) end
 ---@param x number
 ---@return number
 function Math.Sign(x) end
-

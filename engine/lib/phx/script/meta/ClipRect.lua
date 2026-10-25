@@ -33,4 +33,3 @@ function ClipRect.Pop(r) end
 
 ---@param r Renderer
 function ClipRect.PopTransform(r) end
-

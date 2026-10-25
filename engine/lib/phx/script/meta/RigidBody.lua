@@ -207,4 +207,3 @@ function RigidBody:distanceTo(target) end
 
 ---@return boolean
 function RigidBody:isSleeping() end
-

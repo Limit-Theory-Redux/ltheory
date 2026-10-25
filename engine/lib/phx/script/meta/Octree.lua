@@ -33,4 +33,3 @@ function Octree:add(box0, id) end
 
 ---@param r Renderer
 function Octree:draw(r) end
-

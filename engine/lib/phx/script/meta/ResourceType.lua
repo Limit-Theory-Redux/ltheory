@@ -26,4 +26,3 @@ ResourceType = {
     Theme = 9,
     Other = 10,
 }
-

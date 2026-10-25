@@ -14,4 +14,3 @@ function MemoryReport.BeginFrame() end
 ---@param count integer
 ---@param bytes integer
 function MemoryReport.Add(category, count, bytes) end
-

@@ -63,4 +63,3 @@ function Shader:resourceId() end
 
 ---@return Shader
 function Shader:clone() end
-

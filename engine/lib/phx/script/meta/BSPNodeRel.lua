@@ -10,4 +10,3 @@ BSPNodeRel = {
     Back = 1,
     Front = 2,
 }
-

@@ -41,4 +41,3 @@ function RenderPassDesc:backbuffer(width, height, load, r, g, b, a) end
 ---@param load LoadOp
 ---@param d number
 function RenderPassDesc:backbufferDepth(load, d) end
-

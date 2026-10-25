@@ -8,4 +8,3 @@ SamplerFilter = {
     Point = 0,
     Linear = 1,
 }
-

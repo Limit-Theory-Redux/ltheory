@@ -19,4 +19,3 @@ VertexLayout = {
     -- (`Imm3DVertex`): debug geometry and the backdrop box.
     Imm3D = 3,
 }
-

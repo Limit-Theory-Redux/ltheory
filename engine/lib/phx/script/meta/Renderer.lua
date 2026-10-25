@@ -211,4 +211,3 @@ function Renderer:setEnvironment(envMap, irMap) end
 ---@param desc BindGroupDesc
 ---@return BindGroup
 function Renderer:createBindGroup(desc) end
-

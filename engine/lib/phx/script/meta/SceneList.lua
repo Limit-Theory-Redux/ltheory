@@ -51,4 +51,3 @@ function SceneList:getVisible() end
 -- Items culled since the last reset.
 ---@return integer
 function SceneList:getCulled() end
-

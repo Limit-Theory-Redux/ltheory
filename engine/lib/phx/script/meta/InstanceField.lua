@@ -73,4 +73,3 @@ function InstanceField:getLodOrder(k) end
 ---@param lod integer
 ---@param mesh Mesh
 function InstanceField:draw(pass, r, lod, mesh) end
-

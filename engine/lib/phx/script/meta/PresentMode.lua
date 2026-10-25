@@ -11,4 +11,3 @@ PresentMode = {
     Vsync = 0,
     NoVsync = 1,
 }
-

@@ -32,4 +32,3 @@ function Font:getSize(r, text, out) end
 ---@param text string
 ---@return Vec2i
 function Font:getSize2(r, text) end
-

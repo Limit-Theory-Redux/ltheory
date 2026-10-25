@@ -34,4 +34,3 @@ function MouseState:position() end
 
 ---@return boolean
 function MouseState:inWindow() end
-

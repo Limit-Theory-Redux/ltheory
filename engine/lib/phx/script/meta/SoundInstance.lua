@@ -49,4 +49,3 @@ function SoundInstance:emitterPos() end
 ---@param listenerPos Position
 ---@return number
 function SoundInstance:emitterDistance(listenerPos) end
-

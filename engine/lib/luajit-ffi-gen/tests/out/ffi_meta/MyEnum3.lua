@@ -8,4 +8,3 @@ MyEnum3 = {
     Var1 = 0, -- VALUE1
     Var2 = 1, -- VALUE2
 }
-

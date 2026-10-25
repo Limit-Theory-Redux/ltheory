@@ -80,4 +80,3 @@ function Physics:drawWireframes(r, eye) end
 ---@param eye Position
 ---@param maxRange number
 function Physics:drawWireframesInRange(r, eye, maxRange) end
-

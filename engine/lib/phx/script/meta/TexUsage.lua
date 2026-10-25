@@ -23,4 +23,3 @@ TexUsage = {
     -- cannot filter 32-bit floats. Implies `Sampled`.
     Data = 16,
 }
-

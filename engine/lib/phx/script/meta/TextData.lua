@@ -49,4 +49,3 @@ function TextData:setSelectionColor(color) end
 ---@param startPos integer
 ---@param endPos integer
 function TextData:setSelection(startPos, endPos) end
-

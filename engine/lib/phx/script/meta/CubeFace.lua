@@ -20,4 +20,3 @@ CubeFace = {
 ---@param index integer
 ---@return CubeFace
 function CubeFace.Get(index) end
-

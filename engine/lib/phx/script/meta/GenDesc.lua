@@ -25,4 +25,3 @@ function GenDesc:params(bytes, bytes_size) end
 ---@param view TexView
 ---@param sampler integer
 function GenDesc:input(slot, view, sampler) end
-

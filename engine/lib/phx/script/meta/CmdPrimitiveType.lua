@@ -19,4 +19,3 @@ CmdPrimitiveType = {
     TriangleFan = 5,
     Quads = 6,
 }
-

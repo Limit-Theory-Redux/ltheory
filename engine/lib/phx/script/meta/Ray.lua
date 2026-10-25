@@ -35,4 +35,3 @@ function Ray:toLineSegment() end
 ---@param lineSegment LineSegment
 ---@return Ray
 function Ray.FromLineSegment(lineSegment) end
-

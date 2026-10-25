@@ -55,4 +55,3 @@ Shape = {
     Annulus = 17,
     LineGlow = 18,
 }
-

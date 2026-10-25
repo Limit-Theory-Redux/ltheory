@@ -45,4 +45,3 @@ function ShaderWatcher.GetChanged(r, index) end
 -- Clears the list of changed shaders after processing.
 ---@param r Renderer
 function ShaderWatcher.ClearChanged(r) end
-

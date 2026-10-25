@@ -637,4 +637,3 @@ KeyboardButton = {
     -- General-purpose function key.
     F35 = 193,
 }
-

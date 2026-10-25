@@ -93,4 +93,3 @@ function Tex2D:setDataBytes(r, data, pf, df) end
 ---@param blue number
 ---@param alpha number
 function Tex2D:setTexel(r, x, y, red, green, blue, alpha) end
-

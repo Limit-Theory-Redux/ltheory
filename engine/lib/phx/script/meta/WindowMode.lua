@@ -35,4 +35,3 @@ WindowMode = {
     -- scale factor, see [`WindowResolution`].
     Fullscreen = 3,
 }
-

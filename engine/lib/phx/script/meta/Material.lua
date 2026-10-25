@@ -43,4 +43,3 @@ function Material:commit(r) end
 -- The scene bucket (blend mode) the material draws in.
 ---@return BlendMode
 function Material:getBlend() end
-

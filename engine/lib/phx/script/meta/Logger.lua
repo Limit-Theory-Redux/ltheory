@@ -18,4 +18,3 @@ function Logger.Warn(msg) end
 
 ---@param msg string
 function Logger.Error(msg) end
-

@@ -63,4 +63,3 @@ function Tex3D:getSizeLevel(level) end
 ---@param pf PixelFormat
 ---@param df DataFormat
 function Tex3D:setDataBytes(r, data, pf, df) end
-

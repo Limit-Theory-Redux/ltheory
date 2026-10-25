@@ -428,6 +428,10 @@ impl FFIGenerator {
                 .iter()
                 .for_each(|def| writeln!(&mut meta_def, "{def}").unwrap());
 
+            // One newline at the end, not a blank line.
+            meta_def.truncate(meta_def.trim_end_matches('\n').len());
+            meta_def.push('\n');
+
             if cfg!(windows) {
                 meta_def = meta_def.replace('\n', "\r\n");
             }

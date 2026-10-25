@@ -12,4 +12,3 @@ TexWrapMode = {
     MirrorRepeat = 2,
     Repeat = 3,
 }
-

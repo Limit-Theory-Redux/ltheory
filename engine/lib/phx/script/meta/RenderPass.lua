@@ -90,4 +90,3 @@ function RenderPass:clearScissor(r) end
 ---@param r Renderer
 ---@param transform Matrix
 function RenderPass:setUiTransform(r, transform) end
-

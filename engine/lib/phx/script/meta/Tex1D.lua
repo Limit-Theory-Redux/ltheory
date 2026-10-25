@@ -55,4 +55,3 @@ function Tex1D:setDataBytes(r, data, pf, df) end
 ---@param blue number
 ---@param alpha number
 function Tex1D:setTexel(r, x, red, green, blue, alpha) end
-

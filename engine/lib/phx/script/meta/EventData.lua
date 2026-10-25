@@ -15,4 +15,3 @@ function EventData:tunnelId() end
 
 ---@return Payload?
 function EventData:payload() end
-

@@ -24,4 +24,3 @@ function TexView:getMipCount() end
 ---@param mipCount integer
 ---@return TexView
 function TexView:mips(baseMip, mipCount) end
-

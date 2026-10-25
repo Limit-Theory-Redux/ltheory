@@ -23,4 +23,3 @@ DataFormat = {
 ---@param this DataFormat
 ---@return integer
 function DataFormat.GetSize(this) end
-

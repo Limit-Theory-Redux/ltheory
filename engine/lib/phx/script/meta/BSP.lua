@@ -60,4 +60,3 @@ function BSP:getIntersectSphereTriangles(sphere, sphereProf) end
 ---@param leafIndex integer
 ---@return BSPNodeRef
 function BSP:getLeaf(leafIndex) end
-

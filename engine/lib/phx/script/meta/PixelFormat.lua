@@ -22,4 +22,3 @@ PixelFormat = {
 ---@param this PixelFormat
 ---@return integer
 function PixelFormat.Components(this) end
-

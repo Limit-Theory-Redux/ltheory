@@ -10,4 +10,3 @@ function InputDevice:equal(other) end
 
 ---@return string
 function InputDevice:toString() end
-

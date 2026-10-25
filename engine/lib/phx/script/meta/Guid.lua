@@ -12,4 +12,3 @@ function Guid.Create() end
 function Guid.Exists(id) end
 
 function Guid.Reset() end
-
