@@ -221,7 +221,7 @@ void main() {
     else if (mode == 12) color = Illustris(color);
 
     // Gamma correction
-    color = pow(color, vec3(1.0 / 2.2));
+    color = pow(max(color, vec3(0.0)), vec3(1.0 / 2.2));
 
     fragColor = vec4(color, 1.0);
 }
