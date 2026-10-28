@@ -24,8 +24,10 @@ function Application:onResize(sx, sy) end
 function Application:onUpdate(dt) end
 function Application:onExit() end
 
-function Application:quit()
-    Engine:exit()
+-- Ends the run after this frame; the process exits with `code`.
+---@param code integer|nil process exit code, `Core.ExitCode.Success` by default
+function Application:quit(code)
+    Engine:exitWithCode(code or Core.ExitCode.Success)
 end
 
 function Application:eventLoop()

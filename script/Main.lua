@@ -23,6 +23,9 @@ function SetEngine(engine)
     Renderer:createLightUbo()
 end
 
+-- The app state that InitSystem loads; nil until it succeeds.
+local appState = nil
+
 function InitSystem()
     Core.Call(function()
         -- Default state: LTheoryRedux. The engine passes "" (not nil) when no
@@ -113,36 +116,35 @@ function InitSystem()
         local foundState, state = pcall(require, 'States.App.' .. app)
         local foundTest, test = pcall(require, 'States.App.Tests.' .. app)
 
-        local appState = nil
         if foundState then
             appState = state
         elseif foundTest then
             appState = test
-        end
-
-        if appState == nil then
-            -- If the error returned is "module 'States.App.<app>' not found:",
-            -- then the error is in test instead.
-            if tostring(state):match("^module 'States%.App%." .. app .. "' not found:") then
-                Log.Error("Failed to load States.Apps.Tests.%s: %s", app, tostring(test))
-            else
-                Log.Error("Failed to load States.Apps.%s: %s", app, tostring(state))
-            end
-        end
-
-        AppInit = function()
-            Core.Call(appState.appInit, appState)
-        end
-
-        AppEventLoop = function()
-            Core.Call(appState.eventLoop, appState)
-        end
-
-        AppClose = function()
-            Core.Call(appState.doExit, appState)
-            GlobalRestrict.Off()
+        -- If the error returned is "module 'States.App.<app>' not found:",
+        -- then the error is in test instead.
+        elseif tostring(state):match("^module 'States%.App%." .. app .. "' not found:") then
+            error(format("Failed to load States.Apps.Tests.%s: %s", app, tostring(test)))
+        else
+            error(format("Failed to load States.Apps.%s: %s", app, tostring(state)))
         end
     end)
+end
+
+-- The engine calls these only while no exit is requested, except AppClose,
+-- which also runs after a failed InitSystem left no app.
+function AppInit()
+    Core.Call(appState.appInit, appState)
+end
+
+function AppEventLoop()
+    Core.Call(appState.eventLoop, appState)
+end
+
+function AppClose()
+    if appState then
+        Core.Call(appState.doExit, appState)
+    end
+    GlobalRestrict.Off()
 end
 
 function HandleEngineError(err)
