@@ -845,6 +845,22 @@ impl RigidBody {
     }
 }
 
+/// Access to Rapier body settings that the Lua API doesn't expose, for physics tests.
+#[cfg(test)]
+impl RigidBody {
+    pub(crate) fn set_linear_velocity(&mut self, velocity: &na::Vector3<rp::Real>) {
+        self.rigid_body.as_mut().set_linvel(*velocity, true);
+    }
+
+    pub(crate) fn enable_ccd(&mut self) {
+        self.rigid_body.as_mut().enable_ccd(true);
+    }
+
+    pub(crate) fn set_soft_ccd_prediction(&mut self, distance: rp::Real) {
+        self.rigid_body.as_mut().set_soft_ccd_prediction(distance);
+    }
+}
+
 fn type_to_non_null<T>(reference: &mut T) -> NonNull<T> {
     NonNull::new(reference as *mut _).unwrap()
 }

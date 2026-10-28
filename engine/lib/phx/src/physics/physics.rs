@@ -476,6 +476,9 @@ impl Physics {
     }
 }
 
+#[cfg(test)]
+mod scale_tests;
+
 struct RapierDebugRenderer<'a> {
     r: &'a mut Renderer,
     shader: &'a mut Shader,
