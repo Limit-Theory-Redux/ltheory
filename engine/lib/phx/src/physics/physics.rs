@@ -29,7 +29,7 @@ pub struct RayCastResult {
     pos: Position,
     t: f32,
     /// The hit body's user id.
-    id: u64,
+    id: BodyUserId,
 }
 
 /// The bodies a shape overlaps, and their user ids in the same order.
@@ -37,7 +37,7 @@ pub struct RayCastResult {
 pub struct ShapeCastResult {
     hits: *const *mut RigidBody,
     hits_len: u32,
-    ids: *const u64,
+    ids: *const BodyUserId,
 }
 
 /// The first body a swept sphere touches; `body` is null and `id` is 0 when it touches nothing.
@@ -45,7 +45,7 @@ pub struct ShapeCastResult {
 pub struct SphereSweepResult {
     body: *mut RigidBody,
     /// The hit body's user id.
-    id: u64,
+    id: BodyUserId,
     /// The hit body's outward surface normal at the contact.
     norm: Vec3,
     /// The contact point, on the hit body's surface.
@@ -58,7 +58,7 @@ pub struct SphereSweepResult {
 /// units from the query centre to their surfaces (0 inside).
 #[repr(C)]
 pub struct RadiusQueryResult {
-    ids: *const u64,
+    ids: *const BodyUserId,
     distances: *const f64,
     len: u32,
 }
@@ -67,13 +67,13 @@ pub struct RadiusQueryResult {
 #[derive(Default)]
 struct ShapeHits {
     bodies: Vec<*mut RigidBody>,
-    ids: Vec<u64>,
+    ids: Vec<BodyUserId>,
 }
 
 /// Storage of a radius query's results, which Lua reads until the next radius query.
 #[derive(Default)]
 struct RadiusHits {
-    ids: Vec<u64>,
+    ids: Vec<BodyUserId>,
     distances: Vec<f64>,
 }
 
@@ -509,7 +509,7 @@ impl Physics {
         let center = pos.to_na_point();
         let in_mask = in_mask(mask);
         let world = self.world.as_ref();
-        let mut found: Vec<(u64, f64)> = vec![];
+        let mut found: Vec<(BodyUserId, f64)> = vec![];
         self.query_pipeline.intersections_with_shape(
             &world.rigid_bodies,
             &world.colliders,

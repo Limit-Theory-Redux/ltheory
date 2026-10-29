@@ -15,6 +15,9 @@ use crate::rf::Rf;
 pub type CollisionGroup = u32;
 pub type CollisionMask = u32;
 
+/// The id a body's owner assigns to it and physics queries report; 0 means none.
+pub type BodyUserId = u64;
+
 /*
  * The following API functions are disabled for parent objects:
  * get_position_local, set_position_local, get_rotation_local, and
@@ -73,7 +76,7 @@ pub struct RigidBody {
     collision_group: rp::InteractionGroups,
 
     /// Set by the owner and reported by physics queries; 0 means none.
-    user_id: u64,
+    user_id: BodyUserId,
 }
 
 impl RigidBody {
@@ -252,7 +255,7 @@ impl RigidBody {
 
     /// The user id of the RigidBody linked to a Rapier Collider; 0 for an unlinked collider
     /// or a body without an id.
-    pub(crate) fn linked_user_id(collider: &rp::Collider) -> u64 {
+    pub(crate) fn linked_user_id(collider: &rp::Collider) -> BodyUserId {
         Self::read_linked(collider, |rb| rb.user_id).unwrap_or(0)
     }
 
@@ -742,6 +745,7 @@ impl RigidBody {
     }
 
     /// The id physics queries report for this body; 0 means none.
+    // `u64`, not `BodyUserId`: the FFI generator doesn't resolve aliases.
     pub fn get_user_id(&self) -> u64 {
         self.user_id
     }
