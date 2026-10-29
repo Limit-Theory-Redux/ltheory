@@ -241,12 +241,14 @@ function PlayerController:update(dt)
 
     -- Manual flight only when piloting AND not on autopilot
     if self:isPiloting() and not AutoPilotSystem:isActive(self.ship) then
-        local isFPS = (self.mode == Enums.CameraMode.FirstPerson)
         local drive = self.ship:get(ConstructComponents.TravelDrive)
         if drive and drive:isActive() then
-            ShipFlightSystem:updateSteeringOnly(dt, self.ship, isFPS)
+            ShipFlightSystem:updateSteeringOnly(dt, self.ship, true)
         else
-            ShipFlightSystem:update(dt, self.ship, isFPS, isFPS)
+            local isFPS = (self.mode == Enums.CameraMode.FirstPerson)
+            -- The mouse steers in every piloting mode: by delta in first
+            -- person, by screen position in chase.
+            ShipFlightSystem:update(dt, self.ship, true, isFPS)
         end
     end
 end
