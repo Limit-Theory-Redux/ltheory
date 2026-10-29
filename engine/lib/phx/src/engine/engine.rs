@@ -107,7 +107,10 @@ impl Engine {
 
         // Create window.
         let present_mode_override = settings.present_mode.map(PresentMode::from);
-        let mut window = Window::default();
+        let mut window = Window {
+            title: Window::title_for_app(&settings.app_name),
+            ..Default::default()
+        };
         if let Some(mode) = present_mode_override {
             info!("Present mode forced to {mode:?} by --present-mode");
             window.present_mode = mode;

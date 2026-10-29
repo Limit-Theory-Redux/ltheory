@@ -138,7 +138,7 @@ pub struct Window {
 impl Default for Window {
     fn default() -> Self {
         Self {
-            title: "Limit Theory Redux".to_owned(),
+            title: Self::DEFAULT_TITLE.to_owned(),
             cursor: Default::default(),
             present_mode: Default::default(),
             mode: Default::default(),
@@ -156,6 +156,20 @@ impl Default for Window {
             prevent_default_event_handling: true,
             canvas: None,
             window_theme: None,
+        }
+    }
+}
+
+impl Window {
+    /// The title of a window that no app has named.
+    pub const DEFAULT_TITLE: &'static str = "Limit Theory Redux";
+
+    /// The initial title for the app called `app_name`; empty means no app name.
+    pub fn title_for_app(app_name: &str) -> String {
+        if app_name.is_empty() {
+            Self::DEFAULT_TITLE.to_owned()
+        } else {
+            format!("{} - {app_name}", Self::DEFAULT_TITLE)
         }
     }
 }
@@ -440,5 +454,23 @@ impl From<WindowTheme> for winit::window::Theme {
             WindowTheme::Light => Self::Light,
             WindowTheme::Dark => Self::Dark,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn title_without_app_name_is_default() {
+        assert_eq!(Window::title_for_app(""), Window::DEFAULT_TITLE);
+    }
+
+    #[test]
+    fn title_with_app_name_appends_it() {
+        assert_eq!(
+            Window::title_for_app("SolarSystemPlayable"),
+            "Limit Theory Redux - SolarSystemPlayable"
+        );
     }
 }

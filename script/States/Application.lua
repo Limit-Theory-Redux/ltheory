@@ -10,8 +10,10 @@ function Application:getDefaultSize()
     return Config.render.window.defaultResX, Config.render.window.defaultResY
 end
 
+-- Explicit window title, or nil to keep the engine's title.
+---@return string|nil
 function Application:getTitle()
-    return Config.gameTitle
+    return nil
 end
 
 function Application:getWindowMode()
@@ -51,7 +53,8 @@ function Application:appInit()
     self.eventsRegistered = false
     self.resX, self.resY = self:getDefaultSize()
 
-    Window:setTitle(self:getTitle())
+    local title = self:getTitle()
+    if title then Window:setTitle(title) end
     Window:setCenteredPosition()
     Window:setSize(self.resX, self.resY)
 
