@@ -465,7 +465,6 @@ end
 --- thing the player sees is a rock up close, with the ring/planet nearby).
 function LimitTheoryRedux:spawnPlayerShip()
     local cfg = self.cfg
-    local flightCfg = Config.game.shipFlight
 
     local spawnPos = Position(0, 0, 0)
     if #self.planets > 0 then
@@ -519,8 +518,9 @@ function LimitTheoryRedux:spawnPlayerShip()
         shipType = Enums.ShipType.Fighter,
         config = {
             position = spawnPos,
-            scale = Config.game.shipHulls.scale[1],
+            scale = Config.game.shipHulls.scale[Enums.ShipHulls.Solo],
             isKinematic = false,
+            flightProfile = Enums.FlightProfile.Solo,
         },
     })
     self.playerShip = self.playerShipHandle.root
@@ -529,16 +529,6 @@ function LimitTheoryRedux:spawnPlayerShip()
     self.playerShip:add(ConstructComponents.AutoPilot())
     self.playerShip:add(ConstructComponents.ShipFlightControl())
     self.playerShip:add(ConstructComponents.ControlInput())
-
-    local hullIdx = 1
-    local hullCfg = Config.game.shipHulls
-    local rbCmp = self.playerShip:get(PhysicsComponents.RigidBody)
-    local rb = rbCmp:getRigidBody()
-    rb:setMass(hullCfg.mass[hullIdx])
-    rb:setDrag(flightCfg.linearDrag, flightCfg.angularDrag)
-    rb:setFriction(0)
-    rb:setSleepThreshold(0, 0)
-    rb:setSoftCcdPrediction(Config.game.physics.softCcdDistance(flightCfg.maxSpeedGame))
 
     Log.Info("Player ship spawned at (%.1f, %.1f, %.1f)", spawnPos.x, spawnPos.y, spawnPos.z)
 end

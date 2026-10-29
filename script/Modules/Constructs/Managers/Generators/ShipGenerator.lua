@@ -4,18 +4,20 @@
 ---legacy capital generator otherwise. Every path returns a ShipEntity with
 ---ShipData (generated mesh + mount sockets) and, when placement config is
 ---given, a rigid body positioned/scaled accordingly.
-local Registry = require("Core.ECS.Registry")
-local ShipEntity = require('Modules.Constructs.Entities.SpaceshipEntity')
+local Registry       = require("Core.ECS.Registry")
+local ShipEntity     = require('Modules.Constructs.Entities.SpaceshipEntity')
 local ShipComponents = require("Modules.Constructs.Components")
-local Physics = require("Modules.Physics.Components")
+local Physics        = require("Modules.Physics.Components")
 
 -- Legacy Generator Imports
-local ShipBasic = require('Legacy.Systems.Gen.ShipBasic')
-local ShipCapital = require('Legacy.Systems.Gen.ShipCapital')
-local ShipFighter = require('Legacy.Systems.Gen.ShipFighter')
+local ShipBasic            = require('Legacy.Systems.Gen.ShipBasic')
+local ShipCapital          = require('Legacy.Systems.Gen.ShipCapital')
+local ShipFighter          = require('Legacy.Systems.Gen.ShipFighter')
 local CapitalHullGenerator = require("Modules.Constructs.Managers.Generators.CapitalHullGenerator")
 
-local Materials = require("Shared.Registries.Materials")
+local Materials             = require("Shared.Registries.Materials")
+local FlightProfileRegistry = require("Shared.Registries.FlightProfileRegistry")
+local FlightProfileHelper   = require("Shared.Helpers.FlightProfileHelper")
 
 ---@class ShipGenerator
 ---@overload fun(): ShipGenerator
@@ -102,6 +104,21 @@ local function applyGeneratedShipData(entity, shipType, config, generated, mesh)
     end
 end
 
+---Give the ship its flight profile and set its rigid body to match. The body must exist, so
+---the config also has to place it (position, scale, rotation or isKinematic).
+---@param entity Entity
+---@param flightProfileId FlightProfileId|nil
+local function applyFlightProfile(entity, flightProfileId)
+    if flightProfileId == nil then return end
+    local rbCmp = entity:get(Physics.RigidBody)
+    local rb = rbCmp and rbCmp:getRigidBody()
+    assert(rb, "a flight profile needs a rigid body: give the config a position, scale, rotation or isKinematic")
+
+    local profile = FlightProfileRegistry:get(flightProfileId)
+    FlightProfileHelper.applyToRigidBody(profile, rb)
+    entity:add(ShipComponents.FlightProfile(profile))
+end
+
 ---@class FighterGenConfig
 ---@field material Material|nil
 ---@field hull any
@@ -110,10 +127,11 @@ end
 ---@field scale number|nil
 ---@field rotation Quat|nil
 ---@field isKinematic boolean|nil
+---@field flightProfile FlightProfileId|nil
 
 ---Create a Fighter ship with automatic mesh generation
 ---@param seed integer
----@param config FighterGenConfig|nil Configuration {material, hull, res, position, scale, rotation, isKinematic}
+---@param config FighterGenConfig|nil Configuration {material, hull, res, position, scale, rotation, isKinematic, flightProfile}
 ---@param stats ShipStats|nil
 ---@return Entity
 function ShipGenerator:createFighter(seed, config, stats)
@@ -163,13 +181,14 @@ function ShipGenerator:createFighter(seed, config, stats)
 
     -- Set additional ship data
     applyGeneratedShipData(entity, shipType, config, nil, mesh)
+    applyFlightProfile(entity, config.flightProfile)
 
     return entity
 end
 
 ---Create a Capital ship with automatic mesh generation
 ---@param seed integer
----@param config table|nil Configuration {material, hull, res, position, scale, rotation, isKinematic}
+---@param config table|nil Configuration {material, hull, res, position, scale, rotation, isKinematic, flightProfile}
 ---@param stats ShipStats|nil
 ---@return Entity
 function ShipGenerator:createCapital(seed, config, stats)
@@ -218,13 +237,14 @@ function ShipGenerator:createCapital(seed, config, stats)
 
     -- Set additional ship data
     applyGeneratedShipData(entity, shipType, config, generated, mesh)
+    applyFlightProfile(entity, config.flightProfile)
 
     return entity
 end
 
 ---Create a Basic ship with automatic mesh generation
 ---@param seed integer
----@param config table|nil Configuration {material, hull, res, position, scale, rotation, isKinematic}
+---@param config table|nil Configuration {material, hull, res, position, scale, rotation, isKinematic, flightProfile}
 ---@param stats ShipStats|nil
 ---@return Entity
 function ShipGenerator:createBasic(seed, config, stats)
@@ -273,6 +293,7 @@ function ShipGenerator:createBasic(seed, config, stats)
 
     -- Set additional ship data
     applyGeneratedShipData(entity, shipType, config, nil, mesh)
+    applyFlightProfile(entity, config.flightProfile)
 
     return entity
 end

@@ -1,4 +1,6 @@
 --! this can be split up better
+require("Shared.Definitions.FlightProfileDefs")
+
 Config.game = {
     boostCost              = 20,
 
@@ -54,56 +56,12 @@ Config.game = {
 
     dockRange              = 50,
 
-    shipFlight = (function()
-        local ScaleConfig = require("Config.Gen.UniverseScaleConfig")
-
-        -- Define desired real-world values
-        local maxSpeedReal    = 8800     -- m/s max speed (~8.8 km/s for fighter)
-        local accelTimeReal   = 8.0      -- seconds to reach max speed
-        local lateralRatio    = 0.5      -- lateral/vertical thrust vs forward
-        local verticalRatio   = 0.25     -- vertical thrust vs forward
-
-        -- Convert to game units using ScaleConfig
-        local maxSpeedGame = ScaleConfig:toGameUnits(maxSpeedReal, "starSystem")
-        local accelGame    = maxSpeedGame / accelTimeReal
-
-        -- Derive physics values
-        -- Mass from hull config (Solo = index 1)
-        local mass = 5000
-        local drag = 2.0
-        local thrust = maxSpeedGame * mass * drag
-
-        -- Torque from mass: gives ~10 rad/s² angular acceleration (responsive but not spinny)
-        -- Torque: tuned empirically. The equilibrium turn rate is:
-        --   ω_max = torque / (I × angularDrag)
-        -- where I = 2/5 × m × r² (tiny at small globalScale).
-        -- angularDrag dominates the feel; torque sets responsiveness.
-        local torque = 50
-
-        return {
-            -- Auto-computed from desired speed/acceleration
-            thrustForward  = thrust,
-            thrustRight    = thrust * lateralRatio,
-            thrustUp       = thrust * verticalRatio,
-
-            -- Rotational torques (derived from mass × desired angular acceleration)
-            torquePitch    = torque,
-            torqueYaw      = torque,
-            torqueRoll     = torque * 0.6,
-
-            -- Auto-computed physics
-            linearDrag     = drag,
-            angularDrag    = 20.0,
-
-            -- Input inversion
-            invertYaw      = false,
-            invertPitch    = false,
-
-            -- Reference values for other systems
-            maxSpeedGame   = maxSpeedGame,
-            maxSpeedReal   = maxSpeedReal,
-        }
-    end)(),
+    -- Ship flight limits are per-ship data: Shared/Definitions/FlightProfileDefs.lua.
+    -- The player's input settings:
+    playerFlight = {
+        invertYaw   = false,
+        invertPitch = false,
+    },
 
     -- Physics tuning for ship-scale contacts, set by apps with ship flight.
     physics = (function()
@@ -125,19 +83,13 @@ Config.game = {
         }
     end)(),
 
-    -- Ship hull classes (from legacy, indexed by Enums.ShipHulls)
+    -- Ship hull geometry (from legacy, indexed by Enums.ShipHulls)
     -- Solo=1, Small=2, Compact=3, Medium=4, Large=5, VeryLarge=6
     shipHulls = {
         -- Scaled for globalScale 0.0001 (1 game unit = 10km)
         -- Solo ~50m, Small ~100m, Compact ~150m, Medium ~200m, Large ~300m, VeryLarge ~500m
         scale  = { 0.005, 0.01, 0.015, 0.02, 0.03, 0.05 },
         radius = { 0.003, 0.005, 0.008, 0.012, 0.018, 0.025 },
-        mass   = { 5000, 10000, 18000, 30000, 50000, 100000 },
-        drag   = { 2.0, 2.0, 2.0, 2.0, 2.0, 2.0 },
-        -- Translation speed multiplier (smaller = less lateral/vertical for big ships)
-        tranM  = { 0.8, 0.2, 0.1, 0.06, 0.03, 0.0 },
-        -- Maneuverability multiplier (pitch/yaw/roll scaling)
-        manuM  = { 0.3, 0.5, 0.2, 0.1, 0.06, 1.5 },
     },
 
     travelDrive = {

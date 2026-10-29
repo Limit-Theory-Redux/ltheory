@@ -50,7 +50,8 @@ end
 ---@param drive TravelDriveComponent
 ---@param input ControlInputComponent|nil
 ---@param rb RigidBody
-local function updateDrive(dt, drive, input, rb)
+---@param profile FlightProfile
+local function updateDrive(dt, drive, input, rb, profile)
     local cfg = Config.game.travelDrive
 
     if input then
@@ -85,7 +86,7 @@ local function updateDrive(dt, drive, input, rb)
 
         -- Apply forward thrust
         local fwd = rb:getRot():getForward()
-        rb:applyForce(fwd:scale(Config.game.shipFlight.thrustForward * currentMult))
+        rb:applyForce(fwd:scale(profile.thrustForward * currentMult))
 
     elseif state == "decelerating" then
         currentMult = math.max(1.0, currentMult - (cfg.speedMultiplier - 1) * cfg.rampDownSpeed * dt)
@@ -105,7 +106,8 @@ function TravelDriveSystem:update(dt)
         local rbCmp = shipEntity:get(PhysicsComponents.RigidBody)
         local rb = rbCmp and rbCmp:getRigidBody()
         if rb then
-            updateDrive(dt, drive, shipEntity:get(ConstructComponents.ControlInput), rb)
+            local profile = ConstructComponents.FlightProfile.ProfileOf(shipEntity)
+            updateDrive(dt, drive, shipEntity:get(ConstructComponents.ControlInput), rb, profile)
         end
     end
 end

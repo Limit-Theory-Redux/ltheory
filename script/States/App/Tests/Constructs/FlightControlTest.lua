@@ -1,12 +1,15 @@
 -- Checks that ships fly from their ControlInput alone: thrust, boost, torque, the travel
 -- drive requests and ramps, and frame-rate independence. Logs each failed check and ends
 -- with a failure exit code.
-local Application         = require("States.Application")
-local Registry            = require("Core.ECS.Registry")
-local PhysicsComponents   = require("Modules.Physics.Components")
-local ConstructComponents = require("Modules.Constructs.Components")
-local ShipFlightSystem    = require("Modules.Constructs.Systems.ShipFlightSystem")
-local TravelDriveSystem   = require("Modules.Constructs.Systems.TravelDriveSystem")
+local Application           = require("States.Application")
+local Registry              = require("Core.ECS.Registry")
+local PhysicsComponents     = require("Modules.Physics.Components")
+local ConstructComponents   = require("Modules.Constructs.Components")
+local ShipFlightSystem      = require("Modules.Constructs.Systems.ShipFlightSystem")
+local TravelDriveSystem     = require("Modules.Constructs.Systems.TravelDriveSystem")
+local FlightProfile         = require("Shared.Types.FlightProfile")
+local FlightProfileRegistry = require("Shared.Registries.FlightProfileRegistry")
+local FlightProfileHelper   = require("Shared.Helpers.FlightProfileHelper")
 
 ---@class ConstructsFlightControlTest: Application
 local FlightControlTest = Subclass("ConstructsFlightControlTest", Application)
@@ -14,7 +17,17 @@ local FlightControlTest = Subclass("ConstructsFlightControlTest", Application)
 local STEP            = 1 / 60
 -- Distance between test ships along x; they fly along their own forward axis, so they never meet.
 local SHIP_SPACING    = 1000
-local HULL            = 1 -- Solo hull, as the player ship
+local HULL            = Enums.ShipHulls.Solo
+local SOLO            = Enums.FlightProfile.Solo
+-- A profile only this test registers: Solo with twice the thrust and torque.
+local STRONG          = 1000
+local STRONG_FACTOR   = 2
+-- Strafing and vertical thrust relative to forward thrust, and roll torque relative to pitch,
+-- as the player ship has always flown.
+local LATERAL_RATIO   = 0.25
+local ROLL_RATIO      = 0.3
+-- Forward speed under full thrust is within this of the profile's speed once settled.
+local SETTLED         = 0.99
 local RELATIVE_TOLERANCE = 0.01
 -- Velocities are single precision: directions agree to about this much.
 local SINGLE_PRECISION = 1e-5
@@ -48,17 +61,16 @@ function FlightControlTest:check(ok, what, detail)
     end
 end
 
----A ship with a rigid body, a travel drive and a control input, set up like the player ship.
-function FlightControlTest:spawnShip()
-    local flightCfg = Config.game.shipFlight
+---A ship with a rigid body, a flight profile, a travel drive and a control input, set up like
+---the player ship. `profileId` defaults to the Solo profile.
+function FlightControlTest:spawnShip(profileId)
+    local profile = FlightProfileRegistry:get(profileId or SOLO)
     local entity = Registry:createEntity()
     local rbCmp = entity:add(PhysicsComponents.RigidBody())
     local rb = RigidBody.CreateSphere()
     rb:setScale(Config.game.shipHulls.scale[HULL])
-    rb:setMass(Config.game.shipHulls.mass[HULL])
-    rb:setDrag(flightCfg.linearDrag, flightCfg.angularDrag)
-    rb:setFriction(0)
-    rb:setSleepThreshold(0, 0)
+    FlightProfileHelper.applyToRigidBody(profile, rb)
+    entity:add(ConstructComponents.FlightProfile(profile))
     rbCmp:setRigidBody(rb)
     self.world:addRigidBody(rb)
     rb:setPos(Position(self.nextX, 0, 0))
@@ -99,6 +111,7 @@ function FlightControlTest:onInit()
     self.world:setLengthUnit(tuning.lengthUnit)
     self.world:setContactNaturalFrequency(tuning.contactNaturalFrequency)
 
+    self:checkProfiles()
     self:checkThrust()
     self:checkTorque()
     self:checkDriveRequests()
@@ -106,6 +119,67 @@ function FlightControlTest:onInit()
 
     Log.Info("ConstructsFlightControlTest: %d checks passed, %d failed", self.passed, self.failed)
     self:quit(self.failed == 0 and Core.ExitCode.Success or Core.ExitCode.Failure)
+end
+
+---Register a profile like Solo, with thrust and torque scaled by `factor`.
+local function registerStrongProfile(id, factor)
+    local solo = FlightProfileRegistry:get(SOLO)
+    local args = { id = id, name = "Strong" }
+    for field, value in pairs(solo) do
+        if field ~= "id" and field ~= "name" then args[field] = value end
+    end
+    for _, field in ipairs({ "thrustForward", "thrustRight", "thrustUp",
+        "torquePitch", "torqueYaw", "torqueRoll" }) do
+        args[field] = args[field] * factor
+    end
+    FlightProfile(args)
+end
+
+function FlightControlTest:checkProfiles()
+    self:check(FlightProfileRegistry:has(SOLO), "the Solo profile is registered")
+    self:check(not pcall(FlightProfileRegistry.get, FlightProfileRegistry, STRONG),
+        "an unknown profile id is an error")
+    self:check(FlightProfile({ id = STRONG + 1, name = "" }) == nil, "a profile without a name is refused")
+    self:check(not pcall(FlightProfile, { id = STRONG + 1, name = "Broken", mass = -1 }),
+        "a profile with a non-positive field is an error")
+
+    registerStrongProfile(STRONG, STRONG_FACTOR)
+    local solo, strong = self:spawnShip(SOLO), self:spawnShip(STRONG)
+    for _, ship in ipairs({ solo, strong }) do
+        ship.input:setThrustForward(1)
+        ship.input:setPitch(1)
+    end
+    self:step(STEP)
+    self:check(close(strong.rb:getSpeed() / solo.rb:getSpeed(), STRONG_FACTOR, RELATIVE_TOLERANCE),
+        "a ship accelerates by its own profile's thrust")
+    self:check(close(length(strong.rb:getVelocityA()) / length(solo.rb:getVelocityA()), STRONG_FACTOR,
+        RELATIVE_TOLERANCE), "a ship turns by its own profile's torque")
+    self:despawn(solo)
+    self:despawn(strong)
+
+    -- Full forward thrust settles at the profile's speed.
+    local ship = self:spawnShip(SOLO)
+    local maxSpeed = FlightProfileRegistry:get(SOLO).maxSpeed
+    ship.input:setThrustForward(1)
+    self:check(self:stepUntil(function() return ship.rb:getSpeed() >= SETTLED * maxSpeed end),
+        "forward thrust reaches the profile's speed")
+    self:check(ship.rb:getSpeed() <= maxSpeed * (1 + RELATIVE_TOLERANCE),
+        "forward thrust does not exceed the profile's speed", tostring(ship.rb:getSpeed()))
+    self:despawn(ship)
+
+    -- The strafe and roll limits keep the proportions the player ship has always had.
+    local strafing, rolling, pitching = self:spawnShip(), self:spawnShip(), self:spawnShip()
+    local forwarding = self:spawnShip()
+    forwarding.input:setThrustForward(1)
+    strafing.input:setThrustRight(1)
+    rolling.input:setRoll(1)
+    pitching.input:setPitch(1)
+    self:step(STEP)
+    self:check(close(strafing.rb:getSpeed() / forwarding.rb:getSpeed(), LATERAL_RATIO, RELATIVE_TOLERANCE),
+        "strafing thrust is a quarter of forward thrust")
+    self:check(close(length(rolling.rb:getVelocityA()) / length(pitching.rb:getVelocityA()), ROLL_RATIO,
+        RELATIVE_TOLERANCE), "roll torque is 0.3 of pitch torque")
+    for _, s in ipairs({ strafing, rolling, pitching, forwarding }) do self:despawn(s) end
 end
 
 function FlightControlTest:checkThrust()

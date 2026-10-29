@@ -249,7 +249,6 @@ end
 
 function SolarSystemPlayable:spawnPlayerShip()
     local cfg = self.cfg
-    local flightCfg = Config.game.shipFlight
 
     -- Spawn near first planet (default) or inside asteroid belt for testing
     local spawnPos = Position(0, 0, 0)
@@ -271,8 +270,9 @@ function SolarSystemPlayable:spawnPlayerShip()
 
     self.playerShip = ShipGenerator:createFighter(self.rng:get31(), {
         position = spawnPos,
-        scale = Config.game.shipHulls.scale[1],  -- Solo hull (~50m fighter)
+        scale = Config.game.shipHulls.scale[Enums.ShipHulls.Solo],  -- ~50m fighter
         isKinematic = false,
+        flightProfile = Enums.FlightProfile.Solo,
     })
 
     -- Add ship-specific ECS components
@@ -281,17 +281,8 @@ function SolarSystemPlayable:spawnPlayerShip()
     self.playerShip:add(ConstructComponents.ShipFlightControl())
     self.playerShip:add(ConstructComponents.ControlInput())
 
-    -- Apply hull-class physics (Solo = index 1)
-    local hullIdx = 1
-    local hullCfg = Config.game.shipHulls
     local rbCmp = self.playerShip:get(PhysicsComponents.RigidBody)
-    local rb = rbCmp:getRigidBody()
-    rb:setMass(hullCfg.mass[hullIdx])
-    rb:setDrag(flightCfg.linearDrag, flightCfg.angularDrag)
-    rb:setFriction(0)
-    rb:setSleepThreshold(0, 0)
-    rb:setSoftCcdPrediction(Config.game.physics.softCcdDistance(flightCfg.maxSpeedGame))
-    self.world:addRigidBody(rb)
+    self.world:addRigidBody(rbCmp:getRigidBody())
 
     Log.Info("Player ship spawned at (%.1f, %.1f, %.1f)",
         spawnPos.x, spawnPos.y, spawnPos.z)

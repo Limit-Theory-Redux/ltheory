@@ -204,8 +204,8 @@ function AutoPilotSystem:update(dt, shipEntity)
         -- Use expected cruise speed for ETA, not current speed
         -- Cruise = base flight speed × zone max drive multiplier
         local maxDriveMult = GravityWellSystem:getMaxDriveSpeed()
-        local cfg = Config.game.shipFlight
-        local baseCruise = cfg.thrustForward / (rb:getMass() * cfg.linearDrag)
+        local profile = ConstructComponents.FlightProfile.ProfileOf(shipEntity)
+        local baseCruise = profile.thrustForward / (rb:getMass() * profile.linearDrag)
         local expectedSpeed = math.max(speed, baseCruise * maxDriveMult * 0.5)
 
         local tdx = targetPos.x - shipPos.x
@@ -284,7 +284,7 @@ function AutoPilotSystem:update(dt, shipEntity)
         return
     end
 
-    local cfg = Config.game.shipFlight
+    local profile = ConstructComponents.FlightProfile.ProfileOf(shipEntity)
     local vel = rb:getVelocity()
     local speed = rb:getSpeed()
     local rot = rb:getRot()
@@ -312,7 +312,7 @@ function AutoPilotSystem:update(dt, shipEntity)
     local dirX, dirY, dirZ = steerDx / steerDist, steerDy / steerDist, steerDz / steerDist
 
     -- Desired speed: deceleration curve
-    local maxDecel = cfg.thrustForward / rb:getMass()
+    local maxDecel = profile.thrustForward / rb:getMass()
     local brakingDist = math.max(0, dist - safeRange)
     local desiredApproachSpeed = math.min(
         math.sqrt(2.0 * maxDecel * brakingDist),
@@ -355,8 +355,8 @@ function AutoPilotSystem:update(dt, shipEntity)
         local pitchError = Math.Clamp((rt.x * crossX + rt.y * crossY + rt.z * crossZ) * 3, -1, 1)
 
         rb:applyTorque(rot:mulV(Vec3f(
-            pitchError * cfg.torquePitch * 0.3,
-            -yawError * cfg.torqueYaw * 0.3,
+            pitchError * profile.torquePitch * 0.3,
+            -yawError * profile.torqueYaw * 0.3,
             0
         )))
     end

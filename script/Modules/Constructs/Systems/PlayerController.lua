@@ -298,7 +298,7 @@ function PlayerController:writeAxes(dt, input)
         if math.abs(yaw)   < AIM_DEAD_ZONE_YAW   then yaw   = 0 end
         if math.abs(pitch) < AIM_DEAD_ZONE_PITCH then pitch = 0 end
 
-        local cfg = Config.game.shipFlight
+        local cfg = Config.game.playerFlight
         if cfg.invertYaw   then yaw   = -yaw end
         if cfg.invertPitch then pitch = -pitch end
     end

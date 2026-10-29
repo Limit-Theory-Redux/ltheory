@@ -1,11 +1,10 @@
-local Registry            = require("Core.ECS.Registry")
-local PhysicsComponents   = require("Modules.Physics.Components")
-local ConstructComponents = require("Modules.Constructs.Components")
+local Registry               = require("Core.ECS.Registry")
+local PhysicsComponents      = require("Modules.Physics.Components")
+local ConstructComponents    = require("Modules.Constructs.Components")
+local FlightProfileComponent = ConstructComponents.FlightProfile
 
 -- Flight-model gains, from the legacy thrust controller.
 local BOOST_GAIN        = 2.0 -- boost 1 triples forward thrust
-local LATERAL_GAIN      = 0.5 -- sideways thrust relative to the configured force
-local ROLL_GAIN         = 0.5 -- roll torque relative to the configured torque
 local DRIVE_STEER_GAIN  = 0.1 -- torque while the travel drive is active (no thrust)
 
 --- Ship flight system — direct port of Legacy ThrustController into ECS.
@@ -25,7 +24,7 @@ end
 ---@param input ControlInputComponent
 ---@param rb RigidBody
 local function actuate(shipEntity, input, rb)
-    local cfg = Config.game.shipFlight
+    local profile = FlightProfileComponent.ProfileOf(shipEntity)
 
     local drive = shipEntity:get(ConstructComponents.TravelDrive)
     local driveActive = drive ~= nil and drive:isActive()
@@ -43,22 +42,22 @@ local function actuate(shipEntity, input, rb)
         local boost   = Math.Clamp(input:getBoost(), 0, 1)
 
         if math.abs(forward) > 1e-6 then
-            rb:applyForce(rot:getForward():scale(forward * cfg.thrustForward * (1.0 + BOOST_GAIN * boost)))
+            rb:applyForce(rot:getForward():scale(forward * profile.thrustForward * (1.0 + BOOST_GAIN * boost)))
         end
         if math.abs(right) > 1e-6 then
-            rb:applyForce(rot:getRight():scale(right * cfg.thrustRight * LATERAL_GAIN))
+            rb:applyForce(rot:getRight():scale(right * profile.thrustRight))
         end
         if math.abs(up) > 1e-6 then
-            rb:applyForce(rot:getUp():scale(up * cfg.thrustUp))
+            rb:applyForce(rot:getUp():scale(up * profile.thrustUp))
         end
     end
 
     if math.max(math.abs(pitch), math.abs(yaw), math.abs(roll)) > 1e-6 then
         local gain = driveActive and DRIVE_STEER_GAIN or 1.0
         local localTorque = Vec3f(
-            pitch * cfg.torquePitch * gain,
-            -yaw  * cfg.torqueYaw * gain,
-            -roll * cfg.torqueRoll * ROLL_GAIN * gain
+            pitch * profile.torquePitch * gain,
+            -yaw  * profile.torqueYaw * gain,
+            -roll * profile.torqueRoll * gain
         )
         rb:applyTorque(rot:mulV(localTorque))
     end

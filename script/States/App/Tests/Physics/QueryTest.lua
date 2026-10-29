@@ -1,10 +1,11 @@
 -- Checks the physics queries through the Lua FFI: entity ids in the results and their
 -- lookup, the exclude and mask filters, positions far from the origin, sphere sweeps and
 -- radius queries. Logs each failed check and ends with a failure exit code.
-local Application         = require("States.Application")
-local Registry            = require("Core.ECS.Registry")
-local PhysicsComponents   = require("Modules.Physics.Components")
-local UniverseScaleConfig = require("Config.Gen.UniverseScaleConfig")
+local Application           = require("States.Application")
+local Registry              = require("Core.ECS.Registry")
+local PhysicsComponents     = require("Modules.Physics.Components")
+local UniverseScaleConfig   = require("Config.Gen.UniverseScaleConfig")
+local FlightProfileRegistry = require("Shared.Registries.FlightProfileRegistry")
 
 ---@class PhysicsQueryTest: Application
 local QueryTest           = Subclass("PhysicsQueryTest", Application)
@@ -55,7 +56,7 @@ function QueryTest:onInit()
     local b, rbB = self:spawnSphere(FAR + 2)
     local c, rbC = self:spawnSphere(FAR + 3)
     rbB:setCollisionGroup(GROUP_B)
-    rbA:setSoftCcdPrediction(tuning.softCcdDistance(Config.game.shipFlight.maxSpeedGame))
+    rbA:setSoftCcdPrediction(tuning.softCcdDistance(FlightProfileRegistry:get(Enums.FlightProfile.Solo).maxSpeed))
     self.world:update(STEP)
 
     self:checkIds(a, rbA)
