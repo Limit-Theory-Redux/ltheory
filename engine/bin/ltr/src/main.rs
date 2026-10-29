@@ -73,7 +73,7 @@ struct Cli {
 #[cfg_attr(windows, link(name = "phx.dll", kind = "dylib"))]
 #[allow(unsafe_code, improper_ctypes)]
 unsafe extern "C-unwind" {
-    fn Engine_Entry(settings: &'static EngineSettings);
+    fn Engine_Entry(settings: &'static EngineSettings) -> i32;
 }
 
 pub fn main() {
@@ -101,7 +101,6 @@ pub fn main() {
     }));
 
     #[allow(unsafe_code)]
-    unsafe {
-        Engine_Entry(settings)
-    };
+    let code = unsafe { Engine_Entry(settings) };
+    std::process::exit(code);
 }

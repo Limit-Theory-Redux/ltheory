@@ -2,6 +2,7 @@ local CoreComponents      = require("Modules.Core.Components")
 local PhysicsComponents   = require("Modules.Physics.Components")
 local SpatialComponents   = require("Modules.Spatial.Components")
 local CelestialComponents = require("Modules.CelestialObjects.Components")
+local EntityKind          = require("Shared.Helpers.EntityKind")
 
 --- Orbital simulation system — updates celestial body positions along their orbits
 --- and rotates planets/moons on their axes. Kinematic rigid bodies are moved via setPos().
@@ -80,8 +81,7 @@ function OrbitalSystem:_walkForOrbiters(entity, parentEntity, orbiters, follower
 
     -- If no orbit but has a parent, this entity follows its parent (e.g., ring on planet)
     if not orbitCmp and parentEntity then
-        local name = tostring(entity)
-        if name:find("AsteroidRingEntity") or name:find("AsteroidBeltEntity") then
+        if EntityKind.Is(entity, "AsteroidRingEntity") or EntityKind.Is(entity, "AsteroidBeltEntity") then
             table.insert(followers, {
                 entity       = entity,
                 parentEntity = parentEntity,

@@ -129,8 +129,8 @@ function RigidBody:getVelocity(result) end
 ---@param result Vec3f [out]
 function RigidBody:getVelocityA(result) end
 
--- When disabled, the object will pass through others without colliding
--- and will not be returned from ray or shape casts.
+-- When disabled, the object will pass through others without colliding.
+-- Physics queries still return it.
 ---@param collidable boolean
 function RigidBody:setCollidable(collidable) end
 
@@ -156,6 +156,20 @@ function RigidBody:setRestitution(restitution) end
 ---@param linear number
 ---@param angular number
 function RigidBody:setSleepThreshold(linear, angular) end
+
+-- How far ahead along its path, in game units, contacts are predicted (Rapier's soft
+-- CCD); 0 disables it. Larger distances enlarge the body's broad-phase box.
+---@param distance number
+function RigidBody:setSoftCcdPrediction(distance) end
+
+-- The id physics queries report for this body; 0 means none.
+---@return integer
+function RigidBody:getUserId() end
+
+-- Sets the id physics queries report for this body, such as the id of the entity
+-- that owns it; 0 means none.
+---@param id integer
+function RigidBody:setUserId(id) end
 
 ---@return number
 function RigidBody:getMass() end

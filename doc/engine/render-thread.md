@@ -105,7 +105,11 @@ driven by `Renderer::end_frame_triple_buffered()`, called from
 carry the not-yet-current GL context and surface across the thread boundary;
 `make_current`/`release_for_main_thread` mediate context ownership at
 startup/shutdown (macOS cannot cleanly release the context back to the main
-thread — see that file's `release_for_main_thread`).
+thread — see that file's `release_for_main_thread`). At the end of a run,
+`Engine::entry` stops the renderer explicitly (`Renderer::stop`: shutdown
+command, join, context returned) before the window is dropped; a renderer that
+is merely dropped leaves the thread detached, racing process exit inside the GL
+driver.
 
 Because the handoff is unconditional, anything that needs the context
 current - not just draws, but calls like `set_swap_interval` - has to go

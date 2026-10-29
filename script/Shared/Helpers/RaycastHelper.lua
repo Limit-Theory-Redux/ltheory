@@ -1,6 +1,7 @@
 ---Segment raycast wrapper over the physics world.
----Casts origin->target, skips ignored and NULL bodies by advancing past them
----(bounded by maxIgnoredHits), and returns a normalized hit record
+---Casts origin->target; the physics query itself skips `ignoreBody` (with its
+---compound), while `ignoredBodies` and `shouldIgnore` are skipped by advancing past
+---them (bounded by maxIgnoredHits). Returns a normalized hit record
 ---{position, normal, body, t, rayOrigin}. Used for line-of-sight and impact
 ---checks.
 local ffi = require("ffi")
@@ -61,9 +62,6 @@ local function readHitNormal(result)
 end
 
 local function isIgnoredBody(body, options)
-    if options.ignoreBody and body == options.ignoreBody then
-        return true
-    end
     if options.shouldIgnore and options.shouldIgnore(body) then
         return true
     end
@@ -142,7 +140,7 @@ function RaycastHelper:castSegment(world, origin, target, options)
         end
 
         setRay(ray, rayOrigin, target)
-        local hit = makeHit(world:rayCast(ray), rayOrigin)
+        local hit = makeHit(world:rayCastFiltered(ray, options.ignoreBody), rayOrigin)
         if not hit then
             return nil
         end

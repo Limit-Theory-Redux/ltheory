@@ -10,8 +10,10 @@ function Application:getDefaultSize()
     return Config.render.window.defaultResX, Config.render.window.defaultResY
 end
 
+-- Explicit window title, or nil to keep the engine's title.
+---@return string|nil
 function Application:getTitle()
-    return Config.gameTitle
+    return nil
 end
 
 function Application:getWindowMode()
@@ -24,8 +26,10 @@ function Application:onResize(sx, sy) end
 function Application:onUpdate(dt) end
 function Application:onExit() end
 
-function Application:quit()
-    Engine:exit()
+-- Ends the run after this frame; the process exits with `code`.
+---@param code integer|nil process exit code, `Core.ExitCode.Success` by default
+function Application:quit(code)
+    Engine:exitWithCode(code or Core.ExitCode.Success)
 end
 
 function Application:eventLoop()
@@ -49,7 +53,8 @@ function Application:appInit()
     self.eventsRegistered = false
     self.resX, self.resY = self:getDefaultSize()
 
-    Window:setTitle(self:getTitle())
+    local title = self:getTitle()
+    if title then Window:setTitle(title) end
     Window:setCenteredPosition()
     Window:setSize(self.resX, self.resY)
 

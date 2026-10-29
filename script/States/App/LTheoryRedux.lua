@@ -22,34 +22,37 @@ local ApplicationBindings = require('States.ApplicationBindings')
 -- ECS registry, physics/construct/celestial components, camera manager,
 -- render core, player controller, and the simulation systems the scene
 -- runs on.
-local Registry = require('Core.ECS.Registry')
-local CoreComponents = require('Modules.Core.Components')
-local PhysicsComponents = require('Modules.Physics.Components')
-local ConstructComponents = require('Modules.Constructs.Components')
-local CelestialComponents = require('Modules.CelestialObjects.Components')
-local CameraManager = require('Modules.Cameras.Managers.CameraManager')
-local CameraEntity = require('Modules.Cameras.Entities').Camera
-local RenderCoreSystem = require('Modules.Rendering.Systems.RenderCoreSystem')
-local PlayerController = require('Modules.Constructs.Systems.PlayerController')
-local AutoPilotSystem = require('Modules.Constructs.Systems.AutoPilotSystem')
-local GravityWellSystem = require('Modules.Physics.Systems.GravityWellSystem')
+local Registry                = require('Core.ECS.Registry')
+local CoreComponents          = require('Modules.Core.Components')
+local PhysicsComponents       = require('Modules.Physics.Components')
+local ConstructComponents     = require('Modules.Constructs.Components')
+local CelestialComponents     = require('Modules.CelestialObjects.Components')
+local CameraManager           = require('Modules.Cameras.Managers.CameraManager')
+local CameraEntity            = require('Modules.Cameras.Entities').Camera
+local RenderCoreSystem        = require('Modules.Rendering.Systems.RenderCoreSystem')
+local PlayerController        = require('Modules.Constructs.Systems.PlayerController')
+local AutoPilotSystem         = require('Modules.Constructs.Systems.AutoPilotSystem')
+local ShipFlightSystem        = require('Modules.Constructs.Systems.ShipFlightSystem')
+local TravelDriveSystem       = require('Modules.Constructs.Systems.TravelDriveSystem')
+local GravityWellSystem       = require('Modules.Physics.Systems.GravityWellSystem')
+local EntityKind              = require('Shared.Helpers.EntityKind')
 local CelestialLightingSystem = require('Modules.Rendering.Systems.CelestialLightingSystem')
-local LensFlareSystem = require('Modules.Rendering.Systems.LensFlareSystem')
-local GameplayHUDSystem = require('Modules.UI.Systems.GameplayHUDSystem')
-local WorldLabelRenderSystem = require('Modules.UI.Systems.WorldLabelRenderSystem')
-local AsteroidFieldSystem = require('Modules.CelestialObjects.Systems.AsteroidFieldSystem')
-local GeneralActions = require('Input.ActionBindings.GeneralActions')
-local CursorManager = require('Input.CursorManager')
-local Rulesets = require('Config.Gen.Rulesets')
-local UniverseManager = require('Modules.CelestialObjects.Managers.UniverseManager')
-local SolarSystemVisualizer = require('Modules.CelestialObjects.Managers.SolarSystemVisualizer')
-local CoordinateRebaser = require('Modules.CelestialObjects.Managers.CoordinateRebaser')
-local OrbitalSystem = require('Modules.CelestialObjects.Systems.OrbitalSystem')
-local SystemMap = require('Modules.CelestialObjects.Systems.SystemMap')
-local SystemMap3D = require('Modules.CelestialObjects.Systems.SystemMap3D')
-local MemoryReporter = require('Modules.Profiling.MemoryReporter')
-local ConstructManager = require('Modules.Constructs.Managers.ConstructManager')
-local StationGenerator = require('Modules.Constructs.Managers.Generators.StationGenerator')
+local LensFlareSystem         = require('Modules.Rendering.Systems.LensFlareSystem')
+local GameplayHUDSystem       = require('Modules.UI.Systems.GameplayHUDSystem')
+local WorldLabelRenderSystem  = require('Modules.UI.Systems.WorldLabelRenderSystem')
+local AsteroidFieldSystem     = require('Modules.CelestialObjects.Systems.AsteroidFieldSystem')
+local GeneralActions          = require('Input.ActionBindings.GeneralActions')
+local CursorManager           = require('Input.CursorManager')
+local Rulesets                = require('Config.Gen.Rulesets')
+local UniverseManager         = require('Modules.CelestialObjects.Managers.UniverseManager')
+local SolarSystemVisualizer   = require('Modules.CelestialObjects.Managers.SolarSystemVisualizer')
+local CoordinateRebaser       = require('Modules.CelestialObjects.Managers.CoordinateRebaser')
+local OrbitalSystem           = require('Modules.CelestialObjects.Systems.OrbitalSystem')
+local SystemMap               = require('Modules.CelestialObjects.Systems.SystemMap')
+local SystemMap3D             = require('Modules.CelestialObjects.Systems.SystemMap3D')
+local MemoryReporter          = require('Modules.Profiling.MemoryReporter')
+local ConstructManager        = require('Modules.Constructs.Managers.ConstructManager')
+local StationGenerator        = require('Modules.Constructs.Managers.Generators.StationGenerator')
 
 -- Legacy (still needed for skybox generation)
 local Generator = require('Legacy.Systems.Gen.Generator')
@@ -325,6 +328,8 @@ function LimitTheoryRedux:startGame(seed)
     self.seed = seed or rng:get64()
     self.rng = RNG.Create(self.seed)
     self.world = Physics.Create()
+    self.world:setLengthUnit(Config.game.physics.lengthUnit)
+    self.world:setContactNaturalFrequency(Config.game.physics.contactNaturalFrequency)
     self.constructManager = ConstructManager(Registry, self.world)
 
     self:createSkybox()
@@ -438,14 +443,14 @@ end
 function LimitTheoryRedux:collectEntities(entity)
     local name = tostring(entity)
 
-    if name:find("PlanetEntity") then
+    if EntityKind.Is(entity, "PlanetEntity") then
         table.insert(self.planets, entity)
         table.insert(self.labeledEntities, { entity = entity, label = name })
-    elseif name:find("MoonEntity") then
+    elseif EntityKind.Is(entity, "MoonEntity") then
         table.insert(self.labeledEntities, { entity = entity, label = name })
-    elseif name:find("StarEntity") then
+    elseif EntityKind.Is(entity, "StarEntity") then
         self.starEntity = entity
-    elseif name:find("AsteroidBeltEntity") then
+    elseif EntityKind.Is(entity, "AsteroidBeltEntity") then
         table.insert(self.beltEntities, entity)
     end
 
@@ -461,7 +466,6 @@ end
 --- thing the player sees is a rock up close, with the ring/planet nearby).
 function LimitTheoryRedux:spawnPlayerShip()
     local cfg = self.cfg
-    local flightCfg = Config.game.shipFlight
 
     local spawnPos = Position(0, 0, 0)
     if #self.planets > 0 then
@@ -515,8 +519,9 @@ function LimitTheoryRedux:spawnPlayerShip()
         shipType = Enums.ShipType.Fighter,
         config = {
             position = spawnPos,
-            scale = Config.game.shipHulls.scale[1],
+            scale = Config.game.shipHulls.scale[Enums.ShipHulls.Solo],
             isKinematic = false,
+            flightProfile = Enums.FlightProfile.Solo,
         },
     })
     self.playerShip = self.playerShipHandle.root
@@ -524,15 +529,8 @@ function LimitTheoryRedux:spawnPlayerShip()
     self.playerShip:add(ConstructComponents.TravelDrive())
     self.playerShip:add(ConstructComponents.AutoPilot())
     self.playerShip:add(ConstructComponents.ShipFlightControl())
-
-    local hullIdx = 1
-    local hullCfg = Config.game.shipHulls
-    local rbCmp = self.playerShip:get(PhysicsComponents.RigidBody)
-    local rb = rbCmp:getRigidBody()
-    rb:setMass(hullCfg.mass[hullIdx])
-    rb:setDrag(flightCfg.linearDrag, flightCfg.angularDrag)
-    rb:setFriction(0)
-    rb:setSleepThreshold(0, 0)
+    self.playerShip:add(ConstructComponents.ControlInput())
+    self.playerShip:add(PhysicsComponents.GravityWell())
 
     Log.Info("Player ship spawned at (%.1f, %.1f, %.1f)", spawnPos.x, spawnPos.y, spawnPos.z)
 end
@@ -762,13 +760,16 @@ function LimitTheoryRedux:onStateSim(data)
         OrbitalSystem:update(self.orbiters, dt, self.followers)
     end
     AsteroidFieldSystem:updatePositions()
-    GravityWellSystem:update(dt, self.playerShip)
+    GravityWellSystem:update()
     AsteroidFieldSystem:update(dt, self.beltEntities, self.world, self.playerShip)
     SystemMap3D:updateTrails(self.map3DState, dt)
 
     MemoryReporter:update(dt)
 
+    -- Control input is written, then actuated, then simulated.
     self.player:update(dt)
+    TravelDriveSystem:update(dt)
+    ShipFlightSystem:update()
     self.world:update(dt)
 end
 

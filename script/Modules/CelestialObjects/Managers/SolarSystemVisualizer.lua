@@ -5,6 +5,7 @@ local PhysicsComponents   = require("Modules.Physics.Components")
 local CelestialComponents = require("Modules.CelestialObjects.Components")
 local RenderComp          = require("Modules.Rendering.Components").Render
 local Materials           = require("Shared.Registries.Materials")
+local EntityKind          = require("Shared.Helpers.EntityKind")
 
 local Primitive           = require("Legacy.Systems.Gen.Primitive")
 local GenUtil             = require("Legacy.Systems.Gen.GenUtil")
@@ -28,8 +29,6 @@ end
 ---@param entity Entity
 ---@param physicsWorld Physics
 function SolarSystemVisualizer:_walkEntity(entity, physicsWorld)
-    local name = tostring(entity)
-
     -- Belt/ring entities that already carry a render fn (e.g. the rocks
     -- emitted by _materializeAsteroidRing) must not be re-materialized by
     -- the walk when it recurses into the ring's children - that would
@@ -40,15 +39,15 @@ function SolarSystemVisualizer:_walkEntity(entity, physicsWorld)
         goto recurse_children
     end
 
-    if name:find("StarEntity") then
+    if EntityKind.Is(entity, "StarEntity") then
         self:_materializeStar(entity, physicsWorld)
-    elseif name:find("PlanetEntity") then
+    elseif EntityKind.Is(entity, "PlanetEntity") then
         self:_materializePlanet(entity, physicsWorld)
-    elseif name:find("MoonEntity") then
+    elseif EntityKind.Is(entity, "MoonEntity") then
         self:_materializeMoon(entity, physicsWorld)
-    elseif name:find("AsteroidBeltEntity") then
+    elseif EntityKind.Is(entity, "AsteroidBeltEntity") then
         self:_materializeAsteroidBelt(entity, physicsWorld)
-    elseif name:find("AsteroidRingEntity") then
+    elseif EntityKind.Is(entity, "AsteroidRingEntity") then
         self:_materializeAsteroidRing(entity, physicsWorld)
     else
         -- Hide entities with empty RenderComponents (e.g. AsteroidRingEntity)

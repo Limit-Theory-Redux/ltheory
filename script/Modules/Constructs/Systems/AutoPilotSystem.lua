@@ -1,5 +1,6 @@
 local PhysicsComponents   = require("Modules.Physics.Components")
 local ConstructComponents = require("Modules.Constructs.Components")
+local GravityWellSystem   = require("Modules.Physics.Systems.GravityWellSystem")
 
 --- AutoPilot System — steers a ship toward a target entity or position.
 --- Operates on the AutoPilotComponent attached to ship entities.
@@ -60,12 +61,11 @@ function AutoPilotSystem:disengage(shipEntity)
     ap:setTargetPos(nil)
     ap:setElapsed(0)
 
-    -- Reset travel drive through component
-    local drive = shipEntity:get(ConstructComponents.TravelDrive)
-    if drive then
-        drive:setState("idle")
-        drive:setCurrentMult(1.0)
-        drive:setChargeTime(0)
+    -- Hand the travel drive back: stop it and lift the speed cap.
+    local input = shipEntity:get(ConstructComponents.ControlInput)
+    if input then
+        input:setDriveRequest(Enums.TravelDriveRequest.Disengage)
+        input:setDriveSpeedCap(nil)
     end
 end
 
@@ -194,9 +194,9 @@ function AutoPilotSystem:update(dt, shipEntity)
 
     -- Lead prediction: aim where target WILL BE when we arrive
     -- Skip leading when close (within 5000 units) or inside any gravity well — fly direct
-    local GravityWellSystem = require("Modules.Physics.Systems.GravityWellSystem")
     local closeApproach = quickDist < 5000
-    local inGravityWell = GravityWellSystem:getZoneType() ~= "openSpace"
+    local well = shipEntity:get(PhysicsComponents.GravityWell)
+    local inGravityWell = well ~= nil and well:getZoneType() ~= PhysicsComponents.GravityWell.OPEN_SPACE
     local inTargetZone = closeApproach or inGravityWell
 
     local interceptPos = targetPos
@@ -204,9 +204,9 @@ function AutoPilotSystem:update(dt, shipEntity)
     if tSpeed > 0.1 and not inTargetZone then
         -- Use expected cruise speed for ETA, not current speed
         -- Cruise = base flight speed × zone max drive multiplier
-        local maxDriveMult = GravityWellSystem:getMaxDriveSpeed()
-        local cfg = Config.game.shipFlight
-        local baseCruise = cfg.thrustForward / (rb:getMass() * cfg.linearDrag)
+        local maxDriveMult = GravityWellSystem:getMaxDriveSpeedAt(shipPos)
+        local profile = ConstructComponents.FlightProfile.ProfileOf(shipEntity)
+        local baseCruise = profile.thrustForward / (rb:getMass() * profile.linearDrag)
         local expectedSpeed = math.max(speed, baseCruise * maxDriveMult * 0.5)
 
         local tdx = targetPos.x - shipPos.x
@@ -285,7 +285,7 @@ function AutoPilotSystem:update(dt, shipEntity)
         return
     end
 
-    local cfg = Config.game.shipFlight
+    local profile = ConstructComponents.FlightProfile.ProfileOf(shipEntity)
     local vel = rb:getVelocity()
     local speed = rb:getSpeed()
     local rot = rb:getRot()
@@ -313,7 +313,7 @@ function AutoPilotSystem:update(dt, shipEntity)
     local dirX, dirY, dirZ = steerDx / steerDist, steerDy / steerDist, steerDz / steerDist
 
     -- Desired speed: deceleration curve
-    local maxDecel = cfg.thrustForward / rb:getMass()
+    local maxDecel = profile.thrustForward / rb:getMass()
     local brakingDist = math.max(0, dist - safeRange)
     local desiredApproachSpeed = math.min(
         math.sqrt(2.0 * maxDecel * brakingDist),
@@ -356,20 +356,20 @@ function AutoPilotSystem:update(dt, shipEntity)
         local pitchError = Math.Clamp((rt.x * crossX + rt.y * crossY + rt.z * crossZ) * 3, -1, 1)
 
         rb:applyTorque(rot:mulV(Vec3f(
-            pitchError * cfg.torquePitch * 0.3,
-            -yawError * cfg.torqueYaw * 0.3,
+            pitchError * profile.torquePitch * 0.3,
+            -yawError * profile.torqueYaw * 0.3,
             0
         )))
     end
 
     -- Smart travel drive: smooth speed curve based on distance
     local drive = shipEntity:get(ConstructComponents.TravelDrive)
-    if drive then
+    local input = shipEntity:get(ConstructComponents.ControlInput)
+    if drive and input then
         local autoPilotCfg = Config.game.autoPilot or {}
         local travelDriveDelay = autoPilotCfg.travelDriveDelay or 5.0
         local enableTravelDrive = autoPilotCfg.enableTravelDrive ~= false
-        local GravityWellSystem = require("Modules.Physics.Systems.GravityWellSystem")
-        local zoneMax = GravityWellSystem:getMaxDriveSpeed()
+        local zoneMax = GravityWellSystem:getMaxDriveSpeedAt(shipPos)
 
         -- Desired drive multiplier based on distance (smooth approach curve)
         -- Far: full zone speed. Close: ramp down to 1x for final approach.
@@ -390,17 +390,11 @@ function AutoPilotSystem:update(dt, shipEntity)
             desiredMult = 1.0 + (speedCap - 1.0) * t * t
         end
 
-        if drive:isActive() then
-            if dist < finalApproachDist then
-                -- Final approach: disengage
-                drive:setState("decelerating")
-            else
-                -- Clamp multiplier to desired (smooth decel)
-                local currentMult = drive:getCurrentMult()
-                if currentMult > desiredMult * 1.1 then
-                    drive:setCurrentMult(currentMult * 0.95)  -- 5% per frame reduction
-                end
-            end
+        -- The drive system ramps its multiplier toward this cap over time.
+        input:setDriveSpeedCap(desiredMult)
+        if drive:isActive() and dist < finalApproachDist then
+            -- Final approach: disengage
+            input:setDriveRequest(Enums.TravelDriveRequest.Disengage)
         end
 
         -- Engage drive when far enough and after delay
@@ -408,9 +402,8 @@ function AutoPilotSystem:update(dt, shipEntity)
         ap:setElapsed(elapsed)
 
         if enableTravelDrive and elapsed > travelDriveDelay and dist > driveEngageDist then
-            if not drive:isActive() and drive:getState() == "idle" then
-                drive:setState("charging")
-                drive:setChargeTime(0)
+            if drive:getState() == "idle" then
+                input:setDriveRequest(Enums.TravelDriveRequest.Engage)
             end
         end
     else

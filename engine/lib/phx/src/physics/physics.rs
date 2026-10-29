@@ -1,6 +1,8 @@
 use std::cell::RefCell;
+use std::thread::LocalKey;
 
 use glam::Mat4;
+use rapier3d_f64::parry::query::ShapeCastOptions;
 use rapier3d_f64::prelude as rp;
 use rapier3d_f64::prelude::nalgebra as na;
 
@@ -17,18 +19,91 @@ pub struct Collision {
     body1: *mut RigidBody,
 }
 
+// The layouts of these result structs are declared again in `script/libphx.lua`.
+
+/// The first body a ray hits; `body` is null and `id` is 0 when it hits nothing.
 #[repr(C)]
 pub struct RayCastResult {
     body: *mut RigidBody,
     norm: Vec3,
     pos: Position,
     t: f32,
+    /// The hit body's user id.
+    id: BodyUserId,
 }
 
+/// The bodies a shape overlaps, and their user ids in the same order.
 #[repr(C)]
 pub struct ShapeCastResult {
     hits: *const *mut RigidBody,
     hits_len: u32,
+    ids: *const BodyUserId,
+}
+
+/// The first body a swept sphere touches; `body` is null and `id` is 0 when it touches nothing.
+#[repr(C)]
+pub struct SphereSweepResult {
+    body: *mut RigidBody,
+    /// The hit body's user id.
+    id: BodyUserId,
+    /// The hit body's outward surface normal at the contact.
+    norm: Vec3,
+    /// The contact point, on the hit body's surface.
+    pos: Position,
+    /// Distance in game units that the sphere's centre travels before the contact.
+    t: f64,
+}
+
+/// The bodies within a radius, nearest first: their user ids and the distances in game
+/// units from the query centre to their surfaces (0 inside).
+#[repr(C)]
+pub struct RadiusQueryResult {
+    ids: *const BodyUserId,
+    distances: *const f64,
+    len: u32,
+}
+
+/// Storage of a shape cast's results, which Lua reads until the next cast that uses it.
+#[derive(Default)]
+struct ShapeHits {
+    bodies: Vec<*mut RigidBody>,
+    ids: Vec<BodyUserId>,
+}
+
+/// Storage of a radius query's results, which Lua reads until the next radius query.
+#[derive(Default)]
+struct RadiusHits {
+    ids: Vec<BodyUserId>,
+    distances: Vec<f64>,
+}
+
+fn ffi_len(len: usize) -> u32 {
+    u32::try_from(len).expect("query result count fits in u32")
+}
+
+type ColliderPredicate = dyn Fn(rp::ColliderHandle, &rp::Collider) -> bool;
+
+/// Accepts the colliders of bodies whose collision group shares a bit with `mask`. It tests
+/// the group set on the body rather than Rapier's groups, which are empty for a
+/// non-collidable body, so masked queries hit the same bodies as unmasked ones.
+fn in_mask(mask: CollisionMask) -> impl Fn(rp::ColliderHandle, &rp::Collider) -> bool {
+    move |_, collider| RigidBody::linked_collision_group(collider) & mask != 0
+}
+
+/// Rapier filter for queries with an excluded body and a collision mask: it skips every
+/// collider of the compound `exclude` belongs to, and applies `in_mask`.
+fn masked_filter<'a>(
+    exclude: Option<&RigidBody>,
+    in_mask: &'a ColliderPredicate,
+) -> rp::QueryFilter<'a> {
+    let filter = rp::QueryFilter {
+        predicate: Some(in_mask),
+        ..Default::default()
+    };
+    match exclude.and_then(RigidBody::get_rigid_body_handle) {
+        Some(handle) => filter.exclude_rigid_body(handle),
+        None => filter,
+    }
 }
 
 pub trait NalgebraVecInterop {
@@ -201,6 +276,24 @@ impl Physics {
         }
     }
 
+    /// Sets the typical object size in game units that Rapier scales its internal
+    /// tolerances by, such as the allowed overlap and the speed below which a body may
+    /// sleep. Rapier's default is 1. Panics unless positive.
+    pub fn set_length_unit(&mut self, length_unit: f64) {
+        assert!(length_unit > 0.0, "length unit must be positive");
+        self.integration_parameters.length_unit = length_unit;
+    }
+
+    /// Sets the natural frequency of contact constraints, in hertz: higher values push
+    /// overlapping bodies apart faster. Rapier's default is 30. Panics unless positive.
+    pub fn set_contact_natural_frequency(&mut self, frequency: f64) {
+        assert!(
+            frequency > 0.0,
+            "contact natural frequency must be positive"
+        );
+        self.integration_parameters.contact_natural_frequency = frequency;
+    }
+
     /// Adds this rigid body to this physics world if it doesn't exist, otherwise do nothing.
     ///
     /// Automatically adds all attached Triggers. Automatically adds all
@@ -299,104 +392,153 @@ impl Physics {
         false
     }
 
+    /// The first body the ray hits between `t_min` and `t_max`, including non-collidable ones.
     #[bind(out_param = true)]
     pub fn ray_cast(&self, ray: &Ray) -> RayCastResult {
-        let from = ray.get_point(ray.t_min).to_na_point();
-        let to = ray.get_point(ray.t_max).to_na_point();
-        let dir = to - from;
-        let length = dir.norm();
+        self.cast_ray(ray, rp::QueryFilter::default())
+    }
 
-        let ray = rp::Ray::new(from, dir / length);
-        let filter = rp::QueryFilter::default();
+    /// The first body the ray hits between `t_min` and `t_max`, skipping the compound
+    /// `exclude` belongs to, and hitting only bodies whose collision group shares a bit
+    /// with `mask`.
+    #[bind(out_param = true)]
+    pub fn ray_cast_filtered(
+        &self,
+        ray: &Ray,
+        exclude: Option<&RigidBody>,
+        mask: u32,
+    ) -> RayCastResult {
+        let in_mask = in_mask(mask);
+        self.cast_ray(ray, masked_filter(exclude, &in_mask))
+    }
 
-        let mut result = RayCastResult {
+    /// The bodies a sphere at `pos` overlaps, unsorted, including child bodies.
+    ///
+    /// The arrays in the result are valid until the next call to sphere_cast.
+    #[bind(out_param = true)]
+    pub fn sphere_cast(&self, pos: &Position, radius: f64) -> ShapeCastResult {
+        thread_local! { static STORAGE: RefCell<ShapeHits> = Default::default(); }
+        let hits = self.shape_cast(&rp::Ball::new(radius), pos, &Quat::identity());
+        store_shape_hits(&STORAGE, hits)
+    }
+
+    /// The bodies a box at `pos` overlaps, unsorted, including child bodies.
+    ///
+    /// The arrays in the result are valid until the next call to box_cast.
+    #[bind(out_param = true)]
+    pub fn box_cast(&self, pos: &Position, rot: &Quat, half_extents: &Vec3) -> ShapeCastResult {
+        thread_local! { static STORAGE: RefCell<ShapeHits> = Default::default(); }
+        let hits = self.shape_cast(&rp::Cuboid::new(half_extents.to_na()), pos, rot);
+        store_shape_hits(&STORAGE, hits)
+    }
+
+    pub fn sphere_overlap(&self, pos: &Position, radius: f64) -> bool {
+        self.shape_overlap(&rp::Ball::new(radius), pos, &Quat::identity())
+    }
+
+    pub fn box_overlap(&self, pos: &Position, rot: &Quat, half_extents: &Vec3) -> bool {
+        self.shape_overlap(&rp::Cuboid::new(half_extents.to_na()), pos, rot)
+    }
+
+    /// The first body a sphere of `radius` touches while its centre moves from `from` to
+    /// `to`, skipping the compound `exclude` belongs to, and hitting only bodies whose
+    /// collision group shares a bit with `mask`. A sphere that starts overlapping a body
+    /// hits it at distance 0.
+    #[bind(out_param = true)]
+    pub fn sphere_sweep(
+        &self,
+        from: &Position,
+        to: &Position,
+        radius: f64,
+        exclude: Option<&RigidBody>,
+        mask: u32,
+    ) -> SphereSweepResult {
+        let motion = to.to_na() - from.to_na();
+        let options = ShapeCastOptions {
+            max_time_of_impact: 1.0,
+            target_distance: 0.0,
+            stop_at_penetration: true,
+            compute_impact_geometry_on_penetration: true,
+        };
+        let in_mask = in_mask(mask);
+        let world = self.world.as_ref();
+        let hit = self.query_pipeline.cast_shape(
+            &world.rigid_bodies,
+            &world.colliders,
+            &isometry(from, &Quat::identity()),
+            &motion,
+            &rp::Ball::new(radius),
+            options,
+            masked_filter(exclude, &in_mask),
+        );
+        let mut result = SphereSweepResult {
             body: std::ptr::null_mut(),
+            id: 0,
             norm: Vec3::ZERO,
             pos: Position::ZERO,
             t: 0.0,
         };
-        let world = self.world.as_ref();
-        if let Some((handle, intersection)) = self.query_pipeline.cast_ray_and_get_normal(
-            &world.rigid_bodies,
-            &world.colliders,
-            &ray,
-            length,
-            true,
-            filter,
-        ) {
-            if let Some(collider) = world.colliders.get(handle) {
-                if let Some(parent_rb) = RigidBody::linked_with_collider_mut(collider) {
-                    result.body = parent_rb;
-                    result.pos =
-                        Position::from_na_point(&ray.point_at(intersection.time_of_impact));
-                    result.norm = Vec3::from_na(&intersection.normal);
-                    result.t = intersection.time_of_impact as f32;
-                }
+        if let Some((handle, hit)) = hit {
+            let collider = world.get(handle);
+            if let Some(body) = RigidBody::linked_with_collider_mut(collider) {
+                result.body = body;
+                result.id = RigidBody::linked_user_id(collider);
+                result.norm = Vec3::from_na(&hit.normal1);
+                result.pos = Position::from_na_point(&hit.witness1);
+                result.t = hit.time_of_impact * motion.norm();
             }
         }
         result
     }
 
-    /// Results are unsorted and will include child objects.
+    /// The bodies within `radius` of `pos`, nearest first, skipping the compound `exclude`
+    /// belongs to, and including only bodies whose collision group shares a bit with `mask`.
+    /// Child bodies are listed on their own; a body without a user id is listed with id 0.
     ///
-    /// The array stored inside ShapeCastResult is valid until the next call to sphere_cast.
+    /// The arrays in the result are valid until the next call to query_radius.
     #[bind(out_param = true)]
-    pub fn sphere_cast(&self, sphere: &Sphere) -> ShapeCastResult {
-        let result = self.shape_cast(
-            &rp::Ball {
-                radius: sphere.r as rp::Real,
+    pub fn query_radius(
+        &self,
+        pos: &Position,
+        radius: f64,
+        exclude: Option<&RigidBody>,
+        mask: u32,
+    ) -> RadiusQueryResult {
+        thread_local! { static STORAGE: RefCell<RadiusHits> = Default::default(); }
+
+        let center = pos.to_na_point();
+        let in_mask = in_mask(mask);
+        let world = self.world.as_ref();
+        let mut found: Vec<(BodyUserId, f64)> = vec![];
+        self.query_pipeline.intersections_with_shape(
+            &world.rigid_bodies,
+            &world.colliders,
+            &isometry(pos, &Quat::identity()),
+            &rp::Ball::new(radius),
+            masked_filter(exclude, &in_mask),
+            |handle| {
+                let collider = world.get(handle);
+                if RigidBody::linked_with_collider(collider).is_some() {
+                    let distance =
+                        collider
+                            .shape()
+                            .distance_to_point(collider.position(), &center, true);
+                    found.push((RigidBody::linked_user_id(collider), distance));
+                }
+                true
             },
-            sphere.p,
-            &Quat::identity(),
         );
+        found.sort_by(|a, b| a.1.total_cmp(&b.1));
 
-        thread_local! { static STORAGE: RefCell<Option<Box<[*mut RigidBody]>>> = Default::default(); }
-        STORAGE.replace(Some(result.into_boxed_slice()));
-        STORAGE.with_borrow(|s| ShapeCastResult {
-            hits: s.as_ref().unwrap().as_ptr(),
-            hits_len: s.as_ref().unwrap().len() as u32,
+        STORAGE.with_borrow_mut(|s| {
+            s.ids = found.iter().map(|&(id, _)| id).collect();
+            s.distances = found.iter().map(|&(_, distance)| distance).collect();
+            RadiusQueryResult {
+                ids: s.ids.as_ptr(),
+                distances: s.distances.as_ptr(),
+                len: ffi_len(s.ids.len()),
+            }
         })
-    }
-
-    /// Results are unsorted and will include child objects.
-    ///
-    /// The array stored inside ShapeCastResult is valid until the next call to box_cast.
-    #[bind(out_param = true)]
-    pub fn box_cast(&self, pos: &Vec3, rot: &Quat, half_extents: &Vec3) -> ShapeCastResult {
-        let result = self.shape_cast(
-            &rp::Cuboid {
-                half_extents: half_extents.to_na(),
-            },
-            *pos,
-            rot,
-        );
-
-        thread_local! { static STORAGE: RefCell<Option<Box<[*mut RigidBody]>>> = Default::default(); }
-        STORAGE.replace(Some(result.into_boxed_slice()));
-        STORAGE.with_borrow(|s| ShapeCastResult {
-            hits: s.as_ref().unwrap().as_ptr(),
-            hits_len: s.as_ref().unwrap().len() as u32,
-        })
-    }
-
-    pub fn sphere_overlap(&self, sphere: &Sphere) -> bool {
-        self.shape_overlap(
-            &rp::Ball {
-                radius: sphere.r as rp::Real,
-            },
-            sphere.p,
-            &Quat::identity(),
-        )
-    }
-
-    pub fn box_overlap(&self, pos: &Vec3, rot: &Quat, half_extents: &Vec3) -> bool {
-        self.shape_overlap(
-            &rp::Cuboid {
-                half_extents: half_extents.to_na(),
-            },
-            *pos,
-            rot,
-        )
     }
 
     pub fn draw_bounding_boxes_local(&self) {}
@@ -431,38 +573,91 @@ impl Physics {
     }
 }
 
-impl Physics {
-    /// Returns a list of all rigid bodies that are contained within the shape
-    /// at the given position and rotation.
-    fn shape_cast(&self, shape: &dyn rp::Shape, pos: Vec3, rot: &Quat) -> Vec<*mut RigidBody> {
-        let rp_transform =
-            rp::Isometry::from_parts(rp::Translation::from(pos.to_na()), rot.to_na());
-        let world = self.world.as_ref();
+fn isometry(pos: &Position, rot: &Quat) -> rp::Isometry<rp::Real> {
+    rp::Isometry::from_parts(rp::Translation::from(pos.to_na()), rot.to_na())
+}
 
-        // Trigger scene query and populate results.
-        let mut result: Vec<*mut RigidBody> = vec![];
+/// Moves a shape cast's results into `storage`, where the returned pointers stay valid
+/// until the next call with the same storage.
+fn store_shape_hits(
+    storage: &'static LocalKey<RefCell<ShapeHits>>,
+    hits: ShapeHits,
+) -> ShapeCastResult {
+    storage.with_borrow_mut(|s| {
+        *s = hits;
+        ShapeCastResult {
+            hits: s.bodies.as_ptr(),
+            hits_len: ffi_len(s.bodies.len()),
+            ids: s.ids.as_ptr(),
+        }
+    })
+}
+
+impl Physics {
+    fn cast_ray(&self, ray: &Ray, filter: rp::QueryFilter) -> RayCastResult {
+        let from = ray.get_point(ray.t_min).to_na_point();
+        let to = ray.get_point(ray.t_max).to_na_point();
+        let dir = to - from;
+        let length = dir.norm();
+
+        let ray = rp::Ray::new(from, dir / length);
+
+        let mut result = RayCastResult {
+            body: std::ptr::null_mut(),
+            norm: Vec3::ZERO,
+            pos: Position::ZERO,
+            t: 0.0,
+            id: 0,
+        };
+        let world = self.world.as_ref();
+        if let Some((handle, intersection)) = self.query_pipeline.cast_ray_and_get_normal(
+            &world.rigid_bodies,
+            &world.colliders,
+            &ray,
+            length,
+            true,
+            filter,
+        ) {
+            if let Some(collider) = world.colliders.get(handle) {
+                if let Some(parent_rb) = RigidBody::linked_with_collider_mut(collider) {
+                    result.body = parent_rb;
+                    result.id = RigidBody::linked_user_id(collider);
+                    result.pos =
+                        Position::from_na_point(&ray.point_at(intersection.time_of_impact));
+                    result.norm = Vec3::from_na(&intersection.normal);
+                    result.t = intersection.time_of_impact as f32;
+                }
+            }
+        }
+        result
+    }
+
+    /// All rigid bodies that overlap the shape at the given position and rotation.
+    fn shape_cast(&self, shape: &dyn rp::Shape, pos: &Position, rot: &Quat) -> ShapeHits {
+        let world = self.world.as_ref();
+        let mut hits = ShapeHits::default();
         self.query_pipeline.intersections_with_shape(
             &world.rigid_bodies,
             &world.colliders,
-            &rp_transform,
+            &isometry(pos, rot),
             shape,
             rp::QueryFilter::default(),
             |handle| {
-                if let Some(rigid_body) = RigidBody::linked_with_collider_mut(world.get(handle)) {
-                    result.push(rigid_body);
+                let collider = world.get(handle);
+                if let Some(rigid_body) = RigidBody::linked_with_collider_mut(collider) {
+                    hits.bodies.push(rigid_body);
+                    hits.ids.push(RigidBody::linked_user_id(collider));
                 }
                 true
             },
         );
-
-        result
+        hits
     }
 
     /// Returns true if any rigid bodies are contained within the shape at the
     /// given position and rotation.
-    fn shape_overlap(&self, shape: &dyn rp::Shape, pos: Vec3, rot: &Quat) -> bool {
-        let rp_transform =
-            rp::Isometry::from_parts(rp::Translation::from(pos.to_na()), rot.to_na());
+    fn shape_overlap(&self, shape: &dyn rp::Shape, pos: &Position, rot: &Quat) -> bool {
+        let rp_transform = isometry(pos, rot);
         let world = self.world.as_ref();
         self.query_pipeline
             .intersection_with_shape(
@@ -475,6 +670,13 @@ impl Physics {
             .is_some()
     }
 }
+
+#[cfg(test)]
+mod query_tests;
+#[cfg(test)]
+mod scale_tests;
+#[cfg(test)]
+mod test_fixture;
 
 struct RapierDebugRenderer<'a> {
     r: &'a mut Renderer,

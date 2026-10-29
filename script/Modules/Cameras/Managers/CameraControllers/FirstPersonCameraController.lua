@@ -78,7 +78,7 @@ end
 
 ---@param dt number
 function FirstPersonCameraController:onInput(dt)
-    -- No mouse input here — ship rotation is handled by ShipFlightSystem.
+    -- No mouse input here — the ship turns through its control input.
     -- This controller purely follows the ship's rigid body transform.
 end
 
