@@ -1,5 +1,6 @@
 local CoreComponents    = require("Modules.Core.Components")
 local PhysicsComponents = require("Modules.Physics.Components")
+local EntityKind        = require("Shared.Helpers.EntityKind")
 
 --- CoordinateRebaser — rebases entity hierarchies from absolute coordinates
 --- to local coordinates near the origin. Critical for physics precision at
@@ -17,8 +18,7 @@ function CoordinateRebaser:rebaseStarSystem(universeEntity)
     if not universeChildren then return origin end
 
     for child in universeChildren:iterChildren() do
-        local name = tostring(child)
-        if name:find("StarSystemEntity") then
+        if EntityKind.Is(child, "StarSystemEntity") then
             local transform = child:get(PhysicsComponents.Transform)
             origin = transform:getPos()
 

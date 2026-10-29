@@ -22,6 +22,7 @@ local AutoPilotSystem         = require("Modules.Constructs.Systems.AutoPilotSys
 local ShipFlightSystem        = require("Modules.Constructs.Systems.ShipFlightSystem")
 local TravelDriveSystem       = require("Modules.Constructs.Systems.TravelDriveSystem")
 local GravityWellSystem       = require("Modules.Physics.Systems.GravityWellSystem")
+local EntityKind              = require("Shared.Helpers.EntityKind")
 
 -- Extracted systems
 local CelestialLightingSystem = require("Modules.Rendering.Systems.CelestialLightingSystem")
@@ -196,28 +197,26 @@ function SolarSystemPlayable:generateSolarSystem()
 end
 
 function SolarSystemPlayable:_collectEntities(entity, parentPos)
-    local name = tostring(entity)
-
-    if name:find("PlanetEntity") then
+    if EntityKind.Is(entity, "PlanetEntity") then
         table.insert(self.planets, entity)
     end
 
     -- Collect all named celestial objects for labels
     local label = nil
     local isMoon = false
-    if name:find("StarEntity") then
+    if EntityKind.Is(entity, "StarEntity") then
         label = "Star"
         self.starEntity = entity
-    elseif name:find("PlanetEntity") then
+    elseif EntityKind.Is(entity, "PlanetEntity") then
         label = "Planet " .. #self.planets
-    elseif name:find("MoonEntity") then
+    elseif EntityKind.Is(entity, "MoonEntity") then
         label = "Moon"; isMoon = true
-    elseif name:find("SpaceStationEntity") then
+    elseif EntityKind.Is(entity, "SpaceStationEntity") then
         label = "Station"
-    elseif name:find("AsteroidBeltEntity") then
+    elseif EntityKind.Is(entity, "AsteroidBeltEntity") then
         label = "Asteroid Belt"
         table.insert(self.beltEntities, entity)
-    elseif name:find("AsteroidRingEntity") then
+    elseif EntityKind.Is(entity, "AsteroidRingEntity") then
         label = "Asteroid Ring"
         table.insert(self.beltEntities, entity)  -- reuse belt entity list for spawning
     end

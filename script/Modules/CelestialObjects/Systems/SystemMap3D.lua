@@ -3,6 +3,7 @@ local PhysicsComponents   = require("Modules.Physics.Components")
 local SpatialComponents   = require("Modules.Spatial.Components")
 local UniverseScaleConfig = require("Config.Gen.UniverseScaleConfig")
 local DrawEx              = require("UI.DrawEx")
+local EntityKind          = require("Shared.Helpers.EntityKind")
 local Primitive           = require("Legacy.Systems.Gen.Primitive")
 local CameraEntity        = require("Modules.Cameras.Entities").Camera
 local CameraManager       = require("Modules.Cameras.Managers.CameraManager")
@@ -90,7 +91,6 @@ function SystemMap3D:collectEntities(state, rootEntity, shipEntity)
 end
 
 function SystemMap3D:_walk(state, entity, parentPos)
-    local name = tostring(entity)
     local transform = entity:get(PhysicsComponents.Transform)
     if not transform then
         local cc = entity:get(CoreComponents.Children)
@@ -101,20 +101,20 @@ function SystemMap3D:_walk(state, entity, parentPos)
     local pos = transform:getPos()
     local label, color, isMoon, trailWidth = nil, nil, false, 1.0
 
-    if name:find("StarEntity") then
+    if EntityKind.Is(entity, "StarEntity") then
         label = "Star"; color = Color(1.0, 0.9, 0.3, 0.5); trailWidth = 3.0
-    elseif name:find("PlanetEntity") then
+    elseif EntityKind.Is(entity, "PlanetEntity") then
         state._planetIdx = state._planetIdx + 1
         label = "Planet " .. state._planetIdx; color = Color(0.3, 0.6, 1.0, 0.5); trailWidth = 2.0
-    elseif name:find("MoonEntity") then
+    elseif EntityKind.Is(entity, "MoonEntity") then
         label = "Moon"; color = Color(0.5, 0.5, 0.6, 0.4); isMoon = true; trailWidth = 0.5
-    elseif name:find("SpaceStationEntity") then
+    elseif EntityKind.Is(entity, "SpaceStationEntity") then
         label = "Station"; color = Color(1.0, 0.5, 0.1, 0.4); trailWidth = 0.3
-    elseif name:find("AsteroidBeltEntity") then
+    elseif EntityKind.Is(entity, "AsteroidBeltEntity") then
         label = "Asteroid Belt"; color = Color(0.7, 0.5, 0.3, 0.3); trailWidth = 0
-    elseif name:find("AsteroidRingEntity") then
+    elseif EntityKind.Is(entity, "AsteroidRingEntity") then
         label = "Asteroid Ring"; color = Color(0.6, 0.5, 0.4, 0.3); trailWidth = 0
-    elseif name:find("AsteroidEntity") then
+    elseif EntityKind.Is(entity, "AsteroidEntity") then
         -- Spawned asteroid (AsteroidFieldSystem attaches these to the belt
         -- entity). Markers only matter up close; the per-entity scale is
         -- small so they cluster into a dot at system zoom.

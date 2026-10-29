@@ -53,6 +53,8 @@ end
 
 As you can see, first the Entity module is imported, followed by the relevant component modules. `Entity.Create` constructs an entity with the specified components.
 
+The name an entity is created with is its kind: `MoonEntity` is a moon, and `Core.Type` only holds the variety within a kind (`Rocky`, `Icy`), whose values can repeat between kinds. To test the kind, call `EntityKind.Is(entity, "MoonEntity")` from `Shared.Helpers.EntityKind`. It compares the name exactly and is false for a destroyed entity, so it never confuses `AsteroidEntity` with `AsteroidBeltEntity` the way a substring search on `tostring(entity)` does.
+
 ### Components
 
 Components are plain data structures that define the properties or state of an entity. They are small and focused on a single responsibility. By attaching different combinations of components to entities, you can represent diverse behaviors and characteristics.

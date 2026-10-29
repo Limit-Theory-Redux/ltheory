@@ -35,6 +35,7 @@ local AutoPilotSystem         = require('Modules.Constructs.Systems.AutoPilotSys
 local ShipFlightSystem        = require('Modules.Constructs.Systems.ShipFlightSystem')
 local TravelDriveSystem       = require('Modules.Constructs.Systems.TravelDriveSystem')
 local GravityWellSystem       = require('Modules.Physics.Systems.GravityWellSystem')
+local EntityKind              = require('Shared.Helpers.EntityKind')
 local CelestialLightingSystem = require('Modules.Rendering.Systems.CelestialLightingSystem')
 local LensFlareSystem         = require('Modules.Rendering.Systems.LensFlareSystem')
 local GameplayHUDSystem       = require('Modules.UI.Systems.GameplayHUDSystem')
@@ -442,14 +443,14 @@ end
 function LimitTheoryRedux:collectEntities(entity)
     local name = tostring(entity)
 
-    if name:find("PlanetEntity") then
+    if EntityKind.Is(entity, "PlanetEntity") then
         table.insert(self.planets, entity)
         table.insert(self.labeledEntities, { entity = entity, label = name })
-    elseif name:find("MoonEntity") then
+    elseif EntityKind.Is(entity, "MoonEntity") then
         table.insert(self.labeledEntities, { entity = entity, label = name })
-    elseif name:find("StarEntity") then
+    elseif EntityKind.Is(entity, "StarEntity") then
         self.starEntity = entity
-    elseif name:find("AsteroidBeltEntity") then
+    elseif EntityKind.Is(entity, "AsteroidBeltEntity") then
         table.insert(self.beltEntities, entity)
     end
 

@@ -4,6 +4,7 @@ local SpatialComponents     = require("Modules.Spatial.Components")
 local CelestialComponents   = require("Modules.CelestialObjects.Components")
 local UniverseScaleConfig   = require("Config.Gen.UniverseScaleConfig")
 local DrawEx                = require("UI.DrawEx")
+local EntityKind            = require("Shared.Helpers.EntityKind")
 
 local function formatDistance(gameUnits)
     return UniverseScaleConfig:formatDistance(gameUnits)
@@ -116,7 +117,6 @@ end
 ---@param parentPos Position|nil
 ---@param parentPos Position|nil
 function SystemMap:_walk(state, entity, parentPos, parentEntity)
-    local name = tostring(entity)
     local transform = entity:get(PhysicsComponents.Transform)
 
     if transform then
@@ -124,35 +124,35 @@ function SystemMap:_walk(state, entity, parentPos, parentEntity)
         local scale = transform:getScale()
         local label, color, pointSize, isMoon, isBelt = nil, nil, nil, false, false
 
-        if name:find("StarEntity") then
+        if EntityKind.Is(entity, "StarEntity") then
             label = "Star"
             color = { 1.0, 0.9, 0.3 }
             pointSize = 8
-        elseif name:find("PlanetEntity") then
+        elseif EntityKind.Is(entity, "PlanetEntity") then
             state._planetIdx = state._planetIdx + 1
             label = "Planet " .. state._planetIdx
             color = { 0.3, 0.6, 1.0 }
             pointSize = 5
-        elseif name:find("MoonEntity") then
+        elseif EntityKind.Is(entity, "MoonEntity") then
             label = "Moon"
             color = { 0.6, 0.6, 0.6 }
             pointSize = 3
             isMoon = true
-        elseif name:find("SpaceStationEntity") then
+        elseif EntityKind.Is(entity, "SpaceStationEntity") then
             label = "Station"
             color = { 1.0, 0.5, 0.1 }
             pointSize = 4
-        elseif name:find("AsteroidBeltEntity") then
+        elseif EntityKind.Is(entity, "AsteroidBeltEntity") then
             label = "Asteroid Belt"
             color = { 0.7, 0.5, 0.3 }
             pointSize = 3
             isBelt = true
-        elseif name:find("AsteroidRingEntity") then
+        elseif EntityKind.Is(entity, "AsteroidRingEntity") then
             label = "Asteroid Ring"
             color = { 0.6, 0.5, 0.4 }
             pointSize = 3
             isBelt = true  -- reuse belt rendering logic (annulus + dots)
-        elseif name:find("AsteroidEntity") then
+        elseif EntityKind.Is(entity, "AsteroidEntity") then
             label = "Asteroid"
             color = { 0.7, 0.5, 0.3 }
             pointSize = 2

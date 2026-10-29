@@ -1,6 +1,7 @@
 local CoreComponents    = require("Modules.Core.Components")
 local PhysicsComponents = require("Modules.Physics.Components")
 local SpatialComponents = require("Modules.Spatial.Components")
+local EntityKind        = require("Shared.Helpers.EntityKind")
 
 --- Gravity Well System — detects which zone the ship is in,
 --- applies velocity matching so the ship drifts with orbiting bodies,
@@ -26,16 +27,14 @@ end
 ---@param parentEntity Entity|nil
 ---@param parentName string|nil
 function GravityWellSystem:_walkForZones(entity, parentEntity, parentName)
-    local name = tostring(entity)
-
-    -- Detect zone type from entity name
+    -- Detect zone type from the entity kind
     local zoneType = nil
     local bodyName = nil
-    if name:find("StarEntity") then
+    if EntityKind.Is(entity, "StarEntity") then
         zoneType = "star"; bodyName = "Star"
-    elseif name:find("PlanetEntity") then
-        zoneType = "planet"; bodyName = name:match("^(.-)%(") or "Planet"
-    elseif name:find("MoonEntity") then
+    elseif EntityKind.Is(entity, "PlanetEntity") then
+        zoneType = "planet"; bodyName = tostring(entity):match("^(.-)%(") or "Planet"
+    elseif EntityKind.Is(entity, "MoonEntity") then
         zoneType = "moon"; bodyName = "Moon"
     end
 
@@ -46,13 +45,12 @@ function GravityWellSystem:_walkForZones(entity, parentEntity, parentName)
         local outermostMoonOrbit = 0
 
         for child in childrenCmp:iterChildren() do
-            local childName = tostring(child)
-            if childName:find("ZoneEntity") then
+            if EntityKind.Is(child, "ZoneEntity") then
                 local shapeCmp = child:get(SpatialComponents.Shape)
                 if shapeCmp then
                     zoneRadius = shapeCmp:getRadius()
                 end
-            elseif childName:find("MoonEntity") then
+            elseif EntityKind.Is(child, "MoonEntity") then
                 -- Track outermost moon orbit
                 local orbitCmp = child:get(SpatialComponents.Orbit)
                 if orbitCmp then
