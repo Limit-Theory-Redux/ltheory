@@ -4,4 +4,5 @@
 1. [Entity Component System](ecs.md)
 1. [Modules](modules.md)
 1. [Ship flight control](flight.md)
+1. [Zones and gravity wells](zones.md)
 1. [HmGui](../../script/UI/HmGui/README.md)

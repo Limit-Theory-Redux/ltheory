@@ -10,6 +10,7 @@
    - [Lua Workers](script/workers.md)
    - [Entity Component System](script/ecs.md)
    - [Ship flight control](script/flight.md)
+   - [Zones and gravity wells](script/zones.md)
    - [HmGui](../script/UI/HmGui/README.md)
 1. [Full structure](LTheory%20Full%20Restructure.md)
 1. [Control keys](GameControlKeys.txt)

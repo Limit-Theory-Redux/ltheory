@@ -33,11 +33,12 @@ local function consumeRequest(drive, input)
     end
 end
 
---- The drive multiplier to approach while active: the zone cap, lowered by the ship's cap.
+--- The drive multiplier to approach while active: the zone cap at the ship's position, lowered by the ship's cap.
 ---@param input ControlInputComponent|nil
+---@param rb RigidBody
 ---@return number
-local function targetMult(input)
-    local target = GravityWellSystem:getMaxDriveSpeed()
+local function targetMult(input, rb)
+    local target = GravityWellSystem:getMaxDriveSpeedAt(rb:getPos())
     local cap = input and input:getDriveSpeedCap()
     if cap then
         target = math.min(target, math.max(1.0, cap))
@@ -76,7 +77,7 @@ local function updateDrive(dt, drive, input, rb, profile)
     elseif state == "active" then
         drive:setActiveTime(drive:getActiveTime() + dt)
 
-        local target = targetMult(input)
+        local target = targetMult(input, rb)
         if currentMult > target then
             -- Exponential approach, exact for any step length.
             currentMult = math.max(target, Math.EMA(currentMult, target, dt, 1.0 / cfg.rampDownSpeed))

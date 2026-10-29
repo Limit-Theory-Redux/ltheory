@@ -1,5 +1,6 @@
 local PhysicsComponents   = require("Modules.Physics.Components")
 local ConstructComponents = require("Modules.Constructs.Components")
+local GravityWellSystem   = require("Modules.Physics.Systems.GravityWellSystem")
 
 --- AutoPilot System — steers a ship toward a target entity or position.
 --- Operates on the AutoPilotComponent attached to ship entities.
@@ -193,9 +194,9 @@ function AutoPilotSystem:update(dt, shipEntity)
 
     -- Lead prediction: aim where target WILL BE when we arrive
     -- Skip leading when close (within 5000 units) or inside any gravity well — fly direct
-    local GravityWellSystem = require("Modules.Physics.Systems.GravityWellSystem")
     local closeApproach = quickDist < 5000
-    local inGravityWell = GravityWellSystem:getZoneType() ~= "openSpace"
+    local well = shipEntity:get(PhysicsComponents.GravityWell)
+    local inGravityWell = well ~= nil and well:getZoneType() ~= PhysicsComponents.GravityWell.OPEN_SPACE
     local inTargetZone = closeApproach or inGravityWell
 
     local interceptPos = targetPos
@@ -203,7 +204,7 @@ function AutoPilotSystem:update(dt, shipEntity)
     if tSpeed > 0.1 and not inTargetZone then
         -- Use expected cruise speed for ETA, not current speed
         -- Cruise = base flight speed × zone max drive multiplier
-        local maxDriveMult = GravityWellSystem:getMaxDriveSpeed()
+        local maxDriveMult = GravityWellSystem:getMaxDriveSpeedAt(shipPos)
         local profile = ConstructComponents.FlightProfile.ProfileOf(shipEntity)
         local baseCruise = profile.thrustForward / (rb:getMass() * profile.linearDrag)
         local expectedSpeed = math.max(speed, baseCruise * maxDriveMult * 0.5)
@@ -368,8 +369,7 @@ function AutoPilotSystem:update(dt, shipEntity)
         local autoPilotCfg = Config.game.autoPilot or {}
         local travelDriveDelay = autoPilotCfg.travelDriveDelay or 5.0
         local enableTravelDrive = autoPilotCfg.enableTravelDrive ~= false
-        local GravityWellSystem = require("Modules.Physics.Systems.GravityWellSystem")
-        local zoneMax = GravityWellSystem:getMaxDriveSpeed()
+        local zoneMax = GravityWellSystem:getMaxDriveSpeedAt(shipPos)
 
         -- Desired drive multiplier based on distance (smooth approach curve)
         -- Far: full zone speed. Close: ramp down to 1x for final approach.

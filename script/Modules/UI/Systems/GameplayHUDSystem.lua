@@ -40,8 +40,10 @@ function GameplayHUDSystem:draw(shipEntity, modeName, piloting)
         end
     end
 
-    local zoneName = GravityWellSystem:getZoneName()
-    local maxDriveSpeed = GravityWellSystem:getMaxDriveSpeed()
+    local well = shipEntity:get(PhysicsComponents.GravityWell)
+    local zoneName = well and well:getZoneName() or "Open Space"
+    local rbCmp = shipEntity:get(PhysicsComponents.RigidBody)
+    local maxDriveSpeed = GravityWellSystem:getMaxDriveSpeedAt(rbCmp:getRigidBody():getPos())
 
     local apActive = AutoPilotSystem:isActive(shipEntity)
     local apName   = AutoPilotSystem:getTargetName(shipEntity)

@@ -530,6 +530,7 @@ function LimitTheoryRedux:spawnPlayerShip()
     self.playerShip:add(ConstructComponents.AutoPilot())
     self.playerShip:add(ConstructComponents.ShipFlightControl())
     self.playerShip:add(ConstructComponents.ControlInput())
+    self.playerShip:add(PhysicsComponents.GravityWell())
 
     Log.Info("Player ship spawned at (%.1f, %.1f, %.1f)", spawnPos.x, spawnPos.y, spawnPos.z)
 end
@@ -759,7 +760,7 @@ function LimitTheoryRedux:onStateSim(data)
         OrbitalSystem:update(self.orbiters, dt, self.followers)
     end
     AsteroidFieldSystem:updatePositions()
-    GravityWellSystem:update(dt, self.playerShip)
+    GravityWellSystem:update()
     AsteroidFieldSystem:update(dt, self.beltEntities, self.world, self.playerShip)
     SystemMap3D:updateTrails(self.map3DState, dt)
 
