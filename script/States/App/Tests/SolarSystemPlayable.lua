@@ -19,6 +19,8 @@ local CameraManager           = require("Modules.Cameras.Managers.CameraManager"
 local RenderCoreSystem        = require("Modules.Rendering.Systems.RenderCoreSystem")
 local PlayerController        = require("Modules.Constructs.Systems.PlayerController")
 local AutoPilotSystem         = require("Modules.Constructs.Systems.AutoPilotSystem")
+local ShipFlightSystem        = require("Modules.Constructs.Systems.ShipFlightSystem")
+local TravelDriveSystem       = require("Modules.Constructs.Systems.TravelDriveSystem")
 local GravityWellSystem       = require("Modules.Physics.Systems.GravityWellSystem")
 
 -- Extracted systems
@@ -277,6 +279,7 @@ function SolarSystemPlayable:spawnPlayerShip()
     self.playerShip:add(ConstructComponents.TravelDrive())
     self.playerShip:add(ConstructComponents.AutoPilot())
     self.playerShip:add(ConstructComponents.ShipFlightControl())
+    self.playerShip:add(ConstructComponents.ControlInput())
 
     -- Apply hull-class physics (Solo = index 1)
     local hullIdx = 1
@@ -506,7 +509,10 @@ function SolarSystemPlayable:onStateSim(data)
     AsteroidFieldSystem:update(dt, self.beltEntities, self.world, self.playerShip)  -- rate-limited: spawn/despawn
     SystemMap3D:updateTrails(self.map3DState, dt)
 
+    -- Control input is written, then actuated, then simulated.
     self.player:update(dt)
+    TravelDriveSystem:update(dt)
+    ShipFlightSystem:update()
     self.world:update(dt)
 end
 

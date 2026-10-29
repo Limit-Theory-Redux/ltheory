@@ -60,12 +60,11 @@ function AutoPilotSystem:disengage(shipEntity)
     ap:setTargetPos(nil)
     ap:setElapsed(0)
 
-    -- Reset travel drive through component
-    local drive = shipEntity:get(ConstructComponents.TravelDrive)
-    if drive then
-        drive:setState("idle")
-        drive:setCurrentMult(1.0)
-        drive:setChargeTime(0)
+    -- Hand the travel drive back: stop it and lift the speed cap.
+    local input = shipEntity:get(ConstructComponents.ControlInput)
+    if input then
+        input:setDriveRequest(Enums.TravelDriveRequest.Disengage)
+        input:setDriveSpeedCap(nil)
     end
 end
 
@@ -364,7 +363,8 @@ function AutoPilotSystem:update(dt, shipEntity)
 
     -- Smart travel drive: smooth speed curve based on distance
     local drive = shipEntity:get(ConstructComponents.TravelDrive)
-    if drive then
+    local input = shipEntity:get(ConstructComponents.ControlInput)
+    if drive and input then
         local autoPilotCfg = Config.game.autoPilot or {}
         local travelDriveDelay = autoPilotCfg.travelDriveDelay or 5.0
         local enableTravelDrive = autoPilotCfg.enableTravelDrive ~= false
@@ -390,17 +390,11 @@ function AutoPilotSystem:update(dt, shipEntity)
             desiredMult = 1.0 + (speedCap - 1.0) * t * t
         end
 
-        if drive:isActive() then
-            if dist < finalApproachDist then
-                -- Final approach: disengage
-                drive:setState("decelerating")
-            else
-                -- Clamp multiplier to desired (smooth decel)
-                local currentMult = drive:getCurrentMult()
-                if currentMult > desiredMult * 1.1 then
-                    drive:setCurrentMult(currentMult * 0.95)  -- 5% per frame reduction
-                end
-            end
+        -- The drive system ramps its multiplier toward this cap over time.
+        input:setDriveSpeedCap(desiredMult)
+        if drive:isActive() and dist < finalApproachDist then
+            -- Final approach: disengage
+            input:setDriveRequest(Enums.TravelDriveRequest.Disengage)
         end
 
         -- Engage drive when far enough and after delay
@@ -408,9 +402,8 @@ function AutoPilotSystem:update(dt, shipEntity)
         ap:setElapsed(elapsed)
 
         if enableTravelDrive and elapsed > travelDriveDelay and dist > driveEngageDist then
-            if not drive:isActive() and drive:getState() == "idle" then
-                drive:setState("charging")
-                drive:setChargeTime(0)
+            if drive:getState() == "idle" then
+                input:setDriveRequest(Enums.TravelDriveRequest.Engage)
             end
         end
     else
