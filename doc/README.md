@@ -5,6 +5,7 @@
    - [HmGui](../engine/lib/phx/src/ui/hmgui/README.md)
    - [LuaJIT FFI](../engine/lib/luajit-ffi-gen/README.md)
    - [Engine Workers](../engine/lib/phx/src/engine/task_queue/README.md)
+   - [Physics](engine/physics.md)
 1. [Scripting](script/README.md)
    - [Lua Workers](script/workers.md)
    -. [Entity Component System](script/ecs.md)

@@ -87,6 +87,8 @@ function SolarSystemPlayable:buildScene(seed)
     self.timer = DeltaTimer("SolarSystemPlayable")
 
     self.world = Physics.Create()
+    self.world:setLengthUnit(Config.game.physics.lengthUnit)
+    self.world:setContactNaturalFrequency(Config.game.physics.contactNaturalFrequency)
 
     self:createSkybox()
     self:generateSolarSystem()
@@ -285,6 +287,7 @@ function SolarSystemPlayable:spawnPlayerShip()
     rb:setDrag(flightCfg.linearDrag, flightCfg.angularDrag)
     rb:setFriction(0)
     rb:setSleepThreshold(0, 0)
+    rb:setSoftCcdPrediction(Config.game.physics.softCcdDistance(flightCfg.maxSpeedGame))
     self.world:addRigidBody(rb)
 
     Log.Info("Player ship spawned at (%.1f, %.1f, %.1f)",

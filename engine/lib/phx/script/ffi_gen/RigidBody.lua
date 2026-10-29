@@ -51,6 +51,9 @@ function Loader.defineType()
             void             RigidBody_SetKinematic                      (RigidBody*, bool kinematic);
             void             RigidBody_SetRestitution                    (RigidBody*, float restitution);
             void             RigidBody_SetSleepThreshold                 (RigidBody*, float linear, float angular);
+            void             RigidBody_SetSoftCcdPrediction              (RigidBody*, double distance);
+            uint64           RigidBody_GetUserId                         (RigidBody const*);
+            void             RigidBody_SetUserId                         (RigidBody*, uint64 id);
             float            RigidBody_GetMass                           (RigidBody const*);
             void             RigidBody_SetMass                           (RigidBody*, float mass);
             void             RigidBody_GetPos                            (RigidBody const*, Position* out);
@@ -140,6 +143,9 @@ function Loader.defineType()
                 setKinematic                = libphx.RigidBody_SetKinematic,
                 setRestitution              = libphx.RigidBody_SetRestitution,
                 setSleepThreshold           = libphx.RigidBody_SetSleepThreshold,
+                setSoftCcdPrediction        = libphx.RigidBody_SetSoftCcdPrediction,
+                getUserId                   = libphx.RigidBody_GetUserId,
+                setUserId                   = libphx.RigidBody_SetUserId,
                 getMass                     = libphx.RigidBody_GetMass,
                 setMass                     = libphx.RigidBody_SetMass,
                 getPos                      = libphx.RigidBody_GetPos,

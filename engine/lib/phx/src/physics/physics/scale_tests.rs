@@ -6,15 +6,12 @@
 //! sub-frame phases, because whether a fast body is caught depends on where
 //! the frame boundaries fall.
 
-use rapier3d_f64::parry::query::ShapeCastOptions;
-
+use super::test_fixture::{SHIP_MASS, STEP, sphere_body};
 use super::*;
 
-const STEP: f32 = 1.0 / 60.0;
 const PHASES: usize = 8;
 const MAX_STEPS: usize = 12;
 const RAM_STEPS: usize = 90;
-const SHIP_MASS: f32 = 5000.0;
 const SHIP_DRAG: f32 = 2.0;
 
 const SOLO_RADIUS: f64 = 0.003;
@@ -127,20 +124,11 @@ struct Outcome {
     stop_gap: f64,
 }
 
-fn sphere_body(radius: f64, kinematic: bool) -> Box<RigidBody> {
-    let mut body = RigidBody::new_sphere();
-    body.set_scale(radius as f32);
-    body.set_mass(SHIP_MASS);
-    body.set_kinematic(kinematic);
-    body
-}
-
 fn new_physics(setup: Setup) -> Physics {
     let mut physics = Physics::new();
-    let parameters = &mut physics.integration_parameters;
-    parameters.length_unit = setup.length_unit;
-    parameters.contact_natural_frequency = setup.tuning.contact_frequency;
-    parameters.num_solver_iterations = setup
+    physics.set_length_unit(setup.length_unit);
+    physics.set_contact_natural_frequency(setup.tuning.contact_frequency);
+    physics.integration_parameters.num_solver_iterations = setup
         .tuning
         .solver_iterations
         .try_into()
@@ -468,22 +456,16 @@ fn swept_sphere_time_of_impact_is_exact_at_system_distances() {
     let cast_radius = f64::from(LARGE_RADIUS as f32);
     for distance in SYSTEM_DISTANCES {
         let (physics, _target) = world_with_target_at(distance);
-        let world = physics.world.as_ref();
-        let hit = physics
-            .query_pipeline
-            .cast_shape(
-                &world.rigid_bodies,
-                &world.colliders,
-                &rp::Isometry::translation(distance - CAST_RANGE, 0.0, 0.0),
-                &na::Vector3::new(1.0, 0.0, 0.0),
-                &rp::Ball::new(cast_radius),
-                ShapeCastOptions::with_max_time_of_impact(2.0 * CAST_RANGE),
-                rp::QueryFilter::default(),
-            )
-            .expect("the cast reaches the target")
-            .1;
+        let hit = physics.sphere_sweep(
+            &Position::new(distance - CAST_RANGE, 0.0, 0.0),
+            &Position::new(distance + CAST_RANGE, 0.0, 0.0),
+            cast_radius,
+            None,
+            CollisionMask::MAX,
+        );
+        assert!(!hit.body.is_null(), "no hit at {distance}");
         let expected = CAST_RANGE - target_radius - cast_radius;
-        let error = (hit.time_of_impact - expected).abs();
+        let error = (hit.t - expected).abs();
         assert!(
             error <= CAST_TOLERANCE * target_radius,
             "error {error} at {distance}"

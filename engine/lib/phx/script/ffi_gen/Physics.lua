@@ -17,29 +17,34 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            void     Physics_Free                   (Physics*);
-            Physics* Physics_Create                 ();
-            void     Physics_AddRigidBody           (Physics*, RigidBody* rigidBody);
-            void     Physics_RemoveRigidBody        (Physics*, RigidBody* rigidBody);
-            void     Physics_AddTrigger             (Physics*, Trigger* trigger);
-            void     Physics_RemoveTrigger          (Physics*, Trigger* trigger);
-            void     Physics_Update                 (Physics*, float dt);
-            bool     Physics_GetNextCollision       (Physics const*, Collision* iterator);
-            void     Physics_RayCast                (Physics const*, Ray const* ray, RayCastResult* out);
-            void     Physics_SphereCast             (Physics const*, Sphere const* sphere, ShapeCastResult* out);
-            void     Physics_BoxCast                (Physics const*, Vec3f const* pos, Quat const* rot, Vec3f const* halfExtents, ShapeCastResult* out);
-            bool     Physics_SphereOverlap          (Physics const*, Sphere const* sphere);
-            bool     Physics_BoxOverlap             (Physics const*, Vec3f const* pos, Quat const* rot, Vec3f const* halfExtents);
-            void     Physics_DrawBoundingBoxesLocal (Physics const*);
-            void     Physics_DrawBoundingBoxesWorld (Physics const*);
-            void     Physics_DrawWireframes         (Physics*, Renderer* r, Shader* shader, Position const* eye);
-            void     Physics_DrawWireframesInRange  (Physics*, Renderer* r, Shader* shader, Position const* eye, double maxRange);
+            void     Physics_Free                       (Physics*);
+            Physics* Physics_Create                     ();
+            void     Physics_SetLengthUnit              (Physics*, double lengthUnit);
+            void     Physics_SetContactNaturalFrequency (Physics*, double frequency);
+            void     Physics_AddRigidBody               (Physics*, RigidBody* rigidBody);
+            void     Physics_RemoveRigidBody            (Physics*, RigidBody* rigidBody);
+            void     Physics_AddTrigger                 (Physics*, Trigger* trigger);
+            void     Physics_RemoveTrigger              (Physics*, Trigger* trigger);
+            void     Physics_Update                     (Physics*, float dt);
+            bool     Physics_GetNextCollision           (Physics const*, Collision* iterator);
+            void     Physics_RayCast                    (Physics const*, Ray const* ray, RayCastResult* out);
+            void     Physics_RayCastFiltered            (Physics const*, Ray const* ray, RigidBody const* exclude, uint32 mask, RayCastResult* out);
+            void     Physics_SphereCast                 (Physics const*, Position const* pos, double radius, ShapeCastResult* out);
+            void     Physics_BoxCast                    (Physics const*, Position const* pos, Quat const* rot, Vec3f const* halfExtents, ShapeCastResult* out);
+            bool     Physics_SphereOverlap              (Physics const*, Position const* pos, double radius);
+            bool     Physics_BoxOverlap                 (Physics const*, Position const* pos, Quat const* rot, Vec3f const* halfExtents);
+            void     Physics_SphereSweep                (Physics const*, Position const* from, Position const* to, double radius, RigidBody const* exclude, uint32 mask, SphereSweepResult* out);
+            void     Physics_QueryRadius                (Physics const*, Position const* pos, double radius, RigidBody const* exclude, uint32 mask, RadiusQueryResult* out);
+            void     Physics_DrawBoundingBoxesLocal     (Physics const*);
+            void     Physics_DrawBoundingBoxesWorld     (Physics const*);
+            void     Physics_DrawWireframes             (Physics*, Renderer* r, Shader* shader, Position const* eye);
+            void     Physics_DrawWireframesInRange      (Physics*, Renderer* r, Shader* shader, Position const* eye, double maxRange);
         ]]
     end
 
     do -- Global Symbol Table
         Physics = {
-            Create                 = function()
+            Create                     = function()
                 local _instance = libphx.Physics_Create()
                 return Core.ManagedObject(_instance, libphx.Physics_Free)
             end,
@@ -53,21 +58,26 @@ function Loader.defineType()
         local t  = ffi.typeof('Physics')
         local mt = {
             __index = {
-                addRigidBody           = libphx.Physics_AddRigidBody,
-                removeRigidBody        = libphx.Physics_RemoveRigidBody,
-                addTrigger             = libphx.Physics_AddTrigger,
-                removeTrigger          = libphx.Physics_RemoveTrigger,
-                update                 = libphx.Physics_Update,
-                getNextCollision       = libphx.Physics_GetNextCollision,
-                rayCast                = libphx.Physics_RayCast,
-                sphereCast             = libphx.Physics_SphereCast,
-                boxCast                = libphx.Physics_BoxCast,
-                sphereOverlap          = libphx.Physics_SphereOverlap,
-                boxOverlap             = libphx.Physics_BoxOverlap,
-                drawBoundingBoxesLocal = libphx.Physics_DrawBoundingBoxesLocal,
-                drawBoundingBoxesWorld = libphx.Physics_DrawBoundingBoxesWorld,
-                drawWireframes         = libphx.Physics_DrawWireframes,
-                drawWireframesInRange  = libphx.Physics_DrawWireframesInRange,
+                setLengthUnit              = libphx.Physics_SetLengthUnit,
+                setContactNaturalFrequency = libphx.Physics_SetContactNaturalFrequency,
+                addRigidBody               = libphx.Physics_AddRigidBody,
+                removeRigidBody            = libphx.Physics_RemoveRigidBody,
+                addTrigger                 = libphx.Physics_AddTrigger,
+                removeTrigger              = libphx.Physics_RemoveTrigger,
+                update                     = libphx.Physics_Update,
+                getNextCollision           = libphx.Physics_GetNextCollision,
+                rayCast                    = libphx.Physics_RayCast,
+                rayCastFiltered            = libphx.Physics_RayCastFiltered,
+                sphereCast                 = libphx.Physics_SphereCast,
+                boxCast                    = libphx.Physics_BoxCast,
+                sphereOverlap              = libphx.Physics_SphereOverlap,
+                boxOverlap                 = libphx.Physics_BoxOverlap,
+                sphereSweep                = libphx.Physics_SphereSweep,
+                queryRadius                = libphx.Physics_QueryRadius,
+                drawBoundingBoxesLocal     = libphx.Physics_DrawBoundingBoxesLocal,
+                drawBoundingBoxesWorld     = libphx.Physics_DrawBoundingBoxesWorld,
+                drawWireframes             = libphx.Physics_DrawWireframes,
+                drawWireframesInRange      = libphx.Physics_DrawWireframesInRange,
             },
         }
 

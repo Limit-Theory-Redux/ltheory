@@ -26,6 +26,8 @@ See [modules documentation](modules.md).
 
 An entity is a unique identifier that acts as a container for components. It does not have any data or behavior on its own. Think of entities as empty shells that become meaningful when associated with components.
 
+An entity's id is a Lua number, unique for the run. `Registry:getEntityById(id)` finds the entity for an id, including the `uint64` ids that physics queries report. Ids are numbers rather than `uint64` cdata because LuaJIT tables key cdata by object, not by value: an equal id coming back from the engine would never find its entry.
+
 In LTR entity definition files operate a little bit (but not quite) like blueprints which you might know from other game engines.
 
 Entity definitions are created as functions that return an Entity instance with the appropriate components.

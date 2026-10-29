@@ -26,8 +26,8 @@ pub type CollisionMask = u32;
  *
  * The following API functions only have an effect once the child is removed
  * from its parent: set_collidable, set_collision_group, set_collision_mask,
- * set_drag, set_friction, set_kinematic, set_restitution, and
- * set_sleep_threshold.
+ * set_drag, set_friction, set_kinematic, set_restitution,
+ * set_sleep_threshold, and set_soft_ccd_prediction.
  *
  * The following API functions return information only about the current part
  * when the object is part of a compound: get_bounding_box_local,
@@ -71,6 +71,9 @@ pub struct RigidBody {
 
     collidable: bool,
     collision_group: rp::InteractionGroups,
+
+    /// Set by the owner and reported by physics queries; 0 means none.
+    user_id: u64,
 }
 
 impl RigidBody {
@@ -95,6 +98,7 @@ impl RigidBody {
             mass: 1.0,
             collidable: true,
             collision_group: rp::InteractionGroups::default(),
+            user_id: 0,
         });
 
         // The collider stores a reference to the handle for this rigid body
@@ -219,7 +223,6 @@ impl RigidBody {
     ///
     /// The rest of the physics module guarantees that as long as a given
     /// collider exists, it's corresponding linked RigidBody exists as well.
-    #[allow(dead_code)]
     pub(crate) fn linked_with_collider(collider: &rp::Collider) -> Option<*const RigidBody> {
         if collider.user_data != 0 {
             Some(collider.user_data as *const RigidBody)
@@ -238,6 +241,25 @@ impl RigidBody {
         } else {
             None
         }
+    }
+
+    /// Reads the RigidBody linked to a Rapier Collider; None for an unlinked collider (a Trigger).
+    fn read_linked<T>(collider: &rp::Collider, read: impl FnOnce(&RigidBody) -> T) -> Option<T> {
+        // Sound: a linked collider's RigidBody outlives it (see linked_with_collider), and the
+        // shared reference doesn't escape `read`.
+        Self::linked_with_collider(collider).map(|rb| read(unsafe { &*rb }))
+    }
+
+    /// The user id of the RigidBody linked to a Rapier Collider; 0 for an unlinked collider
+    /// or a body without an id.
+    pub(crate) fn linked_user_id(collider: &rp::Collider) -> u64 {
+        Self::read_linked(collider, |rb| rb.user_id).unwrap_or(0)
+    }
+
+    /// The collision group set on the RigidBody linked to a Rapier Collider, whether or
+    /// not it is collidable; no group for an unlinked collider.
+    pub(crate) fn linked_collision_group(collider: &rp::Collider) -> CollisionGroup {
+        Self::read_linked(collider, |rb| rb.collision_group.memberships.bits()).unwrap_or(0)
     }
 
     /// Is this rigid body a child of another?
@@ -650,8 +672,8 @@ impl RigidBody {
         Vec3::from_na(self.rigid_body.as_ref().angvel())
     }
 
-    /// When disabled, the object will pass through others without colliding
-    /// and will not be returned from ray or shape casts.
+    /// When disabled, the object will pass through others without colliding.
+    /// Physics queries still return it.
     pub fn set_collidable(&mut self, collidable: bool) {
         self.collidable = collidable;
         let collision_group = if self.collidable {
@@ -711,6 +733,23 @@ impl RigidBody {
         let mut rb = self.rigid_body.as_mut();
         rb.activation_mut().normalized_linear_threshold = linear as rp::Real;
         rb.activation_mut().angular_threshold = angular as rp::Real;
+    }
+
+    /// How far ahead along its path, in game units, contacts are predicted (Rapier's soft
+    /// CCD); 0 disables it. Larger distances enlarge the body's broad-phase box.
+    pub fn set_soft_ccd_prediction(&mut self, distance: f64) {
+        self.rigid_body.as_mut().set_soft_ccd_prediction(distance);
+    }
+
+    /// The id physics queries report for this body; 0 means none.
+    pub fn get_user_id(&self) -> u64 {
+        self.user_id
+    }
+
+    /// Sets the id physics queries report for this body, such as the id of the entity
+    /// that owns it; 0 means none.
+    pub fn set_user_id(&mut self, id: u64) {
+        self.user_id = id;
     }
 
     pub fn get_mass(&self) -> f32 {
@@ -854,10 +893,6 @@ impl RigidBody {
 
     pub(crate) fn enable_ccd(&mut self) {
         self.rigid_body.as_mut().enable_ccd(true);
-    }
-
-    pub(crate) fn set_soft_ccd_prediction(&mut self, distance: rp::Real) {
-        self.rigid_body.as_mut().set_soft_ccd_prediction(distance);
     }
 }
 

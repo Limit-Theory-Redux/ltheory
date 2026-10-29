@@ -105,6 +105,26 @@ Config.game = {
         }
     end)(),
 
+    -- Physics tuning for ship-scale contacts, set by apps with ship flight.
+    physics = (function()
+        local ScaleConfig = require("Config.Gen.UniverseScaleConfig")
+
+        -- m: the physics engine scales its tolerances by this; about a ship's size
+        local lengthUnitReal = 100
+        -- s: a ship's soft-CCD distance covers this much travel at its speed cap
+        local ccdFrameTime = 1 / 60
+
+        return {
+            lengthUnit              = ScaleConfig:toGameUnits(lengthUnitReal, "starSystem"),
+            contactNaturalFrequency = 1920, -- Hz
+
+            ---Soft-CCD prediction distance for a body whose speed is capped at `speedCap`.
+            ---@param speedCap number gameunits/s
+            ---@return number gameunits
+            softCcdDistance = function(speedCap) return speedCap * ccdFrameTime end,
+        }
+    end)(),
+
     -- Ship hull classes (from legacy, indexed by Enums.ShipHulls)
     -- Solo=1, Small=2, Compact=3, Medium=4, Large=5, VeryLarge=6
     shipHulls = {

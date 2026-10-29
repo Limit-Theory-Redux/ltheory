@@ -325,6 +325,8 @@ function LimitTheoryRedux:startGame(seed)
     self.seed = seed or rng:get64()
     self.rng = RNG.Create(self.seed)
     self.world = Physics.Create()
+    self.world:setLengthUnit(Config.game.physics.lengthUnit)
+    self.world:setContactNaturalFrequency(Config.game.physics.contactNaturalFrequency)
     self.constructManager = ConstructManager(Registry, self.world)
 
     self:createSkybox()
@@ -533,6 +535,7 @@ function LimitTheoryRedux:spawnPlayerShip()
     rb:setDrag(flightCfg.linearDrag, flightCfg.angularDrag)
     rb:setFriction(0)
     rb:setSleepThreshold(0, 0)
+    rb:setSoftCcdPrediction(Config.game.physics.softCcdDistance(flightCfg.maxSpeedGame))
 
     Log.Info("Player ship spawned at (%.1f, %.1f, %.1f)", spawnPos.x, spawnPos.y, spawnPos.z)
 end

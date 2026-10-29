@@ -93,10 +93,27 @@ function Registry:clear()
     Log.Info("Initialized Registry")
 end
 
+-- Largest integer a Lua number holds exactly.
+local MAX_EXACT_ID = 2 ^ 53
+
 ---@return Entity A new unique entity
 function Registry:createEntity()
-    local id = Guid.Create()
+    -- Ids are Lua numbers, not the uint64 cdata `Guid.Create` returns: tables key cdata by
+    -- object, so an equal id coming back from the engine would never find its entity.
+    local id = tonumber(Guid.Create())
+    assert(id < MAX_EXACT_ID, "entity id is too large to be exact as a Lua number")
     self.entities[id] = {}
+    return Entity(id)
+end
+
+---Finds an entity by its id, as a number or as the uint64 an engine query returns.
+---@param id EntityId|ffi.cdata*
+---@return Entity|nil A new handle to the entity, or nil if no entity has this id
+function Registry:getEntityById(id)
+    id = tonumber(id)
+    if self.entities[id] == nil then
+        return nil
+    end
     return Entity(id)
 end
 
