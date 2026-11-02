@@ -6,4 +6,5 @@
 1. [Ship flight control](flight.md)
 1. [Zones and gravity wells](zones.md)
 1. [Orbits](orbits.md)
+1. [Navigation sandbox](navigation-sandbox.md)
 1. [HmGui](../../script/UI/HmGui/README.md)
