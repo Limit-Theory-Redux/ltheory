@@ -312,7 +312,7 @@ function PlayerController:writeAxes(dt, input)
     input:setPitch(pitch)
 end
 
---- Update the player controller (call each frame from onSim, before the actuation systems)
+--- Update the player controller: writes the ship's control input (call each frame at PreSim, before the actuation systems)
 ---@param dt number Delta time
 function PlayerController:update(dt)
     for _, binding in pairs(ShipActions) do

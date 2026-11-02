@@ -129,8 +129,6 @@ function SolarSystemPlayable:buildScene(seed)
             mouseSensitivity = free.mouseSensitivity,
         },
     })
-
-    EventBus:subscribe(Event.Sim, self, self.onStateSim)
 end
 
 function SolarSystemPlayable:createSkybox()
@@ -480,18 +478,27 @@ function SolarSystemPlayable:onInput(data)
 
 end
 
+--- PreSim: bookkeeping, then the writers of the ships' control input.
 ---@param data EventData
-function SolarSystemPlayable:onStateSim(data)
+function SolarSystemPlayable:onPreSim(data)
+    local dt = data:deltaTime()
+
+    AsteroidFieldSystem:update(dt, self.beltEntities, self.world, self.playerShip)  -- rate-limited: spawn/despawn
+    SystemMap3D:updateTrails(self.map3DState, dt)
+
+    self.player:update(dt)
+end
+
+--- Sim: this handler owns the order, since the bus has none inside a stage. Bodies move, then
+--- ships are actuated from their control input, then physics steps.
+---@param data EventData
+function SolarSystemPlayable:onSim(data)
     local dt = data:deltaTime()
 
     OrbitalSystem:update(self.orbiters, dt, self.followers)  -- moves planets + rings
     AsteroidFieldSystem:updatePositions()                     -- every frame: spawned asteroids follow parent
     GravityWellSystem:update()
-    AsteroidFieldSystem:update(dt, self.beltEntities, self.world, self.playerShip)  -- rate-limited: spawn/despawn
-    SystemMap3D:updateTrails(self.map3DState, dt)
 
-    -- Control input is written, then actuated, then simulated.
-    self.player:update(dt)
     TravelDriveSystem:update(dt)
     ShipFlightSystem:update()
     self.world:update(dt)

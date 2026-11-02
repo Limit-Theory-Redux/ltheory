@@ -265,11 +265,6 @@ end
 function LimitTheoryRedux:returnToMainMenu()
     self:closePauseMenu()
 
-    if self._simTunnel then
-        EventBus:unsubscribe(self._simTunnel)
-        self._simTunnel = nil
-    end
-
     -- Same teardown as regenerate: bodies leave the world first.
     if self.universe then
         Registry:destroyEntity(self.universe, Enums.Registry.EntityDestroyMode.DestroyChildren)
@@ -320,7 +315,7 @@ function LimitTheoryRedux:startGame(seed)
     self:cleanupMenuBackground()
 
     self.cfg = SceneConfig
-    -- Static scene: bodies stay at generated positions (see onStateSim)
+    -- Static scene: bodies stay at generated positions (see onSim)
     self.staticStarSystem = true
     -- Random universe each game: a nil seed means "surprise me", never a
     -- fixed default (the same universe on every New Game would be stale).
@@ -365,8 +360,6 @@ function LimitTheoryRedux:startGame(seed)
             mouseSensitivity = free.mouseSensitivity,
         },
     })
-
-    self._simTunnel = EventBus:subscribe(Event.Sim, self, self.onStateSim)
 
     -- Close the menu; in-game UI (HUD, labels) is drawn by the state's
     -- onRender through the rendering systems, not the HmGui pages.
@@ -754,8 +747,23 @@ function LimitTheoryRedux:onInput(data)
     end
 end
 
+--- PreSim: bookkeeping, then the writers of the ships' control input.
 ---@param data EventData
-function LimitTheoryRedux:onStateSim(data)
+function LimitTheoryRedux:onPreSim(data)
+    if not self.playerShip then return end
+    local dt = data:deltaTime()
+
+    AsteroidFieldSystem:update(dt, self.beltEntities, self.world, self.playerShip)
+    SystemMap3D:updateTrails(self.map3DState, dt)
+    MemoryReporter:update(dt)
+
+    self.player:update(dt)
+end
+
+--- Sim: this handler owns the order, since the bus has none inside a stage. Bodies move, then
+--- ships are actuated from their control input, then physics steps.
+---@param data EventData
+function LimitTheoryRedux:onSim(data)
     if not self.playerShip then return end
     local dt = data:deltaTime()
 
@@ -767,13 +775,7 @@ function LimitTheoryRedux:onStateSim(data)
     end
     AsteroidFieldSystem:updatePositions()
     GravityWellSystem:update()
-    AsteroidFieldSystem:update(dt, self.beltEntities, self.world, self.playerShip)
-    SystemMap3D:updateTrails(self.map3DState, dt)
 
-    MemoryReporter:update(dt)
-
-    -- Control input is written, then actuated, then simulated.
-    self.player:update(dt)
     TravelDriveSystem:update(dt)
     ShipFlightSystem:update()
     self.world:update(dt)
