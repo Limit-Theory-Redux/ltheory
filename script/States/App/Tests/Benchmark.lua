@@ -22,9 +22,8 @@ local AsteroidFieldSystem = require("Modules.CelestialObjects.Systems.AsteroidFi
 local AsteroidBeltRenderer = require("Modules.CelestialObjects.Systems.AsteroidBeltRenderer")
 local AsteroidMeshPool    = require("Modules.CelestialObjects.Systems.AsteroidMeshPool")
 local CelestialComponents = require("Modules.CelestialObjects.Components")
-local CoreComponents      = require("Modules.Core.Components")
+local CelestialEntities   = require("Modules.CelestialObjects.Entities")
 local RenderComp          = require("Modules.Rendering.Components").Render
-local Entity              = require("Core.ECS.Entity")
 local Registry            = require("Core.ECS.Registry")
 local UniverseScaleConfig = require("Config.Gen.UniverseScaleConfig")
 
@@ -147,8 +146,7 @@ function Benchmark:onInit()
     -- the planet ring band (same radii, same tilt against the planet axis)
     -- so asteroids visually belong to the ring.
     self.beltEntities = {}
-    local beltEntity = Entity.Create("AsteroidBeltEntity", CoreComponents.Seed(12345),
-        CelestialComponents.AsteroidBelt())
+    local beltEntity = CelestialEntities.AsteroidBelt(12345)
     local beltTransform = beltEntity:get(PhysicsComponents.Transform)
     if beltTransform then beltTransform:setPos(Position(0, 0, 0)) end
     local lodMesh = AsteroidMeshPool:getFromSeed(12345)

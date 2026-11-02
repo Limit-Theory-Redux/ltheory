@@ -1,11 +1,12 @@
 -- Checks that each entity constructor adds its kind marker, and that a registry view of a marker
 -- lists exactly the entities of that kind in creation order, without confusing a belt with an
 -- asteroid. Logs each failed check and ends with a failure exit code.
-local Application = require("States.Application")
-local Registry    = require("Core.ECS.Registry")
-local Celestial   = require("Modules.CelestialObjects.Components")
-local Constructs  = require("Modules.Constructs.Components")
-local Spatial     = require("Modules.Spatial.Components")
+local Application       = require("States.Application")
+local Registry          = require("Core.ECS.Registry")
+local Celestial         = require("Modules.CelestialObjects.Components")
+local Constructs        = require("Modules.Constructs.Components")
+local Economy           = require("Modules.Economy.Components")
+local Spatial           = require("Modules.Spatial.Components")
 local CelestialEntities = require("Modules.CelestialObjects.Entities")
 local ConstructEntities = require("Modules.Constructs.Entities")
 local SpatialEntities   = require("Modules.Spatial.Entities")
@@ -68,6 +69,15 @@ function KindMarkersTest:onInit()
     -- A belt is not an asteroid, and the reverse: the case the name-substring checks got wrong.
     self:check(constructors[5][3]:get(Celestial.Asteroid) == nil, "a belt has no asteroid marker")
     self:check(constructors[7][3]:get(Celestial.AsteroidBelt) == nil, "an asteroid has no belt marker")
+
+    -- An asteroid yields an item only when it is given one.
+    local bare = CelestialEntities.Asteroid(seed)
+    self:check(bare:get(Celestial.Asteroid) ~= nil, "an asteroid without an item has its marker")
+    self:check(bare:get(Economy.Item) == nil and bare:get(Economy.Quantity) == nil,
+        "an asteroid without an item has no item or quantity")
+    local yielding = constructors[7][3]
+    self:check(yielding:get(Economy.Item):getItem() == 1 and yielding:get(Economy.Quantity) ~= nil,
+        "an asteroid with an item has its item and quantity")
 
     -- A view lists entities in creation order.
     local first = CelestialEntities.Moon(seed, {})

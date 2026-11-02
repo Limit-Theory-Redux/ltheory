@@ -1,8 +1,8 @@
 local Registry            = require("Core.ECS.Registry")
-local Entity              = require("Core.ECS.Entity")
 local CoreComponents      = require("Modules.Core.Components")
 local PhysicsComponents   = require("Modules.Physics.Components")
 local CelestialComponents = require("Modules.CelestialObjects.Components")
+local CelestialEntities   = require("Modules.CelestialObjects.Entities")
 local RenderComp          = require("Modules.Rendering.Components").Render
 local Materials           = require("Shared.Registries.Materials")
 
@@ -410,8 +410,7 @@ function SolarSystemVisualizer:_materializeAsteroidRing(entity, physicsWorld)
     -- so it shares the ring's parent-tracking (follows the planet), and
     -- its render origin resolves through that parent to the planet's
     -- current position.
-    local beltEntity = Entity.Create("AsteroidBeltEntity", CelestialComponents.AsteroidBelt(),
-        CoreComponents.Seed(seed + 99))
+    local beltEntity = CelestialEntities.AsteroidBelt(seed + 99)
     local beltTransform = beltEntity:get(PhysicsComponents.Transform)
     if beltTransform then beltTransform:setPos(transform:getPos()) end
     local lodMesh = AsteroidMeshPool:getFromSeed(seed)

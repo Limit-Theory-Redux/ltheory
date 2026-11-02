@@ -1,12 +1,12 @@
-local Registry          = require("Core.ECS.Registry")
-local Entity            = require("Core.ECS.Entity")
-local CoreComponents    = require("Modules.Core.Components")
-local PhysicsComponents = require("Modules.Physics.Components")
+local Registry            = require("Core.ECS.Registry")
+local CoreComponents      = require("Modules.Core.Components")
+local PhysicsComponents   = require("Modules.Physics.Components")
 local CelestialComponents = require("Modules.CelestialObjects.Components")
-local RenderComp        = require("Modules.Rendering.Components").Render
-local Materials         = require("Shared.Registries.Materials")
-local CameraManager     = require("Modules.Cameras.Managers.CameraManager")
-local AsteroidMeshPool  = require("Modules.CelestialObjects.Systems.AsteroidMeshPool")
+local CelestialEntities   = require("Modules.CelestialObjects.Entities")
+local RenderComp          = require("Modules.Rendering.Components").Render
+local Materials           = require("Shared.Registries.Materials")
+local CameraManager       = require("Modules.Cameras.Managers.CameraManager")
+local AsteroidMeshPool    = require("Modules.CelestialObjects.Systems.AsteroidMeshPool")
 
 --- AsteroidFieldSystem — spawns/despawns asteroid entities based on player distance.
 --- Nearby asteroids become real entities (physics, selectable, mineable).
@@ -264,18 +264,16 @@ function AsteroidFieldSystem:update(dt, beltEntities, physicsWorld, refEntity)
             local worldY = beltPosY + a.py
             local worldZ = beltPosZ + a.pz
 
-            local entity = Entity.Create("AsteroidEntity",
-                CelestialComponents.Asteroid(),
-                CoreComponents.Seed(a.rotSeed),
-                CoreComponents.Type("Asteroid"),
-                PhysicsComponents.Transform()
-            )
+            local entity = CelestialEntities.Asteroid(a.rotSeed)
 
             local transform = entity:get(PhysicsComponents.Transform)
             transform:setPos(Position(worldX, worldY, worldZ))
             transform:setScale(a.scale)
 
-            -- Mesh from pool + asteroid material
+            -- Mesh from pool + asteroid material. The constructor's render component holds no
+            -- mesh, so it is removed first: a component added over another would leave the old
+            -- one in the registry's dense storage.
+            entity:remove(RenderComp)
             local lodMesh = beltCmp:getLodMesh() or AsteroidMeshPool:getFromSeed(a.rotSeed)
             local mesh = lodMesh and lodMesh:get(0)
             if mesh then
