@@ -26,17 +26,27 @@ local PROGRESS_STEP = ScaleConfig:toGameUnits(PROGRESS_STEP_M, "starSystem")
 ---@field label string
 ---@field state SandboxShipState
 
+---@class SandboxObstacle
+---@field entity Entity
+---@field rb RigidBody
+---@field position Position
+---@field radius number Game units
+---@field label string
+
 ---@class ScenarioMetrics
----@overload fun(name: string, ships: SandboxShip[]): ScenarioMetrics
-local ScenarioMetrics = Class("ScenarioMetrics", function(self, name, ships)
+---@overload fun(name: string, ships: SandboxShip[], obstacles: SandboxObstacle[]): ScenarioMetrics
+local ScenarioMetrics = Class("ScenarioMetrics", function(self, name, ships, obstacles)
     self.name = name
     self.ships = ships
-    self.byId = {}
+    self.byId = {} -- entity id -> the ship or obstacle, for labels
     for _, ship in ipairs(ships) do
         ship.state = "flying"
         ship.bestDistance = math.huge
         ship.progressTime = 0
         self.byId[ship.entity.id] = ship
+    end
+    for _, obstacle in ipairs(obstacles) do
+        self.byId[obstacle.entity.id] = obstacle
     end
     self.touching = {} -- pair key -> true while the two bodies overlap
     self.arrivals, self.collisions, self.deadlocks = 0, 0, 0
@@ -81,8 +91,8 @@ end
 
 ---Name of a body found by a query: its sandbox label, or its id.
 function ScenarioMetrics:bodyLabel(id)
-    local ship = self.byId[id]
-    return ship and ship.label or string.format("body %d", id)
+    local known = self.byId[id]
+    return known and known.label or string.format("body %d", id)
 end
 
 ---Count a collision when a ship's bounding sphere starts to overlap another body.

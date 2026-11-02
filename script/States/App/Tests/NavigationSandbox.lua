@@ -32,10 +32,16 @@ local NavDebugDraw          = require("States.App.Tests.NavigationSandbox.Suppor
 ---@field start number[] { x, y, z } in metres
 ---@field target number[] { x, y, z } in metres
 ---@field facing number[]|nil Direction the ship faces at the start, not along the y axis; toward its target by default
+---@field hull integer|nil An `Enums.ShipHulls` value, which sets the ship's size; Solo by default
+
+---@class SandboxObstacleSpec
+---@field position number[] { x, y, z } in metres
+---@field radius number In metres
 
 ---@class SandboxScenario
 ---@field name string
 ---@field ships SandboxShipSpec[]
+---@field obstacles SandboxObstacleSpec[]|nil Static spheres
 ---@field timeLimit number|nil Seconds of simulated time for every ship to arrive or deadlock
 
 ---@class NavigationSandbox: Application
@@ -43,11 +49,13 @@ local NavDebugDraw          = require("States.App.Tests.NavigationSandbox.Suppor
 local NavigationSandbox = Subclass("NavigationSandbox", Application)
 
 -- Every scenario, in the order `NavigationSandbox` runs them; each is an app of its own.
-local SCENARIO_NAMES   = { "SingleShip", "HeadOn" }
+local SCENARIO_NAMES   = { "SingleShip", "HeadOn", "CrossingStreams", "CircleSwap", "ObstacleField" }
 local SCENARIO_MODULES = "States.App.Tests.NavigationSandbox."
 local SEED             = 1
-local HULL             = Enums.ShipHulls.Solo
+local DEFAULT_HULL     = Enums.ShipHulls.Solo
 local DEFAULT_TIME_LIMIT_S = 120
+-- The longest physics step; a longer frame advances the simulation by this much only.
+local MAX_STEP_S       = 0.05
 -- The camera orbits the scenario's centre at this many times its extent, from above.
 local CAMERA_DISTANCE_FACTOR = 2.5
 local CAMERA_PITCH     = 0.6
@@ -68,7 +76,15 @@ local MARKER_COLORS    = {
     flying     = { 0.3, 0.7, 1.0, 1.0 },
     arrived    = { 0.3, 1.0, 0.4, 1.0 },
     deadlocked = { 1.0, 0.3, 0.2, 1.0 },
+    obstacle   = { 0.5, 0.5, 0.5, 1.0 },
 }
+-- Filled spheres are drawn at this fraction of their colour: the additive pass is exposed for
+-- much dimmer content, and a full-strength fill saturates to white.
+local FILL_BRIGHTNESS  = 0.12
+local FILL_COLORS      = {}
+for state, c in pairs(MARKER_COLORS) do
+    FILL_COLORS[state] = { c[1] * FILL_BRIGHTNESS, c[2] * FILL_BRIGHTNESS, c[3] * FILL_BRIGHTNESS, c[4] }
+end
 local COURSE_ALPHA     = 0.5
 
 ---An app that runs only `scenario`. A scenario module returns the result.
@@ -117,12 +133,14 @@ end
 ---Drawn in the additive pass only, so they are not covered by the opaque geometry's lighting.
 ---@param blendMode integer
 function NavigationSandbox:drawMarkers(blendMode)
-    if blendMode ~= BlendMode.Additive or not self.ships then return end
+    if blendMode ~= BlendMode.Additive or not self.obstacles then return end
     NavDebugDraw.begin()
+    for _, obstacle in ipairs(self.obstacles) do
+        NavDebugDraw.sphere(obstacle.position, obstacle.radius, FILL_COLORS.obstacle)
+    end
     for _, ship in ipairs(self.ships) do
-        local color = MARKER_COLORS[ship.state]
         local flying = MARKER_COLORS.flying
-        NavDebugDraw.sphere(ship.rb:getPos(), ship.rb:getBoundingRadius(), color)
+        NavDebugDraw.sphere(ship.rb:getPos(), ship.rb:getBoundingRadius(), FILL_COLORS[ship.state])
         NavDebugDraw.sphere(ship.target, ScenarioMetrics.ARRIVAL_RANGE, flying, true)
         if ship.state == "flying" then
             NavDebugDraw.line(ship.rb:getPos(), ship.target,
@@ -155,16 +173,23 @@ end
 ---Point the camera at the middle of every start and target of the scenario.
 ---@param scenario SandboxScenario
 function NavigationSandbox:frameCamera(scenario)
-    local points = {}
+    -- Each point has a padding: the obstacle's radius, so that its whole sphere is in view.
+    local points, padding = {}, {}
     for _, spec in ipairs(scenario.ships) do
         table.insert(points, toPosition(spec.start))
+        table.insert(padding, 0)
         table.insert(points, toPosition(spec.target))
+        table.insert(padding, 0)
+    end
+    for _, obstacle in ipairs(self.obstacles) do
+        table.insert(points, obstacle.position)
+        table.insert(padding, obstacle.radius)
     end
     local cx, cy, cz = 0, 0, 0
     for _, p in ipairs(points) do cx, cy, cz = cx + p.x, cy + p.y, cz + p.z end
     local centre = Position(cx / #points, cy / #points, cz / #points)
     local extent = 0
-    for _, p in ipairs(points) do extent = math.max(extent, p:distance(centre)) end
+    for i, p in ipairs(points) do extent = math.max(extent, p:distance(centre) + padding[i]) end
 
     self.camera:setTargetOffset(Vec3f(centre.x, centre.y, centre.z))
     self.camera:setDistance(extent * CAMERA_DISTANCE_FACTOR)
@@ -177,10 +202,12 @@ function NavigationSandbox:spawnShip(spec, index)
     local start, target = toPosition(spec.start), toPosition(spec.target)
     local facing = spec.facing and Vec3f(spec.facing[1], spec.facing[2], spec.facing[3])
         or Vec3f(target.x - start.x, target.y - start.y, target.z - start.z)
+    local hull = spec.hull or DEFAULT_HULL
     local entity = ShipGenerator:createFighter(self.rng:get31(), {
+        hull = hull,
         position = start,
         rotation = Quat.FromLook(facing:normalize(), UP),
-        scale = Config.game.shipHulls.scale[HULL],
+        scale = Config.game.shipHulls.scale[hull],
         isKinematic = false,
         flightProfile = Enums.FlightProfile.Solo,
     })
@@ -188,6 +215,22 @@ function NavigationSandbox:spawnShip(spec, index)
     local rb = entity:get(PhysicsComponents.RigidBody):getRigidBody()
     self.world:addRigidBody(rb)
     return { entity = entity, rb = rb, target = target, label = string.format("ship %d", index) }
+end
+
+---A static sphere: a kinematic unit-radius body scaled to the obstacle's radius.
+---@param spec SandboxObstacleSpec
+---@param index integer
+---@return SandboxObstacle
+function NavigationSandbox:spawnObstacle(spec, index)
+    local position = toPosition(spec.position)
+    local radius = ScaleConfig:toGameUnits(spec.radius, "starSystem")
+    local rb = RigidBody.CreateSphere()
+    rb:setKinematic(true)
+    rb:setPos(position)
+    rb:setScale(radius)
+    local entity = Entity.Create("NavigationSandboxObstacle", PhysicsComponents.RigidBody(rb))
+    self.world:addRigidBody(rb)
+    return { entity = entity, rb = rb, position = position, radius = radius, label = string.format("obstacle %d", index) }
 end
 
 ---@param index integer Index into `self.scenarios`
@@ -202,13 +245,16 @@ function NavigationSandbox:startScenario(index)
     self.world:setLengthUnit(tuning.lengthUnit)
     self.world:setContactNaturalFrequency(tuning.contactNaturalFrequency)
 
-    self.ships = {}
+    self.ships, self.obstacles = {}, {}
     for i, spec in ipairs(scenario.ships) do
         table.insert(self.ships, self:spawnShip(spec, i))
     end
-    self.metrics = ScenarioMetrics(scenario.name, self.ships)
+    for i, spec in ipairs(scenario.obstacles or {}) do
+        table.insert(self.obstacles, self:spawnObstacle(spec, i))
+    end
+    self.metrics = ScenarioMetrics(scenario.name, self.ships, self.obstacles)
     self:frameCamera(scenario)
-    Log.Info("NavigationSandbox: %s: started, %d ships", scenario.name, #self.ships)
+    Log.Info("NavigationSandbox: %s: started, %d ships, %d obstacles", scenario.name, #self.ships, #self.obstacles)
 end
 
 function NavigationSandbox:endScenario()
@@ -225,7 +271,11 @@ function NavigationSandbox:endScenario()
         self.world:removeRigidBody(ship.rb)
         Registry:destroyEntity(ship.entity, Enums.Registry.EntityDestroyMode.DestroyChildren)
     end
-    self.ships, self.metrics, self.world = nil, nil, nil
+    for _, obstacle in ipairs(self.obstacles) do
+        self.world:removeRigidBody(obstacle.rb)
+        Registry:destroyEntity(obstacle.entity, Enums.Registry.EntityDestroyMode.DestroyChildren)
+    end
+    self.ships, self.obstacles, self.metrics, self.world = nil, nil, nil, nil
 
     if self.scenarioIndex < #self.scenarios then
         self:startScenario(self.scenarioIndex + 1)
@@ -253,7 +303,9 @@ end
 ---@param data EventData
 function NavigationSandbox:onSim(data)
     if not self.metrics then return end
-    local dt = data:deltaTime()
+    -- A long frame (the first one loads shaders and assets) must not become one long physics
+    -- step: ships at full speed would cross kilometres in it and tunnel through each other.
+    local dt = math.min(data:deltaTime(), MAX_STEP_S)
     ShipFlightSystem:update()
     self.world:update(dt)
     self.simTime = self.simTime + dt

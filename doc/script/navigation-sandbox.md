@@ -18,19 +18,25 @@ A scenario is a table:
 | Field | Meaning |
 |---|---|
 | `name` | Name in the log lines and the HUD |
-| `ships` | One entry per ship: `start` and `target`, `{ x, y, z }` in metres; `facing`, the direction the ship faces at the start (not along the y axis), toward its target by default |
+| `ships` | One entry per ship: `start` and `target`, `{ x, y, z }` in metres; `facing`, the direction the ship faces at the start (not along the y axis), toward its target by default; `hull`, an `Enums.ShipHulls` value that sets the ship's size, Solo by default |
+| `obstacles` | Optional static spheres: `position` `{ x, y, z }` and `radius`, in metres |
 | `timeLimit` | Seconds of simulated time for every ship to finish; 120 by default |
 
-Every ship is a Solo fighter from `ShipGenerator` with the Solo flight profile, built from one fixed seed, so a run is repeatable up to the variable frame time.
+Every ship is a fighter from `ShipGenerator` with the Solo flight profile, built from one fixed seed, so a run is repeatable up to the variable frame time. `hull` changes only the size (the mesh scale and so the bounding radius), not the flight profile. An obstacle is a kinematic unit-sphere body scaled to its radius, owned by an entity, so a physics query reports it by entity id.
 
 | Scenario | What it checks |
 |---|---|
 | `SingleShip` | One ship flies to a point behind it and to one side: it turns, flies and stops |
 | `HeadOn` | Two ships fly to each other's start along the same line |
+| `CrossingStreams` | Two streams of four ships, abreast and 400 m apart, cross at right angles at the origin at the same time |
+| `CircleSwap` | Eight ships on a 5 km circle each fly to the opposite point, so all meet at the centre; hulls alternate Solo and Medium |
+| `ObstacleField` | Three ships abreast fly 20 km along x through six static spheres: four on the courses, two beside them |
 
 ## Scene
 
-The scene is a fresh physics world per scenario, the ships, and an orbit camera that looks at the centre of all starts and targets from above. There is no star system. In place of a generated skybox, the sandbox pushes one small cube map of a uniform dim grey as both `envMap` and `irMap`, which the lighting shaders read; the irradiance of a uniform environment is the environment itself.
+The scene is a fresh physics world per scenario, the ships and obstacles, and an orbit camera that looks at the centre of all starts, targets and obstacles from above.
+
+The physics step is at most 0.05 s. The first frame loads shaders and assets and can take seconds, and a step that long would carry ships at full speed through kilometres, past each other and any obstacle, so a long frame advances the simulation by the cap only. There is no star system. In place of a generated skybox, the sandbox pushes one small cube map of a uniform dim grey as both `envMap` and `irMap`, which the lighting shaders read; the irradiance of a uniform environment is the environment itself.
 
 ## Debug drawing
 
@@ -45,6 +51,9 @@ The sandbox draws, in the additive pass, for each ship:
 | Filled sphere at the ship | Its state: blue flying, green arrived, red deadlocked |
 | Wireframe sphere at the target | The arrival range |
 | Line from the ship to its target | The straight course, while the ship is flying |
+| Grey filled sphere at an obstacle | Its radius |
+
+Filled spheres are drawn at a small fraction of their colour: the additive pass is exposed for dim content, and a full-strength fill saturates to white.
 
 ## Steering
 
@@ -64,7 +73,7 @@ A ship that has finished gets no input, and drag brings it to rest.
 |---|---|
 | Arrival | Within 100 m of the target and slower than 50 m/s |
 | Deadlock | Not 10 m closer to the target than its best distance for 10 s of simulated time |
-| Collision | A ship's bounding sphere starts to overlap another body. A `queryRadius` over the sphere finds the bodies, and each pair is counted once while it stays in contact |
+| Collision | A ship's bounding sphere starts to overlap another body, a ship or an obstacle. A `queryRadius` over the sphere finds the bodies, and each pair is counted once while it stays in contact. The log names a body by its label (`ship 3`, `obstacle 2`) |
 | Frame time | Mean and largest frame time in ms, leaving out the first frame, which pays for spawning |
 
 A ship that arrives or deadlocks is finished. The scenario ends when every ship is finished or the time limit runs out, with a summary line: arrivals, collisions, deadlocks, unfinished ships, simulated time and frame times.
