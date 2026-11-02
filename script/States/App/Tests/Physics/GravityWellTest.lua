@@ -8,6 +8,7 @@ local Entity                = require("Core.ECS.Entity")
 local PhysicsComponents     = require("Modules.Physics.Components")
 local SpatialComponents     = require("Modules.Spatial.Components")
 local SpatialEntities       = require("Modules.Spatial.Entities")
+local CelestialComponents   = require("Modules.CelestialObjects.Components")
 local ConstructComponents   = require("Modules.Constructs.Components")
 local GravityWellSystem     = require("Modules.Physics.Systems.GravityWellSystem")
 local TravelDriveSystem     = require("Modules.Constructs.Systems.TravelDriveSystem")
@@ -54,9 +55,10 @@ function GravityWellTest:giveBody(entity, x)
     return rb
 end
 
----A body of `kind` with a spherical zone of `zoneRadius`, a child of `parent` when given.
-function GravityWellTest:spawnBody(kind, x, zoneRadius, parent)
-    local body = Entity.Create(kind)
+---A body named `name` and marked as `kind` (a kind marker component type), with a spherical zone
+---of `zoneRadius`, a child of `parent` when given.
+function GravityWellTest:spawnBody(name, kind, x, zoneRadius, parent)
+    local body = Entity.Create(name, kind())
     local rb = self:giveBody(body, x)
     local zone = SpatialEntities.Zone()
     zone:get(SpatialComponents.Shape):setRadius(zoneRadius)
@@ -78,11 +80,11 @@ function GravityWellTest:spawnShip(x, withWell)
 end
 
 function GravityWellTest:buildScene()
-    local star = self:spawnBody("StarEntity", STAR_X, STAR_ZONE)
-    local planet, planetRb = self:spawnBody("PlanetEntity", PLANET_X, PLANET_ZONE, star)
-    self:spawnBody("MoonEntity", MOON_X, MOON_ZONE, planet)
+    local star = self:spawnBody("StarEntity", CelestialComponents.Star, STAR_X, STAR_ZONE)
+    local planet, planetRb = self:spawnBody("PlanetEntity", CelestialComponents.Planet, PLANET_X, PLANET_ZONE, star)
+    self:spawnBody("MoonEntity", CelestialComponents.Moon, MOON_X, MOON_ZONE, planet)
     self.planetRb = planetRb
-    GravityWellSystem:collectZones(star)
+    GravityWellSystem:collectZones()
     self.world:update(STEP)
 end
 

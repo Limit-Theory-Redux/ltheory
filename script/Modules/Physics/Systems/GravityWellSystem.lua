@@ -2,7 +2,7 @@ local Registry          = require("Core.ECS.Registry")
 local CoreComponents    = require("Modules.Core.Components")
 local PhysicsComponents = require("Modules.Physics.Components")
 local SpatialComponents = require("Modules.Spatial.Components")
-local EntityKind        = require("Shared.Helpers.EntityKind")
+local CelestialComponents = require("Modules.CelestialObjects.Components")
 
 local OPEN_SPACE = PhysicsComponents.GravityWell.OPEN_SPACE
 
@@ -23,70 +23,84 @@ local GravityWellSystem = Class("GravityWellSystem", function(self)
     self.zones = {} -- collected wells: { zoneEntity, parentEntity, parentName, zoneType, radius }
 end)
 
---- Collect all wells from the entity hierarchy
----@param rootEntity Entity
-function GravityWellSystem:collectZones(rootEntity)
-    self.zones = {}
-    self:_walkForZones(rootEntity, nil, nil)
-    Log.Info("GravityWellSystem: found %d zones", #self.zones)
+-- The kinds of body that have a well. `nameFromEntity` takes the body's name from its entity name
+-- (the text before the id) instead of `bodyName`.
+local WELL_BODIES = {
+    { marker = CelestialComponents.Star,   zoneType = "star",   bodyName = "Star" },
+    { marker = CelestialComponents.Planet, zoneType = "planet", bodyName = "Planet", nameFromEntity = true },
+    { marker = CelestialComponents.Moon,   zoneType = "moon",   bodyName = "Moon" },
+}
+
+--- The id of an entity's parent, nil without one.
+---@param entity Entity
+---@return EntityId|nil
+local function parentId(entity)
+    local parentCmp = entity:get(CoreComponents.Parent)
+    local parent = parentCmp and parentCmp:getParent()
+    return parent and parent.id
 end
 
----@param entity Entity
----@param parentEntity Entity|nil
----@param parentName string|nil
-function GravityWellSystem:_walkForZones(entity, parentEntity, parentName)
-    -- Detect zone type from the entity kind
-    local zoneType = nil
-    local bodyName = nil
-    if EntityKind.Is(entity, "StarEntity") then
-        zoneType = "star"; bodyName = "Star"
-    elseif EntityKind.Is(entity, "PlanetEntity") then
-        zoneType = "planet"; bodyName = tostring(entity):match("^(.-)%(") or "Planet"
-    elseif EntityKind.Is(entity, "MoonEntity") then
-        zoneType = "moon"; bodyName = "Moon"
-    end
-
-    -- Find zone radius: use the declared zone, but for planets expand to cover all moons
-    local childrenCmp = entity:get(CoreComponents.Children)
-    if not childrenCmp then return end
-
-    local zoneRadius = nil
-    local outermostMoonOrbit = 0
-
-    for child in childrenCmp:iterChildren() do
-        if EntityKind.Is(child, "ZoneEntity") then
-            local shapeCmp = child:get(SpatialComponents.Shape)
-            if shapeCmp then
-                zoneRadius = shapeCmp:getRadius()
-            end
-        elseif EntityKind.Is(child, "MoonEntity") then
-            -- Track outermost moon orbit
-            local orbitCmp = child:get(SpatialComponents.Orbit)
-            if orbitCmp then
-                local r = orbitCmp:getOrbitRadius() or 0
-                if r > outermostMoonOrbit then outermostMoonOrbit = r end
-            end
-            self:_walkForZones(child, entity, bodyName)
-        else
-            self:_walkForZones(child, entity, bodyName)
+--- The radius of the zone each body declares, by body id.
+---@return table<EntityId, number>
+local function declaredZoneRadii()
+    local radii = {}
+    for zone in Registry:view(SpatialComponents.Zone) do
+        local shapeCmp = zone:get(SpatialComponents.Shape)
+        local bodyId = parentId(zone)
+        if shapeCmp and bodyId then
+            radii[bodyId] = shapeCmp:getRadius()
         end
     end
+    return radii
+end
 
-    -- For planets: the well must cover the outermost moon orbit
-    if zoneType == "planet" and outermostMoonOrbit > 0 then
-        local moonBasedRadius = outermostMoonOrbit * MOON_ORBIT_WELL_FACTOR
-        zoneRadius = zoneRadius and math.max(zoneRadius, moonBasedRadius) or moonBasedRadius
+--- The largest moon orbit radius around each body, by body id.
+---@return table<EntityId, number>
+local function outermostMoonOrbits()
+    local orbits = {}
+    for moon in Registry:view(CelestialComponents.Moon) do
+        local orbitCmp = moon:get(SpatialComponents.Orbit)
+        local bodyId = parentId(moon)
+        if orbitCmp and bodyId then
+            orbits[bodyId] = math.max(orbits[bodyId] or 0, orbitCmp:getOrbitRadius() or 0)
+        end
     end
+    return orbits
+end
 
-    if zoneRadius and zoneType then
-        table.insert(self.zones, {
-            zoneEntity   = entity,
-            parentEntity = entity,
-            parentName   = bodyName,
-            zoneType     = zoneType,
-            radius       = zoneRadius,
-        })
+--- Collect the wells of every star, planet and moon that has a zone (or, for a planet, moons).
+function GravityWellSystem:collectZones()
+    self.zones = {}
+    local declaredRadii = declaredZoneRadii()
+    local moonOrbits = outermostMoonOrbits()
+
+    for _, kind in ipairs(WELL_BODIES) do
+        for body in Registry:view(kind.marker) do
+            local zoneRadius = declaredRadii[body.id]
+            local outermostMoonOrbit = moonOrbits[body.id] or 0
+
+            -- For planets: the well must cover the outermost moon orbit
+            if kind.zoneType == "planet" and outermostMoonOrbit > 0 then
+                local moonBasedRadius = outermostMoonOrbit * MOON_ORBIT_WELL_FACTOR
+                zoneRadius = zoneRadius and math.max(zoneRadius, moonBasedRadius) or moonBasedRadius
+            end
+
+            if zoneRadius then
+                local bodyName = kind.bodyName
+                if kind.nameFromEntity then
+                    bodyName = tostring(body):match("^(.-)%(") or bodyName
+                end
+                table.insert(self.zones, {
+                    zoneEntity   = body,
+                    parentEntity = body,
+                    parentName   = bodyName,
+                    zoneType     = kind.zoneType,
+                    radius       = zoneRadius,
+                })
+            end
+        end
     end
+    Log.Info("GravityWellSystem: found %d zones", #self.zones)
 end
 
 --- The position of the body a well belongs to, nil if it has no rigid body.

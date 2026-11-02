@@ -147,7 +147,8 @@ function Benchmark:onInit()
     -- the planet ring band (same radii, same tilt against the planet axis)
     -- so asteroids visually belong to the ring.
     self.beltEntities = {}
-    local beltEntity = Entity.Create("AsteroidBeltEntity", CoreComponents.Seed(12345))
+    local beltEntity = Entity.Create("AsteroidBeltEntity", CoreComponents.Seed(12345),
+        CelestialComponents.AsteroidBelt())
     local beltTransform = beltEntity:get(PhysicsComponents.Transform)
     if beltTransform then beltTransform:setPos(Position(0, 0, 0)) end
     local lodMesh = AsteroidMeshPool:getFromSeed(12345)
@@ -182,7 +183,7 @@ function Benchmark:onInit()
         minScale = 0.1,
         maxScale = 5.0,
     })
-    beltEntity:add(CelestialComponents.AsteroidBelt(asteroids, beltRadius, beltWidth, lodMesh))
+    beltEntity:add(CelestialComponents.AsteroidBeltData(asteroids, beltRadius, beltWidth, lodMesh))
     local renderCmp = beltEntity:get(RenderComp)
     if not renderCmp then
         renderCmp = RenderComp()

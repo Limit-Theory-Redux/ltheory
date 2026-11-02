@@ -4,11 +4,24 @@ local SpatialComponents     = require("Modules.Spatial.Components")
 local CelestialComponents   = require("Modules.CelestialObjects.Components")
 local UniverseScaleConfig   = require("Config.Gen.UniverseScaleConfig")
 local DrawEx                = require("UI.DrawEx")
-local EntityKind            = require("Shared.Helpers.EntityKind")
+local ConstructsComponents  = require("Modules.Constructs.Components")
+local Registry              = require("Core.ECS.Registry")
+local EntityPosition        = require("Shared.Helpers.EntityPosition")
 
 local function formatDistance(gameUnits)
     return UniverseScaleConfig:formatDistance(gameUnits)
 end
+
+--- What the map draws, per kind marker. A belt and a ring share the belt drawing (annulus + dots).
+local MAP_KINDS = {
+    { marker = CelestialComponents.Star,         label = "Star",          color = { 1.0, 0.9, 0.3 }, size = 8 },
+    { marker = CelestialComponents.Planet,       label = "Planet",        color = { 0.3, 0.6, 1.0 }, size = 5, numbered = true },
+    { marker = CelestialComponents.Moon,         label = "Moon",          color = { 0.6, 0.6, 0.6 }, size = 3, isMoon = true },
+    { marker = ConstructsComponents.SpaceStation, label = "Station",      color = { 1.0, 0.5, 0.1 }, size = 4 },
+    { marker = CelestialComponents.AsteroidBelt, label = "Asteroid Belt", color = { 0.7, 0.5, 0.3 }, size = 3, isBelt = true },
+    { marker = CelestialComponents.AsteroidRing, label = "Asteroid Ring", color = { 0.6, 0.5, 0.4 }, size = 3, isBelt = true },
+    { marker = CelestialComponents.Asteroid,     label = "Asteroid",      color = { 0.7, 0.5, 0.3 }, size = 2 },
+}
 
 --- ECS System Map — top-down 2D view of the star system with mouse interaction.
 ---@class SystemMap
@@ -38,17 +51,18 @@ function SystemMap:create(config)
     }
 end
 
---- Collect all entities with positions from the star system hierarchy
+--- Collect all entities with positions, one registry view per kind
 ---@param state table
----@param rootEntity Entity
 ---@param shipEntity Entity|nil
-function SystemMap:collectEntities(state, rootEntity, shipEntity)
-    -- Full tree walk only on first call or explicit invalidation
+function SystemMap:collectEntities(state, shipEntity)
+    -- Full collection only on first call or explicit invalidation
     if not state._entityListBuilt then
         state.entities = {}
         state.shipEntity = shipEntity
         state._planetIdx = 0
-        self:_walk(state, rootEntity, nil)
+        for _, kind in ipairs(MAP_KINDS) do
+            self:_collectKind(state, kind)
+        end
 
         -- Add ship
         if shipEntity then
@@ -113,94 +127,51 @@ function SystemMap:collectEntities(state, rootEntity, shipEntity)
 end
 
 ---@param state table
----@param entity Entity
----@param parentPos Position|nil
----@param parentPos Position|nil
-function SystemMap:_walk(state, entity, parentPos, parentEntity)
-    local transform = entity:get(PhysicsComponents.Transform)
-
-    if transform then
-        local pos = transform:getPos()
-        local scale = transform:getScale()
-        local label, color, pointSize, isMoon, isBelt = nil, nil, nil, false, false
-
-        if EntityKind.Is(entity, "StarEntity") then
-            label = "Star"
-            color = { 1.0, 0.9, 0.3 }
-            pointSize = 8
-        elseif EntityKind.Is(entity, "PlanetEntity") then
-            state._planetIdx = state._planetIdx + 1
-            label = "Planet " .. state._planetIdx
-            color = { 0.3, 0.6, 1.0 }
-            pointSize = 5
-        elseif EntityKind.Is(entity, "MoonEntity") then
-            label = "Moon"
-            color = { 0.6, 0.6, 0.6 }
-            pointSize = 3
-            isMoon = true
-        elseif EntityKind.Is(entity, "SpaceStationEntity") then
-            label = "Station"
-            color = { 1.0, 0.5, 0.1 }
-            pointSize = 4
-        elseif EntityKind.Is(entity, "AsteroidBeltEntity") then
-            label = "Asteroid Belt"
-            color = { 0.7, 0.5, 0.3 }
-            pointSize = 3
-            isBelt = true
-        elseif EntityKind.Is(entity, "AsteroidRingEntity") then
-            label = "Asteroid Ring"
-            color = { 0.6, 0.5, 0.4 }
-            pointSize = 3
-            isBelt = true  -- reuse belt rendering logic (annulus + dots)
-        elseif EntityKind.Is(entity, "AsteroidEntity") then
-            label = "Asteroid"
-            color = { 0.7, 0.5, 0.3 }
-            pointSize = 2
-        end
-
-        if label then
+---@param kind table An entry of MAP_KINDS
+function SystemMap:_collectKind(state, kind)
+    for entity in Registry:view(kind.marker) do
+        local transform = entity:get(PhysicsComponents.Transform)
+        if transform then
+            local pos = transform:getPos()
+            local scale = transform:getScale()
             local rbCmp = entity:get(PhysicsComponents.RigidBody)
             if rbCmp and rbCmp:getRigidBody() then
                 pos = rbCmp:getRigidBody():getPos()
                 scale = rbCmp:getRigidBody():getBoundingRadius()
             end
 
+            local label = kind.label
+            if kind.numbered then
+                state._planetIdx = state._planetIdx + 1
+                label = label .. " " .. state._planetIdx
+            end
+
             local orbitCmp = entity:get(SpatialComponents.Orbit)
             local orbitRadius = orbitCmp and orbitCmp:getOrbitRadius() or 0
-            -- For rings without Orbit component, read from AsteroidBeltComponent
-            if orbitRadius == 0 and isBelt then
-                local beltCmp = entity:get(CelestialComponents.AsteroidBelt)
+            -- A ring has no Orbit component: its radius is in the belt data
+            if orbitRadius == 0 and kind.isBelt then
+                local beltCmp = entity:get(CelestialComponents.AsteroidBeltData)
                 if beltCmp then orbitRadius = beltCmp:getOrbitRadius() end
             end
 
+            local parentCmp = entity:get(CoreComponents.Parent)
+            local parentEntity = parentCmp and parentCmp:getParent()
+            local widthCmp = kind.isBelt and entity:get(SpatialComponents.Width)
+
             table.insert(state.entities, {
-                entity      = entity,
-                label       = label,
-                pos         = pos,
-                scale       = scale,
-                orbitRadius = orbitRadius,
-                color       = color,
-                size        = pointSize,
-                isMoon      = isMoon,
-                isBelt      = isBelt,
-                beltWidth   = isBelt and (entity:get(SpatialComponents.Width) and entity:get(SpatialComponents.Width):getWidth() or 0) or nil,
-                parentPos   = parentPos,
+                entity        = entity,
+                label         = label,
+                pos           = pos,
+                scale         = scale,
+                orbitRadius   = orbitRadius,
+                color         = kind.color,
+                size          = kind.size,
+                isMoon        = kind.isMoon or false,
+                isBelt        = kind.isBelt or false,
+                beltWidth     = kind.isBelt and (widthCmp and widthCmp:getWidth() or 0) or nil,
+                parentPos     = parentEntity and EntityPosition.Get(parentEntity) or nil,
                 _parentEntity = parentEntity,
             })
-        end
-
-        local childrenCmp = entity:get(CoreComponents.Children)
-        if childrenCmp then
-            for child in childrenCmp:iterChildren() do
-                self:_walk(state, child, pos, entity)
-            end
-        end
-    else
-        local childrenCmp = entity:get(CoreComponents.Children)
-        if childrenCmp then
-            for child in childrenCmp:iterChildren() do
-                self:_walk(state, child, parentPos, parentEntity)
-            end
         end
     end
 end
@@ -299,7 +270,7 @@ function SystemMap:updateInput(state, dt)
 
             if entry.isBelt and entry.orbitRadius and entry.orbitRadius > 0 then
                 -- Check individual asteroid dots first (higher priority)
-                local beltCmp = entry.entity:get(CelestialComponents.AsteroidBelt)
+                local beltCmp = entry.entity:get(CelestialComponents.AsteroidBeltData)
                 local beltScreenR = entry.orbitRadius * state.zoom
                 -- Center on parent (planet for rings, star for belts)
                 local ocx, ocy
@@ -489,7 +460,7 @@ function SystemMap:draw(state, x, y, sx, sy)
             end
 
             -- Draw individual asteroid dots — only when ring is visible on screen
-            local beltCmp2 = entry.entity:get(CelestialComponents.AsteroidBelt)
+            local beltCmp2 = entry.entity:get(CelestialComponents.AsteroidBeltData)
             -- Rings: show dots like moons (orbit > 20px). Belts: only at very high zoom.
             local isRing = entry.parentPos ~= nil
             local dotThreshold = isRing and 20 or (math.min(sx, sy) * 2)

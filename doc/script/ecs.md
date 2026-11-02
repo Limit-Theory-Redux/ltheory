@@ -53,7 +53,7 @@ end
 
 As you can see, first the Entity module is imported, followed by the relevant component modules. `Entity.Create` constructs an entity with the specified components.
 
-The name an entity is created with is its kind: `MoonEntity` is a moon, and `Core.Type` only holds the variety within a kind (`Rocky`, `Icy`), whose values can repeat between kinds. To test the kind, call `EntityKind.Is(entity, "MoonEntity")` from `Shared.Helpers.EntityKind`. It compares the name exactly and is false for a destroyed entity, so it never confuses `AsteroidEntity` with `AsteroidBeltEntity` the way a substring search on `tostring(entity)` does.
+The kind of an entity is a marker component that holds no data: a moon has `CelestialObjects.Moon`, a planet `CelestialObjects.Planet`, and so on. Its constructor adds the marker. `Core.Type` only holds the variety within a kind (`Rocky`, `Icy`), whose values can repeat between kinds. To find the entities of a kind, view the marker: `for moon in Registry:view(CelestialObjects.Moon) do … end` lists the live moons in creation order, so a system never walks the hierarchy to test names. A view covers the whole registry, and it doesn't list an entity created during the loop. To test one entity, call `entity:get(CelestialObjects.Moon)`. A belt and an asteroid are different markers, so a name that contains another (`AsteroidBeltEntity`, `AsteroidEntity`) can't confuse them.
 
 ### Components
 

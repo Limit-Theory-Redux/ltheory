@@ -16,4 +16,6 @@ return {
     Projectile        = require("Modules.Constructs.Components.ProjectileComponent"),
     Beam              = require("Modules.Constructs.Components.BeamComponent"),
 
+    -- Kind marker: no data, found by viewing it.
+    SpaceStation      = require("Modules.Constructs.Components.SpaceStationComponent"),
 }

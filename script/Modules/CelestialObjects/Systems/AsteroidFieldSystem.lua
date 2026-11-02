@@ -194,7 +194,7 @@ function AsteroidFieldSystem:update(dt, beltEntities, physicsWorld, refEntity)
     end
 
     for _, beltEntity in ipairs(beltEntities) do
-        local beltCmp = beltEntity:get(CelestialComponents.AsteroidBelt)
+        local beltCmp = beltEntity:get(CelestialComponents.AsteroidBeltData)
         if not beltCmp then goto next_belt end
 
         local asteroids = beltCmp:getAsteroidData()
@@ -265,6 +265,7 @@ function AsteroidFieldSystem:update(dt, beltEntities, physicsWorld, refEntity)
             local worldZ = beltPosZ + a.pz
 
             local entity = Entity.Create("AsteroidEntity",
+                CelestialComponents.Asteroid(),
                 CoreComponents.Seed(a.rotSeed),
                 CoreComponents.Type("Asteroid"),
                 PhysicsComponents.Transform()
@@ -318,7 +319,7 @@ end
 --- Also handles trimesh collider upgrade/downgrade based on distance
 function AsteroidFieldSystem:updatePositions()
     for beltEntity, spawned in pairs(spawnedAsteroids) do
-        local beltCmp = beltEntity:get(CelestialComponents.AsteroidBelt)
+        local beltCmp = beltEntity:get(CelestialComponents.AsteroidBeltData)
         if not beltCmp then goto next_pos end
         local asteroids = beltCmp:getAsteroidData()
         local bx, by, bz = getRenderOrigin(beltEntity)
@@ -342,7 +343,7 @@ end
 function AsteroidFieldSystem:getSpawnedEntities()
     local result = {}
     for beltEntity, spawned in pairs(spawnedAsteroids) do
-        local beltCmp = beltEntity:get(CelestialComponents.AsteroidBelt)
+        local beltCmp = beltEntity:get(CelestialComponents.AsteroidBeltData)
         if beltCmp then
             local asteroids = beltCmp:getAsteroidData()
             local bx, by, bz = getRenderOrigin(beltEntity)

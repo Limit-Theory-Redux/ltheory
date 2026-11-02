@@ -6,7 +6,7 @@ A zone is a generic region: `ZoneEntity` has a transform and a shape. A zone mea
 
 `GravityWellSystem` (Physics module) turns the zones of stars, planets and moons into gravity wells.
 
-- `collectZones(root)` walks the entity hierarchy from `root` and lists a well for each star, planet and moon that has a zone. A planet's well is at least 1.5 times the orbit radius of its outermost moon.
+- `collectZones()` goes through the star, planet and moon views and lists a well for each one that has a zone. A planet's well is at least 1.5 times the orbit radius of its outermost moon.
 - A ship takes part when it has a `GravityWellComponent` and a rigid body. The component holds the well the ship is in (the smallest one that contains it), the zone type and the body's previous position. `update()` processes every such ship, and a ship in no well is in open space.
 - A ship in a well moves by the distance its body moved since the last update, so that it drifts with an orbiting body. A ship that has just entered a well is not moved. A body move larger than 1000 game units in one update is clamped. This teleports the ship with `setPos`; it matters only while orbital motion is on.
 - `getMaxDriveSpeedAt(position)` is the travel-drive speed multiplier allowed at a position: `Config.game.travelDrive.maxSpeedByZone.openSpace` far from every body, falling with the square of the distance to the zone's minimum at the body's centre, starting at twice the well radius. Where influences overlap, the lowest value applies. The drive system, the autopilot and the HUD call it with a ship's position.

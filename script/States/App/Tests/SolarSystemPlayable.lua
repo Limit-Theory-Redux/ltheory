@@ -22,7 +22,6 @@ local AutoPilotSystem         = require("Modules.Constructs.Systems.AutoPilotSys
 local ShipFlightSystem        = require("Modules.Constructs.Systems.ShipFlightSystem")
 local TravelDriveSystem       = require("Modules.Constructs.Systems.TravelDriveSystem")
 local GravityWellSystem       = require("Modules.Physics.Systems.GravityWellSystem")
-local EntityKind              = require("Shared.Helpers.EntityKind")
 
 -- Extracted systems
 local CelestialLightingSystem = require("Modules.Rendering.Systems.CelestialLightingSystem")
@@ -103,13 +102,13 @@ function SolarSystemPlayable:buildScene(seed)
     Log.Info("Found %d orbiting bodies, %d followers", #self.orbiters, #self.followers)
 
     -- Collect gravity well zones
-    GravityWellSystem:collectZones(self.universe)
+    GravityWellSystem:collectZones()
 
     -- System maps (2D and 3D)
     self.mapState = SystemMap:create()
-    SystemMap:collectEntities(self.mapState, self.universe, self.playerShip)
+    SystemMap:collectEntities(self.mapState, self.playerShip)
     self.map3DState = SystemMap3D:create()
-    SystemMap3D:collectEntities(self.map3DState, self.universe, self.playerShip)
+    SystemMap3D:collectEntities(self.map3DState, self.playerShip)
     SystemMap3D:setSkybox(self.map3DState, self.skybox)
     self.mapMode = 0  -- 0=off, 1=2D, 2=3D
 
@@ -185,63 +184,54 @@ function SolarSystemPlayable:generateSolarSystem()
     end
 
     -- Rebase all entities to star-system-local coordinates (near origin)
-    self.systemOrigin = CoordinateRebaser:rebaseStarSystem(self.universe)
+    self.systemOrigin = CoordinateRebaser:rebaseStarSystem()
 
-    SolarSystemVisualizer:materialize(self.universe, self.world)
+    SolarSystemVisualizer:materialize(self.world)
 
     self.planets = {}
     self.labeledEntities = {}
     self.beltEntities = {}
-    self:_collectEntities(self.universe)
+    self:_collectEntities()
     Log.Info("Found %d planets in generated solar system", #self.planets)
 end
 
-function SolarSystemPlayable:_collectEntities(entity, parentPos)
-    if EntityKind.Is(entity, "PlanetEntity") then
-        table.insert(self.planets, entity)
-    end
+--- The objects that get a label, per kind marker. A ring also joins the belt list used for spawning.
+local LABELED_KINDS = {
+    { marker = CelestialComponents.Star,         label = "Star" },
+    { marker = CelestialComponents.Planet,       label = "Planet", numbered = true },
+    { marker = CelestialComponents.Moon,         label = "Moon", isMoon = true },
+    { marker = ConstructComponents.SpaceStation, label = "Station" },
+    { marker = CelestialComponents.AsteroidBelt, label = "Asteroid Belt", isBelt = true },
+    { marker = CelestialComponents.AsteroidRing, label = "Asteroid Ring", isBelt = true },
+}
 
-    -- Collect all named celestial objects for labels
-    local label = nil
-    local isMoon = false
-    if EntityKind.Is(entity, "StarEntity") then
-        label = "Star"
-        self.starEntity = entity
-    elseif EntityKind.Is(entity, "PlanetEntity") then
-        label = "Planet " .. #self.planets
-    elseif EntityKind.Is(entity, "MoonEntity") then
-        label = "Moon"; isMoon = true
-    elseif EntityKind.Is(entity, "SpaceStationEntity") then
-        label = "Station"
-    elseif EntityKind.Is(entity, "AsteroidBeltEntity") then
-        label = "Asteroid Belt"
-        table.insert(self.beltEntities, entity)
-    elseif EntityKind.Is(entity, "AsteroidRingEntity") then
-        label = "Asteroid Ring"
-        table.insert(self.beltEntities, entity)  -- reuse belt entity list for spawning
-    end
+--- Collect planets, belts, the star and the labeled objects from the registry views.
+function SolarSystemPlayable:_collectEntities()
+    local planetCount = 0
+    for _, kind in ipairs(LABELED_KINDS) do
+        for entity in Registry:view(kind.marker) do
+            local label = kind.label
+            if kind.numbered then
+                planetCount = planetCount + 1
+                table.insert(self.planets, entity)
+                label = label .. " " .. planetCount
+            end
+            if kind.marker == CelestialComponents.Star then self.starEntity = entity end
+            if kind.isBelt then table.insert(self.beltEntities, entity) end
 
-    local entityPos = parentPos
-    if label then
-        local transform = entity:get(PhysicsComponents.Transform)
-        if transform then
-            local pos = transform:getPos()
-            local scale = transform:getScale()
-            entityPos = pos
-            Log.Info("  %s at (%.0f, %.0f, %.0f) scale=%.0f", label, pos.x, pos.y, pos.z, scale)
-            table.insert(self.labeledEntities, {
-                entity = entity,
-                label = label,
-                isMoon = isMoon,
-                parentPos = parentPos,
-            })
-        end
-    end
-
-    local childrenCmp = entity:get(CoreComponents.Children)
-    if childrenCmp then
-        for child in childrenCmp:iterChildren() do
-            self:_collectEntities(child, entityPos)
+            local transform = entity:get(PhysicsComponents.Transform)
+            if transform then
+                local pos = transform:getPos()
+                Log.Info("  %s at (%.0f, %.0f, %.0f) scale=%.0f", label, pos.x, pos.y, pos.z, transform:getScale())
+                local parentCmp = entity:get(CoreComponents.Parent)
+                local parentTransform = parentCmp and parentCmp:getParent():get(PhysicsComponents.Transform)
+                table.insert(self.labeledEntities, {
+                    entity = entity,
+                    label = label,
+                    isMoon = kind.isMoon or false,
+                    parentPos = parentTransform and parentTransform:getPos() or nil,
+                })
+            end
         end
     end
 end
@@ -330,7 +320,7 @@ function SolarSystemPlayable:onRender(data)
 
     if self.mapMode == 2 then
         -- 3D map: render through proper pipeline with map camera
-        SystemMap3D:collectEntities(self.map3DState, self.universe, self.playerShip)
+        SystemMap3D:collectEntities(self.map3DState, self.playerShip)
         SystemMap3D:render(self.map3DState, data)
 
         self:immediateUI(function()
@@ -384,7 +374,7 @@ function SolarSystemPlayable:onRender(data)
                     self.mapState.autopilotPos = nil
                     self.mapState.autopilotTargetPos = nil
                 end
-                SystemMap:collectEntities(self.mapState, self.universe, self.playerShip)
+                SystemMap:collectEntities(self.mapState, self.playerShip)
                 SystemMap:draw(self.mapState, 0, 0, Window:width(), Window:height())
             end
         end)
@@ -410,10 +400,10 @@ function SolarSystemPlayable:onInput(data)
         if self.mapMode == 1 then
             self.mapState._entityListBuilt = false
             self.mapState._dotCache = nil
-            SystemMap:collectEntities(self.mapState, self.universe, self.playerShip)
+            SystemMap:collectEntities(self.mapState, self.playerShip)
             CursorManager:free()
         elseif self.mapMode == 2 then
-            SystemMap3D:collectEntities(self.map3DState, self.universe, self.playerShip)
+            SystemMap3D:collectEntities(self.map3DState, self.playerShip)
             SystemMap3D:activate(self.map3DState)
             CursorManager:free()
         else
@@ -537,11 +527,11 @@ function SolarSystemPlayable:regenerate()
 
     -- Rebuild orbital + map + gravity well data
     self.orbiters, self.followers = OrbitalSystem:collectOrbiters(self.universe)
-    GravityWellSystem:collectZones(self.universe)
+    GravityWellSystem:collectZones()
     self.mapState._entityListBuilt = false
     self.mapState._dotCache = nil
-    SystemMap:collectEntities(self.mapState, self.universe, self.playerShip)
-    SystemMap3D:collectEntities(self.map3DState, self.universe, self.playerShip)
+    SystemMap:collectEntities(self.mapState, self.playerShip)
+    SystemMap3D:collectEntities(self.map3DState, self.playerShip)
 end
 
 return SolarSystemPlayable

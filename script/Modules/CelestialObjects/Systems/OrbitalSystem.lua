@@ -1,46 +1,50 @@
+local Registry            = require("Core.ECS.Registry")
 local CoreComponents      = require("Modules.Core.Components")
 local PhysicsComponents   = require("Modules.Physics.Components")
 local SpatialComponents   = require("Modules.Spatial.Components")
 local CelestialComponents = require("Modules.CelestialObjects.Components")
-local EntityKind          = require("Shared.Helpers.EntityKind")
+local EntityPosition      = require("Shared.Helpers.EntityPosition")
+
+local getEntityPos = EntityPosition.Get
 
 --- Orbital simulation system — updates celestial body positions along their orbits
 --- and rotates planets/moons on their axes. Kinematic rigid bodies are moved via setPos().
 ---@class OrbitalSystem
 local OrbitalSystem = {}
 
---- Collect all orbiting bodies and followers from a star system hierarchy
----@param starSystem Entity The star system root entity
+--- Collect the orbiting bodies of a hierarchy and the rings and belts that follow their parent.
+--- The orbiters come from a walk, which lists a parent before its children (a child's initial
+--- phase reads its parent's position); the followers come from the ring and belt views.
+---@param rootEntity Entity The root of the hierarchy (a universe or a star system)
 ---@return table[] orbiters, table[] followers
-function OrbitalSystem:collectOrbiters(starSystem)
+function OrbitalSystem:collectOrbiters(rootEntity)
     local orbiters = {}
-    local followers = {}
-    self:_walkForOrbiters(starSystem, nil, orbiters, followers)
-    return orbiters, followers
+    self:_walkForOrbiters(rootEntity, nil, orbiters)
+    return orbiters, self:_collectFollowers()
 end
 
---- Get current position of an entity from its rigid body or transform
----@param entity Entity|nil
----@return Position
-local function getEntityPos(entity)
-    if not entity then return Position(0, 0, 0) end
-
-    local rbCmp = entity:get(PhysicsComponents.RigidBody)
-    if rbCmp then
-        local rb = rbCmp:getRigidBody()
-        if rb then return rb:getPos() end
+--- The rings and belts that have a parent but no orbit of their own.
+---@return table[] followers { entity, parentEntity }
+function OrbitalSystem:_collectFollowers()
+    local followers = {}
+    for _, kind in ipairs({ CelestialComponents.AsteroidRing, CelestialComponents.AsteroidBelt }) do
+        for entity in Registry:view(kind) do
+            local parentCmp = entity:get(CoreComponents.Parent)
+            if parentCmp and not entity:get(SpatialComponents.Orbit) then
+                table.insert(followers, {
+                    entity       = entity,
+                    parentEntity = parentCmp:getParent(),
+                })
+            end
+        end
     end
-
-    local transform = entity:get(PhysicsComponents.Transform)
-    if transform then return transform:getPos() end
-
-    return Position(0, 0, 0)
+    return followers
 end
 
 ---@param entity Entity
 ---@param parentEntity Entity|nil
 ---@param orbiters table[]
-function OrbitalSystem:_walkForOrbiters(entity, parentEntity, orbiters, followers)
+function OrbitalSystem:_walkForOrbiters(entity, parentEntity, orbiters)
     local orbitCmp = entity:get(SpatialComponents.Orbit)
     if orbitCmp then
         local orbitRadius = orbitCmp:getOrbitRadius() or 0
@@ -79,21 +83,11 @@ function OrbitalSystem:_walkForOrbiters(entity, parentEntity, orbiters, follower
         end
     end
 
-    -- If no orbit but has a parent, this entity follows its parent (e.g., ring on planet)
-    if not orbitCmp and parentEntity then
-        if EntityKind.Is(entity, "AsteroidRingEntity") or EntityKind.Is(entity, "AsteroidBeltEntity") then
-            table.insert(followers, {
-                entity       = entity,
-                parentEntity = parentEntity,
-            })
-        end
-    end
-
     -- Recurse into children — this entity becomes the parent
     local childrenCmp = entity:get(CoreComponents.Children)
     if childrenCmp then
         for child in childrenCmp:iterChildren() do
-            self:_walkForOrbiters(child, entity, orbiters, followers)
+            self:_walkForOrbiters(child, entity, orbiters)
         end
     end
 end

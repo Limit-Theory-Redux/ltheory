@@ -1,6 +1,7 @@
 local PhysicalEntity = require("Modules.PhysicalEntity")
 local Rendering = require("Modules.Rendering.Components")
 local Economy = require("Modules.Economy.Components")
+local CelestialObjects = require("Modules.CelestialObjects.Components")
 local Materials = require("Shared.Registries.Materials")
 
 ---@param seed integer
@@ -8,6 +9,7 @@ local Materials = require("Shared.Registries.Materials")
 ---@return Entity
 return function(seed, item, itemQuantity)
     return PhysicalEntity("AsteroidEntity", seed,
+        CelestialObjects.Asteroid(),
         Rendering.Render({ Materials.Asteroid }, Enums.MeshType.Asteroid),
         Economy.Item(item.id),
         Economy.Quantity(itemQuantity))
