@@ -19,8 +19,10 @@ ltr = { path = "engine/bin/ltr" }
 internal = { path = "engine/lib/internal" }
 phx = { path = "engine/lib/phx" }
 luajit-ffi-gen = { path = "engine/lib/luajit-ffi-gen" }
+nav = { path = "engine/lib/nav" }
 
 # external crates
+mlua = { version = "0.10", features = ["luajit52", "vendored", "error-send"] }
 proc-macro2 = "1.0"
 quote = "1.0"
 syn = { version = "2.0", features = ["full"] }

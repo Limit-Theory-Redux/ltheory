@@ -2199,6 +2199,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "nav"
+version = "0.1.0"
+dependencies = [
+ "mlua",
+]
+
+[[package]]
 name = "ndk"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2884,6 +2891,7 @@ dependencies = [
  "luajit-ffi-gen",
  "memoffset",
  "mlua",
+ "nav",
  "notify",
  "num_cpus",
  "parley",

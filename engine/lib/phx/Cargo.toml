@@ -30,6 +30,7 @@ stats-server = ["dep:tiny_http"]
 # workspace crates
 internal.workspace = true
 luajit-ffi-gen.workspace = true
+nav.workspace = true
 
 # external crates
 arboard = "3.6"
@@ -48,7 +49,7 @@ indexmap = "2.14"
 kira = { version = "0.9", features = ["symphonia", "cpal", "serde"] }
 libc = "0.2"
 memoffset = "0.9"
-mlua = { version = "0.10", features = ["luajit52", "vendored", "error-send"] }
+mlua.workspace = true
 notify = "6.1"
 parley = "0.1"
 swash = "0.2"
