@@ -672,6 +672,8 @@ impl Physics {
 }
 
 #[cfg(test)]
+mod kinematic_tests;
+#[cfg(test)]
 mod query_tests;
 #[cfg(test)]
 mod scale_tests;

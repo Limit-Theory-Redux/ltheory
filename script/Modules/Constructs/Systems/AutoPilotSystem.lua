@@ -121,6 +121,19 @@ function AutoPilotSystem:getDistanceAndSpeed(shipEntity)
     return math.sqrt(dx * dx + dy * dy + dz * dz), speed
 end
 
+--- The velocity of what the autopilot is tracking: its target entity, or the body that a
+--- parent-relative target point rides on. Zero for a fixed point.
+---@param ap AutoPilotComponent
+---@return gameunit vx, gameunit vy, gameunit vz Game units per second
+local function trackedVelocity(ap)
+    local source = ap:getTargetEntity() or ap._parentEntity
+    local rbCmp = source and source:get(PhysicsComponents.RigidBody)
+    local rb = rbCmp and rbCmp:getRigidBody()
+    if not rb then return 0, 0, 0 end
+    local velocity = rb:getVelocity()
+    return velocity.x, velocity.y, velocity.z
+end
+
 --- Exponential mapping for smooth control output (from legacy)
 local function expMap(x)
     if x >= 0 then
@@ -172,19 +185,7 @@ function AutoPilotSystem:update(dt, shipEntity)
     local shipPos = rb:getPos()
     local speed = rb:getSpeed()
 
-    -- Compute target velocity from position delta (works for kinematic bodies moved by setPos)
-    local tVelX, tVelY, tVelZ = 0, 0, 0
-    if ap._prevTargetPos and dt > 0 then
-        tVelX = (targetPos.x - ap._prevTargetPos.x) / dt
-        tVelY = (targetPos.y - ap._prevTargetPos.y) / dt
-        tVelZ = (targetPos.z - ap._prevTargetPos.z) / dt
-        -- Smooth velocity (low-pass filter to reduce jitter)
-        local s = math.min(1, 5 * dt)
-        ap.targetVelX = ap.targetVelX + (tVelX - ap.targetVelX) * s
-        ap.targetVelY = ap.targetVelY + (tVelY - ap.targetVelY) * s
-        ap.targetVelZ = ap.targetVelZ + (tVelZ - ap.targetVelZ) * s
-    end
-    ap._prevTargetPos = Position(targetPos.x, targetPos.y, targetPos.z)
+    ap.targetVelX, ap.targetVelY, ap.targetVelZ = trackedVelocity(ap)
 
     -- Quick distance check for approach mode
     local qdx = targetPos.x - shipPos.x
@@ -240,7 +241,7 @@ function AutoPilotSystem:update(dt, shipEntity)
     end
 
     -- Distance to ACTUAL target (for arrival check + drive decel)
-    local actualTargetPos = ap._prevTargetPos or targetPos
+    local actualTargetPos = targetPos
     local adx = actualTargetPos.x - shipPos.x
     local ady = actualTargetPos.y - shipPos.y
     local adz = actualTargetPos.z - shipPos.z

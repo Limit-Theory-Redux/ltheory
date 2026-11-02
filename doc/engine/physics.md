@@ -25,6 +25,13 @@ A body reports the id set with `RigidBody:setUserId`, as a `uint64`; 0 means non
 - `mask` (optional, all groups by default) keeps only bodies whose collision group (`setCollisionGroup`) shares a bit with it.
 - Queries return non-collidable bodies (`setCollidable(false)`) like any other: collidability affects contacts only. To skip them, give them a collision group outside the mask.
 
+## Kinematic bodies
+
+A kinematic body (`setKinematic(true)`) is moved by code, not by forces. There are two ways to move it:
+
+- `setPos` and `setRot` teleport it. The body has no velocity, so contacts don't push anything and `getVelocity()` is zero. Use them to place a body.
+- `setKinematicTarget(pos, rot)` sets where the body is after the next physics step. During that step Rapier gives the body the velocity of the move (`(target − current) / dt`, and the angular velocity of the turn), so it pushes dynamic bodies it touches and reports its velocity. The body stays where it was until the step runs. Call it once per step, with the same `dt` as the step. It needs a kinematic body: on any other body it is an error.
+
 ## Tuning at ship scale
 
 Rapier's defaults suit bodies about a metre across. The game's ships are a few thousandths of a game unit, so apps with ship flight tune the world when they create it, with values from `Config.game.physics`:

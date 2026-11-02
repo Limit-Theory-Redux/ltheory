@@ -328,9 +328,10 @@ function AsteroidFieldSystem:updatePositions()
                 local t = entity:get(PhysicsComponents.Transform)
                 if t then t:setPos(worldPos) end
                 local rbCmp = entity:get(PhysicsComponents.RigidBody)
-                if rbCmp and rbCmp:getRigidBody() then
-                    rbCmp:getRigidBody():setPos(worldPos)
-
+                local rb = rbCmp and rbCmp:getRigidBody()
+                if rb then
+                    -- A kinematic target, so physics sees the asteroid's velocity as the belt moves.
+                    rb:setKinematicTarget(worldPos, rb:getRot())
                 end
             end
         end

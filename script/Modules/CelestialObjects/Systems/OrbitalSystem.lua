@@ -7,12 +7,40 @@ local EntityPosition      = require("Shared.Helpers.EntityPosition")
 
 local getEntityPos = EntityPosition.Get
 
---- Orbital simulation system — updates celestial body positions along their orbits
---- and rotates planets/moons on their axes. Kinematic rigid bodies are moved via setPos().
+-- Orbital angular speed is `ORBIT_SPEED_SCALE / sqrt(radius)` (Kepler-like, reduced so that the
+-- travel drive can catch planets); radii below `MIN_SPEED_RADIUS` use that radius.
+local ORBIT_SPEED_SCALE = 0.5
+local MIN_SPEED_RADIUS  = 1
+-- Below this the cosine of an inclination is too small to recover a phase from the z offset.
+local MIN_INCLINATION_COS = 1e-6
+local SECONDS_PER_HOUR    = 3600
+local DEFAULT_ROTATION_PERIOD_HOURS = 24
+
+--- Orbital simulation system. The orbit data lives in each body's `OrbitComponent`; this system
+--- sets it up, advances it, predicts positions and velocities from it, and moves the bodies along
+--- their orbits and spins planets and moons on their axes. Positions come from the orbit data, never
+--- from the parent's rigid body, so a child does not trail its parent by a frame.
 ---@class OrbitalSystem
 local OrbitalSystem = {}
 
---- Collect the orbiting bodies of a hierarchy and the rings and belts that follow their parent.
+--- The orbit of an entity that has one with a positive radius, nil otherwise.
+---@param entity Entity
+---@return OrbitComponent|nil
+local function orbitOf(entity)
+    local orbit = entity:get(SpatialComponents.Orbit)
+    if orbit and (orbit:getOrbitRadius() or 0) > 0 then return orbit end
+    return nil
+end
+
+---@param entity Entity
+---@return Entity|nil
+local function parentOf(entity)
+    local parentCmp = entity:get(CoreComponents.Parent)
+    return parentCmp and parentCmp:getParent() or nil
+end
+
+--- Collect the orbiting bodies of a hierarchy and the rings and belts that follow their parent, and
+--- set up each orbit's phase, speed and inclination from the body's current position.
 --- The orbiters come from a walk, which lists a parent before its children (a child's initial
 --- phase reads its parent's position); the followers come from the ring and belt views.
 ---@param rootEntity Entity The root of the hierarchy (a universe or a star system)
@@ -41,46 +69,50 @@ function OrbitalSystem:_collectFollowers()
     return followers
 end
 
+--- The phase of an orbit that passes through `offset` (a position relative to the parent), so that
+--- the body continues from where it was generated instead of jumping.
+---@param offset table Position relative to the parent, with x, y, z
+---@param inclination number Radians
+---@return number phase Radians, 0 for a body at its parent's position
+local function phaseOfOffset(offset, inclination)
+    local cosInc = math.cos(inclination)
+    -- Undo the inclination to get the offset within the orbit plane.
+    local planeZ = math.abs(cosInc) > MIN_INCLINATION_COS and offset.z / cosInc
+        or offset.y / math.sin(inclination)
+    local phase = math.atan2(planeZ, offset.x)
+    if phase ~= phase then return 0 end -- NaN guard (offset is zero)
+    return phase
+end
+
+--- Set an orbit's phase, angular speed and inclination from where its body is now.
+---@param entity Entity
+---@param parentEntity Entity|nil
+---@param orbit OrbitComponent
+local function initialiseOrbit(entity, parentEntity, orbit)
+    local entPos = getEntityPos(entity)
+    local parentPos = getEntityPos(parentEntity)
+    local incCmp = entity:get(SpatialComponents.Inclination)
+    local inclination = incCmp and math.rad(incCmp:getInclination() or 0) or 0
+    -- The generator places bodies from their anomaly, so a random phase here would make the first
+    -- update jump the body to another point of its orbit (a ship spawned at a planet would be left
+    -- behind as the planet moves away).
+    orbit:setInclination(inclination)
+    orbit:setPhase(phaseOfOffset({
+        x = entPos.x - parentPos.x,
+        y = entPos.y - parentPos.y,
+        z = entPos.z - parentPos.z,
+    }, inclination))
+    orbit:setAngularSpeed(ORBIT_SPEED_SCALE / math.sqrt(math.max(MIN_SPEED_RADIUS, orbit:getOrbitRadius())))
+end
+
 ---@param entity Entity
 ---@param parentEntity Entity|nil
 ---@param orbiters table[]
 function OrbitalSystem:_walkForOrbiters(entity, parentEntity, orbiters)
-    local orbitCmp = entity:get(SpatialComponents.Orbit)
-    if orbitCmp then
-        local orbitRadius = orbitCmp:getOrbitRadius() or 0
-        if orbitRadius > 0 then
-            -- Initial phase derived from the entity's CURRENT position,
-            -- not randomized: the generator places bodies via
-            -- meanAnomaly/true-anomaly math, so a random phase here would
-            -- make the first orbital update JUMP the body to a different
-            -- point on its orbit (spawning a ship "at the planet" then
-            -- leaving it floating at the orbit path as the planet moves).
-            -- phase = atan2(z, x) of (entityPos - parentPos) keeps the
-            -- orbit continuous with the generated position.
-            local entPos = getEntityPos(entity)
-            local parentPos = getEntityPos(parentEntity)
-            local relX = entPos.x - parentPos.x
-            local relZ = entPos.z - parentPos.z
-            local phase = math.atan2(relZ, relX)
-            if phase ~= phase then phase = 0 end -- NaN guard (relX=relZ=0)
-
-            -- Kepler-ish orbital speed: speed ∝ 1/sqrt(r)
-            -- Reduced so travel drive can catch planets
-            local speed = 0.5 / math.sqrt(math.max(1, orbitRadius))
-
-            -- Inclination
-            local incCmp = entity:get(SpatialComponents.Inclination)
-            local inclination = incCmp and math.rad(incCmp:getInclination() or 0) or 0
-
-            table.insert(orbiters, {
-                entity       = entity,
-                parentEntity = parentEntity,  -- live reference, read position each frame
-                orbitRadius  = orbitRadius,
-                speed        = speed,
-                phase        = phase,
-                inclination  = inclination,
-            })
-        end
+    local orbit = orbitOf(entity)
+    if orbit then
+        initialiseOrbit(entity, parentEntity, orbit)
+        table.insert(orbiters, { entity = entity, orbit = orbit })
     end
 
     -- Recurse into children — this entity becomes the parent
@@ -92,83 +124,97 @@ function OrbitalSystem:_walkForOrbiters(entity, parentEntity, orbiters)
     end
 end
 
+--- Where an entity will be `t` seconds from now: its parent's predicted position plus its orbit offset
+--- when it orbits, else where it is now (a body without an orbit is taken as not moving).
+--- Needs `collectOrbiters` to have set the orbit up.
+---@param entity Entity
+---@param t number Seconds from now, may be negative
+---@return gameunit x, gameunit y, gameunit z
+function OrbitalSystem:_predictXYZ(entity, t)
+    local orbit = orbitOf(entity)
+    if not orbit then
+        local pos = getEntityPos(entity)
+        return pos.x, pos.y, pos.z
+    end
+    local px, py, pz = 0, 0, 0
+    local parent = parentOf(entity)
+    if parent then px, py, pz = self:_predictXYZ(parent, t) end
+    local ox, oy, oz = orbit:offsetAt(t)
+    return px + ox, py + oy, pz + oz
+end
+
+---@param entity Entity
+---@param t number Seconds from now, may be negative
+---@return Position
+function OrbitalSystem:predictPos(entity, t)
+    return Position(self:_predictXYZ(entity, t))
+end
+
+--- The velocity an entity has `t` seconds from now: its parent's plus its orbital velocity relative
+--- to the parent. Zero for a body without an orbit.
+---@param entity Entity
+---@param t number Seconds from now, may be negative
+---@return gameunit vx, gameunit vy, gameunit vz Game units per second
+function OrbitalSystem:velocity(entity, t)
+    local orbit = orbitOf(entity)
+    if not orbit then return 0, 0, 0 end
+    local vx, vy, vz = 0, 0, 0
+    local parent = parentOf(entity)
+    if parent then vx, vy, vz = self:velocity(parent, t) end
+    local rx, ry, rz = orbit:relativeVelocityAt(t)
+    return vx + rx, vy + ry, vz + rz
+end
+
+--- The rotation a body has after spinning on its axis for `dt` seconds. The rotation period is in
+--- hours (24 = an Earth-like day); a body without one keeps its rotation.
+---@param entity Entity
+---@param rb RigidBody
+---@param dt number
+---@return Quat
+local function spunRotation(entity, rb, dt)
+    local rotation = rb:getRot()
+    local rotPeriod = entity:get(CelestialComponents.RotationPeriod)
+    if not rotPeriod then return rotation end
+
+    local periodHours = rotPeriod:getRotationPeriod() or DEFAULT_ROTATION_PERIOD_HOURS
+    local rotSpeed = (2 * math.pi) / (periodHours * SECONDS_PER_HOUR)
+    return rotation:mul(Quat.FromAxisAngle(Vec3f(0, 1, 0), rotSpeed * dt))
+end
+
+--- Move a body to `pos` over the next physics step, spinning it for `spinDt` seconds (none when
+--- nil), and set its transform to `pos`. The rigid body is a kinematic target and not a teleport,
+--- so physics sees the body's velocity.
+---@param entity Entity
+---@param pos Position
+---@param spinDt number|nil
+local function placeBody(entity, pos, spinDt)
+    local rbCmp = entity:get(PhysicsComponents.RigidBody)
+    local rb = rbCmp and rbCmp:getRigidBody()
+    if rb then
+        rb:setKinematicTarget(pos, spunRotation(entity, rb, spinDt or 0))
+    end
+
+    local transform = entity:get(PhysicsComponents.Transform)
+    if transform then transform:setPos(pos) end
+end
+
 --- Update all orbiter positions for one frame
 ---@param orbiters table[] Array from collectOrbiters
 ---@param dt number Delta time
+---@param followers table[]|nil Array from collectOrbiters
 function OrbitalSystem:update(orbiters, dt, followers)
     for _, orb in ipairs(orbiters) do
-        orb.phase = orb.phase + orb.speed * dt
-
-        local x = math.cos(orb.phase) * orb.orbitRadius
-        local z = math.sin(orb.phase) * orb.orbitRadius
-
-        -- Apply inclination
-        local cosInc = math.cos(orb.inclination)
-        local sinInc = math.sin(orb.inclination)
-        local y = z * sinInc
-        z = z * cosInc
-
-        -- Read parent's CURRENT position (not a stale snapshot)
-        local parentPos = getEntityPos(orb.parentEntity)
-
-        local newPos = Position(
-            parentPos.x + x,
-            parentPos.y + y,
-            parentPos.z + z
-        )
-
-        -- Update rigid body position (kinematic)
-        local rbCmp = orb.entity:get(PhysicsComponents.RigidBody)
-        if rbCmp then
-            local rb = rbCmp:getRigidBody()
-            if rb then
-                rb:setPos(newPos)
-            end
-        end
-
-        -- Update transform component to stay in sync
-        local transform = orb.entity:get(PhysicsComponents.Transform)
-        if transform then
-            transform:setPos(newPos)
-        end
-
-        -- Self-rotation (spin on axis). RotationPeriod is in HOURS
-        -- (ruleset: 24 = Earth-like day), so convert to seconds before
-        -- deriving angular speed - treating hours as seconds spins a
-        -- 24h-day planet 3600x too fast.
-        local rotPeriod = orb.entity:get(CelestialComponents.RotationPeriod)
-        if rotPeriod and rbCmp then
-            local periodHours = rotPeriod:getRotationPeriod() or 24
-            local periodSec = periodHours * 3600
-            local rotSpeed = (2 * math.pi) / periodSec
-            local rb = rbCmp:getRigidBody()
-            if rb then
-                local currentRot = rb:getRot()
-                local deltaRot = Quat.FromAxisAngle(Vec3f(0, 1, 0), rotSpeed * dt)
-                rb:setRot(currentRot:mul(deltaRot))
-            end
-        end
+        orb.orbit:advance(dt)
     end
 
-    -- Update followers: entities that track their parent position (rings on planets)
-    if followers then
-        for _, fol in ipairs(followers) do
-            local parentPos = getEntityPos(fol.parentEntity)
-            local transform = fol.entity:get(PhysicsComponents.Transform)
-            if transform then
-                transform:setPos(parentPos)
-            end
-            -- The rigid body drives rendering (mWorld comes from the RB),
-            -- so it must follow too or the visual stays at spawn while
-            -- only the transform tracks the parent.
-            local rbCmp = fol.entity:get(PhysicsComponents.RigidBody)
-            if rbCmp then
-                local rb = rbCmp:getRigidBody()
-                if rb then
-                    rb:setPos(parentPos)
-                end
-            end
-        end
+    for _, orb in ipairs(orbiters) do
+        placeBody(orb.entity, self:predictPos(orb.entity, 0), dt)
+    end
+
+    -- Followers: entities that track their parent position (rings on planets). The rigid body drives
+    -- rendering (mWorld comes from the rigid body), so it follows as well as the transform.
+    for _, fol in ipairs(followers or {}) do
+        placeBody(fol.entity, self:predictPos(fol.parentEntity, 0))
     end
 end
 

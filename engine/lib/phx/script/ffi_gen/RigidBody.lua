@@ -59,6 +59,7 @@ function Loader.defineType()
             void             RigidBody_GetPos                            (RigidBody const*, Position* out);
             void             RigidBody_GetPosLocal                       (RigidBody const*, Position* out);
             void             RigidBody_SetPos                            (RigidBody*, Position const* pos);
+            void             RigidBody_SetKinematicTarget                (RigidBody*, Position const* pos, Quat const* rot);
             void             RigidBody_SetPosLocal                       (RigidBody*, Position const* pos);
             void             RigidBody_GetRot                            (RigidBody const*, Quat* out);
             void             RigidBody_GetRotLocal                       (RigidBody const*, Quat* out);
@@ -151,6 +152,7 @@ function Loader.defineType()
                 getPos                      = libphx.RigidBody_GetPos,
                 getPosLocal                 = libphx.RigidBody_GetPosLocal,
                 setPos                      = libphx.RigidBody_SetPos,
+                setKinematicTarget          = libphx.RigidBody_SetKinematicTarget,
                 setPosLocal                 = libphx.RigidBody_SetPosLocal,
                 getRot                      = libphx.RigidBody_GetRot,
                 getRotLocal                 = libphx.RigidBody_GetRotLocal,

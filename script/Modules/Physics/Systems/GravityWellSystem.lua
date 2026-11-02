@@ -1,8 +1,9 @@
-local Registry          = require("Core.ECS.Registry")
-local CoreComponents    = require("Modules.Core.Components")
-local PhysicsComponents = require("Modules.Physics.Components")
-local SpatialComponents = require("Modules.Spatial.Components")
+local Registry            = require("Core.ECS.Registry")
+local CoreComponents      = require("Modules.Core.Components")
+local PhysicsComponents   = require("Modules.Physics.Components")
+local SpatialComponents   = require("Modules.Spatial.Components")
 local CelestialComponents = require("Modules.CelestialObjects.Components")
+local OrbitalSystem       = require("Modules.CelestialObjects.Systems.OrbitalSystem")
 
 local OPEN_SPACE = PhysicsComponents.GravityWell.OPEN_SPACE
 
@@ -163,7 +164,8 @@ function GravityWellSystem:_updateShip(shipEntity, well, rb)
             well:enter(zone.parentEntity, zone.parentName, zone.zoneType)
             well:setPrevBodyPos(nil)
         end
-        followBody(well, rb, shipPos, bodyPosition(zone))
+        -- The body's position for this step: its rigid body only reaches it when the step runs.
+        followBody(well, rb, shipPos, OrbitalSystem:predictPos(zone.parentEntity, 0))
     end
 
     if well:getZoneType() ~= prevType then

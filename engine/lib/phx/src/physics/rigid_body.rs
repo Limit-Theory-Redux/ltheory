@@ -25,7 +25,7 @@ pub type BodyUserId = u64;
  *
  * The following API functions are disabled for child objects:
  * apply_force, apply_torque, get_speed, get_velocity, get_angular_velocity,
- * set_position, and set_rotation.
+ * set_position, set_rotation, and set_kinematic_target.
  *
  * The following API functions only have an effect once the child is removed
  * from its parent: set_collidable, set_collision_group, set_collision_mask,
@@ -791,6 +791,24 @@ impl RigidBody {
     #[bind(name = "SetPos")]
     pub fn set_position(&mut self, pos: &Position) {
         self.rigid_body.as_mut().set_translation(pos.to_na(), true);
+    }
+
+    /// Moves a kinematic body to `pos` and `rot` over the next physics step, so physics sees its
+    /// velocity: contacts push dynamic bodies and `get_velocity` reports the motion. Unlike
+    /// `set_position` and `set_rotation`, which teleport, the body stays where it is until then.
+    ///
+    /// # Panics
+    /// If the body is not kinematic, which Rapier would silently ignore.
+    pub fn set_kinematic_target(&mut self, pos: &Position, rot: &Quat) {
+        let mut rigid_body = self.rigid_body.as_mut();
+        assert!(
+            rigid_body.is_kinematic(),
+            "set_kinematic_target needs a kinematic body"
+        );
+        rigid_body.set_next_kinematic_position(na::Isometry3::from_parts(
+            na::Translation3::from(pos.to_na()),
+            rot.to_na(),
+        ));
     }
 
     /// Local coordinates are relative to the parent *before* scaling. The

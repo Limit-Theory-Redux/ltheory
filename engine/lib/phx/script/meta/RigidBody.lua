@@ -189,6 +189,16 @@ function RigidBody:getPosLocal(result) end
 ---@param pos Position
 function RigidBody:setPos(pos) end
 
+-- Moves a kinematic body to `pos` and `rot` over the next physics step, so physics sees its
+-- velocity: contacts push dynamic bodies and `get_velocity` reports the motion. Unlike
+-- `set_position` and `set_rotation`, which teleport, the body stays where it is until then.
+-- 
+-- # Panics
+-- If the body is not kinematic, which Rapier would silently ignore.
+---@param pos Position
+---@param rot Quat
+function RigidBody:setKinematicTarget(pos, rot) end
+
 -- Local coordinates are relative to the parent *before* scaling. The
 -- given position will be multiplied by the parent's scale.
 ---@param pos Position

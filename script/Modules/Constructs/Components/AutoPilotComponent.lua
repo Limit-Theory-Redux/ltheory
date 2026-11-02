@@ -18,10 +18,9 @@ local AutoPilotComponent = Subclass("AutoPilotComponent", Component, function(se
     self.interceptPos  = nil     -- predicted intercept position
     self.distance      = 0       -- distance to target
     self.eta           = 0       -- estimated time of arrival (seconds)
-    self.targetVelX    = 0       -- computed target velocity
+    self.targetVelX    = 0       -- the tracked target's velocity
     self.targetVelY    = 0
     self.targetVelZ    = 0
-    self._prevTargetPos = nil    -- for velocity computation
 end)
 
 -- GETTERS
