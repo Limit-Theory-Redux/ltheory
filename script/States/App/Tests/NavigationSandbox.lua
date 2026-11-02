@@ -18,9 +18,15 @@ local CameraEntity          = require("Modules.Cameras.Entities").Camera
 local CameraManager         = require("Modules.Cameras.Managers.CameraManager")
 local OrbitCameraController = require("Modules.Cameras.Managers.CameraControllers.OrbitCameraController")
 local CameraDataComponent   = require("Modules.Cameras.Components.CameraDataComponent")
+-- Required for its event subscriptions: it moves the orbit camera and reads its input.
+require("Modules.Cameras.Systems.CameraSystem")
+
+local RenderingComponents   = require("Modules.Rendering.Components")
+local Entity                = require("Core.ECS.Entity")
 
 local SeekArrive            = require("States.App.Tests.NavigationSandbox.Support.SeekArrive")
 local ScenarioMetrics       = require("States.App.Tests.NavigationSandbox.Support.ScenarioMetrics")
+local NavDebugDraw          = require("States.App.Tests.NavigationSandbox.Support.NavDebugDraw")
 
 ---@class SandboxShipSpec
 ---@field start number[] { x, y, z } in metres
@@ -57,6 +63,13 @@ local HUD_X, HUD_Y, HUD_LINE = 40, 40, 25
 local HUD_W, HUD_H = 40, 20
 local HUD_GREY, HUD_ALPHA = 0.9, 0.9
 local HUD_ALIGN_X, HUD_ALIGN_Y = 0.0, 0.5
+-- Marker colours (r, g, b, a) by ship state; the target and the course use the flying colour.
+local MARKER_COLORS    = {
+    flying     = { 0.3, 0.7, 1.0, 1.0 },
+    arrived    = { 0.3, 1.0, 0.4, 1.0 },
+    deadlocked = { 1.0, 0.3, 0.2, 1.0 },
+}
+local COURSE_ALPHA     = 0.5
 
 ---An app that runs only `scenario`. A scenario module returns the result.
 ---@param scenario SandboxScenario
@@ -91,7 +104,32 @@ function NavigationSandbox:onInit()
     self.failedScenarios = 0
     self:createEnvironment()
     self:createCamera()
+    self.markers = Entity.Create("NavigationSandboxMarkers",
+        RenderingComponents.Render(function(_, blendMode) self:drawMarkers(blendMode) end))
     self:startScenario(1)
+end
+
+function NavigationSandbox:onExit()
+    Registry:destroyEntity(self.markers, Enums.Registry.EntityDestroyMode.DestroyChildren)
+end
+
+---Ship, target and course markers: the ships are far below a pixel at the framing distance.
+---Drawn in the additive pass only, so they are not covered by the opaque geometry's lighting.
+---@param blendMode integer
+function NavigationSandbox:drawMarkers(blendMode)
+    if blendMode ~= BlendMode.Additive or not self.ships then return end
+    NavDebugDraw.begin()
+    for _, ship in ipairs(self.ships) do
+        local color = MARKER_COLORS[ship.state]
+        local flying = MARKER_COLORS.flying
+        NavDebugDraw.sphere(ship.rb:getPos(), ship.rb:getBoundingRadius(), color)
+        NavDebugDraw.sphere(ship.target, ScenarioMetrics.ARRIVAL_RANGE, flying, true)
+        if ship.state == "flying" then
+            NavDebugDraw.line(ship.rb:getPos(), ship.target,
+                { flying[1], flying[2], flying[3], COURSE_ALPHA })
+        end
+    end
+    NavDebugDraw.finish()
 end
 
 ---A uniform environment instead of a generated skybox: the lighting shaders read the

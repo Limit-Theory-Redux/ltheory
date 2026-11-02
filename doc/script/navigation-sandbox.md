@@ -32,6 +32,20 @@ Every ship is a Solo fighter from `ShipGenerator` with the Solo flight profile, 
 
 The scene is a fresh physics world per scenario, the ships, and an orbit camera that looks at the centre of all starts and targets from above. There is no star system. In place of a generated skybox, the sandbox pushes one small cube map of a uniform dim grey as both `envMap` and `irMap`, which the lighting shaders read; the irradiance of a uniform environment is the environment itself.
 
+## Debug drawing
+
+`Support/NavDebugDraw.lua` draws lines and spheres at world `Position`s. The render pipeline draws with the eye at the origin, so the helper subtracts the eye from each point in double precision (`Position:relativeTo`) before it reaches `Draw.Line3` and `Draw.Sphere`. A render function calls `begin()`, the draws, then `finish()`.
+
+A sphere is never drawn smaller than a fixed angular radius as seen from the eye: its radius is `max(radius, distance · MIN_ANGULAR_RADIUS)`. Ships are tens of metres across and the scenarios span kilometres, so at the framing distance a ship is far below a pixel; the angular minimum keeps it visible at any distance without depending on the field of view or the window size.
+
+The sandbox draws, in the additive pass, for each ship:
+
+| Marker | Meaning |
+|---|---|
+| Filled sphere at the ship | Its state: blue flying, green arrived, red deadlocked |
+| Wireframe sphere at the target | The arrival range |
+| Line from the ship to its target | The straight course, while the ship is flying |
+
 ## Steering
 
 `Support/SeekArrive.lua` is a temporary seek-and-arrive controller. It writes each ship's `ControlInputComponent`, like any other writer (see [flight control](flight.md)), until the navigation behaviours replace it.

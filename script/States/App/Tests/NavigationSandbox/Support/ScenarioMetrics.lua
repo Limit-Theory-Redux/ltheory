@@ -136,4 +136,7 @@ function ScenarioMetrics:summarize(simTime)
         self.frameMsSum / measured, self.frameMsMax, measured)
 end
 
+---The distance from its target, in game units, within which a ship can arrive.
+ScenarioMetrics.ARRIVAL_RANGE = ARRIVAL_RANGE
+
 return ScenarioMetrics
