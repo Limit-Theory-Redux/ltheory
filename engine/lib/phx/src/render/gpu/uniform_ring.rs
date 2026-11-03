@@ -231,10 +231,12 @@ impl StagingRing {
         out
     }
 
-    /// Take back memory the executor has finished uploading.
+    /// Take back memory the executor has finished uploading. Only a buffer
+    /// of exactly the chunk capacity can become a chunk again: a run buffer
+    /// grown past it stays a run.
     pub fn recycle(&mut self, mut bytes: Vec<u8>) {
         bytes.clear();
-        if bytes.capacity() >= self.chunk_size {
+        if bytes.capacity() == self.chunk_size {
             self.spare.push(bytes);
         } else if self.runs.len() < RUN_POOL_LIMIT {
             self.runs.push(bytes);
@@ -391,6 +393,32 @@ mod tests {
         ring.alloc(CHUNK_SIZE as u32 - 256);
         ring.alloc(1024);
         assert_eq!(ring.spare_chunks(), 0);
+    }
+
+    #[test]
+    fn a_run_grown_past_the_chunk_size_never_becomes_a_chunk() {
+        let mut ring = UniformRing::new();
+        // A small run buffer goes back to the run pool.
+        ring.alloc(16);
+        for c in ring.take_pending() {
+            ring.recycle(c.bytes);
+        }
+        // The next run reuses it and grows it to nearly a whole chunk, which
+        // can take its capacity past the chunk size.
+        ring.alloc(CHUNK_SIZE as u32 - 512);
+        let mut chunks = ring.take_pending();
+        assert_eq!(chunks.len(), 1);
+        let spare = ring.spare_chunks();
+        let mut run = chunks.pop().unwrap().bytes;
+        run.reserve(CHUNK_SIZE * 2);
+        assert!(run.capacity() > CHUNK_SIZE);
+        ring.recycle(run);
+        assert_eq!(ring.spare_chunks(), spare);
+        // Every chunk opened from the pool has the exact chunk capacity
+        // (`alloc` asserts it).
+        for _ in 0..=spare {
+            ring.alloc(CHUNK_SIZE as u32 - 256);
+        }
     }
 
     #[test]
