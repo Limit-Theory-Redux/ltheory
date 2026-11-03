@@ -89,10 +89,8 @@ fn parse_io(line: &str) -> Option<IoDecl<'_>> {
     }
     let (dir, rest) = if let Some(r) = rest.strip_prefix("in ") {
         (Dir::In, r)
-    } else if let Some(r) = rest.strip_prefix("out ") {
-        (Dir::Out, r)
     } else {
-        return None;
+        (Dir::Out, rest.strip_prefix("out ")?)
     };
     if rest.contains('(') || rest.contains('{') || !rest.trim_end().ends_with(';') {
         return None;

@@ -416,12 +416,12 @@ pub fn convert_texels(
     let (dst_comps, dst_scalar) = native_layout(dst);
     let src_comps = PixelFormat::components(pixel) as usize;
     let swizzled = matches!(pixel, PixelFormat::BGR | PixelFormat::BGRA);
-    let native_scalar = match (data, dst_scalar) {
+    let native_scalar = matches!(
+        (data, dst_scalar),
         (DataFormat::U8, Scalar::Unorm8)
-        | (DataFormat::U16, Scalar::Unorm16)
-        | (DataFormat::Float, Scalar::Float) => true,
-        _ => false,
-    };
+            | (DataFormat::U16, Scalar::Unorm16)
+            | (DataFormat::Float, Scalar::Float)
+    );
     if src_comps == dst_comps && native_scalar && !swizzled {
         return Cow::Borrowed(bytes);
     }

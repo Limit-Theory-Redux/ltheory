@@ -84,6 +84,10 @@ pub(super) struct AttachRt {
     pub clear: [f32; 4],
 }
 
+/// The attachments a diagnostic dump copies: the first color attachment
+/// (texture, mip level) and the depth texture.
+pub(super) type DumpSources = (Option<(wgpu::Texture, u32)>, Option<wgpu::Texture>);
+
 /// The open pass: attachments, the wgpu pass (absent while a flush point has
 /// it closed) and the state the commands have set.
 pub(super) struct PassRt {
@@ -109,7 +113,7 @@ pub(super) struct PassRt {
     pub no_viewport: bool,
     /// Diagnostics (`LTHEORY_WGPU_DUMP`): the first color attachment (texture,
     /// mip level) and the depth texture, copied when the pass ends.
-    pub dump: Option<(Option<(wgpu::Texture, u32)>, Option<wgpu::Texture>)>,
+    pub dump: Option<DumpSources>,
 }
 
 impl PassRt {
@@ -387,10 +391,7 @@ impl WgpuCommandExecutor {
     }
 
     /// Diagnostics: what `LTHEORY_WGPU_DUMP` copies of the pass `desc`.
-    fn dump_sources(
-        &self,
-        desc: &RenderPassDesc,
-    ) -> (Option<(wgpu::Texture, u32)>, Option<wgpu::Texture>) {
+    fn dump_sources(&self, desc: &RenderPassDesc) -> DumpSources {
         if desc.backbuffer {
             let color = self.backbuffer.as_ref().map(|b| (b.color.clone(), 0));
             return (color, None);

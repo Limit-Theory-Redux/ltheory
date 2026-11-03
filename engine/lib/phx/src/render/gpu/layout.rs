@@ -31,8 +31,8 @@ pub const GROUP_DRAW: u8 = 2;
 pub const GROUP_INPUTS: u8 = 3;
 
 /// wgpu numbering inside a bind group (`set` = group): the `k`-th uniform block
-/// is binding `k`, the `i`-th sampler is a texture at `WGPU_FIRST_TEXTURE_BINDING
-/// + 2 * i` and its sampler object right after it (naga needs separate texture
+/// is binding `k`, the `i`-th sampler is a texture at
+/// `WGPU_FIRST_TEXTURE_BINDING + 2 * i` and its sampler object right after it (naga needs separate texture
 /// and sampler declarations; the combined-sampler split of the wgpu shader
 /// adaptation pairs them again at the use sites).
 pub const WGPU_FIRST_TEXTURE_BINDING: u32 = BLOCKS_PER_GROUP;

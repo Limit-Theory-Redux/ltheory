@@ -379,18 +379,14 @@ impl WgpuCommandExecutor {
         for block in &layout.blocks {
             let binding = wgpu_block_binding(block.index);
             if block.dynamic {
-                match gs.ring.and_then(|(slot, chunk)| {
+                if let Some(((slot, chunk), buffer)) = gs.ring.and_then(|(slot, chunk)| {
                     self.ring_uniform[slot as usize]
                         .get(chunk as usize)
                         .map(|b| ((slot, chunk), b))
                 }) {
-                    Some(((slot, chunk), buffer)) => {
-                        key.extend([1, slot as u64, chunk as u64, block.size as u64]);
-                        resources
-                            .push((binding, Res::Buffer(buffer.clone(), 0, block.size as u64)));
-                        continue;
-                    }
-                    None => {}
+                    key.extend([1, slot as u64, chunk as u64, block.size as u64]);
+                    resources.push((binding, Res::Buffer(buffer.clone(), 0, block.size as u64)));
+                    continue;
                 }
             } else if let Some((buffer_id, offset, size)) = gs.statics[block.index as usize] {
                 if let Some(buffer) = self.buffers.get(&buffer_id) {
