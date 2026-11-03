@@ -1,0 +1,79 @@
+use std::hint::black_box;
+
+use criterion::{Criterion, criterion_group, criterion_main};
+use glam::DVec3;
+use nav::{Body, Goal, Obstacle, Profile, World};
+
+const AGENTS: usize = 100;
+const OBSTACLES: usize = 60;
+/// Half the side of the cube the agents and obstacles are spread over, in length units.
+const SPREAD: f64 = 20_000.0;
+const OBSTACLE_RADIUS: f64 = 400.0;
+const AGENT_RADIUS: f64 = 25.0;
+const PROFILE: Profile = Profile {
+    max_speed: 8_800.0,
+    linear_drag: 2.0,
+};
+
+/// A fixed pseudo-random sequence in `[-1, 1)`, so every run measures the same scene.
+struct Sequence(u64);
+
+impl Sequence {
+    fn next(&mut self) -> f64 {
+        self.0 = self
+            .0
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1_442_695_040_888_963_407);
+        ((self.0 >> 11) as f64 / (1u64 << 53) as f64) * 2.0 - 1.0
+    }
+
+    fn point(&mut self) -> DVec3 {
+        DVec3::new(self.next(), self.next(), self.next()) * SPREAD
+    }
+}
+
+fn scene() -> World {
+    let mut sequence = Sequence(1);
+    let mut world = World::new();
+    for _ in 0..AGENTS {
+        let id = world.add_agent(PROFILE);
+        world.set_body(
+            id,
+            Body {
+                position: sequence.point(),
+                velocity: sequence.point().normalize() * PROFILE.max_speed * 0.5,
+                radius: AGENT_RADIUS,
+                ..Body::AT_REST
+            },
+        );
+        world.set_goal(
+            id,
+            Some(Goal {
+                target: sequence.point(),
+                arrival_radius: 100.0,
+            }),
+        );
+    }
+    let obstacles: Vec<Obstacle> = (0..OBSTACLES)
+        .map(|_| Obstacle {
+            position: sequence.point(),
+            velocity: sequence.point().normalize() * 50.0,
+            radius: OBSTACLE_RADIUS,
+        })
+        .collect();
+    world.set_obstacles(&obstacles);
+    world
+}
+
+fn step_benchmark(c: &mut Criterion) {
+    let mut world = scene();
+    c.bench_function("step 100 agents 60 obstacles", |b| {
+        b.iter(|| {
+            world.step();
+            black_box(world.axes());
+        })
+    });
+}
+
+criterion_group!(benches, step_benchmark);
+criterion_main!(benches);

@@ -2,8 +2,11 @@ Config.credits = {
     ["BASED ON THE IDEAS & WORKS OF"] = {
         { name = "Josh Parnell", teams = "Original Limit Theory Development" },
     },
+    ["RESEARCH"] = {
+        { name = "Craig Reynolds", teams = "Steering Behaviors For Autonomous Characters, GDC 1999" },
+    },
     ["MAINTAINERS"] = {
-        { name = "Haron",        teams = "Engine Development & Design" },
+        { name = "Haron",         teams = "Engine Development & Design" },
         { name = "dga",           teams = "Engine Development & Design" },
         { name = "Flatfingers",   teams = "Scripting, UI/UX & Game Design" },
         { name = "IllustrisJack", teams = "Scripting, UI/UX & Game Design" },
@@ -16,6 +19,7 @@ Config.credits = {
 
 local header_order = {
     "BASED ON THE IDEAS & WORKS OF",
+    "RESEARCH",
     "MAINTAINERS",
     "CONTRIBUTORS"
 }

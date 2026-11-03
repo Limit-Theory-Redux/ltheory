@@ -2,7 +2,7 @@
 
 Pure navigation algorithms in Rust: no FFI, no engine types, no game vocabulary. The crate depends on external crates only, so its tests and benchmarks need no window. The engine (`phx`) wraps it for Lua as `NavWorld`; the game decides what ships do and Lua calls in for the maths.
 
-The crate is a skeleton: `World` holds no state yet.
+`World` holds agents and obstacles and, per step, gives each agent normalised control axes: Arrive, sphere avoidance and a damping controller. How they work, and their limits: [`doc/engine/nav.md`](../../../doc/engine/nav.md). `tests/flight.rs` flies agents through a simple ship model, and `cargo bench -p nav --bench step` measures a step.
 
 ## Testing Lua kernels
 

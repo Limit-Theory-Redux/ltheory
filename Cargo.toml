@@ -22,6 +22,8 @@ luajit-ffi-gen = { path = "engine/lib/luajit-ffi-gen" }
 nav = { path = "engine/lib/nav" }
 
 # external crates
+criterion = "0.8"
+glam = { version = "0.29", features = ["scalar-math"] }
 mlua = { version = "0.10", features = ["luajit52", "vendored", "error-send"] }
 proc-macro2 = "1.0"
 quote = "1.0"

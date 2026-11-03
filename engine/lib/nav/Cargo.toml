@@ -9,6 +9,15 @@ edition.workspace = true
 [lints]
 workspace = true
 
+[dependencies]
+# external crates
+glam.workspace = true
+
 [dev-dependencies]
 # external crates
+criterion.workspace = true
 mlua.workspace = true
+
+[[bench]]
+name = "step"
+harness = false

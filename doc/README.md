@@ -7,6 +7,7 @@
    - [Engine Workers](../engine/lib/phx/src/engine/task_queue/README.md)
    - [Navigation crate and Lua kernel tests](../engine/lib/nav/README.md)
    - [Physics](engine/physics.md)
+   - [Navigation maths](engine/nav.md)
 1. [Scripting](script/README.md)
    - [Lua Workers](script/workers.md)
    - [Entity Component System](script/ecs.md)
