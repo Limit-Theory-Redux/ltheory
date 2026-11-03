@@ -418,11 +418,10 @@ impl WgpuCommandExecutor {
 
     /// A shader module from a validated naga module of the engine's own shaders.
     ///
-    /// Created without wgpu's runtime checks: the engine's shaders are trusted
-    /// (they go through naga's validator here), and the checks cost real
-    /// time. Forced loop bounding in particular turns every loop into a
-    /// counted one, which made the occlusion bake of generated ships several
-    /// times slower.
+    /// Created with wgpu's runtime checks except forced loop bounding, which
+    /// turns every loop into a counted one and made the occlusion bake of
+    /// generated ships several times slower. Bounds checks stay, so an index
+    /// out of range reads inside the binding instead of being undefined.
     pub(super) fn shader_module(
         &self,
         label: &'static str,
@@ -432,11 +431,15 @@ impl WgpuCommandExecutor {
             label: Some(label),
             source: wgpu::ShaderSource::Naga(std::borrow::Cow::Owned(module)),
         };
+        let checks = wgpu::ShaderRuntimeChecks {
+            force_loop_bounding: false,
+            ..wgpu::ShaderRuntimeChecks::checked()
+        };
         #[allow(unsafe_code)]
-        // SAFETY: see above; the shader sources are the engine's own.
+        // SAFETY: without loop bounding a shader must not loop forever; the
+        // shader sources are the engine's own, written without unbounded loops.
         unsafe {
-            self.device
-                .create_shader_module_trusted(descriptor, wgpu::ShaderRuntimeChecks::unchecked())
+            self.device.create_shader_module_trusted(descriptor, checks)
         }
     }
 
