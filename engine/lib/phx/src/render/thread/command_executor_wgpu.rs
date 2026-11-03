@@ -52,7 +52,6 @@
 //! framebuffer.
 
 use std::collections::HashMap;
-use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -171,8 +170,8 @@ pub struct WgpuCommandExecutor {
     returned: Vec<ReturnedChunk>,
     backbuffer: Option<frame::Backbuffer>,
     present: Option<frame::PresentBlit>,
-    /// Set by `on_submitted_work_done` once the GPU finished a slot's frame.
-    slot_done: [Option<Arc<AtomicBool>>; crate::render::MAX_FRAMES_IN_FLIGHT],
+    /// The last submission of the frame that used each ring slot.
+    slot_done: [Option<wgpu::SubmissionIndex>; crate::render::MAX_FRAMES_IN_FLIGHT],
     pacing_tx: Option<Sender<u64>>,
     pending_reads: Vec<readback::WgpuPendingRead>,
     mip_blit: tex::MipBlit,

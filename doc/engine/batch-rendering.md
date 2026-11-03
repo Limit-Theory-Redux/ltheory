@@ -72,5 +72,5 @@ copied per call into a command and chunk memory is recycled like the uniform rin
 The ring itself: `render/gpu/uniform_ring.rs` (`StagingRing`, `UniformRing`, `VertexRing`). The main
 thread allocates into fixed-capacity staging chunks, a chunk that fills up moves to the executor whole,
 and the executor hands the memory back after uploading it, over a return channel. The GPU buffers of a
-frame slot are reused only once the GPU is done with them: `BeginFrame{slot}` waits for the
-`on_submitted_work_done` of the frame that last used the slot.
+frame slot are reused only once the GPU is done with them: `BeginFrame{slot}` waits in the driver
+(`device.poll` with the submission index) for the last submission of the frame that last used the slot.

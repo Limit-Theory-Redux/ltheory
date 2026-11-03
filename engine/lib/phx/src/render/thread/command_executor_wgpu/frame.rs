@@ -1,8 +1,6 @@
 //! Frames of the wgpu executor: the encoder and its flush points, the ring
 //! buffers, the backbuffer and presentation, and frame pacing.
 
-use std::sync::atomic::Ordering;
-
 use super::*;
 use crate::render::{CHUNK_SIZE, MAX_FRAMES_IN_FLIGHT, RingChunk, VERTEX_CHUNK_SIZE};
 
@@ -289,21 +287,18 @@ impl WgpuCommandExecutor {
     // Frame boundaries
     // =====================================================================
 
-    /// A new frame starts in ring slot `slot`: wait until the GPU finished
-    /// the frame that last used it (its `on_submitted_work_done`), and pick up
-    /// the readbacks that completed.
+    /// A new frame starts in ring slot `slot`: wait in the driver until the
+    /// GPU finished the frame that last used it, and pick up the readbacks
+    /// that completed.
     pub(super) fn cmd_begin_frame(&mut self, slot: u8) {
         let slot = slot as usize % MAX_FRAMES_IN_FLIGHT;
         self.frame_slot = slot;
-        if let Some(done) = self.slot_done[slot].take() {
-            let started = Instant::now();
-            while !done.load(Ordering::Acquire) {
-                let _ = self.device.poll(wgpu::PollType::Poll);
-                if started.elapsed() > Duration::from_secs(5) {
-                    error!("wgpu: BeginFrame: slot {slot} was not finished by the GPU within 5 s");
-                    break;
-                }
-                std::thread::yield_now();
+        if let Some(index) = self.slot_done[slot].take() {
+            if let Err(error) = self.device.poll(wgpu::PollType::Wait {
+                submission_index: Some(index),
+                timeout: Some(Duration::from_secs(5)),
+            }) {
+                error!("wgpu: BeginFrame: slot {slot} was not finished by the GPU: {error}");
             }
         }
         self.poll_readbacks();
@@ -384,12 +379,10 @@ impl WgpuCommandExecutor {
         }
         let present_wait_us = present_started.elapsed().as_micros() as u64;
 
-        // The GPU's completion of this frame's work frees its ring slot.
-        let done = Arc::new(AtomicBool::new(false));
-        let flag = done.clone();
-        self.queue
-            .on_submitted_work_done(move || flag.store(true, Ordering::Release));
-        self.slot_done[self.frame_slot] = Some(done);
+        // The GPU's completion of this frame's work frees its ring slot. An
+        // empty submission completes after everything submitted before it.
+        let index = self.queue.submit(std::iter::empty::<wgpu::CommandBuffer>());
+        self.slot_done[self.frame_slot] = Some(index);
         if self.diag.frame_wait {
             let _ = self.device.poll(wgpu::PollType::Wait {
                 submission_index: None,
