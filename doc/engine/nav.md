@@ -47,8 +47,19 @@ The controller maps the wanted velocity and the direction of travel to axes. It 
 - Avoidance between agents isn't implemented.
 - The cost of a step grows with agents × obstacles; there is no spatial index.
 
+## Engine wrapper (`NavWorld`)
+
+`NavWorld` (`engine/lib/phx/src/nav/`) is the Lua handle on a `World`. It is created for one `Physics` (`NavWorld.Create(physics)`) and reads its bodies from that physics world, so Lua pushes no body state.
+
+- **Registration.** `addAgent(body, maxSpeed, linearDrag)` returns the agent's id (a `u32`: 0, then consecutive) and `addObstacle(body)` adds a sphere every agent steers around. A body must be a root body added to that physics world. There is no removal: a registered body has to stay in the physics world, and `step` panics, naming the agent or obstacle, if one has left it.
+- **Goals and tuning.** `setGoal(id, target, arrivalRadius)` takes a `Position` in world coordinates; `clearGoal(id)` leaves the agent without input. `setAvoidanceTuning(horizonS, clearanceRadii, aimFactor)` replaces the tuning (defaults as in `AvoidanceTuning`).
+- **Step.** `step()` reads each registered body's position, velocity, rotation and the bounding radius of its collider, turns the rotation into a frame (forward is -z, right +x and up +y in the body's axes, as `Quat` does), and runs `World::step`. All values are in game units and seconds.
+- **Results.** `copyAxes(buffer, length)` fills a `double[?]` with `AxisCount()` values per agent, in agent order and in the order of the `NavAxis` enum (`Pitch`, `Yaw`, `Roll`, `ThrustForward`, `ThrustRight`, `ThrustUp`); `copyArrived(buffer, length)` fills a `bool[?]` with one flag per agent. A buffer of the wrong length panics.
+
 ## Tests and benchmarks
 
 Unit tests sit with the modules. `tests/flight.rs` flies agents through a point-mass model of a ship (drag, thrust along its axes, turn rate proportional to input) past static and moving spheres, and checks they arrive and keep clear. It checks that behaviour, avoidance and controller work together, not the real ship's response.
+
+`NavWorld`'s tests (in `phx`) use real rigid bodies in a `Physics`: they check that a step follows the body in physics, that obstacle bodies change the axes, and that bad registrations, ids, buffers and removed bodies panic.
 
 `cargo bench -p nav --bench step` measures one step for 100 agents and 60 obstacles.

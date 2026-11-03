@@ -249,6 +249,13 @@ pub struct Physics {
     debug_renderer: rp::DebugRenderPipeline,
 }
 
+impl Physics {
+    /// A shared handle on the world this physics steps, for modules that read bodies from it.
+    pub(crate) fn world(&self) -> Rf<PhysicsWorld> {
+        self.world.clone()
+    }
+}
+
 #[luajit_ffi_gen::luajit_ffi]
 impl Physics {
     #[bind(name = "Create")]

@@ -907,6 +907,55 @@ impl RigidBody {
     }
 }
 
+/// Names an added rigid body in a physics world by its Rapier handles. Handles are generational,
+/// so they stop resolving once the body leaves the world.
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct BodyHandles {
+    body: rp::RigidBodyHandle,
+    collider: rp::ColliderHandle,
+}
+
+/// A body's pose, motion and extent as the physics world holds them, in game units.
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct BodyState {
+    pub position: DVec3,
+    pub velocity: DVec3,
+    pub rotation: na::UnitQuaternion<rp::Real>,
+    /// Radius of the collider's bounding sphere.
+    pub radius: f64,
+}
+
+impl RigidBody {
+    /// The handles of this body in `world`; None unless it is a root body added to that world.
+    pub(crate) fn handles_in(&self, world: &Rf<PhysicsWorld>) -> Option<BodyHandles> {
+        if self.is_child() {
+            return None;
+        }
+        let (body, body_world) = self.rigid_body.added_as_ref()?;
+        let (collider, _) = self.collider.added_as_ref()?;
+        body_world.ptr_eq(world).then_some(BodyHandles {
+            body: *body,
+            collider: *collider,
+        })
+    }
+}
+
+impl PhysicsWorld {
+    /// The state of the body named by `handles`; None once it has left this world.
+    pub(crate) fn body_state(&self, handles: &BodyHandles) -> Option<BodyState> {
+        let body = self.rigid_bodies.get(handles.body)?;
+        let collider = self.colliders.get(handles.collider)?;
+        let position = body.translation();
+        let velocity = body.linvel();
+        Some(BodyState {
+            position: DVec3::new(position.x, position.y, position.z),
+            velocity: DVec3::new(velocity.x, velocity.y, velocity.z),
+            rotation: *body.rotation(),
+            radius: collider.shape().compute_local_bounding_sphere().radius(),
+        })
+    }
+}
+
 /// Access to Rapier body settings that the Lua API doesn't expose, for physics tests.
 #[cfg(test)]
 impl RigidBody {
