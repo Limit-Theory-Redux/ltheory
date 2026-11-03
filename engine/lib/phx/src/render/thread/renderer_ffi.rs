@@ -158,7 +158,7 @@ impl Renderer {
 
     /// Label of the `i`-th heaviest pass (0-based), empty if out of range.
     pub fn stats_gpu_pass_label(&mut self, i: u32) -> String {
-        let g = self.get_stats().gpu;
+        let g = &self.get_stats().gpu;
         if i < g.count {
             crate::render::gpu_label(g.label[i as usize])
         } else {
@@ -168,13 +168,13 @@ impl Renderer {
 
     /// GPU time of the `i`-th heaviest pass in the last measured frame, microseconds.
     pub fn stats_gpu_pass_us(&mut self, i: u32) -> u32 {
-        let g = self.get_stats().gpu;
+        let g = &self.get_stats().gpu;
         if i < g.count { g.us[i as usize] } else { 0 }
     }
 
     /// Exponential average of the GPU time of the `i`-th heaviest pass, microseconds.
     pub fn stats_gpu_pass_smooth_us(&mut self, i: u32) -> u32 {
-        let g = self.get_stats().gpu;
+        let g = &self.get_stats().gpu;
         if i < g.count {
             g.smooth_us[i as usize]
         } else {
@@ -185,7 +185,7 @@ impl Renderer {
     /// The `n` heaviest passes (smoothed ms) as `label=ms` pairs separated by `,`
     /// (for logs and capture output); empty when n/a.
     pub fn stats_gpu_summary(&mut self, n: u32) -> String {
-        let g = self.get_stats().gpu;
+        let g = &self.get_stats().gpu;
         let mut out = String::new();
         for i in 0..(g.count.min(n) as usize) {
             if i > 0 {

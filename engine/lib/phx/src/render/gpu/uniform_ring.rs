@@ -19,6 +19,8 @@ pub const VERTEX_CHUNK_SIZE: usize = 1024 * 1024;
 pub const UNIFORM_ALIGN: u32 = 256;
 /// Alignment of vertex-ring allocations (covers `vec4` attributes).
 pub const VERTEX_ALIGN: u32 = 16;
+/// Frames the main thread may run ahead of the GPU; ring memory and the
+/// executor's per-slot state are kept once per frame slot.
 pub const MAX_FRAMES_IN_FLIGHT: usize = 3;
 /// Recycled partial-run buffers kept around.
 const RUN_POOL_LIMIT: usize = 64;

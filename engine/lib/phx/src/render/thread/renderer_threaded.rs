@@ -16,9 +16,6 @@ use crate::render::{
 };
 use crate::window::{PresentMode, WgpuStartupBundle};
 
-/// Maximum frames in flight for triple buffering
-const MAX_FRAMES_IN_FLIGHT: u64 = 3;
-
 pub struct Renderer {
     /// Send commands to the render thread
     command_tx: Sender<RenderCommand>,
@@ -234,7 +231,9 @@ impl Renderer {
         }
 
         // If at limit, block waiting for one frame to complete
-        while self.frames_in_flight.load(Ordering::Relaxed) >= MAX_FRAMES_IN_FLIGHT {
+        while self.frames_in_flight.load(Ordering::Relaxed)
+            >= crate::render::MAX_FRAMES_IN_FLIGHT as u64
+        {
             match self.pacing_fence_rx.recv() {
                 Ok(_) => {
                     self.frames_in_flight.fetch_sub(1, Ordering::Relaxed);
@@ -291,10 +290,10 @@ impl Renderer {
         self.backend_info.clone()
     }
 
-    /// Get current render stats snapshot
-    pub fn get_stats(&mut self) -> RenderStats {
+    /// The latest render stats snapshot.
+    pub fn get_stats(&mut self) -> &RenderStats {
         self.refresh_stats();
-        self.last_stats.clone()
+        &self.last_stats
     }
 
     /// Get total commands processed since start

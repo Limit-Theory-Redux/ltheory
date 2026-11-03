@@ -62,7 +62,7 @@ impl Renderer {
                 .duration_since(std::time::UNIX_EPOCH)
                 .map(|d| d.as_micros() as u64)
                 .unwrap_or(0),
-            render: self.get_stats(),
+            render: self.get_stats().clone(),
             main_thread_wait_us: self.main_thread_wait_us,
             send_blocked_us: self.send_blocked_us,
             send_block_count: self.send_block_count,
