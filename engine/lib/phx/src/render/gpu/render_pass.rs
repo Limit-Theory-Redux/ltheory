@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use glam::{IVec2, Vec3};
+use tracing::warn;
 
 use super::{
     BindGroup, PASS_FLUSH_LIMIT, PassCmd, PassCommands, PipelineId, SamplerId, TexView, ViewBlock,
@@ -450,6 +451,7 @@ impl Renderer {
             panic!("RenderPass finish(): no pass is open");
         }
         Metric::FBOSwap.inc();
+        self.data.draw_alloc_flush = None;
         // Hand the recorded commands over before the pass ends.
         self.flush_pass_encoder();
         self.end_render_pass();
@@ -503,6 +505,7 @@ impl Renderer {
     /// Record a draw: pending inputs go out first, and a full buffer flushes.
     pub(crate) fn pass_draw(&mut self, cmd: PassCmd) {
         self.pass_require_open("draw");
+        self.check_late_alloc();
         self.imm_flush();
         // The batcher binds its own pipelines in between: the caller's comes
         // back before their draw.
@@ -534,7 +537,25 @@ impl Renderer {
         }
         let (at, ptr) = self.data.ring.alloc(size);
         self.data.encoder.push(PassCmd::SetDraw { at, size });
+        self.data.draw_alloc_flush = Some(self.data.pass_flushes);
         ptr
+    }
+
+    /// The block of the last `RenderPass:alloc` was flushed before this draw:
+    /// whatever the caller wrote into it after that flush never reaches the
+    /// GPU. Reported once, in debug builds.
+    fn check_late_alloc(&mut self) {
+        let Some(at) = self.data.draw_alloc_flush.take() else {
+            return;
+        };
+        if cfg!(debug_assertions) && at != self.data.pass_flushes && !self.data.late_alloc_warned {
+            self.data.late_alloc_warned = true;
+            let pass = self.data.pass.open.as_deref().unwrap_or("?");
+            warn!(
+                "RenderPass '{pass}': the block from alloc() was flushed before its draw; \
+                 write it right after alloc(), before other render calls"
+            );
+        }
     }
 
     /// Send everything recorded so far, plus the uniform bytes it
@@ -553,6 +574,7 @@ impl Renderer {
         let uniforms = self.data.ring.take_pending();
         let vertices = self.data.vertex_ring.take_pending();
         let cmds = self.data.encoder.take();
+        self.data.pass_flushes += 1;
         let slot = self.data.ring.slot();
         self.send_pass_commands(Box::new(PassCommands {
             slot,

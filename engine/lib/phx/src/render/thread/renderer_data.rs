@@ -43,6 +43,13 @@ pub struct RendererData {
     /// The `ViewBlock` uploaded last, where, and in which frame, so passes
     /// with an identical block reuse the upload.
     pub last_view: Option<(ViewBlock, RingOffset, u64)>,
+    /// Pass flushes so far, and the count when the last `RenderPass:alloc`
+    /// handed out its pointer (`None` once a draw used it): a flush in
+    /// between sends the block before the caller's writes are done.
+    pub pass_flushes: u64,
+    pub draw_alloc_flush: Option<u64>,
+    /// Whether that late write was reported (once per run).
+    pub late_alloc_warned: bool,
     /// Camera of the next passes (`Renderer:setCamera`).
     pub camera: CameraState,
     /// Group-0 environment maps (`Renderer:setEnvironment`).
@@ -96,6 +103,9 @@ impl RendererData {
             release_tx,
             release_rx,
             last_view: None,
+            pass_flushes: 0,
+            draw_alloc_flush: None,
+            late_alloc_warned: false,
             camera: CameraState::default(),
             environment: Environment::default(),
             clip_rect: ClipManager::new(),
