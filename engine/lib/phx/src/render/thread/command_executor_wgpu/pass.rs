@@ -9,7 +9,7 @@
 
 use super::bind::{GroupState, is_dynamic_block};
 use super::*;
-use crate::render::{MAX_COLOR_ATTACHMENTS, Samplers, StoreOp, face_layer};
+use crate::render::{MAX_COLOR_ATTACHMENTS, Samplers, face_layer};
 
 /// Bytes of one entry of an instance index list (`uint`).
 const INSTANCE_INDEX_SIZE: u64 = 4;
@@ -342,9 +342,6 @@ impl WgpuCommandExecutor {
                     clear: [d.clear, 0.0, 0.0, 0.0],
                 });
             }
-            // A store op of `Discard` is informational (GL 3.3 cannot discard):
-            // later passes may sample the attachment.
-            let _ = StoreOp::Discard;
         }
         let label_id = self.timer_label(&desc.label);
         let mut pass = PassRt {

@@ -3,10 +3,7 @@
 
 use std::collections::HashMap;
 
-use super::MAX_COLOR_ATTACHMENTS;
-use crate::render::{
-    BlendMode, CmdPrimitiveType, CullFace, Renderer, ResourceId, Shader, TexFormat,
-};
+use crate::render::{BlendMode, CmdPrimitiveType, CullFace, Renderer, ResourceId, Shader};
 
 /// Index of a created pipeline. Allocated on the main thread; the executor
 /// maps it to its own state.
@@ -94,6 +91,8 @@ impl Default for DepthState {
 }
 
 /// Everything that defines a pipeline. The cache key is the whole value.
+/// Attachment formats are not part of it: the executor specializes a native
+/// pipeline for the formats of each pass it is used in.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct PipelineDesc {
     /// The shader's resource id.
@@ -107,8 +106,6 @@ pub struct PipelineDesc {
     pub blend: BlendMode,
     pub cull: CullFace,
     pub depth: DepthState,
-    pub color_formats: [Option<TexFormat>; MAX_COLOR_ATTACHMENTS],
-    pub depth_format: Option<TexFormat>,
     pub polygon: PolygonMode,
 }
 
@@ -122,8 +119,6 @@ impl PipelineDesc {
             blend: BlendMode::Disabled,
             cull: CullFace::None,
             depth: DepthState::default(),
-            color_formats: [None; MAX_COLOR_ATTACHMENTS],
-            depth_format: None,
             polygon: PolygonMode::Fill,
         }
     }
@@ -142,8 +137,8 @@ impl PipelineDesc {
 
 #[luajit_ffi_gen::luajit_ffi]
 impl PipelineDesc {
-    /// A description with the legacy defaults: opaque, no culling, no depth
-    /// test, writes on, filled triangles from a `Mesh`.
+    /// A description with the defaults: opaque, no culling, no depth test,
+    /// writes on, filled triangles from a `Mesh`.
     #[bind(name = "Create")]
     pub fn create(shader: &Shader) -> PipelineDesc {
         Self::for_shader(shader)
@@ -175,20 +170,6 @@ impl PipelineDesc {
 
     pub fn polygon(&mut self, polygon: PolygonMode) {
         self.polygon = polygon;
-    }
-
-    /// Format of color attachment `index` of the passes this pipeline draws
-    /// in (unused on GL, required by wgpu).
-    pub fn color_format(&mut self, index: i32, format: TexFormat) {
-        assert!(
-            (0..MAX_COLOR_ATTACHMENTS as i32).contains(&index),
-            "PipelineDesc:colorFormat: index {index} out of range"
-        );
-        self.color_formats[index as usize] = Some(format);
-    }
-
-    pub fn depth_format(&mut self, format: TexFormat) {
-        self.depth_format = Some(format);
     }
 }
 

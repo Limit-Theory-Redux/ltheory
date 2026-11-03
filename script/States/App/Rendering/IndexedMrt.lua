@@ -22,10 +22,6 @@ function RenderingIndexedMrt:onInit()
     self.shader = Cache.Shader("indexed_mrt", "indexed_mrt")
     local desc = PipelineDesc.Create(self.shader)
     desc:depth(true, true, CompareFn.LessEqual)
-    desc:colorFormat(0, TexFormat.RGBA16F)
-    desc:colorFormat(1, TexFormat.RGBA16F)
-    desc:colorFormat(2, TexFormat.R32F)
-    desc:depthFormat(TexFormat.Depth32F)
     self.pipeline = Pipeline.Get(desc)
     self.backend = "wgpu"
     self.frames = 0

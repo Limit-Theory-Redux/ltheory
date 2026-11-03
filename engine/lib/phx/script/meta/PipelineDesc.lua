@@ -4,8 +4,8 @@
 ---@class PipelineDesc
 PipelineDesc = {}
 
--- A description with the legacy defaults: opaque, no culling, no depth
--- test, writes on, filled triangles from a `Mesh`.
+-- A description with the defaults: opaque, no culling, no depth test,
+-- writes on, filled triangles from a `Mesh`.
 ---@param shader Shader
 ---@return PipelineDesc
 function PipelineDesc.Create(shader) end
@@ -29,12 +29,3 @@ function PipelineDesc:vertex(vertex) end
 
 ---@param polygon PolygonMode
 function PipelineDesc:polygon(polygon) end
-
--- Format of color attachment `index` of the passes this pipeline draws
--- in (unused on GL, required by wgpu).
----@param index integer
----@param format TexFormat
-function PipelineDesc:colorFormat(index, format) end
-
----@param format TexFormat
-function PipelineDesc:depthFormat(format) end

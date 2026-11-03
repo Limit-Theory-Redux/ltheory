@@ -25,7 +25,6 @@ function RenderingDownsample:onInit()
     local function pipelineFor(shader)
         local desc = PipelineDesc.Create(shader)
         desc:vertex(VertexLayout.Fullscreen)
-        desc:colorFormat(0, TexFormat.RGBA8)
         return Pipeline.Get(desc)
     end
     self.patternPipeline = pipelineFor(self.pattern)

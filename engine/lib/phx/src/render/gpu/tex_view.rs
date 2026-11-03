@@ -48,18 +48,6 @@ impl TexView {
             ..Self::new(tex, dim, 0, extent)
         }
     }
-
-    /// The `[base, max]` GL mip range this view samples (`max` is the
-    /// driver default, 1000, for "all remaining levels").
-    pub fn gl_mip_range(&self) -> (i32, i32) {
-        let base = self.base_mip as i32;
-        let max = if self.mip_count == 0 {
-            1000
-        } else {
-            base + self.mip_count as i32 - 1
-        };
-        (base, max)
-    }
 }
 
 #[luajit_ffi_gen::luajit_ffi]
@@ -105,13 +93,11 @@ mod tests {
     #[test]
     fn mip_ranges() {
         let v = TexView::full(ResourceId(1), ViewDim::D2, [64, 32]);
-        assert_eq!(v.gl_mip_range(), (0, 1000));
+        assert_eq!((v.base_mip, v.mip_count), (0, 0));
         let m = v.mips(2, 3);
-        assert_eq!(m.gl_mip_range(), (2, 4));
+        assert_eq!((m.base_mip, m.mip_count), (2, 3));
         assert_eq!(m.extent, [16, 8]);
-        assert_eq!(
-            TexView::new(ResourceId(1), ViewDim::D2, 1, [8, 8]).gl_mip_range(),
-            (1, 1)
-        );
+        let one = TexView::new(ResourceId(1), ViewDim::D2, 1, [8, 8]);
+        assert_eq!((one.base_mip, one.mip_count), (1, 1));
     }
 }

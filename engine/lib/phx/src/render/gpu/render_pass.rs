@@ -23,20 +23,11 @@ pub enum LoadOp {
     DontCare,
 }
 
-/// GL 3.3 has no discard (`glInvalidateFramebuffer` is 4.3), so this is
-/// currently informational on GL.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum StoreOp {
-    Store,
-    Discard,
-}
-
 #[derive(Debug, Clone, Copy)]
 pub struct ColorAttachment {
     pub view: TexView,
     pub load: LoadOp,
     pub clear: [f32; 4],
-    pub store: StoreOp,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -44,7 +35,6 @@ pub struct DepthAttachment {
     pub view: TexView,
     pub load: LoadOp,
     pub clear: f32,
-    pub store: StoreOp,
 }
 
 /// Everything a render pass needs to begin. Sent to the executor by value in
@@ -97,22 +87,12 @@ impl RenderPassDesc {
             "RenderPassDesc '{}': color index {index} out of range (max {MAX_COLOR_ATTACHMENTS})",
             self.label
         );
-        self.color[index] = Some(ColorAttachment {
-            view,
-            load,
-            clear,
-            store: StoreOp::Store,
-        });
+        self.color[index] = Some(ColorAttachment { view, load, clear });
         self.extent = view.extent;
     }
 
     pub fn set_depth(&mut self, view: TexView, load: LoadOp, clear: f32) {
-        self.depth = Some(DepthAttachment {
-            view,
-            load,
-            clear,
-            store: StoreOp::Store,
-        });
+        self.depth = Some(DepthAttachment { view, load, clear });
         self.extent = view.extent;
     }
 
