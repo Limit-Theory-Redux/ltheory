@@ -55,7 +55,7 @@ end)
 
 ---Game units back to metres, for log lines.
 local function metres(gameUnits)
-    return gameUnits / ScaleConfig:toGameUnits(1, "starSystem")
+    return ScaleConfig:toRealMeters(gameUnits, "starSystem")
 end
 
 function ScenarioMetrics:log(fmt, ...)

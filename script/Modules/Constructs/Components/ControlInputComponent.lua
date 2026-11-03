@@ -2,7 +2,7 @@ local Component = require("Core.ECS.Component")
 
 ---@alias ControlAxis number A normalised control value in [-1, 1]
 
---- What a ship is asked to do this frame. Writers (the player controller, AI) set it;
+--- What a ship is asked to do this frame. Whatever steers the ship writes it, and
 --- actuation systems read it. Axes are levels the writer sets every frame; the drive
 --- request is an edge that the travel drive system consumes.
 ---@class ControlInputComponent: Component

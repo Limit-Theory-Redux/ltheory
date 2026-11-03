@@ -401,6 +401,8 @@ impl Physics {
     /// The first body the ray hits between `t_min` and `t_max`, skipping the compound
     /// `exclude` belongs to, and hitting only bodies whose collision group shares a bit
     /// with `mask`.
+    // `mask` is `u32`, not `CollisionMask`, here and in the queries below: the FFI generator
+    // doesn't resolve aliases.
     #[bind(out_param = true)]
     pub fn ray_cast_filtered(
         &self,

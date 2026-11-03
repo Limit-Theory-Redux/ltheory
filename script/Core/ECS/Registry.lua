@@ -43,6 +43,12 @@ function Entity:__tostring()
     return format("%s(%d)", self:get(NameComponent):getName(), self.id)
 end
 
+-- Handles are created per lookup (views, queries, `getEntityById`), so `==` compares the
+-- entities they refer to. Table keys still use the handle itself: key a table by `id`.
+function Entity.__eq(a, b)
+    return a.id == b.id
+end
+
 ---@generic T
 ---@param component T
 ---@return T|nil

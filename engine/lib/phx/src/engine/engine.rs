@@ -7,7 +7,7 @@ use tracing::*;
 use winit::dpi::*;
 use winit::event_loop::*;
 
-use super::{EventBus, ExitRequest, MainLoop, TaskQueue};
+use super::{EventBus, ExitCode, ExitRequest, MainLoop, TaskQueue};
 use crate::input::*;
 use crate::logging::init_log;
 use crate::render::Renderer;
@@ -161,7 +161,7 @@ impl Engine {
     }
 
     /// Runs the app to completion and returns the process exit code.
-    pub fn entry(settings: &'static EngineSettings) -> i32 {
+    pub fn entry(settings: &'static EngineSettings) -> ExitCode {
         // Keep log till the end of the execution
         let _log = init_log(settings);
 
@@ -521,7 +521,7 @@ impl Engine {
 /// process exit code of the run.
 #[allow(unsafe_code, improper_ctypes_definitions)]
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn Engine_Entry(settings: &'static EngineSettings) -> i32 {
+pub unsafe extern "C-unwind" fn Engine_Entry(settings: &'static EngineSettings) -> ExitCode {
     Engine::entry(settings)
 }
 
@@ -576,6 +576,7 @@ impl Engine {
 
     /// Ends the run with `code` as the process exit code. No frame Lua runs
     /// after the request; `AppClose` still does. The first non-zero code wins.
+    // `i32`, not `ExitCode`: the FFI generator doesn't resolve aliases.
     pub fn exit_with_code(&mut self, code: i32) {
         self.exit_request.request(code);
     }

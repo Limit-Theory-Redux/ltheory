@@ -1,13 +1,17 @@
+/// A process exit code: `libc::EXIT_SUCCESS` (0) or a failure.
+pub type ExitCode = i32;
+
 /// A request to end the run, and the process exit code it ends with.
 ///
 /// The first non-zero code is kept, so a later request can't hide a failure.
 #[derive(Debug, Default)]
 pub struct ExitRequest {
-    code: Option<i32>,
+    code: Option<ExitCode>,
 }
 
 impl ExitRequest {
-    pub fn request(&mut self, code: i32) {
+    /// Asks to end the run with `code`; ignored when a failure code was already requested.
+    pub fn request(&mut self, code: ExitCode) {
         if self
             .code
             .is_none_or(|current| current == libc::EXIT_SUCCESS)
@@ -16,12 +20,13 @@ impl ExitRequest {
         }
     }
 
+    /// Whether any exit was requested.
     pub fn is_requested(&self) -> bool {
         self.code.is_some()
     }
 
     /// The requested code, or `EXIT_SUCCESS` when nothing was requested.
-    pub fn code(&self) -> i32 {
+    pub fn code(&self) -> ExitCode {
         self.code.unwrap_or(libc::EXIT_SUCCESS)
     }
 }

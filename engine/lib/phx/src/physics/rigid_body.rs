@@ -752,6 +752,7 @@ impl RigidBody {
 
     /// Sets the id physics queries report for this body, such as the id of the entity
     /// that owns it; 0 means none.
+    // `u64`, not `BodyUserId`: the FFI generator doesn't resolve aliases.
     pub fn set_user_id(&mut self, id: u64) {
         self.user_id = id;
     }
