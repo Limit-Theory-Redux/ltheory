@@ -143,8 +143,8 @@ pub fn create_surface_bundle(
         .get_default_config(&adapter, width, height)
         .ok_or(WgpuError::NoDefaultConfig)?;
     // The default config prefers an sRGB format, which would gamma-encode the
-    // (already display-referred) pixels the engine renders. The GL default
-    // framebuffer is not sRGB either, so take the linear twin of the format.
+    // (already display-referred) pixels the engine renders, so take the
+    // linear twin of the format.
     let capabilities = surface.get_capabilities(&adapter);
     let linear = config.format.remove_srgb_suffix();
     if capabilities.formats.contains(&linear) {

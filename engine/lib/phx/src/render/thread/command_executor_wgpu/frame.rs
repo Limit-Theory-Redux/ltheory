@@ -6,7 +6,7 @@ use std::sync::atomic::Ordering;
 use super::*;
 use crate::render::{CHUNK_SIZE, MAX_FRAMES_IN_FLIGHT, RingChunk, VERTEX_CHUNK_SIZE};
 
-/// The window's backbuffer is an ordinary texture in the GL convention (see
+/// The window's backbuffer is an ordinary texture in the OpenGL convention (see
 /// the module docs of `command_executor_wgpu`); `SwapBuffers` flips it onto
 /// the swapchain image.
 pub(super) const BACKBUFFER_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8Unorm;

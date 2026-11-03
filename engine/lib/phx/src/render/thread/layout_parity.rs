@@ -40,8 +40,8 @@ fn shader_files(root: &Path) -> Vec<PathBuf> {
         .filter(|l| l.ends_with(".glsl"))
         .map(|l| root.join(l))
         .collect();
-    // Documented dead shaders (referenced by no script; both also fail to
-    // compile on GL): `uv_metal` has an unbalanced paren at line 30, and
+    // Documented dead shaders (referenced by no script; both fail to
+    // compile): `uv_metal` has an unbalanced paren at line 30, and
     // `ptracer` needs an engine-provided `SCENE_DESC` define.
     let excluded = [
         "res/shader/fragment/material/uv_metal.glsl",

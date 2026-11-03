@@ -42,7 +42,7 @@ impl ShaderErrorQueue {
             self.errors.pop_front();
         }
 
-        // OpenGL error strings may contain null bytes.
+        // Strip null bytes: the message is handed to Lua as a C string.
         let clean_message = message.replace('\0', "");
 
         tracing::error!("Shader {error_type} error for '{shader_key}': {clean_message}");

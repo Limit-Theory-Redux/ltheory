@@ -15,7 +15,7 @@
 pub const CHUNK_SIZE: usize = 256 * 1024;
 /// Bytes per vertex-ring chunk (the instance data of one draw must fit in one).
 pub const VERTEX_CHUNK_SIZE: usize = 1024 * 1024;
-/// `max(GL UNIFORM_BUFFER_OFFSET_ALIGNMENT, wgpu minimum)`.
+/// wgpu's `min_uniform_buffer_offset_alignment` default limit (256).
 pub const UNIFORM_ALIGN: u32 = 256;
 /// Alignment of vertex-ring allocations (covers `vec4` attributes).
 pub const VERTEX_ALIGN: u32 = 16;

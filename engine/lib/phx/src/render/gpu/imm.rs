@@ -694,8 +694,8 @@ impl Renderer {
         (camera.view, k)
     }
 
-    /// A debug line of `width` pixels: a camera-facing quad (wide lines are
-    /// not a thing on core GL or wgpu).
+    /// A debug line of `width` pixels: a camera-facing quad (wgpu has no wide
+    /// lines).
     pub fn imm_debug_line3(
         &mut self,
         state: ImmDebugState,

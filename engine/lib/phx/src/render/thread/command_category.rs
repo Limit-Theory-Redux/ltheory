@@ -19,7 +19,7 @@ pub enum CommandCategory {
     Texture,
     /// Texture parameter/upload/texel commands
     TextureData,
-    /// Blocking readbacks (glReadPixels etc.)
+    /// Texture readbacks (sync and async)
     Readback,
     /// FBO push/pop/attach, draw buffers, clear
     Framebuffer,

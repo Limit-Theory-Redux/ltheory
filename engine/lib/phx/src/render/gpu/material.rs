@@ -302,7 +302,7 @@ impl Material {
     }
 }
 
-/// What `Material::refresh_shader` did, as comma separated names.
+/// What `Material::refresh_shader` did.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct RefreshReport {
     /// The `MaterialParams` layout hash differs from before.

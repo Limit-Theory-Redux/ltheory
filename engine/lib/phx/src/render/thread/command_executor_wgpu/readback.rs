@@ -130,8 +130,8 @@ impl WgpuCommandExecutor {
                 (texture, desc.format, storage, false)
             }
             ReadSource::Backbuffer => {
-                // The backbuffer is a GL-convention texture (row 0 is the
-                // bottom of the window), so the rows come out as GL's.
+                // The backbuffer is an OpenGL-convention texture (row 0 is
+                // the bottom of the window), so the rows come out bottom-up.
                 self.ensure_backbuffer();
                 let backbuffer = self.backbuffer.as_ref().expect("backbuffer");
                 (

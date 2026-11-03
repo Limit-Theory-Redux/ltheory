@@ -32,9 +32,10 @@ pub const GROUP_INPUTS: u8 = 3;
 
 /// wgpu numbering inside a bind group (`set` = group): the `k`-th uniform block
 /// is binding `k`, the `i`-th sampler is a texture at
-/// `WGPU_FIRST_TEXTURE_BINDING + 2 * i` and its sampler object right after it (naga needs separate texture
-/// and sampler declarations; the combined-sampler split of the wgpu shader
-/// adaptation pairs them again at the use sites).
+/// `WGPU_FIRST_TEXTURE_BINDING + 2 * i` and its sampler object right after it
+/// (naga needs separate texture and sampler declarations; the
+/// combined-sampler split of the wgpu shader adaptation pairs them again at
+/// the use sites).
 pub const WGPU_FIRST_TEXTURE_BINDING: u32 = BLOCKS_PER_GROUP;
 
 /// wgpu binding of the `k`-th uniform block of a group.
@@ -190,8 +191,7 @@ impl ShaderLayout {
 }
 
 // ---------------------------------------------------------------------------
-// Reflected block layouts (GL: glGetActiveUniformBlockiv/glGetActiveUniformsiv;
-// wgpu: naga's module).
+// Reflected block layouts (from naga's module).
 // ---------------------------------------------------------------------------
 
 /// GLSL type of a block member, as far as the engine's FFI types go.
@@ -266,7 +266,7 @@ pub struct BlockMember {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BlockLayout {
     pub name: String,
-    /// Data size in bytes (`GL_UNIFORM_BLOCK_DATA_SIZE`).
+    /// Data size in bytes (the naga span rounded up to 16).
     pub size: u32,
     pub members: Vec<BlockMember>,
 }
@@ -432,8 +432,8 @@ pub fn index_blocks(blocks: &[BlockLayout]) -> HashMap<&str, &BlockLayout> {
 }
 
 // ---------------------------------------------------------------------------
-// naga reflection (GL-free): used by the wgpu executor to build the same
-// `BlockLayout`s, and by the layout-parity test.
+// naga reflection: used by the wgpu executor to build the `BlockLayout`s, and
+// by the layout-parity test.
 // ---------------------------------------------------------------------------
 
 /// Build `BlockLayout`s for every uniform block in a naga module that has a

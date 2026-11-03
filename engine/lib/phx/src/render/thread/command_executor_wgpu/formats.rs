@@ -74,7 +74,7 @@ pub(super) fn wrap_mode(mode: TexWrapMode) -> wgpu::AddressMode {
 
 /// `SamplerDesc` to `wgpu::SamplerDescriptor`: filters, wrap on all three axes,
 /// anisotropy and the LOD clamps (a sampler without a mip filter reads level
-/// `lod_min` only, like GL's non-mipmap min filters).
+/// `lod_min` only, like OpenGL's non-mipmap min filters).
 pub(super) fn sampler_descriptor(desc: &SamplerDesc) -> wgpu::SamplerDescriptor<'static> {
     let filter = |f: SamplerFilter| match f {
         SamplerFilter::Point => wgpu::FilterMode::Nearest,
@@ -259,7 +259,7 @@ pub(super) const INSTANCE_INDEX_ATTRIBUTES: [wgpu::VertexAttribute; 1] = [wgpu::
     shader_location: 10,
 }];
 
-/// Formats whose texels are floating point (not clamped by GL, not normalized).
+/// Formats whose texels are floating point (not clamped, not normalized).
 pub(super) fn is_float_format(format: wgpu::TextureFormat) -> bool {
     use wgpu::TextureFormat as F;
     matches!(

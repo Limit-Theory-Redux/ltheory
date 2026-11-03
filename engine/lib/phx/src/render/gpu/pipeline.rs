@@ -67,7 +67,7 @@ pub enum VertexLayout {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PolygonMode {
     Fill,
-    /// Wireframe (GL; wgpu needs `POLYGON_MODE_LINE`).
+    /// Wireframe (needs `POLYGON_MODE_LINE`; drawn filled without it).
     Line,
 }
 

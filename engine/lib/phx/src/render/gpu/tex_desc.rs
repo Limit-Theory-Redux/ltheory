@@ -1,10 +1,10 @@
-//! Texture creation and update descriptions, shared by both backends.
+//! Texture creation and update descriptions.
 //!
-//! `TexDesc { dim, format, size, mips, usage }` is everything the executors
-//! need to allocate a texture. Pixel updates are format-agnostic: a
+//! `TexDesc { dim, format, size, mips, usage }` is everything the executor
+//! needs to allocate a texture. Pixel updates are format-agnostic: a
 //! [`TexRegion`] plus bytes that are already in the texture's own
-//! [`TexFormat`] layout (tightly packed rows), so neither backend has to speak
-//! GL's `pixel format x data type` pairs. [`convert_texels`] does the
+//! [`TexFormat`] layout (tightly packed rows), so the executor never has to
+//! handle `pixel format x data type` pairs. [`convert_texels`] does the
 //! conversion from the engine's `(PixelFormat, DataFormat)` source layouts on
 //! the main thread.
 
@@ -31,8 +31,7 @@ pub enum TexUsage {
     Data = 16,
 }
 
-/// A set of [`TexUsage`] bits. GL ignores it (every texture can do everything);
-/// wgpu maps it to `TextureUsages`.
+/// A set of [`TexUsage`] bits; the executor maps it to `wgpu::TextureUsages`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TexUsages(pub u32);
 
@@ -339,7 +338,7 @@ fn scalar_bytes(scalar: Scalar) -> usize {
 /// tightly packed; the readback path of the wgpu executor, which reads in the
 /// texture's own format). Components `src` lacks are 0, alpha is 1, and
 /// components `dst` lacks are dropped; values go through `f32` and are
-/// rounded and clamped as GL does for a `glReadPixels` into a fixed-point
+/// rounded and clamped as OpenGL does for a `glReadPixels` into a fixed-point
 /// type. Equal formats are returned as they are.
 pub fn convert_format(src: TexFormat, bytes: &[u8], dst: TexFormat) -> Cow<'_, [u8]> {
     if src == dst {
@@ -367,8 +366,8 @@ fn source_scalar_size(df: DataFormat) -> usize {
     DataFormat::get_size(df) as usize
 }
 
-/// A component of the source as a float: integers are normalized the way GL
-/// does it (unsigned `c / max`, signed `max(c / max, -1)`).
+/// A component of the source as a float: integers are normalized the way
+/// OpenGL does it (unsigned `c / max`, signed `max(c / max, -1)`).
 fn read_component(df: DataFormat, bytes: &[u8]) -> f32 {
     match df {
         DataFormat::U8 => bytes[0] as f32 / 255.0,
@@ -403,9 +402,9 @@ fn write_component(scalar: Scalar, value: f32, out: &mut Vec<u8>) {
 
 /// Convert `bytes`, tightly packed texels laid out as `pixel` x `data`, to the
 /// native layout of `dst`. Components the source lacks are 0, except alpha,
-/// which is 1 (what GL does for an `RGB` upload into an `RGBA8` texture);
+/// which is 1 (what OpenGL does for an `RGB` upload into an `RGBA8` texture);
 /// components `dst` lacks are dropped. Integer and float sources are converted
-/// with GL's rules (round to nearest, clamp for normalized destinations). A
+/// with OpenGL's rules (round to nearest, clamp for normalized destinations). A
 /// source that already is in the native layout is returned as it is.
 pub fn convert_texels(
     pixel: PixelFormat,

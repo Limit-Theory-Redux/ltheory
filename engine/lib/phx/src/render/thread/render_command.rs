@@ -1,8 +1,8 @@
 //! Render commands for the multithreaded rendering system.
 //!
-//! All OpenGL operations are encoded as commands and sent to the render thread.
-//! This allows the main thread and worker threads to submit rendering work
-//! without directly touching the GL context.
+//! All GPU operations are encoded as commands and sent to the render thread,
+//! which owns the wgpu device, queue and surface. This allows the main thread
+//! and worker threads to submit rendering work without touching them directly.
 
 use std::sync::Arc;
 
@@ -75,15 +75,14 @@ pub enum RenderCommand {
         color: [f32; 4],
     },
 
-    /// Fill every mip level below 0 from level 0. GL: `glGenerateMipmap`.
-    /// wgpu: a chain of blit passes, one per level (and face or slice).
+    /// Fill every mip level below 0 from level 0 with a chain of blit
+    /// passes, one per level (and face or slice).
     GenerateMips { id: ResourceId },
 
-    /// Copy a `size[0]` x `size[1]` rectangle (`size[2]` layers, always 1 on
-    /// GL) from the origin of `src` to the origin of `dst`. Both views are
-    /// one level of a 2D texture, one face of a cube or one z-slice of a 3D
-    /// texture, with the same format. GL: `glBlitFramebuffer` between two
-    /// scratch framebuffers (`glCopyImageSubData` needs 4.3).
+    /// Copy a `size[0]` x `size[1]` rectangle (one layer; `size[2]` is not
+    /// used) from the origin of `src` to the origin of `dst`. Both views are
+    /// one level of a 2D texture or one face of a cube, with the same format;
+    /// other views are a no-op with a warning.
     CopyTexture {
         src: TexView,
         dst: TexView,
@@ -102,10 +101,9 @@ pub enum RenderCommand {
         reply_tx: Sender<Vec<u8>>,
     },
 
-    /// Start a readback of `region` of `src` in `format` without waiting
-    /// (GL: a pixel pack buffer and a fence; wgpu: a mappable buffer). The
-    /// executor polls it at `BeginFrame` and fills `slot` when the GPU is
-    /// done (see `ReadbackTicket`).
+    /// Start a readback of `region` of `src` in `format` into a mappable
+    /// buffer without waiting. The executor polls it at `BeginFrame` and
+    /// fills `slot` when the GPU is done (see `ReadbackTicket`).
     ReadbackAsync {
         src: ReadSource,
         region: TexRegion,
@@ -121,9 +119,9 @@ pub enum RenderCommand {
     /// End the open render pass and return to the default framebuffer.
     EndRenderPass,
 
-    /// A new frame starts in uniform-ring slot `slot`. GL: wait for the fence
-    /// inserted after the frame that last used the slot, so its ring buffers
-    /// can be overwritten.
+    /// A new frame starts in uniform-ring slot `slot`: wait until the GPU has
+    /// finished the frame that last used the slot, so its ring buffers can be
+    /// overwritten, and poll the pending async readbacks.
     BeginFrame { slot: u8 },
 
     /// The commands recorded in the open pass since the last flush, with the
@@ -156,15 +154,15 @@ pub enum RenderCommand {
     CreateBuffer { id: BufferId, size: u32 },
 
     /// Write `data` at byte `offset` of buffer `id`. Not allowed inside an
-    /// open pass on wgpu (`queue.write_buffer` orders before the whole
-    /// submission); GL executes it in command order.
+    /// open pass: `queue.write_buffer` is ordered before the whole submission,
+    /// so the executor first submits what was recorded so far.
     WriteBuffer {
         id: BufferId,
         offset: u32,
         data: Vec<u8>,
     },
 
-    // === Resource Creation (deferred to GL thread) ===
+    // === Resource Creation (deferred to the render thread) ===
     /// Create a shader program from source and apply its `#group` layout
     /// (block bindings, sampler units). `reply_tx` receives the reflected
     /// uniform blocks on success, the error on a compile/link failure - the
@@ -199,12 +197,12 @@ pub enum RenderCommand {
     DestroyResources { ids: Vec<ResourceId> },
 
     // === Window Operations ===
-    /// Resize the GL surface
+    /// Resize the window surface (reconfigures the swapchain)
     Resize { width: u32, height: u32 },
 
-    /// Change the swap interval (vsync on/off). Must go through the render
-    /// thread because `set_swap_interval` requires the GL context current,
-    /// and the context lives there - see `Engine::changed_window`.
+    /// Change the present mode (vsync on/off). Must go through the render
+    /// thread because it reconfigures the surface, which lives there - see
+    /// `Engine::changed_window`.
     SetPresentMode { mode: PresentMode },
 
     /// Swap buffers (present frame)

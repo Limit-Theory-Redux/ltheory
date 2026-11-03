@@ -68,8 +68,8 @@ pub(super) struct VariantKey {
     pub flavor: Flavor,
 }
 
-/// The unit quad `DrawFullscreen` draws, an `ImmVertex` layout like the one GL
-/// uses, as two triangles (the fan of the GL path).
+/// The unit quad `DrawFullscreen` draws: four `ImmVertex`es, indexed as two
+/// triangles.
 pub(super) struct Quad {
     pub vertices: wgpu::Buffer,
     pub indices: wgpu::Buffer,
@@ -109,7 +109,7 @@ pub(super) struct PassRt {
     pub viewport: [i32; 4],
     pub scissor: Option<[i32; 4]>,
     pub slot: usize,
-    /// The viewport is empty after clamping: draws do nothing (as in GL).
+    /// The viewport is empty after clamping: draws do nothing.
     pub no_viewport: bool,
     /// Diagnostics (`LTHEORY_WGPU_DUMP`): the first color attachment (texture,
     /// mip level) and the depth texture, copied when the pass ends.
@@ -156,7 +156,7 @@ impl WgpuCommandExecutor {
         use crate::render::TexDim;
         let Some((texture, desc)) = self.texture_and_desc(tv.tex) else {
             // Destroyed (or never created): the caller samples a default
-            // texture instead. Say so, as GL does - it is a lifetime bug.
+            // texture instead. Say so - it is a lifetime bug.
             self.warn_once(format!(
                 "bind view: texture {:?} not found (destroyed while still bound?); a default texture is sampled",
                 tv.tex
@@ -415,7 +415,7 @@ impl WgpuCommandExecutor {
             load: if first && a.load == LoadOp::Clear {
                 wgpu::LoadOp::Clear(to_color(a.clear))
             } else {
-                // `DontCare` keeps the old contents, like GL.
+                // `DontCare` keeps the old contents.
                 wgpu::LoadOp::Load
             },
             store: wgpu::StoreOp::Store,
@@ -902,8 +902,8 @@ impl WgpuCommandExecutor {
     }
 
     /// The fragment module of `shader` for targets of `colors`: outputs that
-    /// go to a fixed-point format are clamped to 0..1 like GL does before
-    /// blending (see `shader::wrap_fragment_clamp`).
+    /// go to a fixed-point format are clamped to 0..1 before blending, as
+    /// OpenGL does (see `shader::wrap_fragment_clamp`).
     fn fragment_module(
         &mut self,
         shader_id: ResourceId,
@@ -1033,8 +1033,8 @@ impl WgpuCommandExecutor {
                         | wgpu::VertexFormat::Sint32x3
                         | wgpu::VertexFormat::Sint32x4
                 );
-                // The shared 32-byte zero buffer: `(0, 0, 0, 0)` (GL's default
-                // attribute is `(0, 0, 0, 1)`; nothing reads the w of one).
+                // The shared 32-byte zero buffer: `(0, 0, 0, 0)` (OpenGL's
+                // default attribute is `(0, 0, 0, 1)`; nothing reads the w of one).
                 defaults.push(wgpu::VertexAttribute {
                     format: input.default,
                     offset: if integer { 16 } else { 0 },
@@ -1059,7 +1059,7 @@ impl WgpuCommandExecutor {
             .collect();
 
         // Color targets: one per attachment of the pass. A target the shader
-        // does not write masks every channel (GL leaves it undefined).
+        // does not write masks every channel (OpenGL leaves it undefined).
         let can_blend_f32 = self.features.contains(wgpu::Features::FLOAT32_BLENDABLE);
         let blend = blend_state(desc.blend);
         let targets: Vec<Option<wgpu::ColorTargetState>> = key
@@ -1084,7 +1084,7 @@ impl WgpuCommandExecutor {
             })
             .collect();
 
-        // GL: with the depth test off nothing is written either.
+        // As in OpenGL, nothing is written with the depth test off.
         let depth_stencil = key.depth.map(|format| wgpu::DepthStencilState {
             format,
             depth_write_enabled: Some(desc.depth.test && desc.depth.write),

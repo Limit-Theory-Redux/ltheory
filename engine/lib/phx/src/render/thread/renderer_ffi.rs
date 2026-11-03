@@ -12,7 +12,7 @@ use crate::system::{Bytes, Metric};
 //
 // These are thin Lua-facing wrappers: they convert Lua-friendly primitives
 // (ints, separate floats, ...) into the native types the per-command methods
-// on `Renderer` (defined in `renderer_immediate.rs`/`renderer_threaded.rs`)
+// on `Renderer` (defined in `renderer_threaded.rs`)
 // expect, then call those directly. The per-command methods carry an
 // `_intern` suffix so these wrappers can keep the plain, Lua-facing name
 // without clashing with them by name.
@@ -210,8 +210,8 @@ impl Renderer {
         self.data.vertex_ring.last_frame_bytes()
     }
 
-    /// Startup backend description as `key=value` lines: `backend`
-    /// (`OpenGL 3.3` or `wgpu`), then GL strings or the wgpu adapter info.
+    /// Startup backend description as `key=value` lines: `backend=wgpu`, then
+    /// the wgpu adapter info, surface format and present mode.
     /// Empty until the render thread is up; query once and cache.
     pub fn backend_info(&self) -> String {
         self.backend_info_intern()

@@ -396,8 +396,8 @@ impl WgpuCommandExecutor {
                     continue;
                 }
             }
-            // Nothing was bound: a block of zeros (the GL default is
-            // whatever was bound last; zeros are deterministic).
+            // Nothing was bound: a block of zeros, so the result is
+            // deterministic.
             key.extend([3, block.size as u64]);
             let zero = self.defaults.as_ref().expect("defaults").zero.clone();
             resources.push((binding, Res::Buffer(zero, 0, block.size as u64)));

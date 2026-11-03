@@ -29,8 +29,8 @@ use crate::render::{
     BlockLayout, ShaderLayout, TexDim, blocks_from_naga, wgpu_sampler_binding, wgpu_texture_binding,
 };
 
-/// Fixed vertex attribute locations (what `glBindAttribLocation` does in the GL
-/// executor, and the vertex buffer layouts of the draw commands).
+/// Fixed vertex attribute locations by name (OpenGL binds attributes by name,
+/// wgpu by location), matching the vertex buffer layouts of the draw commands.
 pub(super) const ATTRIBUTE_LOCATIONS: [(&str, u32); 11] = [
     ("vertex_position", 0),
     ("vertex_normal", 1),
@@ -173,7 +173,7 @@ pub(super) fn adapt_stage(code: &str, layout: &ShaderLayout) -> Result<AdaptedSt
                 // them unit 0, so such a shader never sampled correctly there
                 // either). The declaration goes; a shader that reads it fails
                 // to compile with an unknown identifier, one that does not
-                // compiles as on GL.
+                // compiles as it would in OpenGL.
                 let Some(decl) = layout.texture(name) else {
                     out_lines.push(format!(
                         "{indent}// {declaration}: not declared under a #group"
@@ -791,7 +791,7 @@ mod tests {
                 .unwrap_err();
         assert!(through_call.contains(READ_LOOSE_UNIFORM), "{through_call}");
 
-        // Declared and never read: compiles, as an inactive uniform did on GL.
+        // Declared and never read: compiles, like an inactive uniform in OpenGL.
         compile("void main() { outColor = vec4(1.0); }\n").unwrap();
     }
 

@@ -337,7 +337,7 @@ async function poll() {
       ? (100 * s.shader_redundant_binds / s.shader_bind_commands) : 0;
     $('c-shader').className = 'card ' + (redundantPct > 60 ? 'bad' : redundantPct > 25 ? 'warn' : 'good');
     $('c-shader').querySelector('.sub').textContent =
-      redundantPct.toFixed(0) + '% redundant — churn signalled but no GL state change';
+      redundantPct.toFixed(0) + '% redundant — pipeline already bound, no set_pipeline call';
 
     renderCategories(s);
 

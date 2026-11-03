@@ -1,7 +1,7 @@
 use crate::render::{CubeFace, ResourceId};
 
-/// Which part of a texture a view addresses. `D2Layer` and `CubeFace` are
-/// attachment-only on GL 3.3 (sampling binds the whole texture).
+/// Which part of a texture a view addresses. `D2Layer` is attachment-only;
+/// `CubeFace` is an attachment or a face sampled through a 2D sampler.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum ViewDim {
     D1,
@@ -14,8 +14,8 @@ pub enum ViewDim {
     CubeFace(CubeFace),
 }
 
-/// A value-type view of (part of) a texture. No GPU object exists on GL; the
-/// executor derives framebuffer attachments (S2) and sampling mip ranges (S3)
+/// A value-type view of (part of) a texture. The executor derives (and
+/// caches) the `wgpu::TextureView`s for attachments (S2) and sampling (S3)
 /// from it.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct TexView {

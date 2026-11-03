@@ -1,7 +1,7 @@
-//! wgpu backend of the render-thread command executor (render API v2, S11).
+//! The render-thread command executor on wgpu (render API v2, S11).
 //!
-//! The command stream is the one the GL executor runs, and the executor maps
-//! it onto wgpu the way the API was shaped for:
+//! The executor maps the command stream onto wgpu the way the API was shaped
+//! for:
 //!
 //! * **One `CommandEncoder` per frame.** Work is recorded into it and
 //!   submitted at `SwapBuffers`, at an explicit `Flush`, before a readback and
@@ -25,8 +25,9 @@
 //!
 //! # Coordinate conventions (the one place they are decided)
 //!
-//! GL and wgpu disagree about three things, and this backend resolves all of
-//! them in the vertex stage and at present, once:
+//! The engine's GLSL shaders assume OpenGL conventions that differ from
+//! wgpu's in three places, and this executor resolves all of them in the
+//! vertex stage and at present, once:
 //!
 //! 1. **Framebuffer origin.** GL's framebuffer row 0 is at NDC `y = -1`
 //!    (bottom); wgpu's is at NDC `y = +1` (top). Textures are indexed the same
@@ -39,14 +40,16 @@
 //!    origin now) need no conversion.
 //! 2. **The window.** The backbuffer is an ordinary GL-convention texture
 //!    (`RGBA8`, plus a depth buffer); `SwapBuffers` copies it to the swapchain
-//!    image upside down with a blit pass, so the window shows what GL shows
-//!    and `ReadSource::Backbuffer` reads the same rows as GL.
+//!    image upside down with a blit pass, so the window shows the image the
+//!    right way up and `ReadSource::Backbuffer` reads rows bottom-up, as in
+//!    OpenGL.
 //! 3. **Clip depth.** GL clips z to `-w..w`, wgpu to `0..w`: the same wrapper
 //!    maps `z' = (z + w) / 2`. `gl_FragDepth` already is a window-space
 //!    `0..1` value in both, so logarithmic depth works unchanged.
 //!
-//! Surface format is the linear twin of the preferred swapchain format (the
-//! GL default framebuffer is not sRGB).
+//! Surface format is the linear twin of the preferred swapchain format: the
+//! shaders write display-referred values, as to a non-sRGB OpenGL default
+//! framebuffer.
 
 use std::collections::HashMap;
 use std::sync::atomic::AtomicBool;
@@ -417,10 +420,10 @@ impl WgpuCommandExecutor {
     /// A shader module from a validated naga module of the engine's own shaders.
     ///
     /// Created without wgpu's runtime checks: the engine's shaders are trusted
-    /// (they go through naga's validator here and run on GL unchecked), and
-    /// the checks cost real time. Forced loop bounding in particular turns
-    /// every loop into a counted one, which made the occlusion bake of
-    /// generated ships several times slower than on GL.
+    /// (they go through naga's validator here), and the checks cost real
+    /// time. Forced loop bounding in particular turns every loop into a
+    /// counted one, which made the occlusion bake of generated ships several
+    /// times slower.
     pub(super) fn shader_module(
         &self,
         label: &'static str,

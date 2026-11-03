@@ -28,7 +28,7 @@ pub struct StatsSnapshot {
     /// Publication timestamp (microseconds since the UNIX epoch). The
     /// dashboard uses it for wall-clock-accurate FPS averaging.
     pub server_time_us: u64,
-    /// Everything measured on the render thread / GL executor.
+    /// Everything measured on the render thread / command executor.
     pub render: RenderStats,
     // --- main thread (from Renderer) ---
     /// Time blocked in `end_frame_triple_buffered` (frame-end pacing wait)

@@ -1,17 +1,16 @@
-//! Texture readback (render API v2, S8), shared by both backends.
+//! Texture readback (render API v2, S8).
 //!
 //! Two flavours, both format-agnostic: the payload is in the layout of a
-//! [`TexFormat`] (tightly packed rows, row 0 first), never a GL pixel/data
-//! pair.
+//! [`TexFormat`] (tightly packed rows, row 0 first), never a pixel/data
+//! format pair.
 //!
 //! * `Renderer:readSync(view, x, y, w, h, fmt)` stalls until the data is
 //!   there. It is for screenshots, tests and tools; nothing in a frame should
 //!   call it.
 //! * `Renderer:readAsync(...)` returns a [`ReadbackTicket`] at once. The
-//!   executor copies the pixels into a transfer buffer (GL: a pixel pack
-//!   buffer and a fence, wgpu: a mappable buffer), polls it once per frame at
-//!   `BeginFrame` without ever waiting, and fills the ticket's slot when the
-//!   GPU is done, typically two or three frames later.
+//!   executor copies the pixels into a mappable transfer buffer, polls it
+//!   once per frame at `BeginFrame` without ever waiting, and fills the
+//!   ticket's slot when the GPU is done, typically two or three frames later.
 
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU8, Ordering};
@@ -27,8 +26,8 @@ use crate::system::Bytes;
 pub enum ReadSource {
     /// A texture of the executor.
     Texture(ResourceId),
-    /// The default framebuffer (what the window shows, GL convention: row 0
-    /// is the bottom row).
+    /// The backbuffer (what the window shows, OpenGL convention: row 0 is the
+    /// bottom row).
     Backbuffer,
 }
 

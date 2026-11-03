@@ -104,9 +104,9 @@ impl ClipRect {
 }
 
 /// Clip-rect stack, owned by `Renderer` (was `thread_local! CLIP_MANAGER`) -
-/// GPU scissor state has to live with whatever owns the GL context. Its
+/// the scissor state belongs with the renderer that records the passes. Its
 /// methods are pure CPU bookkeeping: they return the scissor update to apply
-/// rather than touching GL/`Renderer` themselves, since they're called
+/// rather than touching `Renderer` themselves, since they're called
 /// through `renderer.clip_rect`, which already holds `Renderer` borrowed.
 pub struct ClipManager {
     transforms: [ClipRectTransform; MAX_STACK_DEPTH],
@@ -173,8 +173,8 @@ impl ClipManager {
         ScissorUpdate::Set {
             x: x as i32,
             y: vp_size.y - (y + sy) as i32,
-            // A rectangle clipped away entirely has a negative extent: GL rejects
-            // that (and would keep the previous scissor), so it becomes empty.
+            // A rectangle clipped away entirely has a negative extent, which a
+            // scissor rect cannot hold, so it becomes empty.
             width: (sx as i32).max(0),
             height: (sy as i32).max(0),
         }

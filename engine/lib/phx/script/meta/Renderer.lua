@@ -136,8 +136,8 @@ function Renderer:statsUniformBytes() end
 ---@return integer
 function Renderer:statsVertexBytes() end
 
--- Startup backend description as `key=value` lines: `backend`
--- (`OpenGL 3.3` or `wgpu`), then GL strings or the wgpu adapter info.
+-- Startup backend description as `key=value` lines: `backend=wgpu`, then
+-- the wgpu adapter info, surface format and present mode.
 -- Empty until the render thread is up; query once and cache.
 ---@return string
 function Renderer:backendInfo() end

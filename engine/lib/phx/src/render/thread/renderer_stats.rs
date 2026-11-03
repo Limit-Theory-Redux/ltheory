@@ -1,16 +1,12 @@
-//! `Renderer` is the single context every GL-touching type submits
-//! [`RenderCommand`]s through - see `doc/engine/render-thread.md`. It has
-//! two compile-time bodies behind the identical type name, public API and
-//! FFI surface, declared as sibling modules in `render/thread/mod.rs`
-//! (`renderer_threaded` by default, `renderer_immediate` under the
-//! `immediate` feature) so the `#[luajit_ffi_gen::luajit_ffi] impl Renderer`
-//! in `renderer_ffi.rs` only ever calls methods defined here and never
-//! needs to know which backend is active. This file holds what both share.
+//! `Renderer` is the single context every GPU-touching type submits
+//! [`RenderCommand`]s through - see `doc/engine/render-thread.md`. Its body
+//! lives in `renderer_threaded.rs`; the `#[luajit_ffi_gen::luajit_ffi] impl
+//! Renderer` in `renderer_ffi.rs` only calls its public methods. This file
+//! holds [`RenderStats`], the executor's per-frame counters.
 
 /// A snapshot of the executor's counters, taken once per frame at
-/// `SwapBuffers`. In immediate mode this is read straight off the executor;
-/// in threaded mode it travels over a channel and is cached until the next
-/// one arrives (see `renderer_threaded.rs`).
+/// `SwapBuffers`. It travels over a channel and is cached until the next one
+/// arrives (see `renderer_threaded.rs`).
 #[derive(Debug, Clone, Default)]
 pub struct RenderStats {
     pub commands_processed: u64,

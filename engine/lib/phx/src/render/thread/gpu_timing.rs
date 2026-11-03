@@ -1,9 +1,9 @@
-//! GPU time per render pass: the backend-independent half.
+//! GPU time per render pass: the half outside the executor.
 //!
-//! The executors (GL: `glQueryCounter(GL_TIMESTAMP)` pairs, wgpu:
-//! `timestamp_writes` on the render passes) record a begin and an end
-//! timestamp per pass and read them back a few frames later without ever
-//! waiting for them. They hand the finished frame's samples to a
+//! The executor (`timestamp_writes` on the render passes, see
+//! `command_executor_wgpu/gpu_timing.rs`) records a begin and an end
+//! timestamp per pass and reads them back a few frames later without ever
+//! waiting for them. It hands the finished frame's samples to a
 //! [`GpuTimingState`], which sums them per pass label (a label can occur
 //! several times in a frame, and a wgpu pass interrupted by a flush point is
 //! several GPU passes), smooths them and publishes a fixed-size

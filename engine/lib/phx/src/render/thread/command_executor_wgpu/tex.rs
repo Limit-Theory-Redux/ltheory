@@ -283,7 +283,7 @@ impl WgpuCommandExecutor {
         let bpp = format_bpp(texture.format());
         let [w, h, d] = region.size;
         if w == 0 || h == 0 || d == 0 {
-            // GL tolerates empty uploads; wgpu rejects them.
+            // wgpu rejects empty uploads; skip them.
             return;
         }
         let expected = region.texels() * bpp as usize;
@@ -445,8 +445,8 @@ impl WgpuCommandExecutor {
             return;
         }
         if texture.mip_level_count() <= 1 {
-            // GL allocates the chain when it generates it; a wgpu texture has
-            // its levels from creation. Make the chain now: a new texture of
+            // A wgpu texture has its levels from creation, and this one was
+            // created without a chain. Make the chain now: a new texture of
             // the same id with all levels and the old base level copied in.
             let Some((grown, grown_desc)) = self.grow_mip_chain(id, &texture, &desc) else {
                 return;

@@ -126,8 +126,7 @@ impl Tex2D {
             .unwrap_or_else(|_| panic!("Failed to load image from '{path}', decode failed"));
         let (width, height) = img.dimensions();
 
-        // Textures are RGBA8: an RGB image gets an opaque alpha, which is what
-        // the GL upload of RGB data into an RGBA8 texture did.
+        // Textures are RGBA8: an RGB image gets an opaque alpha.
         let buffer = match img {
             DynamicImage::ImageRgba8(buf) => buf.into_raw(),
             DynamicImage::ImageRgb8(buf) => DynamicImage::ImageRgb8(buf).into_rgba8().into_raw(),
