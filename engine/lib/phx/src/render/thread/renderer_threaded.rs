@@ -433,21 +433,6 @@ impl Renderer {
         self.submit(RenderCommand::CopyTexture { src, dst, size });
     }
 
-    pub fn copy_texture_2d_from_framebuffer_by_resource(
-        &mut self,
-        id: ResourceId,
-        format: TexFormat,
-        width: i32,
-        height: i32,
-    ) {
-        self.submit(RenderCommand::CopyTexture2DFromFramebufferByResource {
-            id,
-            format,
-            width,
-            height,
-        });
-    }
-
     /// Read `region` of `src` as `format` and wait for it (see
     /// `RenderCommand::ReadTextureSync`). Screenshots, tests and tools only:
     /// it stalls the main thread until the render thread and the GPU got

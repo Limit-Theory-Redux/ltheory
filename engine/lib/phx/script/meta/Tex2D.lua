@@ -55,6 +55,8 @@ function Tex2D:mipView(level) end
 ---@param alpha number
 function Tex2D:clear(r, red, green, blue, alpha) end
 
+-- A new texture with the same description and contents (every mip
+-- level), copied on the GPU.
 ---@param r Renderer
 ---@return Tex2D
 function Tex2D:deepClone(r) end

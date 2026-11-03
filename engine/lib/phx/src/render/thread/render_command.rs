@@ -90,23 +90,11 @@ pub enum RenderCommand {
         size: [u32; 3],
     },
 
-    /// Copy the currently-bound read framebuffer into a (already-created,
-    /// empty) 2D texture by resource ID. Used by `Tex2D::deep_clone` - the
-    /// caller is expected to have already bound the source by opening
-    /// a render pass on it.
-    CopyTexture2DFromFramebufferByResource {
-        id: ResourceId,
-        format: TexFormat,
-        width: i32,
-        height: i32,
-    },
-
     /// Blocking readback of `region` of `src` in `format` (tightly packed
     /// rows, row 0 first; the executor converts if the texture is stored
-    /// differently). The reply is sent directly on `reply_tx` by the executor
-    /// - this works identically in both backends: the caller submits the
-    /// command, then blocks on `reply_tx`'s paired receiver. An empty reply
-    /// means the read failed.
+    /// differently). The reply is sent directly on `reply_tx` by the executor:
+    /// the caller submits the command, then blocks on `reply_tx`'s paired
+    /// receiver. An empty reply means the read failed.
     ReadTextureSync {
         src: ReadSource,
         region: TexRegion,
@@ -258,8 +246,7 @@ impl RenderCommand {
             | SetTexel1DByResource { .. }
             | SetTexel2DByResource { .. }
             | GenerateMips { .. }
-            | CopyTexture { .. }
-            | CopyTexture2DFromFramebufferByResource { .. } => CommandCategory::TextureData,
+            | CopyTexture { .. } => CommandCategory::TextureData,
 
             // === Blocking Readbacks ===
             ReadTextureSync { .. } | ReadbackAsync { .. } => CommandCategory::Readback,

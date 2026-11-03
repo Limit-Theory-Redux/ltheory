@@ -207,25 +207,19 @@ impl Tex2D {
         r.end_pass_intern();
     }
 
+    /// A new texture with the same description and contents (every mip
+    /// level), copied on the GPU.
     pub fn deep_clone(&mut self, r: &mut Renderer) -> Tex2D {
-        let desc =
-            RenderPassDesc::with_color("Tex2D.deepClone", self.view(), LoadOp::Load, [0.0; 4]);
-        r.begin_pass_intern(&desc);
-
-        let this = self.shared.as_ref();
-        let size = this.size();
-        let format = this.desc.format;
-
-        let result = Self::create(r, TexDesc::d2(size.x as u32, size.y as u32, format), None);
-        r.copy_texture_2d_from_framebuffer_by_resource(
-            result.resource_id(),
-            format,
-            size.x,
-            size.y,
-        );
-
-        r.end_pass_intern();
-
+        let desc = self.shared.as_ref().desc;
+        let result = Self::create(r, desc, None);
+        for level in 0..desc.mips as i32 {
+            let size = self.get_size_level(level);
+            r.copy_texture(
+                self.mip_view(level),
+                result.mip_view(level),
+                [size.x as u32, size.y as u32, 1],
+            );
+        }
         result
     }
 

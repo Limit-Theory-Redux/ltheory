@@ -566,11 +566,6 @@ impl WgpuCommandExecutor {
             RenderCommand::CopyTexture { src, dst, size } => {
                 self.cmd_copy_texture(&src, &dst, size)
             }
-            RenderCommand::CopyTexture2DFromFramebufferByResource { .. } => {
-                self.warn_once(
-                    "CopyTexture2DFromFramebuffer (Tex2D::deep_clone) is not implemented".into(),
-                );
-            }
             RenderCommand::ReadTextureSync {
                 src,
                 region,
@@ -820,8 +815,59 @@ mod tests {
         assert_eq!(read_f32(&mut ex, 3, &target_desc), values, "fetched");
     }
 
+    /// `CopyTexture` per mip level (what `Tex2D::deep_clone` sends) copies
+    /// every level of a texture into a new one.
+    #[test]
+    #[ignore = "needs a GPU adapter"]
+    fn copy_texture_copies_each_mip_level() {
+        let Some(mut ex) = headless() else {
+            eprintln!("no adapter, skipping");
+            return;
+        };
+        let desc = TexDesc::d2(4, 4, TexFormat::RGBA8).with_mips(0);
+        assert_eq!(desc.mips, 3);
+        let texels = |level: u32| -> Vec<u8> {
+            let side = 4 >> level;
+            (0..side * side * 4)
+                .map(|i| (i as u8).wrapping_mul(7) ^ level as u8)
+                .collect()
+        };
+        for id in [1, 2] {
+            ex.execute(RenderCommand::CreateTexture {
+                id: ResourceId(id),
+                desc: Box::new(desc),
+                data: None,
+            });
+        }
+        for level in 0..desc.mips {
+            ex.execute(RenderCommand::UpdateTexture {
+                id: ResourceId(1),
+                region: TexRegion::level(&desc, level),
+                data: texels(level),
+            });
+        }
+        for level in 0..desc.mips {
+            let side = 4i32 >> level;
+            ex.execute(RenderCommand::CopyTexture {
+                src: TexView::new(ResourceId(1), ViewDim::D2, level as i32, [side, side]),
+                dst: TexView::new(ResourceId(2), ViewDim::D2, level as i32, [side, side]),
+                size: [side as u32, side as u32, 1],
+            });
+        }
+        for level in 0..desc.mips {
+            let (tx, rx) = crossbeam::channel::unbounded();
+            ex.execute(RenderCommand::ReadTextureSync {
+                src: crate::render::ReadSource::Texture(ResourceId(2)),
+                region: TexRegion::level(&desc, level),
+                format: TexFormat::RGBA8,
+                reply_tx: tx,
+            });
+            assert_eq!(rx.recv().unwrap(), texels(level), "level {level}");
+        }
+    }
+
     /// The convention of the module docs: a fullscreen pass writing its uv
-    /// puts uv.y = 0 in row 0, as GL does.
+    /// puts uv.y = 0 in row 0, as OpenGL does.
     #[test]
     #[ignore = "needs a GPU adapter"]
     fn fullscreen_uv_lands_in_gl_orientation() {
