@@ -54,6 +54,7 @@ function Tex3D:getFormat() end
 ---@return Vec3i
 function Tex3D:getSize() end
 
+-- Size of mip `level`: each side halves per level and stops at 1.
 ---@param level integer
 ---@return Vec3i
 function Tex3D:getSizeLevel(level) end

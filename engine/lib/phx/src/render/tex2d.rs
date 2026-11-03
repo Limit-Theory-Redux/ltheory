@@ -242,15 +242,14 @@ impl Tex2D {
         this.size()
     }
 
+    /// Size of mip `level`: each side halves per level and stops at 1.
     pub fn get_size_level(&self, level: i32) -> IVec2 {
-        let this = self.shared.as_ref();
-
-        let mut out = this.size();
-        for _ in 0..level {
-            out.x /= 2;
-            out.y /= 2;
-        }
-        out
+        let [x, y, _] = self
+            .shared
+            .as_ref()
+            .desc
+            .level_size(level.clamp(0, 31) as u32);
+        IVec2::new(x as i32, y as i32)
     }
 
     pub fn set_data_bytes(

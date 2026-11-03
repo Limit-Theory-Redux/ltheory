@@ -77,6 +77,7 @@ function Tex2D:getFormat() end
 ---@return Vec2i
 function Tex2D:getSize() end
 
+-- Size of mip `level`: each side halves per level and stops at 1.
 ---@param level integer
 ---@return Vec2i
 function Tex2D:getSizeLevel(level) end

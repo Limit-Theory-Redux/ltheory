@@ -122,14 +122,14 @@ impl Tex3D {
         IVec3::from_array(this.desc.size.map(|s| s as i32))
     }
 
+    /// Size of mip `level`: each side halves per level and stops at 1.
     pub fn get_size_level(&self, level: i32) -> IVec3 {
-        let mut out = self.get_size();
-        for _ in 0..level {
-            out.x /= 2;
-            out.y /= 2;
-            out.z /= 2;
-        }
-        out
+        let size = self
+            .shared
+            .as_ref()
+            .desc
+            .level_size(level.clamp(0, 31) as u32);
+        IVec3::from_array(size.map(|s| s as i32))
     }
 
     pub fn set_data_bytes(
