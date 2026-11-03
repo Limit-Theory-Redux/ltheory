@@ -1,5 +1,4 @@
 local Bindings = require('States.ApplicationBindings')
-local MainMenu = require('Legacy.Systems.Menus.MainMenu')
 local ShaderHotReload = require('Render.ShaderHotReload')
 local ShaderErrorOverlay = require('Shared.Tools.ShaderErrorOverlay')
 local RenderInfoOverlay = require('Shared.Tools.RenderInfoOverlay')
@@ -45,6 +44,25 @@ function Application:onExit() end
 function Application:quit()
     Engine:exit()
 end
+
+function Application:toggleFullscreen()
+    GameState.render.fullscreen = not GameState.render.fullscreen
+    Window:setFullscreen(GameState.render.fullscreen, GameState.render.fullscreenExclusive)
+end
+
+function Application:togglePause()
+    if GameState.paused then
+        GameState.paused = false
+        if not GameState.panelActive and not GameState.debug.instantJobs then
+            Input:setCursorVisible(false)
+        end
+    else
+        GameState.paused = true
+        Input:setCursorVisible(true)
+    end
+end
+
+function Application:toggleHUD() end
 
 function Application:eventLoop()
     if not self.eventsRegistered then
@@ -95,7 +113,6 @@ function Application:appInit()
     self.lastUpdate = TimeStamp.Now()
     self.profiling = false
     self.toggleProfiler = false
-    self.showBackgroundModeHints = true
 
     -- GC CONTROL: Disable automatic collection
     GC.Stop()
@@ -160,7 +177,6 @@ function Application:onPreRender(data)
     Profiler.Begin('App.onPreRender')
 
     self.timeScale = 1.0
-    self.doScreenshot = false
 
     if GameState.paused then
         self.timeScale = 0.0
@@ -289,7 +305,13 @@ function Application:onPostRender(data)
     Profiler.SetValue('gc_debug_emergencyTriggered', GC.debug.emergencyTriggered and 1 or 0)
     Profiler.SetValue('gc_debug_spreadFrames', GC.debug.spreadFrames)
 
-    self:immediateUI(function() ShaderErrorOverlay:draw() end)
+    self:immediateUI(function()
+        ShaderErrorOverlay:draw()
+        if self.doScreenshot then
+            self.doScreenshot = false
+            ScreenCap()
+        end
+    end)
 
     -- Render info overlay: drawn last, on top. Hidden in capture mode unless
     -- LTHEORY_OVERLAY=1 (so validation captures stay identical).
@@ -419,13 +441,17 @@ function Application:onPreInput(data) end
 function Application:onInput(data)
     Profiler.SetValue('gcmem', GC.GetMemory())
     Profiler.Begin('App.onInput')
+    self:handleAppInput()
+    Profiler.End()
+end
 
-    if ShaderErrorOverlay:handleInput() then
-        Profiler.End()
-        return
-    end
+--- App-wide keys. An app state that defines onInput replaces Application:onInput
+--- (they share one table), so it has to call this itself.
+---@return boolean consumed true when the shader error overlay took the input
+function Application:handleAppInput()
+    if ShaderErrorOverlay:handleInput() then return true end
 
-    if Input:isKeyboardAltPressed() and Input:isPressed(Button.KeyboardQ) then self:quit() end
+    if Input:isKeyboardAltDown() and Input:isPressed(Button.KeyboardQ) then self:quit() end
     if Input:isPressed(Bindings.Exit) then self:quit() end
 
     if Input:isPressed(Bindings.ToggleProfiler) then
@@ -434,55 +460,31 @@ function Application:onInput(data)
 
     if Input:isPressed(Bindings.Screenshot) then
         self.doScreenshot = true
-        if Settings.exists('render.superSample') then
-            self.prevSS = Settings.get('render.superSample')
-        end
     end
 
-    if Input:isPressed(Bindings.ToggleFullscreen) then
-        GameState.render.fullscreen = not GameState.render.fullscreen
-        Window:setFullscreen(GameState.render.fullscreen, GameState.render.fullscreenExclusive)
-    end
-
-    if Input:isPressed(Bindings.Reload) then
-        Profiler.Begin('Engine.Reload')
-        Cache.Clear()
-        SendEvent('Engine.Reload')
-        Preload.Run()
-        Profiler.End()
-    end
+    if Input:isPressed(Bindings.ToggleFullscreen) then self:toggleFullscreen() end
 
     if Input:isPressed(Bindings.Pause) and GameState:GetCurrentState() == Enums.GameStates.InGame then
-        if GameState.paused then
-            GameState.paused = false
-            if not GameState.panelActive and not GameState.debug.instantJobs then
-                Input:setCursorVisible(false)
-            end
-        else
-            GameState.paused = true
-            Input:setCursorVisible(true)
-        end
+        self:togglePause()
     end
 
     if not Gui:hasActiveInput() then
         if Input:isPressed(Bindings.ToggleWireframe) then
-            GameState.debug.physics.drawWireframe = not GameState.debug.physics.drawWireframe
+            GameState.debug.physics.drawWireframes = not GameState.debug.physics.drawWireframes
         end
 
         if Input:isPressed(Bindings.ToggleMetrics) then
             GameState.debug.metricsEnabled = not GameState.debug.metricsEnabled
         end
 
-        if MainMenu.inBackgroundMode and Input:isPressed(Bindings.ToggleHUD) then
-            self.showBackgroundModeHints = not self.showBackgroundModeHints
-        end
+        if Input:isPressed(Bindings.ToggleHUD) then self:toggleHUD() end
     end
 
     if GameState.render.uiCanvas ~= nil then
         GameState.render.uiCanvas:input()
     end
 
-    Profiler.End()
+    return false
 end
 
 function Application:onPostInput(data) end
