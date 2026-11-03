@@ -16,12 +16,23 @@ Material = {}
 function Material.Create(r, shader, blend, cull, depthTest, depthWrite) end
 
 -- The shader was hot reloaded: adopt its layout (see
--- `Material::refresh_shader`). Returns a one-line report,
--- `changed=<0|1> copied=<names> added=<names> dropped=<names> textures_dropped=<names>`.
+-- `Material::refresh_shader`). Returns a one-line report for the log,
+-- `changed=<0|1> copied=<names> added=<names> dropped=<names> textures_dropped=<names>`;
+-- the added members are also `getRefreshAdded(0 .. getRefreshAddedCount())`.
 -- Recast `params()` afterwards (the parameter copy moved), then `commit()`.
 ---@param r Renderer
 ---@return string
 function Material:refreshShader(r) end
+
+-- Number of `MaterialParams` members the last refresh added (zeroed).
+---@return integer
+function Material:getRefreshAddedCount() end
+
+-- Name of added member `index` (see `getRefreshAddedCount`); empty when
+-- out of range.
+---@param index integer
+---@return string
+function Material:getRefreshAdded(index) end
 
 -- Size in bytes of the `MaterialParams` block (0 if the shader has none).
 ---@return integer

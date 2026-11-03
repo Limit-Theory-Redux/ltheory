@@ -55,6 +55,8 @@ pub struct Material {
     uid: u32,
     release: Sender<Release>,
     warned_missing: bool,
+    /// `MaterialParams` members the last `refresh_shader` added (zeroed).
+    refresh_added: Vec<String>,
 }
 
 fn dim_matches(decl: TexDim, view: ViewDim) -> bool {
@@ -107,6 +109,7 @@ impl Material {
             uid: NEXT_UID.fetch_add(1, Ordering::Relaxed),
             release: r.data.release_tx.clone(),
             warned_missing: false,
+            refresh_added: Vec::new(),
         }
     }
 
@@ -225,13 +228,14 @@ impl Material {
         self.pipeline = None;
         self.dirty = true;
         self.warned_missing = false;
+        self.refresh_added = blocks.added.clone();
 
         RefreshReport {
             layout_changed,
-            copied: blocks.copied.join(","),
-            added: blocks.added.join(","),
-            dropped: blocks.dropped.join(","),
-            textures_dropped: textures_dropped.join(","),
+            copied: blocks.copied,
+            added: blocks.added,
+            dropped: blocks.dropped,
+            textures_dropped,
         }
     }
 
@@ -304,13 +308,27 @@ pub struct RefreshReport {
     /// The `MaterialParams` layout hash differs from before.
     pub layout_changed: bool,
     /// Members carried over from the old block.
-    pub copied: String,
+    pub copied: Vec<String>,
     /// Members of the new block that start at zero.
-    pub added: String,
+    pub added: Vec<String>,
     /// Members of the old block the new one lacks.
-    pub dropped: String,
+    pub dropped: Vec<String>,
     /// Textures that could not be kept.
-    pub textures_dropped: String,
+    pub textures_dropped: Vec<String>,
+}
+
+impl std::fmt::Display for RefreshReport {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "changed={} copied={} added={} dropped={} textures_dropped={}",
+            self.layout_changed as u8,
+            self.copied.join(","),
+            self.added.join(","),
+            self.dropped.join(","),
+            self.textures_dropped.join(",")
+        )
+    }
 }
 
 impl Drop for Material {
@@ -341,20 +359,26 @@ impl Material {
     }
 
     /// The shader was hot reloaded: adopt its layout (see
-    /// `Material::refresh_shader`). Returns a one-line report,
-    /// `changed=<0|1> copied=<names> added=<names> dropped=<names> textures_dropped=<names>`.
+    /// `Material::refresh_shader`). Returns a one-line report for the log,
+    /// `changed=<0|1> copied=<names> added=<names> dropped=<names> textures_dropped=<names>`;
+    /// the added members are also `getRefreshAdded(0 .. getRefreshAddedCount())`.
     /// Recast `params()` afterwards (the parameter copy moved), then `commit()`.
     #[bind(name = "RefreshShader")]
     pub fn refresh_shader_report(&mut self, r: &mut Renderer) -> String {
-        let report = self.refresh_shader(r);
-        format!(
-            "changed={} copied={} added={} dropped={} textures_dropped={}",
-            report.layout_changed as u8,
-            report.copied,
-            report.added,
-            report.dropped,
-            report.textures_dropped
-        )
+        self.refresh_shader(r).to_string()
+    }
+
+    /// Number of `MaterialParams` members the last refresh added (zeroed).
+    pub fn get_refresh_added_count(&self) -> u32 {
+        self.refresh_added.len() as u32
+    }
+
+    /// Name of added member `index` (see `getRefreshAddedCount`); empty when
+    /// out of range.
+    pub fn get_refresh_added(&self, index: u32) -> &str {
+        self.refresh_added
+            .get(index as usize)
+            .map_or("", String::as_str)
     }
 
     /// Size in bytes of the `MaterialParams` block (0 if the shader has none).

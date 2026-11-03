@@ -17,19 +17,21 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            void      Material_Free          (Material*);
-            Material* Material_Create        (Renderer* r, Shader const* shader, BlendMode blend, CullFace cull, bool depthTest, bool depthWrite);
-            cstr      Material_RefreshShader (Material*, Renderer* r);
-            uint32    Material_GetParamsSize (Material const*);
-            void      Material_SetTexture    (Material*, cstr name, TexView const* view, uint32 sampler);
-            void      Material_Commit        (Material*, Renderer* r);
-            BlendMode Material_GetBlend      (Material const*);
+            void      Material_Free                 (Material*);
+            Material* Material_Create               (Renderer* r, Shader const* shader, BlendMode blend, CullFace cull, bool depthTest, bool depthWrite);
+            cstr      Material_RefreshShader        (Material*, Renderer* r);
+            uint32    Material_GetRefreshAddedCount (Material const*);
+            cstr      Material_GetRefreshAdded      (Material const*, uint32 index);
+            uint32    Material_GetParamsSize        (Material const*);
+            void      Material_SetTexture           (Material*, cstr name, TexView const* view, uint32 sampler);
+            void      Material_Commit               (Material*, Renderer* r);
+            BlendMode Material_GetBlend             (Material const*);
         ]]
     end
 
     do -- Global Symbol Table
         Material = {
-            Create        = function(r, shader, blend, cull, depthTest, depthWrite)
+            Create               = function(r, shader, blend, cull, depthTest, depthWrite)
                 local _instance = libphx.Material_Create(r, shader, blend, cull, depthTest, depthWrite)
                 return Core.ManagedObject(_instance, libphx.Material_Free)
             end,
@@ -43,11 +45,13 @@ function Loader.defineType()
         local t  = ffi.typeof('Material')
         local mt = {
             __index = {
-                refreshShader = libphx.Material_RefreshShader,
-                getParamsSize = libphx.Material_GetParamsSize,
-                setTexture    = libphx.Material_SetTexture,
-                commit        = libphx.Material_Commit,
-                getBlend      = libphx.Material_GetBlend,
+                refreshShader        = libphx.Material_RefreshShader,
+                getRefreshAddedCount = libphx.Material_GetRefreshAddedCount,
+                getRefreshAdded      = libphx.Material_GetRefreshAdded,
+                getParamsSize        = libphx.Material_GetParamsSize,
+                setTexture           = libphx.Material_SetTexture,
+                commit               = libphx.Material_Commit,
+                getBlend             = libphx.Material_GetBlend,
             },
         }
 

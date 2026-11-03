@@ -145,7 +145,8 @@ function Material:refresh()
     if self.handle:getParamsSize() > 0 then
         local T = self.type.paramsType or self.type.shader:blockType("MaterialParams")
         self.paramsPtr = ffi.cast(pointerTo(T), self.handle:paramsPointer())
-        for name in (report:match("added=(%S*)") or ""):gmatch("[^,]+") do
+        for i = 0, self.handle:getRefreshAddedCount() - 1 do
+            local name = ffi.string(self.handle:getRefreshAdded(i))
             local value = self.type.defaults[name]
             if value ~= nil then assignField(self.paramsPtr, name, value) end
         end
