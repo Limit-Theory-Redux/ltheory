@@ -1,8 +1,8 @@
 # Lua Workers (TaskQueue): What They Can Do and Where They Fit
 
-Status: analysis only, nothing implemented. The question was whether the TaskQueue's Lua workers make
-sense anywhere in the active code. The answer: **in one place (procedural ship/station mesh generation),
-and only after the worker plumbing is fixed**. Everything else that costs time is either GPU work,
+Status: analysis; of its plans only the worker plumbing fixes (step plan B, step 2) are implemented.
+The question was whether the TaskQueue's Lua workers make sense anywhere in the active code. The
+answer: **in one place (procedural ship/station mesh generation)**. Everything else that costs time is either GPU work,
 needs live game state, runs every frame, or is better done in Rust (with rayon where it is
 data-parallel). Frame-time numbers come from `parallel-recording.md` (release, i7-6700K/GTX 1070).
 Numbers marked *(est.)* are estimates from reading the code and were not measured.
@@ -19,9 +19,10 @@ Numbers marked *(est.)* are estimates from reading the code and were not measure
 - Engine (Rust) workers: only `Echo` exists (`worker_id.rs:431-437`, `task_queue.rs:33`). Adding a Rust
   worker means a new `WorkerId` variant plus a `Worker::new_native(name, n, Fn(IN)->OUT)`
   (`worker.rs:86-129`). Its IN/OUT can be any `Send` type, so it needs no `Payload`.
-- Lua workers: `startWorker(name, scriptPath, n)` (`task_queue.rs:63-154`). Each instance creates a
-  fresh LuaJIT state (`Lua::unsafe_new`, `:93`), runs the script (`:95`) and calls its global `Run`
-  once per task (`:98,117`). The scripts start with `require('Init')`
+- Lua workers: `startWorker(name, scriptPath, n)` (`task_queue.rs`, thread body `lua_worker_body` in
+  `lua_worker.rs`). Each instance creates a fresh LuaJIT state, runs the script and calls its global
+  `Run` once per task, under `xpcall`: an error comes back as an error `TaskResult` with a traceback
+  and the instance keeps running. The scripts start with `require('Init')`
   (`script/States/App/Tests/Workers/TestWorkerFunction.lua:4`), which loads all of `Core.*`, the
   structure and util namespaces and the libphx cdefs. So each instance has a startup cost *(est.
   tens of ms)* and is meant to live for the whole session.
@@ -29,18 +30,18 @@ Numbers marked *(est.)* are estimates from reading the code and were not measure
 **Data passing.**
 - Only `Payload` values cross the boundary (`payload/payload.rs:5-36`): scalars, strings, typed
   arrays, and `PayloadTable`, an ordered string-keyed map (`payload_table.rs`). `Payload::Lua` (a
-  VM-local cache index) is rejected (`task_queue.rs:231,258`).
-- Send path: `PayloadConverter:valueToPayload` (`script/Core/Util/PayloadConverter.lua:26-81`) makes
-  one FFI call per scalar or table field. An array is copied twice: Lua table → `ffi.new` → Rust `Vec`.
-  The Payload is moved through the channel, boxed, and handed to `Run` as an integer pointer
-  (`task_queue.rs:112-118`). `WorkerFunction.Create` (`script/Core/Util/WorkerFunction.lua:15-27`)
+  VM-local cache index) is rejected in both directions (`TaskQueue::send_task`, `TaskQueue::task_result`).
+- Send path: `PayloadConverter:valueToPayload` (`script/Core/Util/PayloadConverter.lua`) makes one
+  FFI call per scalar or table field. Every number is sent as `F64` (LuaJIT has one number type). A
+  sequence of booleans, numbers or strings becomes a typed array, copied twice: Lua table →
+  `ffi.new` → Rust `Vec`; a mixed sequence is rejected. The Payload is moved through the channel,
+  boxed, and handed to `Run` as an integer pointer (`run_task` in `lua_worker.rs`).
+  `WorkerFunction.Create` (`script/Core/Util/WorkerFunction.lua`) hands that pointer to the Lua GC,
   converts it into a Lua value, calls the user function, converts the result back and returns a raw
-  pointer that Rust re-boxes (`task_queue.rs:121-123`).
-- Receive path: `nextTaskResult` → `TaskResult` → `payloadToValue`. **Arrays come back through
-  `Payload_ForEach*` with a Lua closure as the C callback** (`PayloadConverter.lua:124-179`). That is a
-  C→Lua callback per element (slow, and it stops JIT traces). LuaJIT also never frees callbacks that
-  are created implicitly from a Lua function, and their slots are limited, so every array result
-  leaks a callback slot. In practice, results bigger than a few thousand numbers are impractical.
+  pointer that Rust re-boxes. A `Run` written without `WorkerFunction` must free its input itself.
+- Receive path: `nextTaskResult` (never blocks) or `waitTaskResult(worker, ms)` → `TaskResult` →
+  `payloadToValue`. Arrays are read in bulk through the element address (`Payload_Get*ArrayAddr`), with
+  no per-element FFI calls or callbacks; the cost left is building the Lua table.
 
 **What a worker may call.** `libphx.lib = ffi.C` (`engine/lib/phx/script/libphx.lua:253`), so a
 worker can call the whole engine FFI. Which calls are thread-safe:
@@ -59,25 +60,17 @@ worker can call the whole engine FFI. Which calls are thread-safe:
 `script/States/App/Workers/Echo.lua`, **nothing in active code uses the TaskQueue** (a grep for
 `TaskQueue`, `startWorker`, `sendTask` finds only `Main.lua:15` and `ffi_ext`).
 
-**Known bugs and limitations** (from reading the code):
-1. **`nextTaskResult` blocks for up to 500 ms when no result is ready.** `Worker::recv` uses
-   `recv_timeout(RECEIVE_TIMEOUT = 500 ms)` (`worker.rs:9,152-169`). Polling it once per frame stalls
-   the frame. Guard every poll with `tasksReady() > 0`, or switch to `try_recv`.
-2. **The worker tests are broken.** `WorkerTest.lua:6-7` and `WorkerBench.lua:13` point to
-   `script/States/App/Tests/TestWorkerFunction*.lua`; the files moved to `Tests/Workers/` in
-   `0fc7efd5` (2025-01). `startWorker` logs an error but still returns an id
-   (`ffi_ext/TaskQueue.lua:12-15`). The following `sendTask` gets a NULL `uint64*` and indexes it
-   (`:22-23`), which crashes.
-3. **A Lua error in `Run` kills that instance silently.** The `?` at `task_queue.rs:117` ends the
-   thread, the task never gets a result (`TaskResult::new_error` is only used for `Payload::Lua`), and
-   a caller waiting for that task id spins forever. A worker function that returns `nil` hits the same
-   path through `ffi.gc(nil, nil)`.
-4. `tasks_in_progress = in_work - waiting - ready` reads two channel lengths without
-   synchronisation and can underflow (`worker.rs:185-187`; a panic in debug).
-5. Lua-side value mapping: integers always become `I64` and floats `F64`. A table counts as an array
-   only if `value[1] ~= nil`, and the element type comes from element 1 (`PayloadConverter.lua:34-62`).
-6. Dropping the queue joins every instance. A worker stuck in a long task blocks shutdown
-   (`worker_instance.rs:316-347`).
+**Limitations.**
+1. Dropping the queue joins every instance. A worker stuck in a long task blocks shutdown
+   (`worker_instance.rs`).
+2. Integers cross as `F64` (exact up to 2^53), and only a sequence (`1..n` with no other keys) becomes
+   an array; any other table is sent as a `PayloadTable`.
+
+The plumbing bugs this analysis first found are fixed: `nextTaskResult` no longer blocks, the worker
+tests point at `Tests/Workers/`, `startWorker` returns `nil` on failure and `sendTask` checks it, a Lua
+error or a `nil` return in `Run` comes back as a result instead of ending the instance,
+`tasks_in_progress` saturates instead of underflowing, and array results no longer leak callback
+slots.
 
 **Summary.** Lua workers are a coarse-grained job channel. They fit tasks that run for 10 ms or more,
 are pure Lua, start from a small input such as a seed, and return a modest result. They cannot see
@@ -124,10 +117,11 @@ starfield generation are small loops that belong in Rust.
 - No per-frame tasks. Each round trip costs a channel hop, conversion of the payload in both VMs, a
   boxed allocation, and up to a frame of latency. For anything under ~1 ms of work the overhead
   exceeds the gain.
-- Never call `nextTaskResult` without checking `tasksReady()` (it blocks for up to 500 ms).
+- Do not call `waitTaskResult` on the main thread except where a stall is intended; poll
+  `nextTaskResult` (it never blocks) once per frame instead.
 - No jobs that need ECS entities, rigid bodies, the physics world, the renderer or `TexGen`.
-- Do not return large arrays through today's `PayloadConverter` (per-element callbacks that leak a
-  slot each). Do not pass `Mesh` or other `Rf` objects between threads.
+- Do not return very large results as Lua tables: decoding is bulk, but building the table still
+  costs per element. Do not pass `Mesh` or other `Rf` objects between threads.
 - Do not start workers on demand (VM plus `Init` per instance). Start them once at boot, sized
   `min(2, cores-2)`.
 
@@ -151,10 +145,10 @@ starfield generation are small loops that belong in Rust.
 1. **(S)** Measure first. `ShipGenerator.lua:41ff` already has `Gen.Ship*` profiler scopes; add scopes
    for `HullMountDiscovery:discover` and `buildTargetSurface`. Continue only if a spawn costs more
    than ~20 ms.
-2. **(S)** Fix the plumbing: a non-blocking `next_task_result` (`try_recv`); NULL checks in
-   `ffi_ext/TaskQueue.lua` `startWorker`/`sendTask`; `pcall` inside `WorkerFunction` so that a failure
-   comes back as a `TaskResult` error and the thread survives; the stale test paths; bulk array access
-   (`Payload_*ArrayPtr/Len` + `ffi.copy`) instead of `ForEach` callbacks.
+2. **(S, done)** Fix the plumbing: a non-blocking `next_task_result` (`try_recv`); NULL checks in
+   `ffi_ext/TaskQueue.lua` `startWorker`/`sendTask`; `xpcall` around `Run` so that a failure comes
+   back as a `TaskResult` error and the thread survives; the stale test paths; bulk array access
+   (`Payload_Get*ArrayAddr`) instead of `ForEach` callbacks.
 3. **(M)** Add a `Send` mesh payload (`Payload::MeshData { vertices: Vec<Vertex>, indices: Vec<u32> }`)
    and `Mesh.FromPayload` on the main thread. Only plain `Vec`s cross threads, never `Rf`.
 4. **(M)** Add the worker script `script/Workers/ShipGen.lua`: `require('Init')` plus the Legacy

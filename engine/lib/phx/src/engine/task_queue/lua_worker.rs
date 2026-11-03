@@ -76,7 +76,11 @@ pub fn lua_worker_body(
 }
 
 fn run_task(safe_run: &Function, data: Payload) -> LuaTaskOutput {
-    // Ownership of the input payload moves to the script (it frees it).
+    // Ownership of the input payload moves to the script, which frees it:
+    // `WorkerFunction.Create` hands it to the Lua GC before the task runs, so
+    // an error in the task still frees it. A `Run` written without
+    // `WorkerFunction` that raises before taking ownership leaks the input
+    // (the engine cannot free it then: the script may already have).
     let in_ptr = Box::into_raw(Box::new(data)) as usize;
 
     let (ok, value): (bool, Value) = safe_run
