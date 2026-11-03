@@ -32,7 +32,7 @@ function SimpleTradingTest:onInit()
         ---@cast starSystem Entity
         for child in starSystem:get(ChildrenComponent):iterChildren() do
             ---@cast child Entity
-            Log.Info("%s Position: %s", child, child:get(TransformComponent):getPosition())
+            Log.Info("%s Position: %s", child, child:get(TransformComponent):getPos())
 
             local itemCmp = child:get(ItemComponent)
             local quantityCmp = child:get(QuantityComponent)
