@@ -19,7 +19,7 @@ default = []
 # Serve a live render-stats dashboard over HTTP (embedded tiny_http server,
 # self-contained HTML page at /, JSON snapshot at /stats.json). Start with
 # the ltr `--stats-server <port>` flag; inactive unless enabled.
-stats-server = ["dep:tiny_http"]
+stats-server = ["dep:tiny_http", "internal/stats-server"]
 
 [dependencies]
 # workspace crates
