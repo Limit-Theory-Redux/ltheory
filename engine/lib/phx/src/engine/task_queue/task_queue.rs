@@ -5,7 +5,7 @@ use std::time::{Duration, Instant};
 use tracing::{debug, error};
 
 use super::{
-    LuaTaskOutput, TaskQueueError, TaskResult, Worker, WorkerBase, WorkerId, WorkerIndex,
+    LuaTaskOutput, TaskId, TaskQueueError, TaskResult, Worker, WorkerBase, WorkerId, WorkerIndex,
     lua_worker_body,
 };
 use crate::engine::{Payload, PayloadType};
@@ -47,6 +47,27 @@ impl TaskQueue {
             Err(TaskQueueError::ThreadError(format!(
                 "Unknown worker: {worker_id}"
             )))
+        }
+    }
+
+    /// A worker's result as a `TaskResult` (a cached Lua payload cannot cross
+    /// threads and becomes an error result).
+    fn task_result(worker_id: WorkerIndex, (task_id, data): (TaskId, LuaTaskOutput)) -> TaskResult {
+        match data {
+            Ok(Some(payload)) if payload.get_type() == PayloadType::Lua => {
+                error!("Cannot receive cached Lua payload from the worker");
+                TaskResult::new_error(
+                    worker_id,
+                    task_id,
+                    "Cannot receive cached Lua payload from the worker",
+                )
+            }
+            Ok(Some(payload)) => TaskResult::new(worker_id, task_id, payload),
+            Ok(None) => TaskResult::new_empty(worker_id, task_id),
+            Err(msg) => {
+                error!("Worker {worker_id} task {task_id} failed: {msg}");
+                TaskResult::new_error(worker_id, task_id, &msg)
+            }
         }
     }
 }
@@ -190,51 +211,37 @@ impl TaskQueue {
 
     /// Returns next result of the finished worker task if any.
     pub fn next_task_result(&mut self, worker_id: u16) -> Option<TaskResult> {
-        if let Some(worker) = self.lua_workers.get_mut(&worker_id) {
-            match worker.recv() {
-                Ok(res) => res.map(|(task_id, data)| match data {
-                    Ok(Some(payload)) if payload.get_type() == PayloadType::Lua => {
-                        error!("Cannot receive cached Lua payload from the worker");
-                        TaskResult::new_error(
-                            worker_id,
-                            task_id,
-                            "Cannot receive cached Lua payload from the worker",
-                        )
-                    }
-                    Ok(Some(payload)) => TaskResult::new(worker_id, task_id, payload),
-                    Ok(None) => TaskResult::new_empty(worker_id, task_id),
-                    Err(msg) => {
-                        error!("Worker {worker_id} task {task_id} failed: {msg}");
-                        TaskResult::new_error(worker_id, task_id, &msg)
-                    }
-                }),
-                Err(err) => {
-                    error!("Cannot send task to worker {worker_id}. {err}");
-                    None
-                }
-            }
-        } else {
+        let Some(worker) = self.lua_workers.get_mut(&worker_id) else {
             error!("Unknown worker: {worker_id}");
-            None
+            return None;
+        };
+        match worker.recv() {
+            Ok(res) => res.map(|res| Self::task_result(worker_id, res)),
+            Err(err) => {
+                error!("Cannot receive a result from worker {worker_id}. {err}");
+                None
+            }
         }
     }
 
     /// Like `next_task_result`, but waits up to `timeout_ms` milliseconds for a result.
     pub fn wait_task_result(&mut self, worker_id: u16, timeout_ms: u32) -> Option<TaskResult> {
-        if self.lua_workers.contains_key(&worker_id) {
-            let deadline = Instant::now() + Duration::from_millis(timeout_ms as u64);
-            loop {
-                if let Some(res) = self.next_task_result(worker_id) {
-                    return Some(res);
-                }
-                if Instant::now() >= deadline {
+        let Some(worker) = self.lua_workers.get_mut(&worker_id) else {
+            error!("Unknown worker: {worker_id}");
+            return None;
+        };
+        let deadline = Instant::now() + Duration::from_millis(timeout_ms as u64);
+        loop {
+            // A pong answers a ping and carries no result: wait on.
+            match worker.recv_timeout(deadline.saturating_duration_since(Instant::now())) {
+                Ok(Some(res)) => return Some(Self::task_result(worker_id, res)),
+                Ok(None) if Instant::now() < deadline => {}
+                Ok(None) => return None,
+                Err(err) => {
+                    error!("Cannot receive a result from worker {worker_id}. {err}");
                     return None;
                 }
-                std::thread::sleep(Duration::from_micros(200));
             }
-        } else {
-            error!("Unknown worker: {worker_id}");
-            None
         }
     }
 
