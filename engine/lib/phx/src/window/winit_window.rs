@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use tracing::{debug, error, info, warn};
 use winit::dpi::{LogicalSize, PhysicalPosition};
 use winit::monitor::MonitorHandle;
@@ -6,7 +8,9 @@ use super::{CursorGrabMode, PresentMode, Window, WindowMode, WindowPosition, Win
 
 #[derive(Debug)]
 pub struct WinitWindow {
-    window: winit::window::Window,
+    /// Shared with the wgpu surface, which keeps the window alive for as
+    /// long as it exists.
+    window: Arc<winit::window::Window>,
 }
 
 impl WinitWindow {
@@ -102,7 +106,7 @@ impl WinitWindow {
         }
 
         Self {
-            window: winit_window,
+            window: Arc::new(winit_window),
         }
     }
 
@@ -123,7 +127,7 @@ impl WinitWindow {
         height: u32,
     ) -> Result<crate::window::WgpuStartupBundle, crate::window::WgpuError> {
         debug!("Creating wgpu surface bundle for render thread");
-        crate::window::create_surface_bundle(&self.window, present_mode, width, height)
+        crate::window::create_surface_bundle(self.window.clone(), present_mode, width, height)
     }
 }
 

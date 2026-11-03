@@ -103,10 +103,13 @@ goes through a `RenderCommand`: window resizes (`Resize`) and runtime vsync
 changes (`Window:setPresentMode` → `SetPresentMode`). `NoVsync` maps to
 `AutoNoVsync`, which falls back to the modes the surface supports.
 
-The surface is created from the window's raw handles, so it must be gone
-before the window is. Dropping `Renderer` sends `Shutdown` and joins the
-render thread (which drops the executor and the surface), and `Engine`
-declares `winit_window` after `renderer`, so it drops after it.
+The surface holds an `Arc` of the winit window, so the window lives as long
+as the surface does, whatever the drop order. Dropping `Renderer` sends
+`Shutdown` and joins the render thread; the commands sent before it still
+execute, in order. The render thread clears the `running` flag when it ends,
+whether by `Shutdown`, a closed channel or a panic: from then on the main
+thread stops sending, and its waits (`sync`, frame pacing, shader and
+readback replies) return instead of blocking, because their channels close.
 
 ## Stats
 

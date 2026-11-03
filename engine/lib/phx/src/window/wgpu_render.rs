@@ -4,9 +4,10 @@
 //! `WgpuCommandExecutor` owns it.
 //!
 //! Present-mode mapping lives in [`crate::window::present_mode`]
-//! (`Vsync -> Fifo`, `NoVsync -> Immediate`).
+//! (`Vsync -> Fifo`, `NoVsync -> AutoNoVsync`).
 
 use std::future::Future;
+use std::sync::Arc;
 use std::task::{Context, Poll, Waker};
 use std::time::{Duration, Instant};
 
@@ -64,11 +65,8 @@ impl std::fmt::Display for WgpuError {
 
 impl std::error::Error for WgpuError {}
 
-/// Owned wgpu startup handles, transferred to the render thread.
-///
-/// This borrows nothing at the Rust type level: the surface uses raw window
-/// handles, so the renderer (which joins the render thread on drop) must be
-/// dropped before `WinitWindow`.
+/// Owned wgpu startup handles, transferred to the render thread. The surface
+/// holds a reference to the window, so neither outlives the other.
 pub struct WgpuStartupBundle {
     pub adapter: wgpu::Adapter,
     pub surface: wgpu::Surface<'static>,
@@ -94,9 +92,8 @@ pub fn wanted_features(available: wgpu::Features) -> wgpu::Features {
 
 /// Create instance → adapter → device/queue → surface (owned) from the winit
 /// window, and configure the swapchain for `present_mode`.
-#[allow(unsafe_code)] // raw-handle surface; safety contract documented below
 pub fn create_surface_bundle(
-    window: &winit::window::Window,
+    window: Arc<winit::window::Window>,
     present_mode: PresentMode,
     width: u32,
     height: u32,
@@ -112,28 +109,9 @@ pub fn create_surface_bundle(
         display: None,
     });
 
-    // winit 0.30 windows are NOT Clone (owned, Drop-closes), so the unsafe
-    // raw-handle route is used for a 'static Surface.
-    //
-    // Safety: the raw handles must remain valid until the Surface is dropped.
-    // The engine owns both the window (inside WinitWindow) and, through the
-    // renderer, this surface: `Engine` declares `winit_window` after
-    // `renderer`, and dropping the renderer joins the render thread that owns
-    // the surface, so the surface is gone before the window.
-    let surface: wgpu::Surface<'static> = {
-        use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
-        let window_handle = window
-            .window_handle()
-            .map_err(|e| WgpuError::CreateSurface(e.to_string()))?;
-        let display_handle = window.display_handle().ok().map(|d| d.as_raw());
-        unsafe {
-            instance.create_surface_unsafe(wgpu::SurfaceTargetUnsafe::RawHandle {
-                raw_display_handle: display_handle,
-                raw_window_handle: window_handle.as_raw(),
-            })
-        }
-        .map_err(|e| WgpuError::CreateSurface(e.to_string()))?
-    };
+    let surface = instance
+        .create_surface(window)
+        .map_err(|e| WgpuError::CreateSurface(e.to_string()))?;
 
     let adapter = poll_startup_future(instance.request_adapter(&wgpu::RequestAdapterOptions {
         power_preference: wgpu::PowerPreference::HighPerformance,

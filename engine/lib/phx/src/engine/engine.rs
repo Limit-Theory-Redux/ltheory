@@ -34,9 +34,6 @@ pub struct Engine {
     /// Whether `changed_window` has already logged that a script's present
     /// mode request was overridden - logged once, not every frame.
     present_mode_override_logged: bool,
-    /// Declared after `renderer`, so it drops after it: the wgpu surface the
-    /// render thread owns was created from this window's raw handles, and
-    /// dropping the renderer joins that thread.
     pub winit_window: WinitWindow,
 }
 

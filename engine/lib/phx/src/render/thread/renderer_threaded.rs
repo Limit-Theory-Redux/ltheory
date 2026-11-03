@@ -36,7 +36,8 @@ pub struct Renderer {
     next_fence_id: AtomicU64,
     /// Number of frames currently in flight (submitted but not rendered)
     frames_in_flight: AtomicU64,
-    /// Whether the render thread is running
+    /// Whether the render thread is running; the thread clears it when it
+    /// ends, however it ends
     running: Arc<AtomicBool>,
     /// Thread handle for joining; taken by `Drop`
     thread_handle: Option<JoinHandle<()>>,
@@ -351,14 +352,12 @@ impl Renderer {
 }
 
 impl Drop for Renderer {
-    /// Stop the render thread and wait for it. The executor owns the wgpu
-    /// surface, which was created from the window's raw handles: it has to be
-    /// gone before `Engine` drops the window (see `create_surface_bundle`).
+    /// Stop the render thread and wait for it. Commands sent before Shutdown
+    /// still execute, in order.
     fn drop(&mut self) {
         if self.running.load(Ordering::Relaxed) {
             info!("Requesting render thread shutdown");
             self.submit(RenderCommand::Shutdown);
-            self.running.store(false, Ordering::Relaxed);
         }
         if let Some(handle) = self.thread_handle.take() {
             if let Err(e) = handle.join() {
@@ -626,5 +625,27 @@ impl Renderer {
     #[cfg(test)]
     pub fn new_headless() -> Self {
         Renderer::create_intern(None).expect("Cannot create renderer")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_stopped_render_thread_ends_sends_and_waits() {
+        let mut r = Renderer::new_headless();
+        assert!(r.sync_intern());
+
+        r.submit(RenderCommand::Shutdown);
+        r.thread_handle
+            .take()
+            .expect("the thread is running")
+            .join()
+            .expect("the thread ends without a panic");
+
+        assert!(!r.is_running());
+        assert!(!r.sync_intern());
+        assert!(!r.wait_for_gpu());
     }
 }

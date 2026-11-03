@@ -77,7 +77,17 @@ impl RenderThread {
             warn!("Render thread running without a GPU device - commands will be no-ops");
         }
 
-        while self.running.load(Ordering::Relaxed) {
+        // Cleared when this thread ends, by Shutdown, a closed channel or a
+        // panic, so the main thread stops sending and its waits return.
+        struct Stopped(Arc<AtomicBool>);
+        impl Drop for Stopped {
+            fn drop(&mut self) {
+                self.0.store(false, Ordering::Relaxed);
+            }
+        }
+        let _stopped = Stopped(self.running.clone());
+
+        loop {
             // Measure render-thread idle time: how long we block waiting for
             // commands (the producer-starvation gap). A fast-path recv on a
             // populated channel returns in a few µs; a genuinely blocked recv
@@ -124,7 +134,7 @@ impl RenderThread {
     }
 
     /// Wait for the next command, polling the device while the channel is
-    /// idle. `None` once the channel is closed or the renderer stops running.
+    /// idle. `None` once the channel is closed.
     fn next_command(&self) -> Option<RenderCommand> {
         let Some(executor) = self.executor.as_ref() else {
             return self.command_rx.recv().ok();
@@ -132,12 +142,7 @@ impl RenderThread {
         loop {
             match self.command_rx.recv_timeout(IDLE_POLL_INTERVAL) {
                 Ok(cmd) => return Some(cmd),
-                Err(RecvTimeoutError::Timeout) => {
-                    executor.poll();
-                    if !self.running.load(Ordering::Relaxed) {
-                        return None;
-                    }
-                }
+                Err(RecvTimeoutError::Timeout) => executor.poll(),
                 Err(RecvTimeoutError::Disconnected) => return None,
             }
         }
