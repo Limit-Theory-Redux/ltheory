@@ -181,6 +181,36 @@ fn a_ship_flies_around_several_obstacles() {
 }
 
 #[test]
+fn a_ship_flies_round_a_pair_of_rocks_with_no_gap_between_them() {
+    let target = DVec3::new(0.0, 0.0, -1000.0);
+    // The course leans right of the first rock's centre, and the second rock closes that side.
+    let rocks = [
+        rock(DVec3::new(-5.0, 0.0, -400.0), DVec3::ZERO, 50.0),
+        rock(DVec3::new(85.0, 0.0, -400.0), DVec3::ZERO, 50.0),
+    ];
+    let (ship, arrived) = fly(DVec3::ZERO, target, &rocks);
+    assert!(arrived.is_some());
+    assert!(
+        ship.clearance > AGENT_RADIUS,
+        "came within {} of the surface",
+        ship.clearance
+    );
+}
+
+#[test]
+fn a_ship_flies_round_the_end_of_a_row_of_rocks() {
+    let target = DVec3::new(0.0, 0.0, -1000.0);
+    let rocks = [-100.0, 0.0, 100.0].map(|x| rock(DVec3::new(x, 0.0, -400.0), DVec3::ZERO, 60.0));
+    let (ship, arrived) = fly(DVec3::ZERO, target, &rocks);
+    assert!(arrived.is_some());
+    assert!(
+        ship.clearance > AGENT_RADIUS,
+        "came within {} of the surface",
+        ship.clearance
+    );
+}
+
+#[test]
 fn every_rock_placed_on_the_course_is_cleared() {
     let target = DVec3::new(0.0, 0.0, -1000.0);
     // Offsets from the course line, and distances along it, with a fixed spread of radii.

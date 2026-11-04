@@ -65,12 +65,62 @@ fn scene() -> World {
     world
 }
 
+/// Half the side of the square the dense scene's agents, goals and obstacles are spread over.
+const DENSE_SPREAD: f64 = 1_500.0;
+/// The dense scene's goals lie this far ahead of the agents, and its obstacles between them.
+const DENSE_LENGTH: f64 = 10_000.0;
+
+/// Every agent flies the same way through a field of obstacles lying on its course, so the
+/// avoidance has a threat at almost every step.
+fn dense_scene() -> World {
+    let mut sequence = Sequence(2);
+    let across =
+        |sequence: &mut Sequence| DVec3::new(sequence.next(), sequence.next(), 0.0) * DENSE_SPREAD;
+    let mut world = World::new();
+    for _ in 0..AGENTS {
+        let id = world.add_agent(PROFILE);
+        world.set_body(
+            id,
+            Body {
+                position: across(&mut sequence),
+                velocity: DVec3::NEG_Z * PROFILE.max_speed * 0.5,
+                radius: AGENT_RADIUS,
+                ..Body::AT_REST
+            },
+        );
+        world.set_goal(
+            id,
+            Some(Goal {
+                target: across(&mut sequence) + DVec3::NEG_Z * DENSE_LENGTH,
+                arrival_radius: 100.0,
+            }),
+        );
+    }
+    let obstacles: Vec<Obstacle> = (0..OBSTACLES)
+        .map(|_| Obstacle {
+            position: across(&mut sequence)
+                + DVec3::NEG_Z * (DENSE_LENGTH * (0.1 + 0.8 * (sequence.next() + 1.0) / 2.0)),
+            velocity: DVec3::ZERO,
+            radius: OBSTACLE_RADIUS,
+        })
+        .collect();
+    world.set_obstacles(&obstacles);
+    world
+}
+
 fn step_benchmark(c: &mut Criterion) {
-    let mut world = scene();
+    let mut sparse = scene();
     c.bench_function("step 100 agents 60 obstacles", |b| {
         b.iter(|| {
-            world.step();
-            black_box(world.axes());
+            sparse.step();
+            black_box(sparse.axes());
+        })
+    });
+    let mut dense = dense_scene();
+    c.bench_function("step 100 agents 60 obstacles dense", |b| {
+        b.iter(|| {
+            dense.step();
+            black_box(dense.axes());
         })
     });
 }

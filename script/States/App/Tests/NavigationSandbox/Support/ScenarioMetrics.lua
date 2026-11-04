@@ -56,6 +56,7 @@ local PROGRESS_STEP = ScaleConfig:toGameUnits(PROGRESS_STEP_M, "starSystem")
 local ScenarioMetrics = Class("ScenarioMetrics", function(self, name, ships, obstacles)
     self.name = name
     self.ships = ships
+    self.obstacles = obstacles
     self.byId = {} -- entity id -> the ship or obstacle, for labels and kinds
     for _, ship in ipairs(ships) do
         ship.state = "flying"
@@ -138,6 +139,19 @@ function ScenarioMetrics:waypointReached(ship, simTime)
 end
 
 ---@param ship SandboxShip
+---@return SandboxObstacle|nil nearest The obstacle whose surface is closest to the ship
+---@return number gap Game units from the ship's centre to that surface; infinite when none
+function ScenarioMetrics:nearestObstacle(ship)
+    local nearest, gap = nil, math.huge
+    local position = ship.rb:getPos()
+    for _, obstacle in ipairs(self.obstacles) do
+        local candidate = position:distance(obstacle.rb:getPos()) - obstacle.radius
+        if candidate < gap then nearest, gap = obstacle, candidate end
+    end
+    return nearest, gap
+end
+
+---@param ship SandboxShip
 ---@param simTime number Seconds of simulated time since the scenario started
 function ScenarioMetrics:updateProgress(ship, simTime)
     local distance = ship.rb:getPos():distance(ship.target)
@@ -151,7 +165,10 @@ function ScenarioMetrics:updateProgress(ship, simTime)
     elseif simTime - ship.progressTime >= DEADLOCK_WINDOW_S then
         ship.state = "deadlocked"
         self.deadlocks = self.deadlocks + 1
-        self:log("%s deadlocked at %.2f s, %.0f m from its target", ship.label, simTime, metres(distance))
+        local near, nearGap = self:nearestObstacle(ship)
+        self:log("%s deadlocked at %.2f s, %.0f m from its target, speed %.0f m/s, nearest %s %.0f m from its surface",
+            ship.label, simTime, metres(distance), metres(ship.rb:getSpeed()), near and near.label or "none",
+            metres(nearGap))
     end
 end
 
@@ -180,7 +197,8 @@ function ScenarioMetrics:updateCollisions(world, simTime)
                 else
                     self.obstacleCollisions = self.obstacleCollisions + 1
                 end
-                self:log("collision of %s and %s at %.2f s", ship.label, self:bodyLabel(other), simTime)
+                self:log("collision of %s and %s at %.2f s, ship speed %.0f m/s", ship.label,
+                    self:bodyLabel(other), simTime, metres(ship.rb:getSpeed()))
             end
             touching[key] = true
         end

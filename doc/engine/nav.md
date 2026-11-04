@@ -18,13 +18,21 @@ An agent has arrived when its centre is within the goal's arrival radius. The fl
 
 ## Obstacle avoidance
 
-Obstacles are spheres with a velocity, assumed constant. For each one, the agent's wanted velocity is taken relative to the obstacle, and the time when the agent first comes within the obstacle's *reach* is solved exactly (a quadratic). The reach is the obstacle's radius plus the agent's radius plus a clearance of `clearance_radii` agent radii. Obstacles never reached within `horizon_s` are ignored. Of the others, the one reached first decides.
+Obstacles are spheres with a velocity, assumed constant. For each one, the agent's wanted velocity is taken relative to the obstacle, and the time when the agent first comes within the obstacle's *reach* is solved exactly (a quadratic). The reach is the obstacle's radius plus the agent's radius plus a clearance of `clearance_radii` agent radii. Obstacles never reached within `horizon_s` are ignored. When none is reached, the wanted velocity is kept.
 
-The course is then bent to pass that obstacle on the side the course already leans to, along the edge of the cone from the agent that just touches the reach sphere (half-angle `α`, `sin α = reach / distance`). The relative speed is kept, the obstacle's velocity is added back, and the speed is capped at the profile's maximum. The cone is aimed at `aim_factor` times the reach (a little above 1), so the new course isn't on the boundary the threat test uses, and the avoidance doesn't switch on and off every step.
+Otherwise the course is bent around the threat. A *candidate course* passes one obstacle along the edge of the cone from the agent that just touches the reach sphere (half-angle `α`, `sin α = reach / distance`). The relative speed is kept, the obstacle's velocity is added back, and the speed is capped at the profile's maximum. The cone is aimed at `aim_factor` times the reach (a little above 1), so the new course isn't on the boundary the threat test uses, and the avoidance doesn't switch on and off every step.
 
-- An agent already inside the reach moves straight away from the obstacle's centre.
+Each threatening obstacle gives two candidates, one on the side the course already leans to and one on the other side. Every candidate is tested against all obstacles with the same threat test. An obstacle that blocks a candidate and has not been expanded yet adds its own two candidates, breadth first, up to `MAX_EXPANDED_THREATS` (4) obstacles per agent and step, so the cost stays a few candidates times the number of obstacles instead of growing with their square. The search stops at the first level that has a clear candidate. The agent takes:
+
+- the clear candidate with the smallest turn from the wanted direction; or
+- when none is clear, the candidate (the wanted course included) whose first contact comes latest.
+
+While the wanted course leads into an obstacle, the chosen course's speed is also limited to `linear_drag` times the distance at which the agent's hull would touch that obstacle's surface. That is the speed from which drag alone stops the agent there, the same rule as in Arrive. A fast agent turns slowly, because its real velocity lags the wanted one, so without the limit it reaches the obstacle before its velocity has followed the detour. The direction is kept; only the speed falls.
+
+Special cases:
+
+- An agent already inside a reach slides out along that sphere toward its goal, with an outward component that grows with the depth, so it leaves the reach instead of circling in it.
 - A course through the centre has no side. A fixed rule picks one from the direction to the centre, so two agents meeting head-on choose the same side, which makes them pass each other rather than mirror each other.
-- Only the nearest threat is handled each step. Two obstacles close together can make the agent steer around one into the other; the agent corrects at the next step, but the margin is smaller.
 
 The method is adapted from the obstacle avoidance of Reynolds, "Steering Behaviors For Autonomous Characters" (Game Developers Conference, 1999): the agent predicts which obstacle it would hit and steers around it. Here the contact time with a moving sphere is solved exactly, and the new course is the tangent to the inflated sphere, instead of a probe cylinder ahead of the agent and a lateral force.
 
@@ -39,11 +47,14 @@ The controller maps the wanted velocity and the direction of travel to axes. It 
 
 ## Tuning
 
-`AvoidanceTuning` holds `horizon_s` (10 s), `clearance_radii` (2) and `aim_factor` (1.05). The controller's gains are constants in `controller.rs`. A longer horizon starts a detour earlier and costs more steering; a larger clearance keeps more distance and makes narrow gaps impassable.
+`AvoidanceTuning` holds `horizon_s` (10 s), `clearance_radii` (2) and `aim_factor` (1.05). The controller's gains are constants in `controller.rs`. A longer horizon starts a detour earlier and costs more steering; a larger clearance keeps more distance and makes narrow gaps impassable. A larger `aim_factor` passes obstacles wider, but a goal that lies between the reach and `aim_factor` times the reach can't be approached: the tangent to the inflated sphere misses it, and the agent circles outside.
 
 ## Limits
 
-- Obstacles are spheres only, with constant velocity; the agent's own thrust limits aren't part of the avoidance, so a fast agent close to a large obstacle can't always turn in time. The horizon and clearance must cover its turning distance.
+- Obstacles are spheres only, with constant velocity; the agent's own thrust limits aren't part of the avoidance. A course is judged on the wanted velocity, but a fast agent's real velocity lags it. The speed limit near a threat covers this only as far as drag can stop the agent; the horizon and clearance must cover its turning distance.
+- The speed limit makes an agent stop in front of a gap that its clearance makes impassable, instead of squeezing through it: it waits there until the goal or the obstacles move.
+- The two candidates of an obstacle lie in the plane of the relative velocity and the direction to the centre. A pocket that only opens out of that plane, or more than `MAX_EXPANDED_THREATS` obstacles in a row, can be missed; the agent then takes the latest contact.
+- Goals closer to an obstacle than `aim_factor` times its reach are hard to approach (see Tuning).
 - Avoidance between agents isn't implemented.
 - The cost of a step grows with agents × obstacles; there is no spatial index.
 
@@ -62,4 +73,4 @@ Unit tests sit with the modules. `tests/flight.rs` flies agents through a point-
 
 `NavWorld`'s tests (in `phx`) use real rigid bodies in a `Physics`: they check that a step follows the body in physics, that obstacle bodies change the axes, and that bad registrations, ids, buffers and removed bodies panic.
 
-`cargo bench -p nav --bench step` measures one step for 100 agents and 60 obstacles.
+`cargo bench -p nav --bench step` measures one step for 100 agents and 60 obstacles in two scenes: a sparse one spread over a large cube, where the avoidance rarely triggers, and a dense one where every agent flies through a field of obstacles on its course, so the candidate search runs at almost every step.

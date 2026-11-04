@@ -26,7 +26,12 @@ impl Default for AvoidanceTuning {
     }
 }
 
-/// The obstacle an agent reaches first on its wanted course, in the obstacle's frame.
+/// How many spheres one step may take the tangent courses of. It bounds the work to a few
+/// courses, each tested against every obstacle, instead of growing with the obstacle count.
+const MAX_EXPANDED_THREATS: usize = 4;
+
+/// The obstacle an agent reaches first on a course, in the obstacle's frame.
+#[derive(Clone, Copy)]
 struct Threat {
     /// Seconds until the agent touches the inflated sphere; 0 when it is already inside.
     entry_time: f64,
@@ -45,12 +50,60 @@ impl Threat {
     }
 }
 
-/// Steers a wanted course around the obstacle it reaches first, if any: the new course passes
-/// the obstacle's inflated sphere on the side the course already leans to, tangent to it
-/// (Reynolds, "Steering Behaviors For Autonomous Characters", 1999, obstacle avoidance).
+/// The agent and the obstacles its courses are tested against.
+struct Scene<'a> {
+    position: DVec3,
+    /// The agent's radius plus its clearance.
+    reach_margin: f64,
+    horizon_s: f64,
+    obstacles: &'a [Obstacle],
+}
+
+impl Scene<'_> {
+    /// The obstacle (its index and threat) the agent reaches first flying `velocity`.
+    fn first_threat(&self, velocity: DVec3) -> Option<(usize, Threat)> {
+        self.obstacles
+            .iter()
+            .enumerate()
+            .filter_map(|(index, obstacle)| {
+                threat(
+                    self.position,
+                    velocity,
+                    self.reach_margin,
+                    obstacle,
+                    self.horizon_s,
+                )
+                .map(|threat| (index, threat))
+            })
+            .min_by(|a, b| a.1.entry_time.total_cmp(&b.1.entry_time))
+    }
+}
+
+/// A sphere whose tangent courses are still to be tried, with the course that reaches it.
+#[derive(Clone, Copy)]
+struct Pending {
+    index: usize,
+    threat: Threat,
+    course: Wanted,
+}
+
+/// Steers a wanted course clear of the obstacles, if it leads into one. The candidates are the
+/// tangent courses of the sphere reached first, on the side the course leans to and on the
+/// other; a candidate that another sphere blocks adds that sphere's tangents in turn. Of the
+/// candidates that reach nothing within the horizon, the one turning least from the wanted
+/// course is taken; if none is clear, the one that reaches an obstacle latest (the wanted course
+/// included). The tangent is the one of Reynolds, "Steering Behaviors For Autonomous
+/// Characters", 1999, obstacle avoidance.
+///
+/// While the wanted course leads into a sphere, the speed is also limited to `linear_drag` times
+/// the distance to the sphere's surface plus the agent's radius, the speed from which drag alone
+/// stops the agent there (the rule of [`arrive`](crate::behaviour::arrive)). A fast agent turns
+/// slowly, so without the limit it reaches the sphere before its velocity has followed the
+/// detour.
 pub(crate) fn avoid(
     body: &Body,
     max_speed: f64,
+    linear_drag: f64,
     wanted: Wanted,
     obstacles: &[Obstacle],
     tuning: &AvoidanceTuning,
@@ -58,22 +111,132 @@ pub(crate) fn avoid(
     if wanted.direction == DVec3::ZERO {
         return wanted;
     }
-    let reach_margin = body.radius * (1.0 + tuning.clearance_radii);
-    let first = obstacles
-        .iter()
-        .filter_map(|o| {
-            threat(
-                body.position,
-                wanted.velocity,
-                reach_margin,
-                o,
-                tuning.horizon_s,
-            )
-        })
-        .min_by(|a, b| a.entry_time.total_cmp(&b.entry_time));
-    match first {
-        Some(threat) => steer_around(&threat, wanted, max_speed, tuning.aim_factor),
-        None => wanted,
+    let scene = Scene {
+        position: body.position,
+        reach_margin: body.radius * (1.0 + tuning.clearance_radii),
+        horizon_s: tuning.horizon_s,
+        obstacles,
+    };
+    let Some((index, first)) = scene.first_threat(wanted.velocity) else {
+        return wanted;
+    };
+    if first.is_inside() {
+        return steer_around(&first, wanted, max_speed, tuning.aim_factor, false);
+    }
+    let stopping_distance =
+        first.entry_time * wanted.velocity.length() + body.radius * tuning.clearance_radii;
+    let course = search_courses(
+        &scene,
+        wanted,
+        max_speed,
+        tuning.aim_factor,
+        Pending {
+            index,
+            threat: first,
+            course: wanted,
+        },
+    );
+    limit_speed(course, linear_drag * stopping_distance)
+}
+
+/// `course` with its speed reduced to `limit` if it is faster; the direction is kept.
+fn limit_speed(course: Wanted, limit: f64) -> Wanted {
+    let speed = course.velocity.length();
+    if speed <= limit {
+        return course;
+    }
+    Wanted {
+        velocity: course.velocity * (limit / speed),
+        direction: course.direction,
+    }
+}
+
+/// The best course found by expanding spheres breadth-first from `first`, which blocks `wanted`.
+fn search_courses(
+    scene: &Scene,
+    wanted: Wanted,
+    max_speed: f64,
+    aim_factor: f64,
+    first: Pending,
+) -> Wanted {
+    let mut queue = [None; MAX_EXPANDED_THREATS];
+    queue[0] = Some(first);
+    let mut queued = 1;
+    let mut choice = Choice::new(wanted, first.threat.entry_time);
+    let mut next = 0;
+    while next < queued && choice.clear.is_none() {
+        let Some(pending) = queue[next] else { break };
+        next += 1;
+        for flip in [false, true] {
+            let course = steer_around(&pending.threat, pending.course, max_speed, aim_factor, flip);
+            let Some((index, threat)) = scene.first_threat(course.velocity) else {
+                choice.offer_clear(course, course.direction.dot(wanted.direction));
+                continue;
+            };
+            choice.offer_blocked(course, threat.entry_time);
+            let known = queue[..queued].iter().flatten().any(|p| p.index == index);
+            if queued < MAX_EXPANDED_THREATS && !known {
+                queue[queued] = Some(Pending {
+                    index,
+                    threat,
+                    course,
+                });
+                queued += 1;
+            }
+        }
+    }
+    choice.best()
+}
+
+/// A candidate course with its score: higher is better.
+#[derive(Clone, Copy)]
+struct Scored {
+    course: Wanted,
+    score: f64,
+}
+
+/// The best clear candidate and the best blocked one so far. A later candidate replaces one
+/// only with a strictly higher score, so ties keep the first offered.
+struct Choice {
+    clear: Option<Scored>,
+    blocked: Scored,
+}
+
+impl Choice {
+    /// Starts with the wanted course as the blocked candidate, reaching an obstacle at `entry_time`.
+    fn new(wanted: Wanted, entry_time: f64) -> Self {
+        Self {
+            clear: None,
+            blocked: Scored {
+                course: wanted,
+                score: entry_time,
+            },
+        }
+    }
+
+    /// Offers a course that reaches nothing; `alignment` is the cosine of its turn from the
+    /// wanted course.
+    fn offer_clear(&mut self, course: Wanted, alignment: f64) {
+        if self.clear.is_none_or(|best| alignment > best.score) {
+            self.clear = Some(Scored {
+                course,
+                score: alignment,
+            });
+        }
+    }
+
+    /// Offers a course that reaches an obstacle after `entry_time` seconds.
+    fn offer_blocked(&mut self, course: Wanted, entry_time: f64) {
+        if entry_time > self.blocked.score {
+            self.blocked = Scored {
+                course,
+                score: entry_time,
+            };
+        }
+    }
+
+    fn best(self) -> Wanted {
+        self.clear.unwrap_or(self.blocked).course
     }
 }
 
@@ -115,7 +278,16 @@ fn threat(
     (entry_time <= horizon_s).then(|| make(entry_time))
 }
 
-fn steer_around(threat: &Threat, wanted: Wanted, max_speed: f64, aim_factor: f64) -> Wanted {
+/// The course from `wanted` that passes the threatening sphere tangent to its inflated surface,
+/// on the side the course leans to, or on the other side when `flip`. An agent already inside
+/// the reach slides out of it instead ([`slide_out`]), on either side.
+fn steer_around(
+    threat: &Threat,
+    wanted: Wanted,
+    max_speed: f64,
+    aim_factor: f64,
+    flip: bool,
+) -> Wanted {
     let distance = threat.offset.length();
     // Unit direction from the agent to the obstacle's centre; any fixed one when they coincide.
     let to_centre = if distance * distance < TINY_SQ {
@@ -123,14 +295,16 @@ fn steer_around(threat: &Threat, wanted: Wanted, max_speed: f64, aim_factor: f64
     } else {
         -threat.offset / distance
     };
-    let side = side_of(threat.relative_velocity, to_centre);
+    let leaning = side_of(threat.relative_velocity, to_centre);
+    let side = if flip { -leaning } else { leaning };
     let relative_speed = match threat.relative_velocity.length() {
         speed if speed * speed < TINY_SQ => wanted.velocity.length(),
         speed => speed,
     };
 
     let relative_direction = if threat.is_inside() {
-        -to_centre
+        let depth = (1.0 - distance / (threat.reach * aim_factor)).clamp(0.0, 1.0);
+        slide_out(threat, -to_centre, side, relative_speed, depth)
     } else {
         // The cone from the agent that just touches the inflated sphere has half-angle α, with
         // sin α = radius / distance. The course aims along its edge on `side`.
@@ -152,6 +326,34 @@ fn steer_around(threat: &Threat, wanted: Wanted, max_speed: f64, aim_factor: f64
     Wanted {
         velocity,
         direction,
+    }
+}
+
+/// The unit direction, in the obstacle's frame, for an agent inside the reach: along the sphere
+/// as the wanted course does, so the agent keeps making for its goal, and out of it by the
+/// larger of the wanted outward speed and `depth` (0 at the boundary, 1 at the centre) times the
+/// relative speed. Where the course runs straight into the centre, `side` is the way along.
+fn slide_out(
+    threat: &Threat,
+    outward: DVec3,
+    side: DVec3,
+    relative_speed: f64,
+    depth: f64,
+) -> DVec3 {
+    let velocity = threat.relative_velocity;
+    let wanted_out = velocity.dot(outward);
+    let out = wanted_out.max(depth * relative_speed);
+    let along = velocity - outward * wanted_out;
+    let along = if along.length_squared() < TINY_SQ {
+        side * (relative_speed - out).max(0.0)
+    } else {
+        along
+    };
+    let course = along + outward * out;
+    if course.length_squared() < TINY_SQ {
+        outward
+    } else {
+        course.normalize()
     }
 }
 
@@ -206,10 +408,14 @@ mod tests {
         }
     }
 
+    /// A drag so high that the braking limit never bites, for tests of the course alone.
+    const UNLIMITED_DRAG: f64 = 1.0e6;
+
     fn avoid_default(body: &Body, wanted: Wanted, obstacles: &[Obstacle]) -> Wanted {
         avoid(
             body,
             MAX_SPEED,
+            UNLIMITED_DRAG,
             wanted,
             obstacles,
             &AvoidanceTuning::default(),
@@ -298,13 +504,88 @@ mod tests {
     }
 
     #[test]
-    fn the_obstacle_reached_first_decides() {
+    fn a_far_obstacle_off_the_detour_does_not_change_it() {
         let body = body_at(DVec3::ZERO);
         let wanted = wanted_toward(DVec3::NEG_Z, 80.0);
         let near = rock(DVec3::new(0.0, 0.0, -200.0), DVec3::ZERO, 20.0);
         let far = rock(DVec3::new(0.0, 0.0, -600.0), DVec3::ZERO, 20.0);
         let both = avoid_default(&body, wanted, &[far, near]);
         assert_eq!(both, avoid_default(&body, wanted, &[near]));
+    }
+
+    /// Spheres of radius 40 in a row across the course at z = -300, centred at the given x.
+    fn row(centres: &[f64]) -> Vec<Obstacle> {
+        centres
+            .iter()
+            .map(|&x| rock(DVec3::new(x, 0.0, -300.0), DVec3::ZERO, 40.0))
+            .collect()
+    }
+
+    /// The seconds until the agent flying `velocity` first reaches any of the obstacles.
+    fn contact_time(body: &Body, velocity: DVec3, obstacles: &[Obstacle]) -> f64 {
+        let margin = RADIUS * (1.0 + AvoidanceTuning::default().clearance_radii);
+        obstacles
+            .iter()
+            .filter_map(|o| threat(body.position, velocity, margin, o, f64::INFINITY))
+            .map(|t| t.entry_time)
+            .fold(f64::INFINITY, f64::min)
+    }
+
+    #[test]
+    fn a_tangent_that_runs_into_a_neighbour_is_passed_over_for_the_other_side() {
+        let body = body_at(DVec3::ZERO);
+        let wanted = wanted_toward(DVec3::NEG_Z, 80.0);
+        // The course is 5 left of the first sphere's centre, so it leans right; the second
+        // sphere sits so close on the right that no course passes between them.
+        let squeeze = row(&[-5.0, 75.0]);
+        let steered = avoid_default(&body, wanted, &squeeze);
+
+        assert!(steered.velocity.x < 0.0, "goes round the left of the pair");
+        for sphere in &squeeze {
+            let miss = closest_approach(&body, steered.velocity, sphere);
+            assert!(miss >= reach_of(sphere), "misses by {miss}");
+        }
+    }
+
+    #[test]
+    fn a_gap_wide_enough_is_still_taken_on_the_side_the_course_leans_to() {
+        let body = body_at(DVec3::ZERO);
+        let wanted = wanted_toward(DVec3::NEG_Z, 80.0);
+        // The second sphere is far enough right that the right tangent of the first misses it.
+        let open = row(&[-5.0, 300.0]);
+        let steered = avoid_default(&body, wanted, &open);
+        assert!(steered.velocity.x > 0.0, "keeps to the side it leans to");
+        for sphere in &open {
+            assert!(closest_approach(&body, steered.velocity, sphere) >= reach_of(sphere));
+        }
+    }
+
+    #[test]
+    fn the_tangents_of_a_blocking_neighbour_are_tried_when_both_first_tangents_are_blocked() {
+        let body = body_at(DVec3::ZERO);
+        let wanted = wanted_toward(DVec3::NEG_Z, 80.0);
+        // Both tangents of the middle sphere run into the outer ones; only a course round an
+        // end of the row is clear.
+        let wall = row(&[-80.0, 0.0, 80.0]);
+        let steered = avoid_default(&body, wanted, &wall);
+
+        assert_eq!(contact_time(&body, steered.velocity, &wall), f64::INFINITY);
+        assert!(steered.velocity.x.abs() > 1.0);
+    }
+
+    #[test]
+    fn when_no_course_is_clear_the_one_reaching_an_obstacle_latest_is_taken() {
+        let body = body_at(DVec3::ZERO);
+        let wanted = wanted_toward(DVec3::NEG_Z, 80.0);
+        // More touching spheres than the search expands: no clear course is found.
+        let centres: Vec<f64> = (-6..=6).map(|i| f64::from(i) * 80.0).collect();
+        let wall = row(&centres);
+        let steered = avoid_default(&body, wanted, &wall);
+
+        let contact = contact_time(&body, steered.velocity, &wall);
+        assert!(contact.is_finite(), "the row is wider than the search");
+        assert!(steered.velocity.length() <= MAX_SPEED + 1e-9);
+        assert!(contact >= contact_time(&body, wanted.velocity, &wall));
     }
 
     #[test]
@@ -334,6 +615,28 @@ mod tests {
     }
 
     #[test]
+    fn an_agent_just_inside_the_reach_slides_along_it_toward_its_goal() {
+        // 0.5 inside the reach of 23, with the goal ahead and a little inward.
+        let body = body_at(DVec3::new(22.5, 0.0, 0.0));
+        let wanted = wanted_toward(DVec3::new(-0.2, 0.0, -1.0).normalize(), 50.0);
+        let around = rock(DVec3::ZERO, DVec3::ZERO, 20.0);
+        let steered = avoid_default(&body, wanted, &[around]);
+
+        assert!(steered.velocity.z < -48.0, "keeps making for the goal");
+        assert!(steered.velocity.x > 0.0, "and does not go further in");
+        assert!((steered.velocity.length() - 50.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn an_agent_inside_the_reach_with_its_goal_straight_out_leaves_that_way() {
+        let body = body_at(DVec3::new(10.0, 0.0, 0.0));
+        let wanted = wanted_toward(DVec3::X, 50.0);
+        let around = rock(DVec3::ZERO, DVec3::ZERO, 20.0);
+        let steered = avoid_default(&body, wanted, &[around]);
+        assert!((steered.direction - DVec3::X).length() < 1e-9);
+    }
+
+    #[test]
     fn the_steered_speed_is_capped() {
         let body = body_at(DVec3::ZERO);
         let wanted = wanted_toward(DVec3::NEG_Z, MAX_SPEED);
@@ -345,5 +648,50 @@ mod tests {
         );
         let steered = avoid_default(&body, wanted, &[fast]);
         assert!(steered.velocity.length() <= MAX_SPEED + 1e-9);
+    }
+
+    const DRAG: f64 = 2.0;
+
+    fn avoid_with_drag(body: &Body, wanted: Wanted, obstacles: &[Obstacle]) -> Wanted {
+        avoid(
+            body,
+            MAX_SPEED,
+            DRAG,
+            wanted,
+            obstacles,
+            &AvoidanceTuning::default(),
+        )
+    }
+
+    #[test]
+    fn a_threat_close_ahead_limits_the_speed_to_what_drag_stops_at_the_surface() {
+        let body = body_at(DVec3::ZERO);
+        let wanted = wanted_toward(DVec3::NEG_Z, MAX_SPEED);
+        let rock = rock(DVec3::new(0.0, 0.0, -30.0), DVec3::ZERO, 5.0);
+        // The agent's centre may come as close as the rock's radius plus its own.
+        let stopping = 30.0 - (rock.radius + RADIUS);
+        let steered = avoid_with_drag(&body, wanted, &[rock]);
+        assert!(steered.velocity.length() <= DRAG * stopping + 1e-9);
+        assert!(steered.velocity.length() > 0.0);
+    }
+
+    #[test]
+    fn the_limit_keeps_the_direction_of_the_detour() {
+        let body = body_at(DVec3::ZERO);
+        let wanted = wanted_toward(DVec3::NEG_Z, MAX_SPEED);
+        let rock = rock(DVec3::new(0.0, 0.0, -30.0), DVec3::ZERO, 5.0);
+        let free = avoid_default(&body, wanted, &[rock]);
+        let limited = avoid_with_drag(&body, wanted, &[rock]);
+        assert!(limited.velocity.length() < free.velocity.length());
+        assert!(limited.velocity.normalize().dot(free.velocity.normalize()) > 1.0 - 1e-9);
+    }
+
+    #[test]
+    fn a_threat_far_ahead_does_not_limit_the_speed() {
+        let body = body_at(DVec3::ZERO);
+        let wanted = wanted_toward(DVec3::NEG_Z, MAX_SPEED);
+        let far = rock(DVec3::new(0.0, 0.0, -900.0), DVec3::ZERO, 5.0);
+        let steered = avoid_with_drag(&body, wanted, &[far]);
+        assert!(steered.velocity.length() > MAX_SPEED - 1e-6);
     }
 }

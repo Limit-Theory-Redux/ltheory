@@ -49,6 +49,12 @@ local NavDebugDraw          = require("States.App.Tests.NavigationSandbox.Suppor
 ---@field ships SandboxShipSpec[]
 ---@field obstacles SandboxObstacleSpec[]|nil
 ---@field timeLimit number|nil Seconds of simulated time for every ship to arrive or deadlock; route ships fly until it ends
+---@field avoidance SandboxAvoidanceSpec|nil The avoidance tuning; the navigation world's defaults when nil
+
+---@class SandboxAvoidanceSpec
+---@field horizonS number Look-ahead, in seconds
+---@field clearanceRadii number Distance kept from an obstacle's surface, in ship radii
+---@field aimFactor number The detour passes the obstacle's reach at this multiple of it
 
 ---@class NavigationSandbox: Application
 ---@field scenarios SandboxScenario[]|nil The scenarios this app runs; every scenario when nil
@@ -300,6 +306,10 @@ function NavigationSandbox:createNavigation()
     end
     for _, obstacle in ipairs(self.obstacles) do
         self.nav:addObstacle(obstacle.rb)
+    end
+    local avoidance = self.scenarios[self.scenarioIndex].avoidance
+    if avoidance then
+        self.nav:setAvoidanceTuning(avoidance.horizonS, avoidance.clearanceRadii, avoidance.aimFactor)
     end
     self.axes = ffi.new("double[?]", #self.ships * NavWorld.AxisCount())
     self.arrived = ffi.new("bool[?]", #self.ships)

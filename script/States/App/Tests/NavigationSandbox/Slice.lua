@@ -17,7 +17,7 @@ local PLANET_ORBIT_M     = 6000
 local PLANET_PERIOD_S    = 60
 -- Gap kept between asteroids, and from an asteroid or the planet's path to a waypoint or start.
 local ASTEROID_GAP_M     = 500
-local WAYPOINT_CLEARANCE_M = 300
+local WAYPOINT_CLEARANCE_M = 1000
 local START_SPACING_M    = 300
 -- Consecutive waypoints are at least this far apart: shorter legs end inside the arrival range.
 local MIN_LEG_M          = 1000
@@ -116,4 +116,5 @@ return NavigationSandbox.ScenarioApp {
     ships = ships,
     obstacles = obstacles,
     timeLimit = TIME_LIMIT_S,
+    avoidance = { horizonS = 10, clearanceRadii = 2, aimFactor = 1.4 },
 }

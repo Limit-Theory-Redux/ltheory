@@ -78,6 +78,7 @@ impl World {
             let wanted = avoid(
                 &agent.body,
                 agent.profile.max_speed,
+                agent.profile.linear_drag,
                 toward_goal,
                 &self.obstacles,
                 &self.tuning,
