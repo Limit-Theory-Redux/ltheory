@@ -2,8 +2,6 @@
 #include color
 #include math
 
-#autovar samplerCube envMap
-#autovar samplerCube irMap
 
 float glossToLOD(float gloss) {
   return 8.0 * (pow(2.0, gloss) - 1.0);

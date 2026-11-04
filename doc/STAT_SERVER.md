@@ -103,15 +103,14 @@ the two back into a flat view after fetching. Keys:
 | `render.commands_processed` / `render.draw_calls_cumulative` / `render.state_changes_cumulative` | Cumulative totals since launch |
 | `render.commands` / `render.draw_calls` / `render.state_changes` | Per-frame values |
 | `render.draw_mesh_calls` | DrawMeshByResource calls (mesh entities) |
-| `render.draw_immediate_calls` | DrawImmediate calls (UI/overlay quads) |
+| `render.draw_immediate_calls` | `DrawImm` calls (batched UI/overlay/debug vertices) and fullscreen quads |
 | `render.draw_instanced_calls` | DrawInstancedWithData calls (asteroid groups) |
-| `render.immediate_vertices` | Vertices submitted via DrawImmediate |
+| `render.immediate_vertices` | Vertices submitted via `DrawImm` |
 | `render.instanced_data_items` | Per-instance matrix/scale entries submitted |
 | `render.texture_bind_calls` / `render.texture_binds_skipped` | Texture binds vs deduped (same texture already bound) |
 | `render.texture_cache_invalidations` | Cached texture evicted (by shader bind/unbind) |
 | `render.texture_binds_skipped_cumulative` | Cumulative deduped texture binds |
 | `render.uniform_cache_hits` / `render.uniform_cache_misses` | Uniform-location cache: hits avoid driver round-trips |
-| `uniform_dedup_skips` | Uniforms skipped because the value didn't change (main-thread producer cost, top level) |
 | `render.shader_bind_commands` | BindShader commands executed |
 | `render.shader_redundant_binds` | Binds where the program was already current (deduped) |
 | `render.shader_distinct_programs` | Distinct GL programs used this frame |

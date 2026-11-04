@@ -4,11 +4,10 @@ The shader system provides GLSL compilation and caching (`render/shader.rs`), au
 hot-reload via file watching (`render/shader_watcher.rs`, `render/shader_error.rs`), and
 two uniform buffer objects shared by every shader (`render/thread/ubo.rs`).
 
-There is a single rendering path: all GL work happens on the render thread and is reached
-through `Renderer`/`RenderCommand`, whether that thread is the dedicated render thread
-(default) or running inline on the calling thread (`immediate` cargo feature, for
-debugging/comparison). Nothing here branches on that distinction — it's an implementation
-detail of `Renderer`, not something shader code or Lua callers need to know about.
+There is a single rendering path: all GPU work happens on the render thread (wgpu) and is
+reached through `Renderer`/`RenderCommand`. The engine's GLSL 330 sources are adapted to
+the form naga's GLSL frontend accepts (`render/thread/command_executor_wgpu/shader.rs`:
+version, `set`/`binding` layout, split texture/sampler declarations) and validated by naga.
 
 ## Hot-Reload System
 
@@ -25,9 +24,9 @@ File System Watch (Rust, via `notify`)
          ↓
    Changed shader key detected
          ↓
-  Cache.GetShader(key):reload()  -- in-place: swaps the GL program inside the
+  Cache.GetShader(key):reload()  -- in-place: swaps the GPU program inside the
          │                           shared Rf<ShaderShared>, so every existing
-   ┌─────┴─────┐                     Shader clone/ShaderState picks it up
+   ┌─────┴─────┐                     Shader clone picks it up
    │           │
  Success    Failure
    │           │
@@ -41,10 +40,10 @@ File System Watch (Rust, via `notify`)
 ```
 
 Unlike a cache-swap design, this repo's `Shader::reload()` mutates the existing `Shader`'s
-GL handle in place inside its shared `Rf<ShaderShared>` cell. That's what makes "keep the
+GPU program in place inside its shared `Rf<ShaderShared>` cell. That's what makes "keep the
 last working version on failure" free: on success the handle is swapped; on failure it
-simply isn't touched, so every clone of that `Shader` (and every `ShaderState` built from
-it) automatically keeps rendering the previous program with no separate fallback cache.
+simply isn't touched, so every clone of that `Shader`
+automatically keeps rendering the previous program with no separate fallback cache.
 
 ### Rust Components
 
@@ -52,15 +51,15 @@ it) automatically keeps rendering the previous program with no separate fallback
 |------|---------|
 | `render/shader_watcher.rs` | File watching (`notify` crate), `#include` dependency tracking |
 | `render/shader_error.rs` | Capped (10, FIFO) compile/reload error queue |
-| `render/shader.rs` | Preprocessing (`#include`/`#autovar`), compilation, in-place reload, error-shader fallback |
-| `render/thread/command_executor_gl.rs` | Actual GL shader compile/link (`create_shader`), including UBO block binding |
+| `render/shader.rs` | Preprocessing (`#include`/`#group`), compilation, in-place reload, error-shader fallback |
+| `render/thread/command_executor_wgpu/shader.rs` | GLSL adaptation and naga compilation (`compile_pair`), including applying the `#group` layout and reflecting the blocks (`blocks_from_naga`) |
+| `render/gpu/layout.rs` | `ShaderLayout` (recorded `#group` declarations), `BlockLayout` (reflected blocks) |
 
 Both `ShaderWatcherInner` and the error queue (`ShaderErrorQueue`) are fields on
 `RendererData` (`render/thread/renderer_data.rs`) — reached as `r.data.shader_watcher` /
 `r.data.shader_errors` — **not** global `static`s. This repo removed its remaining Rust
-globals; `ShaderVarMap` (the auto-var push/pop stack) went through the same change earlier
-and is the pattern these two follow. Every FFI method on `ShaderWatcher`/`ShaderError` takes
-`r: &Renderer` or `r: &mut Renderer` as its first argument, exactly like `ShaderVar`'s do;
+globals. Every FFI method on `ShaderWatcher`/`ShaderError` takes
+`r: &Renderer` or `r: &mut Renderer` as its first argument;
 the hand-written `ffi_ext/ShaderWatcher.lua` / `ffi_ext/ShaderError.lua` wrappers inject the
 global Lua `Renderer` so call sites don't need to pass it explicitly.
 
@@ -93,9 +92,9 @@ a shared include reloads all dependent shaders:
 
 ```glsl
 -- res/shader/vertex/wvp.glsl
-#include vertex   -- itself #includes camera_ubo
+#include vertex   -- itself #includes view_block
 
--- Editing include/vertex.glsl or include/camera_ubo.glsl triggers a
+-- Editing include/vertex.glsl or include/view_block.glsl triggers a
 -- reload of wvp.glsl (and every other shader that includes either file).
 ```
 
@@ -112,7 +111,7 @@ duplicated rather than plumbing a visited-file list out of the compile path.
 pub struct ShaderErrorInfo {
     pub shader_key: String,   // canonical "vertex/wvp:fragment/material/metal"
     pub error_type: String,   // "compile" (this repo doesn't yet push "link" separately)
-    pub message: String,      // OpenGL info-log, null bytes stripped
+    pub message: String,      // compiler (naga) message, null bytes stripped
     pub timestamp: u64,       // ShaderError::Update()'s frame counter
 }
 ```
@@ -238,28 +237,47 @@ WARN  Shader '[vs: vertex/wvp, fs: fragment/material/metal]' reload failed: Frag
 INFO  Reloaded shader [vs: vertex/wvp, fs: fragment/material/metal]   -- on the next successful reload
 ```
 
-## UBO System
+## Binding Layout (`#group`) and the UBOs
 
-Two uniform buffer objects are shared by every shader that includes them, avoiding
-per-draw-call uniform pushes for data that's constant for the whole frame (camera) or set
-once per light in a deferred pass. Binding points are assigned at link time in
-`command_executor_gl.rs::create_shader` via `glUniformBlockBinding` (GLSL 330 has no
-`binding` layout qualifier). There is no Material UBO in this repo — the fork that this
-system was ported from has one, but nothing consumes it there either; it wasn't ported.
+GLSL 330 has no `layout(binding=)`, so the preprocessor (`GLSLCode::preprocess`) owns the binding
+assignment. A `#group N` line (N in 0..3) marks the uniform blocks and samplers that follow it as
+belonging to bind group N; the directive is stripped from the GLSL, the declarations are recorded in a
+`ShaderLayout`, and the executor rewrites the declarations to `layout(set=, binding=)` form and
+reflects every block from naga's module (`blocks_from_naga`).
+Includes inherit the includer's group; a `#group` inside an include does not leak out of it.
 
-### Camera UBO (binding 0)
+| group | blocks | samplers | contents |
+|---|---|---|---|
+| 0 frame | up to 4 | up to 3 | `ViewBlock` (per pass), `envMap`, `irMap` |
+| 1 material | up to 4 | up to 7 | material params and textures (bind group) |
+| 2 draw | up to 4 | up to 2 | per-draw block (`pass:alloc(T)`) |
+| 3 pass inputs | up to 4 | up to 4 | `pass:setInputs(...)` textures |
 
-`res/shader/include/camera_ubo.glsl`, included by `include/vertex.glsl` and
-`include/fragment.glsl` (so nearly every shader gets it for free):
+Within a group (wgpu `set = group`) the k-th block gets binding `k`, and the i-th sampler a texture at
+binding `4 + 2i` with its sampler object at `4 + 2i + 1` (`render/gpu/layout.rs`).
+A shader's own blocks are reachable from Lua: `shader:blockType('Params')` returns a LuaJIT struct type
+with the block's exact byte layout, and `pass:alloc(Params)` returns a zeroed `Params*` that becomes the
+group-2 block of the next draw.
+
+### View block (group 0, binding 0)
+
+`res/shader/include/view_block.glsl`, included by `include/vertex.glsl`, `include/fragment.glsl` and
+`include/instanced.glsl` (so nearly every shader gets it for free). The engine allocates one per render pass
+(`Renderer:beginPass`) from the camera set by `Renderer:setCamera`:
 
 ```glsl
-layout(std140) uniform CameraUBO {
+#group 0
+layout(std140) uniform ViewBlock {
     mat4 ubo_mView;
     mat4 ubo_mProj;
     mat4 ubo_mViewInv;
     mat4 ubo_mProjInv;
-    vec4 ubo_eye;      // xyz = eye position, w = padding
+    vec4 ubo_eye;      // xyz = eye position, w = 1
     vec4 ubo_starDir;  // xyz = star direction, w = padding
+    mat4 ubo_mProjUI;      // orthographic projection of the pass
+    mat4 ubo_mWorldViewUI; // pass:setUiTransform
+    vec4 ubo_viewport;     // x, y, w, h in pixels
+    vec4 ubo_time;         // reserved
 };
 
 #define mView ubo_mView
@@ -268,65 +286,107 @@ layout(std140) uniform CameraUBO {
 #define mProjInv ubo_mProjInv
 #define eye ubo_eye.xyz
 #define starDir ubo_starDir.xyz
+#define mProjUI ubo_mProjUI
+#define mWorldViewUI ubo_mWorldViewUI
 ```
 
-Rendering is camera-relative: `eye` is always pushed as `(0,0,0)`, and
-`vertex/worldray.glsl` (used by every deferred-lighting fullscreen pass) reconstructs ray
+The Rust mirror is `ViewBlock` (`render/gpu/view_block.rs`, 448 bytes); every time a shader containing the
+block links, its reflected size, member offsets and types are asserted against the struct. `fragment.glsl` also
+declares `envMap` and `irMap` in group 0 (units 0 and 1); `Renderer:setEnvironment(env, ir)` supplies them and
+every pass binds them. There are no per-shader environment variables any more.
+
+Rendering is camera-relative: `eye` is always `(0,0,0)`, and
+`vertex/fullscreen_ray.glsl` (used by every deferred-lighting fullscreen pass) reconstructs ray
 direction as `mat3(mViewInv) * ...` with `worldOrigin = vec3(0)` rather than a world-space
 point far from the origin — avoiding the precision loss that would come from reconstructing
 and then subtracting back out a large coordinate.
 
-**`mViewInv` is derived, not passed through.** `Renderer::update_camera_ubo`
-(`render/thread/renderer_ffi.rs`) takes only `mView`/`mProj` plus eye/starDir components; it
-computes `mViewInv` as `view.inverse()` in Rust rather than accepting an explicit value. This
-is deliberate: the two Lua call sites that populate the camera (see below) disagree on
-whether a "real" `mViewInv` should carry the camera's true world-space translation or zero
-translation, and the only consumer (`worldray.glsl`) only ever uses the *rotation* part via
-`mat3(mViewInv)` — so deriving it sidesteps the inconsistency instead of picking one
+**`mViewInv` is derived, not passed through.** `Renderer:setCamera` takes only the view and
+projection matrices and the star direction; `ViewBlock::new` computes `mViewInv` as `view.inverse()`
+in Rust rather than accepting an explicit value. This is deliberate: the two Lua camera paths
+historically disagreed on whether a "real" `mViewInv` should carry the camera's true world-space
+translation or zero translation, and the only consumer (`fullscreen_ray.glsl`) only ever uses the *rotation*
+part via `mat3(mViewInv)` — so deriving it sidesteps the inconsistency instead of picking one
 convention. If a future shader needs `mViewInv`'s translation, this will need to become an
 explicit parameter instead.
 
-### Light UBO (binding 2)
+### Draw block (group 2, binding 8) and material parameters (group 1)
 
-`res/shader/include/light_ubo.glsl`, included only by `fragment/light/point.glsl`:
+Scene meshes get their per-draw data from one fixed block, `res/shader/include/draw_block.glsl`
+(vertex side: `include/vertex_scene.glsl`, which is `vertex.glsl` with the block in place of the loose
+`mWorld`/`mWorldIT` uniforms):
 
 ```glsl
-layout(std140) uniform LightUBO {
-    vec4 ubo_positionRadius;    // xyz = position, w = radius (currently unused)
-    vec4 ubo_colorIntensity;    // rgb = color, w = intensity
+#group 2
+layout(std140) uniform DrawBlock {
+    mat4 mWorld;
+    mat4 mWorldIT;     // inverse transpose, computed once per transform
+    vec4 drawScale;    // x = the body's uniform scale
+    vec4 drawUser[7];  // material-defined per-draw values (MaterialType.perDraw)
 };
-
-#define lightPos ubo_positionRadius.xyz
-#define lightRadius ubo_positionRadius.w
-#define lightColor (ubo_colorIntensity.rgb * ubo_colorIntensity.w)
-#define lightIntensity ubo_colorIntensity.w
 ```
 
-`fragment/light/directional.glsl` (this repo's, not present in the fork this was ported
-from) intentionally stays on plain `uniform vec3 lightDir/lightColor` — a directional light
-has no position or radius, so it doesn't fit the point-light UBO's shape.
+`SceneList:submit` writes one `DrawBlock` (256 bytes, one ring stride) per drawn mesh straight into the
+uniform ring; its Rust mirror is `DrawBlock` (`render/gpu/draw_block.rs`) and every shader that links it
+is asserted against the struct. It must be the first block a shader declares in group 2.
+
+A material's own parameters are a `MaterialParams` block in group 1, next to its samplers:
+
+```glsl
+#group 1
+layout(std140) uniform MaterialParams { vec3 color1; float heightMult; /* ... */ };
+uniform samplerCube surface;
+```
+
+Lua gets the block as a typed struct (`mat:params()`, the type is `shader:blockType('MaterialParams')`),
+fills it and calls `mat:commit()`, one write per change. Anything that changes between draws of one
+material goes in the draw block instead, through `drawUser`:
+`#define time (drawUser[0].x)` with `perDraw = function(entity, user) user[0].x = ... end`. Define such
+macros after the includes (a macro would also rewrite identifiers inside an include). Other code that draws
+with its own pipeline (`Render/Pipelines.lua`) allocates a `DrawBlock` per draw with `pass:alloc` and uses
+`drawUser` the same way (see `vertex/billboard/quad_draw.glsl`).
+
+### Point light block (group 2)
+
+`res/shader/include/light_block.glsl`, included only by `fragment/light/point.glsl`. It is the shader's
+group-2 block (binding 8), written with `pass:alloc` before each light's `drawFullscreen`:
+
+```glsl
+#group 2
+layout(std140) uniform PointLight {
+    vec4 positionRadius;    // xyz = position, w = radius (0 = no falloff)
+    vec4 colorIntensity;    // rgb = color, w = intensity
+};
+
+#define lightPos positionRadius.xyz
+#define lightRadius positionRadius.w
+#define lightColor (colorIntensity.rgb * colorIntensity.w)
+#define lightIntensity colorIntensity.w
+```
+
+`fragment/light/directional.glsl` has its own group-2 `Params { vec3 lightDir; vec3 lightColor; }`: a
+directional light has no position or radius, so it does not fit the point-light block's shape.
 
 ### Lua Usage
 
 ```lua
--- Once at startup (script/Main.lua, right after Renderer = Engine:renderer()):
-Renderer:createCameraUbo()
-Renderer:createLightUbo()
+-- Camera: once per frame, from CameraManager:beginDraw(). Every pass that
+-- begins afterwards renders with it.
+Renderer:setCamera(mView, mProj, starDir)
 
--- Camera: once per frame, from both CameraManager:beginDraw() (used by
--- RenderCoreSystem-driven app states) and the legacy Camera:beginDraw()
--- (used by GameView / the default LTheoryRedux app) - both live camera
--- paths must stay in lockstep, since they share the same shaders.
-Renderer:updateCameraUbo(mView, mProj, eyeX, eyeY, eyeZ, starDirX, starDirY, starDirZ)
+-- starDir comes from CameraManager:setStarDir(dir), not a per-frame parameter
+-- to the caller - set it once when it changes (e.g. on entering a system) and
+-- it's picked up on the next beginDraw().
 
--- starDir comes from CameraManager:setStarDir(dir) / Camera:setStarDir(dir),
--- not a per-frame parameter to the caller - set it once when it changes
--- (e.g. on entering a system) and it's picked up on the next beginDraw().
+-- Environment maps (group 0): when the skybox's nebula is generated.
+Renderer:setEnvironment(envMap, irMap)
 
--- Light: once per point light in the deferred pass (both
--- RenderCoreSystem:deferredLighting() and GameView:draw() call this in
--- their point-light loop, immediately before drawing that light's pass):
-Renderer:updateLightUbo(posX, posY, posZ, radius, r, g, b, intensity)
+-- Light: once per point light in the deferred lighting pass
+-- (RenderCoreSystem:deferredLighting()), immediately before its drawFullscreen:
+local p = pass:alloc(pointShader:blockType('PointLight'))
+p.positionRadius.x, p.positionRadius.y, p.positionRadius.z, p.positionRadius.w = x, y, z, radius
+p.colorIntensity.x, p.colorIntensity.y, p.colorIntensity.z, p.colorIntensity.w = r, g, b, intensity
+pass:drawFullscreen()
 ```
 
 ### Nebula Generation — `genStarDir`, Not `starDir`
@@ -334,6 +394,23 @@ Renderer:updateLightUbo(posX, posY, posZ, radius, r, g, b, intensity)
 `res/shader/fragment/gen/nebula*.glsl` bake a cubemap using a caller-supplied "sun
 direction" that's semantically a *generation parameter*, unrelated to the live camera's
 `starDir`. Before the UBO migration this worked by accident (both were the same plain
-`uniform vec3 starDir`); now that `starDir` is a `#define` resolving to the Camera UBO, the
+`uniform vec3 starDir`); now that `starDir` is a `#define` resolving to the view block, the
 nebula generators use a distinctly-named `uniform vec3 genStarDir` instead, set by
-`script/Legacy/Systems/Gen/Nebula/Nebula1.lua` via `ss:setFloat3('genStarDir', ...)`.
+`script/Shared/Generation/Nebula1.lua` through the shader's `Params` block (`p.genStarDir`).
+
+### No Loose Uniforms; the Immediate (UI) Shaders
+
+Every uniform a shader reads must be a member of a `#group` uniform block or a sampler declared
+under a `#group`. There is no `shader:setFloat(name, ...)` any more. A sampler outside any
+`#group` is dropped, so a shader that reads it fails to compile. A loose non-sampler uniform that
+the shader reads (from `main`, or from any function `main` calls) fails the compile too, naming the
+uniform, since it has no binding and would read 0; one that is declared but never read is allowed,
+as an inactive uniform was on GL.
+
+The UI shaders (`fragment/ui/*`, drawn through `Imm`, see `render-api-v2.md` section 3d and the
+S6 notes) have no uniform at all: `vertex/imm2d.glsl` passes the vertex color and the shape
+parameters as `flat` varyings (`imm_color`, `imm_p`, `imm_q`, declared by `include/imm.glsl`), and
+each fragment shader names the parameters it reads with `#define`s over them. The glyph atlas
+page (`ui/text`) and images (`ui/image`, `ui/icon`) are the group 3 sampler of slot 0. Mesh-based
+UI shaders (`vertex/mappoints`, `vertex/hologram3d`) declare a `Params` block under `#group 2`
+and forward their color to the same `imm_color` varying.

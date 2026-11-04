@@ -5,7 +5,7 @@ use super::{
 };
 use crate::logging::warn;
 use crate::math::{Intersect, LineSegment, Plane, Polygon, Position, Ray, Rng, Sphere, Triangle};
-use crate::render::{BlendMode, CullFace, Draw, RenderState, Renderer, Shader};
+use crate::render::{BlendMode, ImmDebugState, Renderer};
 
 /* Adam's Stupidly Fast BSP Implementation
  *
@@ -225,10 +225,41 @@ pub struct Bsp {
     pub empty_leaf: BspNodeRef,
     pub nodes: Vec<BspNode>,
     pub triangles: Vec<Triangle>,
-    shader: Shader,
     // BSP_PROFILE (
     //     BSPDebug_Data profilingData;
     // )
+}
+
+impl Bsp {
+    fn draw_node_with(
+        &self,
+        r: &mut Renderer,
+        state: ImmDebugState,
+        node_ref: BspNodeRef,
+        color: &Color,
+    ) {
+        // Assert(nodeRef.index);
+
+        if node_ref.index > 0 {
+            let child = self.nodes[node_ref.index as usize].child;
+            self.draw_node_with(r, state, child[BACK_INDEX], color);
+            self.draw_node_with(r, state, child[FRONT_INDEX], color);
+        } else {
+            let leaf_index = -node_ref.index;
+            for i in 0..node_ref.triangle_count {
+                let triangle = &self.triangles[leaf_index as usize + i as usize];
+                r.imm_debug_tri3(
+                    state,
+                    [
+                        triangle.vertices[0],
+                        triangle.vertices[1],
+                        triangle.vertices[2],
+                    ],
+                    color,
+                );
+            }
+        };
+    }
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -300,7 +331,7 @@ const EMPTY_LEAF_INDEX: i32 = 1;
 #[luajit_ffi_gen::luajit_ffi(name = "BSP")]
 impl Bsp {
     #[bind(name = "Create")]
-    pub fn new(r: &mut Renderer, mesh: &Mesh) -> Self {
+    pub fn new(mesh: &Mesh) -> Self {
         // Assert(LEAF_TRIANGLE_COUNT <= MAX_LEAF_TRIANGLE_COUNT);
 
         /* NOTE: This function will use memory proportional to 2x the mesh memory.
@@ -394,7 +425,6 @@ impl Bsp {
             empty_leaf,
             nodes,
             triangles,
-            shader: Shader::load(r, "vertex/wvp", "fragment/simple_color"),
         };
 
         bsp.root_node = bsp.optimize_tree(&build_root_node);
@@ -717,49 +747,26 @@ impl Bsp {
     }
 
     pub fn draw_node(&mut self, r: &mut Renderer, node_ref: BspNodeRef, color: &Color) {
-        // Assert(nodeRef.index);
-
-        if node_ref.index > 0 {
-            self.draw_node(
-                r,
-                self.nodes[node_ref.index as usize].child[BACK_INDEX],
-                color,
-            );
-            self.draw_node(
-                r,
-                self.nodes[node_ref.index as usize].child[FRONT_INDEX],
-                color,
-            );
-        } else {
-            self.shader.start(r);
-            self.shader
-                .set_float4(r, "color", color.r, color.g, color.b, color.a);
-            let leaf_index = -node_ref.index;
-            for i in 0..node_ref.triangle_count {
-                let triangle = &self.triangles[leaf_index as usize + i as usize];
-                Draw::tri3(
-                    r,
-                    &triangle.vertices[0],
-                    &triangle.vertices[1],
-                    &triangle.vertices[2],
-                );
-            }
-            self.shader.stop(r);
-        };
+        self.draw_node_with(r, ImmDebugState::default(), node_ref, color);
     }
 
     pub fn draw_node_split(&mut self, r: &mut Renderer, node_ref: BspNodeRef) {
         // Assert(nodeRef.index);
 
-        RenderState::push_blend_mode(r, BlendMode::Alpha);
-        RenderState::push_cull_face(r, CullFace::Back);
-        RenderState::push_depth_test(r, true);
-        RenderState::push_wireframe(r, true);
+        let wire = ImmDebugState {
+            blend: BlendMode::Alpha,
+            depth_test: true,
+            wireframe: true,
+        };
+        let solid = ImmDebugState {
+            wireframe: false,
+            ..wire
+        };
 
         if node_ref.index > 0 {
             let child = self.nodes[node_ref.index as usize].child;
-            self.draw_node(r, child[BACK_INDEX], &Color::new(0.5, 0.3, 0.3, 0.4));
-            self.draw_node(r, child[FRONT_INDEX], &Color::new(0.3, 0.5, 0.3, 0.4));
+            self.draw_node_with(r, wire, child[BACK_INDEX], &Color::new(0.5, 0.3, 0.3, 0.4));
+            self.draw_node_with(r, wire, child[FRONT_INDEX], &Color::new(0.3, 0.5, 0.3, 0.4));
 
             let node = &self.nodes[node_ref.index as usize];
 
@@ -767,26 +774,25 @@ impl Bsp {
             let origin = Vec3::new(0., 0., 0.);
             let t = Vec3::dot(node.plane.n, origin) - node.plane.d;
             let closest_point = origin - (node.plane.n * t);
-            RenderState::push_wireframe(r, false);
-            self.shader.start(r);
-            self.shader.set_float4(r, "color", 0.3, 0.5, 0.3, 0.4);
-            Draw::plane(r, &closest_point, &node.plane.n, 2.0);
-            self.shader.set_float4(r, "color", 0.5, 0.3, 0.3, 0.4);
+            r.imm_debug_plane3(
+                solid,
+                closest_point,
+                node.plane.n,
+                2.0,
+                &Color::new(0.3, 0.5, 0.3, 0.4),
+            );
             let neg: Vec3 = node.plane.n * -1.0;
-            Draw::plane(r, &closest_point, &neg, 2.0);
-            self.shader.stop(r);
-            RenderState::pop_wireframe(r);
+            r.imm_debug_plane3(
+                solid,
+                closest_point,
+                neg,
+                2.0,
+                &Color::new(0.5, 0.3, 0.3, 0.4),
+            );
         } else {
             /* Leaf */
-            self.draw_node(r, node_ref, &Color::new(0.5, 0.5, 0.3, 0.4));
+            self.draw_node_with(r, wire, node_ref, &Color::new(0.5, 0.5, 0.3, 0.4));
         }
-
-        RenderState::pop_wireframe(r);
-        RenderState::pop_depth_test(r);
-        RenderState::pop_cull_face(r);
-        RenderState::pop_blend_mode(r);
-
-        self.shader.stop(r); // TODO: no start?
     }
 
     pub fn draw_line_segment(
@@ -796,63 +802,60 @@ impl Bsp {
         eye: &Position,
     ) {
         let mut p_hit = Vec3::ZERO;
+        let state = ImmDebugState::default();
+        let width = 2.0;
 
-        self.shader.start(r);
         if self.intersect_line_segment(line_segment, &mut p_hit) {
-            self.shader.set_float4(r, "color", 0.0, 1.0, 0.0, 0.1);
-            Draw::line3(
-                r,
-                &(*line_segment).p0.relative_to(*eye),
-                &Position::from_vec(p_hit).relative_to(*eye),
+            r.imm_debug_line3(
+                state,
+                (*line_segment).p0.relative_to(*eye),
+                Position::from_vec(p_hit).relative_to(*eye),
+                &Color::new(0.0, 1.0, 0.0, 0.1),
+                width,
             );
-
-            self.shader.set_float4(r, "color", 1.0, 0.0, 0.0, 1.0);
-            Draw::line3(
-                r,
-                &Position::from_vec(p_hit).relative_to(*eye),
-                &(*line_segment).p1.relative_to(*eye),
+            r.imm_debug_line3(
+                state,
+                Position::from_vec(p_hit).relative_to(*eye),
+                (*line_segment).p1.relative_to(*eye),
+                &Color::new(1.0, 0.0, 0.0, 1.0),
+                width,
             );
-
-            Draw::point_size(r, 5.0);
-            Draw::point3(r, p_hit.x, p_hit.y, p_hit.z);
+            r.imm_debug_point3(state, p_hit, &Color::new(1.0, 0.0, 0.0, 1.0), 5.0);
         } else {
-            self.shader.set_float4(r, "color", 0.0, 1.0, 0.0, 1.0);
-            Draw::line3(
-                r,
-                &(*line_segment).p0.relative_to(*eye),
-                &(*line_segment).p1.relative_to(*eye),
+            r.imm_debug_line3(
+                state,
+                (*line_segment).p0.relative_to(*eye),
+                (*line_segment).p1.relative_to(*eye),
+                &Color::new(0.0, 1.0, 0.0, 1.0),
+                width,
             );
         };
-        self.shader.stop(r);
     }
 
     pub fn draw_sphere(&mut self, r: &mut Renderer, sphere: &Sphere) {
         let mut p_hit = Vec3::ZERO;
-
-        self.shader.start(r);
-        if self.intersect_sphere(sphere, &mut p_hit) {
-            RenderState::push_wireframe(r, false);
-            self.shader.set_float4(r, "color", 1.0, 0.0, 0.0, 0.3);
-            Draw::sphere(r, &sphere.p, sphere.r);
-            RenderState::pop_wireframe(r);
-
-            self.shader.set_float4(r, "color", 1.0, 0.0, 0.0, 1.0);
-            Draw::sphere(r, &sphere.p, sphere.r);
-
-            RenderState::push_depth_test(r, false);
-            Draw::point_size(r, 8.0);
-            Draw::point3(r, p_hit.x, p_hit.y, p_hit.z);
-            RenderState::pop_depth_test(r);
-        } else {
-            RenderState::push_wireframe(r, false);
-            self.shader.set_float4(r, "color", 0.0, 1.0, 0.0, 0.3);
-            Draw::sphere(r, &sphere.p, sphere.r);
-            RenderState::pop_wireframe(r);
-
-            self.shader.set_float4(r, "color", 0.0, 1.0, 0.0, 1.0);
-            Draw::sphere(r, &sphere.p, sphere.r);
+        let solid = ImmDebugState {
+            blend: BlendMode::Alpha,
+            depth_test: true,
+            wireframe: false,
         };
-        self.shader.stop(r);
+        let wire = ImmDebugState {
+            wireframe: true,
+            ..solid
+        };
+
+        if self.intersect_sphere(sphere, &mut p_hit) {
+            r.imm_debug_sphere3(solid, sphere.p, sphere.r, &Color::new(1.0, 0.0, 0.0, 0.3));
+            r.imm_debug_sphere3(wire, sphere.p, sphere.r, &Color::new(1.0, 0.0, 0.0, 1.0));
+            let no_depth = ImmDebugState {
+                depth_test: false,
+                ..solid
+            };
+            r.imm_debug_point3(no_depth, p_hit, &Color::new(1.0, 0.0, 0.0, 1.0), 8.0);
+        } else {
+            r.imm_debug_sphere3(solid, sphere.p, sphere.r, &Color::new(0.0, 1.0, 0.0, 0.3));
+            r.imm_debug_sphere3(wire, sphere.p, sphere.r, &Color::new(0.0, 1.0, 0.0, 1.0));
+        };
     }
 
     // static void print_profiling_data(&self, BSPDebug_IntersectionData* data, double totalTime) {

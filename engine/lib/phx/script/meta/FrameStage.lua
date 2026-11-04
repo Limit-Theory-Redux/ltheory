@@ -34,4 +34,3 @@ FrameStage = {
     -- After frame render
     PostRender = 8,
 }
-

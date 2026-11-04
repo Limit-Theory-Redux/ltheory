@@ -27,4 +27,3 @@ AlignHorizontal = {
     -- Container with stretch alignment will grow in size to stick to the parent sides or to envelop it's children if they are bigger.
     Stretch = 5,
 }
-

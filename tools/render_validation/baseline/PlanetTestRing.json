@@ -1,0 +1,17 @@
+{
+  "frame": 120,
+  "fps": 119.3,
+  "frametime_ms": 8.38,
+  "render_thread_ms": 4.66,
+  "render_recv_wait_ms": 0.0,
+  "render_idle_pct": 40.0,
+  "render_exec_ms": 4.98,
+  "render_present_ms": 0.05,
+  "main_wait_ms": 4.08,
+  "commands_per_frame": 82,
+  "draw_calls": 27,
+  "vertices": 557346,
+  "bound": "producer",
+  "scene": "PlanetTestRing",
+  "backend": "gl"
+}

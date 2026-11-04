@@ -2,8 +2,7 @@
 ---@meta
 
 ---@class SystemEvent
----@field Exit integer 
+---@field Exit integer
 SystemEvent = {
     Exit = 0,
 }
-

@@ -17,13 +17,6 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            CubeFace CubeFace_PX;
-            CubeFace CubeFace_NX;
-            CubeFace CubeFace_PY;
-            CubeFace CubeFace_NY;
-            CubeFace CubeFace_PZ;
-            CubeFace CubeFace_NZ;
-
             cstr     CubeFace_ToString(CubeFace);
 
             CubeFace CubeFace_Get (int index);
@@ -32,12 +25,12 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         CubeFace = {
-            PX       = libphx.CubeFace_PX,
-            NX       = libphx.CubeFace_NX,
-            PY       = libphx.CubeFace_PY,
-            NY       = libphx.CubeFace_NY,
-            PZ       = libphx.CubeFace_PZ,
-            NZ       = libphx.CubeFace_NZ,
+            PX       = 0,
+            NX       = 1,
+            PY       = 2,
+            NY       = 3,
+            PZ       = 4,
+            NZ       = 5,
 
             ToString = libphx.CubeFace_ToString,
 

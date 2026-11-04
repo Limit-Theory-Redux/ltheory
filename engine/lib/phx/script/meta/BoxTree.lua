@@ -28,4 +28,3 @@ function BoxTree:intersectRay(matrix, ro, rd) end
 ---@param r Renderer
 ---@param maxDepth integer
 function BoxTree:draw(r, maxDepth) end
-

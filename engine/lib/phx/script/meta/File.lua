@@ -108,4 +108,3 @@ function File:writeF32(value) end
 
 ---@param value number
 function File:writeF64(value) end
-

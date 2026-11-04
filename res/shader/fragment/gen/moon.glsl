@@ -1,17 +1,25 @@
 #include fragment
 #include math
 #include noise
-#include texcube
 
+#group 2
+layout(std140) uniform Params {
+    vec4 genLook;   // face data written by TexGen.Cube (must stay the first three members)
+    vec4 genUp;
+    vec4 genSize;   // x = face size in pixels
+    float seed;
+    float craterDensity;     // 0.0 - 1.0: sparse → dense
+    float craterSharpness;   // 0.0 - 1.0: soft → sharp craters
+    float mountainHeight;    // 0.0 - 1.0: flat → tall highlands
+    float mountainScale;     // 0.0 - 1.0: broad → fine mountain features
+    float mariaAmount;       // 0.0 - 1.0: no maria → strong maria
+    float proceduralBlend;   // 0.0 - 1.0: photo → procedural
+    float brightRayStrength; // 0.0 - 1.0: no rays → strong bright rays
+};
+#group 3
 uniform sampler2D baseMoonTex;
-uniform float seed;
-uniform float craterDensity;     // 0.0 - 1.0: sparse → dense
-uniform float craterSharpness;   // 0.0 - 1.0: soft → sharp craters
-uniform float mountainHeight;    // 0.0 - 1.0: flat → tall highlands
-uniform float mountainScale;     // 0.0 - 1.0: broad → fine mountain features
-uniform float mariaAmount;       // 0.0 - 1.0: no maria → strong maria
-uniform float proceduralBlend;   // 0.0 - 1.0: photo → procedural
-uniform float brightRayStrength; // 0.0 - 1.0: no rays → strong bright rays
+
+#include texcube
 
 mat3 randomRotation(float s) {
     float a = fract(s * 0.0183) * 6.28318;

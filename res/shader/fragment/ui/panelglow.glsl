@@ -1,9 +1,11 @@
 #include fragment
 #include math
 
-uniform float padding;
-uniform vec2 size;
-uniform vec4 color;
+#include imm
+
+const float padding = 64.0;
+#define size (imm_p.xy)
+#define color imm_color
 
 const float bevel = 8.0;
 

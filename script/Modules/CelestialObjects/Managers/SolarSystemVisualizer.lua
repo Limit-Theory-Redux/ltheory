@@ -1,4 +1,5 @@
 local Registry            = require("Core.ECS.Registry")
+local PlanetMaterials     = require("Shared.Rendering.PlanetMaterials")
 local Entity              = require("Core.ECS.Entity")
 local CoreComponents      = require("Modules.Core.Components")
 local PhysicsComponents   = require("Modules.Physics.Components")
@@ -7,7 +8,7 @@ local RenderComp          = require("Modules.Rendering.Components").Render
 local Materials           = require("Shared.Registries.Materials")
 
 local Primitive           = require("Legacy.Systems.Gen.Primitive")
-local GenUtil             = require("Legacy.Systems.Gen.GenUtil")
+local GenUtil             = require("Core.ECS.Mesh.Util.GenUtil")
 local AsteroidBeltRenderer = require("Modules.CelestialObjects.Systems.AsteroidBeltRenderer")
 local AsteroidMeshPool    = require("Modules.CelestialObjects.Systems.AsteroidMeshPool")
 local SpatialComponents   = require("Modules.Spatial.Components")
@@ -75,7 +76,7 @@ function SolarSystemVisualizer:_materializeStar(entity, physicsWorld)
     local mesh = Primitive.IcoSphere(5)
 
     -- Animated star material with sun texture
-    local material = Materials.Star()
+    local material = Materials.Star:instance()
 
     local renderCmp = entity:get(RenderComp)
     if renderCmp then
@@ -142,9 +143,10 @@ function SolarSystemVisualizer:_materializePlanet(entity, physicsWorld)
         coef  = genOptions.surfaceCoef
     })
 
-    local matPlanet = Materials.PlanetSurface()
-    local matAtmo = Materials.PlanetAtmosphere()
+    local matPlanet = Materials.PlanetSurface:instance()
+    local matAtmo = Materials.PlanetAtmosphere:instance()
     matPlanet:setTexture("surface", texSurface)
+    PlanetMaterials.planet(matPlanet, matAtmo, genOptions)
 
     -- Add gen component for shader var lookups
     local planetGenCmp = CelestialComponents.Gen.Planet(genOptions)
@@ -236,14 +238,13 @@ function SolarSystemVisualizer:_materializeMoon(entity, physicsWorld)
         brightRayStrength = moonOptions.brightRayStrength,
     })
     texSurface:genMipmap()
-    texSurface:setMagFilter(TexFilter.Linear)
-    texSurface:setMinFilter(TexFilter.LinearMipLinear)
 
     -- Add gen component for shader var lookups
     entity:add(CelestialComponents.Gen.Moon(moonOptions))
 
-    local matMoon = Materials.MoonSurface()
+    local matMoon = Materials.MoonSurface:instance()
     matMoon:setTexture("surface", texSurface)
+    PlanetMaterials.moon(matMoon, moonOptions)
 
     local renderCmp = entity:get(RenderComp)
     if renderCmp then
@@ -378,15 +379,10 @@ function SolarSystemVisualizer:_materializeAsteroidRing(entity, physicsWorld)
     local outerRadius = orbitRadius + width * 0.5
     local mesh = Primitive.Ring(innerRadius, outerRadius, 128)
 
-    local matRing = Materials.PlanetRing()
-    matRing:setTexture("ringTex", Tex2D.Create(512, 512, TexFormat.RGBA8), Enums.UniformType.Tex2D)
-    matRing:addStaticShaderVar("rMin", Enums.UniformType.Float, function() return innerRadius end)
-    matRing:addStaticShaderVar("rMax", Enums.UniformType.Float, function() return outerRadius end)
-    matRing:addStaticShaderVar("ringHeight", Enums.UniformType.Float, function() return 50 end)
-    matRing:addStaticShaderVar("rotationSpeed", Enums.UniformType.Float, function() return 2.0 end)
-    matRing:addStaticShaderVar("twistFactor", Enums.UniformType.Float, function() return 0.25 end)
-    matRing:addStaticShaderVar("enableDebug", Enums.UniformType.Int, function() return 0 end)
-    matRing:addStaticShaderVar("debugMode", Enums.UniformType.Int, function() return 0 end)
+    -- rMin, rMax and the seed are this ring's parameters; the rest (ringHeight,
+    -- rotationSpeed, twistFactor, debug off) are the PlanetRing defaults.
+    local matRing = Materials.PlanetRing:instance()
+    PlanetMaterials.ring(matRing, innerRadius, outerRadius, seed)
 
     local renderCmp = entity:get(RenderComp)
     if not renderCmp then

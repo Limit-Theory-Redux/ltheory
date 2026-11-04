@@ -15,10 +15,10 @@ function onDef_Profiler(t, mt)
     end
 
     t.TimeGPU = function(name, fn)
-        Draw.Flush()
+        Renderer:gpuFinish()
         local begin = TimeStamp.Now()
         fn()
-        Draw.Flush()
+        Renderer:gpuFinish()
         local duration = begin:getElapsedMs()
         Log.Info('%s : %.2f ms', name, duration)
     end

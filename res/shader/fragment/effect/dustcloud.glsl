@@ -4,7 +4,6 @@
 #include noise
 #include color
 
-#autovar samplerCube irMap
 uniform sampler2D texDust;
 uniform float alphaScale;
 

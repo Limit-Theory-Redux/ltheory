@@ -39,4 +39,3 @@ function Profiler.LoopMarker() end
 
 -- Prints backtrace of active scopes
 function Profiler.Backtrace() end
-

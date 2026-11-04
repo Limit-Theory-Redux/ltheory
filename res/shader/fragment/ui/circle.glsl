@@ -1,9 +1,11 @@
 #include fragment
 #include math
 
-uniform float radius;
-uniform vec2 size;
-uniform vec4 color;
+#include imm
+
+#define radius (imm_p.x)
+#define size (imm_p.yz)
+#define color imm_color
 
 void main() {
   vec2 uvp = abs(size * (uv - 0.5));

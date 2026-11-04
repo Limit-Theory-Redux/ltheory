@@ -4,16 +4,26 @@
 #include color
 #include noise
 #include scattering2
+#include draw_block
 
+// Per-draw values of the group-2 draw block (see MaterialDefs.lua).
+#define origin (mWorld[3].xyz)    // camera-relative position of the planet
+#define rPlanet (drawScale.x)     // the body's scale
+#define rAtmo (rPlanet * atmoScale) // follows the body's scale when it changes
+#define time (drawUser[0].x)      // cloud motion time
+
+#group 1
+layout(std140) uniform MaterialParams {
+  vec3 color1;
+  float heightMult;
+  vec3 color2;
+  float oceanLevel;
+  vec3 color3;
+  float atmoScale;  // atmosphere radius / planet radius
+  vec3 color4;
+  float _pad0;
+};
 uniform samplerCube surface;
-uniform vec3 origin;
-uniform vec3 color1;
-uniform vec3 color2;
-uniform vec3 color3;
-uniform vec3 color4;
-uniform float heightMult;
-uniform float oceanLevel;
-uniform float time;
 
 const float kSpecular = 1.0;
 const vec3 kOceanColor = vec3(0.01, 0.13, 0.20);
@@ -38,13 +48,13 @@ float heightFn(float h, int octaves, float roughness) {
 }
 
 // Shadow visibility along ray to sun
-float visibility(samplerCube map, vec3 p, int octaves, float roughness, float offset, float radius, float strength) {
+float visibility(vec3 p, int octaves, float roughness, float offset, float radius, float strength) {
     vec3 toStar = -starDir;
     const float samples = 8.0;
     float v = 0.0;
     for (float i = 0.0; i < samples; ++i) {
         vec3 sp = normalize(mix(p, toStar, radius * (i + 1.0) / samples));
-        float h = heightFn(texture(map, sp).x, octaves, roughness);
+        float h = heightFn(texture(surface, sp).x, octaves, roughness);
         float rh = h - (offset + (length(sp) - 1.0));
         v += exp(-strength * heightMult * max(0.0, rh));
     }
@@ -93,7 +103,7 @@ void main() {
     // Base terrain color
     vec3 color = mix(color1, color2, h1);
     color = 1.0 - exp(-pow2(4.0 * color));
-    color *= visibility(surface, vertPos, 9, 0.70, h1, 0.002, 2.0);
+    color *= visibility(vertPos, 9, 0.70, h1, 0.002, 2.0);
     color = mix(color, kOceanColor, 1.0 - exp(-sqrt(16.0 * max(0.0, h2 - 0.8))));
 
     // Multi-layer clouds
@@ -137,7 +147,7 @@ void main() {
 
     // Atmosphere
     color *= light;
-    vec4 atmo = atmosphereDefault(V, eye - origin);
+    vec4 atmo = atmosphereDefault(V, eye - origin, rPlanet, rAtmo);
     color = atmo.xyz + color * (1.0 - atmo.w);
 
     FRAGMENT_CORRECT_DEPTH;

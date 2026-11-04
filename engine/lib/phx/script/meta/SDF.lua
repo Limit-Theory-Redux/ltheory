@@ -34,4 +34,3 @@ function SDF:set(x, y, z, value) end
 ---@param z integer
 ---@param normal Vec3f
 function SDF:setNormal(x, y, z, normal) end
-

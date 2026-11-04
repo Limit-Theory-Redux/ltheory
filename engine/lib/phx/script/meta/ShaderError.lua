@@ -69,4 +69,3 @@ function ShaderError.GetLatestMessage(r) end
 ---@param r Renderer
 ---@return string?
 function ShaderError.GetLatestShaderKey(r) end
-

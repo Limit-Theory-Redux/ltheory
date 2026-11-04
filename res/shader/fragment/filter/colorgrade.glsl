@@ -2,20 +2,24 @@
 in vec2 uv;
 out vec4 fragColor;
 
-uniform sampler2D src;
-uniform int mode;
+#group 2
+layout(std140) uniform Params {
+int mode;
 
 // Color grading parameters
-uniform float temperature;   // -1 to 1 (blue to orange)
-uniform float tint;          // -1 to 1 (green to magenta)
-uniform float saturation;    // 0 to 2
-uniform float contrast;      // 0 to 2
-uniform float brightness;    // -1 to 1
-uniform float vibrance;      // -1 to 1
-uniform vec3 lift;           // shadows RGB offset
-uniform vec3 gamma;          // midtones RGB power
-uniform vec3 gain;           // highlights RGB multiply
-uniform float preExposure;
+float temperature;   // -1 to 1 (blue to orange)
+float tint;          // -1 to 1 (green to magenta)
+float saturation;    // 0 to 2
+float contrast;      // 0 to 2
+float brightness;    // -1 to 1
+float vibrance;      // -1 to 1
+vec3 lift;           // shadows RGB offset
+vec3 gamma;          // midtones RGB power
+vec3 gain;           // highlights RGB multiply
+float preExposure;
+};
+#group 3
+uniform sampler2D src;
 
 vec3 ColorGradeNeutral(vec3 c) { return c; }
 

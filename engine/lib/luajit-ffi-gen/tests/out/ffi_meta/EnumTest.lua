@@ -10,4 +10,3 @@ function EnumTest.New(myEnum) end
 
 ---@return MyEnum1
 function EnumTest:get() end
-

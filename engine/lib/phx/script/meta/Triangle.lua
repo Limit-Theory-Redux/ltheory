@@ -15,4 +15,3 @@ function Triangle:getArea() end
 
 ---@return Error
 function Triangle:validate() end
-

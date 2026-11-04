@@ -1,5 +1,11 @@
 local PhysicsComponents = require("Modules.Physics.Components")
 local CameraManager     = require("Modules.Cameras.Managers.CameraManager")
+local Pipelines         = require("Render.Pipelines")
+
+-- The flare adds onto the scene pass it is drawn in.
+---@type PipelineState
+local flareState = { vertex = VertexLayout.Fullscreen, blend = BlendMode.Additive }
+local paramsType
 
 --- LensFlareSystem — renders screen-space lens flare for a bright light source.
 --- Handles projection, geometric occlusion, distance falloff, and rendering.
@@ -98,19 +104,19 @@ function LensFlareSystem:draw(lightEntity, occluders, maxDist)
 
     if intensity < 0.01 then return end
 
-    -- Draw lens flare
+    -- Draw lens flare: one additive fullscreen quad in the open scene pass
     local resX, resY = Window:width(), Window:height()
-    RenderState.PushBlendMode(BlendMode.Additive)
-    local shader = Cache.Shader('ui', 'filter/lensflare')
-    shader:start()
-    shader:setFloat2('lightPos', screenU, screenV)
-    shader:setFloat3('lightColor', 1.0, 0.9, 0.7)
-    shader:setFloat('intensity', intensity)
-    shader:setFloat2('screenSize', resX, resY)
-    shader:setFloat('xStreak', Math.Clamp((intensity - 0.4) * 3.0, 0, 1))
-    Draw.Rect(0, 0, resX, resY)
-    shader:stop()
-    RenderState.PopBlendMode()
+    local shader = Cache.Shader('fullscreen_ndc', 'filter/lensflare')
+    paramsType = paramsType or shader:blockType('Params')
+    local pass = Renderer:currentPass()
+    pass:setPipeline(Pipelines.get(shader, flareState))
+    local p = pass:alloc(paramsType)
+    p.lightPos.x, p.lightPos.y = screenU, screenV
+    p.lightColor.x, p.lightColor.y, p.lightColor.z = 1.0, 0.9, 0.7
+    p.intensity = intensity
+    p.screenSize.x, p.screenSize.y = resX, resY
+    p.xStreak = Math.Clamp((intensity - 0.4) * 3.0, 0, 1)
+    pass:drawFullscreen()
 end
 
 return LensFlareSystem

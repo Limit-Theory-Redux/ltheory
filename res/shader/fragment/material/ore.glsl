@@ -6,7 +6,6 @@
 #include math
 #include fog
 
-#autovar samplerCube envMap
 
 uniform sampler2D texDiffuse;
 uniform float scale;
@@ -16,7 +15,14 @@ void main() {
   vec3 V = normalize(pos - eye);
   vec3 R = normalize(reflect(V, N));
 
-  vec3 c = sampleFDM(texDiffuse, scale * vertPos.xyz).xyz;
+  float fdmLo, fdmHi, fdmT;
+  getFDMParams(fdmLo, fdmHi, fdmT);
+  vec3 fdmPos = scale * vertPos.xyz;
+  vec4 fdmColor = mix(
+    texture(texDiffuse, triplanarCoords(fdmLo * fdmPos)),
+    texture(texDiffuse, triplanarCoords(fdmHi * fdmPos)),
+    fdmT);
+  vec3 c = fdmColor.xyz;
   c *= 8.0 * c;
   c *= (1.0 + c.x * c.x * vec3(1.0, 3.0, 5.0));
   float rough = saturate(c.x * c.x);

@@ -9,8 +9,8 @@ Stretch.desiredSY = 0
 
 function Stretch:onDraw(focus, active)
     if self.fillColor then
---        self.fillColor:set()
-        Draw.Rect(self:getRectGlobal())
+        local x, y, sx, sy = self:getRectGlobal()
+        UI.DrawEx.SimpleRect(x, y, sx, sy, self.fillColor)
     end
 end
 

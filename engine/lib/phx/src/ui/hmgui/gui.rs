@@ -254,8 +254,6 @@ impl HmGui {
     pub fn draw(&mut self, r: &mut Renderer) {
         Profiler::begin("HmGui_Draw");
 
-        RenderState::push_blend_mode(r, BlendMode::Alpha);
-
         self.renderer.begin(r);
 
         let layers_root: Vec<_> = self
@@ -271,8 +269,6 @@ impl HmGui {
         }
 
         self.renderer.end();
-
-        RenderState::pop_blend_mode(r);
 
         self.renderer.draw(r);
 

@@ -17,14 +17,6 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            DataFormat DataFormat_I8;
-            DataFormat DataFormat_U8;
-            DataFormat DataFormat_I16;
-            DataFormat DataFormat_U16;
-            DataFormat DataFormat_I32;
-            DataFormat DataFormat_U32;
-            DataFormat DataFormat_Float;
-
             cstr       DataFormat_ToString(DataFormat);
 
             int DataFormat_GetSize (DataFormat this);
@@ -33,13 +25,13 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         DataFormat = {
-            I8       = libphx.DataFormat_I8,
-            U8       = libphx.DataFormat_U8,
-            I16      = libphx.DataFormat_I16,
-            U16      = libphx.DataFormat_U16,
-            I32      = libphx.DataFormat_I32,
-            U32      = libphx.DataFormat_U32,
-            Float    = libphx.DataFormat_Float,
+            I8       = 0,
+            U8       = 1,
+            I16      = 2,
+            U16      = 3,
+            I32      = 4,
+            U32      = 5,
+            Float    = 6,
 
             ToString = libphx.DataFormat_ToString,
 

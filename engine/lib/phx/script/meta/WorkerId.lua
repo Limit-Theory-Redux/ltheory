@@ -12,4 +12,3 @@ WorkerId = {
     -- Specifies number of engine worker types
     EngineWorkersCount = 1,
 }
-

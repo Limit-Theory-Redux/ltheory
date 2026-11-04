@@ -403,22 +403,15 @@ impl Physics {
 
     pub fn draw_bounding_boxes_world(&self) {}
 
-    pub fn draw_wireframes(&mut self, r: &mut Renderer, shader: &mut Shader, eye: &Position) {
-        self.draw_wireframes_in_range(r, shader, eye, f64::MAX);
+    pub fn draw_wireframes(&mut self, r: &mut Renderer, eye: &Position) {
+        self.draw_wireframes_in_range(r, eye, f64::MAX);
     }
 
-    pub fn draw_wireframes_in_range(
-        &mut self,
-        r: &mut Renderer,
-        shader: &mut Shader,
-        eye: &Position,
-        max_range: f64,
-    ) {
+    pub fn draw_wireframes_in_range(&mut self, r: &mut Renderer, eye: &Position, max_range: f64) {
         let world = self.world.as_ref();
         self.debug_renderer.render(
             &mut RapierDebugRenderer {
                 r,
-                shader,
                 eye: *eye,
                 max_range_sq: max_range * max_range,
             },
@@ -478,7 +471,6 @@ impl Physics {
 
 struct RapierDebugRenderer<'a> {
     r: &'a mut Renderer,
-    shader: &'a mut Shader,
     eye: Position,
     max_range_sq: f64,
 }
@@ -504,11 +496,12 @@ impl rp::DebugRenderBackend for RapierDebugRenderer<'_> {
         }
 
         // Green wireframe
-        self.shader.set_float4(self.r, "color", 0.0, 1.0, 0.3, 0.8);
-        Draw::line3(
-            self.r,
-            &Position::from_na_point(&start).relative_to(self.eye),
-            &Position::from_na_point(&end).relative_to(self.eye),
+        self.r.imm_debug_line3(
+            ImmDebugState::default(),
+            Position::from_na_point(&start).relative_to(self.eye),
+            Position::from_na_point(&end).relative_to(self.eye),
+            &Color::new(0.0, 1.0, 0.3, 0.8),
+            1.0,
         );
     }
 }

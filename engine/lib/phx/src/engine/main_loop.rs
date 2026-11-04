@@ -87,7 +87,7 @@ impl ApplicationHandler for MainLoop {
                 // Update the cache immediately so we don't try to resize again at the end of the frame.
                 engine.cache.window.resolution = engine.window.resolution.clone();
                 // Safe to drop: another Resized event supersedes it, and the
-                // executor's GL viewport update only needs the latest size.
+                // executor's surface reconfiguration only needs the latest size.
                 engine.renderer.try_resize(size.width, size.height);
             }
             WindowEvent::CloseRequested => {
@@ -318,9 +318,7 @@ impl ApplicationHandler for MainLoop {
         // Request the next redraw at the windowing-system level.
         engine.winit_window.redraw();
 
-        // Swap buffers. WinitWindow no longer holds the GL context (Engine::new
-        // handed it to `renderer`), so frame end goes through here instead of
-        // WinitWindow's own (now-inert) swap_buffers call.
+        // Present the frame (on the render thread) and pace frames in flight.
         engine.renderer.end_frame_triple_buffered();
     }
 

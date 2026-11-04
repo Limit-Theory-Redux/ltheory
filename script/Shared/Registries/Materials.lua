@@ -1,30 +1,35 @@
+--- Registry of the `MaterialType`s defined in `Shared/Definitions/MaterialDefs.lua`.
+---
+---     local Materials = require("Shared.Registries.Materials")
+---     local mat = Materials.PlanetSurface:instance()
+---
+--- A `MaterialType` is the shared part of a material (shader, fixed-function
+--- state, parameter defaults, default textures, per-draw callback); an
+--- `instance()` owns its own parameters and bind group.
 ---@class Materials
 local Materials = {}
 Materials.__index = Materials
 
+---@type table<string, MaterialType>
 local registry = {}
 
--- Register a material
-function Materials:new(name, material)
+--- Register a material type (called by `MaterialType`).
+---@param name string
+---@param matType MaterialType
+---@return MaterialType
+function Materials:new(name, matType)
     if registry[name] then
-        Log.Warn("Material already registered: " .. name)
+        Log.Warn("Material type already registered: " .. name)
         return registry[name]
     end
+    registry[name] = matType
+    return matType
+end
 
-    material.name = name
-    registry[name] = material
-
-    -- Cloning via e.g. Materials.PlanetSurface()
-    local template = material
-    local mt = {
-        __index = template,
-        __call = function(_, ...) return template:clone() end
-    }
-
-    local proxy = setmetatable({}, mt)
-    registry[name] = proxy
-
-    return proxy
+--- Call `fn(matType)` for every registered material type.
+---@param fn fun(matType: MaterialType)
+function Materials.each(fn)
+    for _, matType in pairs(registry) do fn(matType) end
 end
 
 -- Global access
@@ -33,7 +38,7 @@ setmetatable(Materials, {
         return registry[key]
     end,
     __newindex = function()
-        error("Cannot assign to Materials registry. Use Materials:new()")
+        error("Cannot assign to Materials registry. Use MaterialType { name = ... }")
     end
 })
 

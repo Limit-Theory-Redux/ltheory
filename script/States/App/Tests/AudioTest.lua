@@ -54,8 +54,6 @@ function AudioTest:onInit()
         local e = self.emitters[i]
         e.tex = Tex2D.Load(e.image)
         e.tex:genMipmap()
-        e.tex:setMagFilter(TexFilter.Linear)
-        e.tex:setMinFilter(TexFilter.LinearMipLinear)
 
         e.sound = Sound.Load(e.file, true)
         e.sound:set3DPos(Vec3f(e.x, 0, e.y), Vec3f(0, 0, 0))
@@ -137,40 +135,34 @@ function AudioTest:onInput()
     -- end
 end
 
-function AudioTest:onDraw()
-    RenderState.PushBlendMode(BlendMode.Alpha)
+local white = Color(1, 1, 1, 1)
+local tint = Color(1, 1, 1, 1)
 
-    Draw.Clear(0.1, 0.1, 0.1, 1.0)
-
-    local shader = Cache.Shader('ui', 'simple_color')
-    shader:start()
+function AudioTest:onRender()
+    local desc = RenderPassDesc.Create('AudioTest')
+    desc:backbuffer(self.resX, self.resY, LoadOp.Clear, 0.1, 0.1, 0.1, 1.0)
+    local pass = Renderer:beginPass(desc)
 
     for i = 1, #self.emitters do
-        Draw.Color(1, 1, 1, 1)
         local e = self.emitters[i]
-        local sz = e.tex:getSize()
-        e.tex:draw(e.x - 96, e.y - 96, 192, 192)
+        Imm.Image(e.tex, Samplers.LinearMipClamp, e.x - 96, e.y - 96, 192, 192, 0, 0, 1, 1, white)
         local d = Vec3f(e.x, 0, e.y):distance(self.pos)
         local c = Vec3f():lerp(Vec3f(1.0, 0.0, 0.2), exp(-max(0, d / 128 - 1.0)))
-        shader:setFloat4("color", c.x, c.y, c.z, 1)
-        Draw.Border(8, e.x - 96, e.y - 96, 192, 192)
+        tint.r, tint.g, tint.b, tint.a = c.x, c.y, c.z, 1
+        Imm.Border(8, e.x - 96, e.y - 96, 192, 192, tint)
     end
 
-    Draw.PointSize(2.0)
-    Draw.SmoothPoints(true)
     for i = 1, #self.particles do
         local p = self.particles[i]
         local alpha = p.life / 5
-        shader:setFloat4("color", 0.25, 1.0, 0.25, alpha * 0.8)
-        Draw.Point(p.x, p.y)
+        tint.r, tint.g, tint.b, tint.a = 0.25, 1.0, 0.25, alpha * 0.8
+        Imm.Point(p.x, p.y, 2, tint)
     end
 
-    shader:setFloat4("color", 0.1, 0.6, 1.0, 1.0)
-    Draw.Rect(self.pos.x - 4, self.pos.z - 4, 8, 8)
+    tint.r, tint.g, tint.b, tint.a = 0.1, 0.6, 1.0, 1.0
+    Imm.Rect(self.pos.x - 4, self.pos.z - 4, 8, 8, tint)
 
-    shader:stop()
-
-    RenderState.PopBlendMode()
+    pass:finish()
 end
 
 function AudioTest:onUpdate(dt)

@@ -67,9 +67,9 @@ function OptionSlider:onDraw(focus, active)
     local a1 = padLeft + Vec2f(0, -tri2)
     local b1 = padLeft + Vec2f(tri2, -triSize)
     local c1 = padLeft + Vec2f(tri2, 0)
-    self:getColor(focus, active, Config.ui.color.fill)
-    Draw.Tri(a, b, c);
-    Draw.Tri(a1, b1, c1);
+    local triColor = self:getColor(focus, active, Config.ui.color.fill)
+    UI.DrawEx.SimpleTri(a.x, a.y, b.x, b.y, c.x, c.y, triColor)
+    UI.DrawEx.SimpleTri(a1.x, a1.y, b1.x, b1.y, c1.x, c1.y, triColor)
 
     -- Value Label
     local font = Config.ui.font.normal
