@@ -52,11 +52,12 @@ local PROGRESS_STEP = ScaleConfig:toGameUnits(PROGRESS_STEP_M, "starSystem")
 ---@field max number
 
 ---@class ScenarioMetrics
----@overload fun(name: string, ships: SandboxShip[], obstacles: SandboxObstacle[]): ScenarioMetrics
-local ScenarioMetrics = Class("ScenarioMetrics", function(self, name, ships, obstacles)
+---@overload fun(name: string, ships: SandboxShip[], obstacles: SandboxObstacle[], avoidance: SandboxAvoidanceSpec|nil): ScenarioMetrics
+local ScenarioMetrics = Class("ScenarioMetrics", function(self, name, ships, obstacles, avoidance)
     self.name = name
     self.ships = ships
     self.obstacles = obstacles
+    self.avoidance = avoidance -- the scenario's tuning; nil for the navigation world's defaults
     self.byId = {} -- entity id -> the ship or obstacle, for labels and kinds
     for _, ship in ipairs(ships) do
         ship.state = "flying"
@@ -138,17 +139,57 @@ function ScenarioMetrics:waypointReached(ship, simTime)
     self.waypoints = self.waypoints + 1
 end
 
+---@class SandboxNeighbour
+---@field obstacle SandboxObstacle
+---@field gap number Game units from the ship's centre to the obstacle's surface
+---@field centreDistance number Game units from the ship's centre to the obstacle's centre
+
+---The obstacles whose surfaces are closest to the ship, nearest first.
 ---@param ship SandboxShip
----@return SandboxObstacle|nil nearest The obstacle whose surface is closest to the ship
----@return number gap Game units from the ship's centre to that surface; infinite when none
-function ScenarioMetrics:nearestObstacle(ship)
-    local nearest, gap = nil, math.huge
+---@param count integer At most this many
+---@return SandboxNeighbour[]
+function ScenarioMetrics:nearestObstacles(ship, count)
     local position = ship.rb:getPos()
+    local found = {}
     for _, obstacle in ipairs(self.obstacles) do
-        local candidate = position:distance(obstacle.rb:getPos()) - obstacle.radius
-        if candidate < gap then nearest, gap = obstacle, candidate end
+        local centreDistance = position:distance(obstacle.rb:getPos())
+        table.insert(found, {
+            obstacle = obstacle,
+            gap = centreDistance - obstacle.radius,
+            centreDistance = centreDistance,
+        })
     end
-    return nearest, gap
+    table.sort(found, function(a, b) return a.gap < b.gap end)
+    return { table.unpack(found, 1, count) }
+end
+
+---A deadlocked ship's two nearest obstacles for a log line: each one's label and surface gap,
+---the gap between their surfaces, and, when the scenario sets the avoidance tuning, each one's
+---centre distance as a multiple of its reach (1 to `aimFactor` is the aim band, where the
+---detour finds no tangent).
+---@param ship SandboxShip
+---@return string
+function ScenarioMetrics:describeNeighbours(ship)
+    local near = self:nearestObstacles(ship, 2)
+    if #near == 0 then return "no obstacles" end
+    local shipRadius = ship.rb:getBoundingRadius()
+    local parts = {}
+    for _, neighbour in ipairs(near) do
+        local text = string.format("%s %.0f m", neighbour.obstacle.label, metres(neighbour.gap))
+        local tuning = self.avoidance
+        if tuning then
+            local reach = neighbour.obstacle.radius + shipRadius * (1 + tuning.clearanceRadii)
+            text = text .. string.format(" (%.2f reach)", neighbour.centreDistance / reach)
+        end
+        table.insert(parts, text)
+    end
+    local text = "nearest " .. table.concat(parts, ", ")
+    if #near == 2 then
+        local between = near[1].obstacle.rb:getPos():distance(near[2].obstacle.rb:getPos())
+            - near[1].obstacle.radius - near[2].obstacle.radius
+        text = text .. string.format(", %.0f m between them", metres(between))
+    end
+    return text
 end
 
 ---@param ship SandboxShip
@@ -165,10 +206,8 @@ function ScenarioMetrics:updateProgress(ship, simTime)
     elseif simTime - ship.progressTime >= DEADLOCK_WINDOW_S then
         ship.state = "deadlocked"
         self.deadlocks = self.deadlocks + 1
-        local near, nearGap = self:nearestObstacle(ship)
-        self:log("%s deadlocked at %.2f s, %.0f m from its target, speed %.0f m/s, nearest %s %.0f m from its surface",
-            ship.label, simTime, metres(distance), metres(ship.rb:getSpeed()), near and near.label or "none",
-            metres(nearGap))
+        self:log("%s deadlocked at %.2f s, %.0f m from its target, speed %.0f m/s, %s",
+            ship.label, simTime, metres(distance), metres(ship.rb:getSpeed()), self:describeNeighbours(ship))
     end
 end
 

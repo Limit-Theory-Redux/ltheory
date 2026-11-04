@@ -334,7 +334,7 @@ function NavigationSandbox:startScenario(index)
     for i, spec in ipairs(scenario.obstacles or {}) do
         table.insert(self.obstacles, self:spawnObstacle(spec, i))
     end
-    self.metrics = ScenarioMetrics(scenario.name, self.ships, self.obstacles)
+    self.metrics = ScenarioMetrics(scenario.name, self.ships, self.obstacles, scenario.avoidance)
     self:createNavigation()
     self:frameCamera(scenario)
     Log.Info("NavigationSandbox: %s: started, %d ships, %d obstacles", scenario.name, #self.ships, #self.obstacles)
