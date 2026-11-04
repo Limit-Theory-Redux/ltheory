@@ -9,10 +9,13 @@ use crate::obstacle::Obstacle;
 pub struct AvoidanceTuning {
     /// Obstacles the agent would reach later than this are ignored, in seconds.
     pub horizon_s: f64,
-    /// Distance kept from an obstacle's surface besides the agent's own radius, in agent radii.
+    /// The largest distance kept from an obstacle's surface besides the agent's own radius, in
+    /// agent radii. The distance kept grows with the speed the agent closes on the obstacle at,
+    /// from [`MIN_CLEARANCE_RADII`] up to this.
     pub clearance_radii: f64,
-    /// The new course passes the inflated sphere at this multiple of its radius. A value above 1
-    /// keeps the course off the boundary the threat test uses, so it doesn't flip every step.
+    /// The new course passes the obstacle at this multiple of the clearance kept from it. A
+    /// value above 1 keeps the course off the boundary the threat test uses, so it doesn't flip
+    /// every step.
     pub aim_factor: f64,
 }
 
@@ -30,6 +33,10 @@ impl Default for AvoidanceTuning {
 /// courses, each tested against every obstacle, instead of growing with the obstacle count.
 const MAX_EXPANDED_THREATS: usize = 4;
 
+/// The clearance kept from an obstacle the agent isn't closing on, in agent radii. It is capped
+/// by [`AvoidanceTuning::clearance_radii`] when that is smaller.
+pub const MIN_CLEARANCE_RADII: f64 = 0.5;
+
 /// The obstacle an agent reaches first on a course, in the obstacle's frame.
 #[derive(Clone, Copy)]
 struct Threat {
@@ -41,6 +48,11 @@ struct Threat {
     relative_velocity: DVec3,
     /// Obstacle radius plus the agent's radius and clearance.
     reach: f64,
+    /// Obstacle radius plus the agent's radius and the aim factor times the clearance: the
+    /// radius a detour passes at.
+    aim_reach: f64,
+    /// The distance kept from the obstacle's hull besides the agent's own radius.
+    clearance: f64,
     obstacle_velocity: DVec3,
 }
 
@@ -52,10 +64,9 @@ impl Threat {
 
 /// The agent and the obstacles its courses are tested against.
 struct Scene<'a> {
-    position: DVec3,
-    /// The agent's radius plus its clearance.
-    reach_margin: f64,
-    horizon_s: f64,
+    body: &'a Body,
+    linear_drag: f64,
+    tuning: &'a AvoidanceTuning,
     obstacles: &'a [Obstacle],
 }
 
@@ -66,17 +77,75 @@ impl Scene<'_> {
             .iter()
             .enumerate()
             .filter_map(|(index, obstacle)| {
-                threat(
-                    self.position,
-                    velocity,
-                    self.reach_margin,
-                    obstacle,
-                    self.horizon_s,
-                )
-                .map(|threat| (index, threat))
+                self.threat(velocity, obstacle)
+                    .map(|threat| (index, threat))
             })
             .min_by(|a, b| a.1.entry_time.total_cmp(&b.1.entry_time))
     }
+
+    /// The distance the agent keeps from the obstacle's hull besides its own radius: the
+    /// distance drag alone takes it to stop from its current closing speed, between
+    /// [`MIN_CLEARANCE_RADII`] and `clearance_radii` agent radii. It depends on the agent's
+    /// state at the start of the step only, never on the course being tested.
+    fn clearance(&self, obstacle: &Obstacle) -> f64 {
+        let radius = self.body.radius;
+        let largest = radius * self.tuning.clearance_radii;
+        let smallest = radius * MIN_CLEARANCE_RADII.min(self.tuning.clearance_radii);
+        let stopping_distance = if self.linear_drag > 0.0 {
+            closing_speed(self.body, obstacle) / self.linear_drag
+        } else {
+            f64::INFINITY
+        };
+        stopping_distance.max(smallest).min(largest)
+    }
+
+    /// The time the agent, flying `wanted_velocity`, first comes within the obstacle's reach;
+    /// `None` when it doesn't within the horizon.
+    fn threat(&self, wanted_velocity: DVec3, obstacle: &Obstacle) -> Option<Threat> {
+        let clearance = self.clearance(obstacle);
+        let hull = obstacle.radius + self.body.radius;
+        let offset = self.body.position - obstacle.position;
+        let relative_velocity = wanted_velocity - obstacle.velocity;
+        let reach = hull + clearance;
+        let make = |entry_time| Threat {
+            entry_time,
+            offset,
+            relative_velocity,
+            reach,
+            aim_reach: hull + self.tuning.aim_factor * clearance,
+            clearance,
+            obstacle_velocity: obstacle.velocity,
+        };
+
+        // Solve |offset + relative_velocity·t| = reach for the first t ≥ 0: a·t² + 2b·t + c = 0.
+        let c = offset.length_squared() - reach * reach;
+        if c <= 0.0 {
+            return Some(make(0.0));
+        }
+        let a = relative_velocity.length_squared();
+        let b = offset.dot(relative_velocity);
+        if b >= 0.0 || a < TINY_SQ {
+            return None;
+        }
+        let discriminant = b * b - a * c;
+        if discriminant < 0.0 {
+            return None;
+        }
+        let entry_time = (-b - discriminant.sqrt()) / a;
+        (entry_time <= self.tuning.horizon_s).then(|| make(entry_time))
+    }
+}
+
+/// The speed the agent's body closes on the obstacle's centre at, from their velocities; 0 when
+/// it moves away.
+fn closing_speed(body: &Body, obstacle: &Obstacle) -> f64 {
+    let offset = body.position - obstacle.position;
+    let distance_sq = offset.length_squared();
+    if distance_sq < TINY_SQ {
+        return 0.0;
+    }
+    let relative_velocity = body.velocity - obstacle.velocity;
+    (-relative_velocity.dot(offset) / distance_sq.sqrt()).max(0.0)
 }
 
 /// A sphere whose tangent courses are still to be tried, with the course that reaches it.
@@ -95,11 +164,14 @@ struct Pending {
 /// included). The tangent is the one of Reynolds, "Steering Behaviors For Autonomous
 /// Characters", 1999, obstacle avoidance.
 ///
-/// While the wanted course leads into a sphere, the speed is also limited to `linear_drag` times
-/// the distance to the sphere's surface plus the agent's radius, the speed from which drag alone
-/// stops the agent there (the rule of [`arrive`](crate::behaviour::arrive)). A fast agent turns
-/// slowly, so without the limit it reaches the sphere before its velocity has followed the
-/// detour.
+/// The clearance kept from each sphere grows with the speed the agent closes on it at (see
+/// [`AvoidanceTuning::clearance_radii`]), so a slow agent fits through gaps a fast one avoids.
+///
+/// While the wanted course leads into a sphere, the speed the course closes on that sphere at is
+/// also limited to `linear_drag` times the distance to its hull (the sphere's surface plus the
+/// agent's radius), the speed from which drag alone stops the agent there (the rule of
+/// [`arrive`](crate::behaviour::arrive)). A fast agent turns slowly, so without the limit it
+/// reaches the sphere before its velocity has followed the detour.
 pub(crate) fn avoid(
     body: &Body,
     max_speed: f64,
@@ -112,53 +184,59 @@ pub(crate) fn avoid(
         return wanted;
     }
     let scene = Scene {
-        position: body.position,
-        reach_margin: body.radius * (1.0 + tuning.clearance_radii),
-        horizon_s: tuning.horizon_s,
+        body,
+        linear_drag,
+        tuning,
         obstacles,
     };
     let Some((index, first)) = scene.first_threat(wanted.velocity) else {
         return wanted;
     };
     if first.is_inside() {
-        return steer_around(&first, wanted, max_speed, tuning.aim_factor, false);
+        return steer_around(&first, wanted, max_speed, false);
     }
-    let stopping_distance =
-        first.entry_time * wanted.velocity.length() + body.radius * tuning.clearance_radii;
     let course = search_courses(
         &scene,
         wanted,
         max_speed,
-        tuning.aim_factor,
         Pending {
             index,
             threat: first,
             course: wanted,
         },
     );
-    limit_speed(course, linear_drag * stopping_distance)
+    limit_closing_speed(course, &first, linear_drag)
 }
 
-/// `course` with its speed reduced to `limit` if it is faster; the direction is kept.
-fn limit_speed(course: Wanted, limit: f64) -> Wanted {
-    let speed = course.velocity.length();
-    if speed <= limit {
+/// `course` with the speed it closes on the threat's sphere at reduced to `linear_drag` times the
+/// distance to the sphere's hull, the speed from which drag alone stops the agent there. The
+/// speed along the sphere is kept, so an agent passing the sphere isn't slowed for it.
+fn limit_closing_speed(course: Wanted, threat: &Threat, linear_drag: f64) -> Wanted {
+    let distance = threat.offset.length();
+    if distance * distance < TINY_SQ {
         return course;
     }
+    let to_centre = -threat.offset / distance;
+    let hull = threat.reach - threat.clearance;
+    let limit = linear_drag * (distance - hull).max(0.0);
+    let closing = (course.velocity - threat.obstacle_velocity).dot(to_centre);
+    if closing <= limit {
+        return course;
+    }
+    let velocity = course.velocity - to_centre * (closing - limit);
+    let direction = if velocity.length_squared() < TINY_SQ {
+        course.direction
+    } else {
+        velocity.normalize()
+    };
     Wanted {
-        velocity: course.velocity * (limit / speed),
-        direction: course.direction,
+        velocity,
+        direction,
     }
 }
 
 /// The best course found by expanding spheres breadth-first from `first`, which blocks `wanted`.
-fn search_courses(
-    scene: &Scene,
-    wanted: Wanted,
-    max_speed: f64,
-    aim_factor: f64,
-    first: Pending,
-) -> Wanted {
+fn search_courses(scene: &Scene, wanted: Wanted, max_speed: f64, first: Pending) -> Wanted {
     let mut queue = [None; MAX_EXPANDED_THREATS];
     queue[0] = Some(first);
     let mut queued = 1;
@@ -168,7 +246,7 @@ fn search_courses(
         let Some(pending) = queue[next] else { break };
         next += 1;
         for flip in [false, true] {
-            let course = steer_around(&pending.threat, pending.course, max_speed, aim_factor, flip);
+            let course = steer_around(&pending.threat, pending.course, max_speed, flip);
             let Some((index, threat)) = scene.first_threat(course.velocity) else {
                 choice.offer_clear(course, course.direction.dot(wanted.direction));
                 continue;
@@ -240,54 +318,10 @@ impl Choice {
     }
 }
 
-/// The time the agent, flying `wanted_velocity`, first comes within `reach_margin` of the
-/// obstacle's surface; `None` when it doesn't within the horizon.
-fn threat(
-    position: DVec3,
-    wanted_velocity: DVec3,
-    reach_margin: f64,
-    obstacle: &Obstacle,
-    horizon_s: f64,
-) -> Option<Threat> {
-    let offset = position - obstacle.position;
-    let relative_velocity = wanted_velocity - obstacle.velocity;
-    let reach = obstacle.radius + reach_margin;
-    let make = |entry_time| Threat {
-        entry_time,
-        offset,
-        relative_velocity,
-        reach,
-        obstacle_velocity: obstacle.velocity,
-    };
-
-    // Solve |offset + relative_velocity·t| = reach for the first t ≥ 0: a·t² + 2b·t + c = 0.
-    let c = offset.length_squared() - reach * reach;
-    if c <= 0.0 {
-        return Some(make(0.0));
-    }
-    let a = relative_velocity.length_squared();
-    let b = offset.dot(relative_velocity);
-    if b >= 0.0 || a < TINY_SQ {
-        return None;
-    }
-    let discriminant = b * b - a * c;
-    if discriminant < 0.0 {
-        return None;
-    }
-    let entry_time = (-b - discriminant.sqrt()) / a;
-    (entry_time <= horizon_s).then(|| make(entry_time))
-}
-
 /// The course from `wanted` that passes the threatening sphere tangent to its inflated surface,
 /// on the side the course leans to, or on the other side when `flip`. An agent already inside
 /// the reach slides out of it instead ([`slide_out`]), on either side.
-fn steer_around(
-    threat: &Threat,
-    wanted: Wanted,
-    max_speed: f64,
-    aim_factor: f64,
-    flip: bool,
-) -> Wanted {
+fn steer_around(threat: &Threat, wanted: Wanted, max_speed: f64, flip: bool) -> Wanted {
     let distance = threat.offset.length();
     // Unit direction from the agent to the obstacle's centre; any fixed one when they coincide.
     let to_centre = if distance * distance < TINY_SQ {
@@ -303,12 +337,12 @@ fn steer_around(
     };
 
     let relative_direction = if threat.is_inside() {
-        let depth = (1.0 - distance / (threat.reach * aim_factor)).clamp(0.0, 1.0);
+        let depth = (1.0 - distance / threat.aim_reach).clamp(0.0, 1.0);
         slide_out(threat, -to_centre, side, relative_speed, depth)
     } else {
         // The cone from the agent that just touches the inflated sphere has half-angle α, with
         // sin α = radius / distance. The course aims along its edge on `side`.
-        let sin_alpha = threat.reach * aim_factor / distance;
+        let sin_alpha = threat.aim_reach / distance;
         if sin_alpha >= 1.0 {
             side
         } else {
@@ -430,8 +464,9 @@ mod tests {
         (offset + relative * t).length()
     }
 
+    /// The reach of an obstacle for an agent at rest: it keeps the smallest clearance.
     fn reach_of(obstacle: &Obstacle) -> f64 {
-        obstacle.radius + RADIUS * (1.0 + AvoidanceTuning::default().clearance_radii)
+        obstacle.radius + RADIUS * (1.0 + MIN_CLEARANCE_RADII)
     }
 
     #[test]
@@ -523,12 +558,19 @@ mod tests {
 
     /// The seconds until the agent flying `velocity` first reaches any of the obstacles.
     fn contact_time(body: &Body, velocity: DVec3, obstacles: &[Obstacle]) -> f64 {
-        let margin = RADIUS * (1.0 + AvoidanceTuning::default().clearance_radii);
-        obstacles
-            .iter()
-            .filter_map(|o| threat(body.position, velocity, margin, o, f64::INFINITY))
-            .map(|t| t.entry_time)
-            .fold(f64::INFINITY, f64::min)
+        let tuning = AvoidanceTuning {
+            horizon_s: f64::INFINITY,
+            ..AvoidanceTuning::default()
+        };
+        let scene = Scene {
+            body,
+            linear_drag: UNLIMITED_DRAG,
+            tuning: &tuning,
+            obstacles,
+        };
+        scene
+            .first_threat(velocity)
+            .map_or(f64::INFINITY, |(_, threat)| threat.entry_time)
     }
 
     #[test]
@@ -616,8 +658,8 @@ mod tests {
 
     #[test]
     fn an_agent_just_inside_the_reach_slides_along_it_toward_its_goal() {
-        // 0.5 inside the reach of 23, with the goal ahead and a little inward.
-        let body = body_at(DVec3::new(22.5, 0.0, 0.0));
+        // 0.5 inside the reach of 21.5, with the goal ahead and a little inward.
+        let body = body_at(DVec3::new(21.0, 0.0, 0.0));
         let wanted = wanted_toward(DVec3::new(-0.2, 0.0, -1.0).normalize(), 50.0);
         let around = rock(DVec3::ZERO, DVec3::ZERO, 20.0);
         let steered = avoid_default(&body, wanted, &[around]);
@@ -664,26 +706,185 @@ mod tests {
     }
 
     #[test]
-    fn a_threat_close_ahead_limits_the_speed_to_what_drag_stops_at_the_surface() {
+    fn a_threat_close_ahead_limits_the_closing_speed_to_what_drag_stops_at_the_surface() {
         let body = body_at(DVec3::ZERO);
         let wanted = wanted_toward(DVec3::NEG_Z, MAX_SPEED);
         let rock = rock(DVec3::new(0.0, 0.0, -30.0), DVec3::ZERO, 5.0);
         // The agent's centre may come as close as the rock's radius plus its own.
         let stopping = 30.0 - (rock.radius + RADIUS);
         let steered = avoid_with_drag(&body, wanted, &[rock]);
-        assert!(steered.velocity.length() <= DRAG * stopping + 1e-9);
+        let closing = steered.velocity.dot(DVec3::NEG_Z);
+        assert!(closing <= DRAG * stopping + 1e-9, "closing at {closing}");
         assert!(steered.velocity.length() > 0.0);
     }
 
     #[test]
-    fn the_limit_keeps_the_direction_of_the_detour() {
+    fn the_limit_removes_only_the_closing_component_of_the_detour() {
         let body = body_at(DVec3::ZERO);
         let wanted = wanted_toward(DVec3::NEG_Z, MAX_SPEED);
         let rock = rock(DVec3::new(0.0, 0.0, -30.0), DVec3::ZERO, 5.0);
         let free = avoid_default(&body, wanted, &[rock]);
         let limited = avoid_with_drag(&body, wanted, &[rock]);
-        assert!(limited.velocity.length() < free.velocity.length());
-        assert!(limited.velocity.normalize().dot(free.velocity.normalize()) > 1.0 - 1e-9);
+        // The sideways part of the detour is kept whole, so the agent still gets round.
+        let sideways = |velocity: DVec3| DVec3::new(velocity.x, velocity.y, 0.0);
+        assert!(sideways(free.velocity).length() > 1.0);
+        assert!((sideways(limited.velocity) - sideways(free.velocity)).length() < 1e-9);
+        assert!(limited.velocity.z > free.velocity.z);
+    }
+
+    #[test]
+    fn a_course_that_does_not_close_on_the_threat_keeps_its_speed() {
+        // The rock is abeam and the agent flies past it: nothing to brake for.
+        let body = body_at(DVec3::ZERO);
+        let wanted = wanted_toward(DVec3::NEG_Z, MAX_SPEED);
+        let rock = rock(DVec3::new(30.0, 0.0, 0.0), DVec3::ZERO, 5.0);
+        let steered = avoid_with_drag(&body, wanted, &[rock]);
+        assert!((steered.velocity - wanted.velocity).length() < 1e-9);
+    }
+
+    /// Radius 1 and drag 2 give clearances from 0.5 (at rest) up to 2 (from a closing speed of 4).
+    fn clearance_with_velocity(velocity: DVec3, obstacle: &Obstacle) -> f64 {
+        let mut body = body_at(DVec3::ZERO);
+        body.velocity = velocity;
+        let tuning = AvoidanceTuning::default();
+        let scene = Scene {
+            body: &body,
+            linear_drag: DRAG,
+            tuning: &tuning,
+            obstacles: &[],
+        };
+        scene.clearance(obstacle)
+    }
+
+    #[test]
+    fn the_clearance_grows_with_the_closing_speed_between_its_bounds() {
+        let ahead = rock(DVec3::new(0.0, 0.0, -100.0), DVec3::ZERO, 10.0);
+        let at_rest = clearance_with_velocity(DVec3::ZERO, &ahead);
+        let slow = clearance_with_velocity(DVec3::new(0.0, 0.0, -2.0), &ahead);
+        let fast = clearance_with_velocity(DVec3::new(0.0, 0.0, -50.0), &ahead);
+        assert_eq!(at_rest, RADIUS * MIN_CLEARANCE_RADII);
+        // Coasting from 2 under drag 2 covers 1.
+        assert!((slow - 1.0).abs() < 1e-9, "slow clearance {slow}");
+        assert_eq!(fast, RADIUS * AvoidanceTuning::default().clearance_radii);
+    }
+
+    #[test]
+    fn moving_away_or_alongside_keeps_the_smallest_clearance() {
+        let ahead = rock(DVec3::new(0.0, 0.0, -100.0), DVec3::ZERO, 10.0);
+        let away = clearance_with_velocity(DVec3::new(0.0, 0.0, 50.0), &ahead);
+        let alongside = clearance_with_velocity(DVec3::new(50.0, 0.0, 0.0), &ahead);
+        assert_eq!(away, RADIUS * MIN_CLEARANCE_RADII);
+        assert_eq!(alongside, RADIUS * MIN_CLEARANCE_RADII);
+    }
+
+    #[test]
+    fn the_closing_speed_is_taken_relative_to_the_obstacle() {
+        // The obstacle flies the agent's own velocity: they don't close on each other.
+        let along = rock(
+            DVec3::new(0.0, 0.0, -100.0),
+            DVec3::new(0.0, 0.0, -50.0),
+            10.0,
+        );
+        let same = clearance_with_velocity(DVec3::new(0.0, 0.0, -50.0), &along);
+        assert_eq!(same, RADIUS * MIN_CLEARANCE_RADII);
+        // An obstacle coming at a resting agent does close on it.
+        let coming = rock(
+            DVec3::new(0.0, 0.0, -100.0),
+            DVec3::new(0.0, 0.0, 50.0),
+            10.0,
+        );
+        let closing = clearance_with_velocity(DVec3::ZERO, &coming);
+        assert_eq!(closing, RADIUS * AvoidanceTuning::default().clearance_radii);
+    }
+
+    #[test]
+    fn a_maximum_clearance_below_the_minimum_caps_the_clearance() {
+        let ahead = rock(DVec3::new(0.0, 0.0, -100.0), DVec3::ZERO, 10.0);
+        let mut body = body_at(DVec3::ZERO);
+        body.velocity = DVec3::new(0.0, 0.0, -50.0);
+        let tuning = AvoidanceTuning {
+            clearance_radii: 0.25,
+            ..AvoidanceTuning::default()
+        };
+        let scene = Scene {
+            body: &body,
+            linear_drag: DRAG,
+            tuning: &tuning,
+            obstacles: &[],
+        };
+        assert_eq!(scene.clearance(&ahead), RADIUS * 0.25);
+    }
+
+    #[test]
+    fn a_drag_of_zero_keeps_the_largest_clearance() {
+        let ahead = rock(DVec3::new(0.0, 0.0, -100.0), DVec3::ZERO, 10.0);
+        let body = body_at(DVec3::ZERO);
+        let tuning = AvoidanceTuning::default();
+        let scene = Scene {
+            body: &body,
+            linear_drag: 0.0,
+            tuning: &tuning,
+            obstacles: &[],
+        };
+        assert_eq!(scene.clearance(&ahead), RADIUS * tuning.clearance_radii);
+    }
+
+    #[test]
+    fn the_aim_radius_exceeds_the_reach_by_the_aim_factor_of_the_clearance_only() {
+        let body = body_at(DVec3::ZERO);
+        // Within the horizon at 80 per second, and far larger than the agent.
+        let big = rock(DVec3::new(0.0, 0.0, -600.0), DVec3::ZERO, 300.0);
+        let tuning = AvoidanceTuning::default();
+        let scene = Scene {
+            body: &body,
+            linear_drag: DRAG,
+            tuning: &tuning,
+            obstacles: &[],
+        };
+        let threat = scene
+            .threat(DVec3::NEG_Z * 80.0, &big)
+            .expect("the course leads into the rock");
+        let band = threat.aim_reach - threat.reach;
+        assert!(
+            (band - (tuning.aim_factor - 1.0) * threat.clearance).abs() < 1e-9,
+            "band {band}"
+        );
+        assert!(band < RADIUS, "the band doesn't grow with the rock");
+    }
+
+    /// Two spheres of radius 40 across the course at z = -300, `gap` apart between their surfaces.
+    fn gate(gap: f64) -> [Obstacle; 2] {
+        let half = 40.0 + gap / 2.0;
+        [-half, half].map(|x| rock(DVec3::new(x, 0.0, -300.0), DVec3::ZERO, 40.0))
+    }
+
+    #[test]
+    fn a_slow_agent_flies_through_a_gap_that_a_fast_one_goes_round() {
+        // The agent needs half the gap to exceed its radius plus the clearance: 1.5 when slow, 3
+        // when fast. 5 apart gives each side 2.5.
+        let gate = gate(5.0);
+        let wanted = wanted_toward(DVec3::NEG_Z, 80.0);
+
+        let slow = body_at(DVec3::ZERO);
+        assert_eq!(avoid_with_drag(&slow, wanted, &gate), wanted);
+
+        let mut fast = body_at(DVec3::ZERO);
+        fast.velocity = wanted.velocity;
+        let steered = avoid_with_drag(&fast, wanted, &gate);
+        assert_ne!(steered.direction, wanted.direction);
+        assert!(steered.velocity.x.abs() > 1.0, "turns off the line");
+    }
+
+    #[test]
+    fn the_same_state_gives_the_same_course() {
+        let mut body = body_at(DVec3::ZERO);
+        body.velocity = DVec3::new(0.0, 0.0, -30.0);
+        let wanted = wanted_toward(DVec3::NEG_Z, 80.0);
+        let gate = gate(5.0);
+        assert_eq!(
+            avoid_with_drag(&body, wanted, &gate),
+            avoid_with_drag(&body, wanted, &gate)
+        );
     }
 
     #[test]

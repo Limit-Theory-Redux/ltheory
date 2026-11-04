@@ -12,6 +12,6 @@ mod obstacle;
 mod world;
 
 pub use agent::{AXIS_COUNT, AgentId, Axis, Body, Frame, Goal, Profile};
-pub use avoidance::AvoidanceTuning;
+pub use avoidance::{AvoidanceTuning, MIN_CLEARANCE_RADII};
 pub use obstacle::Obstacle;
 pub use world::World;

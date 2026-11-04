@@ -231,13 +231,19 @@ function ScenarioMetrics:updateCollisions(world, simTime)
             local key = own < other and (own .. ":" .. other) or (other .. ":" .. own)
             if not touching[key] and not self.touching[key] then
                 local known = self.byId[other]
+                local detail = ""
                 if known and known.kind == "ship" then
                     self.shipCollisions = self.shipCollisions + 1
                 else
                     self.obstacleCollisions = self.obstacleCollisions + 1
+                    if known then
+                        local toCentre = (known.rb:getPos() - ship.rb:getPos()):normalize()
+                        local closing = (ship.rb:getVelocity() - known.rb:getVelocity()):dot(toCentre)
+                        detail = string.format(", closing on it at %.0f m/s", metres(closing))
+                    end
                 end
-                self:log("collision of %s and %s at %.2f s, ship speed %.0f m/s", ship.label,
-                    self:bodyLabel(other), simTime, metres(ship.rb:getSpeed()))
+                self:log("collision of %s and %s at %.2f s, ship speed %.0f m/s%s", ship.label,
+                    self:bodyLabel(other), simTime, metres(ship.rb:getSpeed()), detail)
             end
             touching[key] = true
         end
