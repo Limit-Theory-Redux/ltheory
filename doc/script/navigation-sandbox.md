@@ -1,6 +1,6 @@
 # Navigation sandbox
 
-`Tests/NavigationSandbox` runs navigation scenarios with nobody at the window. It spawns each scenario's ships in an empty scene, steers them to their targets, logs what happens and ends with an exit code, so a script or CI can run it and judge the result.
+`Tests/NavigationSandbox` runs navigation scenarios with nobody at the window. It spawns each scenario's ships in an empty scene, steers them through a `NavWorld` (see [navigation maths](../engine/nav.md)), logs what happens and ends with an exit code, so a script or CI can run it and judge the result.
 
 Code: `script/States/App/Tests/NavigationSandbox.lua` and `script/States/App/Tests/NavigationSandbox/`.
 
@@ -8,6 +8,8 @@ Code: `script/States/App/Tests/NavigationSandbox.lua` and `script/States/App/Tes
 
 - `cargo run -p ltr -- NavigationSandbox` runs every scenario in turn, in the order of `SCENARIO_NAMES`.
 - `cargo run -p ltr -- NavigationSandbox/<Name>` runs one scenario, for example `NavigationSandbox/HeadOn`.
+
+`Slice` is not in `SCENARIO_NAMES`: it has 100 ships and takes much longer, so it is run on its own, `NavigationSandbox/Slice`.
 
 Each scenario is a module of its own in `NavigationSandbox/`, and that module is an app: it returns `NavigationSandbox.ScenarioApp(scenario)`, a subclass of the sandbox that runs only that scenario. Selecting a scenario needs nothing but the app name.
 
@@ -18,11 +20,11 @@ A scenario is a table:
 | Field | Meaning |
 |---|---|
 | `name` | Name in the log lines and the HUD |
-| `ships` | One entry per ship: `start` and `target`, `{ x, y, z }` in metres; `facing`, the direction the ship faces at the start (not along the y axis), toward its target by default; `hull`, an `Enums.ShipHulls` value that sets the ship's size, Solo by default |
-| `obstacles` | Optional static spheres: `position` `{ x, y, z }` and `radius`, in metres |
-| `timeLimit` | Seconds of simulated time for every ship to finish; 120 by default |
+| `ships` | One entry per ship: `start`, and either `target` (the ship stops there) or `route` (waypoints flown in a loop, the first one first), each `{ x, y, z }` in metres; `facing`, the direction the ship faces at the start (not along the y axis), toward its first target by default; `hull`, an `Enums.ShipHulls` value that sets the ship's size, Solo by default |
+| `obstacles` | Optional spheres: `radius` in metres, and either `position` `{ x, y, z }` for a static one or `circle = { centre, radius, periodS }` for one that moves on a circle in the xz plane, starting on the +x side and moving toward +z |
+| `timeLimit` | Seconds of simulated time for every ship to finish; 120 by default. Route ships never finish, so a scenario with them runs to its limit |
 
-Every ship is a fighter from `ShipGenerator` with the Solo flight profile, built from one fixed seed, so a run is repeatable up to the variable frame time. `hull` changes only the size (the mesh scale and so the bounding radius), not the flight profile. An obstacle is a kinematic unit-sphere body scaled to its radius, owned by an entity, so a physics query reports it by entity id.
+Every ship is a fighter from `ShipGenerator` with the Solo flight profile, built from one fixed seed, so a run is repeatable up to the variable frame time. `hull` changes only the size (the mesh scale and so the bounding radius), not the flight profile. An obstacle is a kinematic unit-sphere body scaled to its radius, owned by an entity, so a physics query reports it by entity id. A circling obstacle gets a kinematic target before each physics step, the position it will have at the end of the step, so physics and the `NavWorld` see its velocity.
 
 | Scenario | What it checks |
 |---|---|
@@ -31,6 +33,7 @@ Every ship is a fighter from `ShipGenerator` with the Solo flight profile, built
 | `CrossingStreams` | Two streams of four ships, abreast and 400 m apart, cross at right angles at the origin at the same time |
 | `CircleSwap` | Eight ships on a 5 km circle each fly to the opposite point, so all meet at the centre; hulls alternate Solo and Medium |
 | `ObstacleField` | Three ships abreast fly 20 km along x through six static spheres: four on the courses, two beside them |
+| `Slice` | 100 ships loop through four waypoints each among 60 asteroids (100–800 m) in a 20 km × 2 km × 20 km slab, and a 3 km planet that circles the middle on a 6 km circle in 60 s. A seeded generator keeps every waypoint and start clear of the asteroids and of the planet's whole path; it runs for 60 s. It is the measurement for the navigation budget |
 
 ## Scene
 
@@ -57,13 +60,12 @@ Filled spheres are drawn at a small fraction of their colour: the additive pass 
 
 ## Steering
 
-`Support/SeekArrive.lua` is a temporary seek-and-arrive controller. It writes each ship's `ControlInputComponent`, like any other writer (see [flight control](flight.md)), until the navigation behaviours replace it.
+The sandbox creates a `NavWorld` over the scenario's physics world. Each ship is an agent (its flight profile's top speed and linear drag), each obstacle is registered with `addObstacle`, and each ship's goal is its target with the arrival range as radius. The maths is in [navigation maths](../engine/nav.md); the sandbox only runs the frame:
 
-- **Wanted velocity.** The ship wants to fly straight at the target at `min(maxSpeed, distance · linearDrag)`. Coasting under linear drag `k` from speed `v` covers `v / k`, so that speed lets drag alone stop the ship at the target.
-- **Turning.** Pitch and yaw turn the nose toward the velocity error (wanted minus current velocity), at an input proportional to the heading error. When the ship is too fast toward the target, the nose stays on the target, and drag and reverse thrust slow it.
-- **Thrust.** Forward thrust follows the velocity error along the nose, but only when the nose is within a set cosine of the course. Side and vertical thrust follow the error along those axes. Every axis reaches full input at a set fraction of `maxSpeed` of error.
+- **PreSim.** `NavWorld:step()`, then the glue: `copyAxes` and `copyArrived` into two preallocated buffers, a route ship that has arrived gets its next waypoint (`setGoal`), a finished ship's goal is cleared once, and each ship's six axes are written into its `ControlInputComponent`, like any other writer (see [flight control](flight.md)).
+- **Sim.** `ShipFlightSystem` turns the control inputs into forces, the circling obstacles get their kinematic targets, and the physics world steps.
 
-A ship that has finished gets no input, and drag brings it to rest.
+A ship that has finished has no goal, so it gets zero axes and drag brings it to rest. The `NavWorld` is dropped before a scenario's bodies are removed, because registered bodies must stay in physics while it exists.
 
 ## Metrics
 
@@ -71,15 +73,19 @@ A ship that has finished gets no input, and drag brings it to rest.
 
 | Metric | Definition |
 |---|---|
-| Arrival | Within 100 m of the target and slower than 50 m/s |
-| Deadlock | Not 10 m closer to the target than its best distance for 10 s of simulated time |
-| Collision | A ship's bounding sphere starts to overlap another body, a ship or an obstacle. A `queryRadius` over the sphere finds the bodies, and each pair is counted once while it stays in contact. The log names a body by its label (`ship 3`, `obstacle 2`) |
+| Arrival | Within 100 m of the target and slower than 50 m/s. A route ship never arrives |
+| Waypoint | A route ship's goal is reached when the `NavWorld` reports it within 100 m (positional, no speed condition); the ship then gets the next one |
+| Deadlock | Not 10 m closer to the target than its best distance for 10 s of simulated time; reaching a waypoint restarts the count |
+| Collision | A ship's bounding sphere starts to overlap another body. A `queryRadius` over the sphere finds the bodies, and each pair is counted once while it stays in contact. A body that is not a sandbox ship is an obstacle, so the count is split into ship–obstacle and ship–ship. The log names a body by its label (`ship 3`, `obstacle 2`) |
 | Frame time | Mean and largest frame time in ms, leaving out the first frame, which pays for spawning |
+| Navigation time | Per frame, in ms with a monotonic clock, mean and largest, leaving out the first frame: the `NavWorld` step, the glue after it (copies, goals, control inputs) and the actuation, and their sum. Physics is not included |
 
-A ship that arrives or deadlocks is finished. The scenario ends when every ship is finished or the time limit runs out, with a summary line: arrivals, collisions, deadlocks, unfinished ships, simulated time and frame times.
+A ship that arrives or deadlocks is finished. The scenario ends when every ship is finished or the time limit runs out, with two summary lines: arrivals, waypoints reached, collisions by kind, deadlocks, unfinished ships, simulated time and frame times; and the navigation times.
 
 Collisions are counted from bounding-sphere overlap instead of from the physics contacts, because the physics contact graph also holds pairs whose bounding boxes merely overlap.
 
 ## Pass and fail
 
-A run fails when a scenario ends with a ship still flying at its time limit, or on a Lua error. The failure is a warning line, so the remaining scenarios still run, and the app quits with `Core.ExitCode.Failure` after the last one. Collisions and deadlocks are logged but don't fail a run: their thresholds come with the navigation behaviours.
+A scenario fails on a ship–obstacle collision, on a deadlock, or when a ship that was to arrive is still flying at its time limit (route ships fly on by design). A run fails on a failed scenario or on a Lua error. The failure is a warning line, so the remaining scenarios still run, and the app quits with `Core.ExitCode.Failure` after the last one. Ship–ship collisions are counted and logged but don't fail a run: avoidance between ships comes later.
+
+Collisions are found after each physics step, so a ship that crosses a small obstacle between two checks is missed: the count is a lower bound.

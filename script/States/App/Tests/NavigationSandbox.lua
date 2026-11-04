@@ -1,7 +1,7 @@
 -- Runs navigation scenarios with nobody at the window: spawns each scenario's ships, steers
--- them to their targets, logs the metrics and ends with an exit code. `NavigationSandbox`
--- runs every scenario in turn; `NavigationSandbox/<Name>` runs one. A run fails when a ship
--- neither arrives nor deadlocks within the scenario's time limit.
+-- them to their targets through a `NavWorld`, logs the metrics and ends with an exit code.
+-- `NavigationSandbox` runs every scenario in turn; `NavigationSandbox/<Name>` runs one. A run
+-- fails on a ship-obstacle collision, a deadlock, or a ship that doesn't finish in time.
 -- Design: doc/script/navigation-sandbox.md
 local Application           = require("States.Application")
 local Registry              = require("Core.ECS.Registry")
@@ -24,25 +24,31 @@ require("Modules.Cameras.Systems.CameraSystem")
 local RenderingComponents   = require("Modules.Rendering.Components")
 local Entity                = require("Core.ECS.Entity")
 
-local SeekArrive            = require("States.App.Tests.NavigationSandbox.Support.SeekArrive")
-local ScenarioMetrics       = require("States.App.Tests.NavigationSandbox.Support.ScenarioMetrics")
+local ScenarioMetrics      = require("States.App.Tests.NavigationSandbox.Support.ScenarioMetrics")
 local NavDebugDraw          = require("States.App.Tests.NavigationSandbox.Support.NavDebugDraw")
 
 ---@class SandboxShipSpec
 ---@field start number[] { x, y, z } in metres
----@field target number[] { x, y, z } in metres
----@field facing number[]|nil Direction the ship faces at the start, not along the y axis; toward its target by default
+---@field target number[]|nil { x, y, z } in metres; the ship stops there. Not used with a route
+---@field route number[][]|nil Waypoints { x, y, z } in metres, flown in a loop from the first
+---@field facing number[]|nil Direction the ship faces at the start, not along the y axis; toward its first target by default
 ---@field hull integer|nil An `Enums.ShipHulls` value, which sets the ship's size; Solo by default
 
----@class SandboxObstacleSpec
----@field position number[] { x, y, z } in metres
+---@class SandboxObstacleCircleSpec
+---@field centre number[] { x, y, z } in metres
 ---@field radius number In metres
+---@field periodS number Seconds for one turn; the sphere starts on the +x side and moves toward +z
+
+---@class SandboxObstacleSpec
+---@field position number[]|nil { x, y, z } in metres; not used with a circle
+---@field radius number In metres
+---@field circle SandboxObstacleCircleSpec|nil Moves the sphere on a circle in the xz plane
 
 ---@class SandboxScenario
 ---@field name string
 ---@field ships SandboxShipSpec[]
----@field obstacles SandboxObstacleSpec[]|nil Static spheres
----@field timeLimit number|nil Seconds of simulated time for every ship to arrive or deadlock
+---@field obstacles SandboxObstacleSpec[]|nil
+---@field timeLimit number|nil Seconds of simulated time for every ship to arrive or deadlock; route ships fly until it ends
 
 ---@class NavigationSandbox: Application
 ---@field scenarios SandboxScenario[]|nil The scenarios this app runs; every scenario when nil
@@ -60,6 +66,10 @@ local MAX_STEP_S       = 0.05
 local CAMERA_DISTANCE_FACTOR = 2.5
 local CAMERA_PITCH     = 0.6
 local CAMERA_NAME      = "NavigationSandbox"
+-- Positions of the control axes in an agent's slice of the axes buffer, as Lua numbers.
+local AXIS_PITCH, AXIS_YAW, AXIS_ROLL = tonumber(NavAxis.Pitch), tonumber(NavAxis.Yaw), tonumber(NavAxis.Roll)
+local AXIS_FORWARD, AXIS_RIGHT, AXIS_UP =
+    tonumber(NavAxis.ThrustForward), tonumber(NavAxis.ThrustRight), tonumber(NavAxis.ThrustUp)
 local UP               = Vec3f(0, 1, 0)
 -- The uniform environment: a small cube map of one dim grey, and the light's direction.
 local ENV_MAP_SIZE     = 4
@@ -136,7 +146,7 @@ function NavigationSandbox:drawMarkers(blendMode)
     if blendMode ~= BlendMode.Additive or not self.obstacles then return end
     NavDebugDraw.begin()
     for _, obstacle in ipairs(self.obstacles) do
-        NavDebugDraw.sphere(obstacle.position, obstacle.radius, FILL_COLORS.obstacle)
+        NavDebugDraw.sphere(obstacle.rb:getPos(), obstacle.radius, FILL_COLORS.obstacle)
     end
     for _, ship in ipairs(self.ships) do
         local flying = MARKER_COLORS.flying
@@ -178,12 +188,15 @@ function NavigationSandbox:frameCamera(scenario)
     for _, spec in ipairs(scenario.ships) do
         table.insert(points, toPosition(spec.start))
         table.insert(padding, 0)
-        table.insert(points, toPosition(spec.target))
-        table.insert(padding, 0)
+        for _, waypoint in ipairs(spec.route or { spec.target }) do
+            table.insert(points, toPosition(waypoint))
+            table.insert(padding, 0)
+        end
     end
+    -- A moving obstacle is framed by its whole circle.
     for _, obstacle in ipairs(self.obstacles) do
-        table.insert(points, obstacle.position)
-        table.insert(padding, obstacle.radius)
+        table.insert(points, obstacle.circle and obstacle.circle.centre or obstacle.rb:getPos())
+        table.insert(padding, obstacle.radius + (obstacle.circle and obstacle.circle.radius or 0))
     end
     local cx, cy, cz = 0, 0, 0
     for _, p in ipairs(points) do cx, cy, cz = cx + p.x, cy + p.y, cz + p.z end
@@ -199,7 +212,13 @@ end
 ---@param index integer
 ---@return SandboxShip
 function NavigationSandbox:spawnShip(spec, index)
-    local start, target = toPosition(spec.start), toPosition(spec.target)
+    local route
+    if spec.route then
+        route = {}
+        for _, waypoint in ipairs(spec.route) do table.insert(route, toPosition(waypoint)) end
+    end
+    local start = toPosition(spec.start)
+    local target = route and route[1] or toPosition(spec.target)
     local facing = spec.facing and Vec3f(spec.facing[1], spec.facing[2], spec.facing[3])
         or Vec3f(target.x - start.x, target.y - start.y, target.z - start.z)
     local hull = spec.hull or DEFAULT_HULL
@@ -214,23 +233,76 @@ function NavigationSandbox:spawnShip(spec, index)
     entity:add(ConstructComponents.ControlInput())
     local rb = entity:get(PhysicsComponents.RigidBody):getRigidBody()
     self.world:addRigidBody(rb)
-    return { entity = entity, rb = rb, target = target, label = string.format("ship %d", index) }
+    return {
+        entity = entity,
+        rb = rb,
+        target = target,
+        route = route,
+        waypointIndex = route and 1 or nil,
+        label = string.format("ship %d", index),
+    }
 end
 
----A static sphere: a kinematic unit-radius body scaled to the obstacle's radius.
+---Where a circling obstacle is `t` seconds into the scenario.
+---@param circle SandboxObstacleCircle
+---@param t number
+---@return Position
+local function circlePosition(circle, t)
+    local phase = 2 * math.pi * t / circle.periodS
+    local c = circle.centre
+    return Position(c.x + circle.radius * math.cos(phase), c.y, c.z + circle.radius * math.sin(phase))
+end
+
+---A sphere: a kinematic unit-radius body scaled to the obstacle's radius. A static one sits at
+---its position; one with a circle starts on it and is moved by `moveObstacles`.
 ---@param spec SandboxObstacleSpec
 ---@param index integer
 ---@return SandboxObstacle
 function NavigationSandbox:spawnObstacle(spec, index)
-    local position = toPosition(spec.position)
     local radius = ScaleConfig:toGameUnits(spec.radius, "starSystem")
+    local circle
+    if spec.circle then
+        circle = {
+            centre = toPosition(spec.circle.centre),
+            radius = ScaleConfig:toGameUnits(spec.circle.radius, "starSystem"),
+            periodS = spec.circle.periodS,
+        }
+    end
     local rb = RigidBody.CreateSphere()
     rb:setKinematic(true)
-    rb:setPos(position)
+    rb:setPos(circle and circlePosition(circle, 0) or toPosition(spec.position))
     rb:setScale(radius)
     local entity = Entity.Create("NavigationSandboxObstacle", PhysicsComponents.RigidBody(rb))
     self.world:addRigidBody(rb)
-    return { entity = entity, rb = rb, position = position, radius = radius, label = string.format("obstacle %d", index) }
+    return { entity = entity, rb = rb, radius = radius, circle = circle, label = string.format("obstacle %d", index) }
+end
+
+---Set the kinematic targets of the circling obstacles to where they are at `t`, so physics sees
+---their velocity over the step that ends there.
+---@param t number Seconds into the scenario
+function NavigationSandbox:moveObstacles(t)
+    for _, obstacle in ipairs(self.obstacles) do
+        if obstacle.circle then
+            obstacle.rb:setKinematicTarget(circlePosition(obstacle.circle, t), obstacle.rb:getRot())
+        end
+    end
+end
+
+---Register the ships as agents and the obstacles in a `NavWorld` over the physics world, send
+---each ship to its target, and allocate the buffers its results are copied into.
+function NavigationSandbox:createNavigation()
+    self.nav = NavWorld.Create(self.world)
+    for _, ship in ipairs(self.ships) do
+        local profile = ConstructComponents.FlightProfile.ProfileOf(ship.entity)
+        ship.input = ship.entity:get(ConstructComponents.ControlInput)
+        ship.agent = self.nav:addAgent(ship.rb, profile.maxSpeed, profile.linearDrag)
+        self.nav:setGoal(ship.agent, ship.target, ScenarioMetrics.ARRIVAL_RANGE)
+    end
+    for _, obstacle in ipairs(self.obstacles) do
+        self.nav:addObstacle(obstacle.rb)
+    end
+    self.axes = ffi.new("double[?]", #self.ships * NavWorld.AxisCount())
+    self.arrived = ffi.new("bool[?]", #self.ships)
 end
 
 ---@param index integer Index into `self.scenarios`
@@ -253,6 +325,7 @@ function NavigationSandbox:startScenario(index)
         table.insert(self.obstacles, self:spawnObstacle(spec, i))
     end
     self.metrics = ScenarioMetrics(scenario.name, self.ships, self.obstacles)
+    self:createNavigation()
     self:frameCamera(scenario)
     Log.Info("NavigationSandbox: %s: started, %d ships, %d obstacles", scenario.name, #self.ships, #self.obstacles)
 end
@@ -260,13 +333,16 @@ end
 function NavigationSandbox:endScenario()
     local scenario = self.scenarios[self.scenarioIndex]
     self.metrics:summarize(self.simTime)
-    if self.metrics:unfinished() > 0 then
+    local failures = self.metrics:failures()
+    if #failures > 0 then
         self.failedScenarios = self.failedScenarios + 1
         -- Log.Error raises, which would skip the remaining scenarios; the exit code reports the failure.
-        Log.Warn("NavigationSandbox: %s: failed, %d ships still flying after the %.0f s limit", scenario.name,
-            self.metrics:unfinished(), self.timeLimit)
+        Log.Warn("NavigationSandbox: %s: failed: %s (time limit %.0f s)", scenario.name,
+            table.concat(failures, ", "), self.timeLimit)
     end
 
+    -- Registered bodies must stay in physics while the navigation world exists.
+    self.nav = nil
     for _, ship in ipairs(self.ships) do
         self.world:removeRigidBody(ship.rb)
         Registry:destroyEntity(ship.entity, Enums.Registry.EntityDestroyMode.DestroyChildren)
@@ -276,6 +352,7 @@ function NavigationSandbox:endScenario()
         Registry:destroyEntity(obstacle.entity, Enums.Registry.EntityDestroyMode.DestroyChildren)
     end
     self.ships, self.obstacles, self.metrics, self.world = nil, nil, nil, nil
+    self.axes, self.arrived = nil, nil
 
     if self.scenarioIndex < #self.scenarios then
         self:startScenario(self.scenarioIndex + 1)
@@ -285,18 +362,51 @@ function NavigationSandbox:endScenario()
     end
 end
 
---- PreSim: the control input writers.
+---Milliseconds since `start`, from a monotonic clock.
+---@param start InstantTime
+---@return number
+local function msSince(start)
+    return InstantTime.Now():durationSince(start)
+end
+
+---The glue between the navigation step and the ships' control inputs: advance route ships whose
+---waypoint is reached, stop the agents of finished ships, then copy the step's axes into the
+---control inputs.
+function NavigationSandbox:applyNavigation()
+    local count, stride = #self.ships, NavWorld.AxisCount()
+    self.nav:copyAxes(self.axes, count * stride)
+    self.nav:copyArrived(self.arrived, count)
+    for _, ship in ipairs(self.ships) do
+        if ship.state ~= "flying" then
+            if not ship.released then
+                self.nav:clearGoal(ship.agent)
+                ship.released = true
+            end
+        elseif ship.route and self.arrived[ship.agent] then
+            self.metrics:waypointReached(ship, self.simTime)
+            self.nav:setGoal(ship.agent, ship.target, ScenarioMetrics.ARRIVAL_RANGE)
+        end
+        local base, input = ship.agent * stride, ship.input
+        input:setPitch(self.axes[base + AXIS_PITCH])
+        input:setYaw(self.axes[base + AXIS_YAW])
+        input:setRoll(self.axes[base + AXIS_ROLL])
+        input:setThrustForward(self.axes[base + AXIS_FORWARD])
+        input:setThrustRight(self.axes[base + AXIS_RIGHT])
+        input:setThrustUp(self.axes[base + AXIS_UP])
+    end
+end
+
+--- PreSim: the navigation step, then the control input writers; both are timed.
 ---@param data EventData
 function NavigationSandbox:onPreSim(data)
     if not self.metrics then return end
     self.metrics:recordFrame(data:deltaTime())
-    for _, ship in ipairs(self.ships) do
-        if ship.state == "flying" then
-            SeekArrive.steer(ship.entity, ship.target)
-        else
-            SeekArrive.release(ship.entity)
-        end
-    end
+    local start = InstantTime.Now()
+    self.nav:step()
+    self.stepMs = msSince(start)
+    start = InstantTime.Now()
+    self:applyNavigation()
+    self.glueMs = msSince(start)
 end
 
 --- Sim: actuation from the control input, then the physics step.
@@ -306,9 +416,13 @@ function NavigationSandbox:onSim(data)
     -- A long frame (the first one loads shaders and assets) must not become one long physics
     -- step: ships at full speed would cross kilometres in it and tunnel through each other.
     local dt = math.min(data:deltaTime(), MAX_STEP_S)
+    local start = InstantTime.Now()
     ShipFlightSystem:update()
+    local actuationMs = msSince(start)
+    self:moveObstacles(self.simTime + dt)
     self.world:update(dt)
     self.simTime = self.simTime + dt
+    self.metrics:recordTimings(self.stepMs, self.glueMs, actuationMs)
 end
 
 --- PostSim: the metrics of the step, and the end of the scenario.
@@ -330,8 +444,13 @@ function NavigationSandbox:onRender(data)
     local lines = {
         string.format("Scenario %d/%d: %s", self.scenarioIndex, #self.scenarios, metrics.name),
         string.format("Simulated: %.1f s of %.0f s", self.simTime, self.timeLimit),
-        string.format("Arrived %d, deadlocked %d, collisions %d, of %d ships", metrics.arrivals,
-            metrics.deadlocks, metrics.collisions, #self.ships),
+        string.format("Arrived %d, waypoints %d, deadlocked %d, of %d ships", metrics.arrivals,
+            metrics.waypoints, metrics.deadlocks, #self.ships),
+        string.format("Collisions: %d with obstacles, %d between ships", metrics.obstacleCollisions,
+            metrics.shipCollisions),
+        string.format("Navigation per frame (mean ms): step %.3f, glue %.3f, actuation %.3f",
+            metrics:meanMs(metrics.timings.step), metrics:meanMs(metrics.timings.glue),
+            metrics:meanMs(metrics.timings.actuation)),
     }
     self:immediateUI(function()
         for i, line in ipairs(lines) do
