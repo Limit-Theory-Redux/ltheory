@@ -179,7 +179,8 @@ end
 function NavigationSandbox:createCamera()
     local camera = CameraEntity()
     CameraManager:registerCamera(CAMERA_NAME, camera)
-    self.camera = OrbitCameraController(camera, { initialPitch = CAMERA_PITCH, minDistance = 0, maxDistance = math.huge })
+    self.camera = OrbitCameraController(camera,
+        { initialPitch = CAMERA_PITCH, minDistance = 0, maxDistance = math.huge, zoomSpeed = 1.0, mouseSensitivity = 0.01 })
     camera:get(CameraDataComponent):setController(self.camera)
     CameraManager:setActiveCamera(CAMERA_NAME)
     -- An entity without a rigid body: the camera orbits its target offset.
