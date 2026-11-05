@@ -432,9 +432,9 @@ function SolarSystemPlayable:onInput(data)
                     local parentEnt = sel._parentEntity
                     local localX = sel._clickLocalX
                     local localZ = sel._clickLocalZ
-                    AutoPilotSystem:engagePosition(self.playerShip, sel.clickPos, nil, parentEnt, localX, localZ)
+                    AutoPilotSystem:engagePosition(self.playerShip, self.world, sel.clickPos, nil, parentEnt, localX, localZ)
                 else
-                    AutoPilotSystem:engageEntity(self.playerShip, sel.entity)
+                    AutoPilotSystem:engageEntity(self.playerShip, self.world, sel.entity)
                 end
                 self.mapMode = 0
                 self.mapState.enabled = false
@@ -444,7 +444,7 @@ function SolarSystemPlayable:onInput(data)
             SystemMap3D:updateInput(self.map3DState, dt)
 
             if GeneralActions.AutoPilotToggle:isPressed() and self.map3DState.selected then
-                AutoPilotSystem:engageEntity(self.playerShip, self.map3DState.selected.entity)
+                AutoPilotSystem:engageEntity(self.playerShip, self.world, self.map3DState.selected.entity)
                 self.mapMode = 0
                 self.map3DState.enabled = false
                 SystemMap3D:deactivate(self.map3DState)

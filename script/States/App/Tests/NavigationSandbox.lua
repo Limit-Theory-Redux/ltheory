@@ -23,6 +23,7 @@ require("Modules.Cameras.Systems.CameraSystem")
 
 local RenderingComponents   = require("Modules.Rendering.Components")
 local Entity                = require("Core.ECS.Entity")
+local NavAgentHelper        = require("Shared.Helpers.NavAgentHelper")
 
 local ScenarioMetrics      = require("States.App.Tests.NavigationSandbox.Support.ScenarioMetrics")
 local NavDebugDraw          = require("States.App.Tests.NavigationSandbox.Support.NavDebugDraw")
@@ -72,10 +73,6 @@ local MAX_STEP_S       = 0.05
 local CAMERA_DISTANCE_FACTOR = 2.5
 local CAMERA_PITCH     = 0.6
 local CAMERA_NAME      = "NavigationSandbox"
--- Positions of the control axes in an agent's slice of the axes buffer, as Lua numbers.
-local AXIS_PITCH, AXIS_YAW, AXIS_ROLL = tonumber(NavAxis.Pitch), tonumber(NavAxis.Yaw), tonumber(NavAxis.Roll)
-local AXIS_FORWARD, AXIS_RIGHT, AXIS_UP =
-    tonumber(NavAxis.ThrustForward), tonumber(NavAxis.ThrustRight), tonumber(NavAxis.ThrustUp)
 local UP               = Vec3f(0, 1, 0)
 -- The uniform environment: a small cube map of one dim grey, and the light's direction.
 local ENV_MAP_SIZE     = 4
@@ -300,14 +297,8 @@ end
 function NavigationSandbox:createNavigation()
     self.nav = NavWorld.Create(self.world)
     for _, ship in ipairs(self.ships) do
-        local profile = ConstructComponents.FlightProfile.ProfileOf(ship.entity)
         ship.input = ship.entity:get(ConstructComponents.ControlInput)
-        ship.agent = self.nav:addAgent(
-            ship.rb,
-            profile.linearDrag, profile.angularDrag,
-            profile.thrustForward, profile.thrustRight, profile.thrustUp,
-            profile.torquePitch, profile.torqueYaw, profile.torqueRoll
-        )
+        ship.agent = NavAgentHelper.addShip(self.nav, ship.entity, ship.rb)
         self.nav:setGoal(ship.agent, ship.target, ScenarioMetrics.ARRIVAL_RANGE)
     end
     for _, obstacle in ipairs(self.obstacles) do
@@ -402,13 +393,7 @@ function NavigationSandbox:applyNavigation()
             self.metrics:waypointReached(ship, self.simTime)
             self.nav:setGoal(ship.agent, ship.target, ScenarioMetrics.ARRIVAL_RANGE)
         end
-        local base, input = ship.agent * stride, ship.input
-        input:setPitch(self.axes[base + AXIS_PITCH])
-        input:setYaw(self.axes[base + AXIS_YAW])
-        input:setRoll(self.axes[base + AXIS_ROLL])
-        input:setThrustForward(self.axes[base + AXIS_FORWARD])
-        input:setThrustRight(self.axes[base + AXIS_RIGHT])
-        input:setThrustUp(self.axes[base + AXIS_UP])
+        NavAgentHelper.writeAxes(self.axes, ship.agent, ship.input)
     end
 end
 

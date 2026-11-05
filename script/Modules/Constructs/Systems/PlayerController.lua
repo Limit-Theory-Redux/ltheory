@@ -325,12 +325,14 @@ function PlayerController:update(dt)
         self:requestDrive(input)
     end
 
-    -- AutoPilot always updates (even with map open — ship keeps navigating)
+    -- AutoPilot always updates (even with map open — ship keeps navigating). While it flies, it
+    -- owns the axes: it has just written them, and nothing here may clear or overwrite them.
     AutoPilotSystem:update(dt, self.ship)
+    local autoPiloted = AutoPilotSystem:isActive(self.ship)
 
     -- Don't process other input when blocked (map open, menu, etc.)
     if self.inputBlocked then
-        if input then input:clearAxes() end
+        if input and not autoPiloted then input:clearAxes() end
         return
     end
 
@@ -341,8 +343,8 @@ function PlayerController:update(dt)
     end
 
     -- Manual flight only when piloting AND not on autopilot
-    if input then
-        if self:isPiloting() and not AutoPilotSystem:isActive(self.ship) then
+    if input and not autoPiloted then
+        if self:isPiloting() then
             self:writeAxes(dt, input)
         else
             input:clearAxes()
