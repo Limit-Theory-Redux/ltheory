@@ -13,6 +13,8 @@ use crate::obstacle::Obstacle;
 pub struct World {
     agents: Vec<Agent>,
     obstacles: Vec<Obstacle>,
+    /// The obstacles and the agents' own spheres of the step in progress, reused between steps.
+    scene: Vec<Obstacle>,
     /// The axes of each agent, in agent order.
     axes: Vec<[f64; AXIS_COUNT]>,
     arrived: Vec<bool>,
@@ -32,6 +34,7 @@ impl World {
             body: Body::AT_REST,
             profile,
             goal: None,
+            commitment: None,
         });
         self.axes.push([0.0; AXIS_COUNT]);
         self.arrived.push(false);
@@ -46,6 +49,12 @@ impl World {
     /// Sets the body an agent is steered from. Panics if `id` isn't an agent of this world.
     pub fn set_body(&mut self, id: AgentId, body: Body) {
         self.agents[id.index()].body = body;
+    }
+
+    /// Sets what limits an agent's motion; the caller refreshes it when the body's mass changes.
+    /// Panics if `id` isn't an agent of this world.
+    pub fn set_profile(&mut self, id: AgentId, profile: Profile) {
+        self.agents[id.index()].profile = profile;
     }
 
     /// Sets an agent's goal; `None` leaves it without input. Panics if `id` isn't an agent of
@@ -67,22 +76,37 @@ impl World {
 
     /// Computes every agent's control axes and arrival from the current bodies and obstacles.
     pub fn step(&mut self) {
+        // The set obstacles, then one sphere per agent, each keeping its velocity. An agent
+        // leaves its own sphere out by swapping it behind the end of the slice it avoids, so the
+        // slice is stable between steps and the avoidance memory keeps its indices.
+        self.scene.clear();
+        self.scene.extend_from_slice(&self.obstacles);
+        self.scene.extend(self.agents.iter().map(|agent| Obstacle {
+            position: agent.body.position,
+            velocity: agent.body.velocity,
+            radius: agent.body.radius,
+        }));
+        let last = self.scene.len().saturating_sub(1);
         let slots = self.axes.iter_mut().zip(&mut self.arrived);
-        for (agent, (axes, arrived)) in self.agents.iter().zip(slots) {
-            let Some(goal) = &agent.goal else {
+        for (index, (agent, (axes, arrived))) in self.agents.iter_mut().zip(slots).enumerate() {
+            let own = self.obstacles.len() + index;
+            let Some(goal) = agent.goal else {
                 *axes = [0.0; AXIS_COUNT];
                 *arrived = false;
                 continue;
             };
-            let toward_goal = arrive(&agent.body, &agent.profile, goal);
+            let toward_goal = arrive(&agent.body, &agent.profile, &goal);
+            self.scene.swap(own, last);
             let wanted = avoid(
                 &agent.body,
-                agent.profile.max_speed,
-                agent.profile.linear_drag,
+                &agent.profile,
                 toward_goal,
-                &self.obstacles,
+                &self.scene[..last],
                 &self.tuning,
+                Some(goal),
+                &mut agent.commitment,
             );
+            self.scene.swap(own, last);
             *axes = control(&agent.body, &agent.profile, &wanted);
             *arrived = agent.body.position.distance(goal.target) <= goal.arrival_radius;
         }
@@ -108,10 +132,7 @@ mod tests {
     use super::*;
     use crate::agent::Axis;
 
-    const PROFILE: Profile = Profile {
-        max_speed: 100.0,
-        linear_drag: 2.0,
-    };
+    const PROFILE: Profile = Profile::TEST;
 
     fn goal(target: DVec3) -> Goal {
         Goal {
@@ -170,6 +191,38 @@ mod tests {
         world.set_goal(id, Some(goal(DVec3::new(0.0, 0.0, -6.0))));
         world.step();
         assert!(!world.arrived(id));
+    }
+
+    #[test]
+    fn an_agent_avoids_the_other_agents_but_never_itself() {
+        let blocker_body = Body {
+            position: DVec3::new(0.0, 0.0, -200.0),
+            radius: 30.0,
+            ..Body::AT_REST
+        };
+        // The agent that flies is first in one world and last in the other.
+        for flier_first in [true, false] {
+            let mut world = World::new();
+            let (flier, blocker) = if flier_first {
+                let flier = world.add_agent(PROFILE);
+                (flier, world.add_agent(PROFILE))
+            } else {
+                let blocker = world.add_agent(PROFILE);
+                (world.add_agent(PROFILE), blocker)
+            };
+            world.set_goal(flier, Some(goal(DVec3::new(0.0, 0.0, -1000.0))));
+            let axes_of = |world: &World, id: AgentId| {
+                let start = id.index() * AXIS_COUNT;
+                world.axes()[start..start + AXIS_COUNT].to_vec()
+            };
+            world.step();
+            let alone = axes_of(&world, flier);
+
+            world.set_body(blocker, blocker_body);
+            world.step();
+            assert_ne!(axes_of(&world, flier), alone, "flier first: {flier_first}");
+            assert_eq!(axes_of(&world, blocker), [0.0; AXIS_COUNT]);
+        }
     }
 
     #[test]

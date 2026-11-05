@@ -31,9 +31,9 @@ Every ship is a fighter from `ShipGenerator` with the Solo flight profile, built
 |---|---|
 | `SingleShip` | One ship flies to a point behind it and to one side: it turns, flies and stops |
 | `HeadOn` | Two ships fly to each other's start along the same line |
-| `CrossingStreams` | Two streams of four ships, abreast and 400 m apart, cross at right angles at the origin at the same time |
+| `CrossingStreams` | Two streams of four ships, abreast and 800 m apart, cross at right angles at the origin at the same time |
 | `CircleSwap` | Eight ships on a 5 km circle each fly to the opposite point, so all meet at the centre; hulls alternate Solo and Medium |
-| `ObstacleField` | Three ships abreast fly 20 km along x through six static spheres: four on the courses, two beside them |
+| `ObstacleField` | Three ships abreast, 600 m apart, fly 20 km along x through six static spheres: four on the courses, two beside them |
 | `Slice` | 100 ships loop through four waypoints each among 60 asteroids (100–800 m) in a 20 km × 2 km × 20 km slab, and a 3 km planet that circles the middle on a 6 km circle in 60 s. A seeded generator keeps every waypoint and start at least 1 km from the surface of every asteroid and from the planet's whole path, so a waypoint never lies inside a ship's avoidance reach (the scenario's aim factor of 1.4 widens the reach, so a nearer waypoint can't be approached); it runs for 60 s with its own avoidance tuning. It is the measurement for the navigation budget |
 
 ## Scene
@@ -61,7 +61,7 @@ Filled spheres are drawn at a small fraction of their colour: the additive pass 
 
 ## Steering
 
-The sandbox creates a `NavWorld` over the scenario's physics world. Each ship is an agent (its flight profile's top speed and linear drag), each obstacle is registered with `addObstacle`, and each ship's goal is its target with the arrival range as radius. The maths is in [navigation maths](../engine/nav.md); the sandbox only runs the frame:
+The sandbox creates a `NavWorld` over the scenario's physics world. Each ship is an agent (its flight profile's drags, thrusts and torques; the mass and inertia come from its body), each obstacle is registered with `addObstacle`, and each ship's goal is its target with the arrival range as radius. The maths is in [navigation maths](../engine/nav.md); the sandbox only runs the frame:
 
 - **PreSim.** `NavWorld:step()`, then the glue: `copyAxes` and `copyArrived` into two preallocated buffers, a route ship that has arrived gets its next waypoint (`setGoal`), a finished ship's goal is cleared once, and each ship's six axes are written into its `ControlInputComponent`, like any other writer (see [flight control](flight.md)).
 - **Sim.** `ShipFlightSystem` turns the control inputs into forces, the circling obstacles get their kinematic targets, and the physics world steps.

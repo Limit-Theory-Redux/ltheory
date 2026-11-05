@@ -31,7 +31,7 @@ pub(crate) fn arrive(body: &Body, profile: &Profile, goal: &Goal) -> Wanted {
     }
     let distance = distance_sq.sqrt();
     let direction = to_target / distance;
-    let speed = profile.max_speed.min(distance * profile.linear_drag);
+    let speed = profile.max_speed().min(distance * profile.linear_drag);
     Wanted {
         velocity: direction * speed,
         direction,
@@ -41,25 +41,16 @@ pub(crate) fn arrive(body: &Body, profile: &Profile, goal: &Goal) -> Wanted {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::agent::Frame;
 
     fn body_at(position: DVec3) -> Body {
         Body {
             position,
-            velocity: DVec3::ZERO,
-            frame: Frame {
-                forward: DVec3::NEG_Z,
-                right: DVec3::X,
-                up: DVec3::Y,
-            },
             radius: 1.0,
+            ..Body::AT_REST
         }
     }
 
-    const PROFILE: Profile = Profile {
-        max_speed: 100.0,
-        linear_drag: 2.0,
-    };
+    const PROFILE: Profile = Profile::TEST;
 
     fn goal_at(target: DVec3) -> Goal {
         Goal {

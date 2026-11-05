@@ -4,7 +4,7 @@ local NavigationSandbox = require("States.App.Tests.NavigationSandbox")
 
 -- Ships per stream, the gap between neighbours abreast, and the distance of every start from the origin, in metres.
 local SHIPS_PER_STREAM = 4
-local SPACING_M        = 400
+local SPACING_M        = 800
 local HALF_RANGE_M     = 10000
 
 local ships = {}

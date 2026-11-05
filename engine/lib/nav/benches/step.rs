@@ -10,9 +10,18 @@ const OBSTACLES: usize = 60;
 const SPREAD: f64 = 20_000.0;
 const OBSTACLE_RADIUS: f64 = 400.0;
 const AGENT_RADIUS: f64 = 25.0;
+const LINEAR_DRAG: f64 = 2.0;
+/// Forward acceleration that holds a top speed of 8,800 against the drag.
+const FORWARD_ACCEL: f64 = 8_800.0 * LINEAR_DRAG;
 const PROFILE: Profile = Profile {
-    max_speed: 8_800.0,
-    linear_drag: 2.0,
+    linear_drag: LINEAR_DRAG,
+    angular_drag: 20.0,
+    accel_forward: FORWARD_ACCEL,
+    accel_right: FORWARD_ACCEL / 4.0,
+    accel_up: FORWARD_ACCEL / 4.0,
+    turn_pitch: 60.0,
+    turn_yaw: 60.0,
+    turn_roll: 18.0,
 };
 
 /// A fixed pseudo-random sequence in `[-1, 1)`, so every run measures the same scene.
@@ -41,7 +50,7 @@ fn scene() -> World {
             id,
             Body {
                 position: sequence.point(),
-                velocity: sequence.point().normalize() * PROFILE.max_speed * 0.5,
+                velocity: sequence.point().normalize() * PROFILE.max_speed() * 0.5,
                 radius: AGENT_RADIUS,
                 ..Body::AT_REST
             },
@@ -83,7 +92,7 @@ fn dense_scene() -> World {
             id,
             Body {
                 position: across(&mut sequence),
-                velocity: DVec3::NEG_Z * PROFILE.max_speed * 0.5,
+                velocity: DVec3::NEG_Z * PROFILE.max_speed() * 0.5,
                 radius: AGENT_RADIUS,
                 ..Body::AT_REST
             },

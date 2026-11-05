@@ -1,6 +1,6 @@
 use glam::DVec3;
 
-use crate::agent::Body;
+use crate::agent::{Body, Goal, Profile};
 use crate::behaviour::{TINY_SQ, Wanted};
 use crate::obstacle::Obstacle;
 
@@ -70,6 +70,8 @@ struct Scene<'a> {
     body: &'a Body,
     linear_drag: f64,
     tuning: &'a AvoidanceTuning,
+    /// The agent's goal, if any: no sphere keeps a clearance that would put it out of reach.
+    goal: Option<Goal>,
     obstacles: &'a [Obstacle],
 }
 
@@ -89,7 +91,9 @@ impl Scene<'_> {
     /// The distance the agent keeps from the obstacle's hull besides its own radius: the
     /// distance drag alone takes it to stop from its current closing speed, between
     /// [`MIN_CLEARANCE_RADII`] and `clearance_radii` agent radii. It depends on the agent's
-    /// state at the start of the step only, never on the course being tested.
+    /// state at the start of the step only, never on the course being tested. It never exceeds
+    /// what leaves the goal's arrival circle outside the sphere's reach, down to 0, so a goal
+    /// next to a sphere can still be approached.
     fn clearance(&self, obstacle: &Obstacle) -> f64 {
         let largest = self.body.radius * self.tuning.clearance_radii;
         let smallest = self.smallest_clearance();
@@ -98,7 +102,14 @@ impl Scene<'_> {
         } else {
             f64::INFINITY
         };
-        stopping_distance.max(smallest).min(largest)
+        let goal_room = self.goal.map_or(f64::INFINITY, |goal| {
+            let hull = obstacle.radius + self.body.radius;
+            goal.target.distance(obstacle.position) - hull - goal.arrival_radius
+        });
+        stopping_distance
+            .max(smallest)
+            .min(largest)
+            .min(goal_room.max(0.0))
     }
 
     /// The clearance kept from an obstacle the agent isn't closing on.
@@ -188,28 +199,40 @@ struct Pending {
 /// the agent short of the hull (the rule of
 /// [`arrive`](crate::behaviour::arrive)). A fast agent turns slowly, so without the limit it
 /// reaches the sphere before its velocity has followed the detour.
+///
+/// `commitment` is the agent's memory between steps: while the same sphere is the first one
+/// reached, the side it passed it on is taken again if that course is clear, so the detour doesn't
+/// swap sides as the agent's position or velocity shifts.
 pub(crate) fn avoid(
     body: &Body,
-    max_speed: f64,
-    linear_drag: f64,
+    profile: &Profile,
     wanted: Wanted,
     obstacles: &[Obstacle],
     tuning: &AvoidanceTuning,
+    goal: Option<Goal>,
+    commitment: &mut Option<Commitment>,
 ) -> Wanted {
     if wanted.direction == DVec3::ZERO {
         return wanted;
     }
+    let max_speed = profile.max_speed();
     let scene = Scene {
         body,
-        linear_drag,
+        linear_drag: profile.linear_drag,
         tuning,
+        goal,
         obstacles,
     };
-    let course = match scene.first_threat(wanted.velocity) {
-        Some((_, first)) if first.is_inside() => {
-            return steer_around(&first, wanted, max_speed, false);
-        }
-        Some((index, first)) => search_courses(
+    let Some((index, first)) = scene.first_threat(wanted.velocity) else {
+        return limit_closing_speeds(&scene, wanted, wanted);
+    };
+    let kept_side = commitment
+        .filter(|kept| kept.obstacle == index)
+        .map(|kept| kept.side);
+    let course = if first.is_inside() {
+        steer_around(&first, wanted, max_speed, false, kept_side)
+    } else {
+        search_courses(
             &scene,
             wanted,
             max_speed,
@@ -218,10 +241,36 @@ pub(crate) fn avoid(
                 threat: first,
                 course: wanted,
             },
-        ),
-        None => wanted,
+            kept_side,
+        )
     };
+    *commitment = detour_side(&first, course).map(|side| Commitment {
+        obstacle: index,
+        side,
+    });
+    if first.is_inside() {
+        return course;
+    }
     limit_closing_speeds(&scene, wanted, course)
+}
+
+/// The side an agent passes a sphere on, remembered between steps.
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct Commitment {
+    /// Index of the sphere in the obstacle list.
+    obstacle: usize,
+    /// Unit direction, across the line to the sphere's centre, the course leans to.
+    side: DVec3,
+}
+
+/// The side `course` passes the threatening sphere on; `None` when it runs straight at the centre.
+fn detour_side(threat: &Threat, course: Wanted) -> Option<DVec3> {
+    let relative_velocity = course.velocity - threat.obstacle_velocity;
+    let distance = threat.offset.length();
+    if distance * distance < TINY_SQ {
+        return None;
+    }
+    across(relative_velocity, -threat.offset / distance)
 }
 
 /// `course` with its closing speed limited on every sphere that `wanted`, `course` or the body's
@@ -270,7 +319,15 @@ fn limit_closing_speed(scene: &Scene, course: Wanted, obstacle: &Obstacle) -> Wa
 }
 
 /// The best course found by expanding spheres breadth-first from `first`, which blocks `wanted`.
-fn search_courses(scene: &Scene, wanted: Wanted, max_speed: f64, first: Pending) -> Wanted {
+/// `kept_side` is the side the first sphere was passed on before: its course is preferred to the
+/// other side's whenever it is clear.
+fn search_courses(
+    scene: &Scene,
+    wanted: Wanted,
+    max_speed: f64,
+    first: Pending,
+    kept_side: Option<DVec3>,
+) -> Wanted {
     let mut queue = [None; MAX_EXPANDED_THREATS];
     queue[0] = Some(first);
     let mut queued = 1;
@@ -278,11 +335,13 @@ fn search_courses(scene: &Scene, wanted: Wanted, max_speed: f64, first: Pending)
     let mut next = 0;
     while next < queued && choice.clear.is_none() {
         let Some(pending) = queue[next] else { break };
+        let kept_side = kept_side.filter(|_| next == 0);
         next += 1;
         for flip in [false, true] {
-            let course = steer_around(&pending.threat, pending.course, max_speed, flip);
+            let course = steer_around(&pending.threat, pending.course, max_speed, flip, kept_side);
             let Some((index, threat)) = scene.first_threat(course.velocity) else {
-                choice.offer_clear(course, course.direction.dot(wanted.direction));
+                let kept = kept_side.is_some() && !flip;
+                choice.offer_clear(course, course.direction.dot(wanted.direction), kept);
                 continue;
             };
             choice.offer_blocked(course, threat.entry_time);
@@ -305,6 +364,8 @@ fn search_courses(scene: &Scene, wanted: Wanted, max_speed: f64, first: Pending)
 struct Scored {
     course: Wanted,
     score: f64,
+    /// Whether the course passes on the side kept from the previous step.
+    kept: bool,
 }
 
 /// The best clear candidate and the best blocked one so far. A later candidate replaces one
@@ -322,17 +383,23 @@ impl Choice {
             blocked: Scored {
                 course: wanted,
                 score: entry_time,
+                kept: false,
             },
         }
     }
 
     /// Offers a course that reaches nothing; `alignment` is the cosine of its turn from the
-    /// wanted course.
-    fn offer_clear(&mut self, course: Wanted, alignment: f64) {
-        if self.clear.is_none_or(|best| alignment > best.score) {
+    /// wanted course, and `kept` whether it passes on the side kept from the previous step. A
+    /// kept side beats any alignment.
+    fn offer_clear(&mut self, course: Wanted, alignment: f64, kept: bool) {
+        if self
+            .clear
+            .is_none_or(|best| (kept, alignment) > (best.kept, best.score))
+        {
             self.clear = Some(Scored {
                 course,
                 score: alignment,
+                kept,
             });
         }
     }
@@ -343,6 +410,7 @@ impl Choice {
             self.blocked = Scored {
                 course,
                 score: entry_time,
+                kept: false,
             };
         }
     }
@@ -355,7 +423,15 @@ impl Choice {
 /// The course from `wanted` that passes the threatening sphere tangent to its inflated surface,
 /// on the side the course leans to, or on the other side when `flip`. An agent already inside
 /// the reach slides out of it instead ([`slide_out`]), on either side.
-fn steer_around(threat: &Threat, wanted: Wanted, max_speed: f64, flip: bool) -> Wanted {
+///
+/// `kept_side` replaces the side the course leans to, when the agent already chose one.
+fn steer_around(
+    threat: &Threat,
+    wanted: Wanted,
+    max_speed: f64,
+    flip: bool,
+    kept_side: Option<DVec3>,
+) -> Wanted {
     let distance = threat.offset.length();
     // Unit direction from the agent to the obstacle's centre; any fixed one when they coincide.
     let to_centre = if distance * distance < TINY_SQ {
@@ -363,7 +439,9 @@ fn steer_around(threat: &Threat, wanted: Wanted, max_speed: f64, flip: bool) -> 
     } else {
         -threat.offset / distance
     };
-    let leaning = side_of(threat.relative_velocity, to_centre);
+    let leaning = kept_side
+        .and_then(|side| across(side, to_centre))
+        .unwrap_or_else(|| side_of(threat.relative_velocity, to_centre));
     let side = if flip { -leaning } else { leaning };
     let relative_speed = match threat.relative_velocity.length() {
         speed if speed * speed < TINY_SQ => wanted.velocity.length(),
@@ -425,12 +503,17 @@ fn slide_out(
     }
 }
 
+/// The unit direction of `vector` across the unit `axis`; `None` when it runs along the axis.
+fn across(vector: DVec3, axis: DVec3) -> Option<DVec3> {
+    let across = vector - axis * vector.dot(axis);
+    (across.length_squared() >= TINY_SQ).then(|| across.normalize())
+}
+
 /// The unit direction, across `axis`, the velocity leans to. A velocity along the axis has no
 /// side: a fixed rule picks one, so that two agents meeting head-on both choose the same.
 fn side_of(velocity: DVec3, axis: DVec3) -> DVec3 {
-    let across = velocity - axis * velocity.dot(axis);
-    if across.length_squared() >= TINY_SQ {
-        return across.normalize();
+    if let Some(side) = across(velocity, axis) {
+        return side;
     }
     let reference = if axis.y.abs() < 0.9 {
         DVec3::Y
@@ -452,6 +535,7 @@ mod tests {
         Body {
             position,
             velocity: DVec3::ZERO,
+            angular_velocity: DVec3::ZERO,
             frame: Frame {
                 forward: DVec3::NEG_Z,
                 right: DVec3::X,
@@ -479,14 +563,24 @@ mod tests {
     /// A drag so high that the braking limit never bites, for tests of the course alone.
     const UNLIMITED_DRAG: f64 = 1.0e6;
 
+    /// A profile with the given top speed against the given drag.
+    fn profile_with(max_speed: f64, linear_drag: f64) -> Profile {
+        Profile {
+            linear_drag,
+            accel_forward: max_speed * linear_drag,
+            ..Profile::TEST
+        }
+    }
+
     fn avoid_default(body: &Body, wanted: Wanted, obstacles: &[Obstacle]) -> Wanted {
         avoid(
             body,
-            MAX_SPEED,
-            UNLIMITED_DRAG,
+            &profile_with(MAX_SPEED, UNLIMITED_DRAG),
             wanted,
             obstacles,
             &AvoidanceTuning::default(),
+            None,
+            &mut None,
         )
     }
 
@@ -600,6 +694,7 @@ mod tests {
             body,
             linear_drag: UNLIMITED_DRAG,
             tuning: &tuning,
+            goal: None,
             obstacles,
         };
         scene
@@ -731,11 +826,12 @@ mod tests {
     fn avoid_with_drag(body: &Body, wanted: Wanted, obstacles: &[Obstacle]) -> Wanted {
         avoid(
             body,
-            MAX_SPEED,
-            DRAG,
+            &profile_with(MAX_SPEED, DRAG),
             wanted,
             obstacles,
             &AvoidanceTuning::default(),
+            None,
+            &mut None,
         )
     }
 
@@ -779,6 +875,7 @@ mod tests {
             body: &body,
             linear_drag: DRAG,
             tuning: &tuning,
+            goal: None,
             obstacles: &[],
         };
         scene.braking_margin()
@@ -844,6 +941,7 @@ mod tests {
             body: &body,
             linear_drag: DRAG,
             tuning: &tuning,
+            goal: None,
             obstacles: &[],
         };
         scene.clearance(obstacle)
@@ -903,6 +1001,7 @@ mod tests {
             body: &body,
             linear_drag: DRAG,
             tuning: &tuning,
+            goal: None,
             obstacles: &[],
         };
         assert_eq!(scene.clearance(&ahead), RADIUS * 0.25);
@@ -917,9 +1016,111 @@ mod tests {
             body: &body,
             linear_drag: 0.0,
             tuning: &tuning,
+            goal: None,
             obstacles: &[],
         };
         assert_eq!(scene.clearance(&ahead), RADIUS * tuning.clearance_radii);
+    }
+
+    /// The clearance kept from `sphere` by an agent at the origin with no drag, heading for `goal`.
+    fn clearance_toward(goal: Goal, sphere: &Obstacle) -> f64 {
+        let body = body_at(DVec3::ZERO);
+        let tuning = AvoidanceTuning::default();
+        let scene = Scene {
+            body: &body,
+            linear_drag: 0.0,
+            tuning: &tuning,
+            goal: Some(goal),
+            obstacles: &[],
+        };
+        scene.clearance(sphere)
+    }
+
+    #[test]
+    fn a_goal_next_to_a_sphere_limits_the_clearance_kept_from_it() {
+        let sphere = rock(DVec3::new(0.0, 0.0, -20.0), DVec3::ZERO, 5.0);
+        let goal_at = |x: f64| Goal {
+            target: DVec3::new(x, 0.0, -20.0),
+            arrival_radius: 1.0,
+        };
+        let hull = 5.0 + RADIUS;
+        // Room for the full clearance.
+        assert_eq!(
+            clearance_toward(goal_at(30.0), &sphere),
+            RADIUS * AvoidanceTuning::default().clearance_radii
+        );
+        // 1 unit of room between the hull and the goal's arrival circle.
+        assert!((clearance_toward(goal_at(hull + 1.0 + 1.0), &sphere) - 1.0).abs() < 1e-12);
+        // A goal inside the hull leaves none.
+        assert_eq!(clearance_toward(goal_at(hull - 1.0), &sphere), 0.0);
+    }
+
+    /// `avoid_default` that keeps the side passed on in `commitment`.
+    fn avoid_remembering(
+        body: &Body,
+        wanted: Wanted,
+        obstacles: &[Obstacle],
+        commitment: &mut Option<Commitment>,
+    ) -> Wanted {
+        avoid(
+            body,
+            &profile_with(MAX_SPEED, UNLIMITED_DRAG),
+            wanted,
+            obstacles,
+            &AvoidanceTuning::default(),
+            None,
+            commitment,
+        )
+    }
+
+    #[test]
+    fn the_side_passed_on_is_kept_while_the_same_sphere_is_first() {
+        let body = body_at(DVec3::ZERO);
+        let wanted = wanted_toward(DVec3::NEG_Z, 80.0);
+        let right_of_course = rock(DVec3::new(2.0, 0.0, -300.0), DVec3::ZERO, 40.0);
+        let left_of_course = rock(DVec3::new(-2.0, 0.0, -300.0), DVec3::ZERO, 40.0);
+
+        let mut memory = None;
+        let first = avoid_remembering(&body, wanted, &[right_of_course], &mut memory);
+        assert!(first.velocity.x < 0.0, "passes on the left");
+        // The sphere is now left of the course, so a fresh choice passes on the right.
+        assert!(avoid_default(&body, wanted, &[left_of_course]).velocity.x > 0.0);
+        let kept = avoid_remembering(&body, wanted, &[left_of_course], &mut memory);
+        assert!(kept.velocity.x < 0.0, "keeps the left");
+    }
+
+    #[test]
+    fn the_memory_of_a_side_does_not_apply_to_another_sphere() {
+        let body = body_at(DVec3::ZERO);
+        let wanted = wanted_toward(DVec3::NEG_Z, 80.0);
+        let right_of_course = rock(DVec3::new(2.0, 0.0, -300.0), DVec3::ZERO, 40.0);
+        let left_of_course = rock(DVec3::new(-2.0, 0.0, -300.0), DVec3::ZERO, 40.0);
+        // Beyond the horizon and the course: never a threat, but it takes index 0.
+        let distant = rock(DVec3::new(5000.0, 0.0, 5000.0), DVec3::ZERO, 10.0);
+
+        let mut memory = None;
+        avoid_remembering(&body, wanted, &[right_of_course], &mut memory);
+        let other = avoid_remembering(&body, wanted, &[distant, left_of_course], &mut memory);
+        assert!(other.velocity.x > 0.0, "chooses freely");
+    }
+
+    #[test]
+    fn a_kept_side_that_is_blocked_is_given_up() {
+        let body = body_at(DVec3::ZERO);
+        let wanted = wanted_toward(DVec3::NEG_Z, 80.0);
+        let right_of_course = rock(DVec3::new(2.0, 0.0, -300.0), DVec3::ZERO, 40.0);
+        let left_of_course = rock(DVec3::new(-2.0, 0.0, -300.0), DVec3::ZERO, 40.0);
+        // Sits where the course passing on the left would go, clear of the straight course.
+        let blocker = rock(DVec3::new(-60.0, 0.0, -330.0), DVec3::ZERO, 30.0);
+
+        let mut memory = None;
+        avoid_remembering(&body, wanted, &[right_of_course], &mut memory);
+        let chosen = avoid_remembering(&body, wanted, &[left_of_course, blocker], &mut memory);
+        assert!(chosen.velocity.x > 0.0, "passes on the right instead");
+        for sphere in [&left_of_course, &blocker] {
+            let miss = closest_approach(&body, chosen.velocity, sphere);
+            assert!(miss >= reach_of(sphere), "misses by {miss}");
+        }
     }
 
     #[test]
@@ -932,6 +1133,7 @@ mod tests {
             body: &body,
             linear_drag: DRAG,
             tuning: &tuning,
+            goal: None,
             obstacles: &[],
         };
         let threat = scene

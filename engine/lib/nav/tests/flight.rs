@@ -9,24 +9,47 @@ use nav::{AXIS_COUNT, Axis, Body, Frame, Goal, Obstacle, Profile, World};
 
 const STEP_S: f64 = 1.0 / 60.0;
 const TIME_LIMIT_S: f64 = 60.0;
-const PROFILE: Profile = Profile {
-    max_speed: 100.0,
-    linear_drag: 2.0,
-};
+const LINEAR_DRAG: f64 = 2.0;
+const ANGULAR_DRAG: f64 = 20.0;
 /// Strafe and vertical thrust, as fractions of the forward thrust.
 const SIDE_THRUST_RATIO: f64 = 0.25;
-/// Turn rate at full pitch or yaw input, in radians per second.
+/// Turn rate at full pitch or yaw input once the drag balances it, in radians per second.
 const TURN_RATE: f64 = 3.0;
+/// Roll authority, as a fraction of the pitch and yaw authority.
+const ROLL_RATIO: f64 = 0.3;
+const PROFILE: Profile = profile(100.0);
 const AGENT_RADIUS: f64 = 2.0;
 const ARRIVAL_RADIUS: f64 = 5.0;
 const ARRIVAL_SPEED: f64 = 2.0;
+
+/// A profile whose forward thrust holds `max_speed` against the drag, with side thrust a fraction
+/// of it and turning gear that reaches `TURN_RATE` against the angular drag.
+const fn profile(max_speed: f64) -> Profile {
+    let accel_forward = max_speed * LINEAR_DRAG;
+    let turn = TURN_RATE * ANGULAR_DRAG;
+    Profile {
+        linear_drag: LINEAR_DRAG,
+        angular_drag: ANGULAR_DRAG,
+        accel_forward,
+        accel_right: accel_forward * SIDE_THRUST_RATIO,
+        accel_up: accel_forward * SIDE_THRUST_RATIO,
+        turn_pitch: turn,
+        turn_yaw: turn,
+        turn_roll: turn * ROLL_RATIO,
+    }
+}
 
 struct Ship {
     position: DVec3,
     velocity: DVec3,
     orientation: DQuat,
+    /// Radians per second, about the world axes.
+    angular_velocity: DVec3,
     /// The smallest distance from the ship's centre to an obstacle's surface so far.
     clearance: f64,
+    start: DVec3,
+    /// The farthest the ship has been from where it started.
+    range: f64,
 }
 
 impl Ship {
@@ -35,7 +58,10 @@ impl Ship {
             position,
             velocity: DVec3::ZERO,
             orientation: DQuat::IDENTITY,
+            angular_velocity: DVec3::ZERO,
             clearance: f64::INFINITY,
+            start: position,
+            range: 0.0,
         }
     }
 
@@ -43,6 +69,7 @@ impl Ship {
         Body {
             position: self.position,
             velocity: self.velocity,
+            angular_velocity: self.angular_velocity,
             frame: Frame {
                 forward: self.orientation * DVec3::NEG_Z,
                 right: self.orientation * DVec3::X,
@@ -53,21 +80,25 @@ impl Ship {
     }
 
     fn apply(&mut self, profile: Profile, axes: &[f64]) {
-        let thrust_accel = profile.max_speed * profile.linear_drag;
         let axis = |which: Axis| axes[which as usize];
         let body = self.body();
-        // Pitch turns about the right axis, yaw about the down axis.
-        let turn = body.frame.right * axis(Axis::Pitch) - body.frame.up * axis(Axis::Yaw);
-        if turn.length_squared() > 0.0 {
-            let angle = turn.length() * TURN_RATE * STEP_S;
-            self.orientation =
-                (DQuat::from_axis_angle(turn.normalize(), angle) * self.orientation).normalize();
+        // Pitch turns about the right axis, yaw about the down axis, roll about the forward axis.
+        let turn = body.frame.right * axis(Axis::Pitch) * profile.turn_pitch
+            - body.frame.up * axis(Axis::Yaw) * profile.turn_yaw
+            + body.frame.forward * axis(Axis::Roll) * profile.turn_roll;
+        self.angular_velocity += (turn - self.angular_velocity * profile.angular_drag) * STEP_S;
+        let spin = self.angular_velocity.length() * STEP_S;
+        if spin > 0.0 {
+            self.orientation = (DQuat::from_axis_angle(self.angular_velocity.normalize(), spin)
+                * self.orientation)
+                .normalize();
         }
-        let thrust = body.frame.forward * axis(Axis::ThrustForward) * thrust_accel
-            + body.frame.right * axis(Axis::ThrustRight) * thrust_accel * SIDE_THRUST_RATIO
-            + body.frame.up * axis(Axis::ThrustUp) * thrust_accel * SIDE_THRUST_RATIO;
+        let thrust = body.frame.forward * axis(Axis::ThrustForward) * profile.accel_forward
+            + body.frame.right * axis(Axis::ThrustRight) * profile.accel_right
+            + body.frame.up * axis(Axis::ThrustUp) * profile.accel_up;
         self.velocity += (thrust - self.velocity * profile.linear_drag) * STEP_S;
         self.position += self.velocity * STEP_S;
+        self.range = self.range.max(self.position.distance(self.start));
     }
 }
 
@@ -83,6 +114,16 @@ fn fly_with(
     target: DVec3,
     obstacles: &[Obstacle],
 ) -> (Ship, Option<f64>) {
+    fly_ship(profile, Ship::new(start), target, obstacles)
+}
+
+/// Flies `ship`, in whatever state it starts, like [`fly`].
+fn fly_ship(
+    profile: Profile,
+    mut ship: Ship,
+    target: DVec3,
+    obstacles: &[Obstacle],
+) -> (Ship, Option<f64>) {
     let mut world = World::new();
     let id = world.add_agent(profile);
     world.set_goal(
@@ -93,7 +134,6 @@ fn fly_with(
         }),
     );
     let mut obstacles = obstacles.to_vec();
-    let mut ship = Ship::new(start);
 
     let mut time = 0.0;
     while time < TIME_LIMIT_S {
@@ -133,6 +173,43 @@ fn a_ship_behind_and_beside_its_goal_turns_flies_and_stops() {
         arrived.is_some(),
         "stopped {} from the goal",
         ship.position.distance(target)
+    );
+}
+
+#[test]
+fn a_ship_at_cruise_speed_brakes_with_thrust_when_its_goal_is_where_it_started() {
+    let cruise = 8000.0;
+    let ship = Ship {
+        velocity: DVec3::new(0.0, 0.0, -cruise),
+        ..Ship::new(DVec3::ZERO)
+    };
+    // The goal is just behind the ship, so the range is how far it runs on before it turns back.
+    let target = DVec3::new(0.0, 0.0, 10.0);
+    let (ship, arrived) = fly_ship(profile(8800.0), ship, target, &[]);
+    assert!(
+        arrived.is_some(),
+        "stopped {} away",
+        ship.position.distance(target)
+    );
+    // Drag alone carries the ship `cruise / drag` past where it started; thrust must beat that.
+    assert!(
+        ship.range < 0.5 * cruise / LINEAR_DRAG,
+        "went {} past the start",
+        ship.range
+    );
+}
+
+#[test]
+fn a_ship_stops_on_a_far_goal_without_a_large_overshoot() {
+    let target = DVec3::new(0.0, 0.0, -5000.0);
+    let (ship, arrived) = fly_with(profile(8800.0), DVec3::ZERO, target, &[]);
+    assert!(arrived.is_some());
+    // The ship's farthest point from its start is at most a little past the goal.
+    assert!(
+        ship.range < target.length() + 10.0 * ARRIVAL_RADIUS,
+        "went {} for a goal at {}",
+        ship.range,
+        target.length()
     );
 }
 
@@ -221,10 +298,7 @@ fn a_ship_flies_round_the_end_of_a_row_of_rocks() {
 #[test]
 fn a_ship_at_cruise_speed_flies_round_a_planet_that_crosses_its_course() {
     // Distances of a ship that cruises at several km/s past a planet of several km.
-    let profile = Profile {
-        max_speed: 8800.0,
-        linear_drag: 2.0,
-    };
+    let profile = profile(8800.0);
     let target = DVec3::new(0.0, 0.0, -40000.0);
     for planet_speed in [0.0, 628.0] {
         for offset in [0.0, 500.0, 1500.0, 2900.0] {

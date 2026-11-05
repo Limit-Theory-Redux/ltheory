@@ -302,7 +302,12 @@ function NavigationSandbox:createNavigation()
     for _, ship in ipairs(self.ships) do
         local profile = ConstructComponents.FlightProfile.ProfileOf(ship.entity)
         ship.input = ship.entity:get(ConstructComponents.ControlInput)
-        ship.agent = self.nav:addAgent(ship.rb, profile.maxSpeed, profile.linearDrag)
+        ship.agent = self.nav:addAgent(
+            ship.rb,
+            profile.linearDrag, profile.angularDrag,
+            profile.thrustForward, profile.thrustRight, profile.thrustUp,
+            profile.torquePitch, profile.torqueYaw, profile.torqueRoll
+        )
         self.nav:setGoal(ship.agent, ship.target, ScenarioMetrics.ARRIVAL_RANGE)
     end
     for _, obstacle in ipairs(self.obstacles) do

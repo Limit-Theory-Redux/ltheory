@@ -1,5 +1,7 @@
 use glam::DVec3;
 
+use crate::avoidance::Commitment;
+
 /// Number of control axes the controller writes per agent.
 pub const AXIS_COUNT: usize = 6;
 
@@ -49,6 +51,8 @@ pub struct Body {
     pub position: DVec3,
     /// Length units per second.
     pub velocity: DVec3,
+    /// Radians per second, about the world axes.
+    pub angular_velocity: DVec3,
     pub frame: Frame,
     /// Bounding radius, in length units.
     pub radius: f64,
@@ -59,6 +63,7 @@ impl Body {
     pub const AT_REST: Self = Self {
         position: DVec3::ZERO,
         velocity: DVec3::ZERO,
+        angular_velocity: DVec3::ZERO,
         frame: Frame {
             forward: DVec3::NEG_Z,
             right: DVec3::X,
@@ -68,13 +73,58 @@ impl Body {
     };
 }
 
-/// What limits an agent's motion.
+/// An acceleration, in length units per second squared.
+pub type Acceleration = f64;
+
+/// An angular acceleration, in radians per second squared.
+pub type AngularAcceleration = f64;
+
+/// A drag rate `k` in `dv/dt = -k·v`, per second.
+pub type DragRate = f64;
+
+/// What limits an agent's motion: the accelerations its thrusters and turning gear give at full
+/// input along each of its own axes, and the drag that slows it. A limit of 0 means the agent
+/// has no authority on that axis.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Profile {
-    /// The speed the agent can reach, in length units per second.
-    pub max_speed: f64,
-    /// Linear drag `k` in `dv/dt = -k·v`, per second.
-    pub linear_drag: f64,
+    pub linear_drag: DragRate,
+    pub angular_drag: DragRate,
+    /// Thrust along the nose; forward and reverse are equal.
+    pub accel_forward: Acceleration,
+    pub accel_right: Acceleration,
+    pub accel_up: Acceleration,
+    /// Turn about the right axis (pitch), the up axis (yaw) and the forward axis (roll).
+    pub turn_pitch: AngularAcceleration,
+    pub turn_yaw: AngularAcceleration,
+    pub turn_roll: AngularAcceleration,
+}
+
+#[cfg(test)]
+impl Profile {
+    /// A profile for unit tests: a top speed of 100 against a drag of 2, side thrust a quarter
+    /// of the forward thrust, and quick turns.
+    pub(crate) const TEST: Self = Self {
+        linear_drag: 2.0,
+        angular_drag: 5.0,
+        accel_forward: 200.0,
+        accel_right: 50.0,
+        accel_up: 50.0,
+        turn_pitch: 20.0,
+        turn_yaw: 20.0,
+        turn_roll: 6.0,
+    };
+}
+
+impl Profile {
+    /// The speed at which forward thrust balances linear drag, in length units per second;
+    /// infinite without drag.
+    pub fn max_speed(&self) -> f64 {
+        if self.linear_drag > 0.0 {
+            self.accel_forward / self.linear_drag
+        } else {
+            f64::INFINITY
+        }
+    }
 }
 
 /// A point to fly to and stop at.
@@ -90,4 +140,6 @@ pub(crate) struct Agent {
     pub body: Body,
     pub profile: Profile,
     pub goal: Option<Goal>,
+    /// The side the agent passes the sphere it is avoiding on, kept between steps.
+    pub commitment: Option<Commitment>,
 }

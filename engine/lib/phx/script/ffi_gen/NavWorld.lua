@@ -21,7 +21,7 @@ function Loader.defineType()
             NavWorld* NavWorld_Create             (Physics const* physics);
             uint32    NavWorld_AxisCount          ();
             uint32    NavWorld_AgentCount         (NavWorld const*);
-            uint32    NavWorld_AddAgent           (NavWorld*, RigidBody const* body, double maxSpeed, double linearDrag);
+            uint32    NavWorld_AddAgent           (NavWorld*, RigidBody const* body, double linearDrag, double angularDrag, double thrustForward, double thrustRight, double thrustUp, double torquePitch, double torqueYaw, double torqueRoll);
             void      NavWorld_AddObstacle        (NavWorld*, RigidBody const* body);
             void      NavWorld_SetGoal            (NavWorld*, uint32 id, Position const* target, double arrivalRadius);
             void      NavWorld_ClearGoal          (NavWorld*, uint32 id);

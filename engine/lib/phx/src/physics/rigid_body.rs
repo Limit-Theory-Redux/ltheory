@@ -921,8 +921,15 @@ pub(crate) struct BodyState {
     pub position: DVec3,
     pub velocity: DVec3,
     pub rotation: na::UnitQuaternion<rp::Real>,
+    /// Angular velocity in world axes, in radians per second.
+    pub angular_velocity: DVec3,
     /// Radius of the collider's bounding sphere.
     pub radius: f64,
+    /// Mass in kilograms; 0 for a body without mass.
+    pub mass: f64,
+    /// The diagonal of the inverse angular inertia tensor about the body's own x, y and z axes;
+    /// 0 on an axis without inertia.
+    pub inverse_inertia: DVec3,
 }
 
 impl RigidBody {
@@ -947,11 +954,27 @@ impl PhysicsWorld {
         let collider = self.colliders.get(handles.collider)?;
         let position = body.translation();
         let velocity = body.linvel();
+        let angular_velocity = body.angvel();
+        let inverse_inertia = body
+            .mass_properties()
+            .local_mprops
+            .reconstruct_inverse_inertia_matrix();
         Some(BodyState {
             position: DVec3::new(position.x, position.y, position.z),
             velocity: DVec3::new(velocity.x, velocity.y, velocity.z),
             rotation: *body.rotation(),
+            angular_velocity: DVec3::new(
+                angular_velocity.x,
+                angular_velocity.y,
+                angular_velocity.z,
+            ),
             radius: collider.shape().compute_local_bounding_sphere().radius(),
+            mass: body.mass(),
+            inverse_inertia: DVec3::new(
+                inverse_inertia[(0, 0)],
+                inverse_inertia[(1, 1)],
+                inverse_inertia[(2, 2)],
+            ),
         })
     }
 }

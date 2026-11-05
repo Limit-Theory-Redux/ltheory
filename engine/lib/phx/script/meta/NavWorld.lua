@@ -18,15 +18,24 @@ function NavWorld.AxisCount() end
 function NavWorld:agentCount() end
 
 -- Adds an agent steered from `body` and returns its id: 0 for the first agent, then
--- consecutive. The speed limit is in game units per second and the linear drag in 1/s.
+-- consecutive. The drags are in 1/s; the thrusts (forward, right, up) and torques (pitch, yaw,
+-- roll) are the forces and torques the ship applies along and about its own axes at full
+-- input. Accelerations follow from the body's mass and inertia at each step, and the top
+-- speed is the forward acceleration over the linear drag.
 -- 
 -- # Panics
 -- If `body` is not a root body of this world's physics.
 ---@param body RigidBody
----@param maxSpeed number
 ---@param linearDrag number
+---@param angularDrag number
+---@param thrustForward number
+---@param thrustRight number
+---@param thrustUp number
+---@param torquePitch number
+---@param torqueYaw number
+---@param torqueRoll number
 ---@return integer
-function NavWorld:addAgent(body, maxSpeed, linearDrag) end
+function NavWorld:addAgent(body, linearDrag, angularDrag, thrustForward, thrustRight, thrustUp, torquePitch, torqueYaw, torqueRoll) end
 
 -- Adds a sphere that every agent steers around: the body's position, velocity and bounding
 -- radius at each step.

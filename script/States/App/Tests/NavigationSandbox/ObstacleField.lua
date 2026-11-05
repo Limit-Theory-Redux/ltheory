@@ -3,7 +3,7 @@
 local NavigationSandbox = require("States.App.Tests.NavigationSandbox")
 
 local HALF_RANGE_M = 10000
-local SPACING_M    = 300
+local SPACING_M    = 600
 
 local function lane(z)
     return { start = { -HALF_RANGE_M, 0, z }, target = { HALF_RANGE_M, 0, z } }
