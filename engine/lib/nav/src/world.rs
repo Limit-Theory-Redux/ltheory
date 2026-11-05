@@ -1,5 +1,5 @@
 use crate::agent::{AXIS_COUNT, Agent, AgentId, Body, Goal, Profile};
-use crate::avoidance::{AvoidanceTuning, avoid};
+use crate::avoidance::{AvoidanceTuning, Sphere, avoid};
 use crate::behaviour::arrive;
 use crate::controller::control;
 use crate::obstacle::Obstacle;
@@ -15,6 +15,8 @@ pub struct World {
     obstacles: Vec<Obstacle>,
     /// The obstacles and the agents' own spheres of the step in progress, reused between steps.
     scene: Vec<Obstacle>,
+    /// The per-obstacle data of the agent being steered, reused between agents and steps.
+    spheres: Vec<Sphere>,
     /// The axes of each agent, in agent order.
     axes: Vec<[f64; AXIS_COUNT]>,
     arrived: Vec<bool>,
@@ -105,6 +107,7 @@ impl World {
                 &self.tuning,
                 Some(goal),
                 &mut agent.commitment,
+                &mut self.spheres,
             );
             self.scene.swap(own, last);
             *axes = control(&agent.body, &agent.profile, &wanted);

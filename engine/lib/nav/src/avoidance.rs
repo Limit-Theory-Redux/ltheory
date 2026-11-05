@@ -65,24 +65,120 @@ impl Threat {
     }
 }
 
-/// The agent and the obstacles its courses are tested against.
+/// The relative slack on the distance a course can cover within the horizon when deciding whether
+/// a sphere can be reached at all. It absorbs the rounding of the quadratic in
+/// [`Sphere::threat`], so a sphere is only skipped when no course could reach it.
+const REACHABLE_SLACK: f64 = 1.0 + 1.0e-6;
+
+/// What the course tests of one agent need of an obstacle, computed once per step from the state
+/// at the start of the step.
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct Sphere {
+    /// Agent position minus obstacle position.
+    offset: DVec3,
+    /// The length of `offset`.
+    distance: f64,
+    velocity: DVec3,
+    /// Obstacle radius plus the agent's radius.
+    hull: f64,
+    /// The hull plus the clearance kept.
+    reach: f64,
+    /// The hull plus the aim factor times the clearance.
+    aim_reach: f64,
+    /// The squared distance minus the squared reach: 0 or less when the agent is within the reach.
+    reach_gap_sq: f64,
+    /// Whether any course no faster than the speed bound the sphere was made for can come within
+    /// the reach inside the horizon. A sphere that can't be reached is never a threat to such a
+    /// course.
+    reachable: bool,
+}
+
+impl Sphere {
+    /// The time the agent, flying `wanted_velocity`, first comes within the reach; `None` when it
+    /// doesn't within `horizon_s`.
+    fn threat(&self, wanted_velocity: DVec3, horizon_s: f64) -> Option<Threat> {
+        let relative_velocity = wanted_velocity - self.velocity;
+        let make = |entry_time| Threat {
+            entry_time,
+            offset: self.offset,
+            relative_velocity,
+            reach: self.reach,
+            aim_reach: self.aim_reach,
+            obstacle_velocity: self.velocity,
+        };
+
+        // Solve |offset + relative_velocity·t| = reach for the first t ≥ 0: a·t² + 2b·t + c = 0.
+        let c = self.reach_gap_sq;
+        if c <= 0.0 {
+            return Some(make(0.0));
+        }
+        let a = relative_velocity.length_squared();
+        let b = self.offset.dot(relative_velocity);
+        if b >= 0.0 || a < TINY_SQ {
+            return None;
+        }
+        let discriminant = b * b - a * c;
+        if discriminant < 0.0 {
+            return None;
+        }
+        let entry_time = (-b - discriminant.sqrt()) / a;
+        (entry_time <= horizon_s).then(|| make(entry_time))
+    }
+}
+
+/// The agent and the spheres its courses are tested against.
 struct Scene<'a> {
     body: &'a Body,
     linear_drag: f64,
     tuning: &'a AvoidanceTuning,
     /// The agent's goal, if any: no sphere keeps a clearance that would put it out of reach.
     goal: Option<Goal>,
-    obstacles: &'a [Obstacle],
+    /// One per obstacle, in the order of the obstacles.
+    spheres: &'a [Sphere],
 }
 
 impl Scene<'_> {
-    /// The obstacle (its index and threat) the agent reaches first flying `velocity`.
+    /// Replaces `out` with the spheres of `obstacles`, for courses no faster than `speed_bound`.
+    fn fill_spheres(&self, obstacles: &[Obstacle], speed_bound: f64, out: &mut Vec<Sphere>) {
+        out.clear();
+        out.extend(
+            obstacles
+                .iter()
+                .map(|obstacle| self.sphere(obstacle, speed_bound)),
+        );
+    }
+
+    fn sphere(&self, obstacle: &Obstacle, speed_bound: f64) -> Sphere {
+        let clearance = self.clearance(obstacle);
+        let hull = obstacle.radius + self.body.radius;
+        let offset = self.body.position - obstacle.position;
+        let reach = hull + clearance;
+        let reach_gap_sq = offset.length_squared() - reach * reach;
+        let distance = offset.length();
+        // Relative to the obstacle an agent closes in at its speed plus the obstacle's.
+        let travel = (speed_bound + obstacle.velocity.length()) * self.tuning.horizon_s;
+        Sphere {
+            offset,
+            distance,
+            velocity: obstacle.velocity,
+            hull,
+            reach,
+            aim_reach: hull + self.tuning.aim_factor * clearance,
+            reach_gap_sq,
+            reachable: reach_gap_sq <= 0.0 || distance - reach <= travel * REACHABLE_SLACK,
+        }
+    }
+
+    /// The sphere (its index and threat) the agent reaches first flying `velocity`, which must be
+    /// no faster than the speed bound the spheres were made for.
     fn first_threat(&self, velocity: DVec3) -> Option<(usize, Threat)> {
-        self.obstacles
+        self.spheres
             .iter()
             .enumerate()
-            .filter_map(|(index, obstacle)| {
-                self.threat(velocity, obstacle)
+            .filter(|(_, sphere)| sphere.reachable)
+            .filter_map(|(index, sphere)| {
+                sphere
+                    .threat(velocity, self.tuning.horizon_s)
                     .map(|threat| (index, threat))
             })
             .min_by(|a, b| a.1.entry_time.total_cmp(&b.1.entry_time))
@@ -123,41 +219,6 @@ impl Scene<'_> {
     fn braking_margin(&self) -> f64 {
         self.smallest_clearance()
             .max(self.body.velocity.length() * BRAKING_REACTION_S)
-    }
-
-    /// The time the agent, flying `wanted_velocity`, first comes within the obstacle's reach;
-    /// `None` when it doesn't within the horizon.
-    fn threat(&self, wanted_velocity: DVec3, obstacle: &Obstacle) -> Option<Threat> {
-        let clearance = self.clearance(obstacle);
-        let hull = obstacle.radius + self.body.radius;
-        let offset = self.body.position - obstacle.position;
-        let relative_velocity = wanted_velocity - obstacle.velocity;
-        let reach = hull + clearance;
-        let make = |entry_time| Threat {
-            entry_time,
-            offset,
-            relative_velocity,
-            reach,
-            aim_reach: hull + self.tuning.aim_factor * clearance,
-            obstacle_velocity: obstacle.velocity,
-        };
-
-        // Solve |offset + relative_velocity·t| = reach for the first t ≥ 0: a·t² + 2b·t + c = 0.
-        let c = offset.length_squared() - reach * reach;
-        if c <= 0.0 {
-            return Some(make(0.0));
-        }
-        let a = relative_velocity.length_squared();
-        let b = offset.dot(relative_velocity);
-        if b >= 0.0 || a < TINY_SQ {
-            return None;
-        }
-        let discriminant = b * b - a * c;
-        if discriminant < 0.0 {
-            return None;
-        }
-        let entry_time = (-b - discriminant.sqrt()) / a;
-        (entry_time <= self.tuning.horizon_s).then(|| make(entry_time))
     }
 }
 
@@ -203,6 +264,15 @@ struct Pending {
 /// `commitment` is the agent's memory between steps: while the same sphere is the first one
 /// reached, the side it passed it on is taken again if that course is clear, so the detour doesn't
 /// swap sides as the agent's position or velocity shifts.
+///
+/// `spheres` is scratch space for the per-obstacle data of this call, reused between calls so
+/// that no call allocates. Spheres no course within the agent's top speed (or its wanted or
+/// current speed, if larger) can come within reach of inside the horizon are left out of the
+/// course search, which never changes its result.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the agent's state, its goal, its memory and the scratch buffer are separate owners"
+)]
 pub(crate) fn avoid(
     body: &Body,
     profile: &Profile,
@@ -211,17 +281,26 @@ pub(crate) fn avoid(
     tuning: &AvoidanceTuning,
     goal: Option<Goal>,
     commitment: &mut Option<Commitment>,
+    spheres: &mut Vec<Sphere>,
 ) -> Wanted {
     if wanted.direction == DVec3::ZERO {
         return wanted;
     }
     let max_speed = profile.max_speed();
-    let scene = Scene {
+    let probe = Scene {
         body,
         linear_drag: profile.linear_drag,
         tuning,
         goal,
-        obstacles,
+        spheres: &[],
+    };
+    let speed_bound = max_speed
+        .max(wanted.velocity.length())
+        .max(body.velocity.length());
+    probe.fill_spheres(obstacles, speed_bound, spheres);
+    let scene = Scene {
+        spheres: spheres.as_slice(),
+        ..probe
     };
     let Some((index, first)) = scene.first_threat(wanted.velocity) else {
         return limit_closing_speeds(&scene, wanted, wanted);
@@ -276,12 +355,16 @@ fn detour_side(threat: &Threat, course: Wanted) -> Option<DVec3> {
 /// `course` with its closing speed limited on every sphere that `wanted`, `course` or the body's
 /// velocity leads into.
 fn limit_closing_speeds(scene: &Scene, wanted: Wanted, course: Wanted) -> Wanted {
-    scene.obstacles.iter().fold(course, |course, obstacle| {
-        let leads_in = [wanted.velocity, course.velocity, scene.body.velocity]
-            .into_iter()
-            .any(|velocity| scene.threat(velocity, obstacle).is_some());
-        if leads_in {
-            limit_closing_speed(scene, course, obstacle)
+    let margin = scene.braking_margin();
+    let horizon_s = scene.tuning.horizon_s;
+    scene.spheres.iter().fold(course, |course, sphere| {
+        let leads_in = |velocity| sphere.threat(velocity, horizon_s).is_some();
+        // The limited course can be faster than the speed bound, so it is always tested; the
+        // wanted and the current velocity are within it, and can't reach an unreachable sphere.
+        let is_threat = leads_in(course.velocity)
+            || (sphere.reachable && (leads_in(wanted.velocity) || leads_in(scene.body.velocity)));
+        if is_threat {
+            limit_closing_speed(course, sphere, scene.linear_drag, margin)
         } else {
             course
         }
@@ -292,17 +375,20 @@ fn limit_closing_speeds(scene: &Scene, wanted: Wanted, course: Wanted) -> Wanted
 /// the distance to the sphere's hull less the braking margin, the speed from which drag alone
 /// stops the agent short of the hull. The speed along the sphere is kept, so an agent passing
 /// the sphere isn't slowed for it.
-fn limit_closing_speed(scene: &Scene, course: Wanted, obstacle: &Obstacle) -> Wanted {
-    let offset = scene.body.position - obstacle.position;
-    let distance = offset.length();
+fn limit_closing_speed(
+    course: Wanted,
+    sphere: &Sphere,
+    linear_drag: f64,
+    braking_margin: f64,
+) -> Wanted {
+    let distance = sphere.distance;
     if distance * distance < TINY_SQ {
         return course;
     }
-    let to_centre = -offset / distance;
-    let hull = obstacle.radius + scene.body.radius;
-    let room = distance - hull - scene.braking_margin();
-    let limit = scene.linear_drag * room.max(0.0);
-    let closing = (course.velocity - obstacle.velocity).dot(to_centre);
+    let to_centre = -sphere.offset / distance;
+    let room = distance - sphere.hull - braking_margin;
+    let limit = linear_drag * room.max(0.0);
+    let closing = (course.velocity - sphere.velocity).dot(to_centre);
     if closing <= limit {
         return course;
     }
@@ -581,6 +667,7 @@ mod tests {
             &AvoidanceTuning::default(),
             None,
             &mut None,
+            &mut Vec::new(),
         )
     }
 
@@ -690,12 +777,18 @@ mod tests {
             horizon_s: f64::INFINITY,
             ..AvoidanceTuning::default()
         };
-        let scene = Scene {
+        let probe = Scene {
             body,
             linear_drag: UNLIMITED_DRAG,
             tuning: &tuning,
             goal: None,
-            obstacles,
+            spheres: &[],
+        };
+        let mut spheres = Vec::new();
+        probe.fill_spheres(obstacles, velocity.length(), &mut spheres);
+        let scene = Scene {
+            spheres: &spheres,
+            ..probe
         };
         scene
             .first_threat(velocity)
@@ -832,6 +925,7 @@ mod tests {
             &AvoidanceTuning::default(),
             None,
             &mut None,
+            &mut Vec::new(),
         )
     }
 
@@ -876,7 +970,7 @@ mod tests {
             linear_drag: DRAG,
             tuning: &tuning,
             goal: None,
-            obstacles: &[],
+            spheres: &[],
         };
         scene.braking_margin()
     }
@@ -942,7 +1036,7 @@ mod tests {
             linear_drag: DRAG,
             tuning: &tuning,
             goal: None,
-            obstacles: &[],
+            spheres: &[],
         };
         scene.clearance(obstacle)
     }
@@ -1002,7 +1096,7 @@ mod tests {
             linear_drag: DRAG,
             tuning: &tuning,
             goal: None,
-            obstacles: &[],
+            spheres: &[],
         };
         assert_eq!(scene.clearance(&ahead), RADIUS * 0.25);
     }
@@ -1017,7 +1111,7 @@ mod tests {
             linear_drag: 0.0,
             tuning: &tuning,
             goal: None,
-            obstacles: &[],
+            spheres: &[],
         };
         assert_eq!(scene.clearance(&ahead), RADIUS * tuning.clearance_radii);
     }
@@ -1031,7 +1125,7 @@ mod tests {
             linear_drag: 0.0,
             tuning: &tuning,
             goal: Some(goal),
-            obstacles: &[],
+            spheres: &[],
         };
         scene.clearance(sphere)
     }
@@ -1070,6 +1164,7 @@ mod tests {
             &AvoidanceTuning::default(),
             None,
             commitment,
+            &mut Vec::new(),
         )
     }
 
@@ -1134,10 +1229,11 @@ mod tests {
             linear_drag: DRAG,
             tuning: &tuning,
             goal: None,
-            obstacles: &[],
+            spheres: &[],
         };
         let threat = scene
-            .threat(DVec3::NEG_Z * 80.0, &big)
+            .sphere(&big, 80.0)
+            .threat(DVec3::NEG_Z * 80.0, tuning.horizon_s)
             .expect("the course leads into the rock");
         let band = threat.aim_reach - threat.reach;
         let clearance = scene.clearance(&big);
@@ -1181,6 +1277,84 @@ mod tests {
             avoid_with_drag(&body, wanted, &gate),
             avoid_with_drag(&body, wanted, &gate)
         );
+    }
+
+    /// The sphere of `obstacle` for the agent `body`, for courses no faster than `speed_bound`.
+    fn sphere_of(body: &Body, obstacle: &Obstacle, speed_bound: f64) -> Sphere {
+        let tuning = AvoidanceTuning::default();
+        Scene {
+            body,
+            linear_drag: UNLIMITED_DRAG,
+            tuning: &tuning,
+            goal: None,
+            spheres: &[],
+        }
+        .sphere(obstacle, speed_bound)
+    }
+
+    #[test]
+    fn a_sphere_is_reachable_only_within_what_the_horizon_lets_a_course_cover() {
+        let body = body_at(DVec3::ZERO);
+        let horizon_s = AvoidanceTuning::default().horizon_s;
+        let speed = 80.0;
+        let still = |z: f64| rock(DVec3::new(0.0, 0.0, z), DVec3::ZERO, 10.0);
+        let reach = reach_of(&still(0.0));
+        let covered = speed * horizon_s;
+        assert!(sphere_of(&body, &still(-(reach + covered - 1.0)), speed).reachable);
+        assert!(!sphere_of(&body, &still(-(reach + covered + 1.0)), speed).reachable);
+
+        // A sphere flying at the agent closes the gap with its own speed as well.
+        let coming = |z: f64| rock(DVec3::new(0.0, 0.0, z), DVec3::new(0.0, 0.0, 50.0), 10.0);
+        let covered = (speed + 50.0) * horizon_s;
+        assert!(sphere_of(&body, &coming(-(reach + covered - 1.0)), speed).reachable);
+        assert!(!sphere_of(&body, &coming(-(reach + covered + 1.0)), speed).reachable);
+    }
+
+    #[test]
+    fn a_sphere_the_agent_is_inside_of_is_reachable_at_any_speed() {
+        let body = body_at(DVec3::ZERO);
+        let around = rock(DVec3::new(0.0, 0.0, -5.0), DVec3::ZERO, 20.0);
+        assert!(sphere_of(&body, &around, 0.0).reachable);
+    }
+
+    #[test]
+    fn an_unreachable_sphere_is_never_a_threat_to_a_course_within_the_speed_bound() {
+        let body = body_at(DVec3::ZERO);
+        let tuning = AvoidanceTuning::default();
+        let speed = 80.0;
+        let mut unreachable = 0;
+        for obstacle_speed in [-50.0, 0.0, 50.0] {
+            for step in 0..400 {
+                let z = -(step as f64) * 5.0;
+                let obstacle = rock(
+                    DVec3::new(3.0, 0.0, z),
+                    DVec3::new(0.0, 0.0, -obstacle_speed),
+                    10.0,
+                );
+                let sphere = sphere_of(&body, &obstacle, speed);
+                let threat = sphere.threat(DVec3::NEG_Z * speed, tuning.horizon_s);
+                if !sphere.reachable {
+                    unreachable += 1;
+                    assert!(threat.is_none(), "z {z}, obstacle speed {obstacle_speed}");
+                }
+            }
+        }
+        assert!(unreachable > 100, "the sweep covers unreachable spheres");
+    }
+
+    #[test]
+    fn spheres_that_cannot_be_reached_do_not_change_the_course() {
+        let body = body_at(DVec3::ZERO);
+        let wanted = wanted_toward(DVec3::NEG_Z, 80.0);
+        let blocker = rock(DVec3::new(2.0, 0.0, -300.0), DVec3::ZERO, 40.0);
+        let far = [
+            rock(DVec3::new(0.0, 0.0, -50_000.0), DVec3::ZERO, 40.0),
+            rock(DVec3::new(9_000.0, 0.0, -100.0), DVec3::ZERO, 40.0),
+        ];
+        let alone = avoid_with_drag(&body, wanted, &[blocker]);
+        let with_far = avoid_with_drag(&body, wanted, &[far[0], blocker, far[1]]);
+        assert_ne!(alone, wanted, "the blocker is a threat");
+        assert_eq!(with_far, alone);
     }
 
     #[test]
