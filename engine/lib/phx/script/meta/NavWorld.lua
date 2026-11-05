@@ -53,8 +53,9 @@ function NavWorld:setGoal(id, target, arrivalRadius) end
 ---@param id integer
 function NavWorld:clearGoal(id) end
 
--- Sets how agents avoid obstacles: the look-ahead in seconds, the clearance in agent radii
--- and the aim factor (see `doc/engine/nav.md`).
+-- Sets how agents avoid obstacles: the look-ahead in seconds, the largest clearance in agent
+-- radii (the clearance itself grows with the closing speed) and the aim factor (see
+-- `doc/engine/nav.md`).
 ---@param horizonS number
 ---@param clearanceRadii number
 ---@param aimFactor number

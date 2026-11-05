@@ -133,8 +133,9 @@ impl NavWorld {
         self.world.set_goal(id, None);
     }
 
-    /// Sets how agents avoid obstacles: the look-ahead in seconds, the clearance in agent radii
-    /// and the aim factor (see `doc/engine/nav.md`).
+    /// Sets how agents avoid obstacles: the look-ahead in seconds, the largest clearance in agent
+    /// radii (the clearance itself grows with the closing speed) and the aim factor (see
+    /// `doc/engine/nav.md`).
     pub fn set_avoidance_tuning(&mut self, horizon_s: f64, clearance_radii: f64, aim_factor: f64) {
         self.world.set_tuning(AvoidanceTuning {
             horizon_s,

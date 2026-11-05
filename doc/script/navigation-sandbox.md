@@ -76,8 +76,8 @@ A ship that has finished has no goal, so it gets zero axes and drag brings it to
 |---|---|
 | Arrival | Within 100 m of the target and slower than 50 m/s. A route ship never arrives |
 | Waypoint | A route ship's goal is reached when the `NavWorld` reports it within 100 m (positional, no speed condition); the ship then gets the next one |
-| Deadlock | Not 10 m closer to the target than its best distance for 10 s of simulated time; reaching a waypoint restarts the count. The log line gives the distance, the speed, and the nearest obstacle with its distance from the ship's centre to its surface |
-| Collision | A ship's bounding sphere starts to overlap another body. A `queryRadius` over the sphere finds the bodies, and each pair is counted once while it stays in contact. A body that is not a sandbox ship is an obstacle, so the count is split into ship–obstacle and ship–ship. The log names a body by its label (`ship 3`, `obstacle 2`) and gives the ship's speed |
+| Deadlock | Not 10 m closer to the target than its best distance for 10 s of simulated time; reaching a waypoint restarts the count. The log line gives the distance, the speed, and the two nearest obstacles, each with its distance from the ship's centre to its surface and that distance as a multiple of the ship's reach (surface plus ship radius plus its largest clearance), then the gap between their two surfaces |
+| Collision | A ship's bounding sphere starts to overlap another body. A `queryRadius` over the sphere finds the bodies, and each pair is counted once while it stays in contact. A body that is not a sandbox ship is an obstacle, so the count is split into ship–obstacle and ship–ship. The log names a body by its label (`ship 3`, `obstacle 2`) and gives the ship's speed; for an obstacle it also gives the speed the ship closes on it at (relative to the obstacle, which can move) |
 | Frame time | Mean and largest frame time in ms, leaving out the first frame, which pays for spawning |
 | Navigation time | Per frame, in ms with a monotonic clock, mean and largest, leaving out the first frame: the `NavWorld` step, the glue after it (copies, goals, control inputs) and the actuation, and their sum. Physics is not included |
 
@@ -90,3 +90,5 @@ Collisions are counted from bounding-sphere overlap instead of from the physics 
 A scenario fails on a ship–obstacle collision, on a deadlock, or when a ship that was to arrive is still flying at its time limit (route ships fly on by design). A run fails on a failed scenario or on a Lua error. The failure is a warning line, so the remaining scenarios still run, and the app quits with `Core.ExitCode.Failure` after the last one. Ship–ship collisions are counted and logged but don't fail a run: avoidance between ships comes later.
 
 Collisions are found after each physics step, so a ship that crosses a small obstacle between two checks is missed: the count is a lower bound.
+
+`Slice` (100 ships at cruise speed among rocks and a moving planet) is the hardest scenario and does not pass the rule yet: a few ship–planet contacts and deadlocks in narrow gaps remain (see Limits in [navigation maths](../engine/nav.md)). The failure is real, so it stays out of the CI smoke runs, and its debug run takes most of the app run limit.
