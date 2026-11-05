@@ -240,6 +240,9 @@ struct Pending {
     index: usize,
     threat: Threat,
     course: Wanted,
+    /// Whether the course reaches the sphere on the kept side of the first sphere, passing every
+    /// sphere before it on the side it leans to.
+    kept: bool,
 }
 
 /// Steers a wanted course clear of the obstacles, if it leads into one. The candidates are the
@@ -319,6 +322,7 @@ pub(crate) fn avoid(
                 index,
                 threat: first,
                 course: wanted,
+                kept: kept_side.is_some(),
             },
             kept_side,
         )
@@ -406,7 +410,9 @@ fn limit_closing_speed(
 
 /// The best course found by expanding spheres breadth-first from `first`, which blocks `wanted`.
 /// `kept_side` is the side the first sphere was passed on before: its course is preferred to the
-/// other side's whenever it is clear.
+/// other side's whenever it is clear. A course on that side blocked by a farther sphere is
+/// expanded before a clear course on the other side is accepted, so the side doesn't flip for
+/// an obstacle that can be passed.
 fn search_courses(
     scene: &Scene,
     wanted: Wanted,
@@ -419,14 +425,14 @@ fn search_courses(
     let mut queued = 1;
     let mut choice = Choice::new(wanted, first.threat.entry_time);
     let mut next = 0;
-    while next < queued && choice.clear.is_none() {
+    while next < queued && !choice.is_settled(first.kept) {
         let Some(pending) = queue[next] else { break };
         let kept_side = kept_side.filter(|_| next == 0);
         next += 1;
         for flip in [false, true] {
             let course = steer_around(&pending.threat, pending.course, max_speed, flip, kept_side);
             let Some((index, threat)) = scene.first_threat(course.velocity) else {
-                let kept = kept_side.is_some() && !flip;
+                let kept = pending.kept && !flip;
                 choice.offer_clear(course, course.direction.dot(wanted.direction), kept);
                 continue;
             };
@@ -437,6 +443,7 @@ fn search_courses(
                     index,
                     threat,
                     course,
+                    kept: pending.kept && !flip,
                 });
                 queued += 1;
             }
@@ -499,6 +506,12 @@ impl Choice {
                 kept: false,
             };
         }
+    }
+
+    /// Whether no further candidate can beat the clear one: any clear course, or with a kept
+    /// side, a clear course on it.
+    fn is_settled(&self, kept_side: bool) -> bool {
+        self.clear.is_some_and(|best| best.kept || !kept_side)
     }
 
     fn best(self) -> Wanted {
@@ -1212,6 +1225,26 @@ mod tests {
         avoid_remembering(&body, wanted, &[right_of_course], &mut memory);
         let chosen = avoid_remembering(&body, wanted, &[left_of_course, blocker], &mut memory);
         assert!(chosen.velocity.x > 0.0, "passes on the right instead");
+        for sphere in [&left_of_course, &blocker] {
+            let miss = closest_approach(&body, chosen.velocity, sphere);
+            assert!(miss >= reach_of(sphere), "misses by {miss}");
+        }
+    }
+
+    #[test]
+    fn a_kept_side_blocked_by_a_farther_sphere_is_kept_when_it_can_be_passed() {
+        let body = body_at(DVec3::ZERO);
+        let wanted = wanted_toward(DVec3::NEG_Z, 80.0);
+        let right_of_course = rock(DVec3::new(2.0, 0.0, -300.0), DVec3::ZERO, 40.0);
+        let left_of_course = rock(DVec3::new(-2.0, 0.0, -300.0), DVec3::ZERO, 40.0);
+        // Small, and on the tangent course on the left: that course is blocked, the one round
+        // this sphere too is clear, and the right side is clear at once.
+        let blocker = rock(DVec3::new(-40.0, 0.0, -330.0), DVec3::ZERO, 10.0);
+
+        let mut memory = None;
+        avoid_remembering(&body, wanted, &[right_of_course], &mut memory);
+        let chosen = avoid_remembering(&body, wanted, &[left_of_course, blocker], &mut memory);
+        assert!(chosen.velocity.x < 0.0, "keeps the left");
         for sphere in [&left_of_course, &blocker] {
             let miss = closest_approach(&body, chosen.velocity, sphere);
             assert!(miss >= reach_of(sphere), "misses by {miss}");

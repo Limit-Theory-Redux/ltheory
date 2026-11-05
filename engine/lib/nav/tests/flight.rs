@@ -50,11 +50,14 @@ struct Ship {
     start: DVec3,
     /// The farthest the ship has been from where it started.
     range: f64,
+    /// The ship's bounding radius.
+    radius: f64,
 }
 
 impl Ship {
     fn new(position: DVec3) -> Self {
         Self {
+            radius: AGENT_RADIUS,
             position,
             velocity: DVec3::ZERO,
             orientation: DQuat::IDENTITY,
@@ -75,7 +78,7 @@ impl Ship {
                 right: self.orientation * DVec3::X,
                 up: self.orientation * DVec3::Y,
             },
-            radius: AGENT_RADIUS,
+            radius: self.radius,
         }
     }
 
@@ -345,4 +348,45 @@ fn every_rock_placed_on_the_course_is_cleared() {
         }
     }
     assert_eq!(cases, 15);
+}
+
+/// Ships of real size cross a field of rocks that block each other's detours. A ship that
+/// swapped the side it passes a rock on, whenever a farther rock blocked the kept side, slid
+/// sideways between the two rocks without getting through.
+#[test]
+fn ships_cross_a_field_of_rocks_without_swapping_sides() {
+    const SHIP_RADIUS: f64 = 150.0;
+    const MAX_SPEED: f64 = 8800.0;
+    let rocks = [
+        rock(DVec3::new(-4000.0, 0.0, 0.0), DVec3::ZERO, 400.0),
+        rock(DVec3::new(-1000.0, 0.0, 300.0), DVec3::ZERO, 500.0),
+        rock(DVec3::new(2000.0, 0.0, -300.0), DVec3::ZERO, 300.0),
+        rock(DVec3::new(5000.0, 0.0, 0.0), DVec3::ZERO, 800.0),
+        rock(DVec3::new(0.0, 0.0, 1500.0), DVec3::ZERO, 800.0),
+        rock(DVec3::new(3000.0, 0.0, -1500.0), DVec3::ZERO, 600.0),
+    ];
+    let mut cases = 0;
+    for lane in [-600.0, 0.0, 600.0] {
+        for jitter in [0.0, 7.0, 13.0, 29.0, 47.0] {
+            for turn in [0.0, std::f64::consts::FRAC_PI_2] {
+                let start = DVec3::new(-10000.0, 0.0, lane + jitter);
+                let target = DVec3::new(10000.0, 0.0, lane);
+                let ship = Ship {
+                    radius: SHIP_RADIUS,
+                    orientation: DQuat::from_rotation_y(-turn),
+                    ..Ship::new(start)
+                };
+                let (ship, arrived) = fly_ship(profile(MAX_SPEED), ship, target, &rocks);
+                let case = format!("lane {lane}, jitter {jitter}, turned {turn}");
+                assert!(arrived.is_some(), "{case}: stuck at {:?}", ship.position);
+                assert!(
+                    ship.clearance > SHIP_RADIUS,
+                    "{case}: clearance {}",
+                    ship.clearance
+                );
+                cases += 1;
+            }
+        }
+    }
+    assert_eq!(cases, 30);
 }
