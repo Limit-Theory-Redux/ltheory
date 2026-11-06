@@ -1,6 +1,6 @@
-use crate::agent::{AXIS_COUNT, Agent, AgentId, Body, Goal, Profile};
+use crate::agent::{AXIS_COUNT, Agent, AgentId, Body, Profile};
 use crate::avoidance::{AvoidanceTuning, Sphere, avoid};
-use crate::behaviour::arrive;
+use crate::behaviour::{Behaviour, steer};
 use crate::controller::control;
 use crate::obstacle::Obstacle;
 
@@ -29,13 +29,13 @@ impl World {
         Self::default()
     }
 
-    /// Adds an agent that is at rest at the origin, facing along -z, with no goal.
+    /// Adds an agent that is at rest at the origin, facing along -z, with no behaviour.
     pub fn add_agent(&mut self, profile: Profile) -> AgentId {
         let id = AgentId::new(self.agents.len());
         self.agents.push(Agent {
             body: Body::AT_REST,
             profile,
-            goal: None,
+            behaviour: None,
             commitment: None,
         });
         self.axes.push([0.0; AXIS_COUNT]);
@@ -59,10 +59,11 @@ impl World {
         self.agents[id.index()].profile = profile;
     }
 
-    /// Sets an agent's goal; `None` leaves it without input. Panics if `id` isn't an agent of
-    /// this world.
-    pub fn set_goal(&mut self, id: AgentId, goal: Option<Goal>) {
-        self.agents[id.index()].goal = goal;
+    /// Sets what an agent does; `None` leaves it without input. Target bodies inside the
+    /// behaviour are snapshots, so set it again each step for a target that moves. Panics if `id`
+    /// isn't an agent of this world.
+    pub fn set_behaviour(&mut self, id: AgentId, behaviour: Option<Behaviour>) {
+        self.agents[id.index()].behaviour = behaviour;
     }
 
     /// Replaces the obstacles.
@@ -92,12 +93,12 @@ impl World {
         let slots = self.axes.iter_mut().zip(&mut self.arrived);
         for (index, (agent, (axes, arrived))) in self.agents.iter_mut().zip(slots).enumerate() {
             let own = self.obstacles.len() + index;
-            let Some(goal) = agent.goal else {
+            let Some(behaviour) = agent.behaviour else {
                 *axes = [0.0; AXIS_COUNT];
                 *arrived = false;
                 continue;
             };
-            let toward_goal = arrive(&agent.body, &agent.profile, &goal);
+            let (toward_goal, goal) = steer(&behaviour, &agent.body, &agent.profile);
             self.scene.swap(own, last);
             let wanted = avoid(
                 &agent.body,
@@ -134,15 +135,15 @@ mod tests {
     use glam::DVec3;
 
     use super::*;
-    use crate::agent::Axis;
+    use crate::agent::{Axis, Goal};
 
     const PROFILE: Profile = Profile::TEST;
 
-    fn goal(target: DVec3) -> Goal {
-        Goal {
+    fn goal(target: DVec3) -> Behaviour {
+        Behaviour::Arrive(Goal {
             target,
             arrival_radius: 5.0,
-        }
+        })
     }
 
     #[test]
@@ -175,8 +176,8 @@ mod tests {
         let mut world = World::new();
         let to_right = world.add_agent(PROFILE);
         let to_left = world.add_agent(PROFILE);
-        world.set_goal(to_right, Some(goal(DVec3::new(500.0, 0.0, 0.0))));
-        world.set_goal(to_left, Some(goal(DVec3::new(-500.0, 0.0, 0.0))));
+        world.set_behaviour(to_right, Some(goal(DVec3::new(500.0, 0.0, 0.0))));
+        world.set_behaviour(to_left, Some(goal(DVec3::new(-500.0, 0.0, 0.0))));
         world.step();
 
         let yaw_of = |id: AgentId| world.axes()[id.index() * AXIS_COUNT + Axis::Yaw as usize];
@@ -188,11 +189,11 @@ mod tests {
     fn arrival_is_reported_within_the_goal_radius() {
         let mut world = World::new();
         let id = world.add_agent(PROFILE);
-        world.set_goal(id, Some(goal(DVec3::new(0.0, 0.0, -4.0))));
+        world.set_behaviour(id, Some(goal(DVec3::new(0.0, 0.0, -4.0))));
         world.step();
         assert!(world.arrived(id));
 
-        world.set_goal(id, Some(goal(DVec3::new(0.0, 0.0, -6.0))));
+        world.set_behaviour(id, Some(goal(DVec3::new(0.0, 0.0, -6.0))));
         world.step();
         assert!(!world.arrived(id));
     }
@@ -211,11 +212,11 @@ mod tests {
         );
         // The goal's own radius is 5, less than the agent's two radii.
         let at = |distance: f64| goal(DVec3::new(0.0, 0.0, -distance));
-        world.set_goal(id, Some(at(2.0 * radius - 0.5)));
+        world.set_behaviour(id, Some(at(2.0 * radius - 0.5)));
         world.step();
         assert!(world.arrived(id));
 
-        world.set_goal(id, Some(at(2.0 * radius + 0.5)));
+        world.set_behaviour(id, Some(at(2.0 * radius + 0.5)));
         world.step();
         assert!(!world.arrived(id));
     }
@@ -237,7 +238,7 @@ mod tests {
                 let blocker = world.add_agent(PROFILE);
                 (world.add_agent(PROFILE), blocker)
             };
-            world.set_goal(flier, Some(goal(DVec3::new(0.0, 0.0, -1000.0))));
+            world.set_behaviour(flier, Some(goal(DVec3::new(0.0, 0.0, -1000.0))));
             let axes_of = |world: &World, id: AgentId| {
                 let start = id.index() * AXIS_COUNT;
                 world.axes()[start..start + AXIS_COUNT].to_vec()
@@ -256,7 +257,7 @@ mod tests {
     fn an_obstacle_on_the_course_changes_the_axes() {
         let mut world = World::new();
         let id = world.add_agent(PROFILE);
-        world.set_goal(id, Some(goal(DVec3::new(0.0, 0.0, -1000.0))));
+        world.set_behaviour(id, Some(goal(DVec3::new(0.0, 0.0, -1000.0))));
         world.step();
         let straight = world.axes().to_vec();
 

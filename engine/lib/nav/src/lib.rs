@@ -16,5 +16,6 @@ pub use agent::{
     MIN_ARRIVAL_RADII, Profile,
 };
 pub use avoidance::{AvoidanceTuning, MIN_CLEARANCE_RADII};
+pub use behaviour::{Behaviour, FrameOffset, ORBIT_FIELD_GAIN, ORBIT_THRUST_SHARE};
 pub use obstacle::Obstacle;
 pub use world::World;

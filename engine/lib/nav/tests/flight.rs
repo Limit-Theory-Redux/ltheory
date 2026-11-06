@@ -5,7 +5,7 @@
 //! check that behaviour, avoidance and controller work together, not the ship's real response.
 
 use glam::{DQuat, DVec3};
-use nav::{AXIS_COUNT, Axis, Body, Frame, Goal, Obstacle, Profile, World};
+use nav::{AXIS_COUNT, Axis, Behaviour, Body, Frame, FrameOffset, Goal, Obstacle, Profile, World};
 
 const STEP_S: f64 = 1.0 / 60.0;
 const TIME_LIMIT_S: f64 = 60.0;
@@ -129,12 +129,12 @@ fn fly_ship(
 ) -> (Ship, Option<f64>) {
     let mut world = World::new();
     let id = world.add_agent(profile);
-    world.set_goal(
+    world.set_behaviour(
         id,
-        Some(Goal {
+        Some(Behaviour::Arrive(Goal {
             target,
             arrival_radius: ARRIVAL_RADIUS,
-        }),
+        })),
     );
     let mut obstacles = obstacles.to_vec();
 
@@ -409,12 +409,12 @@ fn ships_with_goals_closer_than_their_hulls_all_arrive() {
         let target = DVec3::new(angle(i).cos(), 0.0, angle(i).sin()) * GOAL_RING_M;
         // Each ship comes in from outside the ring of goals, along the line through its goal.
         let start = target.normalize() * START_DISTANCE_M + DVec3::new(0.0, 30.0 * i as f64, 0.0);
-        world.set_goal(
+        world.set_behaviour(
             id,
-            Some(Goal {
+            Some(Behaviour::Arrive(Goal {
                 target,
                 arrival_radius: SMALL_ARRIVAL_M,
-            }),
+            })),
         );
         let ship = Ship {
             radius: SHIP_RADIUS,
@@ -444,4 +444,276 @@ fn ships_with_goals_closer_than_their_hulls_all_arrive() {
         .map(|(i, _)| i)
         .collect();
     assert!(stuck.is_empty(), "ships {stuck:?} never arrived");
+}
+
+/// One step of a ship's flight: when it was, and where it was going.
+struct Sample {
+    time: f64,
+    position: DVec3,
+    velocity: DVec3,
+}
+
+/// Flies `ships` together for `seconds`. Each step, `behave(index, time, ships)` gives a ship's
+/// behaviour from the state of them all, so a target can be another ship. Returns each ship's
+/// samples, taken before the step's thrust is applied.
+fn fly_fleet(
+    ships: &mut [Ship],
+    seconds: f64,
+    mut behave: impl FnMut(usize, f64, &[Ship]) -> Behaviour,
+) -> Vec<Vec<Sample>> {
+    let mut world = World::new();
+    let ids: Vec<_> = ships.iter().map(|_| world.add_agent(PROFILE)).collect();
+    let mut samples: Vec<Vec<Sample>> = ships.iter().map(|_| Vec::new()).collect();
+    let mut time = 0.0;
+    while time < seconds {
+        for (index, id) in ids.iter().enumerate() {
+            world.set_body(*id, ships[index].body());
+            world.set_behaviour(*id, Some(behave(index, time, ships)));
+            samples[index].push(Sample {
+                time,
+                position: ships[index].position,
+                velocity: ships[index].velocity,
+            });
+        }
+        world.step();
+        for (index, id) in ids.iter().enumerate() {
+            let axes = &world.axes()[id.index() * AXIS_COUNT..][..AXIS_COUNT];
+            ships[index].apply(PROFILE, axes);
+        }
+        time += STEP_S;
+    }
+    samples
+}
+
+/// A body for a behaviour's target: a sphere at `position` moving at `velocity`.
+fn target_body(position: DVec3, velocity: DVec3, radius: f64) -> Body {
+    Body {
+        position,
+        velocity,
+        radius,
+        ..Body::AT_REST
+    }
+}
+
+fn arrive_at_point(target: DVec3) -> Behaviour {
+    Behaviour::Arrive(Goal {
+        target,
+        arrival_radius: ARRIVAL_RADIUS,
+    })
+}
+
+#[test]
+fn a_seeking_ship_passes_its_point_at_top_speed() {
+    const POINT_DISTANCE: f64 = 3000.0;
+    const PASS_DISTANCE: f64 = 10.0;
+    let point = DVec3::new(0.0, 0.0, -POINT_DISTANCE);
+    let mut ships = [Ship::new(DVec3::ZERO)];
+    let samples = fly_fleet(&mut ships, TIME_LIMIT_S, |_, _, _| {
+        Behaviour::Seek(Goal {
+            target: point,
+            arrival_radius: ARRIVAL_RADIUS,
+        })
+    });
+    let pass = samples[0]
+        .iter()
+        .find(|sample| sample.position.distance(point) <= PASS_DISTANCE)
+        .expect("the ship reaches its point");
+    assert!(
+        pass.velocity.length() > 0.8 * PROFILE.max_speed(),
+        "passes at {}",
+        pass.velocity.length()
+    );
+}
+
+/// The first time after which `holds` is true of every later sample, if there is one.
+fn settled_from(samples: &[Sample], holds: impl Fn(&Sample) -> bool) -> Option<f64> {
+    let failing = samples.iter().rposition(|sample| !holds(sample));
+    match failing {
+        None => samples.first().map(|sample| sample.time),
+        Some(last) => samples.get(last + 1).map(|sample| sample.time),
+    }
+}
+
+#[test]
+fn a_pursuer_leads_a_crossing_target_and_settles_beside_it_sooner_than_a_chase() {
+    const TARGET_RADIUS: f64 = 5.0;
+    const STAND_OFF: f64 = 20.0;
+    const TARGET_SPEED: f64 = 40.0;
+    const TOLERANCE: f64 = 10.0;
+    const MATCHED_SPEED: f64 = 5.0;
+    const SECONDS: f64 = 90.0;
+    let start = DVec3::new(0.0, 0.0, -2000.0);
+    let velocity = DVec3::X * TARGET_SPEED;
+    let hull_gap = TARGET_RADIUS + AGENT_RADIUS + STAND_OFF;
+    let run = |lead: bool| {
+        let mut ships = [Ship::new(DVec3::ZERO)];
+        let samples = fly_fleet(&mut ships, SECONDS, |_, time, _| {
+            let target = target_body(start + velocity * time, velocity, TARGET_RADIUS);
+            if lead {
+                Behaviour::Pursue {
+                    target,
+                    stand_off: STAND_OFF,
+                    arrival_radius: ARRIVAL_RADIUS,
+                }
+            } else {
+                // The same meeting point, but with no feed-forward of the target's velocity.
+                arrive_at_point(target.position)
+            }
+        });
+        settled_from(&samples[0], |sample| {
+            let target = start + velocity * sample.time;
+            let gap = sample.position.distance(target);
+            (gap - hull_gap).abs() < TOLERANCE
+                && (sample.velocity - velocity).length() < MATCHED_SPEED
+        })
+    };
+    let led = run(true).expect("the pursuer settles beside its target");
+    // A chase with no lead stops short of the target's hull, so it can't settle at the stand-off.
+    assert!(run(false).is_none_or(|chased| led < chased));
+}
+
+#[test]
+fn a_follower_holds_its_slot_in_the_leaders_frame_without_touching_it() {
+    const SLOT: DVec3 = DVec3::new(30.0, 0.0, -60.0);
+    const SECONDS: f64 = 60.0;
+    const SETTLED_S: f64 = 45.0;
+    const SLOT_TOLERANCE: f64 = 12.0;
+    let leader_goal = DVec3::new(0.0, 0.0, -1500.0);
+    let mut ships = [
+        Ship::new(DVec3::ZERO),
+        Ship::new(DVec3::new(-200.0, 0.0, 300.0)),
+    ];
+    let samples = fly_fleet(&mut ships, SECONDS, |index, _, ships| {
+        if index == 0 {
+            return arrive_at_point(leader_goal);
+        }
+        Behaviour::Follow {
+            leader: ships[0].body(),
+            offset: FrameOffset {
+                right: SLOT.x,
+                up: SLOT.y,
+                // The ship faces -z, so forward in its frame is -z in the world.
+                forward: -SLOT.z,
+            },
+            arrival_radius: ARRIVAL_RADIUS,
+        }
+    });
+    let mut nearest = f64::INFINITY;
+    for (leader, follower) in samples[0].iter().zip(&samples[1]) {
+        nearest = nearest.min(leader.position.distance(follower.position));
+        if leader.time > SETTLED_S {
+            // The leader flies along -z with its frame unrotated, so the slot is a fixed offset.
+            let slot = leader.position + SLOT;
+            assert!(
+                follower.position.distance(slot) < SLOT_TOLERANCE,
+                "t = {}: {} off its slot",
+                leader.time,
+                follower.position.distance(slot)
+            );
+        }
+    }
+    assert!(
+        nearest > 2.0 * AGENT_RADIUS,
+        "came within {nearest} of the leader"
+    );
+}
+
+#[test]
+fn a_held_ship_returns_to_its_point_after_a_push() {
+    const PUSH_SPEED: f64 = 60.0;
+    const SECONDS: f64 = 30.0;
+    let mut ships = [Ship {
+        velocity: DVec3::new(0.0, 0.0, -PUSH_SPEED),
+        ..Ship::new(DVec3::ZERO)
+    }];
+    let samples = fly_fleet(&mut ships, SECONDS, |_, _, _| {
+        Behaviour::hold(
+            &target_body(DVec3::ZERO, DVec3::ZERO, AGENT_RADIUS),
+            ARRIVAL_RADIUS,
+        )
+    });
+    let overshoot = samples[0]
+        .iter()
+        .map(|sample| sample.position.length())
+        .fold(0.0, f64::max);
+    assert!(overshoot > ARRIVAL_RADIUS, "the push carries it away");
+    let last = samples[0].last().expect("samples");
+    assert!(
+        last.position.length() < ARRIVAL_RADIUS,
+        "back at {}",
+        last.position.length()
+    );
+    assert!(last.velocity.length() < ARRIVAL_SPEED);
+}
+
+/// Where the orbit tests put the circle, and what they accept of a ship that has settled on it.
+const ORBIT_RADIUS: f64 = 300.0;
+const ORBIT_SECONDS: f64 = 160.0;
+const ORBIT_SETTLED_S: f64 = 100.0;
+const ORBIT_RADIAL_TOLERANCE: f64 = 15.0;
+const ORBIT_HEIGHT_TOLERANCE: f64 = 5.0;
+
+/// Orbits a centre that moves at `centre_velocity` from `start`, and checks, relative to the centre,
+/// that the ship ends on the circle in its plane, going anticlockwise about +y at the circle speed.
+fn assert_settles_on_orbit(start: DVec3, centre_velocity: DVec3) {
+    let mut ships = [Ship::new(start)];
+    let samples = fly_fleet(&mut ships, ORBIT_SECONDS, |_, time, _| Behaviour::Orbit {
+        centre: target_body(centre_velocity * time, centre_velocity, 0.0),
+        radius: ORBIT_RADIUS,
+        normal: DVec3::Y,
+        arrival_radius: ARRIVAL_RADIUS,
+    });
+    let circle_speed = 0.5 * PROFILE.accel_forward / PROFILE.linear_drag;
+    let mut turned = 0.0;
+    let mut previous: Option<DVec3> = None;
+    for sample in samples[0].iter().filter(|s| s.time > ORBIT_SETTLED_S) {
+        let offset = sample.position - centre_velocity * sample.time;
+        let relative = sample.velocity - centre_velocity;
+        let ring = DVec3::new(offset.x, 0.0, offset.z).length();
+        assert!(
+            (ring - ORBIT_RADIUS).abs() < ORBIT_RADIAL_TOLERANCE,
+            "t = {}: {ring} from the axis",
+            sample.time
+        );
+        assert!(
+            offset.y.abs() < ORBIT_HEIGHT_TOLERANCE,
+            "{} off the plane",
+            offset.y
+        );
+        let speed = relative.length();
+        assert!(
+            (0.8 * circle_speed..1.2 * circle_speed).contains(&speed),
+            "t = {}: speed {speed} against {circle_speed}",
+            sample.time
+        );
+        if let Some(before) = previous {
+            // Anticlockwise about +y is a positive turn about it, from +x toward -z.
+            turned += before.cross(offset).y;
+        }
+        previous = Some(offset);
+    }
+    assert!(turned > 0.0, "goes the wrong way round");
+}
+
+#[test]
+fn an_orbiting_ship_settles_on_the_circle_from_outside() {
+    assert_settles_on_orbit(DVec3::new(3.0 * ORBIT_RADIUS, 0.0, 0.0), DVec3::ZERO);
+}
+
+#[test]
+fn an_orbiting_ship_settles_on_the_circle_from_inside() {
+    assert_settles_on_orbit(DVec3::new(0.3 * ORBIT_RADIUS, 0.0, 40.0), DVec3::ZERO);
+}
+
+#[test]
+fn an_orbiting_ship_settles_on_the_circle_from_above_the_plane() {
+    assert_settles_on_orbit(DVec3::new(ORBIT_RADIUS, 500.0, 0.0), DVec3::ZERO);
+}
+
+#[test]
+fn an_orbiting_ship_follows_a_moving_centre() {
+    assert_settles_on_orbit(
+        DVec3::new(2.0 * ORBIT_RADIUS, 100.0, 0.0),
+        DVec3::new(10.0, 0.0, 5.0),
+    );
 }

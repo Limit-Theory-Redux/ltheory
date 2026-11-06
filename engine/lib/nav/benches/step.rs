@@ -2,7 +2,7 @@ use std::hint::black_box;
 
 use criterion::{Criterion, criterion_group, criterion_main};
 use glam::DVec3;
-use nav::{Body, Goal, Obstacle, Profile, World};
+use nav::{Behaviour, Body, Goal, Obstacle, Profile, World};
 
 const AGENTS: usize = 100;
 const OBSTACLES: usize = 60;
@@ -55,12 +55,12 @@ fn scene() -> World {
                 ..Body::AT_REST
             },
         );
-        world.set_goal(
+        world.set_behaviour(
             id,
-            Some(Goal {
+            Some(Behaviour::Arrive(Goal {
                 target: sequence.point(),
                 arrival_radius: 100.0,
-            }),
+            })),
         );
     }
     let obstacles: Vec<Obstacle> = (0..OBSTACLES)
@@ -97,12 +97,12 @@ fn dense_scene() -> World {
                 ..Body::AT_REST
             },
         );
-        world.set_goal(
+        world.set_behaviour(
             id,
-            Some(Goal {
+            Some(Behaviour::Arrive(Goal {
                 target: across(&mut sequence) + DVec3::NEG_Z * DENSE_LENGTH,
                 arrival_radius: 100.0,
-            }),
+            })),
         );
     }
     let obstacles: Vec<Obstacle> = (0..OBSTACLES)

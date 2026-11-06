@@ -4,6 +4,7 @@ Config.credits = {
     },
     ["RESEARCH"] = {
         { name = "Craig Reynolds", teams = "Steering Behaviors For Autonomous Characters, GDC 1999" },
+        { name = "Garcia de Marina, Hattenberger", teams = "Guidance Vector Fields for Orbits, IMAV 2017 (arXiv 1709.01110)" },
     },
     ["MAINTAINERS"] = {
         { name = "Haron",         teams = "Engine Development & Design" },

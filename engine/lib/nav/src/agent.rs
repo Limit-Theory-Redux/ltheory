@@ -1,6 +1,7 @@
 use glam::DVec3;
 
 use crate::avoidance::Commitment;
+use crate::behaviour::Behaviour;
 
 /// Number of control axes the controller writes per agent.
 pub const AXIS_COUNT: usize = 6;
@@ -152,7 +153,7 @@ impl Goal {
 pub(crate) struct Agent {
     pub body: Body,
     pub profile: Profile,
-    pub goal: Option<Goal>,
+    pub behaviour: Option<Behaviour>,
     /// The side the agent passes the sphere it is avoiding on, kept between steps.
     pub commitment: Option<Commitment>,
 }

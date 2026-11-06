@@ -1,4 +1,6 @@
-use ::nav::{AXIS_COUNT, AgentId, AvoidanceTuning, Body, Frame, Goal, Obstacle, Profile};
+use ::nav::{
+    AXIS_COUNT, AgentId, AvoidanceTuning, Behaviour, Body, Frame, Goal, Obstacle, Profile,
+};
 
 use crate::math::*;
 use crate::physics::*;
@@ -181,12 +183,12 @@ impl NavWorld {
     /// If `id` isn't an agent.
     pub fn set_goal(&mut self, id: u32, target: &Position, arrival_radius: f64) {
         let id = self.agent(id);
-        self.world.set_goal(
+        self.world.set_behaviour(
             id,
-            Some(Goal {
+            Some(Behaviour::Arrive(Goal {
                 target: target.v,
                 arrival_radius,
-            }),
+            })),
         );
     }
 
@@ -196,7 +198,7 @@ impl NavWorld {
     /// If `id` isn't an agent.
     pub fn clear_goal(&mut self, id: u32) {
         let id = self.agent(id);
-        self.world.set_goal(id, None);
+        self.world.set_behaviour(id, None);
     }
 
     /// Sets how agents avoid obstacles: the look-ahead in seconds, the largest clearance in agent

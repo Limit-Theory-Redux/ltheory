@@ -4,15 +4,29 @@ The `nav` crate holds the per-agent navigation maths: behaviours that say where 
 
 ## Model
 
-A `World` holds agents and obstacles. Before a step, the caller sets each agent's `Body` (position, velocity, angular velocity, a frame of unit directions, bounding radius), its `Profile` (what limits its motion: see Controller), its `Goal` and the obstacles. `World::step` then gives every agent six control axes (`Axis`: pitch, yaw, roll, thrust forward, right and up, each in `[-1, 1]`) and an arrival flag. Axes are one flat buffer, `AXIS_COUNT` values per agent, so the caller reads them without copying per agent.
+A `World` holds agents and obstacles. Before a step, the caller sets each agent's `Body` (position, velocity, angular velocity, a frame of unit directions, bounding radius), its `Profile` (what limits its motion: see Controller), its `Behaviour` and the obstacles. `World::step` then gives every agent six control axes (`Axis`: pitch, yaw, roll, thrust forward, right and up, each in `[-1, 1]`) and an arrival flag. Axes are one flat buffer, `AXIS_COUNT` values per agent, so the caller reads them without copying per agent.
 
 Units are the caller's, and they only have to agree: lengths in one unit, time in seconds. The crate fixes no axis convention: the caller hands in the frame, and positive pitch turns the nose up and positive yaw turns it right, about the frame's right and up directions.
 
 The axes depend on the bodies, profiles, goals and obstacles passed in, and on one memory per agent: the side it passes the sphere it is avoiding on (see Obstacle avoidance). Each agent goes through three stages.
 
-## Arrive
+## Behaviours
 
-The wanted velocity points at the goal. Its speed is `min(max_speed, distance · k)`, with `k` the profile's linear drag. An agent coasting under drag `k` from speed `v` covers `v / k`, so this speed lets drag alone stop the agent on the goal. The rule ignores the agent's thrust limit; the controller never asks for more than full thrust, and an agent that can't brake in time overshoots and comes back.
+A `Behaviour` says what an agent does, and gives a wanted velocity plus a `Goal`: the point it wants to be at now. Avoidance and the arrival flag read that goal. Bodies inside a behaviour (a target, a leader, a centre) are snapshots; the caller sets the behaviour again before each step for a target that moves.
+
+**Arrive.** The wanted velocity points at the goal. Its speed is `min(max_speed, distance · k)`, with `k` the profile's linear drag. An agent coasting under drag `k` from speed `v` covers `v / k`, so this speed lets drag alone stop the agent on the goal. The rule ignores the agent's thrust limit; the controller never asks for more than full thrust, and an agent that can't brake in time overshoots and comes back.
+
+**Moving points.** Every behaviour that follows a point uses one rule: the wanted velocity is the point's velocity plus a closing speed along the line of sight, which keeps the bearing to the point constant (parallel navigation). The closing speed is `min(distance · k, c_max)`, where `c_max` is the largest speed that keeps the total within `max_speed`. This leads a crossing target without predicting its path, and an agent that is slower than its target flies the line of sight at top speed. For a point at rest it is exactly Arrive.
+
+**Seek** flies at top speed toward a point and doesn't brake.
+
+**Pursue** aims at the point `stand_off` beyond the target's hull and the agent's own along the line of sight, so it settles beside the target at the target's velocity.
+
+**Follow** holds a slot, an offset in the leader's frame (`FrameOffset`: right, up, forward), moving with the leader.
+
+**Hold** is Arrive at the body's own position (`Behaviour::hold`).
+
+**Orbit** flies a circle of a given radius around a centre, in the plane normal to `normal`, anticlockwise about it. In the plane the direction is the guidance vector field `normalize(tangent − gain · e · radial)` with `e = (|p|² − r²) / r²` and `gain` `ORBIT_FIELD_GAIN`: tangent on the circle and turning inward from outside and outward from inside. Out of the plane a climb term `clamp(−height · k, ±s)` pulls the agent back to the plane. The circle speed `s` solves `s⁴ / r² + k² s² = (share · a)²`: the centripetal demand and the drag together use `ORBIT_THRUST_SHARE` of the forward thrust `a`, and `s` is capped at top speed, so a ship on the circle keeps thrust in reserve for avoidance. The centre's velocity is added, so a moving centre is followed. A zero normal or a non-positive radius makes the agent match the centre's velocity.
 
 An agent has arrived when its centre is within the goal's arrival radius, held to at least `MIN_ARRIVAL_RADII` (2) of the agent's own radii (`Goal::effective_arrival_radius`). A smaller circle can't be honoured by a crowd: goals closer together than the hulls make the agents dodge each other around the goals without any of them reaching its circle, so none arrives. The flag is positional: the agent keeps steering to stop on the goal.
 
@@ -39,6 +53,8 @@ Special cases:
 - An agent already inside a reach slides out along that sphere toward its goal, with an outward component that grows with the depth, so it leaves the reach instead of circling in it.
 - A course through the centre has no side. A fixed rule picks one from the direction to the centre, so two agents meeting head-on choose the same side, which makes them pass each other rather than mirror each other.
 
+Seek, pursuit and offset pursuit (Follow) follow Reynolds' steering behaviours (see below), with the lead taken from constant bearing instead of a predicted position. The Orbit field is from García de Marina and Hattenberger, "Guidance Vector Fields for Robot Navigation along Orbits" (IMAV 2017, arXiv 1709.01110); its out-of-plane term is ours.
+
 The method is adapted from the obstacle avoidance of Reynolds, "Steering Behaviors For Autonomous Characters" (Game Developers Conference, 1999): the agent predicts which obstacle it would hit and steers around it. Here the contact time with a moving sphere is solved exactly, and the new course is the tangent to the inflated sphere, instead of a probe cylinder ahead of the agent and a lateral force.
 
 ## Controller
@@ -61,6 +77,7 @@ The controller maps the wanted velocity and the direction of travel to axes with
 - Other agents are spheres that keep their velocity, and an agent doesn't know that they steer too. Agents whose goals are closer than their hulls plus clearances (berths a hull apart) can't all hold them: the clearance clamp lets them approach, and the arrival radius floor lets them arrive at the edge of the crowd instead of dodging in front of the berths. A crowd that arrives together still dodges for longer than a lone agent.
 - The closing-speed limit makes an agent stop in front of a gap that its clearance makes impassable, instead of squeezing through it: it waits there until the goal or the obstacles move.
 - The two candidates of an obstacle lie in the plane of the relative velocity and the direction to the centre. A pocket that only opens out of that plane, or more than `MAX_EXPANDED_THREATS` obstacles in a row, can be missed; the agent then takes the latest contact.
+- An orbit that passes inside an obstacle's reach is pushed off its circle by avoidance, and goes back to it once clear. Ships on one orbit aren't spaced out along it.
 - Goals closer to an obstacle than `aim_factor` times its reach are hard to approach (see Tuning).
 - The cost of a step grows with agents × obstacles (agents are obstacles too); there is no spatial index. The reachability skip rejects spheres only beyond what a course covers within the horizon (88 km for a 8.8 km/s ship and the default horizon), so it saves little at the scale of one system's local space.
 
