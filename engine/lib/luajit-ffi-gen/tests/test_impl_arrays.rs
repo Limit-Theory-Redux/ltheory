@@ -286,12 +286,31 @@ fn test_null_slice_should_panic() {
 }
 
 #[test]
-#[should_panic]
-fn test_zero_length_slice_should_panic() {
+fn test_zero_length_slice_is_empty() {
     let mut t = ArraysTest::default();
+    t.val_array_primitive = vec![1, 2, 3];
     let data = [0; 3];
     unsafe {
         ArraysTest_SetPrimitiveSlice(&mut t, data.as_ptr(), 0);
+    }
+    assert!(t.val_array_primitive.is_empty());
+
+    // Lua passes nil for an empty array: the pointer is never read.
+    t.val_array_primitive = vec![1, 2, 3];
+    unsafe {
+        ArraysTest_SetPrimitiveSlice(&mut t, std::ptr::null(), 0);
+        ArraysTest_GetPrimitiveSlice(&t, std::ptr::null_mut(), 0);
+        ArraysTest_SetStrSlice(&mut t, std::ptr::null(), 0);
+    }
+    assert!(t.val_array_primitive.is_empty());
+}
+
+#[test]
+#[should_panic(expected = "array pointer is null")]
+fn test_null_nonempty_slice_should_panic() {
+    let mut t = ArraysTest::default();
+    unsafe {
+        ArraysTest_SetPrimitiveSlice(&mut t, std::ptr::null(), 2);
     }
 }
 

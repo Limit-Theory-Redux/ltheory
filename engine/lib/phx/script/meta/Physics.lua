@@ -19,14 +19,14 @@ function Physics:setLengthUnit(lengthUnit) end
 function Physics:setContactNaturalFrequency(frequency) end
 
 -- Adds this rigid body to this physics world if it doesn't exist, otherwise do nothing.
--- 
+--
 -- Automatically adds all attached Triggers. Automatically adds all
 -- attached children and their Triggers.
 ---@param rigidBody RigidBody
 function Physics:addRigidBody(rigidBody) end
 
 -- Removes this rigid body from this physics world if it's added, otherwise do nothing.
--- 
+--
 -- Automatically removes all attached Triggers. Automatically removes all
 -- attached children and their Triggers.
 ---@param rigidBody RigidBody
@@ -42,7 +42,7 @@ function Physics:removeTrigger(trigger) end
 function Physics:update(dt) end
 
 -- This will fill the collision object with the collision information.
--- 
+--
 -- Will include results for both child and parent RigidBodys that are
 -- colliding. Will not include Triggers.
 ---@param iterator Collision
@@ -64,7 +64,7 @@ function Physics:rayCast(ray, result) end
 function Physics:rayCastFiltered(ray, exclude, mask, result) end
 
 -- The bodies a sphere at `pos` overlaps, unsorted, including child bodies.
--- 
+--
 -- The arrays in the result are valid until the next call to sphere_cast.
 ---@param pos Position
 ---@param radius number
@@ -72,7 +72,7 @@ function Physics:rayCastFiltered(ray, exclude, mask, result) end
 function Physics:sphereCast(pos, radius, result) end
 
 -- The bodies a box at `pos` overlaps, unsorted, including child bodies.
--- 
+--
 -- The arrays in the result are valid until the next call to box_cast.
 ---@param pos Position
 ---@param rot Quat
@@ -106,7 +106,7 @@ function Physics:sphereSweep(from, to, radius, exclude, mask, result) end
 -- The bodies within `radius` of `pos`, nearest first, skipping the compound `exclude`
 -- belongs to, and including only bodies whose collision group shares a bit with `mask`.
 -- Child bodies are listed on their own; a body without a user id is listed with id 0.
--- 
+--
 -- The arrays in the result are valid until the next call to query_radius.
 ---@param pos Position
 ---@param radius number
@@ -120,13 +120,10 @@ function Physics:drawBoundingBoxesLocal() end
 function Physics:drawBoundingBoxesWorld() end
 
 ---@param r Renderer
----@param shader Shader
 ---@param eye Position
-function Physics:drawWireframes(r, shader, eye) end
+function Physics:drawWireframes(r, eye) end
 
 ---@param r Renderer
----@param shader Shader
 ---@param eye Position
 ---@param maxRange number
-function Physics:drawWireframesInRange(r, shader, eye, maxRange) end
-
+function Physics:drawWireframesInRange(r, eye, maxRange) end

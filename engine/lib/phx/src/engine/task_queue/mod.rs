@@ -1,4 +1,5 @@
 mod error;
+mod lua_worker;
 mod task_queue;
 mod task_result;
 mod worker;
@@ -7,6 +8,7 @@ mod worker_id;
 mod worker_instance;
 
 pub use error::*;
+pub use lua_worker::*;
 pub use task_queue::*;
 pub use task_result::*;
 pub use worker::*;

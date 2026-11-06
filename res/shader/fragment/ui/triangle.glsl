@@ -1,10 +1,12 @@
 #include fragment
 #include math
 
-uniform vec2 p1;
-uniform vec2 p2;
-uniform vec2 p3;
-uniform vec4 color;
+#include imm
+
+#define p1 (imm_p.xy)
+#define p2 (imm_p.zw)
+#define p3 (imm_q.xy)
+#define color imm_color
 
 const float kRadius = 0.5;
 

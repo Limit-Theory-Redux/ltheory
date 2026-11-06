@@ -4,24 +4,25 @@
 #include color
 #include noise
 #include scattering2
-#include texcube
 
+#group 1
+layout(std140) uniform MaterialParams {
+  vec3 highlandColor;
+  float heightMult;
+  vec3 mariaColor;
+  float enableAtmosphere;
+};
 uniform samplerCube surface;
-uniform vec3 origin;
-uniform vec3 highlandColor;
-uniform vec3 mariaColor;
-uniform float heightMult;
-uniform float enableAtmosphere;
 
-vec3 calculateDetailedNormal(samplerCube map, vec3 p, float delta) {
-    float h = texture(map, p).x;
+vec3 calculateDetailedNormal(vec3 p, float delta) {
+    float h = texture(surface, p).x;
 
     vec3 tangent = normalize(cross(p, vec3(0.0, 1.0, 0.0)));
     if (length(tangent) < 0.1) tangent = normalize(cross(p, vec3(1.0, 0.0, 0.0)));
     vec3 bitangent = normalize(cross(p, tangent));
 
-    float hx = texture(map, normalize(p + tangent * delta)).x;
-    float hy = texture(map, normalize(p + bitangent * delta)).x;
+    float hx = texture(surface, normalize(p + tangent * delta)).x;
+    float hy = texture(surface, normalize(p + bitangent * delta)).x;
 
     vec3 dx = tangent * (hx - h) / delta;
     vec3 dy = bitangent * (hy - h) / delta;
@@ -29,15 +30,15 @@ vec3 calculateDetailedNormal(samplerCube map, vec3 p, float delta) {
     return normalize(p - heightMult * 1.4 * (dx + dy));
 }
 
-float computeShadowing(samplerCube map, vec3 p, vec3 L) {
+float computeShadowing(vec3 p, vec3 L) {
     const int steps = 16;
     float shadow = 1.0;
-    float h = texture(map, p).x;
+    float h = texture(surface, p).x;
 
     for (int i = 1; i <= steps; ++i) {
         float t = float(i) / float(steps) * 0.04;
         vec3 pos = normalize(p + L * t);
-        float sampleH = texture(map, pos).x;
+        float sampleH = texture(surface, pos).x;
         float dh = (sampleH - h) * heightMult - t * 0.3;
         if (dh > 0.0) shadow = min(shadow, 1.0 - 7.0 * dh);
     }
@@ -50,7 +51,7 @@ void main() {
     vec3 p = vertPos;
 
     vec4 data = texture(surface, p);
-    vec3 detailedN = calculateDetailedNormal(surface, p, 0.009);
+    vec3 detailedN = calculateDetailedNormal(p, 0.009);
     vec3 N = normalize(mix(normalize(normal), detailedN, 0.97));
 
     float NL = max(0.0, dot(N, L));
@@ -59,7 +60,7 @@ void main() {
 
     vec3 albedo = mix(highlandColor, mariaColor, colorMask);
 
-    float shadow = computeShadowing(surface, p, L);
+    float shadow = computeShadowing(p, L);
 
     // NO ambient — dark side is black
     float lighting = NL * shadow;  // Only direct light

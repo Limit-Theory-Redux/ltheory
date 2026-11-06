@@ -50,7 +50,7 @@ The physics step is at most 0.05 s. The first frame loads shaders and assets and
 
 ## Debug drawing
 
-`Support/NavDebugDraw.lua` draws lines and spheres at world `Position`s. The render pipeline draws with the eye at the origin, so the helper subtracts the eye from each point in double precision (`Position:relativeTo`) before it reaches `Draw.Line3` and `Draw.Sphere`. A render function calls `begin()`, the draws, then `finish()`.
+`Support/NavDebugDraw.lua` draws lines and spheres at world `Position`s. The render pipeline draws with the eye at the origin, so the helper subtracts the eye from each point in double precision (`Position:relativeTo`) before it reaches `Imm.Line3` and the sphere draw. Lines are `Imm.Line3`. A filled sphere is a unit `Mesh.BoxSphere` drawn into the open scene pass with the additive pipeline, the `wvp` vertex shader and the `flat_color_draw` fragment shader (the colour is `drawUser[0]` of the `DrawBlock`). A wireframe sphere is three `Imm.Line3` great circles. A render function calls `begin()`, the draws, then `finish()`.
 
 A sphere is never drawn smaller than a fixed angular radius as seen from the eye: its radius is `max(radius, distance · MIN_ANGULAR_RADIUS)`. Ships are tens of metres across and the scenarios span kilometres, so at the framing distance a ship is far below a pixel; the angular minimum keeps it visible at any distance without depending on the field of view or the window size.
 

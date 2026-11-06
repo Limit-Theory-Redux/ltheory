@@ -25,4 +25,3 @@ function Polygon:getCentroid() end
 
 ---@return Error
 function Polygon:validate() end
-

@@ -30,14 +30,12 @@ function TurretLoadoutGenerator:create(parent, mounts)
             mount.weaponRef)
         assert(mountWeapon, "missing weapon definition for mount " .. mount.mountId)
         local mesh = Mesh.Box(8)
-        local material = Materials.DebugColor()
+        local material = Materials.DebugColor:instance()
         local visual = WeaponRegistry:getPresentation(mountWeapon)
-        if visual and visual.bodyColor and material.constShaderVars[1] then
-            material.constShaderVars[1].value = {
-                visual.bodyColor.r,
-                visual.bodyColor.g,
-                visual.bodyColor.b,
-            }
+        if visual and visual.bodyColor then
+            local color = material:params().color
+            color.x, color.y, color.z = visual.bodyColor.r, visual.bodyColor.g, visual.bodyColor.b
+            material:commit()
         end
         local bodyLocalPosition = mount.bodyLocalPosition or mount.localPosition
         local turret = ConstructEntities.Turret(

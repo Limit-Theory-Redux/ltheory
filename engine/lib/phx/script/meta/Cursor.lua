@@ -27,4 +27,3 @@ function Cursor:isHitTest() end
 
 ---@param hitTest boolean
 function Cursor:setHitTest(hitTest) end
-

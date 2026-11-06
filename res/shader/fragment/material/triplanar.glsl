@@ -11,12 +11,15 @@ void main() {
   vec3 N = normalize(normal);
   vec3 uvw = vertPos.xyz / 2.0;
 
-  vec3 c = sampleTriplanar(texDiffuse, uvw).xyz;
-  float spec = sampleTriplanar(texSpec, uvw).x;
+  vec3 c = texture(texDiffuse, triplanarCoords(uvw)).xyz;
+  float spec = texture(texSpec, triplanarCoords(uvw)).x;
   spec *= spec;
 
   #if 0
-    vec3 bump = sampleTriplanarBumpmap(texNormal, uvw);
+    vec3 bump = triplanarBumpmap(
+      texture(texNormal, uvw.yz).xyz,
+      texture(texNormal, uvw.zx).xyz,
+      texture(texNormal, uvw.xy).xyz);
     vec3 Q1  = dFdx(pos), Q2 = dFdy(pos);
     vec2 st1 = dFdx(uv), st2 = dFdy(uv);
     vec3 T = normalize(Q1*st2.t - Q2*st1.t);

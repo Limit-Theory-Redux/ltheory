@@ -87,4 +87,3 @@ function ArraysTest:moveStringArray(data, data_size) end
 ---@param data string[]
 ---@param data_size integer
 function ArraysTest:setStringArray(data, data_size) end
-

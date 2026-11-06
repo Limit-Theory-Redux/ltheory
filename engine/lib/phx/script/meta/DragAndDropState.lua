@@ -12,4 +12,3 @@ function DragAndDropState:getHoveredFile() end
 
 ---@return boolean
 function DragAndDropState:ifHoveredFileCancelled() end
-

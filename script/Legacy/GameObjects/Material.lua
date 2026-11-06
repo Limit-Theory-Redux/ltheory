@@ -25,10 +25,6 @@ end)
 
 local function setTextureState(tex)
     tex:genMipmap()
-    tex:setMagFilter(TexFilter.Linear)
-    tex:setMinFilter(TexFilter.LinearMipLinear)
-    tex:setAnisotropy(16)
-    tex:setWrapMode(TexWrapMode.Repeat)
 end
 
 function Material.Create(name, diffuse, normal, spec)

@@ -22,4 +22,3 @@ function Plane.FromPolygon(polygon) end
 ---@param polygon Polygon
 ---@return Plane
 function Plane.FromPolygonFast(polygon) end
-

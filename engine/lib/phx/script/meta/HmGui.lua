@@ -238,4 +238,3 @@ function HmGui:setChildrenVerticalAlignment(align) end
 
 -- Prints widgets hierarchy to the console. For testing.
 function HmGui:dumpWidgets() end
-

@@ -79,4 +79,3 @@ function GamepadState:isDownById(gamepadId, button) end
 ---@param button GamepadButton
 ---@return boolean
 function GamepadState:isReleasedById(gamepadId, button) end
-

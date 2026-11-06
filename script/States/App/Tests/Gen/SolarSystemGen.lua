@@ -70,7 +70,7 @@ function SolarSystemGenTest:processEntityHierarchy(entity, prefix, isLast)
     Log.Info("%sEntity: %s (%s)", linePrefix, entityClass, subtype)
 
     local transformCmp = entity:get(PhysicsComponents.Transform)
-    local position = transformCmp and transformCmp:getPosition() or { x = 0, y = 0, z = 0 }
+    local position = transformCmp and transformCmp:getPos() or { x = 0, y = 0, z = 0 }
     local scale = transformCmp and transformCmp:getScale() or 1
 
     Log.Info("%sPosition (scaled):   (%.2f, %.2f, %.2f)", propPrefix, position.x, position.y, position.z)

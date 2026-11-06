@@ -14,4 +14,3 @@ function Sound:getDuration() end
 
 ---@return string
 function Sound:getPath() end
-

@@ -114,4 +114,3 @@ function Bytes:writeF32(value) end
 
 ---@param value number
 function Bytes:writeF64(value) end
-

@@ -41,8 +41,8 @@ impl ResourceHandle {
 impl Drop for ResourceHandle {
     fn drop(&mut self) {
         // The queue is unbounded, so this never blocks - which matters in a
-        // destructor. It only fails once the `Renderer` (and with it the GL
-        // context that owns the resource) is gone, in which case there is
+        // destructor. It only fails once the `Renderer` (and with it the
+        // device that owns the resource) is gone, in which case there is
         // nothing left to destroy.
         let _ = self.destroy_tx.send(self.id);
     }

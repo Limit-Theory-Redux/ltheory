@@ -6,4 +6,3 @@ SystemEventState = {}
 
 ---@return boolean
 function SystemEventState:isExit() end
-

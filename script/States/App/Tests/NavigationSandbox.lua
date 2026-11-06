@@ -166,8 +166,7 @@ end
 function NavigationSandbox:createEnvironment()
     self.envMap = TexCube.Create(ENV_MAP_SIZE, TexFormat.RGBA16F)
     self.envMap:clear(ENV_GREY, ENV_GREY, ENV_GREY, 1)
-    ShaderVar.PushTexCube('envMap', self.envMap)
-    ShaderVar.PushTexCube('irMap', self.envMap)
+    Renderer:setEnvironment(self.envMap, self.envMap)
     CameraManager:setStarDir(STAR_DIR)
 end
 

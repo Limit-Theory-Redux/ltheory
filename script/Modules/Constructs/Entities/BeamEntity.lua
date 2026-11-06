@@ -4,9 +4,13 @@ local Physics = require("Modules.Physics.Components")
 local Rendering = require("Modules.Rendering.Components")
 local Constructs = require("Modules.Constructs.Components")
 local CameraManager = require("Modules.Cameras.Managers.CameraManager")
+local Pipelines = require("Render.Pipelines")
+
+local ffi = require("ffi")
 
 local beamMesh
 local beamShader
+local DrawBlock
 
 local function getPosition(entity)
     if not entity or not entity:isValid() then
@@ -51,7 +55,8 @@ local function render(entity, blendMode)
 
     if not beamMesh then
         beamMesh = Gen.Primitive.Billboard(-1, 0, 1, 1)
-        beamShader = Cache.Shader("billboard/axis", "effect/beam")
+        beamShader = Cache.Shader("billboard/axis_draw", "effect/beam_draw")
+        DrawBlock = beamShader:blockType("DrawBlock")
     end
 
     local eye = CameraManager:getEye()
@@ -67,14 +72,16 @@ local function render(entity, blendMode)
     local visual = beam:getVisual()
     local color = visual.bodyColor
 
-    beamShader:start()
-    beamShader:setFloat3("color", color.r, color.g, color.b)
-    beamShader:setFloat("alpha", 1.0)
-    beamShader:setFloat2("size", visual.beamWidth or 0.008, length)
-    beamShader:setFloat("seed", 0.0)
-    beamShader:setMatrix("mWorld", matrix)
-    beamMesh:draw()
-    beamShader:stop()
+    -- One draw in the additive pass: the pipeline sets the state, the draw
+    -- block (group 2) carries the transform and the effect parameters.
+    local pass = Renderer:currentPass()
+    pass:setPipeline(Pipelines.get(beamShader, Pipelines.Additive))
+    local d = pass:alloc(DrawBlock)
+    ffi.copy(d.mWorld, matrix, 64)
+    local user = d.drawUser
+    user[0], user[1], user[2], user[3] = color.r, color.g, color.b, 1.0 -- color, alpha
+    user[4], user[5], user[6] = visual.beamWidth or 0.008, length, 0.0  -- size, seed
+    pass:drawMesh(beamMesh)
 end
 
 ---@param seed integer

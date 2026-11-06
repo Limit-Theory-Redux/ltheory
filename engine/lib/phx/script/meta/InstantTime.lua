@@ -11,4 +11,3 @@ function InstantTime.Now() end
 ---@param earlier InstantTime
 ---@return number
 function InstantTime:durationSince(earlier) end
-

@@ -31,4 +31,3 @@ function Hash.FNV64_Init() end
 ---@param buf_size integer
 ---@return integer
 function Hash.FNV64_Incremental(this, buf, buf_size) end
-

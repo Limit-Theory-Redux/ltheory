@@ -17,25 +17,18 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            TexFilter TexFilter_Point;
-            TexFilter TexFilter_PointMipPoint;
-            TexFilter TexFilter_PointMipLinear;
-            TexFilter TexFilter_Linear;
-            TexFilter TexFilter_LinearMipPoint;
-            TexFilter TexFilter_LinearMipLinear;
-
             cstr      TexFilter_ToString(TexFilter);
         ]]
     end
 
     do -- Global Symbol Table
         TexFilter = {
-            Point           = libphx.TexFilter_Point,
-            PointMipPoint   = libphx.TexFilter_PointMipPoint,
-            PointMipLinear  = libphx.TexFilter_PointMipLinear,
-            Linear          = libphx.TexFilter_Linear,
-            LinearMipPoint  = libphx.TexFilter_LinearMipPoint,
-            LinearMipLinear = libphx.TexFilter_LinearMipLinear,
+            Point           = 0,
+            PointMipPoint   = 1,
+            PointMipLinear  = 2,
+            Linear          = 3,
+            LinearMipPoint  = 4,
+            LinearMipLinear = 5,
 
             ToString        = libphx.TexFilter_ToString,
         }

@@ -5,9 +5,11 @@
 #include noise
 #include bezier
 
-uniform sampler2D src;
-uniform float exposure;
-uniform vec2 size;
+#group 2
+layout(std140) uniform Params {
+    float exposure;
+    vec2 size;
+};
 
 const float b = 1.25;
 const float k = 2.30;

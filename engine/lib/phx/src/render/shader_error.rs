@@ -21,7 +21,7 @@ pub struct ShaderErrorInfo {
 }
 
 /// Owned by `RendererData` (see `render/thread/renderer_data.rs`) and reached
-/// via `r.data.shader_errors` - no `static`/global, matching `ShaderVarMap`.
+/// via `r.data.shader_errors` - no `static`/global.
 pub struct ShaderErrorQueue {
     errors: VecDeque<ShaderErrorInfo>,
     frame_counter: u64,
@@ -42,7 +42,7 @@ impl ShaderErrorQueue {
             self.errors.pop_front();
         }
 
-        // OpenGL error strings may contain null bytes.
+        // Strip null bytes: the message is handed to Lua as a C string.
         let clean_message = message.replace('\0', "");
 
         tracing::error!("Shader {error_type} error for '{shader_key}': {clean_message}");

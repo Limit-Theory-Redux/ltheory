@@ -22,4 +22,3 @@ GamepadAxis = {
     -- The value of the right `Z` button.
     RightZ = 5,
 }
-

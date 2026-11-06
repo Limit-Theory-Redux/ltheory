@@ -146,7 +146,7 @@ function ShipGenerator:createFighter(seed, config, stats)
     mesh:computeAO(0.3 * mesh:getRadius())
 
     -- Get or create material
-    local material = config.material or (Materials.Metal and Materials.Metal())
+    local material = config.material or (Materials.Metal and Materials.Metal:instance())
 
     local meshes = { { mesh = mesh, material = material } }
 
@@ -202,7 +202,7 @@ function ShipGenerator:createCapital(seed, config, stats)
     mesh:computeNormals()
 
     -- Get or create material
-    local material = config.material or (Materials.Metal and Materials.Metal())
+    local material = config.material or (Materials.Metal and Materials.Metal:instance())
 
     local meshes = { { mesh = mesh, material = material } }
 
@@ -258,7 +258,7 @@ function ShipGenerator:createBasic(seed, config, stats)
     mesh:computeNormals()
 
     -- Get or create material
-    local material = config.material or (Materials.Metal and Materials.Metal())
+    local material = config.material or (Materials.Metal and Materials.Metal:instance())
 
     local meshes = { { mesh = mesh, material = material } }
 

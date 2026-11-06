@@ -138,7 +138,7 @@ jobs:
       - name: Update packages
         run: sudo apt-get update
       - name: Install packages
-        run: sudo apt-get install -y libgl1-mesa-dev libglu1-mesa-dev libasound2-dev libudev-dev
+        run: sudo apt-get install -y libasound2-dev libudev-dev
       - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         with:
           shared-key: "linux"

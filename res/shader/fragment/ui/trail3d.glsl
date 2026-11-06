@@ -1,6 +1,7 @@
 #include fragment
+#include imm
 
-uniform vec4 color;
+#define color imm_color
 
 void main() {
   float alpha = uv.x; // per-vertex fade encoded in UV.x

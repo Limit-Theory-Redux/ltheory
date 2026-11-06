@@ -19,18 +19,19 @@ function Loader.defineType()
         ffi.cdef [[
             void      TexCube_Free         (TexCube*);
             TexCube*  TexCube_Create       (Renderer* r, int size, TexFormat format);
+            TexCube*  TexCube_CreateDesc   (Renderer* r, int size, TexFormat format, int mips, uint32 usage);
             TexCube*  TexCube_Load         (Renderer* r, cstr path);
+            TexView*  TexCube_View         (TexCube const*);
+            TexView*  TexCube_FaceView     (TexCube const*, CubeFace face);
+            TexView*  TexCube_FaceMipView  (TexCube const*, CubeFace face, int level);
             void      TexCube_Clear        (TexCube*, Renderer* r, float red, float green, float blue, float alpha);
             void      TexCube_Save         (TexCube*, Renderer* r, cstr path);
             void      TexCube_SaveLevel    (TexCube*, Renderer* r, cstr path, int level);
             Bytes*    TexCube_GetDataBytes (TexCube*, Renderer* r, CubeFace face, int level, TexFormat tf, DataFormat df);
             TexFormat TexCube_GetFormat    (TexCube const*);
             int       TexCube_GetSize      (TexCube const*);
-            void      TexCube_Generate     (TexCube*, Renderer* r, ShaderState* state);
             void      TexCube_GenMipmap    (TexCube*, Renderer* r);
             void      TexCube_SetDataBytes (TexCube*, Renderer* r, Bytes const* data, CubeFace face, int level, TexFormat tf, DataFormat df);
-            void      TexCube_SetMagFilter (TexCube*, Renderer* r, TexFilter filter);
-            void      TexCube_SetMinFilter (TexCube*, Renderer* r, TexFilter filter);
             TexCube*  TexCube_GenIRMap     (TexCube*, Renderer* r, int sampleCount);
         ]]
     end
@@ -39,6 +40,10 @@ function Loader.defineType()
         TexCube = {
             Create       = function(r, size, format)
                 local _instance = libphx.TexCube_Create(r, size, format)
+                return Core.ManagedObject(_instance, libphx.TexCube_Free)
+            end,
+            CreateDesc   = function(r, size, format, mips, usage)
+                local _instance = libphx.TexCube_CreateDesc(r, size, format, mips, usage)
                 return Core.ManagedObject(_instance, libphx.TexCube_Free)
             end,
             Load         = function(r, path)
@@ -55,6 +60,18 @@ function Loader.defineType()
         local t  = ffi.typeof('TexCube')
         local mt = {
             __index = {
+                view         = function(self)
+                    local _instance = libphx.TexCube_View(self)
+                    return Core.ManagedObject(_instance, libphx.TexView_Free)
+                end,
+                faceView     = function(self, face)
+                    local _instance = libphx.TexCube_FaceView(self, face)
+                    return Core.ManagedObject(_instance, libphx.TexView_Free)
+                end,
+                faceMipView  = function(self, face, level)
+                    local _instance = libphx.TexCube_FaceMipView(self, face, level)
+                    return Core.ManagedObject(_instance, libphx.TexView_Free)
+                end,
                 clear        = libphx.TexCube_Clear,
                 save         = libphx.TexCube_Save,
                 saveLevel    = libphx.TexCube_SaveLevel,
@@ -64,11 +81,8 @@ function Loader.defineType()
                 end,
                 getFormat    = libphx.TexCube_GetFormat,
                 getSize      = libphx.TexCube_GetSize,
-                generate     = libphx.TexCube_Generate,
                 genMipmap    = libphx.TexCube_GenMipmap,
                 setDataBytes = libphx.TexCube_SetDataBytes,
-                setMagFilter = libphx.TexCube_SetMagFilter,
-                setMinFilter = libphx.TexCube_SetMinFilter,
                 genIRMap     = function(self, r, sampleCount)
                     local _instance = libphx.TexCube_GenIRMap(self, r, sampleCount)
                     return Core.ManagedObject(_instance, libphx.TexCube_Free)

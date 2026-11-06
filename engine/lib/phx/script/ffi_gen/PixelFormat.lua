@@ -17,14 +17,6 @@ function Loader.defineType()
 
     do -- C Definitions
         ffi.cdef [[
-            PixelFormat PixelFormat_DepthComponent;
-            PixelFormat PixelFormat_Red;
-            PixelFormat PixelFormat_RGB;
-            PixelFormat PixelFormat_RGBA;
-            PixelFormat PixelFormat_BGR;
-            PixelFormat PixelFormat_BGRA;
-            PixelFormat PixelFormat_RG;
-
             cstr        PixelFormat_ToString(PixelFormat);
 
             int PixelFormat_Components (PixelFormat this);
@@ -33,13 +25,13 @@ function Loader.defineType()
 
     do -- Global Symbol Table
         PixelFormat = {
-            DepthComponent = libphx.PixelFormat_DepthComponent,
-            Red            = libphx.PixelFormat_Red,
-            RGB            = libphx.PixelFormat_RGB,
-            RGBA           = libphx.PixelFormat_RGBA,
-            BGR            = libphx.PixelFormat_BGR,
-            BGRA           = libphx.PixelFormat_BGRA,
-            RG             = libphx.PixelFormat_RG,
+            DepthComponent = 0,
+            Red            = 1,
+            RGB            = 2,
+            RGBA           = 3,
+            BGR            = 4,
+            BGRA           = 5,
+            RG             = 6,
 
             ToString       = libphx.PixelFormat_ToString,
 

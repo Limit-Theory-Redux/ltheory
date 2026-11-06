@@ -37,8 +37,8 @@ function Loader.defineType()
             void     Physics_QueryRadius                (Physics const*, Position const* pos, double radius, RigidBody const* exclude, uint32 mask, RadiusQueryResult* out);
             void     Physics_DrawBoundingBoxesLocal     (Physics const*);
             void     Physics_DrawBoundingBoxesWorld     (Physics const*);
-            void     Physics_DrawWireframes             (Physics*, Renderer* r, Shader* shader, Position const* eye);
-            void     Physics_DrawWireframesInRange      (Physics*, Renderer* r, Shader* shader, Position const* eye, double maxRange);
+            void     Physics_DrawWireframes             (Physics*, Renderer* r, Position const* eye);
+            void     Physics_DrawWireframesInRange      (Physics*, Renderer* r, Position const* eye, double maxRange);
         ]]
     end
 

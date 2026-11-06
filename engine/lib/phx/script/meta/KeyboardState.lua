@@ -32,4 +32,3 @@ function KeyboardState:value(button) end
 -- Text entered in the current frame. Usually a single symbol.
 ---@return string
 function KeyboardState:text() end
-

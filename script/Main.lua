@@ -17,10 +17,6 @@ function SetEngine(engine)
     Window = Engine:window()
     Gui = Engine:hmGui()
     Renderer = Engine:renderer()
-
-    -- Must exist before any shader that #includes camera_ubo/light_ubo binds.
-    Renderer:createCameraUbo()
-    Renderer:createLightUbo()
 end
 
 -- The app state that InitSystem loads; nil until it succeeds.
@@ -111,7 +107,7 @@ function InitSystem()
         -- io.close(logG)
 
         -- check for / and replace with . to allow for subdirectory calls (e.g. ECS/UniverseCreationTest)
-        if app:find("/") then app:gsub("/", ".") end
+        if app:find("/") then app = app:gsub("/", ".") end
 
         local foundState, state = pcall(require, 'States.App.' .. app)
         local foundTest, test = pcall(require, 'States.App.Tests.' .. app)

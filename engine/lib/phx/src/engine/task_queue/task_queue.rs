@@ -1,14 +1,12 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
-use crossbeam::channel::RecvTimeoutError;
-use mlua::{Function, Lua};
 use tracing::{debug, error};
 
 use super::{
-    TaskQueueError, TaskResult, Worker, WorkerBase, WorkerId, WorkerInData, WorkerIndex,
-    WorkerOutData,
+    LuaTaskOutput, TaskId, TaskQueueError, TaskResult, Worker, WorkerBase, WorkerId, WorkerIndex,
+    lua_worker_body,
 };
 use crate::engine::{Payload, PayloadType};
 
@@ -16,7 +14,7 @@ use crate::engine::{Payload, PayloadType};
 /// It can be used to start either custom Lua scripts in a separate threads or predefined engine workers.
 /// When started workers can accept tasks and return their results.
 pub struct TaskQueue {
-    lua_workers: HashMap<WorkerIndex, Worker<Payload, Box<Payload>>>,
+    lua_workers: HashMap<WorkerIndex, Worker<Payload, LuaTaskOutput>>,
     echo_worker: Worker<String, String>,
 }
 
@@ -51,6 +49,27 @@ impl TaskQueue {
             )))
         }
     }
+
+    /// A worker's result as a `TaskResult` (a cached Lua payload cannot cross
+    /// threads and becomes an error result).
+    fn task_result(worker_id: WorkerIndex, (task_id, data): (TaskId, LuaTaskOutput)) -> TaskResult {
+        match data {
+            Ok(Some(payload)) if payload.get_type() == PayloadType::Lua => {
+                error!("Cannot receive cached Lua payload from the worker");
+                TaskResult::new_error(
+                    worker_id,
+                    task_id,
+                    "Cannot receive cached Lua payload from the worker",
+                )
+            }
+            Ok(Some(payload)) => TaskResult::new(worker_id, task_id, payload),
+            Ok(None) => TaskResult::new_empty(worker_id, task_id),
+            Err(msg) => {
+                error!("Worker {worker_id} task {task_id} failed: {msg}");
+                TaskResult::new_error(worker_id, task_id, &msg)
+            }
+        }
+    }
 }
 
 /// Task queue is a worker threads manager.
@@ -82,70 +101,10 @@ impl TaskQueue {
             return false;
         }
 
-        let worker_name_copy = worker_name.to_string();
         let worker_thread = Worker::new(
             worker_name,
             instances_count,
-            move |in_receiver, out_sender| {
-                debug!("Starting instance of Lua worker: {worker_name_copy:?}");
-
-                #[allow(unsafe_code)] // TODO: remove
-                let lua = unsafe { Lua::unsafe_new() };
-
-                lua.load(script_path.as_path()).exec()?;
-
-                let globals = lua.globals();
-                let run_func: Function = globals.get("Run")?;
-
-                loop {
-                    let res: Result<WorkerInData<Payload>, _> =
-                        in_receiver.recv_timeout(Duration::from_millis(500));
-                    match res {
-                        Ok(in_data) => {
-                            let data = match in_data {
-                                WorkerInData::Ping => WorkerOutData::Pong,
-                                WorkerInData::Data(task_id, data) => {
-                                    // debug!(
-                                    //     "Worker {worker_name_copy} received[{task_id}]: {data:?}"
-                                    // );
-
-                                    // put data on the heap
-                                    let boxed_data = Box::new(data);
-
-                                    // send data pointer to the Lua script and transfer ownership
-                                    // receive a pointer to the response payload in form of integer
-                                    let boxed_out_data: usize = run_func
-                                        .call(Box::leak(boxed_data) as *mut Payload as usize)?;
-
-                                    // transfer ownership of the payload from the script to the engine in form of boxed data
-                                    #[allow(unsafe_code)] // TODO: remove
-                                    let out_data =
-                                        unsafe { Box::from_raw(boxed_out_data as *mut Payload) };
-
-                                    WorkerOutData::Data(task_id, out_data)
-                                }
-                                WorkerInData::Stop => {
-                                    debug!("Worker {worker_name_copy:?} received stop signal");
-                                    break;
-                                }
-                            };
-
-                            if out_sender.send(data).is_err() {
-                                error!("Cannot send response. Worker: {worker_name_copy}");
-                                break;
-                            }
-                        }
-                        Err(err) => match err {
-                            RecvTimeoutError::Timeout => continue,
-                            RecvTimeoutError::Disconnected => break,
-                        },
-                    }
-                }
-
-                debug!("Lua worker {worker_name_copy:?} instance stopped");
-
-                Ok(())
-            },
+            lua_worker_body(worker_name.to_string(), script_path, |_| Ok(())),
         );
 
         self.lua_workers.insert(worker_id, worker_thread);
@@ -252,32 +211,37 @@ impl TaskQueue {
 
     /// Returns next result of the finished worker task if any.
     pub fn next_task_result(&mut self, worker_id: u16) -> Option<TaskResult> {
-        if let Some(worker) = self.lua_workers.get_mut(&worker_id) {
-            match worker.recv() {
-                Ok(res) => res.map(|(task_id, data)| {
-                    if data.get_type() == PayloadType::Lua {
-                        error!("Cannot receive cached Lua payload from the worker");
-                        TaskResult::new_error(
-                            worker_id,
-                            task_id,
-                            "Cannot receive cached Lua payload from the worker",
-                        )
-                    } else {
-                        // debug!(
-                        //     "Received task {task_id} result for worker {:?}",
-                        //     worker.name()
-                        // );
-                        TaskResult::new(worker_id, task_id, data)
-                    }
-                }),
+        let Some(worker) = self.lua_workers.get_mut(&worker_id) else {
+            error!("Unknown worker: {worker_id}");
+            return None;
+        };
+        match worker.recv() {
+            Ok(res) => res.map(|res| Self::task_result(worker_id, res)),
+            Err(err) => {
+                error!("Cannot receive a result from worker {worker_id}. {err}");
+                None
+            }
+        }
+    }
+
+    /// Like `next_task_result`, but waits up to `timeout_ms` milliseconds for a result.
+    pub fn wait_task_result(&mut self, worker_id: u16, timeout_ms: u32) -> Option<TaskResult> {
+        let Some(worker) = self.lua_workers.get_mut(&worker_id) else {
+            error!("Unknown worker: {worker_id}");
+            return None;
+        };
+        let deadline = Instant::now() + Duration::from_millis(timeout_ms as u64);
+        loop {
+            // A pong answers a ping and carries no result: wait on.
+            match worker.recv_timeout(deadline.saturating_duration_since(Instant::now())) {
+                Ok(Some(res)) => return Some(Self::task_result(worker_id, res)),
+                Ok(None) if Instant::now() < deadline => {}
+                Ok(None) => return None,
                 Err(err) => {
-                    error!("Cannot send task to worker {worker_id}. {err}");
-                    None
+                    error!("Cannot receive a result from worker {worker_id}. {err}");
+                    return None;
                 }
             }
-        } else {
-            error!("Unknown worker: {worker_id}");
-            None
         }
     }
 

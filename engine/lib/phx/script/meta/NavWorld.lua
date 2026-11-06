@@ -22,7 +22,7 @@ function NavWorld:agentCount() end
 -- roll) are the forces and torques the ship applies along and about its own axes at full
 -- input. Accelerations follow from the body's mass and inertia at each step, and the top
 -- speed is the forward acceleration over the linear drag.
--- 
+--
 -- # Panics
 -- If `body` is not a root body of this world's physics.
 ---@param body RigidBody
@@ -39,7 +39,7 @@ function NavWorld:addAgent(body, linearDrag, angularDrag, thrustForward, thrustR
 
 -- Adds a sphere that every agent steers around: the body's position, velocity and bounding
 -- radius at each step.
--- 
+--
 -- # Panics
 -- If `body` is not a root body of this world's physics.
 ---@param body RigidBody
@@ -48,7 +48,7 @@ function NavWorld:addObstacle(body) end
 -- Sends the agent to `target`, in world coordinates, and stops it within the arrival radius
 -- of it (game units). The radius is at least two of the agent's own radii in every
 -- behaviour below.
--- 
+--
 -- # Panics
 -- If `id` isn't an agent.
 ---@param id integer
@@ -57,7 +57,7 @@ function NavWorld:addObstacle(body) end
 function NavWorld:setArrive(id, target, arrivalRadius) end
 
 -- Sends the agent through `target` at top speed, without braking.
--- 
+--
 -- # Panics
 -- If `id` isn't an agent.
 ---@param id integer
@@ -66,7 +66,7 @@ function NavWorld:setArrive(id, target, arrivalRadius) end
 function NavWorld:setSeek(id, target, arrivalRadius) end
 
 -- Keeps the agent where its body is now.
--- 
+--
 -- # Panics
 -- If `id` isn't an agent, or its body has left the physics world.
 ---@param id integer
@@ -75,7 +75,7 @@ function NavWorld:setHold(id, arrivalRadius) end
 
 -- Meets `target` `stand_off` from its hull (game units), matching its velocity. `target` is
 -- read from physics at each step.
--- 
+--
 -- # Panics
 -- If `id` isn't an agent, or `target` isn't a root body of this world's physics.
 ---@param id integer
@@ -86,7 +86,7 @@ function NavWorld:setPursue(id, target, standOff, arrivalRadius) end
 
 -- Holds the slot `right`, `up`, `forward` (game units) away from `leader`, in the leader's
 -- own axes, matching its velocity. `leader` is read from physics at each step.
--- 
+--
 -- # Panics
 -- If `id` isn't an agent, or `leader` isn't a root body of this world's physics.
 ---@param id integer
@@ -100,7 +100,7 @@ function NavWorld:setFollow(id, leader, right, up, forward, arrivalRadius) end
 -- Circles `centre` at `radius` (game units) in the plane through it normal to `normal`,
 -- anticlockwise about `normal`, moving with the centre. `centre` is read from physics at each
 -- step.
--- 
+--
 -- # Panics
 -- If `id` isn't an agent, `centre` isn't a root body of this world's physics, `radius` isn't
 -- positive, or `normal` is zero or not finite.
@@ -112,7 +112,7 @@ function NavWorld:setFollow(id, leader, right, up, forward, arrivalRadius) end
 function NavWorld:setOrbit(id, centre, radius, normal, arrivalRadius) end
 
 -- Leaves the agent without input.
--- 
+--
 -- # Panics
 -- If `id` isn't an agent.
 ---@param id integer
@@ -128,14 +128,14 @@ function NavWorld:setAvoidanceTuning(horizonS, clearanceRadii, aimFactor) end
 
 -- Reads every registered body from physics and computes each agent's control axes and
 -- arrival.
--- 
+--
 -- # Panics
 -- If a registered body has left the physics world.
 function NavWorld:step() end
 
 -- Copies the control axes of the last step into `out`: one value per axis for each agent, in
 -- agent order and in the order of `NavAxis`.
--- 
+--
 -- # Panics
 -- If `out` isn't exactly the number of agents times the number of axes long.
 ---@param out number[]
@@ -144,10 +144,9 @@ function NavWorld:copyAxes(out, out_size) end
 
 -- Copies, for each agent in order, whether it was within its goal's arrival radius (at least
 -- two of its own radii) at the last step.
--- 
+--
 -- # Panics
 -- If `out` isn't exactly one value per agent long.
 ---@param out boolean[]
 ---@param out_size integer
 function NavWorld:copyArrived(out, out_size) end
-

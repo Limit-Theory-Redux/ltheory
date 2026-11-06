@@ -1,32 +1,8 @@
-#![allow(unused_imports, dead_code)]
-use std::fs::File;
-use std::io::Cursor;
-use std::path::{Path, PathBuf};
-use std::{env, fs};
-
-use gl_generator::{Api, Fallbacks, GlobalGenerator, Profile, Registry};
+use std::env;
 
 fn main() {
     let phx_version = env::var("PHX_VERSION").unwrap_or_else(|_| "0.0.0".to_string());
     println!("cargo::rustc-env=PHX_VERSION={phx_version}");
-
-    use std::str::FromStr;
-
-    // Generate GL bindings.
-    let dest = env::var("OUT_DIR").unwrap();
-    let mut file = File::create(Path::new(&dest).join("bindings.rs")).unwrap();
-    Registry::new(
-        Api::Gl,
-        (3, 3),
-        Profile::Core,
-        Fallbacks::All,
-        [
-            "GL_EXT_texture_filter_anisotropic",
-            "GL_ARB_texture_mirror_clamp_to_edge",
-        ],
-    )
-    .write_bindings(GlobalGenerator, &mut file)
-    .unwrap();
 
     // Link dependencies.
     if !cfg!(target_os = "windows") {
@@ -36,10 +12,13 @@ fn main() {
         println!("cargo::rustc-link-lib=framework=CoreHaptics");
     }
 
+    // Only for the shipped libphx.dylib: its install name, and DWARF unwind
+    // tables instead of compact unwind info. Test and bench binaries keep the
+    // default tables, without which a panic cannot unwind on macOS (a failing
+    // test aborts the whole test binary).
     if cfg!(target_os = "macos") {
-        println!("cargo::rustc-link-arg=-Wl,-keep_dwarf_unwind");
-        println!("cargo::rustc-link-arg=-Wl,-no_compact_unwind");
-        println!("cargo::rustc-link-arg=-Wl,-install_name,@rpath/libphx.dylib");
+        println!("cargo::rustc-link-arg-cdylib=-Wl,-no_compact_unwind");
+        println!("cargo::rustc-link-arg-cdylib=-Wl,-install_name,@rpath/libphx.dylib");
     }
 
     // Set rpath correctly for libphx.

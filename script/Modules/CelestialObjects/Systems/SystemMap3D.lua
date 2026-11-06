@@ -12,6 +12,8 @@ local CameraEntity         = require("Modules.Cameras.Entities").Camera
 local CameraManager        = require("Modules.Cameras.Managers.CameraManager")
 local CameraDataComponent  = require("Modules.Cameras.Components.CameraDataComponent")
 local RenderCoreSystem     = require("Modules.Rendering.Systems.RenderCoreSystem")
+local Pipelines            = require("Render.Pipelines")
+local ffi                  = require("ffi")
 
 --- What the map draws, per kind marker. Asteroids only matter up close: their scale is small,
 --- so they cluster into a dot at system zoom.
@@ -24,6 +26,10 @@ local MAP_KINDS = {
     { marker = CelestialComponents.AsteroidRing,  label = "Asteroid Ring", color = Color(0.6, 0.5, 0.4, 0.3), trailWidth = 0 },
     { marker = CelestialComponents.Asteroid,      label = "Asteroid",      color = Color(0.7, 0.6, 0.5, 0.6), trailWidth = 0 },
 }
+
+-- Orbit trails: additive, drawn with the map's own view and projection.
+local trailState = { blend = BlendMode.Additive }
+local trailParamsType
 
 --- 3D System Map — renders the solar system using the proper render pipeline
 --- with its own camera entity.
@@ -395,9 +401,10 @@ function SystemMap3D:renderOverlay(state, x, y, sx, sy)
     if not mView or not mProj then return end
 
     -- Draw trails in overlay (additive, using trail shader)
-    RenderState.PushBlendMode(BlendMode.Additive)
     local trailShader = Cache.Shader('hologram3d', 'ui/trail3d')
-    local mWorldIdentity = Matrix.Identity()
+    local pass = Renderer:currentPass()
+    local trailPipeline = Pipelines.get(trailShader, trailState)
+    trailParamsType = trailParamsType or trailShader:blockType('Params')
     local maxThickness = camDist * 0.0008
 
     for _, entry in ipairs(state.entities) do
@@ -446,21 +453,18 @@ function SystemMap3D:renderOverlay(state, x, y, sx, sy)
         end
 
         local c = entry.isMoon and { 0.5, 0.5, 0.7 } or { 0.7, 0.7, 0.9 }
-        trailShader:start()
-        trailShader:setMatrix('mWorld', mWorldIdentity)
-        trailShader:setMatrix('mView', mView)
-        trailShader:setMatrix('mProj', mProj)
-        trailShader:setFloat4('color', c[1], c[2], c[3], entry.isMoon and 0.5 or 0.7)
-        state.trailMeshes[key]:draw()
-        trailShader:stop()
+        pass:setPipeline(trailPipeline)
+        local p = pass:alloc(trailParamsType)
+        ffi.copy(p.trailView, mView.m, 64)
+        ffi.copy(p.trailProj, mProj.m, 64)
+        p.trailColor.x, p.trailColor.y, p.trailColor.z, p.trailColor.w = c[1], c[2], c[3], entry.isMoon and 0.5 or 0.7
+        pass:drawMesh(state.trailMeshes[key])
 
         ::next_trail::
     end
     state.trailDirty = false
-    RenderState.PopBlendMode()
 
     -- Labels
-    RenderState.PushBlendMode(BlendMode.Additive)
     for _, entry in ipairs(state.entities) do
         if entry.isMoon and state.radius > 0.02 then goto next_lbl end
 
@@ -491,13 +495,10 @@ function SystemMap3D:renderOverlay(state, x, y, sx, sy)
     DrawEx.TextAdditive('Unageo-Medium',
         "3D System Map [M to cycle] | RMB=Rotate | Scroll=Zoom", 12,
         x + 10, y + 10, 600, 16, 0.6, 0.7, 1.0, 0.9, 0.0, 0.5)
-    RenderState.PopBlendMode()
 
     -- Selected info
     if state.selected then
-        RenderState.PushBlendMode(BlendMode.Alpha)
         self:drawSelectedInfo(state, x + sx - 250, y + 40, 240)
-        RenderState.PopBlendMode()
     end
 end
 

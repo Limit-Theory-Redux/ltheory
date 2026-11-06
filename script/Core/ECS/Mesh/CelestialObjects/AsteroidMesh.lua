@@ -19,15 +19,12 @@ local function GenerateAsteroidMesh(seed, lodRanges)
     local rng = RNG.Create(seed)
     -- Create Mesh
     local asteroidMesh = LodMesh.Create()
-    -- Create ShaderState
-    --TODO: Replace use of Cache.Shader
-    local shader = Cache.Shader('identity', 'sdf/asteroid')
-    local shaderState = ShaderState.Create(shader)
-
-    -- Set Shader Uniforms
-    shaderState:setInt('octaves', 8)
-    shaderState:setFloat('seed', rng:getUniformRange(0, 1000))
-    shaderState:setFloat('smoothness', 2.5)
+    -- The asteroid density field's shader parameters
+    local densityArgs = {
+        octaves    = 8,
+        seed       = rng:getUniformRange(0, 1000),
+        smoothness = 2.5,
+    }
 
     local res = 96 -- resolution
     local lac = 1.5
@@ -39,7 +36,7 @@ local function GenerateAsteroidMesh(seed, lodRanges)
         or require("Modules.CelestialObjects.Systems.AsteroidMeshPool").getLodRanges()
 
     for i = 1, 8 do
-        local density = GenUtil.ShaderToTex3D(shaderState, floor(res), TexFormat.R32F)
+        local density = GenUtil.ShaderToTex3D('sdf/asteroid', floor(res), TexFormat.R32F, densityArgs)
         local field = SDF.FromTex3D(density)
         field:computeNormals()
         local mesh = field:toMesh()

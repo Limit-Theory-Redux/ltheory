@@ -9,7 +9,7 @@
 //! show, not just a single process RSS number.
 //!
 //! The store is plain data written from Lua and read by the dashboard
-//! thread; it never touches GL, the render thread, or the physics world.
+//! thread; it never touches the GPU, the render thread, or the physics world.
 
 use std::sync::{LazyLock, Mutex};
 

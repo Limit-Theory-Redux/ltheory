@@ -14,4 +14,3 @@ function Timer:getAndReset() end
 function Timer:getElapsed() end
 
 function Timer:reset() end
-
