@@ -18,10 +18,12 @@ local AutoPilotTest = Subclass("ConstructsAutoPilotTest", Application)
 local STEP         = 1 / 60
 local HULL         = Enums.ShipHulls.Solo
 local SOLO         = Enums.FlightProfile.Solo
--- Bounds that only turn an autopilot that never arrives, or a ship that never stops, into a failure.
--- The flight bound is long because the drive's speed cap falls toward the target.
-local MAX_FLIGHT_S = 14400
+-- Bound on the time a ship takes to stop once the autopilot has let go: it turns a ship that never
+-- stops into a failure.
 local MAX_SETTLE_S = 120
+-- The ETA at the moment the drive runs may differ from the flight that remains by this share. It
+-- leaves out the drive's ramp-up, so it runs short.
+local ETA_TOLERANCE = 0.2
 -- The ship has stopped below this speed, in game units per second.
 local STOPPED      = 1e-3
 -- Where the targets are: mostly behind the ship and to one side, so that it has to turn.
@@ -33,12 +35,13 @@ local BODY_RADIUS  = 100
 ---@field distance gameunit Distance of the target from the ship's start
 ---@field radius gameunit|nil Radius of a target body; nil for a bare point
 ---@field drive boolean Whether the travel drive is expected to engage
+---@field maxFlight number Seconds of simulated time the autopilot may take to arrive: about 1.2 times what it takes
 
 ---@type AutoPilotScenario[]
 local SCENARIOS = {
-    { name = "a point, no drive",  distance = 300,   drive = false },
-    { name = "a body, no drive",   distance = 600,   radius = BODY_RADIUS, drive = false },
-    { name = "a body, with drive", distance = 16000, radius = BODY_RADIUS, drive = true },
+    { name = "a point, no drive",  distance = 300,   drive = false, maxFlight = 300 },
+    { name = "a body, no drive",   distance = 600,   radius = BODY_RADIUS, drive = false, maxFlight = 570 },
+    { name = "a body, with drive", distance = 20000, radius = BODY_RADIUS, drive = true,  maxFlight = 40 },
 }
 
 function AutoPilotTest:check(ok, what, detail)
@@ -132,19 +135,27 @@ function AutoPilotTest:run(scenario)
     self:check(not axesAreZero(input), name .. "the autopilot writes the control input")
 
     local closest, driveSeen, arrivedAt = math.huge, false, nil
-    for stepIndex = 1, math.floor(MAX_FLIGHT_S / STEP) do
+    local etaAtDrive, driveAt
+    for stepIndex = 1, math.floor(scenario.maxFlight / STEP) do
         self:step(ship)
         closest = math.min(closest, ship.rb:getPos():distance(targetPos))
-        driveSeen = driveSeen or drive:isActive()
+        if drive:isActive() and not driveSeen then
+            driveSeen, etaAtDrive, driveAt = true, ap.eta, stepIndex * STEP
+        end
         if not ap:isActive() then
             arrivedAt = stepIndex * STEP
             break
         end
     end
-    self:check(arrivedAt ~= nil, name .. "the autopilot arrives", string.format("%.0f s", MAX_FLIGHT_S))
+    self:check(arrivedAt ~= nil, name .. "the autopilot arrives", string.format("%.0f s", scenario.maxFlight))
     if not arrivedAt then
         self:despawn(ship, body)
         return
+    end
+    if etaAtDrive then
+        local left = arrivedAt - driveAt
+        self:check(math.abs(etaAtDrive - left) <= ETA_TOLERANCE * left, name .. "the ETA matches the flight",
+            string.format("eta %.1f s, left %.1f s", etaAtDrive, left))
     end
 
     local standOff = AutoPilotSystem.standOff(targetRadius)
@@ -166,8 +177,9 @@ function AutoPilotTest:run(scenario)
     self:check(drive:getState() == "idle", name .. "the drive is idle", drive:getState())
     self:check(closest > targetRadius + hull, name .. "the ship stays outside the target's hull",
         string.format("closest %.1f, hull %.1f", closest, targetRadius + hull))
-    Log.Info("ConstructsAutoPilotTest: %sarrived after %.0f s at %.0f (stand-off %.0f), closest %.0f, drive %s", name, arrivedAt, distance,
-        standOff, closest, tostring(driveSeen))
+    Log.Info("ConstructsAutoPilotTest: %sarrived after %.0f s at %.0f (stand-off %.0f), closest %.0f, drive %s, eta at drive %s",
+        name, arrivedAt, distance, standOff, closest, tostring(driveSeen),
+        etaAtDrive and string.format("%.1f s, left %.1f s", etaAtDrive, arrivedAt - driveAt) or "-")
 
     self:despawn(ship, body)
 end

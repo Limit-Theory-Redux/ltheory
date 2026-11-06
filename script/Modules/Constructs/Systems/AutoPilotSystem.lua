@@ -9,6 +9,16 @@ local ARRIVAL_SHARE = 0.5
 -- The stand-off distance is this many times the target's radius, and at least `MIN_STAND_OFF`.
 local STAND_OFF_RADII = 1.5
 local MIN_STAND_OFF = 50
+-- The drive engages only beyond this many stand-off distances from the target.
+local DRIVE_ENGAGE_STAND_OFFS = 100
+-- The braking time is this many times the sum of the drive multiplier's and the velocity's lag
+-- times. The loop from the distance to the wanted speed is third order, and a margin of 4 gives it
+-- real roots, so the ship decays onto the goal without overshooting; 2 oscillates.
+local BRAKING_LAG_MARGIN = 4
+-- Fixed-point steps that solve the decay rate of the braking law (see `decayRate`).
+local DECAY_RATE_ITERATIONS = 12
+-- Below this drive multiplier the drive is released and the NavWorld flies the rest.
+local HANDOVER_MULT = 2
 
 --- AutoPilot System — steers a ship toward a target entity or position.
 --- Operates on the AutoPilotComponent attached to ship entities. It writes the ship's
@@ -202,6 +212,120 @@ local function standOffGoal(shipPos, steerPos, steerDist, targetDist, safeRange)
         steerPos.z + (shipPos.z - steerPos.z) * back)
 end
 
+--- The time constant of the drive's braking law: the wanted speed is the distance to the goal over it.
+---@param profile FlightProfile
+---@return number seconds
+local function brakingTime(profile)
+    return BRAKING_LAG_MARGIN * (1 / Config.game.travelDrive.rampDownSpeed + 1 / profile.linearDrag)
+end
+
+--- The drive multiplier the braking law wants at a distance from the goal. The wanted speed is
+--- `goalDist / brakingTime`, and full drive thrust settles at `multiplier · maxSpeed`.
+---@param goalDist gameunit
+---@param profile FlightProfile
+---@return number
+local function brakingMultiplier(goalDist, profile)
+    return goalDist / (brakingTime(profile) * profile.maxSpeed)
+end
+
+--- The rate (1/s) at which the distance to the goal decays under the braking law. The drive
+--- multiplier and the velocity lag the falling cap, so a ship sits ahead of the wanted speed
+--- and closes faster than `1 / brakingTime`. For a decay `e^(-r·t)` a first-order lag `τ`
+--- scales its input by `1 / (1 - r·τ)`, so `r` solves `r = 1 / (T · (1 - r·τ₁) · (1 - r·τ₂))`;
+--- the iteration contracts (factor under 0.5 at `BRAKING_LAG_MARGIN` 4).
+---@param profile FlightProfile
+---@return number rate
+local function decayRate(profile)
+    local driveLag, velocityLag = 1 / Config.game.travelDrive.rampDownSpeed, 1 / profile.linearDrag
+    local gain = 1 / brakingTime(profile)
+    local rate = gain
+    for _ = 1, DECAY_RATE_ITERATIONS do
+        rate = gain / ((1 - driveLag * rate) * (1 - velocityLag * rate))
+    end
+    return rate
+end
+
+--- Seconds until the ship is within `arrivalRadius` of the goal, from the same law that
+--- `updateDrive` flies: a cruise at the zone's cap while the law wants more, an exponential decay
+--- down to the hand-over distance or the arrival radius (whichever is larger), then the flight at
+--- `maxSpeed`. Ramp-up and charging time are not counted.
+---@param goalDist gameunit Distance to the goal, 0 or more
+---@param arrivalRadius gameunit
+---@param profile FlightProfile
+---@param zoneMax number The drive multiplier the zone allows
+---@param driveUsed boolean Whether the drive is, or will be, engaged
+---@return number seconds
+local function travelTime(goalDist, arrivalRadius, profile, zoneMax, driveUsed)
+    local lag = brakingTime(profile)
+    local handoverDist = HANDOVER_MULT * lag * profile.maxSpeed
+    local decayEnd = math.max(handoverDist, arrivalRadius)
+    if not driveUsed or goalDist <= decayEnd then
+        return math.max(0, goalDist - arrivalRadius) / profile.maxSpeed
+    end
+    local cruiseSpeed = profile.maxSpeed * math.max(1, zoneMax)
+    -- Beyond `cruiseSpeed · lag` the law wants more than the cap, and the ship flies at the cap.
+    local decayTop = math.min(goalDist, math.max(cruiseSpeed * lag, decayEnd))
+    local seconds = math.max(0, handoverDist - arrivalRadius) / profile.maxSpeed
+    if goalDist > decayTop then
+        seconds = seconds + (goalDist - decayTop) / cruiseSpeed
+    end
+    if decayTop > decayEnd then
+        seconds = seconds + math.log(decayTop / decayEnd) / decayRate(profile)
+    end
+    return seconds
+end
+
+--- Is the drive engaged, or far enough away that it will be?
+---@param drive TravelDriveComponent|nil
+---@param dist gameunit Distance to the target's centre
+---@param safeRange gameunit
+---@return boolean
+local function driveWillRun(drive, dist, safeRange)
+    local cfg = Config.game.autoPilot or {}
+    if not drive or cfg.enableTravelDrive == false then return false end
+    return drive:isActive() or dist > safeRange * DRIVE_ENGAGE_STAND_OFFS
+end
+
+--- Radius of the target for the stand-off distance.
+---@param targetEntity Entity|nil
+---@return gameunit
+local function targetRadiusOf(targetEntity)
+    if not targetEntity then return 0 end
+    local tRbCmp = targetEntity:get(PhysicsComponents.RigidBody)
+    if tRbCmp and tRbCmp:getRigidBody() then
+        return tRbCmp:getRigidBody():getBoundingRadius()
+    end
+    local tTransform = targetEntity:get(PhysicsComponents.Transform)
+    return tTransform and tTransform:getScale() or 0
+end
+
+--- Drive the travel drive from the braking law: the cap follows the distance to the goal, and the
+--- drive is released for the final approach, which the NavWorld flies at normal speed.
+---@param dt number
+---@param ap AutoPilotComponent
+---@param drive TravelDriveComponent
+---@param input ControlInputComponent
+---@param profile FlightProfile
+---@param zoneMax number
+---@param dist gameunit Distance to the target's centre
+---@param safeRange gameunit
+local function updateDrive(dt, ap, drive, input, profile, zoneMax, dist, safeRange)
+    local wanted = brakingMultiplier(math.max(0, dist - safeRange), profile)
+    -- The drive system ramps its multiplier toward this cap over time.
+    input:setDriveSpeedCap(math.min(zoneMax, math.max(1, wanted)))
+    if drive:getState() ~= "idle" and wanted < HANDOVER_MULT then
+        input:setDriveRequest(Enums.TravelDriveRequest.Disengage)
+    end
+
+    local cfg = Config.game.autoPilot or {}
+    local elapsed = ap:getElapsed() + dt
+    ap:setElapsed(elapsed)
+    if cfg.enableTravelDrive ~= false and elapsed > (cfg.travelDriveDelay or 5.0)
+        and dist > safeRange * DRIVE_ENGAGE_STAND_OFFS and drive:getState() == "idle" then
+        input:setDriveRequest(Enums.TravelDriveRequest.Engage)
+    end
+end
+
 --- Update autopilot — steer ship toward target
 ---@param dt number
 ---@param shipEntity Entity
@@ -243,8 +367,15 @@ function AutoPilotSystem:update(dt, shipEntity)
 
     local shipPos = rb:getPos()
     local speed = rb:getSpeed()
+    local profile = ConstructComponents.FlightProfile.ProfileOf(shipEntity)
+    local drive = shipEntity:get(ConstructComponents.TravelDrive)
+    local zoneMax = GravityWellSystem:getMaxDriveSpeedAt(shipPos)
 
     ap.targetVelX, ap.targetVelY, ap.targetVelZ = trackedVelocity(ap)
+
+    local targetRadius = targetRadiusOf(targetEntity)
+    local safeRange = self.standOff(targetRadius)
+    local arrivalRadius = self.arrivalRadius(targetRadius)
 
     -- Quick distance check for approach mode
     local qdx = targetPos.x - shipPos.x
@@ -262,18 +393,8 @@ function AutoPilotSystem:update(dt, shipEntity)
     local interceptPos = targetPos
     local tSpeed = math.sqrt(ap.targetVelX^2 + ap.targetVelY^2 + ap.targetVelZ^2)
     if tSpeed > 0.1 and not inTargetZone then
-        -- Use expected cruise speed for ETA, not current speed
-        -- Cruise = base flight speed × zone max drive multiplier
-        local maxDriveMult = GravityWellSystem:getMaxDriveSpeedAt(shipPos)
-        local profile = ConstructComponents.FlightProfile.ProfileOf(shipEntity)
-        local baseCruise = profile.thrustForward / (rb:getMass() * profile.linearDrag)
-        local expectedSpeed = math.max(speed, baseCruise * maxDriveMult * 0.5)
-
-        local tdx = targetPos.x - shipPos.x
-        local tdy = targetPos.y - shipPos.y
-        local tdz = targetPos.z - shipPos.z
-        local currentDist = math.sqrt(tdx*tdx + tdy*tdy + tdz*tdz)
-        local eta = currentDist / math.max(1, expectedSpeed)
+        local driveUsed = driveWillRun(drive, quickDist, safeRange)
+        local eta = travelTime(math.max(0, quickDist - safeRange), arrivalRadius, profile, zoneMax, driveUsed)
 
         -- Two-pass refinement
         for _ = 1, 2 do
@@ -283,7 +404,8 @@ function AutoPilotSystem:update(dt, shipEntity)
             local ldx = lx - shipPos.x
             local ldy = ly - shipPos.y
             local ldz = lz - shipPos.z
-            eta = math.sqrt(ldx*ldx + ldy*ldy + ldz*ldz) / math.max(1, expectedSpeed)
+            local leadDist = math.sqrt(ldx*ldx + ldy*ldy + ldz*ldz)
+            eta = travelTime(math.max(0, leadDist - safeRange), arrivalRadius, profile, zoneMax, driveUsed)
         end
 
         -- Blend lead prediction: full lead when far, direct approach when close
@@ -315,30 +437,17 @@ function AutoPilotSystem:update(dt, shipEntity)
     -- Store nav data on component for map/HUD
     ap.interceptPos = interceptPos
     ap.distance = actualDist
-    ap.eta = speed > 1 and actualDist / speed or 0
+    ap.eta = travelTime(math.max(0, actualDist - safeRange), arrivalRadius, profile, zoneMax,
+        driveWillRun(drive, actualDist, safeRange))
 
     -- Use actual distance for arrival/drive logic, intercept for steering
     local dist = actualDist
-
-    -- Get target radius for safe distance
-    local targetRadius = 0
-    if targetEntity then
-        local tRbCmp = targetEntity:get(PhysicsComponents.RigidBody)
-        if tRbCmp and tRbCmp:getRigidBody() then
-            targetRadius = tRbCmp:getRigidBody():getBoundingRadius()
-        else
-            local tTransform = targetEntity:get(PhysicsComponents.Transform)
-            if tTransform then targetRadius = tTransform:getScale() end
-        end
-    end
-
-    local safeRange = self.standOff(targetRadius)
 
     -- Fly to the stand-off point; the NavWorld steers (it also brakes and stops there) and says
     -- when the ship has arrived.
     local nav, agent = ap:getNav(), ap:getAgent()
     nav:setGoal(agent, standOffGoal(shipPos, interceptPos, interceptDist, actualDist, safeRange),
-        self.arrivalRadius(targetRadius))
+        arrivalRadius)
     nav:step()
     nav:copyArrived(ap:getArrived(), 1)
     if ap:getArrived()[0] then
@@ -353,49 +462,8 @@ function AutoPilotSystem:update(dt, shipEntity)
         NavAgentHelper.writeAxes(ap:getAxes(), agent, input)
     end
 
-    -- Smart travel drive: smooth speed curve based on distance
-    local drive = shipEntity:get(ConstructComponents.TravelDrive)
     if drive and input then
-        local autoPilotCfg = Config.game.autoPilot or {}
-        local travelDriveDelay = autoPilotCfg.travelDriveDelay or 5.0
-        local enableTravelDrive = autoPilotCfg.enableTravelDrive ~= false
-        local zoneMax = GravityWellSystem:getMaxDriveSpeedAt(shipPos)
-
-        -- Desired drive multiplier based on distance (smooth approach curve)
-        -- Far: full zone speed. Close: ramp down to 1x for final approach.
-        local finalApproachDist = safeRange * 10   -- within this: no drive
-        local rampStartDist = finalApproachDist * 5  -- start reducing from here
-        local driveEngageDist = rampStartDist * 2    -- engage only beyond this
-
-        -- Distance-proportional speed cap: faster when far, slower when close
-        -- This ensures comfortable deceleration regardless of target size
-        local distBasedMax = math.max(1, math.sqrt(dist / math.max(1, safeRange)) * 5)
-        local speedCap = math.min(zoneMax, distBasedMax)
-
-        local desiredMult = 1.0
-        if dist > rampStartDist then
-            desiredMult = speedCap
-        elseif dist > finalApproachDist then
-            local t = (dist - finalApproachDist) / (rampStartDist - finalApproachDist)
-            desiredMult = 1.0 + (speedCap - 1.0) * t * t
-        end
-
-        -- The drive system ramps its multiplier toward this cap over time.
-        input:setDriveSpeedCap(desiredMult)
-        if drive:isActive() and dist < finalApproachDist then
-            -- Final approach: disengage
-            input:setDriveRequest(Enums.TravelDriveRequest.Disengage)
-        end
-
-        -- Engage drive when far enough and after delay
-        local elapsed = ap:getElapsed() + dt
-        ap:setElapsed(elapsed)
-
-        if enableTravelDrive and elapsed > travelDriveDelay and dist > driveEngageDist then
-            if drive:getState() == "idle" then
-                input:setDriveRequest(Enums.TravelDriveRequest.Engage)
-            end
-        end
+        updateDrive(dt, ap, drive, input, profile, zoneMax, dist, safeRange)
     else
         ap:setElapsed(ap:getElapsed() + dt)
     end
