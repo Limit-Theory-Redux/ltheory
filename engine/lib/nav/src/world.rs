@@ -111,7 +111,8 @@ impl World {
             );
             self.scene.swap(own, last);
             *axes = control(&agent.body, &agent.profile, &wanted);
-            *arrived = agent.body.position.distance(goal.target) <= goal.arrival_radius;
+            *arrived = agent.body.position.distance(goal.target)
+                <= goal.effective_arrival_radius(agent.body.radius);
         }
     }
 
@@ -192,6 +193,29 @@ mod tests {
         assert!(world.arrived(id));
 
         world.set_goal(id, Some(goal(DVec3::new(0.0, 0.0, -6.0))));
+        world.step();
+        assert!(!world.arrived(id));
+    }
+
+    #[test]
+    fn arrival_is_held_to_at_least_two_agent_radii() {
+        let radius = 10.0;
+        let mut world = World::new();
+        let id = world.add_agent(PROFILE);
+        world.set_body(
+            id,
+            Body {
+                radius,
+                ..Body::AT_REST
+            },
+        );
+        // The goal's own radius is 5, less than the agent's two radii.
+        let at = |distance: f64| goal(DVec3::new(0.0, 0.0, -distance));
+        world.set_goal(id, Some(at(2.0 * radius - 0.5)));
+        world.step();
+        assert!(world.arrived(id));
+
+        world.set_goal(id, Some(at(2.0 * radius + 0.5)));
         world.step();
         assert!(!world.arrived(id));
     }

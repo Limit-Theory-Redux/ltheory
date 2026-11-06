@@ -175,7 +175,7 @@ impl NavWorld {
     }
 
     /// Sends the agent to `target`, in world coordinates, and stops it within the arrival radius
-    /// of it (game units).
+    /// of it (game units). The radius is at least two of the agent's own radii.
     ///
     /// # Panics
     /// If `id` isn't an agent.
@@ -254,8 +254,8 @@ impl NavWorld {
         out.copy_from_slice(axes);
     }
 
-    /// Copies, for each agent in order, whether it was within its goal's arrival radius at the
-    /// last step.
+    /// Copies, for each agent in order, whether it was within its goal's arrival radius (at least
+    /// two of its own radii) at the last step.
     ///
     /// # Panics
     /// If `out` isn't exactly one value per agent long.

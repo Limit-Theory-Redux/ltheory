@@ -390,3 +390,58 @@ fn ships_cross_a_field_of_rocks_without_swapping_sides() {
     }
     assert_eq!(cases, 30);
 }
+
+/// Ships of real size fly to goals that lie closer together than their hulls, with arrival
+/// circles smaller than a hull. None of them can sit at its own goal while the others do, so
+/// without a floor on the arrival radius they circle each other and never arrive.
+#[test]
+fn ships_with_goals_closer_than_their_hulls_all_arrive() {
+    const SHIP_RADIUS: f64 = 150.0;
+    const SHIPS: usize = 8;
+    const GOAL_RING_M: f64 = 220.0;
+    const START_DISTANCE_M: f64 = 4000.0;
+    const SMALL_ARRIVAL_M: f64 = 100.0;
+    let angle = |i: usize| std::f64::consts::TAU * i as f64 / SHIPS as f64;
+    let mut world = World::new();
+    let mut ships = Vec::new();
+    for i in 0..SHIPS {
+        let id = world.add_agent(profile(8800.0));
+        let target = DVec3::new(angle(i).cos(), 0.0, angle(i).sin()) * GOAL_RING_M;
+        // Each ship comes in from outside the ring of goals, along the line through its goal.
+        let start = target.normalize() * START_DISTANCE_M + DVec3::new(0.0, 30.0 * i as f64, 0.0);
+        world.set_goal(
+            id,
+            Some(Goal {
+                target,
+                arrival_radius: SMALL_ARRIVAL_M,
+            }),
+        );
+        let ship = Ship {
+            radius: SHIP_RADIUS,
+            ..Ship::new(start)
+        };
+        ships.push((id, ship, None::<f64>));
+    }
+    let mut time = 0.0;
+    while time < TIME_LIMIT_S && ships.iter().any(|(_, _, arrived)| arrived.is_none()) {
+        for (id, ship, _) in &ships {
+            world.set_body(*id, ship.body());
+        }
+        world.step();
+        for (id, ship, arrived) in &mut ships {
+            let axes = &world.axes()[id.index() * AXIS_COUNT..][..AXIS_COUNT];
+            ship.apply(profile(8800.0), axes);
+            if arrived.is_none() && world.arrived(*id) {
+                *arrived = Some(time);
+            }
+        }
+        time += STEP_S;
+    }
+    let stuck: Vec<usize> = ships
+        .iter()
+        .enumerate()
+        .filter(|(_, (_, _, arrived))| arrived.is_none())
+        .map(|(i, _)| i)
+        .collect();
+    assert!(stuck.is_empty(), "ships {stuck:?} never arrived");
+}

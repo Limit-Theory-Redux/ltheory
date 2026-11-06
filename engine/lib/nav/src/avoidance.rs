@@ -200,7 +200,9 @@ impl Scene<'_> {
         };
         let goal_room = self.goal.map_or(f64::INFINITY, |goal| {
             let hull = obstacle.radius + self.body.radius;
-            goal.target.distance(obstacle.position) - hull - goal.arrival_radius
+            goal.target.distance(obstacle.position)
+                - hull
+                - goal.effective_arrival_radius(self.body.radius)
         });
         stopping_distance
             .max(smallest)
@@ -625,7 +627,7 @@ fn side_of(velocity: DVec3, axis: DVec3) -> DVec3 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::agent::Frame;
+    use crate::agent::{Frame, MIN_ARRIVAL_RADII};
 
     const RADIUS: f64 = 1.0;
     const MAX_SPEED: f64 = 100.0;
@@ -1146,9 +1148,10 @@ mod tests {
     #[test]
     fn a_goal_next_to_a_sphere_limits_the_clearance_kept_from_it() {
         let sphere = rock(DVec3::new(0.0, 0.0, -20.0), DVec3::ZERO, 5.0);
+        let arrival_radius = 3.0 * RADIUS;
         let goal_at = |x: f64| Goal {
             target: DVec3::new(x, 0.0, -20.0),
-            arrival_radius: 1.0,
+            arrival_radius,
         };
         let hull = 5.0 + RADIUS;
         // Room for the full clearance.
@@ -1157,9 +1160,24 @@ mod tests {
             RADIUS * AvoidanceTuning::default().clearance_radii
         );
         // 1 unit of room between the hull and the goal's arrival circle.
-        assert!((clearance_toward(goal_at(hull + 1.0 + 1.0), &sphere) - 1.0).abs() < 1e-12);
+        assert!(
+            (clearance_toward(goal_at(hull + arrival_radius + 1.0), &sphere) - 1.0).abs() < 1e-12
+        );
         // A goal inside the hull leaves none.
         assert_eq!(clearance_toward(goal_at(hull - 1.0), &sphere), 0.0);
+    }
+
+    #[test]
+    fn the_clearance_leaves_the_goals_arrival_circle_at_least_two_radii_wide_outside_the_reach() {
+        let sphere = rock(DVec3::new(0.0, 0.0, -20.0), DVec3::ZERO, 5.0);
+        let hull = 5.0 + RADIUS;
+        let narrow = |x: f64| Goal {
+            target: DVec3::new(x, 0.0, -20.0),
+            arrival_radius: 0.1 * RADIUS,
+        };
+        // The circle is held to `MIN_ARRIVAL_RADII` radii, so 1 unit of room is left beyond it.
+        let floor = RADIUS * MIN_ARRIVAL_RADII;
+        assert!((clearance_toward(narrow(hull + floor + 1.0), &sphere) - 1.0).abs() < 1e-12);
     }
 
     /// `avoid_default` that keeps the side passed on in `commitment`.

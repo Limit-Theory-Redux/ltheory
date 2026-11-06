@@ -13,7 +13,7 @@ mod world;
 
 pub use agent::{
     AXIS_COUNT, Acceleration, AgentId, AngularAcceleration, Axis, Body, DragRate, Frame, Goal,
-    Profile,
+    MIN_ARRIVAL_RADII, Profile,
 };
 pub use avoidance::{AvoidanceTuning, MIN_CLEARANCE_RADII};
 pub use obstacle::Obstacle;

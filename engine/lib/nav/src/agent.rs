@@ -127,12 +127,25 @@ impl Profile {
     }
 }
 
+/// The smallest arrival radius an agent is held to, in agent radii. Agents whose goals lie
+/// closer together than their hulls can't all hold a place inside a smaller circle: they keep
+/// avoiding each other around the goals without any of them arriving.
+pub const MIN_ARRIVAL_RADII: f64 = 2.0;
+
 /// A point to fly to and stop at.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Goal {
     pub target: DVec3,
-    /// The agent has arrived when its centre is within this distance of the target.
+    /// The agent has arrived when its centre is within this distance of the target, or within
+    /// [`MIN_ARRIVAL_RADII`] of its own radii if that is larger.
     pub arrival_radius: f64,
+}
+
+impl Goal {
+    /// The distance from the target within which an agent of `body_radius` has arrived.
+    pub fn effective_arrival_radius(&self, body_radius: f64) -> f64 {
+        self.arrival_radius.max(body_radius * MIN_ARRIVAL_RADII)
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -142,4 +155,23 @@ pub(crate) struct Agent {
     pub goal: Option<Goal>,
     /// The side the agent passes the sphere it is avoiding on, kept between steps.
     pub commitment: Option<Commitment>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_arrival_radius_is_floored_at_two_agent_radii() {
+        let goal = |arrival_radius| Goal {
+            target: DVec3::ZERO,
+            arrival_radius,
+        };
+        assert_eq!(
+            goal(1.0).effective_arrival_radius(5.0),
+            5.0 * MIN_ARRIVAL_RADII
+        );
+        assert_eq!(goal(100.0).effective_arrival_radius(5.0), 100.0);
+        assert_eq!(goal(1.0).effective_arrival_radius(0.0), 1.0);
+    }
 }
