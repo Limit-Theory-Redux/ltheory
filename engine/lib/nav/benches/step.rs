@@ -2,7 +2,7 @@ use std::hint::black_box;
 
 use criterion::{Criterion, criterion_group, criterion_main};
 use glam::DVec3;
-use nav::{Behaviour, Body, Goal, Obstacle, Profile, World};
+use nav::{Behaviour, Body, Goal, Obstacle, ObstacleKey, Profile, World};
 
 const AGENTS: usize = 100;
 const OBSTACLES: usize = 60;
@@ -64,7 +64,8 @@ fn scene() -> World {
         );
     }
     let obstacles: Vec<Obstacle> = (0..OBSTACLES)
-        .map(|_| Obstacle {
+        .map(|key| Obstacle {
+            key: ObstacleKey::Body(key as u64),
             position: sequence.point(),
             velocity: sequence.point().normalize() * 50.0,
             radius: OBSTACLE_RADIUS,
@@ -106,7 +107,8 @@ fn dense_scene() -> World {
         );
     }
     let obstacles: Vec<Obstacle> = (0..OBSTACLES)
-        .map(|_| Obstacle {
+        .map(|key| Obstacle {
+            key: ObstacleKey::Body(key as u64),
             position: across(&mut sequence)
                 + DVec3::NEG_Z * (DENSE_LENGTH * (0.1 + 0.8 * (sequence.next() + 1.0) / 2.0)),
             velocity: DVec3::ZERO,

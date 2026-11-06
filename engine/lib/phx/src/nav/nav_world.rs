@@ -1,6 +1,6 @@
 use ::nav::{
     AXIS_COUNT, AgentId, AvoidanceTuning, Behaviour, Body, Frame, FrameOffset, Goal, Obstacle,
-    Profile,
+    ObstacleKey, Profile,
 };
 
 use crate::math::*;
@@ -374,6 +374,8 @@ impl NavWorld {
             for (index, handles) in self.obstacles.iter().enumerate() {
                 let state = Self::state_of(&physics, handles, &format!("obstacle {index}"));
                 self.obstacle_spheres.push(Obstacle {
+                    // Registered bodies are never removed, so the index names one for good.
+                    key: ObstacleKey::Body(index as u64),
                     position: state.position,
                     velocity: state.velocity,
                     radius: state.radius,

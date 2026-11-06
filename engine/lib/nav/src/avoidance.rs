@@ -3,7 +3,7 @@ use glam::DVec3;
 use crate::agent::{Body, Goal, Profile};
 use crate::behaviour::{TINY_SQ, Wanted};
 use crate::braking::{stopping_distance, stopping_speed};
-use crate::obstacle::Obstacle;
+use crate::obstacle::{Obstacle, ObstacleKey};
 
 /// How far ahead and how widely an agent avoids obstacles.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -75,6 +75,7 @@ const REACHABLE_SLACK: f64 = 1.0 + 1.0e-6;
 /// at the start of the step.
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct Sphere {
+    key: ObstacleKey,
     /// Agent position minus obstacle position.
     offset: DVec3,
     /// The length of `offset`.
@@ -157,8 +158,9 @@ impl Scene<'_> {
         let reach_gap_sq = offset.length_squared() - reach * reach;
         let distance = offset.length();
         // Relative to the obstacle an agent closes in at its speed plus the obstacle's.
-        let travel = (speed_bound + obstacle.velocity.length()) * self.tuning.horizon_s;
+        let travel = course_travel(speed_bound + obstacle.velocity.length(), self.tuning);
         Sphere {
+            key: obstacle.key,
             offset,
             distance,
             velocity: obstacle.velocity,
@@ -217,6 +219,29 @@ impl Scene<'_> {
         self.smallest_clearance()
             .max(self.body.velocity.length() * BRAKING_REACTION_S)
     }
+}
+
+/// The distance a course at `speed` covers within the avoidance horizon, in length units.
+fn course_travel(speed: f64, tuning: &AvoidanceTuning) -> f64 {
+    speed * tuning.horizon_s
+}
+
+/// The speed no course of the agent exceeds: its top speed, or its wanted or current speed if
+/// larger. `wanted_speed` is 0 when no course has been chosen yet.
+fn speed_bound(body: &Body, profile: &Profile, wanted_speed: f64) -> f64 {
+    profile
+        .max_speed()
+        .max(wanted_speed)
+        .max(body.velocity.length())
+}
+
+/// How far from an agent's position an obstacle's surface can lie and still matter to it: the
+/// distance a course can cover within the horizon, plus the agent's radius and the largest
+/// clearance kept. A sphere beyond it is never reachable, so the cull in [`avoid`] drops it; a
+/// caller that looks for obstacles queries this far. The obstacle's own motion is not included.
+pub fn sensing_range(body: &Body, profile: &Profile, tuning: &AvoidanceTuning) -> f64 {
+    let largest_clearance = body.radius * tuning.clearance_radii;
+    course_travel(speed_bound(body, profile, 0.0), tuning) + body.radius + largest_clearance
 }
 
 /// The speed the agent's body closes on the obstacle's centre at, from their velocities; 0 when
@@ -293,9 +318,7 @@ pub(crate) fn avoid(
         goal,
         spheres: &[],
     };
-    let speed_bound = max_speed
-        .max(wanted.velocity.length())
-        .max(body.velocity.length());
+    let speed_bound = speed_bound(body, profile, wanted.velocity.length());
     probe.fill_spheres(obstacles, speed_bound, spheres);
     let scene = Scene {
         spheres: spheres.as_slice(),
@@ -304,8 +327,9 @@ pub(crate) fn avoid(
     let Some((index, first)) = scene.first_threat(wanted.velocity) else {
         return limit_closing_speeds(&scene, wanted, wanted);
     };
+    let first_key = scene.spheres[index].key;
     let kept_side = commitment
-        .filter(|kept| kept.obstacle == index)
+        .filter(|kept| kept.obstacle == first_key)
         .map(|kept| kept.side);
     let course = if first.is_inside() {
         steer_around(&first, wanted, max_speed, false, kept_side)
@@ -324,7 +348,7 @@ pub(crate) fn avoid(
         )
     };
     *commitment = detour_side(&first, course).map(|side| Commitment {
-        obstacle: index,
+        obstacle: first_key,
         side,
     });
     if first.is_inside() {
@@ -336,8 +360,8 @@ pub(crate) fn avoid(
 /// The side an agent passes a sphere on, remembered between steps.
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct Commitment {
-    /// Index of the sphere in the obstacle list.
-    obstacle: usize,
+    /// Key of the sphere, which outlives its place in the obstacle list.
+    obstacle: ObstacleKey,
     /// Unit direction, across the line to the sphere's centre, the course leans to.
     side: DVec3,
 }
@@ -646,11 +670,20 @@ mod tests {
         }
     }
 
+    /// A rock with key `Body(0)`; a scene of several rocks gives the others `keyed`.
     fn rock(position: DVec3, velocity: DVec3, radius: f64) -> Obstacle {
         Obstacle {
+            key: ObstacleKey::Body(0),
             position,
             velocity,
             radius,
+        }
+    }
+
+    fn keyed(obstacle: Obstacle, key: u64) -> Obstacle {
+        Obstacle {
+            key: ObstacleKey::Body(key),
+            ..obstacle
         }
     }
 
@@ -1270,13 +1303,63 @@ mod tests {
         let wanted = wanted_toward(DVec3::NEG_Z, 80.0);
         let right_of_course = rock(DVec3::new(2.0, 0.0, -300.0), DVec3::ZERO, 40.0);
         let left_of_course = rock(DVec3::new(-2.0, 0.0, -300.0), DVec3::ZERO, 40.0);
-        // Beyond the horizon and the course: never a threat, but it takes index 0.
-        let distant = rock(DVec3::new(5000.0, 0.0, 5000.0), DVec3::ZERO, 10.0);
+        // Beyond the horizon and the course: never a threat, but it comes first in the list.
+        let distant = keyed(rock(DVec3::new(5000.0, 0.0, 5000.0), DVec3::ZERO, 10.0), 1);
+        let other_sphere = keyed(left_of_course, 2);
 
         let mut memory = None;
         avoid_remembering(&body, wanted, &[right_of_course], &mut memory);
-        let other = avoid_remembering(&body, wanted, &[distant, left_of_course], &mut memory);
+        let other = avoid_remembering(&body, wanted, &[distant, other_sphere], &mut memory);
         assert!(other.velocity.x > 0.0, "chooses freely");
+    }
+
+    #[test]
+    fn the_side_passed_on_is_kept_when_the_sphere_changes_its_place_in_the_list() {
+        let body = body_at(DVec3::ZERO);
+        let wanted = wanted_toward(DVec3::NEG_Z, 80.0);
+        let right_of_course = rock(DVec3::new(2.0, 0.0, -300.0), DVec3::ZERO, 40.0);
+        let left_of_course = rock(DVec3::new(-2.0, 0.0, -300.0), DVec3::ZERO, 40.0);
+        let distant = keyed(rock(DVec3::new(5000.0, 0.0, 5000.0), DVec3::ZERO, 10.0), 1);
+
+        let mut memory = None;
+        let first = avoid_remembering(&body, wanted, &[right_of_course], &mut memory);
+        assert!(first.velocity.x < 0.0, "passes on the left");
+        // A sphere enters the list ahead of it: the index changes, the key does not.
+        let kept = avoid_remembering(&body, wanted, &[distant, left_of_course], &mut memory);
+        assert!(kept.velocity.x < 0.0, "keeps the left");
+    }
+
+    #[test]
+    fn the_sensing_range_covers_what_a_course_can_reach_inside_the_horizon() {
+        let body = body_at(DVec3::ZERO);
+        let tuning = AvoidanceTuning::default();
+        let profile = profile_with(MAX_SPEED, UNLIMITED_DRAG);
+        let range = sensing_range(&body, &profile, &tuning);
+        let expected = MAX_SPEED * tuning.horizon_s + RADIUS + RADIUS * tuning.clearance_radii;
+        assert!((range - expected).abs() < 1e-9, "range {range}");
+
+        // The cull drops a sphere whose surface lies beyond the range, whatever clearance the
+        // agent keeps from it, and keeps one just inside the reach of a body at rest.
+        let still = |surface_distance: f64| {
+            rock(
+                DVec3::new(0.0, 0.0, -(surface_distance + 5.0)),
+                DVec3::ZERO,
+                5.0,
+            )
+        };
+        let at_rest_limit = range - RADIUS * (tuning.clearance_radii - MIN_CLEARANCE_RADII);
+        assert!(sphere_of(&body, &still(at_rest_limit - 1.0), MAX_SPEED).reachable);
+        assert!(!sphere_of(&body, &still(range + 1.0), MAX_SPEED).reachable);
+    }
+
+    #[test]
+    fn a_body_faster_than_the_top_speed_senses_further() {
+        let tuning = AvoidanceTuning::default();
+        let profile = profile_with(MAX_SPEED, UNLIMITED_DRAG);
+        let mut body = body_at(DVec3::ZERO);
+        let at_top = sensing_range(&body, &profile, &tuning);
+        body.velocity = DVec3::NEG_Z * (2.0 * MAX_SPEED);
+        assert!(sensing_range(&body, &profile, &tuning) > at_top);
     }
 
     #[test]
@@ -1286,7 +1369,7 @@ mod tests {
         let right_of_course = rock(DVec3::new(2.0, 0.0, -300.0), DVec3::ZERO, 40.0);
         let left_of_course = rock(DVec3::new(-2.0, 0.0, -300.0), DVec3::ZERO, 40.0);
         // Sits where the course passing on the left would go, clear of the straight course.
-        let blocker = rock(DVec3::new(-60.0, 0.0, -330.0), DVec3::ZERO, 30.0);
+        let blocker = keyed(rock(DVec3::new(-60.0, 0.0, -330.0), DVec3::ZERO, 30.0), 1);
 
         let mut memory = None;
         avoid_remembering(&body, wanted, &[right_of_course], &mut memory);
@@ -1306,7 +1389,7 @@ mod tests {
         let left_of_course = rock(DVec3::new(-2.0, 0.0, -300.0), DVec3::ZERO, 40.0);
         // Small, and on the tangent course on the left: that course is blocked, the one round
         // this sphere too is clear, and the right side is clear at once.
-        let blocker = rock(DVec3::new(-40.0, 0.0, -330.0), DVec3::ZERO, 10.0);
+        let blocker = keyed(rock(DVec3::new(-40.0, 0.0, -330.0), DVec3::ZERO, 10.0), 1);
 
         let mut memory = None;
         avoid_remembering(&body, wanted, &[right_of_course], &mut memory);

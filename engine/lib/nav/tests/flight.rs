@@ -5,7 +5,10 @@
 //! check that behaviour, avoidance and controller work together, not the ship's real response.
 
 use glam::{DQuat, DVec3};
-use nav::{AXIS_COUNT, Axis, Behaviour, Body, Frame, FrameOffset, Goal, Obstacle, Profile, World};
+use nav::{
+    AXIS_COUNT, Axis, Behaviour, Body, Frame, FrameOffset, Goal, Obstacle, ObstacleKey, Profile,
+    World,
+};
 
 const STEP_S: f64 = 1.0 / 60.0;
 const TIME_LIMIT_S: f64 = 60.0;
@@ -136,7 +139,11 @@ fn fly_ship(
             arrival_radius: ARRIVAL_RADIUS,
         })),
     );
+    // Each rock gets its own key, so the side memory tells them apart.
     let mut obstacles = obstacles.to_vec();
+    for (key, obstacle) in (0..).zip(&mut obstacles) {
+        obstacle.key = ObstacleKey::Body(key);
+    }
 
     let mut time = 0.0;
     while time < TIME_LIMIT_S {
@@ -162,6 +169,7 @@ fn fly_ship(
 
 fn rock(position: DVec3, velocity: DVec3, radius: f64) -> Obstacle {
     Obstacle {
+        key: ObstacleKey::Body(0),
         position,
         velocity,
         radius,

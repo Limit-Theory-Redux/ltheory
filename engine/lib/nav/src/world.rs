@@ -2,7 +2,7 @@ use crate::agent::{AXIS_COUNT, Agent, AgentId, Body, Goal, Profile};
 use crate::avoidance::{AvoidanceTuning, Sphere, avoid};
 use crate::behaviour::{Behaviour, steer};
 use crate::controller::control;
-use crate::obstacle::Obstacle;
+use crate::obstacle::{Obstacle, ObstacleKey};
 
 /// The navigation state of one simulated space: its agents, the obstacles around them, and the
 /// control axes the last [`step`](World::step) gave each agent.
@@ -122,15 +122,20 @@ impl World {
     /// Computes every agent's control axes and arrival from the current bodies and obstacles.
     pub fn step(&mut self) {
         // The set obstacles, then one sphere per agent, each keeping its velocity. An agent
-        // leaves its own sphere out by swapping it behind the end of the slice it avoids, so the
-        // slice is stable between steps and the avoidance memory keeps its indices.
+        // leaves its own sphere out by swapping it behind the end of the slice it avoids.
         self.scene.clear();
         self.scene.extend_from_slice(&self.obstacles);
-        self.scene.extend(self.agents.iter().map(|agent| Obstacle {
-            position: agent.body.position,
-            velocity: agent.body.velocity,
-            radius: agent.body.radius,
-        }));
+        let agent_spheres = self
+            .agents
+            .iter()
+            .enumerate()
+            .map(|(index, agent)| Obstacle {
+                key: ObstacleKey::Agent(AgentId::new(index)),
+                position: agent.body.position,
+                velocity: agent.body.velocity,
+                radius: agent.body.radius,
+            });
+        self.scene.extend(agent_spheres);
         let last = self.scene.len().saturating_sub(1);
         // Whether an agent holds its goal is judged on the arrivals of the step before, so the
         // result doesn't depend on the order the agents are stepped in.
@@ -372,6 +377,7 @@ mod tests {
         let straight = world.axes().to_vec();
 
         world.set_obstacles(&[Obstacle {
+            key: ObstacleKey::Body(0),
             position: DVec3::new(0.0, 0.0, -200.0),
             velocity: DVec3::ZERO,
             radius: 30.0,
