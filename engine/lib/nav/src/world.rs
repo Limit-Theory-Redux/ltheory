@@ -1,4 +1,4 @@
-use crate::agent::{AXIS_COUNT, Agent, AgentId, Body, Profile};
+use crate::agent::{AXIS_COUNT, Agent, AgentId, Body, Goal, Profile};
 use crate::avoidance::{AvoidanceTuning, Sphere, avoid};
 use crate::behaviour::{Behaviour, steer};
 use crate::controller::control;
@@ -20,7 +20,48 @@ pub struct World {
     /// The axes of each agent, in agent order.
     axes: Vec<[f64; AXIS_COUNT]>,
     arrived: Vec<bool>,
+    /// `arrived` as it was before the step in progress, reused between steps.
+    was_arrived: Vec<bool>,
     tuning: AvoidanceTuning,
+}
+
+/// An agent moving slower than this many of its own radii per second counts as at rest.
+const AT_REST_RADII_PER_S: f64 = 1.0;
+
+/// How far from the hull of the agent that holds its goal an agent still counts as having reached
+/// it, in the agent's own radii: the room the arrival floor leaves around a goal.
+const HELD_GOAL_GAP_RADII: f64 = 3.0;
+
+/// Whether `body` has reached `goal`: it is within the goal's arrival radius, or another agent
+/// that had arrived and is at rest holds the goal (the goal lies within the two hulls' reach) and
+/// `body` is next to it. Goals closer together than hulls can't all be sat on, so the agents that
+/// come last would otherwise circle those that settled and never arrive.
+///
+/// `agents` holds one sphere per agent, in agent order, `was_arrived` the arrival flags of the
+/// step before, and `own` is the index of `body`'s agent.
+fn has_reached(
+    body: &Body,
+    goal: Goal,
+    agents: &[Obstacle],
+    was_arrived: &[bool],
+    own: usize,
+) -> bool {
+    if body.position.distance(goal.target) <= goal.effective_arrival_radius(body.radius) {
+        return true;
+    }
+    agents
+        .iter()
+        .zip(was_arrived)
+        .enumerate()
+        .any(|(index, (other, &arrived))| {
+            let hull = other.radius + body.radius;
+            index != own
+                && arrived
+                && other.velocity.length() <= other.radius * AT_REST_RADII_PER_S
+                && other.position.distance(goal.target) <= hull
+                && body.position.distance(other.position)
+                    <= hull + HELD_GOAL_GAP_RADII * body.radius
+        })
 }
 
 impl World {
@@ -40,6 +81,7 @@ impl World {
         });
         self.axes.push([0.0; AXIS_COUNT]);
         self.arrived.push(false);
+        self.was_arrived.push(false);
         id
     }
 
@@ -90,6 +132,10 @@ impl World {
             radius: agent.body.radius,
         }));
         let last = self.scene.len().saturating_sub(1);
+        // Whether an agent holds its goal is judged on the arrivals of the step before, so the
+        // result doesn't depend on the order the agents are stepped in.
+        self.was_arrived.clear();
+        self.was_arrived.extend_from_slice(&self.arrived);
         let slots = self.axes.iter_mut().zip(&mut self.arrived);
         for (index, (agent, (axes, arrived))) in self.agents.iter_mut().zip(slots).enumerate() {
             let own = self.obstacles.len() + index;
@@ -112,8 +158,13 @@ impl World {
             );
             self.scene.swap(own, last);
             *axes = control(&agent.body, &agent.profile, &wanted);
-            *arrived = agent.body.position.distance(goal.target)
-                <= goal.effective_arrival_radius(agent.body.radius);
+            *arrived = has_reached(
+                &agent.body,
+                goal,
+                &self.scene[self.obstacles.len()..],
+                &self.was_arrived,
+                index,
+            );
         }
     }
 
@@ -135,7 +186,7 @@ mod tests {
     use glam::DVec3;
 
     use super::*;
-    use crate::agent::{Axis, Goal};
+    use crate::agent::Axis;
 
     const PROFILE: Profile = Profile::TEST;
 
@@ -219,6 +270,65 @@ mod tests {
         world.set_behaviour(id, Some(at(2.0 * radius + 0.5)));
         world.step();
         assert!(!world.arrived(id));
+    }
+
+    /// Two agents of radius 10: the first sits at rest on its own goal, the second heads for that
+    /// same point from `distance` away, with `holder_speed` the first's speed along z. Returns
+    /// whether the second has reached its goal after two steps (the first arrives in the first).
+    fn second_agent_reaches_a_held_goal(
+        distance: f64,
+        holder_speed: f64,
+        holder_arrives: bool,
+    ) -> bool {
+        const RADIUS: f64 = 10.0;
+        let goal_point = DVec3::ZERO;
+        let mut world = World::new();
+        let holder = world.add_agent(PROFILE);
+        let waiting = world.add_agent(PROFILE);
+        world.set_body(
+            holder,
+            Body {
+                velocity: DVec3::new(0.0, 0.0, holder_speed),
+                radius: RADIUS,
+                ..Body::AT_REST
+            },
+        );
+        world.set_body(
+            waiting,
+            Body {
+                position: DVec3::new(distance, 0.0, 0.0),
+                radius: RADIUS,
+                ..Body::AT_REST
+            },
+        );
+        let holder_goal = if holder_arrives {
+            goal_point
+        } else {
+            DVec3::new(0.0, 5000.0, 0.0)
+        };
+        world.set_behaviour(holder, Some(goal(holder_goal)));
+        world.set_behaviour(waiting, Some(goal(goal_point)));
+        world.step();
+        world.step();
+        world.arrived(waiting)
+    }
+
+    #[test]
+    fn an_agent_next_to_the_resting_agent_that_holds_its_goal_has_reached_it() {
+        // The arrival circle is held to 2 radii = 20, so 45 is outside it but within the hulls
+        // (20) plus 3 radii (30) of the holder.
+        assert!(second_agent_reaches_a_held_goal(45.0, 0.0, true));
+    }
+
+    #[test]
+    fn a_held_goal_is_not_reached_from_beyond_the_hulls_gap() {
+        assert!(!second_agent_reaches_a_held_goal(60.0, 0.0, true));
+    }
+
+    #[test]
+    fn a_goal_is_not_held_by_an_agent_that_moves_or_has_not_arrived() {
+        assert!(!second_agent_reaches_a_held_goal(45.0, 50.0, true));
+        assert!(!second_agent_reaches_a_held_goal(45.0, 0.0, false));
     }
 
     #[test]

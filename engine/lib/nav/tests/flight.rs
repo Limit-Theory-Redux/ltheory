@@ -216,6 +216,29 @@ fn a_ship_stops_on_a_far_goal_without_a_large_overshoot() {
     );
 }
 
+/// How much sooner a ship must arrive on a long leg than it did when it braked on drag alone,
+/// in seconds. Reverse thrust shortens the stop by about this much at top speed.
+const THRUST_BRAKING_GAIN_S: f64 = 1.0;
+
+#[test]
+fn a_ship_stops_on_a_long_fast_leg_soon_and_without_a_large_overshoot() {
+    // Each leg with the seconds the ship took to arrive when it braked on drag alone.
+    for (length, drag_only_s) in [(10_000.0, 4.62), (15_000.0, 5.22), (20_000.0, 5.80)] {
+        let target = DVec3::new(0.0, 0.0, -length);
+        let (ship, arrived) = fly_with(profile(8800.0), DVec3::ZERO, target, &[]);
+        let time = arrived.unwrap_or_else(|| panic!("leg {length}: no arrival"));
+        assert!(
+            time < drag_only_s - THRUST_BRAKING_GAIN_S,
+            "leg {length}: arrived after {time} s"
+        );
+        assert!(
+            ship.range < length + 10.0 * ARRIVAL_RADIUS,
+            "leg {length}: went {}",
+            ship.range
+        );
+    }
+}
+
 #[test]
 fn a_ship_flies_around_a_static_obstacle_on_its_course() {
     let target = DVec3::new(0.0, 0.0, -1000.0);
@@ -391,15 +414,31 @@ fn ships_cross_a_field_of_rocks_without_swapping_sides() {
     assert_eq!(cases, 30);
 }
 
+/// How far from the ring of goals the crowd's ships start, in metres. The ships' order of arrival
+/// changes with it, and with it which ship finds its goal held by the others.
+const CROWD_START_DISTANCES_M: [f64; 6] = [2000.0, 3000.0, 4000.0, 6250.0, 8000.0, 9000.0];
+
 /// Ships of real size fly to goals that lie closer together than their hulls, with arrival
 /// circles smaller than a hull. None of them can sit at its own goal while the others do, so
-/// without a floor on the arrival radius they circle each other and never arrive.
+/// without a floor on the arrival radius, and the arrival of an agent beside the one that holds
+/// its goal, they circle each other and never arrive.
 #[test]
 fn ships_with_goals_closer_than_their_hulls_all_arrive() {
+    for start_distance_m in CROWD_START_DISTANCES_M {
+        let stuck = crowd_ships_left_out(start_distance_m);
+        assert!(
+            stuck.is_empty(),
+            "start {start_distance_m} m: ships {stuck:?} never arrived"
+        );
+    }
+}
+
+/// Flies the crowd of ships to their goals from `start_distance_m` away; returns the indices of
+/// the ships that never arrived within the time limit.
+fn crowd_ships_left_out(start_distance_m: f64) -> Vec<usize> {
     const SHIP_RADIUS: f64 = 150.0;
     const SHIPS: usize = 8;
     const GOAL_RING_M: f64 = 220.0;
-    const START_DISTANCE_M: f64 = 4000.0;
     const SMALL_ARRIVAL_M: f64 = 100.0;
     let angle = |i: usize| std::f64::consts::TAU * i as f64 / SHIPS as f64;
     let mut world = World::new();
@@ -408,7 +447,7 @@ fn ships_with_goals_closer_than_their_hulls_all_arrive() {
         let id = world.add_agent(profile(8800.0));
         let target = DVec3::new(angle(i).cos(), 0.0, angle(i).sin()) * GOAL_RING_M;
         // Each ship comes in from outside the ring of goals, along the line through its goal.
-        let start = target.normalize() * START_DISTANCE_M + DVec3::new(0.0, 30.0 * i as f64, 0.0);
+        let start = target.normalize() * start_distance_m + DVec3::new(0.0, 30.0 * i as f64, 0.0);
         world.set_behaviour(
             id,
             Some(Behaviour::Arrive(Goal {
@@ -437,13 +476,12 @@ fn ships_with_goals_closer_than_their_hulls_all_arrive() {
         }
         time += STEP_S;
     }
-    let stuck: Vec<usize> = ships
+    ships
         .iter()
         .enumerate()
         .filter(|(_, (_, _, arrived))| arrived.is_none())
-        .map(|(i, _)| i)
-        .collect();
-    assert!(stuck.is_empty(), "ships {stuck:?} never arrived");
+        .map(|(index, _)| index)
+        .collect()
 }
 
 /// One step of a ship's flight: when it was, and where it was going.
@@ -616,6 +654,48 @@ fn a_follower_holds_its_slot_in_the_leaders_frame_without_touching_it() {
         nearest > 2.0 * AGENT_RADIUS,
         "came within {nearest} of the leader"
     );
+}
+
+#[test]
+fn a_follower_keeps_its_slot_while_the_leader_is_still_flying() {
+    const SLOT: DVec3 = DVec3::new(30.0, 0.0, -60.0);
+    const SECONDS: f64 = 25.0;
+    // The leader has reached cruise by then, and is still far from its goal.
+    const CRUISE_FROM_S: f64 = 10.0;
+    const CRUISE_FRACTION: f64 = 0.9;
+    const SLOT_LAG_TOLERANCE: f64 = 10.0;
+    let leader_goal = DVec3::new(0.0, 0.0, -5000.0);
+    // The follower starts in its slot, so what it does afterwards is the lag of the rule alone.
+    let mut ships = [Ship::new(DVec3::ZERO), Ship::new(SLOT)];
+    let samples = fly_fleet(&mut ships, SECONDS, |index, _, ships| {
+        if index == 0 {
+            return arrive_at_point(leader_goal);
+        }
+        Behaviour::Follow {
+            leader: ships[0].body(),
+            offset: FrameOffset {
+                right: SLOT.x,
+                up: SLOT.y,
+                forward: -SLOT.z,
+            },
+            arrival_radius: ARRIVAL_RADIUS,
+        }
+    });
+    let mut worst: f64 = 0.0;
+    for (leader, follower) in samples[0].iter().zip(&samples[1]) {
+        if leader.time < CRUISE_FROM_S {
+            continue;
+        }
+        assert!(
+            leader.velocity.length() > CRUISE_FRACTION * PROFILE.max_speed(),
+            "t = {}: the leader is not cruising",
+            leader.time
+        );
+        worst = worst.max(follower.position.distance(leader.position + SLOT));
+    }
+    // Without the leader's velocity fed forward, the follower trails its slot by the speed over
+    // the position loop's gain, far more than this.
+    assert!(worst < SLOT_LAG_TOLERANCE, "{worst} off its slot");
 }
 
 #[test]

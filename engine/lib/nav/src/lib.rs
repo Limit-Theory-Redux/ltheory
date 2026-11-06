@@ -7,6 +7,7 @@
 mod agent;
 mod avoidance;
 mod behaviour;
+mod braking;
 mod controller;
 mod obstacle;
 mod world;
@@ -17,5 +18,6 @@ pub use agent::{
 };
 pub use avoidance::{AvoidanceTuning, MIN_CLEARANCE_RADII};
 pub use behaviour::{Behaviour, FrameOffset, ORBIT_FIELD_GAIN, ORBIT_THRUST_SHARE};
+pub use braking::BRAKING_THRUST_SHARE;
 pub use obstacle::Obstacle;
 pub use world::World;

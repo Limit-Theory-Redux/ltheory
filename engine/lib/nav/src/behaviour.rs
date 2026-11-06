@@ -1,6 +1,7 @@
 use glam::DVec3;
 
 use crate::agent::{Body, Goal, Profile};
+use crate::braking::stopping_speed;
 
 /// Below this squared length (length units squared), a vector is too short to take a direction from.
 pub(crate) const TINY_SQ: f64 = 1e-24;
@@ -97,17 +98,17 @@ fn wanted_of(velocity: DVec3, fallback: DVec3) -> Wanted {
     }
 }
 
-/// Fly straight at the goal and stop on it. Coasting under linear drag `k` from speed `v` covers
-/// `v / k`, so the wanted speed is `distance · k`, capped at the profile's top speed.
+/// Fly straight at the goal and stop on it. The wanted speed is the one the agent can brake from
+/// within the distance (`braking::stopping_speed`), capped at the profile's top speed.
 pub(crate) fn arrive(body: &Body, profile: &Profile, goal: &Goal) -> Wanted {
     arrive_at(body, profile, goal.target, DVec3::ZERO)
 }
 
 /// Fly at a point that moves at `point_velocity` and stop on it, matching its velocity. The wanted
-/// velocity is the point's velocity plus a closing speed along the line of sight: the drag
-/// stopping speed `distance · k`, capped so that the total stays within the profile's top speed.
-/// That keeps the bearing to the point constant, which is the lead. A point that outruns the agent
-/// is chased along the line of sight at top speed.
+/// velocity is the point's velocity plus a closing speed along the line of sight: the speed the
+/// agent can brake from within the distance, capped so that the total stays within the profile's
+/// top speed. That keeps the bearing to the point constant, which is the lead. A point that
+/// outruns the agent is chased along the line of sight at top speed.
 pub(crate) fn arrive_at(
     body: &Body,
     profile: &Profile,
@@ -123,8 +124,9 @@ pub(crate) fn arrive_at(
     let direction = to_point / distance;
     let top = profile.max_speed();
     let point_speed_sq = point_velocity.length_squared();
+    let stopping = stopping_speed(profile, distance);
     let closing = if point_speed_sq < TINY_SQ {
-        top.min(distance * profile.linear_drag)
+        top.min(stopping)
     } else if point_speed_sq > top * top {
         return Wanted {
             velocity: direction * top,
@@ -133,7 +135,7 @@ pub(crate) fn arrive_at(
     } else {
         let along = point_velocity.dot(direction);
         let room = -along + (along * along + top * top - point_speed_sq).sqrt();
-        room.min(distance * profile.linear_drag)
+        room.min(stopping)
     };
     wanted_of(point_velocity + direction * closing, direction)
 }
@@ -328,13 +330,16 @@ mod tests {
     }
 
     #[test]
-    fn near_goal_gets_the_drag_stopping_speed() {
+    fn near_goal_gets_the_speed_the_agent_can_brake_from() {
+        let distance = 10.0;
         let wanted = arrive(
             &body_at(DVec3::ZERO),
             &PROFILE,
-            &goal_at(DVec3::new(10.0, 0.0, 0.0)),
+            &goal_at(DVec3::new(distance, 0.0, 0.0)),
         );
-        assert_eq!(wanted.velocity, DVec3::new(20.0, 0.0, 0.0));
+        assert_eq!(wanted.velocity.x, stopping_speed(&PROFILE, distance));
+        assert!(wanted.velocity.x > distance * PROFILE.linear_drag);
+        assert_eq!(wanted.direction, DVec3::X);
     }
 
     #[test]

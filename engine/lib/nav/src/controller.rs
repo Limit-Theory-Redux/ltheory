@@ -4,7 +4,7 @@ use crate::agent::{AXIS_COUNT, Axis, Body, DragRate, Frame, Profile};
 use crate::behaviour::{TINY_SQ, Wanted};
 
 /// Wanted acceleration per unit of velocity error, per second: the velocity loop's gain.
-const VELOCITY_GAIN: f64 = 10.0;
+pub(crate) const VELOCITY_GAIN: f64 = 10.0;
 /// The heading error, in radians, at which the turn asks for its full angular acceleration.
 const TURN_SATURATION_ANGLE: f64 = 0.5;
 /// Upper bound of the turn loop's natural frequency, in radians per second. It keeps the loop

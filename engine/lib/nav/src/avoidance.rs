@@ -2,6 +2,7 @@ use glam::DVec3;
 
 use crate::agent::{Body, Goal, Profile};
 use crate::behaviour::{TINY_SQ, Wanted};
+use crate::braking::{stopping_distance, stopping_speed};
 use crate::obstacle::Obstacle;
 
 /// How far ahead and how widely an agent avoids obstacles.
@@ -129,7 +130,7 @@ impl Sphere {
 /// The agent and the spheres its courses are tested against.
 struct Scene<'a> {
     body: &'a Body,
-    linear_drag: f64,
+    profile: &'a Profile,
     tuning: &'a AvoidanceTuning,
     /// The agent's goal, if any: no sphere keeps a clearance that would put it out of reach.
     goal: Option<Goal>,
@@ -185,7 +186,7 @@ impl Scene<'_> {
     }
 
     /// The distance the agent keeps from the obstacle's hull besides its own radius: the
-    /// distance drag alone takes it to stop from its current closing speed, between
+    /// distance it takes to brake from its current closing speed ([`stopping_distance`]), between
     /// [`MIN_CLEARANCE_RADII`] and `clearance_radii` agent radii. It depends on the agent's
     /// state at the start of the step only, never on the course being tested. It never exceeds
     /// what leaves the goal's arrival circle outside the sphere's reach, down to 0, so a goal
@@ -193,21 +194,15 @@ impl Scene<'_> {
     fn clearance(&self, obstacle: &Obstacle) -> f64 {
         let largest = self.body.radius * self.tuning.clearance_radii;
         let smallest = self.smallest_clearance();
-        let stopping_distance = if self.linear_drag > 0.0 {
-            closing_speed(self.body, obstacle) / self.linear_drag
-        } else {
-            f64::INFINITY
-        };
+        let closing = closing_speed(self.body, obstacle);
+        let stopping = stopping_distance(self.profile, closing);
         let goal_room = self.goal.map_or(f64::INFINITY, |goal| {
             let hull = obstacle.radius + self.body.radius;
             goal.target.distance(obstacle.position)
                 - hull
                 - goal.effective_arrival_radius(self.body.radius)
         });
-        stopping_distance
-            .max(smallest)
-            .min(largest)
-            .min(goal_room.max(0.0))
+        stopping.max(smallest).min(largest).min(goal_room.max(0.0))
     }
 
     /// The clearance kept from an obstacle the agent isn't closing on.
@@ -259,11 +254,10 @@ struct Pending {
 /// [`AvoidanceTuning::clearance_radii`]), so a slow agent fits through gaps a fast one avoids.
 ///
 /// The speed the resulting course closes at on every sphere that the wanted course, the new
-/// course or the agent's own velocity leads into is also limited to `linear_drag` times the
-/// distance to the sphere's hull (its surface plus the agent's radius) less a braking margin that
-/// grows with the agent's speed ([`BRAKING_REACTION_S`]), the speed from which drag alone stops
-/// the agent short of the hull (the rule of
-/// [`arrive`](crate::behaviour::arrive)). A fast agent turns slowly, so without the limit it
+/// course or the agent's own velocity leads into is also limited to the speed the agent can
+/// brake from within the distance to the sphere's hull (its surface plus the agent's radius) less
+/// a braking margin that grows with the agent's speed ([`BRAKING_REACTION_S`]): the curve of
+/// [`arrive`](crate::behaviour::arrive). A fast agent turns slowly, so without the limit it
 /// reaches the sphere before its velocity has followed the detour.
 ///
 /// `commitment` is the agent's memory between steps: while the same sphere is the first one
@@ -294,7 +288,7 @@ pub(crate) fn avoid(
     let max_speed = profile.max_speed();
     let probe = Scene {
         body,
-        linear_drag: profile.linear_drag,
+        profile,
         tuning,
         goal,
         spheres: &[],
@@ -370,21 +364,20 @@ fn limit_closing_speeds(scene: &Scene, wanted: Wanted, course: Wanted) -> Wanted
         let is_threat = leads_in(course.velocity)
             || (sphere.reachable && (leads_in(wanted.velocity) || leads_in(scene.body.velocity)));
         if is_threat {
-            limit_closing_speed(course, sphere, scene.linear_drag, margin)
+            limit_closing_speed(course, sphere, scene.profile, margin)
         } else {
             course
         }
     })
 }
 
-/// `course` with the speed it closes on the obstacle's sphere at reduced to `linear_drag` times
-/// the distance to the sphere's hull less the braking margin, the speed from which drag alone
-/// stops the agent short of the hull. The speed along the sphere is kept, so an agent passing
-/// the sphere isn't slowed for it.
+/// `course` with the speed it closes on the obstacle's sphere at reduced to the speed the agent
+/// can brake from within the distance to the sphere's hull less the braking margin. The speed
+/// along the sphere is kept, so an agent passing the sphere isn't slowed for it.
 fn limit_closing_speed(
     course: Wanted,
     sphere: &Sphere,
-    linear_drag: f64,
+    profile: &Profile,
     braking_margin: f64,
 ) -> Wanted {
     let distance = sphere.distance;
@@ -393,7 +386,7 @@ fn limit_closing_speed(
     }
     let to_centre = -sphere.offset / distance;
     let room = distance - sphere.hull - braking_margin;
-    let limit = linear_drag * room.max(0.0);
+    let limit = stopping_speed(profile, room.max(0.0));
     let closing = (course.velocity - sphere.velocity).dot(to_centre);
     if closing <= limit {
         return course;
@@ -794,7 +787,7 @@ mod tests {
         };
         let probe = Scene {
             body,
-            linear_drag: UNLIMITED_DRAG,
+            profile: &profile_with(MAX_SPEED, UNLIMITED_DRAG),
             tuning: &tuning,
             goal: None,
             spheres: &[],
@@ -931,10 +924,16 @@ mod tests {
 
     const DRAG: f64 = 2.0;
 
+    /// The profile of the tests of the braking limits: the speed it can brake from within a
+    /// distance is a few units per second.
+    fn braking_profile() -> Profile {
+        profile_with(MAX_SPEED, DRAG)
+    }
+
     fn avoid_with_drag(body: &Body, wanted: Wanted, obstacles: &[Obstacle]) -> Wanted {
         avoid(
             body,
-            &profile_with(MAX_SPEED, DRAG),
+            &braking_profile(),
             wanted,
             obstacles,
             &AvoidanceTuning::default(),
@@ -945,7 +944,7 @@ mod tests {
     }
 
     #[test]
-    fn a_threat_close_ahead_limits_the_closing_speed_to_what_drag_stops_short_of_the_surface() {
+    fn a_threat_close_ahead_limits_the_closing_speed_to_what_braking_stops_short_of_the_surface() {
         let body = body_at(DVec3::ZERO);
         let wanted = wanted_toward(DVec3::NEG_Z, MAX_SPEED);
         let rock = rock(DVec3::new(0.0, 0.0, -30.0), DVec3::ZERO, 5.0);
@@ -954,7 +953,15 @@ mod tests {
         let room = 30.0 - (rock.radius + RADIUS) - RADIUS * MIN_CLEARANCE_RADII;
         let steered = avoid_with_drag(&body, wanted, &[rock]);
         let closing = steered.velocity.dot(DVec3::NEG_Z);
-        assert!(closing <= DRAG * room + 1e-9, "closing at {closing}");
+        let limit = stopping_speed(&braking_profile(), room);
+        assert!(
+            closing <= limit + 1e-9,
+            "closing at {closing}, limit {limit}"
+        );
+        assert!(
+            closing > DRAG * room,
+            "thrust lets it close faster than drag alone"
+        );
         assert!(steered.velocity.length() > 0.0);
     }
 
@@ -969,7 +976,11 @@ mod tests {
         let room = 30.0 - (rock.radius + RADIUS) - 50.0 * BRAKING_REACTION_S;
         let steered = avoid_with_drag(&body, wanted, &[rock]);
         let closing = steered.velocity.dot(DVec3::NEG_Z);
-        assert!(closing <= DRAG * room + 1e-9, "closing at {closing}");
+        let limit = stopping_speed(&braking_profile(), room);
+        assert!(
+            closing <= limit + 1e-9,
+            "closing at {closing}, limit {limit}"
+        );
         assert!(
             (steered.velocity.x - wanted.velocity.x).abs() < 1e-9,
             "the speed along the sphere is kept"
@@ -982,7 +993,7 @@ mod tests {
         let tuning = AvoidanceTuning::default();
         let scene = Scene {
             body: &body,
-            linear_drag: DRAG,
+            profile: &braking_profile(),
             tuning: &tuning,
             goal: None,
             spheres: &[],
@@ -1014,7 +1025,8 @@ mod tests {
         let room = 30.0 - (receding.radius + RADIUS) - RADIUS * MIN_CLEARANCE_RADII;
         let steered = avoid_with_drag(&body, wanted, &[receding]);
         let relative_closing = (steered.velocity - receding.velocity).dot(DVec3::NEG_Z);
-        assert!(relative_closing <= DRAG * room + 1e-9, "{relative_closing}");
+        let limit = stopping_speed(&braking_profile(), room);
+        assert!(relative_closing <= limit + 1e-9, "{relative_closing}");
     }
 
     #[test]
@@ -1041,14 +1053,15 @@ mod tests {
         assert!((steered.velocity - wanted.velocity).length() < 1e-9);
     }
 
-    /// Radius 1 and drag 2 give clearances from 0.5 (at rest) up to 2 (from a closing speed of 4).
+    /// Radius 1 and the braking profile give clearances from 0.5 (at rest) up to 2 (from a
+    /// closing speed of about 12).
     fn clearance_with_velocity(velocity: DVec3, obstacle: &Obstacle) -> f64 {
         let mut body = body_at(DVec3::ZERO);
         body.velocity = velocity;
         let tuning = AvoidanceTuning::default();
         let scene = Scene {
             body: &body,
-            linear_drag: DRAG,
+            profile: &braking_profile(),
             tuning: &tuning,
             goal: None,
             spheres: &[],
@@ -1060,11 +1073,13 @@ mod tests {
     fn the_clearance_grows_with_the_closing_speed_between_its_bounds() {
         let ahead = rock(DVec3::new(0.0, 0.0, -100.0), DVec3::ZERO, 10.0);
         let at_rest = clearance_with_velocity(DVec3::ZERO, &ahead);
-        let slow = clearance_with_velocity(DVec3::new(0.0, 0.0, -2.0), &ahead);
+        let slow = clearance_with_velocity(DVec3::new(0.0, 0.0, -10.0), &ahead);
         let fast = clearance_with_velocity(DVec3::new(0.0, 0.0, -50.0), &ahead);
         assert_eq!(at_rest, RADIUS * MIN_CLEARANCE_RADII);
-        // Coasting from 2 under drag 2 covers 1.
-        assert!((slow - 1.0).abs() < 1e-9, "slow clearance {slow}");
+        // Between the bounds, the clearance is the distance braking from the closing speed takes.
+        let braking = stopping_distance(&braking_profile(), 10.0);
+        assert!(at_rest < braking && braking < fast);
+        assert!((slow - braking).abs() < 1e-9, "slow clearance {slow}");
         assert_eq!(fast, RADIUS * AvoidanceTuning::default().clearance_radii);
     }
 
@@ -1108,7 +1123,7 @@ mod tests {
         };
         let scene = Scene {
             body: &body,
-            linear_drag: DRAG,
+            profile: &braking_profile(),
             tuning: &tuning,
             goal: None,
             spheres: &[],
@@ -1116,14 +1131,22 @@ mod tests {
         assert_eq!(scene.clearance(&ahead), RADIUS * 0.25);
     }
 
+    /// A profile that can't brake at all: no drag and no thrust.
+    const NO_BRAKING: Profile = Profile {
+        linear_drag: 0.0,
+        accel_forward: 0.0,
+        ..Profile::TEST
+    };
+
     #[test]
-    fn a_drag_of_zero_keeps_the_largest_clearance() {
+    fn an_agent_that_cannot_brake_keeps_the_largest_clearance_while_it_closes() {
         let ahead = rock(DVec3::new(0.0, 0.0, -100.0), DVec3::ZERO, 10.0);
-        let body = body_at(DVec3::ZERO);
+        let mut body = body_at(DVec3::ZERO);
+        body.velocity = DVec3::new(0.0, 0.0, -1.0);
         let tuning = AvoidanceTuning::default();
         let scene = Scene {
             body: &body,
-            linear_drag: 0.0,
+            profile: &NO_BRAKING,
             tuning: &tuning,
             goal: None,
             spheres: &[],
@@ -1131,13 +1154,39 @@ mod tests {
         assert_eq!(scene.clearance(&ahead), RADIUS * tuning.clearance_radii);
     }
 
-    /// The clearance kept from `sphere` by an agent at the origin with no drag, heading for `goal`.
-    fn clearance_toward(goal: Goal, sphere: &Obstacle) -> f64 {
-        let body = body_at(DVec3::ZERO);
+    #[test]
+    fn without_drag_the_clearance_is_the_distance_constant_braking_takes() {
+        let ahead = rock(DVec3::new(0.0, 0.0, -100.0), DVec3::ZERO, 10.0);
+        let mut body = body_at(DVec3::ZERO);
+        body.velocity = DVec3::new(0.0, 0.0, -6.0);
+        let profile = Profile {
+            linear_drag: 0.0,
+            ..braking_profile()
+        };
         let tuning = AvoidanceTuning::default();
         let scene = Scene {
             body: &body,
-            linear_drag: 0.0,
+            profile: &profile,
+            tuning: &tuning,
+            goal: None,
+            spheres: &[],
+        };
+        let braking = stopping_distance(&profile, 6.0);
+        assert!(
+            RADIUS * MIN_CLEARANCE_RADII < braking && braking < RADIUS * tuning.clearance_radii
+        );
+        assert!((scene.clearance(&ahead) - braking).abs() < 1e-12);
+    }
+
+    /// The clearance kept from `sphere` by an agent that can't brake, flying at the origin toward
+    /// the sphere, heading for `goal`.
+    fn clearance_toward(goal: Goal, sphere: &Obstacle) -> f64 {
+        let mut body = body_at(DVec3::ZERO);
+        body.velocity = DVec3::new(0.0, 0.0, -1.0);
+        let tuning = AvoidanceTuning::default();
+        let scene = Scene {
+            body: &body,
+            profile: &NO_BRAKING,
             tuning: &tuning,
             goal: Some(goal),
             spheres: &[],
@@ -1277,7 +1326,7 @@ mod tests {
         let tuning = AvoidanceTuning::default();
         let scene = Scene {
             body: &body,
-            linear_drag: DRAG,
+            profile: &braking_profile(),
             tuning: &tuning,
             goal: None,
             spheres: &[],
@@ -1335,7 +1384,7 @@ mod tests {
         let tuning = AvoidanceTuning::default();
         Scene {
             body,
-            linear_drag: UNLIMITED_DRAG,
+            profile: &profile_with(MAX_SPEED, UNLIMITED_DRAG),
             tuning: &tuning,
             goal: None,
             spheres: &[],
