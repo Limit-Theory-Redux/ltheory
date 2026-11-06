@@ -446,7 +446,7 @@ function AutoPilotSystem:update(dt, shipEntity)
     -- Fly to the stand-off point; the NavWorld steers (it also brakes and stops there) and says
     -- when the ship has arrived.
     local nav, agent = ap:getNav(), ap:getAgent()
-    nav:setGoal(agent, standOffGoal(shipPos, interceptPos, interceptDist, actualDist, safeRange),
+    nav:setArrive(agent, standOffGoal(shipPos, interceptPos, interceptDist, actualDist, safeRange),
         arrivalRadius)
     nav:step()
     nav:copyArrived(ap:getArrived(), 1)

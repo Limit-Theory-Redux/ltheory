@@ -2,7 +2,9 @@
 -- of the navigation step, the glue and the actuation, with events logged as they happen and a
 -- summary at the end. Thresholds are authored in metres.
 -- Design: doc/script/navigation-sandbox.md
-local ScaleConfig = require("Config.Gen.UniverseScaleConfig")
+local ScaleConfig   = require("Config.Gen.UniverseScaleConfig")
+local ShipBehaviour = require("States.App.Tests.NavigationSandbox.Support.ShipBehaviour")
+local Metres        = require("States.App.Tests.NavigationSandbox.Support.Metres")
 
 -- A ship has arrived when it is this close to its target and this slow.
 local ARRIVAL_RANGE_M   = 100
@@ -18,6 +20,10 @@ local ARRIVAL_RANGE = ScaleConfig:toGameUnits(ARRIVAL_RANGE_M, "starSystem")
 local ARRIVAL_SPEED = ScaleConfig:toGameUnits(ARRIVAL_SPEED_MS, "starSystem")
 local PROGRESS_STEP = ScaleConfig:toGameUnits(PROGRESS_STEP_M, "starSystem")
 
+---What it takes to have arrived, for the ships judged by their behaviour.
+---@type SandboxJudgingRules
+local RULES = { range = ARRIVAL_RANGE, speed = ARRIVAL_SPEED }
+
 ---@alias SandboxShipState "flying"|"arrived"|"deadlocked"
 
 ---@class SandboxShip
@@ -31,6 +37,8 @@ local PROGRESS_STEP = ScaleConfig:toGameUnits(PROGRESS_STEP_M, "starSystem")
 ---@field label string
 ---@field state SandboxShipState
 ---@field released boolean|nil Whether the ship's goal was cleared after it finished
+---@field spec SandboxShipSpec
+---@field behaviour SandboxBehaviour|nil Set when the spec has a behaviour
 ---@field kind "ship"
 
 ---@class SandboxObstacle
@@ -72,6 +80,7 @@ local ScenarioMetrics = Class("ScenarioMetrics", function(self, name, ships, obs
     end
     self.touching = {} -- pair key -> true while the two bodies overlap
     self.arrivals, self.deadlocks, self.waypoints = 0, 0, 0
+    self.passes, self.slowPasses = 0, 0 -- Seek points passed, and those passed too slowly
     self.obstacleCollisions, self.shipCollisions = 0, 0
     self.frames, self.frameMsSum, self.frameMsMax = 0, 0, 0
     self.timedFrames = 0
@@ -83,10 +92,7 @@ local ScenarioMetrics = Class("ScenarioMetrics", function(self, name, ships, obs
     }
 end)
 
----Game units back to metres, for log lines.
-local function metres(gameUnits)
-    return ScaleConfig:toRealMeters(gameUnits, "starSystem")
-end
+local metres = Metres.toMetres
 
 function ScenarioMetrics:log(fmt, ...)
     Log.Info("NavigationSandbox: %s: " .. fmt, self.name, ...)
@@ -137,6 +143,19 @@ function ScenarioMetrics:waypointReached(ship, simTime)
     ship.bestDistance = math.huge
     ship.progressTime = simTime
     self.waypoints = self.waypoints + 1
+end
+
+---Record that a Seek ship passed one of its points.
+---@param ship SandboxShip
+---@param index integer Index of the point in the behaviour's list
+---@param speed number Game units per second
+---@param fastEnough boolean Whether the ship was still at speed, not braking for the point
+---@param simTime number
+function ScenarioMetrics:seekPassed(ship, index, speed, fastEnough, simTime)
+    self.passes = self.passes + 1
+    if not fastEnough then self.slowPasses = self.slowPasses + 1 end
+    self:log("%s passed point %d at %.2f s, %.0f m/s%s", ship.label, index, simTime,
+        Metres.toMetres(speed), fastEnough and "" or " (too slow)")
 end
 
 ---@class SandboxNeighbour
@@ -196,10 +215,19 @@ end
 ---@param simTime number Seconds of simulated time since the scenario started
 function ScenarioMetrics:updateProgress(ship, simTime)
     local distance = ship.rb:getPos():distance(ship.target)
-    if not ship.route and distance <= ARRIVAL_RANGE and ship.rb:getSpeed() <= ARRIVAL_SPEED then
+    local behaviour = ship.behaviour
+    local arrived
+    if behaviour then
+        arrived = ShipBehaviour.judge(ship, simTime, RULES)
+    else
+        arrived = not ship.route and distance <= ARRIVAL_RANGE and ship.rb:getSpeed() <= ARRIVAL_SPEED
+    end
+    if arrived then
         ship.state = "arrived"
         self.arrivals = self.arrivals + 1
         self:log("%s arrived at %.2f s", ship.label, simTime)
+    elseif behaviour and ShipBehaviour.exemptFromDeadlock(ship) then
+        return
     elseif distance <= ship.bestDistance - PROGRESS_STEP then
         ship.bestDistance = distance
         ship.progressTime = simTime
@@ -287,6 +315,9 @@ function ScenarioMetrics:failures()
     if self:unfinished() > 0 then
         table.insert(failures, string.format("%d ships still flying", self:unfinished()))
     end
+    if self.slowPasses > 0 then
+        table.insert(failures, string.format("%d seek points passed too slowly", self.slowPasses))
+    end
     return failures
 end
 
@@ -294,10 +325,17 @@ end
 ---@param simTime number
 function ScenarioMetrics:summarize(simTime)
     local measured = math.max(self.frames - WARMUP_FRAMES, 1)
-    self:log("%d/%d arrived, %d waypoints reached, %d ship-obstacle and %d ship-ship collisions, "
+    self:log("%d/%d arrived, %d waypoints reached, %d seek points passed, %d ship-obstacle and %d ship-ship collisions, "
         .. "%d deadlocked, %d unfinished, %.2f s simulated, frame %.2f ms mean, %.2f ms max over %d frames",
-        self.arrivals, #self.ships, self.waypoints, self.obstacleCollisions, self.shipCollisions,
+        self.arrivals, #self.ships, self.waypoints, self.passes, self.obstacleCollisions, self.shipCollisions,
         self.deadlocks, self:unfinished(), simTime, self.frameMsSum / measured, self.frameMsMax, measured)
+    for _, ship in ipairs(self.ships) do
+        local maxError = ShipBehaviour.maxStationError(ship)
+        if maxError then
+            self:log("%s: largest distance from its station since it was reached: %.0f m", ship.label,
+                Metres.toMetres(maxError))
+        end
+    end
     local t = self.timings
     self:log("navigation ms per frame, mean (max) over %d frames: step %.3f (%.3f), glue %.3f (%.3f), "
         .. "actuation %.3f (%.3f), total %.3f (%.3f)", self.timedFrames,
@@ -307,5 +345,8 @@ end
 
 ---The distance from its target, in game units, within which a ship can arrive.
 ScenarioMetrics.ARRIVAL_RANGE = ARRIVAL_RANGE
+
+---The rules for a ship judged by its behaviour.
+ScenarioMetrics.RULES = RULES
 
 return ScenarioMetrics

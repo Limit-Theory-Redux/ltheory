@@ -23,8 +23,13 @@ function Loader.defineType()
             uint32    NavWorld_AgentCount         (NavWorld const*);
             uint32    NavWorld_AddAgent           (NavWorld*, RigidBody const* body, double linearDrag, double angularDrag, double thrustForward, double thrustRight, double thrustUp, double torquePitch, double torqueYaw, double torqueRoll);
             void      NavWorld_AddObstacle        (NavWorld*, RigidBody const* body);
-            void      NavWorld_SetGoal            (NavWorld*, uint32 id, Position const* target, double arrivalRadius);
-            void      NavWorld_ClearGoal          (NavWorld*, uint32 id);
+            void      NavWorld_SetArrive          (NavWorld*, uint32 id, Position const* target, double arrivalRadius);
+            void      NavWorld_SetSeek            (NavWorld*, uint32 id, Position const* target, double arrivalRadius);
+            void      NavWorld_SetHold            (NavWorld*, uint32 id, double arrivalRadius);
+            void      NavWorld_SetPursue          (NavWorld*, uint32 id, RigidBody const* target, double standOff, double arrivalRadius);
+            void      NavWorld_SetFollow          (NavWorld*, uint32 id, RigidBody const* leader, double right, double up, double forward, double arrivalRadius);
+            void      NavWorld_SetOrbit           (NavWorld*, uint32 id, RigidBody const* centre, double radius, Vec3d const* normal, double arrivalRadius);
+            void      NavWorld_ClearBehaviour     (NavWorld*, uint32 id);
             void      NavWorld_SetAvoidanceTuning (NavWorld*, double horizonS, double clearanceRadii, double aimFactor);
             void      NavWorld_Step               (NavWorld*);
             void      NavWorld_CopyAxes           (NavWorld const*, double* out, uint64 out_size);
@@ -52,8 +57,13 @@ function Loader.defineType()
                 agentCount         = libphx.NavWorld_AgentCount,
                 addAgent           = libphx.NavWorld_AddAgent,
                 addObstacle        = libphx.NavWorld_AddObstacle,
-                setGoal            = libphx.NavWorld_SetGoal,
-                clearGoal          = libphx.NavWorld_ClearGoal,
+                setArrive          = libphx.NavWorld_SetArrive,
+                setSeek            = libphx.NavWorld_SetSeek,
+                setHold            = libphx.NavWorld_SetHold,
+                setPursue          = libphx.NavWorld_SetPursue,
+                setFollow          = libphx.NavWorld_SetFollow,
+                setOrbit           = libphx.NavWorld_SetOrbit,
+                clearBehaviour     = libphx.NavWorld_ClearBehaviour,
                 setAvoidanceTuning = libphx.NavWorld_SetAvoidanceTuning,
                 step               = libphx.NavWorld_Step,
                 copyAxes           = libphx.NavWorld_CopyAxes,

@@ -46,21 +46,77 @@ function NavWorld:addAgent(body, linearDrag, angularDrag, thrustForward, thrustR
 function NavWorld:addObstacle(body) end
 
 -- Sends the agent to `target`, in world coordinates, and stops it within the arrival radius
--- of it (game units). The radius is at least two of the agent's own radii.
+-- of it (game units). The radius is at least two of the agent's own radii in every
+-- behaviour below.
 -- 
 -- # Panics
 -- If `id` isn't an agent.
 ---@param id integer
 ---@param target Position
 ---@param arrivalRadius number
-function NavWorld:setGoal(id, target, arrivalRadius) end
+function NavWorld:setArrive(id, target, arrivalRadius) end
+
+-- Sends the agent through `target` at top speed, without braking.
+-- 
+-- # Panics
+-- If `id` isn't an agent.
+---@param id integer
+---@param target Position
+---@param arrivalRadius number
+function NavWorld:setSeek(id, target, arrivalRadius) end
+
+-- Keeps the agent where its body is now.
+-- 
+-- # Panics
+-- If `id` isn't an agent, or its body has left the physics world.
+---@param id integer
+---@param arrivalRadius number
+function NavWorld:setHold(id, arrivalRadius) end
+
+-- Meets `target` `stand_off` from its hull (game units), matching its velocity. `target` is
+-- read from physics at each step.
+-- 
+-- # Panics
+-- If `id` isn't an agent, or `target` isn't a root body of this world's physics.
+---@param id integer
+---@param target RigidBody
+---@param standOff number
+---@param arrivalRadius number
+function NavWorld:setPursue(id, target, standOff, arrivalRadius) end
+
+-- Holds the slot `right`, `up`, `forward` (game units) away from `leader`, in the leader's
+-- own axes, matching its velocity. `leader` is read from physics at each step.
+-- 
+-- # Panics
+-- If `id` isn't an agent, or `leader` isn't a root body of this world's physics.
+---@param id integer
+---@param leader RigidBody
+---@param right number
+---@param up number
+---@param forward number
+---@param arrivalRadius number
+function NavWorld:setFollow(id, leader, right, up, forward, arrivalRadius) end
+
+-- Circles `centre` at `radius` (game units) in the plane through it normal to `normal`,
+-- anticlockwise about `normal`, moving with the centre. `centre` is read from physics at each
+-- step.
+-- 
+-- # Panics
+-- If `id` isn't an agent, `centre` isn't a root body of this world's physics, `radius` isn't
+-- positive, or `normal` is zero or not finite.
+---@param id integer
+---@param centre RigidBody
+---@param radius number
+---@param normal Vec3d
+---@param arrivalRadius number
+function NavWorld:setOrbit(id, centre, radius, normal, arrivalRadius) end
 
 -- Leaves the agent without input.
 -- 
 -- # Panics
 -- If `id` isn't an agent.
 ---@param id integer
-function NavWorld:clearGoal(id) end
+function NavWorld:clearBehaviour(id) end
 
 -- Sets how agents avoid obstacles: the look-ahead in seconds, the largest clearance in agent
 -- radii (the clearance itself grows with the closing speed) and the aim factor (see

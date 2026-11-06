@@ -1,5 +1,6 @@
 use ::nav::{
-    AXIS_COUNT, AgentId, AvoidanceTuning, Behaviour, Body, Frame, Goal, Obstacle, Profile,
+    AXIS_COUNT, AgentId, AvoidanceTuning, Behaviour, Body, Frame, FrameOffset, Goal, Obstacle,
+    Profile,
 };
 
 use crate::math::*;
@@ -16,11 +17,31 @@ struct FlightLimits {
     torque: [f64; 3],
 }
 
+/// A behaviour that is about another body: the behaviour as last built, and the body whose state
+/// it is rebuilt from at each step.
+struct Tracking {
+    handles: BodyHandles,
+    behaviour: Behaviour,
+}
+
 /// An agent: its id in `nav`, the body it is steered from and the limits of its ship.
 struct Agent {
     id: AgentId,
     handles: BodyHandles,
     limits: FlightLimits,
+    /// `Some` while the agent's behaviour names a target body.
+    tracking: Option<Tracking>,
+}
+
+/// Writes the current state of the target body into the body that `behaviour` names; the
+/// behaviours with a fixed point have none.
+fn refresh_target(behaviour: &mut Behaviour, body: Body) {
+    match behaviour {
+        Behaviour::Pursue { target, .. } => *target = body,
+        Behaviour::Follow { leader, .. } => *leader = body,
+        Behaviour::Orbit { centre, .. } => *centre = body,
+        Behaviour::Seek(_) | Behaviour::Arrive(_) => {}
+    }
 }
 
 /// `value / divisor`, or 0 when the divisor is 0: a body without mass or inertia gets no
@@ -70,12 +91,33 @@ impl NavWorld {
         })
     }
 
-    fn agent(&self, id: u32) -> AgentId {
+    fn agent_mut(&mut self, id: u32) -> &mut Agent {
         usize::try_from(id)
             .ok()
-            .and_then(|index| self.agents.get(index))
+            .and_then(|index| self.agents.get_mut(index))
             .unwrap_or_else(|| panic!("NavWorld has no agent {id}"))
-            .id
+    }
+
+    /// Gives the agent a behaviour that names no body.
+    fn set_fixed(&mut self, id: u32, behaviour: Behaviour) {
+        let agent = self.agent_mut(id);
+        agent.tracking = None;
+        let agent = agent.id;
+        self.world.set_behaviour(agent, Some(behaviour));
+    }
+
+    /// Gives the agent a behaviour built by `build` from the state of `target`, which each step
+    /// reads again.
+    fn set_tracking(&mut self, id: u32, target: &RigidBody, build: impl FnOnce(Body) -> Behaviour) {
+        // The agent is looked up first, so an unknown id is reported before a bad target.
+        self.agent_mut(id);
+        let handles = self.handles_of(target, "target");
+        let state = Self::state_of(&self.physics.as_ref(), &handles, "target");
+        let behaviour = build(nav_body(&state));
+        let agent = self.agent_mut(id);
+        agent.tracking = Some(Tracking { handles, behaviour });
+        let agent = agent.id;
+        self.world.set_behaviour(agent, Some(behaviour));
     }
 
     fn state_of(world: &PhysicsWorld, handles: &BodyHandles, what: &str) -> BodyState {
@@ -162,6 +204,7 @@ impl NavWorld {
             id,
             handles,
             limits,
+            tracking: None,
         });
         self.agent_count() - 1
     }
@@ -177,28 +220,118 @@ impl NavWorld {
     }
 
     /// Sends the agent to `target`, in world coordinates, and stops it within the arrival radius
-    /// of it (game units). The radius is at least two of the agent's own radii.
+    /// of it (game units). The radius is at least two of the agent's own radii in every
+    /// behaviour below.
     ///
     /// # Panics
     /// If `id` isn't an agent.
-    pub fn set_goal(&mut self, id: u32, target: &Position, arrival_radius: f64) {
-        let id = self.agent(id);
-        self.world.set_behaviour(
+    pub fn set_arrive(&mut self, id: u32, target: &Position, arrival_radius: f64) {
+        self.set_fixed(
             id,
-            Some(Behaviour::Arrive(Goal {
+            Behaviour::Arrive(Goal {
                 target: target.v,
                 arrival_radius,
-            })),
+            }),
         );
+    }
+
+    /// Sends the agent through `target` at top speed, without braking.
+    ///
+    /// # Panics
+    /// If `id` isn't an agent.
+    pub fn set_seek(&mut self, id: u32, target: &Position, arrival_radius: f64) {
+        self.set_fixed(
+            id,
+            Behaviour::Seek(Goal {
+                target: target.v,
+                arrival_radius,
+            }),
+        );
+    }
+
+    /// Keeps the agent where its body is now.
+    ///
+    /// # Panics
+    /// If `id` isn't an agent, or its body has left the physics world.
+    pub fn set_hold(&mut self, id: u32, arrival_radius: f64) {
+        let handles = self.agent_mut(id).handles;
+        let state = Self::state_of(&self.physics.as_ref(), &handles, "agent");
+        self.set_fixed(id, Behaviour::hold(&nav_body(&state), arrival_radius));
+    }
+
+    /// Meets `target` `stand_off` from its hull (game units), matching its velocity. `target` is
+    /// read from physics at each step.
+    ///
+    /// # Panics
+    /// If `id` isn't an agent, or `target` isn't a root body of this world's physics.
+    pub fn set_pursue(&mut self, id: u32, target: &RigidBody, stand_off: f64, arrival_radius: f64) {
+        self.set_tracking(id, target, |target| Behaviour::Pursue {
+            target,
+            stand_off,
+            arrival_radius,
+        });
+    }
+
+    /// Holds the slot `right`, `up`, `forward` (game units) away from `leader`, in the leader's
+    /// own axes, matching its velocity. `leader` is read from physics at each step.
+    ///
+    /// # Panics
+    /// If `id` isn't an agent, or `leader` isn't a root body of this world's physics.
+    // The generator has no struct arguments, so the offset stays as three numbers.
+    pub fn set_follow(
+        &mut self,
+        id: u32,
+        leader: &RigidBody,
+        right: f64,
+        up: f64,
+        forward: f64,
+        arrival_radius: f64,
+    ) {
+        self.set_tracking(id, leader, |leader| Behaviour::Follow {
+            leader,
+            offset: FrameOffset { right, up, forward },
+            arrival_radius,
+        });
+    }
+
+    /// Circles `centre` at `radius` (game units) in the plane through it normal to `normal`,
+    /// anticlockwise about `normal`, moving with the centre. `centre` is read from physics at each
+    /// step.
+    ///
+    /// # Panics
+    /// If `id` isn't an agent, `centre` isn't a root body of this world's physics, `radius` isn't
+    /// positive, or `normal` is zero or not finite.
+    pub fn set_orbit(
+        &mut self,
+        id: u32,
+        centre: &RigidBody,
+        radius: f64,
+        normal: &DVec3,
+        arrival_radius: f64,
+    ) {
+        assert!(radius > 0.0, "NavWorld orbit: the radius must be positive");
+        assert!(
+            normal.is_finite() && normal.length_squared() > 0.0,
+            "NavWorld orbit: the normal must be finite and not zero"
+        );
+        let normal = *normal;
+        self.set_tracking(id, centre, |centre| Behaviour::Orbit {
+            centre,
+            radius,
+            normal,
+            arrival_radius,
+        });
     }
 
     /// Leaves the agent without input.
     ///
     /// # Panics
     /// If `id` isn't an agent.
-    pub fn clear_goal(&mut self, id: u32) {
-        let id = self.agent(id);
-        self.world.set_behaviour(id, None);
+    pub fn clear_behaviour(&mut self, id: u32) {
+        let agent = self.agent_mut(id);
+        agent.tracking = None;
+        let agent = agent.id;
+        self.world.set_behaviour(agent, None);
     }
 
     /// Sets how agents avoid obstacles: the look-ahead in seconds, the largest clearance in agent
@@ -220,12 +353,22 @@ impl NavWorld {
     pub fn step(&mut self) {
         {
             let physics = self.physics.as_ref();
-            for (index, agent) in self.agents.iter().enumerate() {
+            for (index, agent) in self.agents.iter_mut().enumerate() {
                 let state = Self::state_of(&physics, &agent.handles, &format!("agent {index}"));
                 self.world.set_body(agent.id, nav_body(&state));
                 // Read each step, so a change of mass reaches the controller.
                 self.world
                     .set_profile(agent.id, profile_of(&agent.limits, &state));
+                // A target is a snapshot in `nav`, so it is read again for every step.
+                if let Some(tracking) = &mut agent.tracking {
+                    let target = Self::state_of(
+                        &physics,
+                        &tracking.handles,
+                        &format!("agent {index}'s target"),
+                    );
+                    refresh_target(&mut tracking.behaviour, nav_body(&target));
+                    self.world.set_behaviour(agent.id, Some(tracking.behaviour));
+                }
             }
             self.obstacle_spheres.clear();
             for (index, handles) in self.obstacles.iter().enumerate() {
@@ -290,6 +433,9 @@ mod tests {
     const ROCK_RADIUS: f32 = 30.0;
     const ROCK_DISTANCE: f64 = 200.0;
     const LONG_GOAL_DISTANCE: f64 = 1000.0;
+    const STAND_OFF: f64 = 8.0;
+    const SLOT_DISTANCE: f64 = 100.0;
+    const ORBIT_RADIUS: f64 = 100.0;
 
     fn body_in(physics: &mut Physics, radius: f32, at: Position) -> Box<RigidBody> {
         let mut body = RigidBody::new_sphere();
@@ -391,7 +537,7 @@ mod tests {
         let ship = ship_in(&mut physics);
         let mut nav = NavWorld::new(&physics);
         let id = add_ship(&mut nav, &ship);
-        nav.set_goal(id, &goal_at(GOAL_DISTANCE, 0.0), ARRIVAL_RADIUS);
+        nav.set_arrive(id, &goal_at(GOAL_DISTANCE, 0.0), ARRIVAL_RADIUS);
         nav.step();
         assert_eq!(axis(&axes_of(&nav), 0, NavAxis::Yaw), 1.0);
     }
@@ -406,8 +552,8 @@ mod tests {
         assert_eq!(add_ship(&mut nav, &first), 0);
         assert_eq!(add_ship(&mut nav, &second), 1);
         assert_eq!(nav.agent_count(), 2);
-        nav.set_goal(0, &goal_at(GOAL_DISTANCE, 0.0), ARRIVAL_RADIUS);
-        nav.set_goal(1, &goal_at(-GOAL_DISTANCE, ROCK_DISTANCE), ARRIVAL_RADIUS);
+        nav.set_arrive(0, &goal_at(GOAL_DISTANCE, 0.0), ARRIVAL_RADIUS);
+        nav.set_arrive(1, &goal_at(-GOAL_DISTANCE, ROCK_DISTANCE), ARRIVAL_RADIUS);
         nav.step();
         let axes = axes_of(&nav);
         assert_eq!(axis(&axes, 0, NavAxis::Yaw), 1.0);
@@ -420,7 +566,7 @@ mod tests {
         let mut ship = ship_in(&mut physics);
         let mut nav = NavWorld::new(&physics);
         let id = add_ship(&mut nav, &ship);
-        nav.set_goal(id, &goal_at(GOAL_DISTANCE, 0.0), ARRIVAL_RADIUS);
+        nav.set_arrive(id, &goal_at(GOAL_DISTANCE, 0.0), ARRIVAL_RADIUS);
         nav.step();
         assert_eq!(axis(&axes_of(&nav), 0, NavAxis::Yaw), 1.0);
 
@@ -435,8 +581,8 @@ mod tests {
         let ship = ship_in(&mut physics);
         let mut nav = NavWorld::new(&physics);
         let id = add_ship(&mut nav, &ship);
-        nav.set_goal(id, &goal_at(GOAL_DISTANCE, 0.0), ARRIVAL_RADIUS);
-        nav.clear_goal(id);
+        nav.set_arrive(id, &goal_at(GOAL_DISTANCE, 0.0), ARRIVAL_RADIUS);
+        nav.clear_behaviour(id);
         nav.step();
         assert!(axes_of(&nav).iter().all(|&value| value == 0.0));
     }
@@ -449,12 +595,12 @@ mod tests {
         let mut nav = NavWorld::new(&physics);
         let near_id = add_ship(&mut nav, &near);
         let far_id = add_ship(&mut nav, &far);
-        nav.set_goal(
+        nav.set_arrive(
             near_id,
             &goal_at(0.0, -ARRIVAL_RADIUS / 2.0),
             ARRIVAL_RADIUS,
         );
-        nav.set_goal(far_id, &goal_at(GOAL_DISTANCE, 0.0), ARRIVAL_RADIUS);
+        nav.set_arrive(far_id, &goal_at(GOAL_DISTANCE, 0.0), ARRIVAL_RADIUS);
         nav.step();
         let mut arrived = [false; 2];
         nav.copy_arrived(&mut arrived);
@@ -468,13 +614,179 @@ mod tests {
         let rock = body_in(&mut physics, ROCK_RADIUS, goal_at(0.0, -ROCK_DISTANCE));
         let mut nav = NavWorld::new(&physics);
         let id = add_ship(&mut nav, &ship);
-        nav.set_goal(id, &goal_at(0.0, -LONG_GOAL_DISTANCE), ARRIVAL_RADIUS);
+        nav.set_arrive(id, &goal_at(0.0, -LONG_GOAL_DISTANCE), ARRIVAL_RADIUS);
         nav.step();
         let straight = axes_of(&nav);
 
         nav.add_obstacle(&rock);
         nav.step();
         assert_ne!(axes_of(&nav), straight);
+    }
+
+    fn yaw_of(nav: &NavWorld) -> f64 {
+        axis(&axes_of(nav), 0, NavAxis::Yaw)
+    }
+
+    fn arrived_of(nav: &NavWorld) -> bool {
+        let mut arrived = [false];
+        nav.copy_arrived(&mut arrived);
+        arrived[0]
+    }
+
+    #[test]
+    fn seek_steers_at_its_point() {
+        let mut physics = Physics::new();
+        let ship = ship_in(&mut physics);
+        let mut nav = NavWorld::new(&physics);
+        let id = add_ship(&mut nav, &ship);
+        nav.set_seek(id, &goal_at(GOAL_DISTANCE, 0.0), ARRIVAL_RADIUS);
+        nav.step();
+        assert_eq!(yaw_of(&nav), 1.0);
+    }
+
+    #[test]
+    fn hold_keeps_the_position_the_body_had_at_the_call() {
+        let mut physics = Physics::new();
+        let mut ship = ship_in(&mut physics);
+        let mut nav = NavWorld::new(&physics);
+        let id = add_ship(&mut nav, &ship);
+        nav.set_hold(id, ARRIVAL_RADIUS);
+        nav.step();
+        assert!(arrived_of(&nav));
+
+        // The held point stays behind: it doesn't follow the body.
+        ship.set_position(&goal_at(GOAL_DISTANCE, 0.0));
+        nav.step();
+        assert!(!arrived_of(&nav));
+        assert_eq!(yaw_of(&nav), -1.0);
+    }
+
+    #[test]
+    fn a_pursued_body_is_read_again_at_each_step() {
+        let mut physics = Physics::new();
+        let ship = ship_in(&mut physics);
+        let mut target = body_in(&mut physics, SHIP_RADIUS, goal_at(GOAL_DISTANCE, 0.0));
+        let mut nav = NavWorld::new(&physics);
+        let id = add_ship(&mut nav, &ship);
+        nav.set_pursue(id, &target, STAND_OFF, ARRIVAL_RADIUS);
+        nav.step();
+        assert_eq!(yaw_of(&nav), 1.0);
+
+        target.set_position(&goal_at(-GOAL_DISTANCE, 0.0));
+        nav.step();
+        assert_eq!(yaw_of(&nav), -1.0);
+    }
+
+    #[test]
+    fn a_pursuer_arrives_at_its_stand_off_from_the_hull() {
+        let mut physics = Physics::new();
+        let ship = ship_in(&mut physics);
+        // The stand-off point is the two hulls' radii plus the stand-off from the target's centre.
+        let gap = f64::from(SHIP_RADIUS) * 2.0 + STAND_OFF;
+        let target = body_in(&mut physics, SHIP_RADIUS, goal_at(0.0, -gap));
+        let mut nav = NavWorld::new(&physics);
+        let id = add_ship(&mut nav, &ship);
+        nav.set_pursue(id, &target, STAND_OFF, ARRIVAL_RADIUS);
+        nav.step();
+        assert!(arrived_of(&nav));
+    }
+
+    #[test]
+    fn a_follower_reads_its_leader_and_its_slot_at_each_step() {
+        let mut physics = Physics::new();
+        let ship = ship_in(&mut physics);
+        // The leader faces -z, so a slot 100 ahead of it, in its own axes, is at the origin.
+        let mut leader = body_in(&mut physics, SHIP_RADIUS, goal_at(0.0, SLOT_DISTANCE));
+        let mut nav = NavWorld::new(&physics);
+        let id = add_ship(&mut nav, &ship);
+        nav.set_follow(id, &leader, 0.0, 0.0, SLOT_DISTANCE, ARRIVAL_RADIUS);
+        nav.step();
+        assert!(arrived_of(&nav));
+
+        leader.set_position(&goal_at(GOAL_DISTANCE, SLOT_DISTANCE));
+        nav.step();
+        assert!(!arrived_of(&nav));
+        assert_eq!(yaw_of(&nav), 1.0);
+    }
+
+    #[test]
+    fn an_orbiting_ship_on_its_circle_has_arrived_and_one_far_off_is_steered_to_it() {
+        let mut physics = Physics::new();
+        let on_circle = ship_in(&mut physics);
+        let far = body_in(&mut physics, SHIP_RADIUS, goal_at(-GOAL_DISTANCE, 0.0));
+        let centre = body_in(&mut physics, SHIP_RADIUS, goal_at(ORBIT_RADIUS, 0.0));
+        let mut nav = NavWorld::new(&physics);
+        let first = add_ship(&mut nav, &on_circle);
+        let second = add_ship(&mut nav, &far);
+        for id in [first, second] {
+            nav.set_orbit(id, &centre, ORBIT_RADIUS, &DVec3::Y, ARRIVAL_RADIUS);
+        }
+        nav.step();
+        let mut arrived = [false; 2];
+        nav.copy_arrived(&mut arrived);
+        assert_eq!(arrived, [true, false]);
+        // The far ship is left of the centre and faces -z, so the circle is on its right.
+        assert_eq!(axis(&axes_of(&nav), 1, NavAxis::Yaw), 1.0);
+    }
+
+    #[test]
+    fn a_later_behaviour_drops_the_target_of_an_earlier_one() {
+        let mut physics = Physics::new();
+        let ship = ship_in(&mut physics);
+        let mut target = body_in(&mut physics, SHIP_RADIUS, goal_at(GOAL_DISTANCE, 0.0));
+        let mut nav = NavWorld::new(&physics);
+        let id = add_ship(&mut nav, &ship);
+        nav.set_pursue(id, &target, STAND_OFF, ARRIVAL_RADIUS);
+        nav.set_arrive(id, &goal_at(GOAL_DISTANCE, 0.0), ARRIVAL_RADIUS);
+        physics.remove_rigid_body(&mut target);
+        // The step would stop on a removed target if the pursuit were still held.
+        nav.step();
+        assert_eq!(yaw_of(&nav), 1.0);
+    }
+
+    #[test]
+    #[should_panic(expected = "target: the body is not a root body of its physics world")]
+    fn a_target_of_another_physics_world_is_refused() {
+        let mut physics = Physics::new();
+        let mut other = Physics::new();
+        let stranger = ship_in(&mut other);
+        let ship = ship_in(&mut physics);
+        let mut nav = NavWorld::new(&physics);
+        let id = add_ship(&mut nav, &ship);
+        nav.set_pursue(id, &stranger, STAND_OFF, ARRIVAL_RADIUS);
+    }
+
+    #[test]
+    #[should_panic(expected = "agent 0's target: its body has left the physics world")]
+    fn a_removed_target_stops_the_step_and_names_the_agent() {
+        let mut physics = Physics::new();
+        let ship = ship_in(&mut physics);
+        let mut target = body_in(&mut physics, SHIP_RADIUS, goal_at(GOAL_DISTANCE, 0.0));
+        let mut nav = NavWorld::new(&physics);
+        let id = add_ship(&mut nav, &ship);
+        nav.set_pursue(id, &target, STAND_OFF, ARRIVAL_RADIUS);
+        physics.remove_rigid_body(&mut target);
+        nav.step();
+    }
+
+    #[test]
+    #[should_panic(expected = "the normal must be finite and not zero")]
+    fn an_orbit_without_a_normal_is_refused() {
+        let mut physics = Physics::new();
+        let ship = ship_in(&mut physics);
+        let mut nav = NavWorld::new(&physics);
+        let id = add_ship(&mut nav, &ship);
+        nav.set_orbit(id, &ship, ORBIT_RADIUS, &DVec3::ZERO, ARRIVAL_RADIUS);
+    }
+
+    #[test]
+    #[should_panic(expected = "the radius must be positive")]
+    fn an_orbit_without_a_radius_is_refused() {
+        let mut physics = Physics::new();
+        let ship = ship_in(&mut physics);
+        let mut nav = NavWorld::new(&physics);
+        let id = add_ship(&mut nav, &ship);
+        nav.set_orbit(id, &ship, 0.0, &DVec3::Y, ARRIVAL_RADIUS);
     }
 
     #[test]
@@ -519,7 +831,7 @@ mod tests {
     fn an_unknown_agent_id_is_refused() {
         let physics = Physics::new();
         let mut nav = NavWorld::new(&physics);
-        nav.set_goal(3, &Position::ZERO, ARRIVAL_RADIUS);
+        nav.set_arrive(3, &Position::ZERO, ARRIVAL_RADIUS);
     }
 
     #[test]
