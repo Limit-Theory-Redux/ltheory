@@ -1,5 +1,7 @@
-local CoreComponents    = require("Modules.Core.Components")
-local PhysicsComponents = require("Modules.Physics.Components")
+local Registry            = require("Core.ECS.Registry")
+local CoreComponents      = require("Modules.Core.Components")
+local PhysicsComponents   = require("Modules.Physics.Components")
+local CelestialComponents = require("Modules.CelestialObjects.Components")
 
 --- CoordinateRebaser — rebases entity hierarchies from absolute coordinates
 --- to local coordinates near the origin. Critical for physics precision at
@@ -7,26 +9,19 @@ local PhysicsComponents = require("Modules.Physics.Components")
 ---@class CoordinateRebaser
 local CoordinateRebaser = {}
 
---- Find the first star system and rebase all its children to local coordinates
----@param universeEntity Entity Root universe entity
+--- Rebase the first star system and all its children to local coordinates
 ---@return Position systemOrigin The absolute origin that was subtracted
-function CoordinateRebaser:rebaseStarSystem(universeEntity)
+function CoordinateRebaser:rebaseStarSystem()
     local origin = Position(0, 0, 0)
 
-    local universeChildren = universeEntity:get(CoreComponents.Children)
-    if not universeChildren then return origin end
+    for starSystem in Registry:view(CelestialComponents.StarSystem) do
+        local transform = starSystem:get(PhysicsComponents.Transform)
+        origin = transform:getPos()
 
-    for child in universeChildren:iterChildren() do
-        local name = tostring(child)
-        if name:find("StarSystemEntity") then
-            local transform = child:get(PhysicsComponents.Transform)
-            origin = transform:getPos()
-
-            self:_rebaseEntity(child, origin)
-            Log.Info("Rebased star system from (%.0f, %.0f, %.0f) to local origin",
-                origin.x, origin.y, origin.z)
-            break
-        end
+        self:_rebaseEntity(starSystem, origin)
+        Log.Info("Rebased star system from (%.0f, %.0f, %.0f) to local origin",
+            origin.x, origin.y, origin.z)
+        break
     end
 
     return origin

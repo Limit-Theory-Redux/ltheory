@@ -1,229 +1,213 @@
-local CoreComponents    = require("Modules.Core.Components")
-local PhysicsComponents = require("Modules.Physics.Components")
-local SpatialComponents = require("Modules.Spatial.Components")
+local Registry            = require("Core.ECS.Registry")
+local CoreComponents      = require("Modules.Core.Components")
+local PhysicsComponents   = require("Modules.Physics.Components")
+local SpatialComponents   = require("Modules.Spatial.Components")
+local CelestialComponents = require("Modules.CelestialObjects.Components")
+local OrbitalSystem       = require("Modules.CelestialObjects.Systems.OrbitalSystem")
 
---- Gravity Well System — detects which zone the ship is in,
---- applies velocity matching so the ship drifts with orbiting bodies,
---- and reports zone type for travel drive speed limiting.
+local OPEN_SPACE = PhysicsComponents.GravityWell.OPEN_SPACE
+
+-- A planet's well reaches at least this far past its outermost moon's orbit radius.
+local MOON_ORBIT_WELL_FACTOR = 1.5
+-- The drive cap starts to fall this many well radii away from a body.
+local INFLUENCE_RADIUS_FACTOR = 2.0
+-- Largest body move (game units) that a ship follows in one update; a larger jump is not followed.
+local MAX_FOLLOW_DELTA = 1000
+-- Body moves (game units) below this are not followed.
+local MIN_FOLLOW_DELTA = 0.01
+
+--- Gravity Well System — finds the well each ship with a `GravityWellComponent` is in, makes it drift
+--- with the body it orbits, and gives the travel-drive speed cap at any position.
 ---@class GravityWellSystem
 ---@overload fun(): GravityWellSystem
 local GravityWellSystem = Class("GravityWellSystem", function(self)
-    self.zones = {}           -- collected zones: { entity, parentEntity, parentName, zoneType, radius }
-    self.currentZone = nil    -- the zone the ship is currently in
-    self.currentZoneType = "openSpace"
-    self.prevBodyPositions = {} -- for velocity matching
+    self.zones = {} -- collected wells: { zoneEntity, parentEntity, parentName, zoneType, radius }
 end)
 
---- Collect all zones from the entity hierarchy
----@param rootEntity Entity
-function GravityWellSystem:collectZones(rootEntity)
+-- The kinds of body that have a well. `nameFromEntity` takes the body's name from its entity name
+-- (the text before the id) instead of `bodyName`.
+local WELL_BODIES = {
+    { marker = CelestialComponents.Star,   zoneType = "star",   bodyName = "Star" },
+    { marker = CelestialComponents.Planet, zoneType = "planet", bodyName = "Planet", nameFromEntity = true },
+    { marker = CelestialComponents.Moon,   zoneType = "moon",   bodyName = "Moon" },
+}
+
+--- The id of an entity's parent, nil without one.
+---@param entity Entity
+---@return EntityId|nil
+local function parentId(entity)
+    local parentCmp = entity:get(CoreComponents.Parent)
+    local parent = parentCmp and parentCmp:getParent()
+    return parent and parent.id
+end
+
+--- The radius of the zone each body declares, by body id.
+---@return table<EntityId, number>
+local function declaredZoneRadii()
+    local radii = {}
+    for zone in Registry:view(SpatialComponents.Zone) do
+        local shapeCmp = zone:get(SpatialComponents.Shape)
+        local bodyId = parentId(zone)
+        if shapeCmp and bodyId then
+            radii[bodyId] = shapeCmp:getRadius()
+        end
+    end
+    return radii
+end
+
+--- The largest moon orbit radius around each body, by body id.
+---@return table<EntityId, number>
+local function outermostMoonOrbits()
+    local orbits = {}
+    for moon in Registry:view(CelestialComponents.Moon) do
+        local orbitCmp = moon:get(SpatialComponents.Orbit)
+        local bodyId = parentId(moon)
+        if orbitCmp and bodyId then
+            orbits[bodyId] = math.max(orbits[bodyId] or 0, orbitCmp:getOrbitRadius() or 0)
+        end
+    end
+    return orbits
+end
+
+--- Collect the wells of every star, planet and moon that has a zone (or, for a planet, moons).
+function GravityWellSystem:collectZones()
     self.zones = {}
-    self:_walkForZones(rootEntity, nil, nil)
+    local declaredRadii = declaredZoneRadii()
+    local moonOrbits = outermostMoonOrbits()
+
+    for _, kind in ipairs(WELL_BODIES) do
+        for body in Registry:view(kind.marker) do
+            local zoneRadius = declaredRadii[body.id]
+            local outermostMoonOrbit = moonOrbits[body.id] or 0
+
+            -- For planets: the well must cover the outermost moon orbit
+            if kind.zoneType == "planet" and outermostMoonOrbit > 0 then
+                local moonBasedRadius = outermostMoonOrbit * MOON_ORBIT_WELL_FACTOR
+                zoneRadius = zoneRadius and math.max(zoneRadius, moonBasedRadius) or moonBasedRadius
+            end
+
+            if zoneRadius then
+                local bodyName = kind.bodyName
+                if kind.nameFromEntity then
+                    bodyName = tostring(body):match("^(.-)%(") or bodyName
+                end
+                table.insert(self.zones, {
+                    zoneEntity   = body,
+                    parentEntity = body,
+                    parentName   = bodyName,
+                    zoneType     = kind.zoneType,
+                    radius       = zoneRadius,
+                })
+            end
+        end
+    end
     Log.Info("GravityWellSystem: found %d zones", #self.zones)
 end
 
----@param entity Entity
----@param parentEntity Entity|nil
----@param parentName string|nil
-function GravityWellSystem:_walkForZones(entity, parentEntity, parentName)
-    local name = tostring(entity)
-
-    -- Detect zone type from entity name
-    local zoneType = nil
-    local bodyName = nil
-    if name:find("StarEntity") then
-        zoneType = "star"; bodyName = "Star"
-    elseif name:find("PlanetEntity") then
-        zoneType = "planet"; bodyName = name:match("^(.-)%(") or "Planet"
-    elseif name:find("MoonEntity") then
-        zoneType = "moon"; bodyName = "Moon"
-    end
-
-    -- Find zone radius: use the declared zone, but for planets expand to cover all moons
-    local childrenCmp = entity:get(CoreComponents.Children)
-    if childrenCmp then
-        local zoneRadius = nil
-        local outermostMoonOrbit = 0
-
-        for child in childrenCmp:iterChildren() do
-            local childName = tostring(child)
-            if childName:find("ZoneEntity") then
-                local shapeCmp = child:get(SpatialComponents.Shape)
-                if shapeCmp then
-                    zoneRadius = shapeCmp:getRadius()
-                end
-            elseif childName:find("MoonEntity") then
-                -- Track outermost moon orbit
-                local orbitCmp = child:get(SpatialComponents.Orbit)
-                if orbitCmp then
-                    local r = orbitCmp:getOrbitRadius() or 0
-                    if r > outermostMoonOrbit then outermostMoonOrbit = r end
-                end
-                self:_walkForZones(child, entity, bodyName)
-            else
-                self:_walkForZones(child, entity, bodyName)
-            end
-        end
-
-        -- For planets: zone must be at least outermost moon orbit * 1.5
-        if zoneType == "planet" and outermostMoonOrbit > 0 then
-            local moonBasedRadius = outermostMoonOrbit * 1.5
-            if zoneRadius then
-                zoneRadius = math.max(zoneRadius, moonBasedRadius)
-            else
-                zoneRadius = moonBasedRadius
-            end
-        end
-
-        if zoneRadius and zoneType then
-            table.insert(self.zones, {
-                zoneEntity   = entity,
-                parentEntity = entity,
-                parentName   = bodyName,
-                zoneType     = zoneType,
-                radius       = zoneRadius,
-            })
-        end
-    end
-
-    -- Also recurse if this entity has no zone children but has children
-    if not childrenCmp then return end
+--- The position of the body a well belongs to, nil if it has no rigid body.
+---@param zone table
+---@return Position|nil
+local function bodyPosition(zone)
+    local rbCmp = zone.parentEntity:get(PhysicsComponents.RigidBody)
+    local rb = rbCmp and rbCmp:getRigidBody()
+    return rb and rb:getPos() or nil
 end
 
---- Update: detect which zone the ship is in, apply velocity matching
----@param dt number
+--- The smallest well that contains `position`, nil in open space.
+---@param zones table[]
+---@param position Position
+---@return table|nil
+local function innermostZone(zones, position)
+    local best, bestRadius = nil, math.huge
+    for _, zone in ipairs(zones) do
+        local bodyPos = bodyPosition(zone)
+        if bodyPos and position:distance(bodyPos) < zone.radius and zone.radius < bestRadius then
+            best, bestRadius = zone, zone.radius
+        end
+    end
+    return best
+end
+
+--- Move the ship by the distance its body moved since the last update. Only when the ship was in
+--- the same well then, so that entering a well does not teleport it.
+---@param well GravityWellComponent
+---@param rb RigidBody
+---@param shipPos Position
+---@param bodyPos Position
+local function followBody(well, rb, shipPos, bodyPos)
+    local prev = well:getPrevBodyPos()
+    if prev then
+        local dx = Math.Clamp(bodyPos.x - prev.x, -MAX_FOLLOW_DELTA, MAX_FOLLOW_DELTA)
+        local dy = Math.Clamp(bodyPos.y - prev.y, -MAX_FOLLOW_DELTA, MAX_FOLLOW_DELTA)
+        local dz = Math.Clamp(bodyPos.z - prev.z, -MAX_FOLLOW_DELTA, MAX_FOLLOW_DELTA)
+        if math.abs(dx) > MIN_FOLLOW_DELTA or math.abs(dy) > MIN_FOLLOW_DELTA
+            or math.abs(dz) > MIN_FOLLOW_DELTA then
+            rb:setPos(Position(shipPos.x + dx, shipPos.y + dy, shipPos.z + dz))
+        end
+    end
+    well:setPrevBodyPos(Position(bodyPos.x, bodyPos.y, bodyPos.z))
+end
+
+--- Update one ship's well and follow the body it is in.
 ---@param shipEntity Entity
-function GravityWellSystem:update(dt, shipEntity)
-    if not shipEntity or #self.zones == 0 then return end
+---@param well GravityWellComponent
+---@param rb RigidBody
+function GravityWellSystem:_updateShip(shipEntity, well, rb)
+    local shipPos = rb:getPos()
+    local zone = innermostZone(self.zones, shipPos)
 
-    local shipRbCmp = shipEntity:get(PhysicsComponents.RigidBody)
-    if not shipRbCmp then return end
-    local shipRb = shipRbCmp:getRigidBody()
-    if not shipRb then return end
-    local shipPos = shipRb:getPos()
-    self.shipPos = shipPos -- cache for getMaxDriveSpeed
-
-    -- Find innermost zone the ship is inside
-    local bestZone = nil
-    local bestRadius = math.huge
-
-    for _, zone in ipairs(self.zones) do
-        local parentRbCmp = zone.parentEntity:get(PhysicsComponents.RigidBody)
-        if parentRbCmp then
-            local parentRb = parentRbCmp:getRigidBody()
-            if parentRb then
-                local parentPos = parentRb:getPos()
-                local dist = shipPos:distance(parentPos)
-
-                if dist < zone.radius and zone.radius < bestRadius then
-                    bestZone = zone
-                    bestRadius = zone.radius
-                end
-            end
-        end
-    end
-
-    -- Update current zone
-    local prevZoneType = self.currentZoneType
-    if bestZone then
-        self.currentZone = bestZone
-        self.currentZoneType = bestZone.zoneType
+    local prevType = well:getZoneType()
+    if not zone then
+        well:leave()
     else
-        self.currentZone = nil
-        self.currentZoneType = "openSpace"
+        if well:getBodyEntity() ~= zone.parentEntity then
+            well:enter(zone.parentEntity, zone.parentName, zone.zoneType)
+            well:setPrevBodyPos(nil)
+        end
+        -- The body's position for this step: its rigid body only reaches it when the step runs.
+        followBody(well, rb, shipPos, OrbitalSystem:predictPos(zone.parentEntity, 0))
     end
 
-    -- Log zone transitions
-    if self.currentZoneType ~= prevZoneType then
-        if self.currentZone then
-            Log.Info("Entered %s gravity well (%s)", self.currentZone.parentName, self.currentZoneType)
+    if well:getZoneType() ~= prevType then
+        if zone then
+            Log.Info("%s entered %s gravity well (%s)", tostring(shipEntity), zone.parentName, zone.zoneType)
         else
-            Log.Info("Entered open space")
+            Log.Info("%s entered open space", tostring(shipEntity))
         end
     end
+end
 
-    -- Velocity matching: move ship with the body it's orbiting near
-    -- Only apply delta if we were in the SAME zone last frame (prevents teleporting on zone entry)
-    if bestZone and self.prevZoneBody == bestZone.parentEntity then
-        local key = bestZone.parentEntity
-        local parentRb = bestZone.parentEntity:get(PhysicsComponents.RigidBody):getRigidBody()
-        local currentPos = parentRb:getPos()
-
-        local prevPos = self.prevBodyPositions[key]
-        if prevPos then
-            local dx = currentPos.x - prevPos.x
-            local dy = currentPos.y - prevPos.y
-            local dz = currentPos.z - prevPos.z
-
-            -- Clamp delta to prevent teleporting (max ~1000 units per frame)
-            local maxDelta = 1000
-            dx = Math.Clamp(dx, -maxDelta, maxDelta)
-            dy = Math.Clamp(dy, -maxDelta, maxDelta)
-            dz = Math.Clamp(dz, -maxDelta, maxDelta)
-
-            if math.abs(dx) > 0.01 or math.abs(dy) > 0.01 or math.abs(dz) > 0.01 then
-                shipRb:setPos(Position(shipPos.x + dx, shipPos.y + dy, shipPos.z + dz))
-            end
+--- Update every ship that has a gravity-well component and a rigid body.
+function GravityWellSystem:update()
+    if #self.zones == 0 then return end
+    for shipEntity, well in Registry:iterEntities(PhysicsComponents.GravityWell) do
+        local rbCmp = shipEntity:get(PhysicsComponents.RigidBody)
+        local rb = rbCmp and rbCmp:getRigidBody()
+        if rb then
+            self:_updateShip(shipEntity, well, rb)
         end
     end
-
-    -- Update previous body position for next frame's delta
-    if bestZone then
-        local parentRb = bestZone.parentEntity:get(PhysicsComponents.RigidBody):getRigidBody()
-        self.prevBodyPositions[bestZone.parentEntity] = Position(
-            parentRb:getPos().x, parentRb:getPos().y, parentRb:getPos().z)
-    end
-    self.prevZoneBody = bestZone and bestZone.parentEntity or nil
 end
 
---- Get current zone type ("openSpace", "star", "planet", "moon")
----@return string
-function GravityWellSystem:getZoneType()
-    return self.currentZoneType
-end
-
---- Get current zone name for HUD display
----@return string
-function GravityWellSystem:getZoneName()
-    if self.currentZone then
-        return self.currentZone.parentName .. " (" .. self.currentZoneType .. ")"
-    end
-    return "Open Space"
-end
-
---- Get max travel drive speed — smooth linear falloff based on distance to nearest body
---- Far away = full speed, close to body = zone minimum speed
----@return number maxSpeed, string zoneName
-function GravityWellSystem:getMaxDriveSpeed()
+--- Max travel drive speed multiplier at a position — smooth falloff with the distance to each body.
+--- Far away = full speed, close to a body = the zone's minimum; the lowest cap wins.
+---@param position Position
+---@return number maxSpeed
+function GravityWellSystem:getMaxDriveSpeedAt(position)
     local cfg = Config.game.travelDrive.maxSpeedByZone
-    local maxSpeed = cfg.openSpace
+    local maxSpeed = cfg[OPEN_SPACE]
 
-    if not self.shipPos then return maxSpeed end
-
-    -- Find the strongest influence (closest body relative to its zone radius)
     for _, zone in ipairs(self.zones) do
-        local parentRbCmp = zone.parentEntity:get(PhysicsComponents.RigidBody)
-        if parentRbCmp then
-            local parentRb = parentRbCmp:getRigidBody()
-            if parentRb then
-                local dist = self.shipPos:distance(parentRb:getPos())
-                local radius = zone.radius
-
-                -- Influence extends to 2x zone radius (smooth approach)
-                local influenceRadius = radius * 2.0
-                if dist < influenceRadius then
-                    -- t: 0 at body center, 1 at edge of influence
-                    local t = Math.Clamp(dist / influenceRadius, 0, 1)
-
-                    -- Smooth interpolation: zone min speed at center → open space at edge
-                    local zoneMin = cfg[zone.zoneType] or cfg.openSpace
-                    local zoneSpeed = zoneMin + (cfg.openSpace - zoneMin) * t * t
-
-                    -- Take the most restrictive (lowest) speed
-                    if zoneSpeed < maxSpeed then
-                        maxSpeed = zoneSpeed
-                    end
-                end
+        local bodyPos = bodyPosition(zone)
+        if bodyPos then
+            local influenceRadius = zone.radius * INFLUENCE_RADIUS_FACTOR
+            local dist = position:distance(bodyPos)
+            if dist < influenceRadius then
+                -- t: 0 at body center, 1 at edge of influence
+                local t = Math.Clamp(dist / influenceRadius, 0, 1)
+                local zoneMin = cfg[zone.zoneType] or cfg[OPEN_SPACE]
+                local zoneSpeed = zoneMin + (cfg[OPEN_SPACE] - zoneMin) * t * t
+                maxSpeed = math.min(maxSpeed, zoneSpeed)
             end
         end
     end

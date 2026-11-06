@@ -8,9 +8,23 @@ local RigidBodyComponent = Subclass("RigidBodyComponent", Component, function(se
     self:setRigidBody(rigidBody)
 end)
 
+-- The body carries its entity's id, so physics queries report the entity they hit.
+local function copyEntityId(self)
+    if self.rigidBody and self.entityId then
+        self.rigidBody:setUserId(self.entityId)
+    end
+end
+
 ---@param rigidBody RigidBody
 function RigidBodyComponent:setRigidBody(rigidBody)
     self.rigidBody = rigidBody
+    copyEntityId(self)
+end
+
+---@param entityId EntityId
+function RigidBodyComponent:setEntityId(entityId)
+    Component.setEntityId(self, entityId)
+    copyEntityId(self)
 end
 
 ---@return RigidBody

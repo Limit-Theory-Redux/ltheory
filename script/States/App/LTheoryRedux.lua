@@ -23,34 +23,36 @@ local ApplicationBindings = require('States.ApplicationBindings')
 -- ECS registry, physics/construct/celestial components, camera manager,
 -- render core, player controller, and the simulation systems the scene
 -- runs on.
-local Registry = require('Core.ECS.Registry')
-local CoreComponents = require('Modules.Core.Components')
-local PhysicsComponents = require('Modules.Physics.Components')
-local ConstructComponents = require('Modules.Constructs.Components')
-local CelestialComponents = require('Modules.CelestialObjects.Components')
-local CameraManager = require('Modules.Cameras.Managers.CameraManager')
-local CameraEntity = require('Modules.Cameras.Entities').Camera
-local RenderCoreSystem = require('Modules.Rendering.Systems.RenderCoreSystem')
-local PlayerController = require('Modules.Constructs.Systems.PlayerController')
-local AutoPilotSystem = require('Modules.Constructs.Systems.AutoPilotSystem')
-local GravityWellSystem = require('Modules.Physics.Systems.GravityWellSystem')
+local Registry                = require('Core.ECS.Registry')
+local CoreComponents          = require('Modules.Core.Components')
+local PhysicsComponents       = require('Modules.Physics.Components')
+local ConstructComponents     = require('Modules.Constructs.Components')
+local CelestialComponents     = require('Modules.CelestialObjects.Components')
+local CameraManager           = require('Modules.Cameras.Managers.CameraManager')
+local CameraEntity            = require('Modules.Cameras.Entities').Camera
+local RenderCoreSystem        = require('Modules.Rendering.Systems.RenderCoreSystem')
+local PlayerController        = require('Modules.Constructs.Systems.PlayerController')
+local AutoPilotSystem         = require('Modules.Constructs.Systems.AutoPilotSystem')
+local ShipFlightSystem        = require('Modules.Constructs.Systems.ShipFlightSystem')
+local TravelDriveSystem       = require('Modules.Constructs.Systems.TravelDriveSystem')
+local GravityWellSystem       = require('Modules.Physics.Systems.GravityWellSystem')
 local CelestialLightingSystem = require('Modules.Rendering.Systems.CelestialLightingSystem')
-local LensFlareSystem = require('Modules.Rendering.Systems.LensFlareSystem')
-local GameplayHUDSystem = require('Modules.UI.Systems.GameplayHUDSystem')
-local WorldLabelRenderSystem = require('Modules.UI.Systems.WorldLabelRenderSystem')
-local AsteroidFieldSystem = require('Modules.CelestialObjects.Systems.AsteroidFieldSystem')
-local GeneralActions = require('Input.ActionBindings.GeneralActions')
-local CursorManager = require('Input.CursorManager')
-local Rulesets = require('Config.Gen.Rulesets')
-local UniverseManager = require('Modules.CelestialObjects.Managers.UniverseManager')
-local SolarSystemVisualizer = require('Modules.CelestialObjects.Managers.SolarSystemVisualizer')
-local CoordinateRebaser = require('Modules.CelestialObjects.Managers.CoordinateRebaser')
-local OrbitalSystem = require('Modules.CelestialObjects.Systems.OrbitalSystem')
-local SystemMap = require('Modules.CelestialObjects.Systems.SystemMap')
-local SystemMap3D = require('Modules.CelestialObjects.Systems.SystemMap3D')
-local MemoryReporter = require('Modules.Profiling.MemoryReporter')
-local ConstructManager = require('Modules.Constructs.Managers.ConstructManager')
-local StationGenerator = require('Modules.Constructs.Managers.Generators.StationGenerator')
+local LensFlareSystem         = require('Modules.Rendering.Systems.LensFlareSystem')
+local GameplayHUDSystem       = require('Modules.UI.Systems.GameplayHUDSystem')
+local WorldLabelRenderSystem  = require('Modules.UI.Systems.WorldLabelRenderSystem')
+local AsteroidFieldSystem     = require('Modules.CelestialObjects.Systems.AsteroidFieldSystem')
+local GeneralActions          = require('Input.ActionBindings.GeneralActions')
+local CursorManager           = require('Input.CursorManager')
+local Rulesets                = require('Config.Gen.Rulesets')
+local UniverseManager         = require('Modules.CelestialObjects.Managers.UniverseManager')
+local SolarSystemVisualizer   = require('Modules.CelestialObjects.Managers.SolarSystemVisualizer')
+local CoordinateRebaser       = require('Modules.CelestialObjects.Managers.CoordinateRebaser')
+local OrbitalSystem           = require('Modules.CelestialObjects.Systems.OrbitalSystem')
+local SystemMap               = require('Modules.CelestialObjects.Systems.SystemMap')
+local SystemMap3D             = require('Modules.CelestialObjects.Systems.SystemMap3D')
+local MemoryReporter          = require('Modules.Profiling.MemoryReporter')
+local ConstructManager        = require('Modules.Constructs.Managers.ConstructManager')
+local StationGenerator        = require('Modules.Constructs.Managers.Generators.StationGenerator')
 
 -- Skybox generation (the nebula generators register themselves with `Generator`;
 -- this state also draws from the light-transport nebula, which the Legacy
@@ -280,11 +282,6 @@ end
 function LimitTheoryRedux:returnToMainMenu()
     self:closePauseMenu()
 
-    if self._simTunnel then
-        EventBus:unsubscribe(self._simTunnel)
-        self._simTunnel = nil
-    end
-
     -- Same teardown as regenerate: bodies leave the world first.
     if self.universe then
         Registry:destroyEntity(self.universe, Enums.Registry.EntityDestroyMode.DestroyChildren)
@@ -336,13 +333,15 @@ function LimitTheoryRedux:startGame(seed)
     self:cleanupMenuBackground()
 
     self.cfg = SceneConfig
-    -- Static scene: bodies stay at generated positions (see onStateSim)
+    -- Static scene: bodies stay at generated positions (see onSim)
     self.staticStarSystem = true
     -- Random universe each game: a nil seed means "surprise me", never a
     -- fixed default (the same universe on every New Game would be stale).
     self.seed = seed or rng:get64()
     self.rng = RNG.Create(self.seed)
     self.world = Physics.Create()
+    self.world:setLengthUnit(Config.game.physics.lengthUnit)
+    self.world:setContactNaturalFrequency(Config.game.physics.contactNaturalFrequency)
     self.constructManager = ConstructManager(Registry, self.world)
     RenderCoreSystem:setDebugPhysics(self.world)
 
@@ -353,13 +352,13 @@ function LimitTheoryRedux:startGame(seed)
 
     -- Orbital simulation + gravity wells
     self.orbiters, self.followers = OrbitalSystem:collectOrbiters(self.universe)
-    GravityWellSystem:collectZones(self.universe)
+    GravityWellSystem:collectZones()
 
     -- System maps
     self.mapState = SystemMap:create()
-    SystemMap:collectEntities(self.mapState, self.universe, self.playerShip)
+    SystemMap:collectEntities(self.mapState, self.playerShip)
     self.map3DState = SystemMap3D:create()
-    SystemMap3D:collectEntities(self.map3DState, self.universe, self.playerShip)
+    SystemMap3D:collectEntities(self.map3DState, self.playerShip)
     SystemMap3D:setSkybox(self.map3DState, self.skybox)
     self.mapMode = 0  -- 0=off, 1=2D, 2=3D
 
@@ -380,8 +379,6 @@ function LimitTheoryRedux:startGame(seed)
             mouseSensitivity = free.mouseSensitivity,
         },
     })
-
-    self._simTunnel = EventBus:subscribe(Event.Sim, self, self.onStateSim)
 
     -- Close the menu; in-game UI (HUD, labels) is drawn by the state's
     -- onRender through the rendering systems, not the HmGui pages.
@@ -428,85 +425,91 @@ function LimitTheoryRedux:generateUniverse()
     end
 
     -- Rebase all entities to star-system-local coordinates (near origin)
-    self.systemOrigin = CoordinateRebaser:rebaseStarSystem(self.universe)
+    self.systemOrigin = CoordinateRebaser:rebaseStarSystem()
 
-    SolarSystemVisualizer:materialize(self.universe, self.world)
+    SolarSystemVisualizer:materialize(self.world)
 
+    self:collectEntities()
+end
+
+--- Collect planets, labels, the star and the belts from the registry views.
+function LimitTheoryRedux:collectEntities()
     self.planets = {}
     self.labeledEntities = {}
     self.beltEntities = {}
     self.starEntity = nil
-    self:collectEntities(self.universe)
-end
 
---- Walk the generated universe and collect planets/labels/star/belts.
----@param entity Entity
-function LimitTheoryRedux:collectEntities(entity)
-    local name = tostring(entity)
-
-    if name:find("PlanetEntity") then
+    for entity in Registry:view(CelestialComponents.Planet) do
         table.insert(self.planets, entity)
-        table.insert(self.labeledEntities, { entity = entity, label = name })
-    elseif name:find("MoonEntity") then
-        table.insert(self.labeledEntities, { entity = entity, label = name })
-    elseif name:find("StarEntity") then
+        table.insert(self.labeledEntities, { entity = entity, label = tostring(entity) })
+    end
+    for entity in Registry:view(CelestialComponents.Moon) do
+        table.insert(self.labeledEntities, { entity = entity, label = tostring(entity) })
+    end
+    for entity in Registry:view(CelestialComponents.Star) do
         self.starEntity = entity
-    elseif name:find("AsteroidBeltEntity") then
+    end
+    for entity in Registry:view(CelestialComponents.AsteroidBelt) do
         table.insert(self.beltEntities, entity)
     end
-
-    local childrenCmp = entity:get(CoreComponents.Children)
-    if childrenCmp then
-        for child in childrenCmp:iterChildren() do
-            self:collectEntities(child)
-        end
-    end
 end
 
---- Spawn the player ship next to the nearest belt asteroid (so the first
+--- The position belt asteroid data is relative to: the parent body when it
+--- has a transform, else the belt's own transform.
+---@param beltEntity Entity
+---@return number x, number y, number z
+local function beltRenderOrigin(beltEntity)
+    local originEntity = beltEntity
+    local parentCmp = beltEntity:get(CoreComponents.Parent)
+    if parentCmp then
+        local p = parentCmp:getParent()
+        if p and p:get(PhysicsComponents.Transform) then originEntity = p end
+    end
+    local t = originEntity:get(PhysicsComponents.Transform)
+    if not t then return 0, 0, 0 end
+    local p = t:getPos()
+    return p.x, p.y, p.z
+end
+
+--- The asteroid of any belt nearest to a point.
+---@param belts Entity[]
+---@param point Position
+---@return table|nil asteroid Its baked data
+---@return number x, number y, number z Its world position
+local function nearestBeltAsteroid(belts, point)
+    local best, bestDistSq, bx, by, bz = nil, math.huge, 0, 0, 0
+    for _, beltEntity in ipairs(belts) do
+        local beltCmp = beltEntity:get(CelestialComponents.AsteroidBeltData)
+        local asteroids = beltCmp and beltCmp:getAsteroidData() or {}
+        local ox, oy, oz = beltRenderOrigin(beltEntity)
+        for i = 1, #asteroids do
+            local a = asteroids[i]
+            local dx = (ox + a.px) - point.x
+            local dy = (oy + a.py) - point.y
+            local dz = (oz + a.pz) - point.z
+            local d = dx * dx + dy * dy + dz * dz
+            if d < bestDistSq then
+                best, bestDistSq = a, d
+                bx, by, bz = ox + a.px, oy + a.py, oz + a.pz
+            end
+        end
+    end
+    return best, bx, by, bz
+end
+
+--- Spawn the player ship next to the belt asteroid nearest the first planet (so the first
 --- thing the player sees is a rock up close, with the ring/planet nearby).
 function LimitTheoryRedux:spawnPlayerShip()
     local cfg = self.cfg
-    local flightCfg = Config.game.shipFlight
 
     local spawnPos = Position(0, 0, 0)
     if #self.planets > 0 then
         local planet = self.planets[1]
         local planetPos = planet:get(PhysicsComponents.Transform):getPos()
 
-        -- Nearest belt asteroid to the planet: belt data is baked
-        -- relative to the belt's render origin (the parent body when one
-        -- exists, else the belt's own transform).
-        local beltEntity = self.beltEntities and self.beltEntities[1]
-        local beltCmp = beltEntity and beltEntity:get(CelestialComponents.AsteroidBelt)
-        local asteroids = beltCmp and beltCmp:getAsteroidData() or {}
-
-        local ox, oy, oz = 0, 0, 0
-        if beltEntity then
-            local originEntity = beltEntity
-            local parentCmp = beltEntity:get(CoreComponents.Parent)
-            if parentCmp then
-                local p = parentCmp:getParent()
-                if p and p:get(PhysicsComponents.Transform) then originEntity = p end
-            end
-            local t = originEntity:get(PhysicsComponents.Transform)
-            if t then local p = t:getPos() ox, oy, oz = p.x, p.y, p.z end
-        end
-
-        local bestIdx, bestDistSq = 1, math.huge
-        for i = 1, #asteroids do
-            local a = asteroids[i]
-            local dx = (ox + a.px) - planetPos.x
-            local dy = (oy + a.py) - planetPos.y
-            local dz = (oz + a.pz) - planetPos.z
-            local d = dx * dx + dy * dy + dz * dz
-            if d < bestDistSq then bestDistSq = d; bestIdx = i end
-        end
-
-        local a = asteroids[bestIdx]
+        local a, ax, ay, az = nearestBeltAsteroid(self.beltEntities, planetPos)
         if a then
             -- Just off the rock's surface, on the side away from the planet
-            local ax, ay, az = ox + a.px, oy + a.py, oz + a.pz
             local clearDist = a.scale * 2.0
             local px, py, pz = planetPos.x, planetPos.y, planetPos.z
             local nx, ny, nz = ax - px, ay - py, az - pz
@@ -521,8 +524,9 @@ function LimitTheoryRedux:spawnPlayerShip()
         shipType = Enums.ShipType.Fighter,
         config = {
             position = spawnPos,
-            scale = Config.game.shipHulls.scale[1],
+            scale = Config.game.shipHulls.scale[Enums.ShipHulls.Solo],
             isKinematic = false,
+            flightProfile = Enums.FlightProfile.Solo,
         },
     })
     self.playerShip = self.playerShipHandle.root
@@ -530,15 +534,8 @@ function LimitTheoryRedux:spawnPlayerShip()
     self.playerShip:add(ConstructComponents.TravelDrive())
     self.playerShip:add(ConstructComponents.AutoPilot())
     self.playerShip:add(ConstructComponents.ShipFlightControl())
-
-    local hullIdx = 1
-    local hullCfg = Config.game.shipHulls
-    local rbCmp = self.playerShip:get(PhysicsComponents.RigidBody)
-    local rb = rbCmp:getRigidBody()
-    rb:setMass(hullCfg.mass[hullIdx])
-    rb:setDrag(flightCfg.linearDrag, flightCfg.angularDrag)
-    rb:setFriction(0)
-    rb:setSleepThreshold(0, 0)
+    self.playerShip:add(ConstructComponents.ControlInput())
+    self.playerShip:add(PhysicsComponents.GravityWell())
 
     Log.Info("Player ship spawned at (%.1f, %.1f, %.1f)", spawnPos.x, spawnPos.y, spawnPos.z)
 end
@@ -598,7 +595,7 @@ function LimitTheoryRedux:onRender(data)
     CelestialLightingSystem:update(self.starEntity)
 
     if self.mapMode == 2 then
-        SystemMap3D:collectEntities(self.map3DState, self.universe, self.playerShip)
+        SystemMap3D:collectEntities(self.map3DState, self.playerShip)
         SystemMap3D:render(self.map3DState, data)
 
         self:immediateUI(function()
@@ -651,7 +648,7 @@ function LimitTheoryRedux:onRender(data)
                     self.mapState.autopilotPos = nil
                     self.mapState.autopilotTargetPos = nil
                 end
-                SystemMap:collectEntities(self.mapState, self.universe, self.playerShip)
+                SystemMap:collectEntities(self.mapState, self.playerShip)
                 SystemMap:draw(self.mapState, 0, 0, Window:width(), Window:height())
             end
         end)
@@ -687,10 +684,10 @@ function LimitTheoryRedux:onInput(data)
         if self.mapMode == 1 then
             self.mapState._entityListBuilt = false
             self.mapState._dotCache = nil
-            SystemMap:collectEntities(self.mapState, self.universe, self.playerShip)
+            SystemMap:collectEntities(self.mapState, self.playerShip)
             CursorManager:free()
         elseif self.mapMode == 2 then
-            SystemMap3D:collectEntities(self.map3DState, self.universe, self.playerShip)
+            SystemMap3D:collectEntities(self.map3DState, self.playerShip)
             SystemMap3D:activate(self.map3DState)
         else
             SystemMap3D:deactivate(self.map3DState)
@@ -717,9 +714,9 @@ function LimitTheoryRedux:onInput(data)
                     local parentEnt = sel._parentEntity
                     local localX = sel._clickLocalX
                     local localZ = sel._clickLocalZ
-                    AutoPilotSystem:engagePosition(self.playerShip, sel.clickPos, nil, parentEnt, localX, localZ)
+                    AutoPilotSystem:engagePosition(self.playerShip, self.world, sel.clickPos, nil, parentEnt, localX, localZ)
                 else
-                    AutoPilotSystem:engageEntity(self.playerShip, sel.entity)
+                    AutoPilotSystem:engageEntity(self.playerShip, self.world, sel.entity)
                 end
                 self.mapMode = 0
                 self.mapState.enabled = false
@@ -729,7 +726,7 @@ function LimitTheoryRedux:onInput(data)
             SystemMap3D:updateInput(self.map3DState, dt)
 
             if GeneralActions.AutoPilotToggle:isPressed() and self.map3DState.selected then
-                AutoPilotSystem:engageEntity(self.playerShip, self.map3DState.selected.entity)
+                AutoPilotSystem:engageEntity(self.playerShip, self.world, self.map3DState.selected.entity)
                 self.mapMode = 0
                 self.map3DState.enabled = false
                 SystemMap3D:deactivate(self.map3DState)
@@ -759,8 +756,23 @@ function LimitTheoryRedux:onInput(data)
     end
 end
 
+--- PreSim: bookkeeping, then the writers of the ships' control input.
 ---@param data EventData
-function LimitTheoryRedux:onStateSim(data)
+function LimitTheoryRedux:onPreSim(data)
+    if not self.playerShip then return end
+    local dt = data:deltaTime()
+
+    AsteroidFieldSystem:update(dt, self.beltEntities, self.world, self.playerShip)
+    SystemMap3D:updateTrails(self.map3DState, dt)
+    MemoryReporter:update(dt)
+
+    self.player:update(dt)
+end
+
+--- Sim: this handler owns the order, since the bus has none inside a stage. Bodies move, then
+--- ships are actuated from their control input, then physics steps.
+---@param data EventData
+function LimitTheoryRedux:onSim(data)
     if not self.playerShip then return end
     local dt = data:deltaTime()
 
@@ -771,13 +783,10 @@ function LimitTheoryRedux:onStateSim(data)
         OrbitalSystem:update(self.orbiters, dt, self.followers)
     end
     AsteroidFieldSystem:updatePositions()
-    GravityWellSystem:update(dt, self.playerShip)
-    AsteroidFieldSystem:update(dt, self.beltEntities, self.world, self.playerShip)
-    SystemMap3D:updateTrails(self.map3DState, dt)
+    GravityWellSystem:update()
 
-    MemoryReporter:update(dt)
-
-    self.player:update(dt)
+    TravelDriveSystem:update(dt)
+    ShipFlightSystem:update()
     self.world:update(dt)
 end
 
@@ -810,11 +819,11 @@ function LimitTheoryRedux:regenerate()
     self.player:setShip(self.playerShip)
 
     self.orbiters, self.followers = OrbitalSystem:collectOrbiters(self.universe)
-    GravityWellSystem:collectZones(self.universe)
+    GravityWellSystem:collectZones()
     self.mapState._entityListBuilt = false
     self.mapState._dotCache = nil
-    SystemMap:collectEntities(self.mapState, self.universe, self.playerShip)
-    SystemMap3D:collectEntities(self.map3DState, self.universe, self.playerShip)
+    SystemMap:collectEntities(self.mapState, self.playerShip)
+    SystemMap3D:collectEntities(self.map3DState, self.playerShip)
 end
 
 function LimitTheoryRedux:soundOn()

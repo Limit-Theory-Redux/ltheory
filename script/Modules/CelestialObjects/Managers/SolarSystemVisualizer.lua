@@ -4,6 +4,7 @@ local Entity              = require("Core.ECS.Entity")
 local CoreComponents      = require("Modules.Core.Components")
 local PhysicsComponents   = require("Modules.Physics.Components")
 local CelestialComponents = require("Modules.CelestialObjects.Components")
+local CelestialEntities   = require("Modules.CelestialObjects.Entities")
 local RenderComp          = require("Modules.Rendering.Components").Render
 local Materials           = require("Shared.Registries.Materials")
 
@@ -16,56 +17,46 @@ local SpatialComponents   = require("Modules.Spatial.Components")
 ---@class SolarSystemVisualizer
 local SolarSystemVisualizer = {}
 
---- Walk the entity hierarchy and add visual representations (meshes, materials, rigid bodies)
---- to generated celestial entities that currently have no visual data.
----@param universe Entity The root universe entity from UniverseManager:createUniverse()
+--- The kinds that get a visual representation, in the order they are materialized: a planet
+--- before its moons and its ring, which read the planet.
+local MATERIALIZED_KINDS = {
+    { marker = CelestialComponents.Star,         materialize = "_materializeStar" },
+    { marker = CelestialComponents.Planet,       materialize = "_materializePlanet" },
+    { marker = CelestialComponents.Moon,         materialize = "_materializeMoon" },
+    { marker = CelestialComponents.AsteroidBelt, materialize = "_materializeAsteroidBelt" },
+    { marker = CelestialComponents.AsteroidRing, materialize = "_materializeAsteroidRing" },
+}
+
+--- Add visual representations (meshes, materials, rigid bodies) to the generated celestial
+--- entities that currently have no visual data.
 ---@param physicsWorld Physics The physics world to add rigid bodies to
-function SolarSystemVisualizer:materialize(universe, physicsWorld)
+function SolarSystemVisualizer:materialize(physicsWorld)
     -- Pre-load asteroid mesh pool (loads from cache or generates once)
     AsteroidMeshPool:init(8, 42)
-    self:_walkEntity(universe, physicsWorld)
-end
 
----@param entity Entity
----@param physicsWorld Physics
-function SolarSystemVisualizer:_walkEntity(entity, physicsWorld)
-    local name = tostring(entity)
-
-    -- Belt/ring entities that already carry a render fn (e.g. the rocks
-    -- emitted by _materializeAsteroidRing) must not be re-materialized by
-    -- the walk when it recurses into the ring's children - that would
-    -- generate a SECOND, default-radius belt over the real one.
-    local existingRender = entity:get(RenderComp)
-    if existingRender and existingRender:getRenderFn() then
-        existingRender:setVisible(true)
-        goto recurse_children
-    end
-
-    if name:find("StarEntity") then
-        self:_materializeStar(entity, physicsWorld)
-    elseif name:find("PlanetEntity") then
-        self:_materializePlanet(entity, physicsWorld)
-    elseif name:find("MoonEntity") then
-        self:_materializeMoon(entity, physicsWorld)
-    elseif name:find("AsteroidBeltEntity") then
-        self:_materializeAsteroidBelt(entity, physicsWorld)
-    elseif name:find("AsteroidRingEntity") then
-        self:_materializeAsteroidRing(entity, physicsWorld)
-    else
-        -- Hide entities with empty RenderComponents (e.g. AsteroidRingEntity)
-        -- to prevent the renderer from iterating nil meshes
-        local renderCmp = entity:get(RenderComp)
-        if renderCmp and not renderCmp:getMeshes() and not renderCmp:getRenderFn() then
-            renderCmp:setVisible(false)
+    for _, kind in ipairs(MATERIALIZED_KINDS) do
+        for entity in Registry:view(kind.marker) do
+            -- Entities that already carry a render fn (e.g. the belt that
+            -- _materializeAsteroidRing emits) must not be materialized again: that would
+            -- generate a SECOND, default-radius belt over the real one.
+            local existingRender = entity:get(RenderComp)
+            if existingRender and existingRender:getRenderFn() then
+                existingRender:setVisible(true)
+            else
+                self[kind.materialize](self, entity, physicsWorld)
+            end
         end
     end
 
-    ::recurse_children::
-    -- Recurse into children
-    local childrenCmp = entity:get(CoreComponents.Children)
-    if childrenCmp then
-        for child in childrenCmp:iterChildren() do
-            self:_walkEntity(child, physicsWorld)
+    self:_hideEmptyRenders()
+end
+
+--- Hide render components that have neither meshes nor a render fn, to prevent the renderer from
+--- iterating nil meshes.
+function SolarSystemVisualizer:_hideEmptyRenders()
+    for _, renderCmp in Registry:view(RenderComp) do
+        if not renderCmp:getMeshes() and not renderCmp:getRenderFn() then
+            renderCmp:setVisible(false)
         end
     end
 end
@@ -325,7 +316,7 @@ function SolarSystemVisualizer:_materializeAsteroidBelt(entity, physicsWorld)
         count, orbitRadius, width)
 
     -- Store asteroid data + mesh as a component for other systems (spawning, map, labels)
-    entity:add(CelestialComponents.AsteroidBelt(asteroids, orbitRadius, width, lodMesh))
+    entity:add(CelestialComponents.AsteroidBeltData(asteroids, orbitRadius, width, lodMesh))
 
     -- Create render component with custom batch render function
     local renderCmp = entity:get(RenderComp)
@@ -416,7 +407,7 @@ function SolarSystemVisualizer:_materializeAsteroidRing(entity, physicsWorld)
     -- so it shares the ring's parent-tracking (follows the planet), and
     -- its render origin resolves through that parent to the planet's
     -- current position.
-    local beltEntity = Entity.Create("AsteroidBeltEntity", CoreComponents.Seed(seed + 99))
+    local beltEntity = CelestialEntities.AsteroidBelt(seed + 99)
     local beltTransform = beltEntity:get(PhysicsComponents.Transform)
     if beltTransform then beltTransform:setPos(transform:getPos()) end
     local lodMesh = AsteroidMeshPool:getFromSeed(seed)
@@ -430,7 +421,7 @@ function SolarSystemVisualizer:_materializeAsteroidRing(entity, physicsWorld)
         minScale = 0.1,  -- ~1km rock
         maxScale = 5.0,  -- ~50km rock
     })
-    beltEntity:add(CelestialComponents.AsteroidBelt(asteroids, orbitRadius, width, lodMesh))
+    beltEntity:add(CelestialComponents.AsteroidBeltData(asteroids, orbitRadius, width, lodMesh))
     local beltRenderCmp = beltEntity:get(RenderComp)
     if not beltRenderCmp then
         beltRenderCmp = RenderComp()

@@ -11,6 +11,7 @@ pub mod error;
 pub mod input;
 pub mod logging;
 pub mod math;
+pub mod nav;
 pub mod physics;
 pub mod render;
 pub mod rf;

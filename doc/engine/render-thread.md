@@ -103,6 +103,9 @@ goes through a `RenderCommand`: window resizes (`Resize`) and runtime vsync
 changes (`Window:setPresentMode` → `SetPresentMode`). `NoVsync` maps to
 `AutoNoVsync`, which falls back to the modes the surface supports.
 
+At the end of a run, `Engine::shutdown` drops the renderer explicitly, before
+the window handle.
+
 The surface holds an `Arc` of the winit window, so the window lives as long
 as the surface does, whatever the drop order. Dropping `Renderer` sends
 `Shutdown` and joins the render thread; the commands sent before it still

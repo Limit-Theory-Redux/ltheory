@@ -193,12 +193,18 @@ end
 Render = requireAll('Render')
 Namespace.Inline(Render, 'Render')
 
--- Call Function for Running main with errorHandler
+-- Process exit codes a run ends with (`Engine:exitWithCode`).
+Core.ExitCode = { Success = 0, Failure = 1 }
+
+-- Call Function for Running main with errorHandler. On an error it ends the
+-- run with `Core.ExitCode.Failure` through a normal shutdown, so the file log
+-- keeps its tail, and returns nil.
 function Core.Call(fn, ...)
     local status, ret = xpcall(fn, ErrorHandler, ...)
     if not status then
         printf('Error calling: %s(%s). Ret: %s', fn, ..., ret)
-        os.exit()
+        Engine:exitWithCode(Core.ExitCode.Failure)
+        return nil
     end
     return ret
 end

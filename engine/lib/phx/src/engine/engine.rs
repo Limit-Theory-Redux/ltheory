@@ -7,7 +7,7 @@ use tracing::*;
 use winit::dpi::*;
 use winit::event_loop::*;
 
-use super::{EventBus, MainLoop, TaskQueue};
+use super::{EventBus, ExitCode, ExitRequest, MainLoop, TaskQueue};
 use crate::input::*;
 use crate::logging::init_log;
 use crate::render::Renderer;
@@ -22,7 +22,7 @@ pub struct Engine {
     pub cache: CachedWindow,
     pub hmgui: HmGui,
     pub input: Input,
-    pub exit_app: bool,
+    pub exit_request: ExitRequest,
     pub event_bus: EventBus,
     pub task_queue: TaskQueue,
     pub renderer: Renderer,
@@ -107,7 +107,10 @@ impl Engine {
 
         // Create window.
         let present_mode_override = settings.present_mode.map(PresentMode::from);
-        let mut window = Window::default();
+        let mut window = Window {
+            title: Window::title_for_app(&settings.app_name),
+            ..Default::default()
+        };
         if let Some(mode) = present_mode_override {
             info!("Present mode forced to {mode:?} by --present-mode");
             window.present_mode = mode;
@@ -149,7 +152,7 @@ impl Engine {
             winit_window,
             hmgui,
             input: Default::default(),
-            exit_app: false,
+            exit_request: ExitRequest::default(),
             event_bus: EventBus::new(),
             task_queue: TaskQueue::new(),
             lua,
@@ -159,7 +162,8 @@ impl Engine {
         }
     }
 
-    pub fn entry(settings: &'static EngineSettings) {
+    /// Runs the app to completion and returns the process exit code.
+    pub fn entry(settings: &'static EngineSettings) -> ExitCode {
         // Keep log till the end of the execution
         let _log = init_log(settings);
 
@@ -186,7 +190,30 @@ impl Engine {
 
         if let Err(err) = build_event_loop().run_app(&mut app_state) {
             error!("Event loop error: {err}");
+            return libc::EXIT_FAILURE;
         }
+
+        let Some(engine) = app_state.engine.take() else {
+            error!("Event loop ended before the engine was created");
+            return libc::EXIT_FAILURE;
+        };
+        let code = engine.exit_request.code();
+        engine.shutdown();
+        code
+    }
+
+    /// Stops the render thread and waits for it before the window handle is
+    /// released. Dropping `Renderer` sends `Shutdown` and joins the thread.
+    fn shutdown(self) {
+        let Self {
+            renderer,
+            winit_window,
+            ..
+        } = self;
+        // The render thread owns the surface: joining it destroys the surface
+        // before the window handle goes.
+        drop(renderer);
+        drop(winit_window);
     }
 
     pub fn call_lua(&self, func_name: &str) -> Result<(), mlua::Error> {
@@ -483,10 +510,11 @@ impl Engine {
 /// Engine entry point called by the `ltr` launcher.
 ///
 /// `settings` points at a leaked [`EngineSettings`] owned by the launcher;
-/// the engine borrows it for the whole run and never drops it.
+/// the engine borrows it for the whole run and never drops it. Returns the
+/// process exit code of the run.
 #[allow(unsafe_code, improper_ctypes_definitions)]
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn Engine_Entry(settings: &'static EngineSettings) {
+pub unsafe extern "C-unwind" fn Engine_Entry(settings: &'static EngineSettings) -> ExitCode {
     Engine::entry(settings)
 }
 
@@ -534,8 +562,16 @@ impl Engine {
         env!("PHX_VERSION")
     }
 
+    /// Ends the run with the success exit code (0).
     pub fn exit(&mut self) {
-        self.exit_app = true;
+        self.exit_request.request(libc::EXIT_SUCCESS);
+    }
+
+    /// Ends the run with `code` as the process exit code. No frame Lua runs
+    /// after the request; `AppClose` still does. The first non-zero code wins.
+    // `i32`, not `ExitCode`: the FFI generator doesn't resolve aliases.
+    pub fn exit_with_code(&mut self, code: i32) {
+        self.exit_request.request(code);
     }
 
     pub fn terminate() {
