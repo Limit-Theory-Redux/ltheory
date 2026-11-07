@@ -23,6 +23,7 @@ function Loader.defineType()
             uint32    NavWorld_AgentCount         (NavWorld const*);
             uint32    NavWorld_AddAgent           (NavWorld*, RigidBody const* body, double linearDrag, double angularDrag, double thrustForward, double thrustRight, double thrustUp, double torquePitch, double torqueYaw, double torqueRoll);
             void      NavWorld_AddObstacle        (NavWorld*, RigidBody const* body);
+            void      NavWorld_SetSensing         (NavWorld*, uint32 mask);
             void      NavWorld_SetArrive          (NavWorld*, uint32 id, Position const* target, double arrivalRadius);
             void      NavWorld_SetSeek            (NavWorld*, uint32 id, Position const* target, double arrivalRadius);
             void      NavWorld_SetHold            (NavWorld*, uint32 id, double arrivalRadius);
@@ -57,6 +58,7 @@ function Loader.defineType()
                 agentCount         = libphx.NavWorld_AgentCount,
                 addAgent           = libphx.NavWorld_AddAgent,
                 addObstacle        = libphx.NavWorld_AddObstacle,
+                setSensing         = libphx.NavWorld_SetSensing,
                 setArrive          = libphx.NavWorld_SetArrive,
                 setSeek            = libphx.NavWorld_SetSeek,
                 setHold            = libphx.NavWorld_SetHold,

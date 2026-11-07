@@ -181,6 +181,9 @@ pub(crate) struct PhysicsWorld {
     pub rigid_bodies: rp::RigidBodySet,
     pub colliders: rp::ColliderSet,
     pub narrow_phase: rp::NarrowPhase,
+    /// Spatial index over `colliders`, refreshed by `Physics::update`. It lives here so that
+    /// every reader of the world can query it.
+    pub query_pipeline: rp::QueryPipeline,
 }
 
 // All Rapier handles are Copy
@@ -225,6 +228,16 @@ impl RapierHandle for rp::RigidBodyHandle {
 }
 
 impl PhysicsWorld {
+    pub fn new() -> Self {
+        Self {
+            island_manager: rp::IslandManager::new(),
+            rigid_bodies: rp::RigidBodySet::new(),
+            colliders: rp::ColliderSet::new(),
+            narrow_phase: rp::NarrowPhase::new(),
+            query_pipeline: rp::QueryPipeline::new(),
+        }
+    }
+
     pub fn get<H: RapierHandle>(&self, handle: H) -> &H::Object {
         handle.lookup_object(self)
     }
@@ -240,7 +253,6 @@ pub struct Physics {
 
     integration_parameters: rp::IntegrationParameters,
     physics_pipeline: rp::PhysicsPipeline,
-    query_pipeline: rp::QueryPipeline,
     broad_phase: rp::BroadPhaseMultiSap,
     impulse_joints: rp::ImpulseJointSet,
     multibody_joints: rp::MultibodyJointSet,
@@ -261,15 +273,9 @@ impl Physics {
     #[bind(name = "Create")]
     pub fn new() -> Physics {
         Physics {
-            world: Rf::new(PhysicsWorld {
-                island_manager: rp::IslandManager::new(),
-                rigid_bodies: rp::RigidBodySet::new(),
-                colliders: rp::ColliderSet::new(),
-                narrow_phase: rp::NarrowPhase::new(),
-            }),
+            world: Rf::new(PhysicsWorld::new()),
             integration_parameters: rp::IntegrationParameters::default(),
             physics_pipeline: rp::PhysicsPipeline::new(),
-            query_pipeline: rp::QueryPipeline::new(),
             broad_phase: rp::BroadPhaseMultiSap::new(),
             impulse_joints: rp::ImpulseJointSet::new(),
             multibody_joints: rp::MultibodyJointSet::new(),
@@ -348,7 +354,7 @@ impl Physics {
             &physics_hooks,
             &event_handler,
         );
-        self.query_pipeline.update(&world.colliders);
+        world.query_pipeline.update(&world.colliders);
         for (_, rb) in world.rigid_bodies.iter_mut() {
             rb.reset_forces(false);
             rb.reset_torques(false);
@@ -471,7 +477,7 @@ impl Physics {
         };
         let in_mask = in_mask(mask);
         let world = self.world.as_ref();
-        let hit = self.query_pipeline.cast_shape(
+        let hit = world.query_pipeline.cast_shape(
             &world.rigid_bodies,
             &world.colliders,
             &isometry(from, &Quat::identity()),
@@ -519,7 +525,7 @@ impl Physics {
         let in_mask = in_mask(mask);
         let world = self.world.as_ref();
         let mut found: Vec<(BodyUserId, f64)> = vec![];
-        self.query_pipeline.intersections_with_shape(
+        world.query_pipeline.intersections_with_shape(
             &world.rigid_bodies,
             &world.colliders,
             &isometry(pos, &Quat::identity()),
@@ -612,7 +618,7 @@ impl Physics {
             id: 0,
         };
         let world = self.world.as_ref();
-        if let Some((handle, intersection)) = self.query_pipeline.cast_ray_and_get_normal(
+        if let Some((handle, intersection)) = world.query_pipeline.cast_ray_and_get_normal(
             &world.rigid_bodies,
             &world.colliders,
             &ray,
@@ -638,7 +644,7 @@ impl Physics {
     fn shape_cast(&self, shape: &dyn rp::Shape, pos: &Position, rot: &Quat) -> ShapeHits {
         let world = self.world.as_ref();
         let mut hits = ShapeHits::default();
-        self.query_pipeline.intersections_with_shape(
+        world.query_pipeline.intersections_with_shape(
             &world.rigid_bodies,
             &world.colliders,
             &isometry(pos, rot),
@@ -661,7 +667,8 @@ impl Physics {
     fn shape_overlap(&self, shape: &dyn rp::Shape, pos: &Position, rot: &Quat) -> bool {
         let rp_transform = isometry(pos, rot);
         let world = self.world.as_ref();
-        self.query_pipeline
+        world
+            .query_pipeline
             .intersection_with_shape(
                 &world.rigid_bodies,
                 &world.colliders,
@@ -679,6 +686,8 @@ mod kinematic_tests;
 mod query_tests;
 #[cfg(test)]
 mod scale_tests;
+#[cfg(test)]
+mod sense_tests;
 #[cfg(test)]
 mod test_fixture;
 

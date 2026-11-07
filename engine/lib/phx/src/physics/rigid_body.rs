@@ -1,5 +1,7 @@
 #![allow(unsafe_code)] // TODO: remove
 
+use std::collections::btree_map::Entry;
+use std::collections::{BTreeMap, HashSet};
 use std::ptr::NonNull;
 use std::sync::{Mutex, MutexGuard, OnceLock};
 
@@ -947,7 +949,100 @@ impl RigidBody {
     }
 }
 
+/// A number that names a Rapier body for as long as it lives, and never again after it is
+/// removed: the handle's index and generation.
+pub(crate) type BodyKey = u64;
+
+fn body_key(handle: rp::RigidBodyHandle) -> BodyKey {
+    let (index, generation) = handle.into_raw_parts();
+    (BodyKey::from(generation) << u32::BITS) | BodyKey::from(index)
+}
+
+impl BodyHandles {
+    /// The key of the Rapier body (the compound's root, for a compound).
+    pub(crate) fn key(&self) -> BodyKey {
+        body_key(self.body)
+    }
+}
+
+/// A root body found by [`PhysicsWorld::sense_ball`], as a sphere that covers all its colliders.
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct SensedBody {
+    pub position: DVec3,
+    pub velocity: DVec3,
+    pub radius: f64,
+}
+
 impl PhysicsWorld {
+    /// Adds to `found`, by key, each root body that has a collider within `radius` of `centre`,
+    /// whose collision group shares a bit with `mask` and whose key is not in `skip`. A compound
+    /// is one body: its sphere covers the colliders of all its parts. Triggers are not bodies.
+    /// Reads the query index as `Physics::update` last refreshed it.
+    pub(crate) fn sense_ball(
+        &self,
+        centre: DVec3,
+        radius: f64,
+        mask: CollisionMask,
+        skip: &HashSet<BodyKey>,
+        found: &mut BTreeMap<BodyKey, SensedBody>,
+    ) {
+        let sensed = |collider: &rp::Collider| {
+            collider
+                .parent()
+                .map(body_key)
+                .filter(|key| !skip.contains(key))
+        };
+        let predicate = |_: rp::ColliderHandle, collider: &rp::Collider| {
+            RigidBody::linked_collision_group(collider) & mask != 0 && sensed(collider).is_some()
+        };
+        let filter = rp::QueryFilter {
+            predicate: Some(&predicate),
+            ..Default::default()
+        };
+        self.query_pipeline.intersections_with_shape(
+            &self.rigid_bodies,
+            &self.colliders,
+            &rp::Isometry::translation(centre.x, centre.y, centre.z),
+            &rp::Ball::new(radius),
+            filter,
+            |handle| {
+                let collider = self.get(handle);
+                if let (Some(key), Some(parent)) = (sensed(collider), collider.parent()) {
+                    if let Entry::Vacant(slot) = found.entry(key) {
+                        if let Some(body) = self.sphere_of(parent) {
+                            slot.insert(body);
+                        }
+                    }
+                }
+                true
+            },
+        );
+    }
+
+    /// The sphere around the body's position that covers all its colliders; None once the body
+    /// has left this world.
+    fn sphere_of(&self, handle: rp::RigidBodyHandle) -> Option<SensedBody> {
+        let body = self.rigid_bodies.get(handle)?;
+        let origin = body.translation();
+        let radius = body
+            .colliders()
+            .iter()
+            .filter_map(|&collider| self.colliders.get(collider))
+            .map(|collider| {
+                let sphere = collider
+                    .shape()
+                    .compute_bounding_sphere(collider.position());
+                (sphere.center().coords - origin).norm() + sphere.radius()
+            })
+            .fold(0.0, f64::max);
+        let velocity = body.linvel();
+        Some(SensedBody {
+            position: DVec3::new(origin.x, origin.y, origin.z),
+            velocity: DVec3::new(velocity.x, velocity.y, velocity.z),
+            radius,
+        })
+    }
+
     /// The state of the body named by `handles`; None once it has left this world.
     pub(crate) fn body_state(&self, handles: &BodyHandles) -> Option<BodyState> {
         let body = self.rigid_bodies.get(handles.body)?;

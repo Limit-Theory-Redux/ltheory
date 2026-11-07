@@ -38,12 +38,19 @@ function NavWorld:agentCount() end
 function NavWorld:addAgent(body, linearDrag, angularDrag, thrustForward, thrustRight, thrustUp, torquePitch, torqueYaw, torqueRoll) end
 
 -- Adds a sphere that every agent steers around: the body's position, velocity and bounding
--- radius at each step.
+-- radius at each step. Sensing leaves the body out.
 --
 -- # Panics
 -- If `body` is not a root body of this world's physics.
 ---@param body RigidBody
 function NavWorld:addObstacle(body) end
+
+-- Turns sensing on or off. With a non-zero `mask`, each step finds the bodies whose collision
+-- group shares a bit with it within each agent's sensing range and treats them as
+-- obstacles; 0 turns it off (the default). Agents, their own parts and bodies added by
+-- `add_obstacle` are never sensed. Bodies are found as of the last `Physics::update`.
+---@param mask integer
+function NavWorld:setSensing(mask) end
 
 -- Sends the agent to `target`, in world coordinates, and stops it within the arrival radius
 -- of it (game units). The radius is at least two of the agent's own radii in every

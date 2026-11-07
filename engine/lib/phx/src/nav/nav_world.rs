@@ -1,6 +1,8 @@
+use std::collections::{BTreeMap, HashSet};
+
 use ::nav::{
     AXIS_COUNT, AgentId, AvoidanceTuning, Behaviour, Body, Frame, FrameOffset, Goal, Obstacle,
-    ObstacleKey, Profile,
+    ObstacleKey, Profile, sensing_range,
 };
 
 use crate::math::*;
@@ -80,9 +82,19 @@ pub struct NavWorld {
     /// The agents in `world`'s order.
     agents: Vec<Agent>,
     obstacles: Vec<BodyHandles>,
+    /// The collision mask of the bodies agents sense; [`SENSING_OFF`] senses none.
+    sensing: CollisionMask,
+    /// The keys of the bodies sensing leaves out: the agents' (they are spheres to each other
+    /// already) and the registered obstacles (no double count).
+    excluded: HashSet<BodyKey>,
+    /// The bodies the agents sensed in the current step, by key, reused between steps.
+    sensed: BTreeMap<BodyKey, SensedBody>,
     /// The obstacles of the current step, reused between steps.
     obstacle_spheres: Vec<Obstacle>,
 }
+
+/// The sensing mask that senses no body.
+const SENSING_OFF: CollisionMask = 0;
 
 impl NavWorld {
     fn handles_of(&self, body: &RigidBody, what: &str) -> BodyHandles {
@@ -120,6 +132,61 @@ impl NavWorld {
         self.world.set_behaviour(agent, Some(behaviour));
     }
 
+    /// Gives `nav` each agent's body, profile and tracked target as physics holds them now, and
+    /// gathers the bodies each one senses into `sensed`.
+    fn read_agents(&mut self, physics: &PhysicsWorld) {
+        for (index, agent) in self.agents.iter_mut().enumerate() {
+            let state = Self::state_of(physics, &agent.handles, &format!("agent {index}"));
+            let body = nav_body(&state);
+            // Read each step, so a change of mass reaches the controller.
+            let profile = profile_of(&agent.limits, &state);
+            self.world.set_body(agent.id, body);
+            self.world.set_profile(agent.id, profile);
+            // A target is a snapshot in `nav`, so it is read again for every step.
+            if let Some(tracking) = &mut agent.tracking {
+                let target = Self::state_of(
+                    physics,
+                    &tracking.handles,
+                    &format!("agent {index}'s target"),
+                );
+                refresh_target(&mut tracking.behaviour, nav_body(&target));
+                self.world.set_behaviour(agent.id, Some(tracking.behaviour));
+            }
+            if self.sensing != SENSING_OFF {
+                let range = sensing_range(&body, &profile, self.world.tuning());
+                physics.sense_ball(
+                    state.position,
+                    range,
+                    self.sensing,
+                    &self.excluded,
+                    &mut self.sensed,
+                );
+            }
+        }
+    }
+
+    /// Fills `obstacle_spheres` with the registered bodies, then the sensed ones in key order, so
+    /// the scene is the same for the same bodies.
+    fn collect_obstacles(&mut self, physics: &PhysicsWorld) {
+        self.obstacle_spheres.clear();
+        for (index, handles) in self.obstacles.iter().enumerate() {
+            let state = Self::state_of(physics, handles, &format!("obstacle {index}"));
+            self.obstacle_spheres.push(Obstacle {
+                key: ObstacleKey::Body(handles.key()),
+                position: state.position,
+                velocity: state.velocity,
+                radius: state.radius,
+            });
+        }
+        self.obstacle_spheres
+            .extend(self.sensed.iter().map(|(&key, body)| Obstacle {
+                key: ObstacleKey::Body(key),
+                position: body.position,
+                velocity: body.velocity,
+                radius: body.radius,
+            }));
+    }
+
     fn state_of(world: &PhysicsWorld, handles: &BodyHandles, what: &str) -> BodyState {
         world
             .body_state(handles)
@@ -155,6 +222,9 @@ impl NavWorld {
             world: ::nav::World::new(),
             agents: vec![],
             obstacles: vec![],
+            sensing: SENSING_OFF,
+            excluded: HashSet::new(),
+            sensed: BTreeMap::new(),
             obstacle_spheres: vec![],
         }
     }
@@ -200,6 +270,7 @@ impl NavWorld {
         };
         let state = Self::state_of(&self.physics.as_ref(), &handles, "agent");
         let id = self.world.add_agent(profile_of(&limits, &state));
+        self.excluded.insert(handles.key());
         self.agents.push(Agent {
             id,
             handles,
@@ -210,13 +281,23 @@ impl NavWorld {
     }
 
     /// Adds a sphere that every agent steers around: the body's position, velocity and bounding
-    /// radius at each step.
+    /// radius at each step. Sensing leaves the body out.
     ///
     /// # Panics
     /// If `body` is not a root body of this world's physics.
     pub fn add_obstacle(&mut self, body: &RigidBody) {
         let handles = self.handles_of(body, "obstacle");
+        self.excluded.insert(handles.key());
         self.obstacles.push(handles);
+    }
+
+    /// Turns sensing on or off. With a non-zero `mask`, each step finds the bodies whose collision
+    /// group shares a bit with it within each agent's sensing range and treats them as
+    /// obstacles; 0 turns it off (the default). Agents, their own parts and bodies added by
+    /// `add_obstacle` are never sensed. Bodies are found as of the last `Physics::update`.
+    // The mask is a `u32` because the generator maps types by their text (`CollisionMask`).
+    pub fn set_sensing(&mut self, mask: u32) {
+        self.sensing = mask;
     }
 
     /// Sends the agent to `target`, in world coordinates, and stops it within the arrival radius
@@ -351,36 +432,12 @@ impl NavWorld {
     /// # Panics
     /// If a registered body has left the physics world.
     pub fn step(&mut self) {
+        let physics = self.physics.clone();
         {
-            let physics = self.physics.as_ref();
-            for (index, agent) in self.agents.iter_mut().enumerate() {
-                let state = Self::state_of(&physics, &agent.handles, &format!("agent {index}"));
-                self.world.set_body(agent.id, nav_body(&state));
-                // Read each step, so a change of mass reaches the controller.
-                self.world
-                    .set_profile(agent.id, profile_of(&agent.limits, &state));
-                // A target is a snapshot in `nav`, so it is read again for every step.
-                if let Some(tracking) = &mut agent.tracking {
-                    let target = Self::state_of(
-                        &physics,
-                        &tracking.handles,
-                        &format!("agent {index}'s target"),
-                    );
-                    refresh_target(&mut tracking.behaviour, nav_body(&target));
-                    self.world.set_behaviour(agent.id, Some(tracking.behaviour));
-                }
-            }
-            self.obstacle_spheres.clear();
-            for (index, handles) in self.obstacles.iter().enumerate() {
-                let state = Self::state_of(&physics, handles, &format!("obstacle {index}"));
-                self.obstacle_spheres.push(Obstacle {
-                    // Registered bodies are never removed, so the index names one for good.
-                    key: ObstacleKey::Body(index as u64),
-                    position: state.position,
-                    velocity: state.velocity,
-                    radius: state.radius,
-                });
-            }
+            let physics = physics.as_ref();
+            self.sensed.clear();
+            self.read_agents(&physics);
+            self.collect_obstacles(&physics);
         }
         self.world.set_obstacles(&self.obstacle_spheres);
         self.world.step();
@@ -876,5 +933,137 @@ mod tests {
         nav.add_obstacle(&rock);
         physics.remove_rigid_body(&mut rock);
         nav.step();
+    }
+
+    const ALL_BITS: u32 = u32::MAX;
+    const ONE_STEP: f32 = 1.0 / 60.0;
+
+    /// A ship that arrives at a far goal past a rock on its course, with physics updated so
+    /// that queries see the rock.
+    struct RockFlight {
+        physics: Physics,
+        nav: NavWorld,
+        /// Held so the body stays in physics.
+        _ship: Box<RigidBody>,
+        rock: Box<RigidBody>,
+    }
+
+    fn flight_past_a_rock() -> RockFlight {
+        let mut physics = Physics::new();
+        let ship = ship_in(&mut physics);
+        let rock = body_in(&mut physics, ROCK_RADIUS, goal_at(0.0, -ROCK_DISTANCE));
+        physics.update(ONE_STEP);
+        let mut nav = NavWorld::new(&physics);
+        let id = add_ship(&mut nav, &ship);
+        nav.set_arrive(id, &goal_at(0.0, -LONG_GOAL_DISTANCE), ARRIVAL_RADIUS);
+        RockFlight {
+            physics,
+            nav,
+            _ship: ship,
+            rock,
+        }
+    }
+
+    #[test]
+    fn a_sensed_body_steers_like_the_same_body_registered() {
+        let mut registered = flight_past_a_rock();
+        registered.nav.step();
+        let straight = axes_of(&registered.nav);
+        registered.nav.add_obstacle(&registered.rock);
+        registered.nav.step();
+        let by_registration = axes_of(&registered.nav);
+        assert_ne!(by_registration, straight, "the rock is on the course");
+
+        let mut sensing = flight_past_a_rock();
+        sensing.nav.set_sensing(ALL_BITS);
+        sensing.nav.step();
+        assert_eq!(axes_of(&sensing.nav), by_registration);
+    }
+
+    #[test]
+    fn sensing_is_off_by_default_and_by_a_zero_mask_or_a_foreign_one() {
+        let RockFlight {
+            mut nav, mut rock, ..
+        } = flight_past_a_rock();
+        nav.step();
+        let straight = axes_of(&nav);
+        assert!(nav.obstacle_spheres.is_empty());
+
+        rock.set_collision_group(0b01);
+        for mask in [0, 0b10] {
+            nav.set_sensing(mask);
+            nav.step();
+            assert_eq!(axes_of(&nav), straight, "mask {mask:#b}");
+        }
+        nav.set_sensing(0b01);
+        nav.step();
+        assert_ne!(axes_of(&nav), straight);
+    }
+
+    #[test]
+    fn sensing_counts_neither_agents_nor_registered_bodies() {
+        let mut flight = flight_past_a_rock();
+        let other = body_in(
+            &mut flight.physics,
+            SHIP_RADIUS,
+            goal_at(SLOT_DISTANCE, 0.0),
+        );
+        add_ship(&mut flight.nav, &other);
+        flight.physics.update(ONE_STEP);
+        flight.nav.set_sensing(ALL_BITS);
+        flight.nav.step();
+        assert_eq!(flight.nav.obstacle_spheres.len(), 1, "the rock alone");
+
+        flight.nav.add_obstacle(&flight.rock);
+        flight.nav.step();
+        assert_eq!(
+            flight.nav.obstacle_spheres.len(),
+            1,
+            "the registered rock once"
+        );
+    }
+
+    #[test]
+    fn a_sensed_body_that_leaves_physics_is_not_a_problem() {
+        let mut flight = flight_past_a_rock();
+        flight.nav.set_sensing(ALL_BITS);
+        flight.nav.step();
+        assert_eq!(flight.nav.obstacle_spheres.len(), 1);
+        flight.physics.remove_rigid_body(&mut flight.rock);
+        flight.physics.update(ONE_STEP);
+        flight.nav.step();
+        assert!(flight.nav.obstacle_spheres.is_empty());
+    }
+
+    #[test]
+    fn a_body_beyond_the_sensing_range_is_not_sensed() {
+        let mut physics = Physics::new();
+        let ship = ship_in(&mut physics);
+        let mut nav = NavWorld::new(&physics);
+        let id = add_ship(&mut nav, &ship);
+        nav.set_arrive(id, &goal_at(0.0, -LONG_GOAL_DISTANCE), ARRIVAL_RADIUS);
+        nav.set_sensing(ALL_BITS);
+        nav.step();
+        let tuning = *nav.world.tuning();
+        let state = state_in(&physics, &ship);
+        let profile = profile_of(&nav.agents[0].limits, &state);
+        let range = sensing_range(&nav_body(&state), &profile, &tuning);
+        let _beyond = body_in(
+            &mut physics,
+            ROCK_RADIUS,
+            goal_at(0.0, -(range + f64::from(ROCK_RADIUS) + 1.0)),
+        );
+        let within = body_in(&mut physics, ROCK_RADIUS, goal_at(range - 1.0, 0.0));
+        physics.update(ONE_STEP);
+        nav.step();
+        assert_eq!(
+            nav.obstacle_spheres.len(),
+            1,
+            "only the body inside the range"
+        );
+        assert_eq!(
+            nav.obstacle_spheres[0].position,
+            state_in(&physics, &within).position
+        );
     }
 }

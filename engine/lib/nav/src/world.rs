@@ -114,6 +114,11 @@ impl World {
         self.obstacles.extend_from_slice(obstacles);
     }
 
+    /// The avoidance tuning in force.
+    pub fn tuning(&self) -> &AvoidanceTuning {
+        &self.tuning
+    }
+
     /// Replaces the avoidance tuning.
     pub fn set_tuning(&mut self, tuning: AvoidanceTuning) {
         self.tuning = tuning;
