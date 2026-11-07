@@ -134,6 +134,9 @@ impl Profile {
 /// avoiding each other around the goals without any of them arriving.
 pub const MIN_ARRIVAL_RADII: f64 = 2.0;
 
+/// A body moving slower than this many of its own radii per second counts as at rest.
+pub(crate) const AT_REST_RADII_PER_S: f64 = 1.0;
+
 /// A point to fly to and stop at.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Goal {

@@ -42,6 +42,8 @@ local MIN_RELATIVE_LENGTH = 1e-6
 ---@field pointIndex integer|nil Seek: the point being flown to
 ---@field passRadius number|nil Seek: game units
 ---@field onSince number|nil Simulated time the ship has been on station since
+---@field onStation boolean|nil Pursue, Follow: whether the ship is on station now, whether or not it is yet judged
+---@field turnRate number|nil Pursue, Follow: largest turn rate, in radians per second, since the ship was last off station or not yet judged
 ---@field turned number Orbit: radians turned about the centre since the ship was last off the circle
 ---@field previous table|nil Orbit: the ship's last offset from the axis, in the plane of the circle
 ---@field normal table|nil Orbit: unit normal
@@ -239,10 +241,22 @@ end
 ---its leader has finished its own flight.
 local function judgeStation(b, ship, distance, simTime, rules)
     local on = isThere(ship, distance, rules, b.tracked)
+    b.onStation = on
     if distance <= rules.range then b.engaged = true end
     if b.engaged then b.maxError = math.max(b.maxError, distance) end
     local ready = b.kind ~= "Follow" or b.tracked.state ~= "flying"
-    return heldOnStation(b, on and ready, simTime)
+    local judged = on and ready
+    b.turnRate = judged and math.max(b.turnRate or 0, length(ship.rb:getVelocityA())) or 0
+    return heldOnStation(b, judged, simTime)
+end
+
+---Whether a ship that tracks a moving point is on station now: within range of its point and at
+---rest relative to the tracked body. It is judged, and can arrive, only after it has held that.
+---@param ship SandboxShip
+---@return boolean
+function ShipBehaviour.isOnStation(ship)
+    local b = ship.behaviour
+    return b ~= nil and b.onStation == true
 end
 
 ---Orbit: one full turn about the centre, anticlockwise about the normal, kept within the orbit
@@ -283,6 +297,14 @@ function ShipBehaviour.judge(ship, simTime, rules)
     -- Hold: the ship must leave its point and come back to it.
     if b.phase == "switched" and distance > rules.range then b.phase = "returning" end
     return b.phase == "returning" and isThere(ship, distance, rules)
+end
+
+---A line for the summary: how fast a Pursue or Follow ship turned while it was held on station.
+---@param ship SandboxShip
+---@return number|nil turnRate Largest turn rate, in radians per second, or nil for the other kinds
+function ShipBehaviour.stationTurnRate(ship)
+    local b = ship.behaviour
+    return b and (b.kind == "Pursue" or b.kind == "Follow") and b.engaged and b.turnRate or nil
 end
 
 ---A line for the summary: how well a tracking ship kept its station, or nil for the other kinds.

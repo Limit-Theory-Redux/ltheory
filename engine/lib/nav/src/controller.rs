@@ -47,14 +47,20 @@ fn thrust_inputs(frame: &Frame, profile: &Profile, acceleration: DVec3) -> [f64;
 
 /// The unit direction the nose points along. While the agent is gaining speed toward its course
 /// with more acceleration than the side thrusters give, it is the acceleration, so the main
-/// thruster does the work. Otherwise it is the course, and strafing and braking do the rest.
-fn aim_direction(profile: &Profile, wanted: &Wanted, acceleration: DVec3) -> DVec3 {
+/// thruster does the work. Otherwise it is `facing` when the behaviour gives one, else the
+/// course, and strafing and braking do the rest. Zero when there is nothing to aim at.
+fn aim_direction(
+    profile: &Profile,
+    wanted: &Wanted,
+    acceleration: DVec3,
+    facing: Option<DVec3>,
+) -> DVec3 {
     let side_limit = profile.accel_right.min(profile.accel_up);
     let speeding_up = acceleration.dot(wanted.direction) > 0.0;
     if speeding_up && acceleration.length_squared() > side_limit * side_limit {
         acceleration.normalize()
     } else {
-        wanted.direction
+        facing.unwrap_or(wanted.direction)
     }
 }
 
@@ -85,23 +91,33 @@ fn turn_input(error: f64, rate: f64, limit: f64, angular_drag: DragRate) -> f64 
 }
 
 /// The control axes that bring the agent's velocity to the wanted one and turn its nose to the
-/// aim direction, within the profile's limits.
-pub(crate) fn control(body: &Body, profile: &Profile, wanted: &Wanted) -> [f64; AXIS_COUNT] {
+/// aim direction, within the profile's limits. `facing` is the unit direction the nose is to hold
+/// when the agent isn't accelerating toward its course (see `aim_direction`); with no course the
+/// agent gets no thrust, but still turns to `facing`.
+pub(crate) fn control(
+    body: &Body,
+    profile: &Profile,
+    wanted: &Wanted,
+    facing: Option<DVec3>,
+) -> [f64; AXIS_COUNT] {
     let mut axes = [0.0; AXIS_COUNT];
-    if wanted.direction.length_squared() < TINY_SQ {
+    let has_course = wanted.direction.length_squared() >= TINY_SQ;
+    if !has_course && facing.is_none() {
         return axes;
     }
     let frame = &body.frame;
     let acceleration = wanted_acceleration(body, profile, wanted);
 
-    let [forward, right, up] = thrust_inputs(frame, profile, acceleration);
-    axes[Axis::ThrustForward as usize] = forward;
-    axes[Axis::ThrustRight as usize] = right;
-    axes[Axis::ThrustUp as usize] = up;
+    if has_course {
+        let [forward, right, up] = thrust_inputs(frame, profile, acceleration);
+        axes[Axis::ThrustForward as usize] = forward;
+        axes[Axis::ThrustRight as usize] = right;
+        axes[Axis::ThrustUp as usize] = up;
+    }
 
     // Positive pitch turns about the right axis, positive yaw about the down axis and positive
     // roll about the forward axis.
-    let error = heading_error(frame, aim_direction(profile, wanted, acceleration));
+    let error = heading_error(frame, aim_direction(profile, wanted, acceleration, facing));
     let rate = body.angular_velocity;
     axes[Axis::Pitch as usize] = turn_input(
         error.dot(frame.right),
@@ -126,6 +142,12 @@ mod tests {
     use super::*;
 
     const PROFILE: Profile = Profile::TEST;
+
+    /// `super::control` without a facing: the nose follows the course. It shadows the glob import
+    /// so that the tests of that case read as before.
+    fn control(body: &Body, profile: &Profile, wanted: &Wanted) -> [f64; AXIS_COUNT] {
+        super::control(body, profile, wanted, None)
+    }
 
     fn level_body(velocity: DVec3) -> Body {
         Body {
@@ -321,6 +343,52 @@ mod tests {
         assert_eq!(axis(&axes, Axis::ThrustRight), 0.0);
         assert_eq!(axis(&axes, Axis::Yaw), 0.0);
         assert_eq!(axis(&axes, Axis::Roll), 0.0);
+    }
+
+    /// The yaw input of a body at rest that faces -z, with a course 90° to its right at `speed`
+    /// and the given facing: the sign says which of the two the nose turns to.
+    fn yaw_toward_facing(speed: f64, facing: Option<DVec3>) -> f64 {
+        let wanted = wanted_toward(DVec3::X, speed);
+        axis(
+            &super::control(&level_body(DVec3::ZERO), &PROFILE, &wanted, facing),
+            Axis::Yaw,
+        )
+    }
+
+    #[test]
+    fn a_facing_replaces_the_course_as_the_aim_when_the_agent_is_not_speeding_up() {
+        // A slow course: the wanted acceleration is within what the side thrusters give.
+        let slow = 0.5;
+        assert_eq!(
+            yaw_toward_facing(slow, None),
+            1.0,
+            "the course is to the right"
+        );
+        assert_eq!(yaw_toward_facing(slow, Some(DVec3::NEG_X)), -1.0);
+        assert_eq!(
+            yaw_toward_facing(slow, Some(DVec3::NEG_Z)),
+            0.0,
+            "already facing it"
+        );
+    }
+
+    #[test]
+    fn speeding_up_beyond_the_side_thrusters_still_aims_along_the_acceleration() {
+        let fast = 50.0;
+        assert_eq!(yaw_toward_facing(fast, Some(DVec3::NEG_X)), 1.0);
+    }
+
+    #[test]
+    fn a_facing_turns_the_nose_of_an_agent_without_a_course_and_gives_it_no_thrust() {
+        let drifting = level_body(DVec3::new(0.0, 0.0, -5.0));
+        let axes = super::control(&drifting, &PROFILE, &Wanted::NONE, Some(DVec3::X));
+        assert_eq!(axis(&axes, Axis::Yaw), 1.0);
+        assert_eq!(axis(&axes, Axis::ThrustForward), 0.0);
+        assert_eq!(axis(&axes, Axis::ThrustRight), 0.0);
+        assert_eq!(
+            control(&drifting, &PROFILE, &Wanted::NONE),
+            [0.0; AXIS_COUNT]
+        );
     }
 
     #[test]

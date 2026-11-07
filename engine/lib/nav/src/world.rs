@@ -1,6 +1,6 @@
-use crate::agent::{AXIS_COUNT, Agent, AgentId, Body, Goal, Profile};
+use crate::agent::{AT_REST_RADII_PER_S, AXIS_COUNT, Agent, AgentId, Body, Goal, Profile};
 use crate::avoidance::{AvoidanceTuning, Peer, Peers, Sphere, avoid};
-use crate::behaviour::{Behaviour, steer};
+use crate::behaviour::{Behaviour, rest_facing, steer};
 use crate::controller::control;
 use crate::obstacle::{Obstacle, ObstacleKey};
 
@@ -26,9 +26,6 @@ pub struct World {
     was_arrived: Vec<bool>,
     tuning: AvoidanceTuning,
 }
-
-/// An agent moving slower than this many of its own radii per second counts as at rest.
-const AT_REST_RADII_PER_S: f64 = 1.0;
 
 /// How far from the hull of the agent that holds its goal an agent still counts as having reached
 /// it, in the agent's own radii: the room the arrival floor leaves around a goal.
@@ -190,7 +187,8 @@ impl World {
                 &mut self.spheres,
             );
             self.scene.swap(own, last);
-            *axes = control(&agent.body, &agent.profile, &wanted);
+            let facing = rest_facing(&behaviour, &agent.body, &goal);
+            *axes = control(&agent.body, &agent.profile, &wanted, facing);
             *arrived = has_reached(
                 &agent.body,
                 goal,

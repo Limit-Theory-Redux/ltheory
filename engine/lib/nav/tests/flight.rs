@@ -502,6 +502,10 @@ struct Sample {
     time: f64,
     position: DVec3,
     velocity: DVec3,
+    /// The unit direction the ship's nose points along.
+    forward: DVec3,
+    /// Radians per second.
+    turn_rate: f64,
 }
 
 /// Flies `ships` together for `seconds`. Each step, `behave(index, time, ships)` gives a ship's
@@ -539,6 +543,8 @@ fn fly_fleet_tracking(
                 time,
                 position: ships[index].position,
                 velocity: ships[index].velocity,
+                forward: ships[index].body().frame.forward,
+                turn_rate: ships[index].angular_velocity.length(),
             });
         }
         world.step();
@@ -668,8 +674,12 @@ fn a_follower_holds_its_slot_in_the_leaders_frame_without_touching_it() {
     for (leader, follower) in samples[0].iter().zip(&samples[1]) {
         nearest = nearest.min(leader.position.distance(follower.position));
         if leader.time > SETTLED_S {
-            // The leader flies along -z with its frame unrotated, so the slot is a fixed offset.
-            let slot = leader.position + SLOT;
+            // The slot turns with the leader's frame, which stays level: its right is forward × up.
+            let forward = leader.forward;
+            let slot = leader.position
+                + forward.cross(DVec3::Y) * SLOT.x
+                + DVec3::Y * SLOT.y
+                + forward * -SLOT.z;
             assert!(
                 follower.position.distance(slot) < SLOT_TOLERANCE,
                 "t = {}: {} off its slot",
@@ -682,6 +692,90 @@ fn a_follower_holds_its_slot_in_the_leaders_frame_without_touching_it() {
         nearest > 2.0 * AGENT_RADIUS,
         "came within {nearest} of the leader"
     );
+}
+
+/// The follow behaviour of a ship flying `slot` (right, up, forward in the leader's frame) from
+/// the leader `ships[0]`.
+fn follow_slot(ships: &[Ship], slot: FrameOffset) -> Behaviour {
+    Behaviour::Follow {
+        leader: ships[0].body(),
+        offset: slot,
+        arrival_radius: ARRIVAL_RADIUS,
+    }
+}
+
+/// What a follower on station must do: face where the leader faces, within `HEADING_TOLERANCE_RAD`,
+/// and turn no faster than `TURN_RATE_TOLERANCE` over the samples from `from_s` on.
+fn assert_follower_faces_its_leader_at_rest(samples: &[Vec<Sample>], from_s: f64) {
+    const HEADING_TOLERANCE_RAD: f64 = 0.05;
+    const TURN_RATE_TOLERANCE: f64 = 0.02;
+    for (leader, follower) in samples[0].iter().zip(&samples[1]) {
+        if leader.time < from_s {
+            continue;
+        }
+        let off = leader.forward.angle_between(follower.forward);
+        assert!(
+            off < HEADING_TOLERANCE_RAD,
+            "t = {}: the follower faces {off} rad off its leader",
+            leader.time
+        );
+        assert!(
+            follower.turn_rate < TURN_RATE_TOLERANCE,
+            "t = {}: the follower still turns at {} rad/s",
+            leader.time,
+            follower.turn_rate
+        );
+    }
+}
+
+#[test]
+fn a_follower_on_station_turns_to_the_heading_of_a_leader_at_rest_and_stays_there() {
+    const SECONDS: f64 = 40.0;
+    const SETTLED_S: f64 = 30.0;
+    let slot = FrameOffset {
+        right: 30.0,
+        up: 0.0,
+        forward: -60.0,
+    };
+    // The leader holds its point, facing -x; the follower starts off its slot, facing -z.
+    let mut ships = [
+        Ship {
+            orientation: DQuat::from_rotation_y(std::f64::consts::FRAC_PI_2),
+            ..Ship::new(DVec3::ZERO)
+        },
+        Ship::new(DVec3::new(0.0, 0.0, 150.0)),
+    ];
+    let samples = fly_fleet(&mut ships, SECONDS, |index, _, ships| {
+        if index == 0 {
+            return Behaviour::hold(&ships[0].body(), ARRIVAL_RADIUS);
+        }
+        follow_slot(ships, slot)
+    });
+    assert_follower_faces_its_leader_at_rest(&samples, SETTLED_S);
+}
+
+#[test]
+fn a_follower_stops_turning_once_its_leader_has_arrived() {
+    const SECONDS: f64 = 60.0;
+    // The leader arrives well before this.
+    const SETTLED_S: f64 = 45.0;
+    let slot = FrameOffset {
+        right: 30.0,
+        up: 0.0,
+        forward: 0.0,
+    };
+    let leader_goal = DVec3::new(0.0, 0.0, -1500.0);
+    let mut ships = [
+        Ship::new(DVec3::ZERO),
+        Ship::new(DVec3::new(30.0, 0.0, 0.0)),
+    ];
+    let samples = fly_fleet(&mut ships, SECONDS, |index, _, ships| {
+        if index == 0 {
+            return arrive_at_point(leader_goal);
+        }
+        follow_slot(ships, slot)
+    });
+    assert_follower_faces_its_leader_at_rest(&samples, SETTLED_S);
 }
 
 #[test]

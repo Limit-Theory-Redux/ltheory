@@ -1,6 +1,6 @@
 use glam::DVec3;
 
-use crate::agent::{Body, Goal, Profile};
+use crate::agent::{AT_REST_RADII_PER_S, Body, Goal, Profile};
 use crate::braking::stopping_speed;
 
 /// Below this squared length (length units squared), a vector is too short to take a direction from.
@@ -296,6 +296,32 @@ pub(crate) fn steer(behaviour: &Behaviour, body: &Body, profile: &Profile) -> (W
     }
 }
 
+/// The unit direction the nose is to hold while `body` is on station, or `None` when the
+/// behaviour has no such direction or `body` is still outside its goal's arrival radius (then
+/// the nose follows the course). A follower faces where its leader faces, a pursuer where a
+/// moving target heads, and an agent that holds a point or pursues a resting target keeps its
+/// own heading. `goal` is the one `steer` returned for `behaviour`.
+pub(crate) fn rest_facing(behaviour: &Behaviour, body: &Body, goal: &Goal) -> Option<DVec3> {
+    let on_station =
+        body.position.distance(goal.target) <= goal.effective_arrival_radius(body.radius);
+    if !on_station {
+        return None;
+    }
+    match *behaviour {
+        Behaviour::Arrive(_) => Some(body.frame.forward),
+        Behaviour::Follow { leader, .. } => Some(leader.frame.forward),
+        Behaviour::Pursue { target, .. } => {
+            let moves = target.velocity.length() > target.radius * AT_REST_RADII_PER_S;
+            Some(if moves {
+                target.velocity.normalize()
+            } else {
+                body.frame.forward
+            })
+        }
+        Behaviour::Seek(_) | Behaviour::Orbit { .. } => None,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -484,6 +510,88 @@ mod tests {
         let (wanted, goal) = steer(&behaviour, &body_at(DVec3::new(0.0, 0.0, 100.0)), &PROFILE);
         assert!((goal.target - DVec3::new(5.0, 3.0, 2.0)).length() < 1e-9);
         assert!(wanted.velocity.length() <= 100.0 + 1e-9);
+    }
+
+    /// A frame that faces +x with +y up, so that it differs from the body's own (facing -z).
+    const FACING_X: Frame = Frame {
+        forward: DVec3::X,
+        right: DVec3::Z,
+        up: DVec3::Y,
+    };
+
+    /// The facing of `behaviour` for an agent of radius 1 that faces -z at `position`.
+    fn facing_at(behaviour: &Behaviour, position: DVec3) -> Option<DVec3> {
+        let body = body_at(position);
+        let (_, goal) = steer(behaviour, &body, &PROFILE);
+        rest_facing(behaviour, &body, &goal)
+    }
+
+    fn follow(leader: Body) -> Behaviour {
+        Behaviour::Follow {
+            leader,
+            offset: FrameOffset {
+                right: 0.0,
+                up: 0.0,
+                forward: 0.0,
+            },
+            arrival_radius: 5.0,
+        }
+    }
+
+    #[test]
+    fn a_follower_on_station_faces_where_its_leader_faces() {
+        let leader = Body {
+            frame: FACING_X,
+            ..body_at(DVec3::ZERO)
+        };
+        let on_station = facing_at(&follow(leader), DVec3::new(0.0, 0.0, 3.0));
+        assert_eq!(on_station, Some(DVec3::X));
+        let far = facing_at(&follow(leader), DVec3::new(0.0, 0.0, 30.0));
+        assert_eq!(
+            far, None,
+            "outside the arrival radius the nose follows the course"
+        );
+    }
+
+    #[test]
+    fn an_agent_that_holds_a_point_keeps_its_heading() {
+        let point = Behaviour::Arrive(goal_at(DVec3::new(0.0, 0.0, 10.0)));
+        assert_eq!(
+            facing_at(&point, DVec3::new(0.0, 0.0, 10.5)),
+            Some(DVec3::NEG_Z)
+        );
+        assert_eq!(facing_at(&point, DVec3::ZERO), None);
+    }
+
+    #[test]
+    fn a_pursuer_on_station_faces_a_moving_targets_heading_and_keeps_its_own_for_a_resting_one() {
+        let pursue = |velocity: DVec3| Behaviour::Pursue {
+            target: Body {
+                velocity,
+                ..body_at(DVec3::ZERO)
+            },
+            stand_off: 4.0,
+            arrival_radius: 5.0,
+        };
+        // On the stand-off point: target radius 1 + agent radius 1 + 4, along the line to the agent.
+        let on_station = DVec3::new(0.0, 0.0, 6.0);
+        let moving = facing_at(&pursue(DVec3::new(0.0, 7.0, 0.0)), on_station);
+        assert_eq!(moving, Some(DVec3::Y));
+        let resting = facing_at(&pursue(DVec3::new(0.0, 0.5, 0.0)), on_station);
+        assert_eq!(resting, Some(DVec3::NEG_Z));
+    }
+
+    #[test]
+    fn seek_and_orbit_have_no_facing() {
+        let seek = Behaviour::Seek(goal_at(DVec3::new(0.0, 0.0, 10.0)));
+        assert_eq!(facing_at(&seek, DVec3::new(0.0, 0.0, 10.0)), None);
+        let orbit = Behaviour::Orbit {
+            centre: body_at(DVec3::ZERO),
+            radius: ORBIT_RADIUS,
+            normal: DVec3::Y,
+            arrival_radius: 7.0,
+        };
+        assert_eq!(facing_at(&orbit, DVec3::new(ORBIT_RADIUS, 0.0, 0.0)), None);
     }
 
     #[test]

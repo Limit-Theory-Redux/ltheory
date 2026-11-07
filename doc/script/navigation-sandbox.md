@@ -58,7 +58,7 @@ The sandbox draws, in the additive pass, for each ship:
 
 | Marker | Meaning |
 |---|---|
-| Filled sphere at the ship | Its state: blue flying, green arrived, red deadlocked |
+| Filled sphere at the ship | Its state: blue flying, green arrived, red deadlocked; yellow-green while a Pursue or Follow ship is on station and not yet arrived (being timed, or waiting for its leader to stop) |
 | Wireframe sphere at the target | The arrival range; for Pursue, Follow and Orbit, at the station point the judging uses |
 | Line from the ship to its target | The straight course, while the ship is flying |
 | Grey filled sphere at an obstacle | Its radius |
@@ -83,7 +83,7 @@ A ship that has finished has no behaviour, so it gets zero axes and drag brings 
 | Arrival | Within 100 m of the target and slower than 50 m/s. A route ship never arrives |
 | Waypoint | A route ship's goal is reached when the `NavWorld` reports it within 100 m (positional, no speed condition); the ship then gets the next one |
 | Seek pass | A Seek ship passes a point when the `NavWorld` reports it within `passRadiusM`; the pass is too slow below half of its top speed |
-| Station | A Pursue or Follow ship is on station when it is within 100 m of the point the sandbox computes from the definition (the stand-off point on the line of sight, or the slot in the leader's axes) and slower than 50 m/s relative to the tracked body; it has arrived when it has held that for 5 s. A Follow ship is judged only once the leader has stopped. The largest distance from the point after the ship first reached it is logged, not judged |
+| Station | A Pursue or Follow ship is on station when it is within 100 m of the point the sandbox computes from the definition (the stand-off point on the line of sight, or the slot in the leader's axes) and slower than 50 m/s relative to the tracked body; it has arrived when it has held that for 5 s. A Follow ship is judged only once the leader has stopped. The largest distance from the point after the ship first reached it, and the largest turn rate while it was held on station, are logged, not judged |
 | Orbit | An Orbit ship has arrived when it has turned once about the centre, measured about the normal, while staying within 10 % of the radius (at least 100 m) of the circle; leaving the circle after the turn has begun restarts it. The tolerance is wider than the arrival range because the wanted velocity is the circle's tangent, and a ship at kilometres per second runs a little wide of it |
 | Hold | After the switch the ship must leave the arrival range, then arrive back at the point it was switched at |
 | Deadlock | Not 10 m closer to the target than its best distance for 10 s of simulated time; reaching a waypoint restarts the count. Not checked for a ship that tracks a moving point once it has been on station, nor for a Hold ship after the switch. The log line gives the distance, the speed, and the two nearest obstacles, each with its distance from the ship's centre to its surface and that distance as a multiple of the ship's reach (surface plus ship radius plus its largest clearance), then the gap between their two surfaces |

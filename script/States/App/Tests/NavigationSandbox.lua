@@ -92,6 +92,7 @@ local HUD_ALIGN_X, HUD_ALIGN_Y = 0.0, 0.5
 -- Marker colours (r, g, b, a) by ship state; the target and the course use the flying colour.
 local MARKER_COLORS    = {
     flying     = { 0.3, 0.7, 1.0, 1.0 },
+    onStation  = { 0.8, 0.9, 0.3, 1.0 },
     arrived    = { 0.3, 1.0, 0.4, 1.0 },
     deadlocked = { 1.0, 0.3, 0.2, 1.0 },
     obstacle   = { 0.5, 0.5, 0.5, 1.0 },
@@ -153,7 +154,9 @@ function NavigationSandbox:drawMarkers(blendMode)
     end
     for _, ship in ipairs(self.ships) do
         local flying = MARKER_COLORS.flying
-        NavDebugDraw.sphere(ship.rb:getPos(), ship.rb:getBoundingRadius(), FILL_COLORS[ship.state])
+        local onStation = ship.state == "flying" and ShipBehaviour.isOnStation(ship)
+        NavDebugDraw.sphere(ship.rb:getPos(), ship.rb:getBoundingRadius(),
+            FILL_COLORS[onStation and "onStation" or ship.state])
         NavDebugDraw.sphere(ship.target, ScenarioMetrics.ARRIVAL_RANGE, flying, true)
         if ship.state == "flying" then
             NavDebugDraw.line(ship.rb:getPos(), ship.target,

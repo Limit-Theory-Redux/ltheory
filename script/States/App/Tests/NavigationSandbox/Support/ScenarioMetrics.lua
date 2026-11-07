@@ -338,6 +338,10 @@ function ScenarioMetrics:summarize(simTime)
             self:log("%s: largest distance from its station since it was reached: %.0f m", ship.label,
                 Metres.toMetres(maxError))
         end
+        local turnRate = ShipBehaviour.stationTurnRate(ship)
+        if turnRate then
+            self:log("%s: largest turn rate while held on station: %.3f rad/s", ship.label, turnRate)
+        end
     end
     local t = self.timings
     self:log("navigation ms per frame, mean (max) over %d frames: step %.3f (%.3f), glue %.3f (%.3f), "
