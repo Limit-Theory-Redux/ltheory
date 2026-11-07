@@ -53,6 +53,8 @@ struct Ship {
     start: DVec3,
     /// The farthest the ship has been from where it started.
     range: f64,
+    /// The farthest the ship has been from the line through where it started along z.
+    sway: f64,
     /// The ship's bounding radius.
     radius: f64,
 }
@@ -68,6 +70,7 @@ impl Ship {
             clearance: f64::INFINITY,
             start: position,
             range: 0.0,
+            sway: 0.0,
         }
     }
 
@@ -105,6 +108,8 @@ impl Ship {
         self.velocity += (thrust - self.velocity * profile.linear_drag) * STEP_S;
         self.position += self.velocity * STEP_S;
         self.range = self.range.max(self.position.distance(self.start));
+        let off_line = self.position - self.start;
+        self.sway = self.sway.max(off_line.x.hypot(off_line.y));
     }
 }
 
@@ -505,7 +510,18 @@ struct Sample {
 fn fly_fleet(
     ships: &mut [Ship],
     seconds: f64,
+    behave: impl FnMut(usize, f64, &[Ship]) -> Behaviour,
+) -> Vec<Vec<Sample>> {
+    fly_fleet_tracking(ships, seconds, behave, |_| None)
+}
+
+/// Like [`fly_fleet`], with `tracked(index)` the ship that ship `index` tracks, which it leaves
+/// out of its avoidance.
+fn fly_fleet_tracking(
+    ships: &mut [Ship],
+    seconds: f64,
     mut behave: impl FnMut(usize, f64, &[Ship]) -> Behaviour,
+    tracked: impl Fn(usize) -> Option<usize>,
 ) -> Vec<Vec<Sample>> {
     let mut world = World::new();
     let ids: Vec<_> = ships.iter().map(|_| world.add_agent(PROFILE)).collect();
@@ -515,6 +531,10 @@ fn fly_fleet(
         for (index, id) in ids.iter().enumerate() {
             world.set_body(*id, ships[index].body());
             world.set_behaviour(*id, Some(behave(index, time, ships)));
+            world.set_tracked(
+                *id,
+                tracked(index).map(|target| ObstacleKey::Agent(ids[target])),
+            );
             samples[index].push(Sample {
                 time,
                 position: ships[index].position,
@@ -803,5 +823,87 @@ fn an_orbiting_ship_follows_a_moving_centre() {
     assert_settles_on_orbit(
         DVec3::new(2.0 * ORBIT_RADIUS, 100.0, 0.0),
         DVec3::new(10.0, 0.0, 5.0),
+    );
+}
+
+/// Where the head-on ships start, along z on either side of the origin, and fly to the other's.
+const HEAD_ON_HALF_LENGTH: f64 = 400.0;
+
+#[test]
+fn ships_flying_head_on_pass_without_touching_and_arrive() {
+    const SECONDS: f64 = 40.0;
+    let ends = [
+        DVec3::new(0.0, 0.0, HEAD_ON_HALF_LENGTH),
+        DVec3::new(0.0, 0.0, -HEAD_ON_HALF_LENGTH),
+    ];
+    let mut ships = [
+        Ship::new(ends[0]),
+        Ship {
+            orientation: DQuat::from_rotation_y(std::f64::consts::PI),
+            ..Ship::new(ends[1])
+        },
+    ];
+    let samples = fly_fleet(&mut ships, SECONDS, |index, _, _| {
+        arrive_at_point(ends[1 - index])
+    });
+    let nearest = samples[0]
+        .iter()
+        .zip(&samples[1])
+        .map(|(first, second)| first.position.distance(second.position))
+        .fold(f64::INFINITY, f64::min);
+    assert!(
+        nearest > 2.0 * AGENT_RADIUS,
+        "the ships touched: {nearest} apart"
+    );
+    for (index, ship) in ships.iter().enumerate() {
+        let left = ship.position.distance(ends[1 - index]);
+        assert!(left < ARRIVAL_RADIUS, "ship {index} stopped {left} short");
+    }
+    for (index, ship) in ships.iter().enumerate() {
+        assert!(ship.sway > 0.0, "ship {index} didn't turn aside");
+    }
+}
+
+#[test]
+fn a_follower_closing_on_a_slot_just_behind_its_leader_reaches_it_without_touching() {
+    // The slot is close behind the hull, inside the reach of a ship that closes in at speed.
+    const SLOT_BEHIND: f64 = 4.3;
+    const SLOT_TOLERANCE: f64 = 0.5;
+    const SECONDS: f64 = 40.0;
+    const START_BEHIND: f64 = 300.0;
+    let mut ships = [Ship::new(DVec3::ZERO), Ship::new(DVec3::Z * START_BEHIND)];
+    let samples = fly_fleet_tracking(
+        &mut ships,
+        SECONDS,
+        |index, _, ships| {
+            if index == 0 {
+                return arrive_at_point(DVec3::ZERO);
+            }
+            Behaviour::Follow {
+                leader: ships[0].body(),
+                offset: FrameOffset {
+                    right: 0.0,
+                    up: 0.0,
+                    forward: -SLOT_BEHIND,
+                },
+                arrival_radius: ARRIVAL_RADIUS,
+            }
+        },
+        |index| (index == 1).then_some(0),
+    );
+    let nearest = samples[0]
+        .iter()
+        .zip(&samples[1])
+        .map(|(leader, follower)| leader.position.distance(follower.position))
+        .fold(f64::INFINITY, f64::min);
+    assert!(
+        nearest > 2.0 * AGENT_RADIUS,
+        "came within {nearest} of the leader"
+    );
+    let slot = ships[0].position + DVec3::Z * SLOT_BEHIND;
+    let stopped = ships[1].position.distance(slot);
+    assert!(
+        stopped < SLOT_TOLERANCE,
+        "the follower stopped {stopped} from its slot"
     );
 }

@@ -2,6 +2,7 @@ use glam::DVec3;
 
 use crate::avoidance::Commitment;
 use crate::behaviour::Behaviour;
+use crate::obstacle::ObstacleKey;
 
 /// Number of control axes the controller writes per agent.
 pub const AXIS_COUNT: usize = 6;
@@ -27,7 +28,7 @@ pub enum Axis {
 pub struct AgentId(usize);
 
 impl AgentId {
-    pub(crate) fn new(index: usize) -> Self {
+    pub(crate) const fn new(index: usize) -> Self {
         Self(index)
     }
 
@@ -154,6 +155,8 @@ pub(crate) struct Agent {
     pub body: Body,
     pub profile: Profile,
     pub behaviour: Option<Behaviour>,
+    /// The obstacle the behaviour tracks, which the agent doesn't avoid.
+    pub tracked: Option<ObstacleKey>,
     /// The side the agent passes the sphere it is avoiding on, kept between steps.
     pub commitment: Option<Commitment>,
 }

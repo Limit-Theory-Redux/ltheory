@@ -1,6 +1,6 @@
 use glam::DVec3;
 
-use crate::agent::{Body, Goal, Profile};
+use crate::agent::{AgentId, Body, Goal, Profile};
 use crate::behaviour::{TINY_SQ, Wanted};
 use crate::braking::{stopping_distance, stopping_speed};
 use crate::obstacle::{Obstacle, ObstacleKey};
@@ -80,7 +80,12 @@ pub(crate) struct Sphere {
     offset: DVec3,
     /// The length of `offset`.
     distance: f64,
+    /// The velocity the courses are tested against: the obstacle's own, or the mean of the two
+    /// agents' for a sphere that avoids back (see [`Peers`]).
     velocity: DVec3,
+    /// The share of the avoidance this agent takes: 1, or [`RECIPROCAL_SHARE`] against an agent
+    /// that avoids back.
+    share: f64,
     /// Obstacle radius plus the agent's radius.
     hull: f64,
     /// The hull plus the clearance kept.
@@ -128,6 +133,56 @@ impl Sphere {
     }
 }
 
+/// The share of the avoidance an agent takes against an agent that avoids back: half, so that
+/// the pair together takes all of it (the reciprocal velocity obstacle).
+const RECIPROCAL_SHARE: f64 = 0.5;
+
+/// What one agent of a world knows of the agents of that world: whether each steers, and what
+/// each tracks.
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct Peer {
+    /// Whether the agent has a behaviour, so it steers around others.
+    pub steering: bool,
+    /// The obstacle the agent's behaviour tracks, which it leaves out of its own scene.
+    pub tracks: Option<ObstacleKey>,
+}
+
+/// The agents around the agent being steered, for [`avoid`].
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct Peers<'a> {
+    /// The agent being steered.
+    pub own: AgentId,
+    /// The obstacle its behaviour tracks; it is left out of the scene.
+    pub tracked: Option<ObstacleKey>,
+    /// Every agent of the world, in agent order.
+    pub all: &'a [Peer],
+}
+
+impl Peers<'_> {
+    /// An agent with no neighbours that tracks nothing.
+    #[cfg(test)]
+    pub fn alone() -> Peers<'static> {
+        Peers {
+            own: AgentId::new(0),
+            tracked: None,
+            all: &[],
+        }
+    }
+
+    /// The share of the avoidance of `key` the agent takes: [`RECIPROCAL_SHARE`] when `key` is a
+    /// steering agent that doesn't track this one (it avoids this agent back), 1 otherwise.
+    fn share_of(&self, key: ObstacleKey) -> f64 {
+        let ObstacleKey::Agent(id) = key else {
+            return 1.0;
+        };
+        let avoids_back = self
+            .all
+            .get(id.index())
+            .is_some_and(|peer| peer.steering && peer.tracks != Some(ObstacleKey::Agent(self.own)));
+        if avoids_back { RECIPROCAL_SHARE } else { 1.0 }
+    }
+}
+
 /// The agent and the spheres its courses are tested against.
 struct Scene<'a> {
     body: &'a Body,
@@ -135,17 +190,20 @@ struct Scene<'a> {
     tuning: &'a AvoidanceTuning,
     /// The agent's goal, if any: no sphere keeps a clearance that would put it out of reach.
     goal: Option<Goal>,
-    /// One per obstacle, in the order of the obstacles.
+    peers: Peers<'a>,
+    /// One per obstacle but the one the agent tracks, in the order of the obstacles.
     spheres: &'a [Sphere],
 }
 
 impl Scene<'_> {
-    /// Replaces `out` with the spheres of `obstacles`, for courses no faster than `speed_bound`.
+    /// Replaces `out` with the spheres of `obstacles` but the tracked one, for courses no faster
+    /// than `speed_bound`.
     fn fill_spheres(&self, obstacles: &[Obstacle], speed_bound: f64, out: &mut Vec<Sphere>) {
         out.clear();
         out.extend(
             obstacles
                 .iter()
+                .filter(|obstacle| Some(obstacle.key) != self.peers.tracked)
                 .map(|obstacle| self.sphere(obstacle, speed_bound)),
         );
     }
@@ -157,13 +215,22 @@ impl Scene<'_> {
         let reach = hull + clearance;
         let reach_gap_sq = offset.length_squared() - reach * reach;
         let distance = offset.length();
-        // Relative to the obstacle an agent closes in at its speed plus the obstacle's.
-        let travel = course_travel(speed_bound + obstacle.velocity.length(), self.tuning);
+        // An agent that avoids back is tested as moving at the mean of the two velocities, the
+        // apex of the reciprocal cone; each takes the half of the detour that its share asks.
+        let share = self.peers.share_of(obstacle.key);
+        let velocity = if share < 1.0 {
+            self.body.velocity.lerp(obstacle.velocity, share)
+        } else {
+            obstacle.velocity
+        };
+        // Relative to the sphere an agent closes in at its speed plus the sphere's.
+        let travel = course_travel(speed_bound + velocity.length(), self.tuning);
         Sphere {
             key: obstacle.key,
             offset,
             distance,
-            velocity: obstacle.velocity,
+            velocity,
+            share,
             hull,
             reach,
             aim_reach: hull + self.tuning.aim_factor * clearance,
@@ -289,13 +356,16 @@ struct Pending {
 /// reached, the side it passed it on is taken again if that course is clear, so the detour doesn't
 /// swap sides as the agent's position or velocity shifts.
 ///
+/// `peers` names the agents among `obstacles` that avoid this agent back, which it takes half of
+/// the avoidance against, and the obstacle its behaviour tracks, which it leaves out.
+///
 /// `spheres` is scratch space for the per-obstacle data of this call, reused between calls so
 /// that no call allocates. Spheres no course within the agent's top speed (or its wanted or
 /// current speed, if larger) can come within reach of inside the horizon are left out of the
 /// course search, which never changes its result.
 #[expect(
     clippy::too_many_arguments,
-    reason = "the agent's state, its goal, its memory and the scratch buffer are separate owners"
+    reason = "the agent's state, its goal, its memory, its neighbours and the scratch buffer are separate owners"
 )]
 pub(crate) fn avoid(
     body: &Body,
@@ -304,6 +374,7 @@ pub(crate) fn avoid(
     obstacles: &[Obstacle],
     tuning: &AvoidanceTuning,
     goal: Option<Goal>,
+    peers: Peers,
     commitment: &mut Option<Commitment>,
     spheres: &mut Vec<Sphere>,
 ) -> Wanted {
@@ -316,6 +387,7 @@ pub(crate) fn avoid(
         profile,
         tuning,
         goal,
+        peers,
         spheres: &[],
     };
     let speed_bound = speed_bound(body, profile, wanted.velocity.length());
@@ -396,8 +468,8 @@ fn limit_closing_speeds(scene: &Scene, wanted: Wanted, course: Wanted) -> Wanted
 }
 
 /// `course` with the speed it closes on the obstacle's sphere at reduced to the speed the agent
-/// can brake from within the distance to the sphere's hull less the braking margin. The speed
-/// along the sphere is kept, so an agent passing the sphere isn't slowed for it.
+/// can brake from within its share of the distance to the sphere's hull less the braking margin.
+/// The speed along the sphere is kept, so an agent passing the sphere isn't slowed for it.
 fn limit_closing_speed(
     course: Wanted,
     sphere: &Sphere,
@@ -409,8 +481,9 @@ fn limit_closing_speed(
         return course;
     }
     let to_centre = -sphere.offset / distance;
-    let room = distance - sphere.hull - braking_margin;
-    let limit = stopping_speed(profile, room.max(0.0));
+    // Against an agent that brakes too, only the sphere's share of the room is this agent's.
+    let room = (distance - sphere.hull - braking_margin).max(0.0) * sphere.share;
+    let limit = stopping_speed(profile, room);
     let closing = (course.velocity - sphere.velocity).dot(to_centre);
     if closing <= limit {
         return course;
@@ -707,6 +780,7 @@ mod tests {
             obstacles,
             &AvoidanceTuning::default(),
             None,
+            Peers::alone(),
             &mut None,
             &mut Vec::new(),
         )
@@ -823,6 +897,7 @@ mod tests {
             profile: &profile_with(MAX_SPEED, UNLIMITED_DRAG),
             tuning: &tuning,
             goal: None,
+            peers: Peers::alone(),
             spheres: &[],
         };
         let mut spheres = Vec::new();
@@ -971,6 +1046,7 @@ mod tests {
             obstacles,
             &AvoidanceTuning::default(),
             None,
+            Peers::alone(),
             &mut None,
             &mut Vec::new(),
         )
@@ -1029,6 +1105,7 @@ mod tests {
             profile: &braking_profile(),
             tuning: &tuning,
             goal: None,
+            peers: Peers::alone(),
             spheres: &[],
         };
         scene.braking_margin()
@@ -1097,6 +1174,7 @@ mod tests {
             profile: &braking_profile(),
             tuning: &tuning,
             goal: None,
+            peers: Peers::alone(),
             spheres: &[],
         };
         scene.clearance(obstacle)
@@ -1159,6 +1237,7 @@ mod tests {
             profile: &braking_profile(),
             tuning: &tuning,
             goal: None,
+            peers: Peers::alone(),
             spheres: &[],
         };
         assert_eq!(scene.clearance(&ahead), RADIUS * 0.25);
@@ -1182,6 +1261,7 @@ mod tests {
             profile: &NO_BRAKING,
             tuning: &tuning,
             goal: None,
+            peers: Peers::alone(),
             spheres: &[],
         };
         assert_eq!(scene.clearance(&ahead), RADIUS * tuning.clearance_radii);
@@ -1202,6 +1282,7 @@ mod tests {
             profile: &profile,
             tuning: &tuning,
             goal: None,
+            peers: Peers::alone(),
             spheres: &[],
         };
         let braking = stopping_distance(&profile, 6.0);
@@ -1222,6 +1303,7 @@ mod tests {
             profile: &NO_BRAKING,
             tuning: &tuning,
             goal: Some(goal),
+            peers: Peers::alone(),
             spheres: &[],
         };
         scene.clearance(sphere)
@@ -1276,6 +1358,7 @@ mod tests {
             obstacles,
             &AvoidanceTuning::default(),
             None,
+            Peers::alone(),
             commitment,
             &mut Vec::new(),
         )
@@ -1412,6 +1495,7 @@ mod tests {
             profile: &braking_profile(),
             tuning: &tuning,
             goal: None,
+            peers: Peers::alone(),
             spheres: &[],
         };
         let threat = scene
@@ -1470,6 +1554,7 @@ mod tests {
             profile: &profile_with(MAX_SPEED, UNLIMITED_DRAG),
             tuning: &tuning,
             goal: None,
+            peers: Peers::alone(),
             spheres: &[],
         }
         .sphere(obstacle, speed_bound)
@@ -1547,5 +1632,150 @@ mod tests {
         let far = rock(DVec3::new(0.0, 0.0, -900.0), DVec3::ZERO, 5.0);
         let steered = avoid_with_drag(&body, wanted, &[far]);
         assert!(steered.velocity.length() > MAX_SPEED - 1e-6);
+    }
+
+    const OWN: AgentId = AgentId::new(0);
+    const OTHER: AgentId = AgentId::new(1);
+
+    /// An agent obstacle, which `other` is in the peers of the tests below.
+    fn agent_sphere(position: DVec3, velocity: DVec3, radius: f64) -> Obstacle {
+        Obstacle {
+            key: ObstacleKey::Agent(OTHER),
+            position,
+            velocity,
+            radius,
+        }
+    }
+
+    /// The agent `OWN` avoiding `obstacles` with `other` as the peer `OTHER`, tracking `tracked`.
+    fn avoid_among(
+        profile: &Profile,
+        body: &Body,
+        wanted: Wanted,
+        obstacles: &[Obstacle],
+        other: Peer,
+        tracked: Option<ObstacleKey>,
+    ) -> Wanted {
+        let own = Peer {
+            steering: true,
+            tracks: tracked,
+        };
+        avoid(
+            body,
+            profile,
+            wanted,
+            obstacles,
+            &AvoidanceTuning::default(),
+            None,
+            Peers {
+                own: OWN,
+                tracked,
+                all: &[own, other],
+            },
+            &mut None,
+            &mut Vec::new(),
+        )
+    }
+
+    const STEERING: Peer = Peer {
+        steering: true,
+        tracks: None,
+    };
+
+    /// A head-on pair at 20 units per second each, 150 apart, avoiding with `other` as the peer.
+    /// The apex of a pair that avoids back is at rest, so it is inside the horizon too.
+    fn head_on_course(other: Peer) -> (Wanted, Wanted) {
+        let mut body = body_at(DVec3::ZERO);
+        body.velocity = DVec3::NEG_Z * 20.0;
+        let wanted = wanted_toward(DVec3::NEG_Z, 20.0);
+        let oncoming = agent_sphere(DVec3::new(0.0, 0.0, -150.0), DVec3::Z * 20.0, 10.0);
+        let profile = profile_with(MAX_SPEED, UNLIMITED_DRAG);
+        (
+            avoid_among(&profile, &body, wanted, &[oncoming], other, None),
+            wanted,
+        )
+    }
+
+    #[test]
+    fn an_agent_that_avoids_back_gets_half_of_the_detour_to_take() {
+        let (shared, wanted) = head_on_course(STEERING);
+        let (alone, _) = head_on_course(Peer {
+            steering: false,
+            tracks: None,
+        });
+        let sideways = |course: Wanted| course.velocity.cross(wanted.velocity).length();
+        assert!(sideways(alone) > 1.0, "the full detour turns the course");
+        let ratio = sideways(shared) / sideways(alone);
+        assert!((ratio - RECIPROCAL_SHARE).abs() < 1e-9, "ratio {ratio}");
+    }
+
+    #[test]
+    fn an_agent_that_tracks_this_one_is_avoided_in_full() {
+        let tracking = Peer {
+            steering: true,
+            tracks: Some(ObstacleKey::Agent(OWN)),
+        };
+        let (tracked_by, _) = head_on_course(tracking);
+        let (resting, _) = head_on_course(Peer {
+            steering: false,
+            tracks: None,
+        });
+        assert_eq!(tracked_by, resting);
+    }
+
+    #[test]
+    fn the_obstacle_an_agent_tracks_is_left_out_of_its_scene() {
+        let body = body_at(DVec3::ZERO);
+        let wanted = wanted_toward(DVec3::NEG_Z, 80.0);
+        let profile = profile_with(MAX_SPEED, UNLIMITED_DRAG);
+        let ahead = rock(DVec3::new(2.0, 0.0, -300.0), DVec3::ZERO, 40.0);
+        let among = |tracked| avoid_among(&profile, &body, wanted, &[ahead], STEERING, tracked);
+        assert_ne!(among(None), wanted, "the rock is a threat");
+        assert_eq!(among(Some(ObstacleKey::Body(0))), wanted);
+        assert_ne!(
+            among(Some(ObstacleKey::Body(1))),
+            wanted,
+            "another key leaves the rock in"
+        );
+    }
+
+    #[test]
+    fn an_agent_that_avoids_back_leaves_half_of_the_braking_room_to_it() {
+        let body = body_at(DVec3::ZERO);
+        let wanted = wanted_toward(DVec3::NEG_Z, MAX_SPEED);
+        let profile = braking_profile();
+        let ahead = agent_sphere(DVec3::new(0.0, 0.0, -30.0), DVec3::ZERO, 5.0);
+        let closing = |other| {
+            avoid_among(&profile, &body, wanted, &[ahead], other, None)
+                .velocity
+                .dot(DVec3::NEG_Z)
+        };
+        let room = 30.0 - (ahead.radius + RADIUS) - RADIUS * MIN_CLEARANCE_RADII;
+        // The sphere is at rest and so is the apex, so only the room differs.
+        let full = closing(Peer {
+            steering: false,
+            tracks: None,
+        });
+        assert!((full - stopping_speed(&profile, room)).abs() < 1e-9);
+        let shared = closing(STEERING);
+        let half = stopping_speed(&profile, room * RECIPROCAL_SHARE);
+        assert!(
+            (shared - half).abs() < 1e-9,
+            "closing {shared}, half {half}"
+        );
+        assert!(shared < full);
+    }
+
+    #[test]
+    fn only_an_agent_key_can_avoid_back() {
+        let peers = Peers {
+            own: OWN,
+            tracked: None,
+            all: &[STEERING, STEERING],
+        };
+        assert_eq!(peers.share_of(ObstacleKey::Body(1)), 1.0);
+        assert_eq!(peers.share_of(ObstacleKey::Agent(OTHER)), RECIPROCAL_SHARE);
+        // An agent the peers don't list is a plain sphere.
+        assert_eq!(peers.share_of(ObstacleKey::Agent(AgentId::new(7))), 1.0);
     }
 }

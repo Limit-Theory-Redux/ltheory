@@ -1,5 +1,5 @@
 use crate::agent::{AXIS_COUNT, Agent, AgentId, Body, Goal, Profile};
-use crate::avoidance::{AvoidanceTuning, Sphere, avoid};
+use crate::avoidance::{AvoidanceTuning, Peer, Peers, Sphere, avoid};
 use crate::behaviour::{Behaviour, steer};
 use crate::controller::control;
 use crate::obstacle::{Obstacle, ObstacleKey};
@@ -17,6 +17,8 @@ pub struct World {
     scene: Vec<Obstacle>,
     /// The per-obstacle data of the agent being steered, reused between agents and steps.
     spheres: Vec<Sphere>,
+    /// What each agent is to the others, in agent order, reused between steps.
+    peers: Vec<Peer>,
     /// The axes of each agent, in agent order.
     axes: Vec<[f64; AXIS_COUNT]>,
     arrived: Vec<bool>,
@@ -77,6 +79,7 @@ impl World {
             body: Body::AT_REST,
             profile,
             behaviour: None,
+            tracked: None,
             commitment: None,
         });
         self.axes.push([0.0; AXIS_COUNT]);
@@ -106,6 +109,15 @@ impl World {
     /// isn't an agent of this world.
     pub fn set_behaviour(&mut self, id: AgentId, behaviour: Option<Behaviour>) {
         self.agents[id.index()].behaviour = behaviour;
+    }
+
+    /// Names the obstacle the agent's behaviour tracks (a pursued or followed body), or `None`.
+    /// The agent leaves it out of its scene. If it is an agent, that agent no longer shares the
+    /// avoidance with this one and avoids it fully. The key stays until it is set again, so the
+    /// caller clears it when it sets a behaviour that tracks nothing. Panics if `id` isn't an
+    /// agent of this world.
+    pub fn set_tracked(&mut self, id: AgentId, target: Option<ObstacleKey>) {
+        self.agents[id.index()].tracked = target;
     }
 
     /// Replaces the obstacles.
@@ -146,6 +158,11 @@ impl World {
         // result doesn't depend on the order the agents are stepped in.
         self.was_arrived.clear();
         self.was_arrived.extend_from_slice(&self.arrived);
+        self.peers.clear();
+        self.peers.extend(self.agents.iter().map(|agent| Peer {
+            steering: agent.behaviour.is_some(),
+            tracks: agent.tracked,
+        }));
         let slots = self.axes.iter_mut().zip(&mut self.arrived);
         for (index, (agent, (axes, arrived))) in self.agents.iter_mut().zip(slots).enumerate() {
             let own = self.obstacles.len() + index;
@@ -163,6 +180,11 @@ impl World {
                 &self.scene[..last],
                 &self.tuning,
                 Some(goal),
+                Peers {
+                    own: AgentId::new(index),
+                    tracked: agent.tracked,
+                    all: &self.peers,
+                },
                 &mut agent.commitment,
                 &mut self.spheres,
             );
@@ -392,5 +414,88 @@ mod tests {
         world.set_obstacles(&[]);
         world.step();
         assert_eq!(world.axes(), straight);
+    }
+
+    /// How the second agent of `flier_axes` relates to the first.
+    #[derive(Clone, Copy, Default)]
+    struct Blocker {
+        /// It has a behaviour: it holds its place with a goal there.
+        steers: bool,
+        /// It tracks the flier, which then avoids it in full.
+        tracks_flier: bool,
+        /// The flier tracks it, and leaves it out of its scene.
+        tracked_by_flier: bool,
+    }
+
+    /// The control axes of an agent flying at 30 toward a goal 1000 ahead, with a resting agent of
+    /// radius 30 on its course 200 ahead that is related to it as `blocker` says. The flier moves
+    /// so that the mean velocity of the pair differs from its own.
+    fn flier_axes(blocker: Option<Blocker>) -> Vec<f64> {
+        let mut world = World::new();
+        let flier = world.add_agent(PROFILE);
+        world.set_body(
+            flier,
+            Body {
+                velocity: DVec3::NEG_Z * 30.0,
+                ..Body::AT_REST
+            },
+        );
+        world.set_behaviour(flier, Some(goal(DVec3::new(0.0, 0.0, -1000.0))));
+        if let Some(blocker) = blocker {
+            let position = DVec3::new(0.0, 0.0, -200.0);
+            let other = world.add_agent(PROFILE);
+            world.set_body(
+                other,
+                Body {
+                    position,
+                    radius: 30.0,
+                    ..Body::AT_REST
+                },
+            );
+            if blocker.steers {
+                world.set_behaviour(other, Some(goal(position)));
+            }
+            if blocker.tracks_flier {
+                world.set_tracked(other, Some(ObstacleKey::Agent(flier)));
+            }
+            if blocker.tracked_by_flier {
+                world.set_tracked(flier, Some(ObstacleKey::Agent(other)));
+            }
+        }
+        world.step();
+        world.axes()[..AXIS_COUNT].to_vec()
+    }
+
+    #[test]
+    fn an_agent_leaves_the_agent_it_tracks_out_of_its_scene() {
+        let alone = flier_axes(None);
+        let tracked = Blocker {
+            tracked_by_flier: true,
+            ..Blocker::default()
+        };
+        assert_eq!(flier_axes(Some(tracked)), alone);
+        assert_ne!(flier_axes(Some(Blocker::default())), alone);
+    }
+
+    #[test]
+    fn an_agent_takes_half_of_the_dodge_of_an_agent_that_steers() {
+        let resting = flier_axes(Some(Blocker::default()));
+        let steering = flier_axes(Some(Blocker {
+            steers: true,
+            ..Blocker::default()
+        }));
+        assert_ne!(steering, flier_axes(None), "the blocker is still avoided");
+        assert_ne!(steering, resting, "the dodge is shared");
+    }
+
+    #[test]
+    fn the_agent_that_is_tracked_avoids_its_tracker_in_full() {
+        let resting = flier_axes(Some(Blocker::default()));
+        let tracker = Blocker {
+            steers: true,
+            tracks_flier: true,
+            ..Blocker::default()
+        };
+        assert_eq!(flier_axes(Some(tracker)), resting);
     }
 }
