@@ -37,18 +37,10 @@ function NavWorld:agentCount() end
 ---@return integer
 function NavWorld:addAgent(body, linearDrag, angularDrag, thrustForward, thrustRight, thrustUp, torquePitch, torqueYaw, torqueRoll) end
 
--- Adds a sphere that every agent steers around: the body's position, velocity and bounding
--- radius at each step. Sensing leaves the body out.
---
--- # Panics
--- If `body` is not a root body of this world's physics.
----@param body RigidBody
-function NavWorld:addObstacle(body) end
-
 -- Turns sensing on or off. With a non-zero `mask`, each step finds the bodies whose collision
 -- group shares a bit with it within each agent's sensing range and treats them as
--- obstacles; 0 turns it off (the default). Agents, their own parts and bodies added by
--- `add_obstacle` are never sensed. Bodies are found as of the last `Physics::update`.
+-- obstacles; 0 turns it off (the default). Agents and their own parts are never sensed.
+-- Bodies are found as of the last `Physics::update`.
 ---@param mask integer
 function NavWorld:setSensing(mask) end
 
@@ -133,11 +125,11 @@ function NavWorld:clearBehaviour(id) end
 ---@param aimFactor number
 function NavWorld:setAvoidanceTuning(horizonS, clearanceRadii, aimFactor) end
 
--- Reads every registered body from physics and computes each agent's control axes and
--- arrival.
+-- Reads every agent and tracked body from physics, senses obstacles, and computes each
+-- agent's control axes and arrival.
 --
 -- # Panics
--- If a registered body has left the physics world.
+-- If an agent's body or a tracked body has left the physics world.
 function NavWorld:step() end
 
 -- Copies the control axes of the last step into `out`: one value per axis for each agent, in

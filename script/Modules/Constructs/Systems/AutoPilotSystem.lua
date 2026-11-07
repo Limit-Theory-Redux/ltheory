@@ -19,10 +19,15 @@ local BRAKING_LAG_MARGIN = 4
 local DECAY_RATE_ITERATIONS = 12
 -- Below this drive multiplier the drive is released and the NavWorld flies the rest.
 local HANDOVER_MULT = 2
+-- The collision mask the NavWorld senses obstacles with: every collision group.
+local SENSING_MASK = 0xFFFFFFFF
 
 --- AutoPilot System — steers a ship toward a target entity or position.
 --- Operates on the AutoPilotComponent attached to ship entities. It writes the ship's
 --- ControlInput from a NavWorld that has the ship as its only agent; it applies no force itself.
+--- The NavWorld senses the collidable bodies around the ship and steers around them. While the
+--- travel drive runs the ship has no lateral thrust and turns weakly, so that avoidance only
+--- acts in normal flight.
 ---@class AutoPilotSystem
 local AutoPilotSystem = {}
 
@@ -54,6 +59,7 @@ local function startNavigation(ap, shipEntity, physics)
         return false
     end
     local nav = NavWorld.Create(physics)
+    nav:setSensing(SENSING_MASK)
     local agent = NavAgentHelper.addShip(nav, shipEntity, rb)
     ap:setNavigation(nav, agent, ffi.new("double[?]", NavWorld.AxisCount()), ffi.new("bool[1]"))
     return true
