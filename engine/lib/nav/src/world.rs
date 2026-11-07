@@ -112,10 +112,11 @@ impl World {
     }
 
     /// Names the obstacle the agent's behaviour tracks (a pursued or followed body), or `None`.
-    /// The agent leaves it out of its scene. If it is an agent, that agent no longer shares the
-    /// avoidance with this one and avoids it fully. The key stays until it is set again, so the
-    /// caller clears it when it sets a behaviour that tracks nothing. Panics if `id` isn't an
-    /// agent of this world.
+    /// The agent leaves it out of its scene. If it is an agent, that agent leaves this one out
+    /// too while this one lies behind it (relative to its wanted course), and avoids it with
+    /// the half share of any steering agent otherwise. The key stays until it is set again, so
+    /// the caller clears it when it sets a behaviour that tracks nothing. Panics if `id` isn't
+    /// an agent of this world.
     pub fn set_tracked(&mut self, id: AgentId, target: Option<ObstacleKey>) {
         self.agents[id.index()].tracked = target;
     }
@@ -421,7 +422,8 @@ mod tests {
     struct Blocker {
         /// It has a behaviour: it holds its place with a goal there.
         steers: bool,
-        /// It tracks the flier, which then avoids it in full.
+        /// It tracks the flier, so it leaves the flier out of its own scene. The flier still
+        /// avoids it while it lies ahead of the flier.
         tracks_flier: bool,
         /// The flier tracks it, and leaves it out of its scene.
         tracked_by_flier: bool,
@@ -489,13 +491,20 @@ mod tests {
     }
 
     #[test]
-    fn the_agent_that_is_tracked_avoids_its_tracker_in_full() {
-        let resting = flier_axes(Some(Blocker::default()));
-        let tracker = Blocker {
+    fn the_agent_that_is_tracked_takes_half_of_the_dodge_of_a_tracker_ahead_of_it() {
+        let steering = Blocker {
             steers: true,
-            tracks_flier: true,
             ..Blocker::default()
         };
-        assert_eq!(flier_axes(Some(tracker)), resting);
+        let tracker = Blocker {
+            tracks_flier: true,
+            ..steering
+        };
+        assert_eq!(flier_axes(Some(tracker)), flier_axes(Some(steering)));
+        assert_ne!(
+            flier_axes(Some(tracker)),
+            flier_axes(Some(Blocker::default())),
+            "the tracker is not a resting sphere"
+        );
     }
 }

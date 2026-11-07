@@ -394,7 +394,8 @@ impl NavWorld {
 
     /// Meets `target` `stand_off` from its hull (game units), matching its velocity. `target` is
     /// read from physics at each step, and the agent doesn't avoid it (it still avoids everything
-    /// else; if `target` is an agent, that agent avoids this one in full).
+    /// else; if `target` is an agent, it ignores this one while this one is behind it, and avoids
+    /// it with the half share of any steering agent otherwise).
     ///
     /// # Panics
     /// If `id` isn't an agent, or `target` isn't a root body of this world's physics.
@@ -408,8 +409,9 @@ impl NavWorld {
 
     /// Holds the slot `right`, `up`, `forward` (game units) away from `leader`, in the leader's
     /// own axes, matching its velocity. `leader` is read from physics at each step, and the agent
-    /// doesn't avoid it (it still avoids everything else; if `leader` is an agent, that agent
-    /// avoids this one in full).
+    /// doesn't avoid it (it still avoids everything else; if `leader` is an agent, it ignores
+    /// this one while this one is behind it, and avoids it with the half share of any steering
+    /// agent otherwise).
     ///
     /// # Panics
     /// If `id` isn't an agent, or `leader` isn't a root body of this world's physics.

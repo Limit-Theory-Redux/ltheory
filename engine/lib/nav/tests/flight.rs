@@ -907,3 +907,111 @@ fn a_follower_closing_on_a_slot_just_behind_its_leader_reaches_it_without_touchi
         "the follower stopped {stopped} from its slot"
     );
 }
+
+/// What `leader_with_follower_behind` measured.
+struct FollowRun {
+    /// When the leader arrived with no follower, in seconds.
+    lone_arrival_s: f64,
+    /// When the leader arrived with the follower, in seconds.
+    arrival_s: f64,
+    /// The smallest distance between the two ships.
+    nearest: f64,
+    /// How far the follower ended from its slot.
+    slot_error: f64,
+}
+
+/// The hull radius of the ships of `leader_with_follower_behind`.
+const HULL_RADIUS: f64 = 1.7;
+
+/// Flies a leader along -z to a goal `leg` away, with a follower tracking the slot `slot_behind`
+/// behind it, starting there. The ships are half as wide as the others in this file, and the
+/// arrival circle is a third of a hull: the goal is a short leg for a ship that hardly reaches
+/// its top speed, which is where a leader that dodges its follower is delayed.
+fn leader_with_follower_behind(slot_behind: f64, leg: f64) -> FollowRun {
+    const SECONDS: f64 = 90.0;
+    const ARRIVAL: f64 = 1.14;
+    let goal = DVec3::new(0.0, 0.0, -leg);
+    let ship_at = |position| Ship {
+        radius: HULL_RADIUS,
+        ..Ship::new(position)
+    };
+    let arrive = Behaviour::Arrive(Goal {
+        target: goal,
+        arrival_radius: ARRIVAL,
+    });
+    // The time after which the leader stays in its arrival circle, whose radius is at least two
+    // hulls (`Goal::effective_arrival_radius`).
+    let arrival = |samples: &[Sample]| {
+        settled_from(samples, |sample| {
+            sample.position.distance(goal) < ARRIVAL.max(2.0 * HULL_RADIUS)
+        })
+        .expect("the leader arrives")
+    };
+    let mut alone = [ship_at(DVec3::ZERO)];
+    let lone_arrival_s = arrival(&fly_fleet(&mut alone, SECONDS, |_, _, _| arrive)[0]);
+
+    let mut ships = [ship_at(DVec3::ZERO), ship_at(DVec3::Z * slot_behind)];
+    let samples = fly_fleet_tracking(
+        &mut ships,
+        SECONDS,
+        |index, _, ships| {
+            if index == 0 {
+                return arrive;
+            }
+            Behaviour::Follow {
+                leader: ships[0].body(),
+                offset: FrameOffset {
+                    right: 0.0,
+                    up: 0.0,
+                    forward: -slot_behind,
+                },
+                arrival_radius: ARRIVAL,
+            }
+        },
+        |index| (index == 1).then_some(0),
+    );
+    let nearest = samples[0]
+        .iter()
+        .zip(&samples[1])
+        .map(|(leader, follower)| leader.position.distance(follower.position))
+        .fold(f64::INFINITY, f64::min);
+    // The slot turns with the leader's frame, which a dodge leaves rotated.
+    let leader = ships[0].body();
+    let slot = leader.position - leader.frame.forward * slot_behind;
+    FollowRun {
+        lone_arrival_s,
+        arrival_s: arrival(&samples[0]),
+        nearest,
+        slot_error: ships[1].position.distance(slot),
+    }
+}
+
+#[test]
+fn a_leader_with_a_follower_directly_behind_arrives_as_soon_as_alone_and_untouched() {
+    // A slot ten hulls behind the leader, on a leg of 1.7 s at top speed.
+    const SLOT_BEHIND: f64 = 17.0;
+    const LEG: f64 = 170.0;
+    const DELAY_TOLERANCE: f64 = 1.1;
+    const SLOT_TOLERANCE: f64 = 12.0;
+    let run = leader_with_follower_behind(SLOT_BEHIND, LEG);
+    eprintln!(
+        "alone {:.2} s, with a follower behind {:.2} s, nearest {:.1}, slot error {:.1}",
+        run.lone_arrival_s, run.arrival_s, run.nearest, run.slot_error
+    );
+    assert!(
+        run.arrival_s < DELAY_TOLERANCE * run.lone_arrival_s,
+        "the leader arrives at {} s against {} s alone",
+        run.arrival_s,
+        run.lone_arrival_s
+    );
+    assert!(
+        run.nearest > 2.0 * HULL_RADIUS,
+        "came within {} of the leader",
+        run.nearest
+    );
+    assert!(
+        run.slot_error < SLOT_TOLERANCE,
+        "the follower stopped {} from its slot",
+        run.slot_error
+    );
+}

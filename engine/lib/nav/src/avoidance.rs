@@ -133,8 +133,8 @@ impl Sphere {
     }
 }
 
-/// The share of the avoidance an agent takes against an agent that avoids back: half, so that
-/// the pair together takes all of it (the reciprocal velocity obstacle).
+/// The share of the avoidance an agent takes against an agent that steers: half, so that a pair
+/// that avoids each other takes all of it (the reciprocal velocity obstacle).
 const RECIPROCAL_SHARE: f64 = 0.5;
 
 /// What one agent of a world knows of the agents of that world: whether each steers, and what
@@ -169,16 +169,31 @@ impl Peers<'_> {
         }
     }
 
+    /// Whether the agent leaves `key` out of its scene: the obstacle it tracks, and an agent that
+    /// tracks it and lies behind it (`behind`, the dot product of the vector to that agent with
+    /// the agent's wanted direction, is negative). A tracker behind is the one that keeps the
+    /// distance: braking would close on it, so avoiding it forbids the agent's own braking.
+    fn leaves_out(&self, key: ObstacleKey, behind: f64) -> bool {
+        if Some(key) == self.tracked {
+            return true;
+        }
+        let ObstacleKey::Agent(id) = key else {
+            return false;
+        };
+        let tracks_this = self
+            .all
+            .get(id.index())
+            .is_some_and(|peer| peer.tracks == Some(ObstacleKey::Agent(self.own)));
+        tracks_this && behind < 0.0
+    }
+
     /// The share of the avoidance of `key` the agent takes: [`RECIPROCAL_SHARE`] when `key` is a
-    /// steering agent that doesn't track this one (it avoids this agent back), 1 otherwise.
+    /// steering agent, which takes its half of the detour; 1 otherwise.
     fn share_of(&self, key: ObstacleKey) -> f64 {
         let ObstacleKey::Agent(id) = key else {
             return 1.0;
         };
-        let avoids_back = self
-            .all
-            .get(id.index())
-            .is_some_and(|peer| peer.steering && peer.tracks != Some(ObstacleKey::Agent(self.own)));
+        let avoids_back = self.all.get(id.index()).is_some_and(|peer| peer.steering);
         if avoids_back { RECIPROCAL_SHARE } else { 1.0 }
     }
 }
@@ -191,19 +206,29 @@ struct Scene<'a> {
     /// The agent's goal, if any: no sphere keeps a clearance that would put it out of reach.
     goal: Option<Goal>,
     peers: Peers<'a>,
-    /// One per obstacle but the one the agent tracks, in the order of the obstacles.
+    /// One per obstacle the agent doesn't leave out ([`Peers::leaves_out`]), in the order of the
+    /// obstacles.
     spheres: &'a [Sphere],
 }
 
 impl Scene<'_> {
-    /// Replaces `out` with the spheres of `obstacles` but the tracked one, for courses no faster
-    /// than `speed_bound`.
-    fn fill_spheres(&self, obstacles: &[Obstacle], speed_bound: f64, out: &mut Vec<Sphere>) {
+    /// Replaces `out` with the spheres of `obstacles` but the ones the agent leaves out when it
+    /// heads `heading`, for courses no faster than `speed_bound`.
+    fn fill_spheres(
+        &self,
+        obstacles: &[Obstacle],
+        heading: DVec3,
+        speed_bound: f64,
+        out: &mut Vec<Sphere>,
+    ) {
         out.clear();
         out.extend(
             obstacles
                 .iter()
-                .filter(|obstacle| Some(obstacle.key) != self.peers.tracked)
+                .filter(|obstacle| {
+                    let behind = (obstacle.position - self.body.position).dot(heading);
+                    !self.peers.leaves_out(obstacle.key, behind)
+                })
                 .map(|obstacle| self.sphere(obstacle, speed_bound)),
         );
     }
@@ -391,7 +416,7 @@ pub(crate) fn avoid(
         spheres: &[],
     };
     let speed_bound = speed_bound(body, profile, wanted.velocity.length());
-    probe.fill_spheres(obstacles, speed_bound, spheres);
+    probe.fill_spheres(obstacles, wanted.direction, speed_bound, spheres);
     let scene = Scene {
         spheres: spheres.as_slice(),
         ..probe
@@ -901,7 +926,7 @@ mod tests {
             spheres: &[],
         };
         let mut spheres = Vec::new();
-        probe.fill_spheres(obstacles, velocity.length(), &mut spheres);
+        probe.fill_spheres(obstacles, velocity, velocity.length(), &mut spheres);
         let scene = Scene {
             spheres: &spheres,
             ..probe
@@ -1634,6 +1659,7 @@ mod tests {
         assert!(steered.velocity.length() > MAX_SPEED - 1e-6);
     }
 
+    /// The agent that is avoiding in the tests below is agent 0, and the other agent is this one.
     const OWN: AgentId = AgentId::new(0);
     const OTHER: AgentId = AgentId::new(1);
 
@@ -1681,6 +1707,57 @@ mod tests {
         steering: true,
         tracks: None,
     };
+    const RESTING: Peer = Peer {
+        steering: false,
+        tracks: None,
+    };
+    /// A steering agent that tracks the agent `OWN`.
+    const TRACKING_OWN: Peer = Peer {
+        steering: true,
+        tracks: Some(ObstacleKey::Agent(OWN)),
+    };
+
+    /// The agent `OWN` flying 20 units per second along -z, wanted to fly `wanted_speed` that
+    /// way, avoiding an agent `OTHER` of kind `other` 40 units ahead of it (`behind` false) or
+    /// behind it, flying `other_speed` along -z. Returns the course and the wanted course.
+    fn near_an_agent(
+        behind: bool,
+        wanted_speed: f64,
+        other_speed: f64,
+        other: Peer,
+    ) -> (Wanted, Wanted) {
+        let mut body = body_at(DVec3::ZERO);
+        body.velocity = DVec3::NEG_Z * 20.0;
+        let wanted = wanted_toward(DVec3::NEG_Z, wanted_speed);
+        let z = if behind { 40.0 } else { -40.0 };
+        let neighbour = agent_sphere(DVec3::new(0.0, 0.0, z), DVec3::NEG_Z * other_speed, 5.0);
+        let profile = profile_with(MAX_SPEED, UNLIMITED_DRAG);
+        (
+            avoid_among(&profile, &body, wanted, &[neighbour], other, None),
+            wanted,
+        )
+    }
+
+    #[test]
+    fn an_agent_that_tracks_this_one_and_lies_behind_is_left_out_of_its_scene() {
+        // Braking from 20 to 5 closes the 40 to an agent behind that keeps its 20.
+        let (tracker, wanted) = near_an_agent(true, 5.0, 20.0, TRACKING_OWN);
+        assert_eq!(tracker, wanted);
+        let (other, _) = near_an_agent(true, 5.0, 20.0, STEERING);
+        assert_ne!(
+            other, wanted,
+            "an agent behind that isn't a tracker is a threat"
+        );
+    }
+
+    #[test]
+    fn an_agent_that_tracks_this_one_and_lies_ahead_is_avoided_like_any_steering_agent() {
+        // Flying 20 closes the 40 to an agent ahead that flies 5.
+        let (tracker, wanted) = near_an_agent(false, 20.0, 5.0, TRACKING_OWN);
+        let (other, _) = near_an_agent(false, 20.0, 5.0, STEERING);
+        assert_ne!(tracker, wanted, "an agent ahead is a threat");
+        assert_eq!(tracker, other);
+    }
 
     /// A head-on pair at 20 units per second each, 150 apart, avoiding with `other` as the peer.
     /// The apex of a pair that avoids back is at rest, so it is inside the horizon too.
@@ -1699,28 +1776,11 @@ mod tests {
     #[test]
     fn an_agent_that_avoids_back_gets_half_of_the_detour_to_take() {
         let (shared, wanted) = head_on_course(STEERING);
-        let (alone, _) = head_on_course(Peer {
-            steering: false,
-            tracks: None,
-        });
+        let (alone, _) = head_on_course(RESTING);
         let sideways = |course: Wanted| course.velocity.cross(wanted.velocity).length();
         assert!(sideways(alone) > 1.0, "the full detour turns the course");
         let ratio = sideways(shared) / sideways(alone);
         assert!((ratio - RECIPROCAL_SHARE).abs() < 1e-9, "ratio {ratio}");
-    }
-
-    #[test]
-    fn an_agent_that_tracks_this_one_is_avoided_in_full() {
-        let tracking = Peer {
-            steering: true,
-            tracks: Some(ObstacleKey::Agent(OWN)),
-        };
-        let (tracked_by, _) = head_on_course(tracking);
-        let (resting, _) = head_on_course(Peer {
-            steering: false,
-            tracks: None,
-        });
-        assert_eq!(tracked_by, resting);
     }
 
     #[test]
@@ -1752,10 +1812,7 @@ mod tests {
         };
         let room = 30.0 - (ahead.radius + RADIUS) - RADIUS * MIN_CLEARANCE_RADII;
         // The sphere is at rest and so is the apex, so only the room differs.
-        let full = closing(Peer {
-            steering: false,
-            tracks: None,
-        });
+        let full = closing(RESTING);
         assert!((full - stopping_speed(&profile, room)).abs() < 1e-9);
         let shared = closing(STEERING);
         let half = stopping_speed(&profile, room * RECIPROCAL_SHARE);
@@ -1775,6 +1832,12 @@ mod tests {
         };
         assert_eq!(peers.share_of(ObstacleKey::Body(1)), 1.0);
         assert_eq!(peers.share_of(ObstacleKey::Agent(OTHER)), RECIPROCAL_SHARE);
+        let resting = Peers {
+            own: OWN,
+            tracked: None,
+            all: &[STEERING, RESTING],
+        };
+        assert_eq!(resting.share_of(ObstacleKey::Agent(OTHER)), 1.0);
         // An agent the peers don't list is a plain sphere.
         assert_eq!(peers.share_of(ObstacleKey::Agent(AgentId::new(7))), 1.0);
     }
