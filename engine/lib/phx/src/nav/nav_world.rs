@@ -166,20 +166,39 @@ impl NavWorld {
         agent.tracking = None;
         let agent = agent.id;
         self.world.set_behaviour(agent, Some(behaviour));
+        self.world.set_tracked(agent, None);
+    }
+
+    /// The key `nav` knows `handles`' body by: the agent's id if the body is an agent's, else the
+    /// key sensing gives it.
+    fn obstacle_key_of(&self, handles: &BodyHandles) -> ObstacleKey {
+        let key = handles.key();
+        self.agents
+            .iter()
+            .find(|agent| agent.handles.key() == key)
+            .map_or(ObstacleKey::Body(key), |agent| ObstacleKey::Agent(agent.id))
     }
 
     /// Gives the agent a behaviour built by `build` from the state of `target`, which each step
-    /// reads again.
-    fn set_tracking(&mut self, id: u32, target: &RigidBody, build: impl FnOnce(Body) -> Behaviour) {
+    /// reads again. With `leave_out`, the agent doesn't avoid `target`.
+    fn set_tracking(
+        &mut self,
+        id: u32,
+        target: &RigidBody,
+        leave_out: bool,
+        build: impl FnOnce(Body) -> Behaviour,
+    ) {
         // The agent is looked up first, so an unknown id is reported before a bad target.
         self.agent_mut(id);
         let handles = self.handles_of(target, "target");
         let state = Self::state_of(&self.physics.as_ref(), &handles, "target");
         let behaviour = build(nav_body(&state));
+        let tracked = leave_out.then(|| self.obstacle_key_of(&handles));
         let agent = self.agent_mut(id);
         agent.tracking = Some(Tracking { handles, behaviour });
         let agent = agent.id;
         self.world.set_behaviour(agent, Some(behaviour));
+        self.world.set_tracked(agent, tracked);
     }
 
     /// Gives `nav` each agent's body, profile and tracked target as physics holds them now, and
@@ -374,12 +393,13 @@ impl NavWorld {
     }
 
     /// Meets `target` `stand_off` from its hull (game units), matching its velocity. `target` is
-    /// read from physics at each step.
+    /// read from physics at each step, and the agent doesn't avoid it (it still avoids everything
+    /// else; if `target` is an agent, that agent avoids this one in full).
     ///
     /// # Panics
     /// If `id` isn't an agent, or `target` isn't a root body of this world's physics.
     pub fn set_pursue(&mut self, id: u32, target: &RigidBody, stand_off: f64, arrival_radius: f64) {
-        self.set_tracking(id, target, |target| Behaviour::Pursue {
+        self.set_tracking(id, target, true, |target| Behaviour::Pursue {
             target,
             stand_off,
             arrival_radius,
@@ -387,7 +407,9 @@ impl NavWorld {
     }
 
     /// Holds the slot `right`, `up`, `forward` (game units) away from `leader`, in the leader's
-    /// own axes, matching its velocity. `leader` is read from physics at each step.
+    /// own axes, matching its velocity. `leader` is read from physics at each step, and the agent
+    /// doesn't avoid it (it still avoids everything else; if `leader` is an agent, that agent
+    /// avoids this one in full).
     ///
     /// # Panics
     /// If `id` isn't an agent, or `leader` isn't a root body of this world's physics.
@@ -401,7 +423,7 @@ impl NavWorld {
         forward: f64,
         arrival_radius: f64,
     ) {
-        self.set_tracking(id, leader, |leader| Behaviour::Follow {
+        self.set_tracking(id, leader, true, |leader| Behaviour::Follow {
             leader,
             offset: FrameOffset { right, up, forward },
             arrival_radius,
@@ -410,7 +432,7 @@ impl NavWorld {
 
     /// Circles `centre` at `radius` (game units) in the plane through it normal to `normal`,
     /// anticlockwise about `normal`, moving with the centre. `centre` is read from physics at each
-    /// step.
+    /// step, and the agent still avoids it, so an orbit that passes through it is bent.
     ///
     /// # Panics
     /// If `id` isn't an agent, `centre` isn't a root body of this world's physics, `radius` isn't
@@ -429,7 +451,7 @@ impl NavWorld {
             "NavWorld orbit: the normal must be finite and not zero"
         );
         let normal = *normal;
-        self.set_tracking(id, centre, |centre| Behaviour::Orbit {
+        self.set_tracking(id, centre, false, |centre| Behaviour::Orbit {
             centre,
             radius,
             normal,
@@ -446,6 +468,7 @@ impl NavWorld {
         agent.tracking = None;
         let agent = agent.id;
         self.world.set_behaviour(agent, None);
+        self.world.set_tracked(agent, None);
     }
 
     /// Sets how agents avoid obstacles: the look-ahead in seconds, the largest clearance in agent
@@ -1026,6 +1049,88 @@ mod tests {
         flight.nav.set_sensing(ALL_BITS);
         flight.nav.step();
         assert_eq!(flight.nav.obstacle_spheres.len(), 1, "the rock alone");
+    }
+
+    const FIRST_AGENT: u32 = 0;
+
+    /// The axes of one step with sensing set to `mask`.
+    fn axes_sensing(flight: &mut RockFlight, mask: u32) -> Vec<f64> {
+        flight.nav.set_sensing(mask);
+        flight.nav.step();
+        axes_of(&flight.nav)
+    }
+
+    #[test]
+    fn a_pursued_body_is_left_out_of_the_pursuers_scene() {
+        let mut flight = flight_past_a_rock();
+        flight
+            .nav
+            .set_pursue(FIRST_AGENT, &flight.rock, STAND_OFF, ARRIVAL_RADIUS);
+        let blind = axes_sensing(&mut flight, 0);
+        assert_eq!(axes_sensing(&mut flight, ALL_BITS), blind);
+    }
+
+    #[test]
+    fn an_orbit_still_avoids_its_centre() {
+        let mut flight = flight_past_a_rock();
+        // A circle inside the rock: the course to it runs into the rock's hull first.
+        flight.nav.set_orbit(
+            FIRST_AGENT,
+            &flight.rock,
+            f64::from(ROCK_RADIUS) / 2.0,
+            &DVec3::Y,
+            ARRIVAL_RADIUS,
+        );
+        let blind = axes_sensing(&mut flight, 0);
+        assert_ne!(axes_sensing(&mut flight, ALL_BITS), blind);
+    }
+
+    #[test]
+    fn a_later_behaviour_avoids_the_body_an_earlier_pursuit_left_out() {
+        let mut flight = flight_past_a_rock();
+        let avoided = axes_sensing(&mut flight, ALL_BITS);
+        flight
+            .nav
+            .set_pursue(FIRST_AGENT, &flight.rock, STAND_OFF, ARRIVAL_RADIUS);
+        flight.nav.step();
+        assert_ne!(
+            axes_of(&flight.nav),
+            avoided,
+            "the pursuit ignores the rock"
+        );
+
+        flight.nav.set_arrive(
+            FIRST_AGENT,
+            &goal_at(0.0, -LONG_GOAL_DISTANCE),
+            ARRIVAL_RADIUS,
+        );
+        flight.nav.step();
+        assert_eq!(axes_of(&flight.nav), avoided);
+    }
+
+    #[test]
+    fn a_followed_agent_is_left_out_of_the_followers_scene_and_an_unfollowed_one_is_not() {
+        let mut physics = Physics::new();
+        let ship = ship_in(&mut physics);
+        let leader = body_in(&mut physics, ROCK_RADIUS, goal_at(0.0, -ROCK_DISTANCE));
+        let mut nav = NavWorld::new(&physics);
+        let follower = add_ship(&mut nav, &ship);
+        add_ship(&mut nav, &leader);
+        // The leader faces -z, so the slot lies beyond it, and the leader is on the course to it.
+        nav.set_follow(follower, &leader, 0.0, 0.0, ROCK_DISTANCE, ARRIVAL_RADIUS);
+        nav.step();
+        assert!(yaw_of(&nav).abs() < 1e-9, "straight at the slot");
+
+        nav.set_arrive(
+            follower,
+            &goal_at(0.0, -2.0 * ROCK_DISTANCE),
+            ARRIVAL_RADIUS,
+        );
+        nav.step();
+        assert!(
+            yaw_of(&nav).abs() > 0.0,
+            "the same course, around the leader"
+        );
     }
 
     #[test]

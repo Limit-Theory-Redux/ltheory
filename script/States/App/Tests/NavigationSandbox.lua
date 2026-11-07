@@ -1,7 +1,7 @@
 -- Runs navigation scenarios with nobody at the window: spawns each scenario's ships, steers
 -- them to their targets through a `NavWorld`, logs the metrics and ends with an exit code.
 -- `NavigationSandbox` runs every scenario in turn; `NavigationSandbox/<Name>` runs one. A run
--- fails on a ship-obstacle collision, a deadlock, or a ship that doesn't finish in time.
+-- fails on a collision, a deadlock, or a ship that doesn't finish in time.
 -- Design: doc/script/navigation-sandbox.md
 local Application           = require("States.Application")
 local Registry              = require("Core.ECS.Registry")

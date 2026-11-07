@@ -73,7 +73,8 @@ function NavWorld:setSeek(id, target, arrivalRadius) end
 function NavWorld:setHold(id, arrivalRadius) end
 
 -- Meets `target` `stand_off` from its hull (game units), matching its velocity. `target` is
--- read from physics at each step.
+-- read from physics at each step, and the agent doesn't avoid it (it still avoids everything
+-- else; if `target` is an agent, that agent avoids this one in full).
 --
 -- # Panics
 -- If `id` isn't an agent, or `target` isn't a root body of this world's physics.
@@ -84,7 +85,9 @@ function NavWorld:setHold(id, arrivalRadius) end
 function NavWorld:setPursue(id, target, standOff, arrivalRadius) end
 
 -- Holds the slot `right`, `up`, `forward` (game units) away from `leader`, in the leader's
--- own axes, matching its velocity. `leader` is read from physics at each step.
+-- own axes, matching its velocity. `leader` is read from physics at each step, and the agent
+-- doesn't avoid it (it still avoids everything else; if `leader` is an agent, that agent
+-- avoids this one in full).
 --
 -- # Panics
 -- If `id` isn't an agent, or `leader` isn't a root body of this world's physics.
@@ -98,7 +101,7 @@ function NavWorld:setFollow(id, leader, right, up, forward, arrivalRadius) end
 
 -- Circles `centre` at `radius` (game units) in the plane through it normal to `normal`,
 -- anticlockwise about `normal`, moving with the centre. `centre` is read from physics at each
--- step.
+-- step, and the agent still avoids it, so an orbit that passes through it is bent.
 --
 -- # Panics
 -- If `id` isn't an agent, `centre` isn't a root body of this world's physics, `radius` isn't

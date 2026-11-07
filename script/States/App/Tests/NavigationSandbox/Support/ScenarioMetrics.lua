@@ -303,11 +303,14 @@ function ScenarioMetrics:unfinished()
     return count
 end
 
----@return string[] failures What fails the run: an obstacle hit, a deadlock, an unfinished ship
+---@return string[] failures What fails the run: a collision, a deadlock, an unfinished ship
 function ScenarioMetrics:failures()
     local failures = {}
     if self.obstacleCollisions > 0 then
         table.insert(failures, string.format("%d ship-obstacle collisions", self.obstacleCollisions))
+    end
+    if self.shipCollisions > 0 then
+        table.insert(failures, string.format("%d ship-ship collisions", self.shipCollisions))
     end
     if self.deadlocks > 0 then
         table.insert(failures, string.format("%d deadlocked ships", self.deadlocks))

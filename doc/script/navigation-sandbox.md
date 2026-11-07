@@ -38,7 +38,7 @@ Every ship is a fighter from `ShipGenerator` with the Solo flight profile, built
 | `SeekThrough` | One ship is sent through three points with Seek and then stops at a target with Arrive: each pass must be at half of top speed or more |
 | `HoldAfterCruise` | One ship is switched to Hold at half of top speed: it brakes, comes back to the point it was switched at and stops |
 | `PursueRock` | A rock circles on a 4 km circle in 120 s; two ships pursue it to 200 m from its hull, one starting ahead of it and one behind |
-| `FollowLeader` | A leader flies 6 km and stops; two followers start in slots 1.5 km to its left and right, and hold them |
+| `FollowLeader` | A leader flies 15 km and stops; three followers start in slots, 1.5 km to its left, 1.5 km to its right and 1.5 km above and 1.5 km behind it, and hold them. A follower doesn't avoid its leader, so none may touch it |
 | `OrbitRock` | A rock circles on a 3 km circle in 200 s; two ships go once round it, at 1.5 km and 2.5 km, one starting in the plane of its circle and one 4 km above |
 | `Slice` | 100 ships loop through four waypoints each among 60 asteroids (100–800 m) in a 20 km × 2 km × 20 km slab, and a 3 km planet that circles the middle on a 6 km circle in 60 s. A seeded generator keeps every waypoint and start at least 1 km from the surface of every asteroid and from the planet's whole path, so a waypoint never lies inside a ship's avoidance reach (the scenario's aim factor of 1.4 widens the reach, so a nearer waypoint can't be approached); it runs for 60 s with its own avoidance tuning. It is the measurement for the navigation budget |
 
@@ -97,8 +97,7 @@ Collisions are counted from bounding-sphere overlap instead of from the physics 
 
 ## Pass and fail
 
-A scenario fails on a ship–obstacle collision, on a deadlock, on a Seek point passed too slowly, or when a ship that was to arrive (reach its station, finish its turn) is still flying at its time limit (route ships fly on by design). A run fails on a failed scenario or on a Lua error. The failure is a warning line, so the remaining scenarios still run, and the app quits with `Core.ExitCode.Failure` after the last one. Ship–ship collisions are counted and logged but don't fail a run: avoidance between ships comes later.
-
+A scenario fails on a ship–obstacle or a ship–ship collision, on a deadlock, on a Seek point passed too slowly, or when a ship that was to arrive (reach its station, finish its turn) is still flying at its time limit (route ships fly on by design). A run fails on a failed scenario or on a Lua error. The failure is a warning line, so the remaining scenarios still run, and the app quits with `Core.ExitCode.Failure` after the last one.
 Collisions are found after each physics step, so a ship that crosses a small obstacle between two checks is missed: the count is a lower bound.
 
 `Slice` (100 ships at cruise speed among rocks and a moving planet) is the hardest scenario and does not pass the rule yet: a few ship–planet contacts and deadlocks in narrow gaps remain (see Limits in [navigation maths](../engine/nav.md)). The failure is real, so it stays out of the CI smoke runs, and its debug run takes most of the app run limit.
