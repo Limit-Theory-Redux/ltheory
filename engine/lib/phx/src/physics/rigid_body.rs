@@ -1007,8 +1007,9 @@ impl PhysicsWorld {
             filter,
             |handle| {
                 let collider = self.get(handle);
-                if let (Some(key), Some(parent)) = (sensed(collider), collider.parent()) {
-                    if let Entry::Vacant(slot) = found.entry(key) {
+                // The predicate already kept only sensed colliders, so the skip set isn't read again.
+                if let Some(parent) = collider.parent() {
+                    if let Entry::Vacant(slot) = found.entry(body_key(parent)) {
                         if let Some(body) = self.sphere_of(parent) {
                             slot.insert(body);
                         }

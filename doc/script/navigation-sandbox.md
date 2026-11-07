@@ -67,12 +67,12 @@ Filled spheres are drawn at a small fraction of their colour: the additive pass 
 
 ## Steering
 
-The sandbox creates a `NavWorld` over the scenario's physics world. Each ship is an agent (its flight profile's drags, thrusts and torques; the mass and inertia come from its body), each obstacle is registered with `addObstacle`, and each ship's behaviour is set once every agent and obstacle is registered: `setArrive` to its target with the arrival range as radius, or the behaviour its spec asks for. The maths is in [navigation maths](../engine/nav.md); the sandbox only runs the frame:
+The sandbox creates a `NavWorld` over the scenario's physics world. Each ship is an agent (its flight profile's drags, thrusts and torques; the mass and inertia come from its body), sensing is turned on with `setSensing` so each ship finds the obstacles (kinematic bodies in the physics world) with a ball query, and each ship's behaviour is set once every agent is registered: `setArrive` to its target with the arrival range as radius, or the behaviour its spec asks for. The maths is in [navigation maths](../engine/nav.md); the sandbox only runs the frame:
 
 - **PreSim.** `NavWorld:step()`, then the glue: `copyAxes` and `copyArrived` into two preallocated buffers, a route ship that has arrived gets its next waypoint (`setArrive`), a Seek ship that has passed a point gets the next one and then `setArrive`, a Hold ship is switched with `setHold`, a finished ship's behaviour is cleared once (`clearBehaviour`; not for ships that track a moving point, which keep it), and each ship's six axes are written into its `ControlInputComponent`, like any other writer (see [flight control](flight.md)).
 - **Sim.** `ShipFlightSystem` turns the control inputs into forces, the circling obstacles get their kinematic targets, and the physics world steps.
 
-A ship that has finished has no behaviour, so it gets zero axes and drag brings it to rest. The `NavWorld` is dropped before a scenario's bodies are removed, because registered bodies must stay in physics while it exists.
+A ship that has finished has no behaviour, so it gets zero axes and drag brings it to rest. The `NavWorld` is dropped before a scenario's bodies are removed, because the registered agents' bodies must stay in physics while it exists.
 
 ## Metrics
 

@@ -70,6 +70,8 @@ local SCENARIO_MODULES = "States.App.Tests.NavigationSandbox."
 local SEED             = 1
 local DEFAULT_HULL     = Enums.ShipHulls.Solo
 local DEFAULT_TIME_LIMIT_S = 120
+-- Sensing mask with every collision group bit set.
+local SENSING_MASK     = 0xFFFFFFFF
 -- The longest physics step; a longer frame advances the simulation by this much only.
 local MAX_STEP_S       = 0.05
 -- The camera orbits the scenario's centre at this many times its extent, from above.
@@ -302,17 +304,18 @@ function NavigationSandbox:moveObstacles(t)
     end
 end
 
----Register the ships as agents and the obstacles in a `NavWorld` over the physics world, send
----each ship to its target, and allocate the buffers its results are copied into.
+---Register the ships as agents in a `NavWorld` over the physics world, turn sensing on so the
+---obstacles are found from physics, send each ship to its target, and allocate the buffers its
+---results are copied into.
 function NavigationSandbox:createNavigation()
     self.nav = NavWorld.Create(self.world)
     for _, ship in ipairs(self.ships) do
         ship.input = ship.entity:get(ConstructComponents.ControlInput)
         ship.agent = NavAgentHelper.addShip(self.nav, ship.entity, ship.rb)
     end
-    for _, obstacle in ipairs(self.obstacles) do
-        self.nav:addObstacle(obstacle.rb)
-    end
+    -- The obstacles are kinematic bodies in the physics world, so sensing finds them in every
+    -- collision group; the ships are agents and are never sensed.
+    self.nav:setSensing(SENSING_MASK)
     for _, ship in ipairs(self.ships) do
         if ship.behaviour then
             ShipBehaviour.start(self.nav, ship, self.ships, self.obstacles, ScenarioMetrics.RULES)

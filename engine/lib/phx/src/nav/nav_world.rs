@@ -89,8 +89,58 @@ pub struct NavWorld {
     excluded: HashSet<BodyKey>,
     /// The bodies the agents sensed in the current step, by key, reused between steps.
     sensed: BTreeMap<BodyKey, SensedBody>,
+    /// The balls queried in the current step, reused between steps.
+    queried: Vec<Ball>,
     /// The obstacles of the current step, reused between steps.
     obstacle_spheres: Vec<Obstacle>,
+}
+
+/// The most a merged sensing query's radius may exceed the larger of the radii it replaces.
+const MAX_QUERY_GROWTH: f64 = 1.5;
+
+/// A sphere of space in game units.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct Ball {
+    centre: DVec3,
+    radius: f64,
+}
+
+impl Ball {
+    fn new(centre: DVec3, radius: f64) -> Self {
+        Self { centre, radius }
+    }
+
+    /// The smallest ball that contains both.
+    fn enclosing(self, other: Ball) -> Ball {
+        let offset = other.centre - self.centre;
+        let distance = offset.length();
+        if distance + other.radius <= self.radius {
+            return self;
+        }
+        if distance + self.radius <= other.radius {
+            return other;
+        }
+        let radius = (distance + self.radius + other.radius) * 0.5;
+        Ball::new(
+            self.centre + offset * ((radius - self.radius) / distance),
+            radius,
+        )
+    }
+}
+
+/// Adds `ball` to the sensing queries, merged into the first one it can share without the merged
+/// radius exceeding [`MAX_QUERY_GROWTH`] times the larger radius. Bodies found by the merged ball
+/// include everything either ball would find, and the obstacle cull in `nav` drops the ones an
+/// agent can't reach, so agents close together cost one query instead of one each.
+fn add_to_queries(queries: &mut Vec<Ball>, ball: Ball) {
+    for query in queries.iter_mut() {
+        let merged = query.enclosing(ball);
+        if merged.radius <= MAX_QUERY_GROWTH * query.radius.max(ball.radius) {
+            *query = merged;
+            return;
+        }
+    }
+    queries.push(ball);
 }
 
 /// The sensing mask that senses no body.
@@ -154,14 +204,17 @@ impl NavWorld {
             }
             if self.sensing != SENSING_OFF {
                 let range = sensing_range(&body, &profile, self.world.tuning());
-                physics.sense_ball(
-                    state.position,
-                    range,
-                    self.sensing,
-                    &self.excluded,
-                    &mut self.sensed,
-                );
+                add_to_queries(&mut self.queried, Ball::new(state.position, range));
             }
+        }
+        for ball in &self.queried {
+            physics.sense_ball(
+                ball.centre,
+                ball.radius,
+                self.sensing,
+                &self.excluded,
+                &mut self.sensed,
+            );
         }
     }
 
@@ -225,6 +278,7 @@ impl NavWorld {
             sensing: SENSING_OFF,
             excluded: HashSet::new(),
             sensed: BTreeMap::new(),
+            queried: Vec::new(),
             obstacle_spheres: vec![],
         }
     }
@@ -436,6 +490,7 @@ impl NavWorld {
         {
             let physics = physics.as_ref();
             self.sensed.clear();
+            self.queried.clear();
             self.read_agents(&physics);
             self.collect_obstacles(&physics);
         }
@@ -1065,5 +1120,38 @@ mod tests {
             nav.obstacle_spheres[0].position,
             state_in(&physics, &within).position
         );
+    }
+
+    #[test]
+    fn near_balls_share_one_query_that_contains_both() {
+        let a = Ball::new(DVec3::ZERO, 100.0);
+        let b = Ball::new(DVec3::new(30.0, 0.0, 0.0), 100.0);
+        let mut queries = Vec::new();
+        add_to_queries(&mut queries, a);
+        add_to_queries(&mut queries, b);
+        assert_eq!(queries.len(), 1);
+        for ball in [a, b] {
+            assert!(
+                queries[0].centre.distance(ball.centre) + ball.radius <= queries[0].radius + 1e-9
+            );
+        }
+    }
+
+    #[test]
+    fn far_balls_keep_their_own_queries() {
+        let near = Ball::new(DVec3::ZERO, 100.0);
+        let far = Ball::new(DVec3::new(1000.0, 0.0, 0.0), 100.0);
+        let mut queries = Vec::new();
+        add_to_queries(&mut queries, near);
+        add_to_queries(&mut queries, far);
+        assert_eq!(queries, vec![near, far]);
+    }
+
+    #[test]
+    fn a_ball_inside_another_adds_no_query_and_changes_none() {
+        let big = Ball::new(DVec3::ZERO, 100.0);
+        let mut queries = vec![big];
+        add_to_queries(&mut queries, Ball::new(DVec3::new(10.0, 0.0, 0.0), 20.0));
+        assert_eq!(queries, vec![big]);
     }
 }
