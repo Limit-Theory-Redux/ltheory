@@ -17,7 +17,7 @@ pub use agent::{
     MIN_ARRIVAL_RADII, NO_SPEED_CAP, Profile, Speed,
 };
 pub use avoidance::{AvoidanceTuning, MIN_CLEARANCE_RADII, sensing_range};
-pub use behaviour::{Behaviour, FrameOffset, ORBIT_FIELD_GAIN, ORBIT_THRUST_SHARE};
+pub use behaviour::{Behaviour, FrameOffset, ORBIT_FIELD_GAIN, ORBIT_THRUST_SHARE, circle_speed};
 pub use braking::BRAKING_THRUST_SHARE;
 pub use obstacle::{Obstacle, ObstacleKey};
 pub use world::World;

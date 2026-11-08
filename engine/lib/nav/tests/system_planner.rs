@@ -6,10 +6,11 @@ mod common;
 
 use common::KernelVm;
 use mlua::{Function, Table, Value};
+use nav::{NO_SPEED_CAP, Profile, circle_speed};
 
 const BODY_STRIDE: usize = 10;
-/// A waypoint is `frame, x, y, z, t`.
-const OUT_STRIDE: usize = 5;
+/// A waypoint is `frame, x, y, z, t, radius, speed`.
+const OUT_STRIDE: usize = 7;
 const SYSTEM_FRAME: i32 = -1;
 const STATUS_OK: i64 = 0;
 const STATUS_DEPTH_EXCEEDED: i64 = 1;
@@ -21,6 +22,11 @@ const STATUS_GOAL_OUTRUN: i64 = 6;
 const STATUS_GOAL_NOT_SETTLED: i64 = 7;
 
 const SPEED: f64 = 1000.0;
+/// A ship whose top speed, `accel / drag`, is the planning speed.
+const SHIP: Ship = Ship {
+    accel: 500.0,
+    drag: 0.5,
+};
 const DEPTH: i64 = 4;
 const CAPACITY: usize = 64;
 /// Samples per leg when a path is checked against the bodies.
@@ -30,6 +36,13 @@ const CLEARANCE_SAMPLES: usize = 1500;
 const CLEARANCE_TOLERANCE: f64 = 0.97;
 
 type Vec3 = [f64; 3];
+
+/// The ship's forward acceleration and linear drag, which set the corner speeds.
+#[derive(Clone, Copy)]
+struct Ship {
+    accel: f64,
+    drag: f64,
+}
 
 #[derive(Clone, Copy)]
 struct Body {
@@ -125,6 +138,10 @@ struct Plan {
     frames: Vec<i32>,
     /// The offset of each waypoint from its frame, as the kernel wrote it.
     offsets: Vec<Vec3>,
+    /// The arc radius of each corner, zero for a sharp one and for the goal.
+    radii: Vec<f64>,
+    /// The speed each corner is passed at.
+    speeds: Vec<f64>,
 }
 
 impl Plan {
@@ -164,7 +181,16 @@ impl Planner {
         depth: i64,
         capacity: usize,
     ) -> Plan {
-        self.run_framed(bodies, start, SYSTEM_FRAME, goal, speed, depth, capacity)
+        self.run_framed(
+            bodies,
+            start,
+            SYSTEM_FRAME,
+            goal,
+            speed,
+            SHIP,
+            depth,
+            capacity,
+        )
     }
 
     /// Plans to `goal`, a point in the system for `SYSTEM_FRAME`, else an offset from that body.
@@ -179,6 +205,7 @@ impl Planner {
         frame: i32,
         goal: Vec3,
         speed: f64,
+        ship: Ship,
         depth: i64,
         capacity: usize,
     ) -> Plan {
@@ -207,6 +234,8 @@ impl Planner {
                 goal[1],
                 goal[2],
                 speed,
+                ship.accel,
+                ship.drag,
                 depth,
                 &out_buffer,
                 capacity,
@@ -224,6 +253,8 @@ impl Planner {
             times: Vec::new(),
             frames: Vec::new(),
             offsets: Vec::new(),
+            radii: Vec::new(),
+            speeds: Vec::new(),
         };
         for waypoint in values.chunks(OUT_STRIDE).take(count) {
             let frame = waypoint[0] as i32;
@@ -242,6 +273,8 @@ impl Planner {
             plan.times.push(time);
             plan.frames.push(frame);
             plan.offsets.push(offset);
+            plan.radii.push(waypoint[5]);
+            plan.speeds.push(waypoint[6]);
         }
         plan
     }
@@ -251,7 +284,7 @@ impl Planner {
     }
 
     fn plan_framed(&self, bodies: &[Body], start: Vec3, frame: i32, offset: Vec3) -> Plan {
-        self.run_framed(bodies, start, frame, offset, SPEED, DEPTH, CAPACITY)
+        self.run_framed(bodies, start, frame, offset, SPEED, SHIP, DEPTH, CAPACITY)
     }
 }
 
@@ -304,12 +337,151 @@ fn min_clearance_ratio(plan: &Plan, bodies: &[Body], i: usize, speed: f64) -> f6
     smallest
 }
 
+fn sub(a: Vec3, b: Vec3) -> Vec3 {
+    [a[0] - b[0], a[1] - b[1], a[2] - b[2]]
+}
+
+fn scaled(a: Vec3, factor: f64) -> Vec3 {
+    a.map(|component| component * factor)
+}
+
+fn plus(a: Vec3, b: Vec3) -> Vec3 {
+    [a[0] + b[0], a[1] + b[1], a[2] + b[2]]
+}
+
+fn unit(a: Vec3) -> Vec3 {
+    scaled(a, 1.0 / distance(a, [0.0; 3]))
+}
+
+fn dot(a: Vec3, b: Vec3) -> f64 {
+    a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+}
+
+/// An arc built as the oracle sees it: the circle of `radius` tangent to both legs, found from
+/// the corner's bisector, and its points by spherical interpolation between the radii to the
+/// entry and the exit. Independent of the kernel's construction.
+struct ArcOracle {
+    centre: Vec3,
+    to_entry: Vec3,
+    to_exit: Vec3,
+    radius: f64,
+    turn: f64,
+    /// Distance from the corner to the entry and the exit.
+    tangent: f64,
+}
+
+impl ArcOracle {
+    fn new(previous: Vec3, corner: Vec3, next: Vec3, radius: f64) -> Self {
+        let before = unit(sub(corner, previous));
+        let after = unit(sub(next, corner));
+        let turn = dot(before, after).clamp(-1.0, 1.0).acos();
+        let half = turn / 2.0;
+        let inside = unit(sub(after, before));
+        let centre = plus(corner, scaled(inside, radius / half.cos()));
+        let tangent = radius * half.tan();
+        let entry = sub(corner, scaled(before, tangent));
+        let exit = plus(corner, scaled(after, tangent));
+        Self {
+            centre,
+            to_entry: scaled(sub(entry, centre), 1.0 / radius),
+            to_exit: scaled(sub(exit, centre), 1.0 / radius),
+            radius,
+            turn,
+            tangent,
+        }
+    }
+
+    /// The point `fraction` (0 to 1) of the way along the arc.
+    fn point(&self, fraction: f64) -> Vec3 {
+        let weight_entry = ((1.0 - fraction) * self.turn).sin() / self.turn.sin();
+        let weight_exit = (fraction * self.turn).sin() / self.turn.sin();
+        plus(
+            self.centre,
+            scaled(
+                plus(
+                    scaled(self.to_entry, weight_entry),
+                    scaled(self.to_exit, weight_exit),
+                ),
+                self.radius,
+            ),
+        )
+    }
+}
+
+/// The arc of every corner that has one, with the time the ship reaches its entry at the
+/// planning speed.
+fn arcs(plan: &Plan, speed: f64) -> Vec<(usize, ArcOracle, f64)> {
+    let corners = plan.corners();
+    let mut found = Vec::new();
+    for k in 0..plan.points.len().saturating_sub(1) {
+        if plan.radii[k] > 0.0 {
+            let arc = ArcOracle::new(corners[k], corners[k + 1], corners[k + 2], plan.radii[k]);
+            let entry_time = plan.times[k] - arc.tangent / speed;
+            found.push((k, arc, entry_time));
+        }
+    }
+    found
+}
+
+/// The smallest ratio of distance to safe radius between the arcs of the plan and body `i`.
+fn min_arc_clearance_ratio(plan: &Plan, bodies: &[Body], i: usize, speed: f64) -> f64 {
+    let mut smallest = f64::INFINITY;
+    for (_, arc, entry_time) in arcs(plan, speed) {
+        for step in 0..=CLEARANCE_SAMPLES {
+            let fraction = step as f64 / CLEARANCE_SAMPLES as f64;
+            let at = entry_time + fraction * arc.radius * arc.turn / speed;
+            let ratio =
+                distance(arc.point(fraction), body_position(bodies, i, at)) / bodies[i].safe;
+            smallest = smallest.min(ratio);
+        }
+    }
+    smallest
+}
+
+/// The share of each leg that an arc's tangent length may take: the kernel's `ARC_LEG_SHARE`.
+const ARC_LEG_SHARE: f64 = 0.5;
+/// The kernel's `TURN_SPEED_KNEE`, the fraction of the turn-speed limit where the arc stops growing.
+const TURN_SPEED_KNEE: f64 = 0.9;
+
+/// The largest arc radius the legs and the turn-speed knee allow at corner `k`: where the kernel
+/// starts before the bodies make it smaller. `share` is the kernel's turn share.
+fn unconstrained_radius(plan: &Plan, k: usize, share: f64, ship: Ship) -> f64 {
+    let corners = plan.corners();
+    let before = unit(sub(corners[k + 1], corners[k]));
+    let after = unit(sub(corners[k + 2], corners[k + 1]));
+    let tan_half = (dot(before, after).clamp(-1.0, 1.0).acos() / 2.0).tan();
+    let shorter =
+        distance(corners[k], corners[k + 1]).min(distance(corners[k + 1], corners[k + 2]));
+    let knee = TURN_SPEED_KNEE;
+    let knee_radius =
+        knee * knee * share * ship.accel / (ship.drag * ship.drag * (1.0 - knee * knee).sqrt());
+    knee_radius.min(ARC_LEG_SHARE * shorter / tan_half)
+}
+
+/// Both the legs and the arcs of an `Ok` plan stay out of the safe spheres, and each arc sits
+/// inside its corner: the entry and the exit lie on the legs, within their lengths.
 fn assert_clear(plan: &Plan, bodies: &[Body], speed: f64) {
     for i in 0..bodies.len() {
         let ratio = min_clearance_ratio(plan, bodies, i, speed);
         assert!(
             ratio >= CLEARANCE_TOLERANCE,
             "body {i}: path enters the safe sphere to {ratio} of its radius"
+        );
+        let ratio = min_arc_clearance_ratio(plan, bodies, i, speed);
+        assert!(
+            ratio >= CLEARANCE_TOLERANCE,
+            "body {i}: an arc enters the safe sphere to {ratio} of its radius"
+        );
+    }
+    let corners = plan.corners();
+    for (k, arc, _) in arcs(plan, speed) {
+        let shorter =
+            distance(corners[k], corners[k + 1]).min(distance(corners[k + 1], corners[k + 2]));
+        assert!(
+            arc.tangent <= shorter * ARC_LEG_SHARE * (1.0 + 1e-9),
+            "arc {k}: tangent {} against legs of at least {}",
+            arc.tangent,
+            shorter
         );
     }
 }
@@ -356,6 +528,210 @@ fn a_sphere_on_the_line_gets_one_symmetric_detour() {
     assert_eq!(plan.points[1], goal);
     assert!(plan.times[1] > 20.0, "the detour is longer than the line");
     assert_times(&plan, SPEED);
+    assert_clear(&plan, &bodies, SPEED);
+}
+
+/// The profile of a ship with the forward acceleration and drag of `ship`, for `nav`'s own
+/// turn model.
+fn profile_of(ship: Ship) -> Profile {
+    Profile {
+        speed_cap: NO_SPEED_CAP,
+        linear_drag: ship.drag,
+        angular_drag: 0.0,
+        accel_forward: ship.accel,
+        accel_right: 0.0,
+        accel_up: 0.0,
+        turn_pitch: 0.0,
+        turn_yaw: 0.0,
+        turn_roll: 0.0,
+    }
+}
+
+/// The kernel's constant `TURN_THRUST_SHARE`.
+fn turn_share(planner: &Planner) -> f64 {
+    planner.kernel.get::<f64>("TURN_THRUST_SHARE").unwrap()
+}
+
+#[test]
+fn the_kernels_turn_speed_is_the_circle_speed_of_nav() {
+    let planner = Planner::new();
+    let share = turn_share(&planner);
+    let turn_speed: Function = planner.kernel.get("turnSpeed").unwrap();
+    for ship in [
+        SHIP,
+        Ship {
+            accel: 17_600.0,
+            drag: 2.0,
+        },
+        Ship {
+            accel: 40.0,
+            drag: 0.02,
+        },
+        // Without drag the top speed is infinite and the turn speed is `√(share · a · r)`.
+        Ship {
+            accel: 300.0,
+            drag: 0.0,
+        },
+    ] {
+        let profile = profile_of(ship);
+        let top = if ship.drag > 0.0 {
+            ship.accel / ship.drag
+        } else {
+            f64::INFINITY
+        };
+        // From a radius that the top speed caps to one that the thrust does.
+        for radius in [0.0, 1.0, 30.0, 500.0, 4_000.0, 90_000.0, 5.0e6] {
+            let kernel: f64 = turn_speed
+                .call((ship.accel, ship.drag, radius, top))
+                .unwrap();
+            let expected = circle_speed(&profile, radius, share);
+            assert!(
+                (kernel - expected).abs() <= 1e-9 * (1.0 + expected),
+                "radius {radius}, ship {} / {}: kernel {kernel}, nav {expected}",
+                ship.accel,
+                ship.drag
+            );
+        }
+    }
+}
+
+#[test]
+fn a_corner_gets_an_arc_the_ship_can_hold() {
+    let planner = Planner::new();
+    let bodies = [fixed([0.0; 3], 1000.0, 1500.0)];
+    let plan = planner.plan(&bodies, [-10000.0, 0.0, 0.0], [10000.0, 0.0, 0.0]);
+    assert_eq!(plan.status, STATUS_OK);
+    assert_eq!(plan.detours(), 1);
+    let radius = plan.radii[0];
+    assert!(radius > 0.0, "the detour corner is rounded");
+    // The arc is passed at the speed `nav` holds a circle of that radius at, below the planning
+    // speed here.
+    let held = circle_speed(&profile_of(SHIP), radius, turn_share(&planner));
+    assert!(held < SPEED, "the turn is the limit: {held}");
+    assert!((plan.speeds[0] - held).abs() <= 1e-9 * held);
+    // The goal is where the ship stops.
+    assert_eq!((plan.radii[1], plan.speeds[1]), (0.0, 0.0));
+    assert_times(&plan, SPEED);
+    assert_clear(&plan, &bodies, SPEED);
+}
+
+#[test]
+fn a_corner_that_barely_turns_is_passed_at_the_planning_speed() {
+    let planner = Planner::new();
+    // A sphere that the line only just enters: the detour is a shallow bend.
+    let bodies = [fixed([0.0, 1400.0, 0.0], 1000.0, 1500.0)];
+    let plan = planner.run(
+        &bodies,
+        [-10000.0, 0.0, 0.0],
+        [10000.0, 0.0, 0.0],
+        SPEED,
+        DEPTH,
+        CAPACITY,
+    );
+    assert_eq!(plan.status, STATUS_OK);
+    assert_eq!(plan.detours(), 1);
+    assert!(plan.radii[0] > 0.0 || plan.speeds[0] == SPEED);
+    assert_clear(&plan, &bodies, SPEED);
+}
+
+#[test]
+fn a_plan_without_a_detour_has_no_corner() {
+    let plan = Planner::new().plan(&[], [0.0; 3], [3000.0, 4000.0, 0.0]);
+    assert_eq!(plan.radii, vec![0.0]);
+    assert_eq!(plan.speeds, vec![0.0]);
+}
+
+#[test]
+fn a_ship_without_drag_gets_an_arc_without_a_knee() {
+    let planner = Planner::new();
+    let bodies = [fixed([0.0; 3], 1000.0, 1500.0)];
+    let ship = Ship {
+        accel: 300.0,
+        drag: 0.0,
+    };
+    let plan = planner.run_framed(
+        &bodies,
+        [-10000.0, 0.0, 0.0],
+        SYSTEM_FRAME,
+        [10000.0, 0.0, 0.0],
+        SPEED,
+        ship,
+        DEPTH,
+        CAPACITY,
+    );
+    assert_eq!(plan.status, STATUS_OK);
+    assert!(plan.radii[0] > 0.0);
+    let held = circle_speed(&profile_of(ship), plan.radii[0], turn_share(&planner));
+    assert!((plan.speeds[0] - held.min(SPEED)).abs() <= 1e-9 * SPEED);
+    assert_clear(&plan, &bodies, SPEED);
+}
+
+const NARROW_START: Vec3 = [-3000.0, 0.0, 0.0];
+const NARROW_GOAL: Vec3 = [3000.0, 0.0, 0.0];
+
+/// A ship whose turns are wide: its full-size arc at the narrow detour's corner is larger than
+/// the sphere's clearance from the corner.
+const WIDE_TURNING_SHIP: Ship = Ship {
+    accel: 5000.0,
+    drag: 0.5,
+};
+
+/// One sphere of safe radius `safe` between a start and a goal, with one corner just outside it.
+fn narrow_detour(planner: &Planner, safe: f64, ship: Ship) -> (Plan, Vec<Body>) {
+    let bodies = vec![fixed([0.0; 3], safe / 1.5, safe)];
+    let plan = planner.run_framed(
+        &bodies,
+        NARROW_START,
+        SYSTEM_FRAME,
+        NARROW_GOAL,
+        SPEED,
+        ship,
+        DEPTH,
+        CAPACITY,
+    );
+    (plan, bodies)
+}
+
+#[test]
+fn an_arc_that_cuts_into_a_body_is_made_smaller() {
+    let planner = Planner::new();
+    let (plan, bodies) = narrow_detour(&planner, 600.0, WIDE_TURNING_SHIP);
+    assert_eq!(plan.status, STATUS_OK);
+    assert_eq!(plan.detours(), 1);
+    let full = unconstrained_radius(&plan, 0, turn_share(&planner), WIDE_TURNING_SHIP);
+    assert!(plan.radii[0] > 0.0, "a smaller arc is clear");
+    assert!(plan.radii[0] < full, "the full arc was blocked");
+    assert_clear(&plan, &bodies, SPEED);
+}
+
+#[test]
+fn a_corner_with_no_clear_arc_is_left_sharp() {
+    let planner = Planner::new();
+    let (plan, sphere) = narrow_detour(&planner, 600.0, SHIP);
+    assert_eq!(plan.detours(), 1);
+    // A body just inside the corner, as far from the legs as it is wide: the legs clear it by a
+    // hair, and every arc, however small, passes closer.
+    const INSIDE_DISTANCE: f64 = 50.0;
+    const LEG_CLEARANCE: f64 = 1.005;
+    let corner = plan.points[0];
+    let to_start = unit(sub(NARROW_START, corner));
+    let to_goal = unit(sub(NARROW_GOAL, corner));
+    let inside = unit(plus(to_start, to_goal));
+    let leg_distance = INSIDE_DISTANCE * (1.0 - dot(inside, to_start).powi(2)).sqrt();
+    let blocker = fixed(
+        plus(corner, scaled(inside, INSIDE_DISTANCE)),
+        1.0,
+        leg_distance / LEG_CLEARANCE,
+    );
+    let bodies = [sphere[0], blocker];
+    let plan = planner.plan(&bodies, NARROW_START, NARROW_GOAL);
+    assert_eq!(plan.status, STATUS_OK);
+    assert_eq!(plan.detours(), 1, "the blocker leaves the legs alone");
+    assert_eq!(
+        (plan.radii[0], plan.speeds[0]),
+        (0.0, 0.0),
+        "the corner is sharp"
+    );
     assert_clear(&plan, &bodies, SPEED);
 }
 
@@ -757,9 +1133,43 @@ struct Tally {
     no_detour: usize,
     goal_outrun: usize,
     goal_not_settled: usize,
+    /// Corners before the goal, by what became of them.
+    corners: usize,
+    arcs: usize,
+    /// Arcs smaller than the legs and the knee allow, because the bodies were in the way.
+    halved: usize,
+    /// Corners left sharp, to be passed at rest.
+    sharp: usize,
+    /// Corners that barely turn, passed at the planning speed.
+    straight: usize,
+    /// The kernel's turn share, which sets the unconstrained arc radius.
+    share: f64,
 }
 
 impl Tally {
+    fn new(share: f64) -> Self {
+        Self {
+            share,
+            ..Self::default()
+        }
+    }
+
+    fn record_corners(&mut self, plan: &Plan) {
+        for k in 0..plan.points.len().saturating_sub(1) {
+            self.corners += 1;
+            if plan.radii[k] > 0.0 {
+                self.arcs += 1;
+                if plan.radii[k] < unconstrained_radius(plan, k, self.share, SHIP) * (1.0 - 1e-6) {
+                    self.halved += 1;
+                }
+            } else if plan.speeds[k] == 0.0 {
+                self.sharp += 1;
+            } else {
+                self.straight += 1;
+            }
+        }
+    }
+
     fn record(&mut self, plan: &Plan) {
         self.cases += 1;
         if plan.status == STATUS_GOAL_OUTRUN {
@@ -769,6 +1179,7 @@ impl Tally {
         }
         if plan.status == STATUS_OK {
             self.ok += 1;
+            self.record_corners(plan);
             if plan.detours() >= 1 {
                 self.detoured += 1;
             }
@@ -796,7 +1207,7 @@ fn random_static_spheres_are_cleared_or_the_status_says_why() {
     const EXTENT: f64 = 20000.0;
     let planner = Planner::new();
     let mut rng = Rng(0x9E37_79B9_7F4A_7C15);
-    let mut tally = Tally::default();
+    let mut tally = Tally::new(turn_share(&planner));
     while tally.cases < CASES {
         let bodies: Vec<Body> = (0..20)
             .map(|_| {
@@ -869,7 +1280,7 @@ fn random_orbiting_systems_are_cleared_or_the_status_says_why() {
     const EXTENT: f64 = 25000.0;
     let planner = Planner::new();
     let mut rng = Rng(0xD1B5_4A32_D192_ED03);
-    let mut tally = Tally::default();
+    let mut tally = Tally::new(turn_share(&planner));
     while tally.cases < CASES {
         let bodies = random_orbiting_system(&mut rng);
         let start = rng.point(EXTENT);
@@ -897,7 +1308,7 @@ fn random_goals_on_moving_bodies_are_reached_or_the_status_says_why() {
     const EXTENT: f64 = 25000.0;
     let planner = Planner::new();
     let mut rng = Rng(0x2F0B_3A55_91C4_7E6D);
-    let mut tally = Tally::default();
+    let mut tally = Tally::new(turn_share(&planner));
     let mut framed_detours = 0;
     while tally.cases < CASES {
         let bodies = random_orbiting_system(&mut rng);

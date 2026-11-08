@@ -335,6 +335,8 @@ function NavigationSandbox:spawnObstacle(spec, index, safeRadiusFactor)
         circle = circle,
         label = string.format("obstacle %d", index),
     }
+    local obstacles = self.obstacles
+    obstacle.positionAt = function(t) return obstaclePosition(obstacles, obstacle, t) end
     local rb = RigidBody.CreateSphere()
     rb:setKinematic(true)
     rb:setPos(obstaclePosition(self.obstacles, obstacle, 0))

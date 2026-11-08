@@ -6,6 +6,7 @@ Config.credits = {
         { name = "Craig Reynolds", teams = "Steering Behaviors For Autonomous Characters, GDC 1999" },
         { name = "Garcia de Marina, Hattenberger", teams = "Guidance Vector Fields for Orbits, IMAV 2017 (arXiv 1709.01110)" },
         { name = "van den Berg, Lin, Manocha", teams = "Reciprocal Velocity Obstacles for Real-Time Multi-Agent Navigation, ICRA 2008 (doi 10.1109/ROBOT.2008.4543489)" },
+        { name = "R. Craig Coulter", teams = "Implementation of the Pure Pursuit Path Tracking Algorithm, CMU-RI-TR-92-01, 1992" },
     },
     ["MAINTAINERS"] = {
         { name = "Haron",         teams = "Engine Development & Design" },

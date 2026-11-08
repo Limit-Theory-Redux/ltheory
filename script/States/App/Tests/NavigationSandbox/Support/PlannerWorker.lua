@@ -35,7 +35,7 @@ local function reserveOutput(capacity)
 end
 
 ---Plans one path.
----@param request table `bodies`: count * BODY_STRIDE numbers, `count`, `start` and `goal`: 3 numbers each, `goalFrame`, `speed`, `depth`, `capacity`
+---@param request table `bodies`: count * BODY_STRIDE numbers, `count`, `start` and `goal`: 3 numbers each, `goalFrame`, `speed`, `accel`, `drag`, `depth`, `capacity`
 ---@return table `status`, `count`, `waypoints` (count * OUT_STRIDE numbers, empty for none), `kernelMs`
 Run = WorkerFunction.Create(function(request)
     local count = request.count
@@ -44,7 +44,7 @@ Run = WorkerFunction.Create(function(request)
     local start, goal = request.start, request.goal
     local begun = InstantTime.Now()
     local status, written = SystemPlanner.plan(bodiesBuffer, count, start[1], start[2], start[3],
-        request.goalFrame, goal[1], goal[2], goal[3], request.speed, request.depth, outBuffer, request.capacity)
+        request.goalFrame, goal[1], goal[2], goal[3], request.speed, request.accel, request.drag, request.depth, outBuffer, request.capacity)
     local kernelMs = InstantTime.Now():durationSince(begun)
     local waypoints = {}
     for i = 1, written * OUT_STRIDE do waypoints[i] = outBuffer[i - 1] end

@@ -55,6 +55,7 @@ local RULES = { range = ARRIVAL_RANGE, speed = ARRIVAL_SPEED }
 ---@field safeRadius number Game units: the radius planned paths keep out of; `radius` when the scenario sets no factor
 ---@field home Position|nil Where a static obstacle is
 ---@field circle SandboxObstacleCircle|nil
+---@field positionAt fun(t: number): Position Where the obstacle is `t` seconds into the scenario
 ---@field label string
 ---@field kind "obstacle"
 
@@ -182,6 +183,18 @@ function ScenarioMetrics:planPointPassed(ship, index, speed, simTime)
     self:log("%s passed plan waypoint %d at %.2f s, %.0f m/s", ship.label, index, simTime, Metres.toMetres(speed))
 end
 
+---Record that a Plan ship has flown an arc of its plan. Not judged: it measures how well the
+---follower holds the planned arc.
+---@param ship SandboxShip
+---@param flight SandboxArcFlight
+---@param simTime number
+function ScenarioMetrics:planArcFlown(ship, flight, simTime)
+    self:log("%s: arc %d, radius %.0f m planned at %.0f m/s: entered %.2f s at %.0f m/s, left %.2f s, peak %.0f m/s, "
+        .. "%.0f m furthest from the arc, %.2f of its forward thrust at the peak", ship.label, flight.index,
+        metres(flight.radius), metres(flight.speed), flight.enteredAt, metres(flight.entrySpeed), simTime,
+        metres(flight.peakSpeed), metres(flight.maxError), flight.maxShare)
+end
+
 ---Record a plan that came back from the worker.
 ---@param reply SandboxPlanReply
 ---@param simTime number Simulated seconds when it was received
@@ -200,8 +213,9 @@ function ScenarioMetrics:planReceived(reply, simTime)
     for i, waypoint in ipairs(plan.waypoints) do
         local offset = waypoint.offset
         local from = waypoint.frame and string.format("from obstacle %d", waypoint.frame) or "in the world"
-        self:log("%s: plan waypoint %d at (%.0f, %.0f, %.0f) m %s, %.2f s from the start", reply.ship.label, i,
-            metres(offset.x), metres(offset.y), metres(offset.z), from, plan.times[i])
+        self:log("%s: plan waypoint %d at (%.0f, %.0f, %.0f) m %s, %.2f s from the start, arc radius %.0f m, "
+            .. "passed at %.0f m/s", reply.ship.label, i, metres(offset.x), metres(offset.y), metres(offset.z), from,
+            plan.times[i], metres(waypoint.radius), metres(waypoint.speed))
     end
 end
 

@@ -3,6 +3,7 @@
 -- come back, with the time each took from send to receipt.
 -- Design: doc/script/system-planner.md
 local SystemPlanner = require("Shared.Helpers.SystemPlanner")
+local ConstructComponents = require("Modules.Constructs.Components")
 
 local WORKER_NAME   = "NavigationSandboxPlanner"
 local WORKER_SCRIPT = "script/States/App/Tests/NavigationSandbox/Support/PlannerWorker.lua"
@@ -20,6 +21,9 @@ local NO_PARENT     = -1
 ---@class SandboxWaypoint
 ---@field frame integer|nil Index of the obstacle the offset is from
 ---@field offset Position
+---@field radius number The corner's arc radius, game units; zero for a sharp corner and for the goal
+---@field speed number The speed the corner is passed at, game units per second; zero to stop there
+---@field time number Seconds from the snapshot to the waypoint at the planning speed
 
 ---@class SandboxPlan
 ---@field status integer|nil A `SystemPlanner.Status` value; nil when the worker failed
@@ -94,6 +98,7 @@ function PlanClient:request(ship, goal, goalFrame, speed, obstacles, simTime)
     local bodies = {}
     for _, obstacle in ipairs(obstacles) do appendBody(bodies, obstacle, simTime) end
     local at = ship.rb:getPos()
+    local profile = ConstructComponents.FlightProfile.ProfileOf(ship.entity)
     self:send(ship, simTime, {
         bodies = bodies,
         count = #obstacles,
@@ -101,6 +106,8 @@ function PlanClient:request(ship, goal, goalFrame, speed, obstacles, simTime)
         goalFrame = goalFrame and goalFrame - 1 or SystemPlanner.SYSTEM_FRAME,
         goal = { goal.x, goal.y, goal.z },
         speed = speed,
+        accel = profile.thrustForward / profile.mass,
+        drag = profile.linearDrag,
         depth = DEPTH_LIMIT,
         capacity = CAPACITY,
     }, false)
@@ -116,7 +123,7 @@ function PlanClient:send(ship, simTime, task, probe)
     self.pending[taskId] = { ship = ship, sentAt = InstantTime.Now(), simTime = simTime, task = task, probe = probe }
 end
 
----@param flat number[] `frame, x, y, z, t` per waypoint, as `SystemPlanner.Out` lays them out
+---@param flat number[] `frame, x, y, z, t, radius, speed` per waypoint, as `SystemPlanner.Out` lays them out
 ---@return SandboxWaypoint[] waypoints
 ---@return number[] times
 local function unpackWaypoints(flat)
@@ -126,6 +133,9 @@ local function unpackWaypoints(flat)
         table.insert(waypoints, {
             frame = frame ~= SystemPlanner.SYSTEM_FRAME and frame + 1 or nil,
             offset = Position(flat[i + out.X], flat[i + out.Y], flat[i + out.Z]),
+            radius = flat[i + out.Radius],
+            speed = flat[i + out.Speed],
+            time = flat[i + out.T],
         })
         table.insert(times, flat[i + out.T])
     end

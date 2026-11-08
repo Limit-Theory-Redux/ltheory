@@ -1,13 +1,14 @@
 --- System planner kernel: a path through a system of orbiting bodies as waypoints. It starts from
 --- the straight segment, and where the segment enters a body's safe sphere at the body's predicted
 --- position it inserts a waypoint where the tangents from both ends to the sphere meet, then checks
---- the two new legs the same way, down to a bounded depth. A waypoint is a body index and an offset
+--- the two new legs the same way, down to a bounded depth. Each corner is then rounded into an arc
+--- with a radius and a speed the ship can hold it at. A waypoint is a body index and an offset
 --- from that body (the system frame for none). Pure numbers in and out (no entities, no globals),
 --- so it runs on a worker or in a test state. Not reentrant: it keeps module scratch state.
 --- Design: doc/script/system-planner.md.
 local OrbitMath = require("Shared.Helpers.OrbitMath")
 
-local sqrt, atan2, acos, sin, cos = math.sqrt, math.atan2, math.acos, math.sin, math.cos
+local sqrt, atan2, acos, sin, cos, tan = math.sqrt, math.atan2, math.acos, math.sin, math.cos, math.tan
 local max, min, abs = math.max, math.min, math.abs
 
 local SystemPlanner = {}
@@ -50,12 +51,16 @@ local SAFE_RADIUS      = 9
 -- Output buffer: OUT_STRIDE doubles per waypoint, the goal last. A waypoint is the index of its
 -- frame body (SYSTEM_FRAME for the system) and the offset from that body's centre, in world axes,
 -- and `t`, the time the ship reaches it. The frame's position at `t` plus the offset is the point.
+-- Radius and speed describe the corner there: the radius of the arc that rounds it (zero for a
+-- sharp corner) and the speed the ship is to pass at.
 local OUT_FRAME        = 0
 local OUT_X            = 1
 local OUT_Y            = 2
 local OUT_Z            = 3
 local OUT_T            = 4
-local OUT_STRIDE       = 5
+local OUT_RADIUS       = 5
+local OUT_SPEED        = 6
+local OUT_STRIDE       = 7
 local SYSTEM_FRAME     = -1
 
 SystemPlanner.BODY_STRIDE = BODY_STRIDE
@@ -64,7 +69,9 @@ SystemPlanner.Body = {
     AngularSpeed = ANGULAR_SPEED, Inclination = INCLINATION, Radius = BODY_RADIUS, SafeRadius = SAFE_RADIUS,
 }
 SystemPlanner.OUT_STRIDE = OUT_STRIDE
-SystemPlanner.Out = { Frame = OUT_FRAME, X = OUT_X, Y = OUT_Y, Z = OUT_Z, T = OUT_T }
+SystemPlanner.Out = {
+    Frame = OUT_FRAME, X = OUT_X, Y = OUT_Y, Z = OUT_Z, T = OUT_T, Radius = OUT_RADIUS, Speed = OUT_SPEED,
+}
 SystemPlanner.SYSTEM_FRAME = SYSTEM_FRAME
 
 -- The smallest step of the hit search, as a fraction of the safe radius: it ends a search that
@@ -91,8 +98,30 @@ local HALF             = 0.5
 local GOAL_TIME_TOLERANCE = 1e-4
 local MAX_GOAL_ITERATIONS = 50
 
+-- The share of the forward thrust a ship spends on holding a turn: the turn model's counterpart of
+-- `ORBIT_THRUST_SHARE` in `nav`. The rest is left for the velocity loop's lag and for avoidance.
+local TURN_THRUST_SHARE = 0.6
+-- A corner's arc is no larger than the one at which the turn speed reaches this fraction of its
+-- limit (the speed at which drag alone uses the turn's thrust share): a larger arc buys little
+-- speed and costs path length.
+local TURN_SPEED_KNEE   = 0.9
+-- The two tangent lengths of an arc are at most this share of the legs they cut, so the arcs of
+-- neighbouring corners never overlap.
+local ARC_LEG_SHARE     = 0.5
+-- An arc is checked against the bodies as this many chords.
+local ARC_CHORDS        = 8
+-- An arc that hits a body is made half as large, up to this many times, before the corner is left
+-- sharp.
+local MAX_ARC_HALVINGS  = 4
+-- A corner that turns by less than this (radians) is not rounded and is passed at the planning speed.
+local MIN_ARC_ANGLE     = 0.02
+
+SystemPlanner.TURN_THRUST_SHARE = TURN_THRUST_SHARE
 -- Scratch state of the running plan.
 local bodies, bodyCount, speed, maxDepth, out, capacity, written, status, failures, goalFrame
+-- The ship's forward acceleration and drag, its top speed (infinite without drag) and the arc
+-- radius at the turn-speed knee (infinite without drag).
+local shipAccel, shipDrag, shipTopSpeed, kneeRadius
 -- Per body: the speed bound of its orbit chain, and the radius of the sphere the hit test uses.
 local speedBound, hitRadius = {}, {}
 
@@ -297,6 +326,7 @@ local function append(x, y, z, t, frame)
     local base = written * OUT_STRIDE
     out[base + OUT_FRAME], out[base + OUT_X], out[base + OUT_Y], out[base + OUT_Z], out[base + OUT_T] =
         frame, x, y, z, t
+    out[base + OUT_RADIUS], out[base + OUT_SPEED] = 0, 0
     written = written + 1
     return true
 end
@@ -357,6 +387,148 @@ function planLeg(ax, ay, az, t0, bx, by, bz, bFrame, depth)
     return detour(false)
 end
 
+---The speed at which `TURN_THRUST_SHARE` of the forward acceleration `accel` holds a circle of
+---`radius` against the linear drag `drag` and the centripetal demand: the positive root of
+---`s⁴/r² + k²s² = (share·a)²`, at most `topSpeed`. Zero for a circle without radius or a ship
+---without thrust. It is the formula of `nav::circle_speed`, which a test holds it to.
+---@param accel number Forward acceleration, game units per second squared
+---@param drag number Linear drag rate, per second, zero or more
+---@param radius number Game units
+---@param topSpeed number Game units per second, infinite for none
+---@return number speed Game units per second
+function SystemPlanner.turnSpeed(accel, drag, radius, topSpeed)
+    local thrust = TURN_THRUST_SHARE * accel
+    if radius <= 0 or thrust <= 0 then return 0 end
+    local dragSq = drag * drag
+    local speedSq = HALF * radius * radius
+        * (-dragSq + sqrt(dragSq * dragSq + 4 * thrust * thrust / (radius * radius)))
+    return min(sqrt(speedSq), topSpeed)
+end
+
+---The turn at a corner: its angle, the lengths of the two legs and their unit directions. Nil
+---for a leg without length.
+local function cornerTurn(px, py, pz, cx, cy, cz, nx, ny, nz)
+    local ax, ay, az, bx, by, bz = cx - px, cy - py, cz - pz, nx - cx, ny - cy, nz - cz
+    local la, lb = sqrt(ax * ax + ay * ay + az * az), sqrt(bx * bx + by * by + bz * bz)
+    if la <= MIN_LENGTH or lb <= MIN_LENGTH then return nil end
+    local u1x, u1y, u1z, u2x, u2y, u2z = ax / la, ay / la, az / la, bx / lb, by / lb, bz / lb
+    local turn = acos(max(-1, min(1, u1x * u2x + u1y * u2y + u1z * u2z)))
+    return turn, la, lb, u1x, u1y, u1z, u2x, u2y, u2z
+end
+
+---The arc of `radius` that rounds the corner `c` between the points before it (`p`) and after it
+---(`n`): it is tangent to both legs, so its entry and exit are `radius · tan(turn / 2)` from the
+---corner along them. The one place this geometry is written: the planner checks the arc with it,
+---and a ship that flies the plan builds the same arc from the corner's points as they are now.
+---Nil for a corner that has no arc: a leg without length, a turn below `MIN_ARC_ANGLE`, or a
+---reversal.
+---@return number|nil entryX
+---@return number entryY
+---@return number entryZ
+---@return number exitX
+---@return number exitY
+---@return number exitZ
+---@return number centreX
+---@return number centreY
+---@return number centreZ
+---@return number normalX Unit normal: the ship turns anticlockwise about it
+---@return number normalY
+---@return number normalZ
+---@return number turn Radians swept from the entry to the exit
+function SystemPlanner.cornerArc(px, py, pz, cx, cy, cz, nx, ny, nz, radius)
+    local turn, _, _, u1x, u1y, u1z, u2x, u2y, u2z = cornerTurn(px, py, pz, cx, cy, cz, nx, ny, nz)
+    if not turn or turn < MIN_ARC_ANGLE then return nil end
+    local kx, ky, kz = u1y * u2z - u1z * u2y, u1z * u2x - u1x * u2z, u1x * u2y - u1y * u2x
+    local kLength = sqrt(kx * kx + ky * ky + kz * kz)
+    if kLength <= MIN_LENGTH then return nil end
+    local tangent = radius * tan(turn * HALF)
+    local ex, ey, ez = cx - u1x * tangent, cy - u1y * tangent, cz - u1z * tangent
+    -- The centre is across the first leg, toward the second one.
+    local along = u1x * u2x + u1y * u2y + u1z * u2z
+    local ix, iy, iz = u2x - u1x * along, u2y - u1y * along, u2z - u1z * along
+    local iLength = sqrt(ix * ix + iy * iy + iz * iz)
+    return ex, ey, ez,
+        cx + u2x * tangent, cy + u2y * tangent, cz + u2z * tangent,
+        ex + ix / iLength * radius, ey + iy / iLength * radius, ez + iz / iLength * radius,
+        kx / kLength, ky / kLength, kz / kLength, turn
+end
+
+---The point of an arc `angle` radians (zero to the arc's turn) from its entry, for the centre,
+---the entry and the unit normal `cornerArc` returns.
+function SystemPlanner.pointOnArc(ox, oy, oz, ex, ey, ez, kx, ky, kz, angle)
+    local vx, vy, vz = ex - ox, ey - oy, ez - oz
+    local c, s = cos(angle), sin(angle)
+    local wx, wy, wz = ky * vz - kz * vy, kz * vx - kx * vz, kx * vy - ky * vx
+    return ox + vx * c + wx * s, oy + vy * c + wy * s, oz + vz * c + wz * s
+end
+
+---Whether the arc, from its entry at time `tEntry`, keeps clear of every body as a chain of
+---chords flown at the planning speed. The chords lie on the centre's side of the arc, which is
+---the side of the body the corner goes around, so a body there is found a little early; a body
+---beyond the arc can be missed by up to the chords' sagitta.
+local function arcIsClear(ex, ey, ez, ox, oy, oz, kx, ky, kz, turn, radius, tEntry)
+    local px, py, pz, t = ex, ey, ez, tEntry
+    local step = turn / ARC_CHORDS
+    local duration = radius * step / speed
+    for j = 1, ARC_CHORDS do
+        local qx, qy, qz = SystemPlanner.pointOnArc(ox, oy, oz, ex, ey, ez, kx, ky, kz, step * j)
+        local dx, dy, dz = qx - px, qy - py, qz - pz
+        local length = sqrt(dx * dx + dy * dy + dz * dz)
+        if length > MIN_LENGTH
+            and firstHit(px, py, pz, dx / length, dy / length, dz / length, t, t + length / speed) >= 0 then
+            return false
+        end
+        px, py, pz, t = qx, qy, qz, t + duration
+    end
+    return true
+end
+
+---The arc radius and passing speed of a corner reached at time `tCorner`. The radius is the
+---largest the legs and the turn-speed knee allow that the bodies leave clear, halving until one
+---does. A corner that barely turns is passed at the planning speed with no arc; one with no clear
+---arc is left sharp, to be passed at rest.
+---@return number radius Zero for no arc
+---@return number speed
+local function roundCorner(px, py, pz, cx, cy, cz, nx, ny, nz, tCorner)
+    local turn, la, lb = cornerTurn(px, py, pz, cx, cy, cz, nx, ny, nz)
+    if not turn or turn < MIN_ARC_ANGLE then return 0, speed end
+    local tanHalf = tan(turn * HALF)
+    local radius = min(kneeRadius, ARC_LEG_SHARE * min(la, lb) / tanHalf)
+    for _ = 0, MAX_ARC_HALVINGS do
+        if radius <= MIN_LENGTH then break end
+        local ex, ey, ez, _, _, _, ox, oy, oz, kx, ky, kz = SystemPlanner.cornerArc(px, py, pz, cx, cy, cz, nx, ny, nz, radius)
+        if not ex then break end
+        if arcIsClear(ex, ey, ez, ox, oy, oz, kx, ky, kz, turn, radius, tCorner - radius * tanHalf / speed) then
+            return radius, min(speed, SystemPlanner.turnSpeed(shipAccel, shipDrag, radius, shipTopSpeed))
+        end
+        radius = radius * HALF
+    end
+    return 0, 0
+end
+
+---The world point of waypoint `k` of the output (the start for -1): its offset from its frame
+---body's position at the waypoint's time.
+local function waypointPoint(k, sx, sy, sz)
+    if k < 0 then return sx, sy, sz end
+    local base = k * OUT_STRIDE
+    local frame, x, y, z = out[base + OUT_FRAME], out[base + OUT_X], out[base + OUT_Y], out[base + OUT_Z]
+    if frame == SYSTEM_FRAME then return x, y, z end
+    local cx, cy, cz = bodyPosition(frame, out[base + OUT_T])
+    return x + cx, y + cy, z + cz
+end
+
+---Gives every corner of the written plan its arc radius and passing speed. The goal keeps radius
+---and speed zero, since the ship stops there. The plan's times stay as the legs gave them.
+local function roundCorners(sx, sy, sz)
+    for k = 0, written - 2 do
+        local px, py, pz = waypointPoint(k - 1, sx, sy, sz)
+        local cx, cy, cz = waypointPoint(k, sx, sy, sz)
+        local nx, ny, nz = waypointPoint(k + 1, sx, sy, sz)
+        local base = k * OUT_STRIDE
+        out[base + OUT_RADIUS], out[base + OUT_SPEED] = roundCorner(px, py, pz, cx, cy, cz, nx, ny, nz, out[base + OUT_T])
+    end
+end
+
 ---Where the goal is at `time`: the point (gx, gy, gz) itself in the system frame, else that offset
 ---from the goal's frame body.
 local function goalPoint(gx, gy, gz, time)
@@ -377,11 +549,26 @@ local function planPass(sx, sy, sz, gx, gy, gz, goalTime)
 end
 
 ---Whether the numbers and the frame index of a request are usable.
-local function validRequest(sx, sy, sz, frame, gx, gy, gz, planSpeed, depthLimit, outCapacity)
+local function validRequest(sx, sy, sz, frame, gx, gy, gz, planSpeed, accel, drag, depthLimit, outCapacity)
     local finite = isFinite(sx) and isFinite(sy) and isFinite(sz) and isFinite(gx) and isFinite(gy) and isFinite(gz)
     local frameValid = frame == math.floor(frame) and frame >= SYSTEM_FRAME and frame < bodyCount
-    return finite and frameValid and planSpeed > 0 and isFinite(planSpeed) and depthLimit >= 0 and outCapacity >= 1
-        and bodyCount >= 0
+    local shipValid = accel > 0 and isFinite(accel) and drag >= 0 and isFinite(drag)
+    return finite and frameValid and shipValid and planSpeed > 0 and isFinite(planSpeed) and depthLimit >= 0
+        and outCapacity >= 1 and bodyCount >= 0
+end
+
+---Sets the ship scratch from its forward acceleration and drag: the top speed, and the arc radius
+---at which the turn speed reaches `TURN_SPEED_KNEE` of its limit `share · accel / drag`, which is
+---`s² / (share · accel · √(1 − knee²))` for `s = knee · limit`. Both are infinite without drag.
+local function setShip(accel, drag)
+    shipAccel, shipDrag = accel, drag
+    if drag > 0 then
+        shipTopSpeed = accel / drag
+        kneeRadius = TURN_SPEED_KNEE * TURN_SPEED_KNEE * TURN_THRUST_SHARE * accel
+            / (drag * drag * sqrt(1 - TURN_SPEED_KNEE * TURN_SPEED_KNEE))
+    else
+        shipTopSpeed, kneeRadius = math.huge, math.huge
+    end
 end
 
 ---Plans a path from the start to the goal through the bodies. The goal is the point (gx, gy, gz)
@@ -397,18 +584,21 @@ end
 ---@param gy number Goal y
 ---@param gz number Goal z
 ---@param planSpeed number Speed the path is flown at, above zero; sets the times in the output
+---@param accel number The ship's forward acceleration, above zero; sets the corner speeds
+---@param drag number The ship's linear drag rate, zero or more; sets the corner speeds
 ---@param depthLimit integer Detours nested at most this deep, zero or more
 ---@param outBuffer userdata `double[?]`, `outCapacity * OUT_STRIDE` values
 ---@param outCapacity integer Waypoints the output buffer holds
 ---@return integer status A `Status` value
 ---@return integer waypointCount Waypoints written, the goal last when the status allows a plan
-function SystemPlanner.plan(bodiesBuffer, count, sx, sy, sz, frame, gx, gy, gz, planSpeed, depthLimit, outBuffer,
-                            outCapacity)
+function SystemPlanner.plan(bodiesBuffer, count, sx, sy, sz, frame, gx, gy, gz, planSpeed, accel, drag, depthLimit,
+                            outBuffer, outCapacity)
     bodies, bodyCount, speed, maxDepth, out, capacity = bodiesBuffer, count, planSpeed, depthLimit, outBuffer, outCapacity
     goalFrame, written, status, failures = frame, 0, Status.Ok, 0
-    if not validRequest(sx, sy, sz, frame, gx, gy, gz, planSpeed, depthLimit, outCapacity) then
+    if not validRequest(sx, sy, sz, frame, gx, gy, gz, planSpeed, accel, drag, depthLimit, outCapacity) then
         return Status.InvalidInput, 0
     end
+    setShip(accel, drag)
     if not prepareBodies() then return Status.InvalidInput, 0 end
     if frame ~= SYSTEM_FRAME and speedBound[frame + 1] >= planSpeed then return Status.GoalOutrun, 0 end
 
@@ -430,6 +620,7 @@ function SystemPlanner.plan(bodiesBuffer, count, sx, sy, sz, frame, gx, gy, gz, 
         local base = (written - 1) * OUT_STRIDE
         out[base + OUT_X], out[base + OUT_Y], out[base + OUT_Z] = gx, gy, gz
     end
+    if status ~= Status.CapacityExceeded then roundCorners(sx, sy, sz) end
     return status, written
 end
 

@@ -20,6 +20,10 @@ local PASS_SPEED_TOLERANCE  = 0.35
 -- velocity above this many radians.
 local MIN_TURN_SPEED_FRACTION = 0.1
 local MIN_TURN_ANGLE          = 1e-4
+-- A ship on an arc is steered at the point of the arc it would reach in this many seconds at the
+-- corner's speed, at most this many radians ahead of it (pure pursuit).
+local ARC_LOOKAHEAD_S        = 0.3
+local MAX_ARC_LOOKAHEAD      = 0.6
 -- An orbiting ship has orbited after it has turned this far about the centre.
 local FULL_TURN           = 2 * math.pi
 -- An orbiting ship is on its circle within this fraction of the radius: the wanted velocity is
@@ -58,6 +62,8 @@ local MIN_RELATIVE_LENGTH = 1e-6
 ---@field speedCap number|nil Seek: game units per second, as given to the `NavWorld`
 ---@field peakSpeed number Seek: the largest speed the ship has flown at, in game units per second
 ---@field turn SandboxTurn|nil Seek with `measureTurn`: the tightest turn so far
+---@field startPoint table|nil Plan: { x, y, z } where the ship was when it asked for the plan, the point before the first corner
+---@field arc SandboxArcFlight|nil Plan: the arc being flown; nil on a leg
 ---@field goal SandboxWaypoint|nil Plan: where the ship stops; with a frame, a point that rides on that obstacle
 ---@field obstacles SandboxObstacle[]|nil Plan: the scenario's obstacles, which waypoint frames index
 ---@field clearance table<integer, number>|nil Plan: per obstacle index, the smallest distance from the ship's centre to the obstacle's safe sphere since the start, in game units
@@ -76,6 +82,25 @@ local MIN_RELATIVE_LENGTH = 1e-6
 ---@field speed number Game units per second at that radius
 ---@field velocity table|nil The velocity at the last step, { x, y, z }
 ---@field time number|nil Simulated time of the last step
+
+---@class SandboxArc
+---@field entry table { x, y, z }
+---@field exit table { x, y, z }
+---@field centre table { x, y, z }
+---@field normal table Unit { x, y, z }: the ship turns anticlockwise about it
+---@field turn number Radians from the entry to the exit
+---@field radius number Game units
+
+---What a Plan ship did on one arc, for the log.
+---@class SandboxArcFlight
+---@field index integer Index of the corner in the plan
+---@field radius number Game units, as planned
+---@field speed number Game units per second, as planned
+---@field enteredAt number Simulated time the ship reached the entry
+---@field entrySpeed number Game units per second
+---@field peakSpeed number Largest speed on the arc, game units per second
+---@field maxError number Largest distance from the arc's circle, game units
+---@field maxShare number Largest share of the forward thrust the planned radius needs at the speed flown
 
 ---@class SandboxJudgingRules
 ---@field range number Game units: within this of its point, a ship is there
@@ -171,11 +196,53 @@ local function pointNow(b, waypoint)
     return Position(centre.x + offset.x, centre.y + offset.y, centre.z + offset.z)
 end
 
----The point a Plan ship flies at now: the waypoint it is passing, then the goal.
+---A plan waypoint's world point at its planned time, which is where the kernel placed it.
+---@param b SandboxBehaviour
+---@param waypoint SandboxWaypoint
+---@return Position
+local function pointPlanned(b, waypoint)
+    local offset = waypoint.offset
+    if not waypoint.frame then return offset end
+    local centre = b.obstacles[waypoint.frame].positionAt(waypoint.time)
+    return Position(centre.x + offset.x, centre.y + offset.y, centre.z + offset.z)
+end
+
+---The arc of the corner a Plan ship is flying to. The corner is where it is now; its neighbours (the
+---start for the first corner, the goal for the last) keep the planned offset from it, so the arc is
+---the one the kernel cleared even when the corner or a neighbour rides on a moving body.
+---@param b SandboxBehaviour
+---@return SandboxArc|nil arc Nil for a sharp corner
+local function currentArc(b)
+    local index = b.pointIndex
+    local waypoint = b.points[index]
+    if waypoint.radius <= 0 then return nil end
+    local corner = pointNow(b, waypoint)
+    local plannedCorner = pointPlanned(b, waypoint)
+    local function around(planned)
+        return Position(corner.x + planned.x - plannedCorner.x, corner.y + planned.y - plannedCorner.y,
+            corner.z + planned.z - plannedCorner.z)
+    end
+    local before = around(index == 1 and toPosition(b.startPoint) or pointPlanned(b, b.points[index - 1]))
+    local after = around(pointPlanned(b, b.points[index + 1] or b.goal))
+    local ex, ey, ez, xx, xy, xz, ox, oy, oz, kx, ky, kz, turn = SystemPlanner.cornerArc(
+        before.x, before.y, before.z, corner.x, corner.y, corner.z, after.x, after.y, after.z, waypoint.radius)
+    if not ex then return nil end
+    return {
+        entry = { x = ex, y = ey, z = ez }, exit = { x = xx, y = xy, z = xz },
+        centre = { x = ox, y = oy, z = oz }, normal = { x = kx, y = ky, z = kz },
+        turn = turn, radius = waypoint.radius,
+    }
+end
+
+---The point a Plan ship is to be at now, which is what its progress is judged against: the entry
+---of the arc or the sharp corner it is flying to, the end of the arc it is on, then the goal.
 ---@param b SandboxBehaviour
 ---@return Position
 local function planPoint(b)
-    return pointNow(b, b.phase == "pass" and b.points[b.pointIndex] or b.goal)
+    if b.phase ~= "pass" then return pointNow(b, b.goal) end
+    local arc = currentArc(b)
+    if not arc then return pointNow(b, b.points[b.pointIndex]) end
+    return toPosition(b.arc and arc.exit or arc.entry)
 end
 
 ---Gives a Plan ship the goal as its arrival target: a goal that rides on an obstacle keeps its
@@ -243,6 +310,8 @@ function ShipBehaviour.start(nav, ship, ships, obstacles, rules, planner)
         b.goal = { frame = ship.targetFrame, offset = ship.targetFrame and ship.targetOffset or ship.target }
         b.passRadius = Metres.length(spec.passRadiusM)
         arriveAtGoal(nav, ship, rules.range)
+        local at = ship.rb:getPos()
+        b.startPoint = { x = at.x, y = at.y, z = at.z }
         planner:request(ship, b.goal.offset, b.goal.frame, b.topSpeed, obstacles, 0)
     elseif b.kind == "Seek" then
         b.points, b.pointIndex, b.phase = {}, 1, "pass"
@@ -313,9 +382,153 @@ local function trackTurn(b, ship, speed, simTime)
     turn.velocity, turn.time = { x = velocity.x, y = velocity.y, z = velocity.z }, simTime
 end
 
----Moves a Seek or Plan ship on past a point it has passed, aims a Plan ship at where its waypoint
----is now, and switches a Hold ship to Hold once it is flying fast enough. Called after each
----navigation step.
+---The share of its forward thrust a ship needs to fly a circle of `radius` at `speed`. With forward
+---acceleration `a` and linear drag `k` that is the centripetal `s²/r` across and `k·s` along the
+---velocity: `√(s⁴/r² + k²s²) / a`, the quantity the Orbit behaviour holds at a named constant.
+---@param ship SandboxShip
+---@param speed number Game units per second
+---@param radius number Game units
+---@return number
+local function turnShare(ship, speed, radius)
+    local profile = ConstructComponents.FlightProfile.ProfileOf(ship.entity)
+    local k = profile.linearDrag
+    return math.sqrt(speed ^ 4 / (radius * radius) + k * k * speed * speed) / (profile.thrustForward / profile.mass)
+end
+
+---Steps a Plan ship on to the corner after the one it has passed, or to its goal after the last.
+---@param nav NavWorld
+---@param ship SandboxShip
+---@param rules SandboxJudgingRules
+---@param simTime number
+local function nextPlanPoint(nav, ship, rules, simTime)
+    local b = ship.behaviour
+    b.pointIndex = b.pointIndex + 1
+    if not b.points[b.pointIndex] then
+        b.phase = "arrive"
+        arriveAtGoal(nav, ship, rules.range)
+    end
+    ship.bestDistance, ship.progressTime = math.huge, simTime
+end
+
+---Starts the arc of the corner the ship has reached the entry of: it is held to the corner's speed.
+---@param nav NavWorld
+---@param ship SandboxShip
+---@param speed number Game units per second now
+---@param simTime number
+local function beginArc(nav, ship, speed, simTime)
+    local b = ship.behaviour
+    local waypoint = b.points[b.pointIndex]
+    b.arc = {
+        index = b.pointIndex, radius = waypoint.radius, speed = waypoint.speed, enteredAt = simTime,
+        entrySpeed = speed, peakSpeed = speed, maxError = 0, maxShare = 0,
+    }
+    nav:setSpeedCap(ship.agent, waypoint.speed)
+end
+
+---Where the ship is on `arc`: the angle about the centre from the entry, and its distance from
+---the arc's circle.
+---@param arc SandboxArc
+---@param position table { x, y, z }
+---@return number angle Radians, positive toward the exit
+---@return number error Game units
+local function arcPosition(arc, position)
+    local fromCentre = sub(position, arc.centre)
+    local fromEntry = sub(arc.entry, arc.centre)
+    local angle = math.atan2(dot(arc.normal, cross(fromEntry, fromCentre)), dot(fromEntry, fromCentre))
+    local across = dot(arc.normal, fromCentre)
+    local inPlane = length(sub(fromCentre, scale(arc.normal, across)))
+    return angle, math.sqrt((inPlane - arc.radius) ^ 2 + across ^ 2)
+end
+
+---Steers a ship on `arc` at the point of it a short way ahead (pure pursuit), and keeps what the
+---arc asks of the controller. The arc is over when the ship has swept its angle.
+---@param nav NavWorld
+---@param ship SandboxShip
+---@param arc SandboxArc
+---@param speed number Game units per second
+---@return boolean onArc False once the ship is past the exit
+local function flyArc(nav, ship, arc, speed)
+    local b = ship.behaviour
+    local flight = b.arc
+    local angle, error = arcPosition(arc, ship.rb:getPos())
+    flight.peakSpeed = math.max(flight.peakSpeed, speed)
+    flight.maxError = math.max(flight.maxError, error)
+    flight.maxShare = math.max(flight.maxShare, turnShare(ship, speed, arc.radius))
+    if angle >= arc.turn then return false end
+    local ahead = math.min(MAX_ARC_LOOKAHEAD, flight.speed * ARC_LOOKAHEAD_S / arc.radius)
+    local x, y, z = SystemPlanner.pointOnArc(arc.centre.x, arc.centre.y, arc.centre.z,
+        arc.entry.x, arc.entry.y, arc.entry.z, arc.normal.x, arc.normal.y, arc.normal.z,
+        math.min(arc.turn, math.max(angle, 0) + ahead))
+    nav:setSeek(ship.agent, Position(x, y, z), b.passRadius, math.huge)
+    return true
+end
+
+---Ends the arc: the speed cap is lifted, and the ship goes on to the next corner.
+---@param nav NavWorld
+---@param ship SandboxShip
+---@param rules SandboxJudgingRules
+---@param simTime number
+---@param metrics ScenarioMetrics
+local function endArc(nav, ship, rules, simTime, metrics)
+    local b = ship.behaviour
+    nav:setSpeedCap(ship.agent, math.huge)
+    metrics:planArcFlown(ship, b.arc, simTime)
+    b.arc = nil
+    nextPlanPoint(nav, ship, rules, simTime)
+end
+
+---Sends a Plan ship along its leg to the entry of `arc`, or to the sharp corner when there is
+---none, to pass it at the corner's speed.
+---@param nav NavWorld
+---@param ship SandboxShip
+---@param arc SandboxArc|nil The arc of the corner being flown to
+local function seekPlanLeg(nav, ship, arc)
+    local b = ship.behaviour
+    ship.target = arc and toPosition(arc.entry) or pointNow(b, b.points[b.pointIndex])
+    nav:setSeek(ship.agent, ship.target, b.passRadius, b.points[b.pointIndex].speed)
+end
+
+---Flies a Plan ship along its path. On a leg it is sent to the arc's entry (or the sharp corner)
+---at the corner's speed, the points taken from where their bodies are now; on reaching it, it
+---takes the arc, then the next leg.
+---@param nav NavWorld
+---@param ship SandboxShip
+---@param arrived boolean The `NavWorld`'s arrival flag for the ship
+---@param speed number Game units per second
+---@param simTime number
+---@param rules SandboxJudgingRules
+---@param metrics ScenarioMetrics
+local function advancePlan(nav, ship, arrived, speed, simTime, rules, metrics)
+    local b = ship.behaviour
+    local arc = currentArc(b)
+    if b.arc then
+        if arc and flyArc(nav, ship, arc, speed) then
+            ship.target = toPosition(arc.exit)
+            return
+        end
+        endArc(nav, ship, rules, simTime, metrics)
+        if b.phase ~= "pass" then return end
+        arc = currentArc(b)
+    elseif arrived then
+        metrics:planPointPassed(ship, b.pointIndex, speed, simTime)
+        if arc then
+            beginArc(nav, ship, speed, simTime)
+            if flyArc(nav, ship, arc, speed) then
+                ship.target = toPosition(arc.exit)
+                return
+            end
+            endArc(nav, ship, rules, simTime, metrics)
+        else
+            nextPlanPoint(nav, ship, rules, simTime)
+        end
+        if b.phase ~= "pass" then return end
+        arc = currentArc(b)
+    end
+    seekPlanLeg(nav, ship, arc)
+end
+
+---Moves a Seek or Plan ship on past a point it has passed, flies a Plan ship along its path, and
+---switches a Hold ship to Hold once it is flying fast enough. Called after each navigation step.
 ---@param nav NavWorld
 ---@param ship SandboxShip
 ---@param arrived boolean The `NavWorld`'s arrival flag for the ship
@@ -327,22 +540,16 @@ function ShipBehaviour.advance(nav, ship, arrived, simTime, rules, metrics)
     local speed = ship.rb:getSpeed()
     b.peakSpeed = math.max(b.peakSpeed, speed)
     if b.turn then trackTurn(b, ship, speed, simTime) end
-    if (b.kind == "Seek" or b.kind == "Plan") and b.phase == "pass" and arrived then
-        if b.kind == "Seek" then
-            metrics:seekPassed(ship, b.pointIndex, speed, passProblem(b, speed), simTime)
-        else
-            metrics:planPointPassed(ship, b.pointIndex, speed, simTime)
-        end
+    if b.kind == "Plan" then
+        if b.phase == "pass" then advancePlan(nav, ship, arrived, speed, simTime, rules, metrics) end
+    elseif b.kind == "Seek" and b.phase == "pass" and arrived then
+        metrics:seekPassed(ship, b.pointIndex, speed, passProblem(b, speed), simTime)
         b.pointIndex = b.pointIndex + 1
         if not b.points[b.pointIndex] then
             b.phase = "arrive"
-            if b.kind == "Seek" then
-                ship.target = Metres.position(ship.spec.target)
-                nav:setArrive(ship.agent, ship.target, rules.range)
-            else
-                arriveAtGoal(nav, ship, rules.range)
-            end
-        elseif b.kind == "Seek" then
+            ship.target = Metres.position(ship.spec.target)
+            nav:setArrive(ship.agent, ship.target, rules.range)
+        else
             ship.target = b.points[b.pointIndex]
             seekPoint(nav, ship)
         end
@@ -353,11 +560,6 @@ function ShipBehaviour.advance(nav, ship, arrived, simTime, rules, metrics)
         b.phase = "switched"
         nav:setHold(ship.agent, rules.range)
         metrics:log("%s holds at %.0f m/s, %.2f s", ship.label, Metres.toMetres(speed), simTime)
-    end
-    if b.kind == "Plan" and b.phase == "pass" then
-        -- A waypoint in the frame of a moving obstacle moves: aim at where it is now.
-        ship.target = planPoint(b)
-        seekPoint(nav, ship)
     end
 end
 
@@ -377,9 +579,9 @@ function ShipBehaviour.planReceived(nav, ship, plan, simTime)
         b.phase = "arrive"
         return
     end
+    b.goal.time = plan.waypoints[#plan.waypoints].time
     b.points, b.pointIndex, b.phase = points, 1, "pass"
-    ship.target = planPoint(b)
-    seekPoint(nav, ship)
+    seekPlanLeg(nav, ship, currentArc(b))
     ship.bestDistance, ship.progressTime = math.huge, simTime
 end
 
@@ -502,9 +704,7 @@ function ShipBehaviour.capReport(ship)
 end
 
 ---A line for the summary: the tightest turn a ship with `measureTurn` flew, and the share of its
----forward thrust the turn needed. With forward acceleration `a` and linear drag `k`, a turn of
----radius `r` at speed `s` needs the centripetal `s²/r` across and `k·s` along the velocity: the
----share is `√(s⁴/r² + k²s²) / a`, the quantity the Orbit behaviour holds at a named constant.
+---forward thrust the turn needed (see `turnShare`).
 ---@param ship SandboxShip
 ---@return number|nil radius Game units, or nil for a ship that does not measure or never turned
 ---@return number|nil speed Game units per second at that radius
@@ -512,10 +712,8 @@ end
 function ShipBehaviour.turnReport(ship)
     local b = ship.behaviour
     if not (b and b.turn) or b.turn.radius == math.huge then return nil end
-    local profile = ConstructComponents.FlightProfile.ProfileOf(ship.entity)
-    local s, r, k = b.turn.speed, b.turn.radius, profile.linearDrag
-    local share = math.sqrt(s ^ 4 / (r * r) + k * k * s * s) / (profile.thrustForward / profile.mass)
-    return r, s, share
+    local s, r = b.turn.speed, b.turn.radius
+    return r, s, turnShare(ship, s, r)
 end
 
 ---A line for the summary: how fast a Pursue or Follow ship turned while it was held on station.

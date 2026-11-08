@@ -224,11 +224,11 @@ fn slot_point(leader: &Body, offset: &FrameOffset) -> DVec3 {
         + leader.frame.forward * offset.forward
 }
 
-/// The speed at which `ORBIT_THRUST_SHARE` of the forward thrust holds a circle of `radius`
-/// against drag and the centripetal demand: the positive root of `s⁴/r² + k²·s² = (share·a)²`.
-/// 0 for a circle without radius or an agent without thrust.
-fn circle_speed(profile: &Profile, radius: f64) -> f64 {
-    let thrust = ORBIT_THRUST_SHARE * profile.accel_forward;
+/// The speed at which `share` (0 to 1) of the forward thrust holds a circle of `radius` against
+/// drag and the centripetal demand: the positive root of `s⁴/r² + k²·s² = (share·a)²`, capped at
+/// the top speed. 0 for a circle without radius or an agent without thrust.
+pub fn circle_speed(profile: &Profile, radius: f64, share: f64) -> f64 {
+    let thrust = share * profile.accel_forward;
     if radius <= 0.0 || thrust <= 0.0 {
         return 0.0;
     }
@@ -290,7 +290,7 @@ fn orbit(
         );
     }
     let frame = OrbitFrame::new(body, centre, normal);
-    let speed = circle_speed(profile, radius);
+    let speed = circle_speed(profile, radius, ORBIT_THRUST_SHARE);
     let tangent = frame.normal.cross(frame.radial);
     let error = (frame.ring * frame.ring - radius * radius) / (radius * radius);
     let in_plane = (tangent - frame.radial * (ORBIT_FIELD_GAIN * error)).normalize();
@@ -823,7 +823,7 @@ mod tests {
 
     #[test]
     fn the_circle_speed_solves_its_balance() {
-        let speed = circle_speed(&PROFILE, ORBIT_RADIUS);
+        let speed = circle_speed(&PROFILE, ORBIT_RADIUS, ORBIT_THRUST_SHARE);
         let thrust = ORBIT_THRUST_SHARE * PROFILE.accel_forward;
         let drag = PROFILE.linear_drag;
         let lhs = speed.powi(4) / (ORBIT_RADIUS * ORBIT_RADIUS) + drag * drag * speed * speed;
@@ -835,8 +835,11 @@ mod tests {
             ..PROFILE
         };
         let expected = (thrust * ORBIT_RADIUS).sqrt();
-        assert!((circle_speed(&no_drag, ORBIT_RADIUS) - expected).abs() < 1e-9);
-        assert_eq!(circle_speed(&PROFILE, 0.0), 0.0);
+        let share = ORBIT_THRUST_SHARE;
+        assert!((circle_speed(&no_drag, ORBIT_RADIUS, share) - expected).abs() < 1e-9);
+        assert_eq!(circle_speed(&PROFILE, 0.0, share), 0.0);
+        // A larger share turns faster on the same circle.
+        assert!(circle_speed(&PROFILE, ORBIT_RADIUS, 0.9) > speed);
     }
 
     #[test]
@@ -847,7 +850,8 @@ mod tests {
         // Anticlockwise about +y from +x heads toward -z.
         assert!(wanted.velocity.z < 0.0);
         assert!(wanted.velocity.x.abs() < 1e-9 && wanted.velocity.y.abs() < 1e-9);
-        assert!((wanted.velocity.length() - circle_speed(&PROFILE, ORBIT_RADIUS)).abs() < 1e-9);
+        let circle = circle_speed(&PROFILE, ORBIT_RADIUS, ORBIT_THRUST_SHARE);
+        assert!((wanted.velocity.length() - circle).abs() < 1e-9);
         assert!((goal.target - at).length() < 1e-9);
         assert_eq!(goal.arrival_radius, 7.0);
         let (reversed, _) = orbit_wanted(at, &centre, DVec3::NEG_Y);
