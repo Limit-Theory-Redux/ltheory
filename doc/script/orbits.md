@@ -15,6 +15,8 @@ A circular orbit in the parent's frame, with a constant angular speed:
 
 The offset from the parent is `r · (cos φ, sin φ · sin i, sin φ · cos i)`, so the plane's z is scaled by `cos i` and lifted by `sin i`. The component computes it for any time: `offsetAt(t)` and `relativeVelocityAt(t)` take `t` in seconds from now (negative for the past), assuming the orbit keeps its speed. The component holds no reference to its parent.
 
+The formula lives in `Shared/Helpers/OrbitMath.lua` (`offsetAt` and `velocityAt`, taking the radius, phase, angular speed, inclination and time), and the component calls it. Code that has no entities, such as the [system planner](system-planner.md) and the sandbox's circling obstacles, calls it too.
+
 ## Setting up
 
 `collectOrbiters(root)` walks the hierarchy from `root`, parents before children, and for every body with an orbit sets:

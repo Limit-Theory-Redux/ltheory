@@ -5,6 +5,7 @@
 -- Design: doc/script/navigation-sandbox.md
 local Metres              = require("States.App.Tests.NavigationSandbox.Support.Metres")
 local ConstructComponents = require("Modules.Constructs.Components")
+local SystemPlanner       = require("Shared.Helpers.SystemPlanner")
 
 -- A ship that tracks a moving point has done so when it has stayed on station this long.
 local STATION_HOLD_S      = 5
@@ -19,9 +20,9 @@ local ORBIT_TOLERANCE     = 0.1
 local MIN_RELATIVE_LENGTH = 1e-6
 
 ---@class SandboxBehaviourSpec
----@field kind "Seek"|"Hold"|"Pursue"|"Follow"|"Orbit"
+---@field kind "Seek"|"Hold"|"Pursue"|"Follow"|"Orbit"|"Plan"
 ---@field through number[][]|nil Seek: points { x, y, z } in metres, passed at speed in this order; the ship then stops at the ship's `target`
----@field passRadiusM number|nil Seek: a point is passed within this distance, in metres; longer than the distance covered in one frame
+---@field passRadiusM number|nil Seek, Plan: a point is passed within this distance, in metres; longer than the distance covered in one frame
 ---@field holdAtSpeed number|nil Hold: the ship holds when it flies at this fraction of top speed on its way to `target`
 ---@field obstacle integer|nil Pursue, Orbit: index of the scenario's obstacle that is chased or circled
 ---@field ship integer|nil Follow: index of the scenario's ship that is followed
@@ -37,10 +38,12 @@ local MIN_RELATIVE_LENGTH = 1e-6
 ---@field topSpeed number Game units per second
 ---@field engaged boolean Whether the ship has been on station; deadlocks are judged only before
 ---@field maxError number Largest distance from the station point since it was engaged, in game units
----@field phase string|nil Seek: "pass" or "arrive". Hold: "cruise", "switched" or "returning"
----@field points Position[]|nil Seek: the points to pass
----@field pointIndex integer|nil Seek: the point being flown to
----@field passRadius number|nil Seek: game units
+---@field phase string|nil Seek: "pass" or "arrive". Plan: "waiting" for the plan, then as Seek. Hold: "cruise", "switched" or "returning"
+---@field points Position[]|nil Seek, Plan: the points to pass
+---@field pointIndex integer|nil Seek, Plan: the point being flown to
+---@field passRadius number|nil Seek, Plan: game units
+---@field goal Position|nil Plan: where the ship stops
+---@field clearance table<integer, number>|nil Plan: per obstacle index, the smallest distance from the ship's centre to the obstacle's safe sphere since the start, in game units
 ---@field onSince number|nil Simulated time the ship has been on station since
 ---@field onStation boolean|nil Pursue, Follow: whether the ship is on station now, whether or not it is yet judged
 ---@field turnRate number|nil Pursue, Follow: largest turn rate, in radians per second, since the ship was last off station or not yet judged
@@ -154,11 +157,19 @@ end
 ---@param ships SandboxShip[]
 ---@param obstacles SandboxObstacle[]
 ---@param rules SandboxJudgingRules
-function ShipBehaviour.start(nav, ship, ships, obstacles, rules)
+---@param planner PlanClient|nil Needed by a Plan ship
+function ShipBehaviour.start(nav, ship, ships, obstacles, rules, planner)
     local b, spec = ship.behaviour, ship.behaviour.spec
     b.topSpeed = ConstructComponents.FlightProfile.ProfileOf(ship.entity).maxSpeed
     b.tracked = spec.obstacle and obstacles[spec.obstacle] or spec.ship and ships[spec.ship]
-    if b.kind == "Seek" then
+    if b.kind == "Plan" then
+        -- Flies at the goal while the plan is made; the plan then replaces the course.
+        assert(planner, "ShipBehaviour: a Plan ship needs a planner")
+        b.phase, b.goal, b.clearance = "waiting", ship.target, {}
+        b.passRadius = Metres.length(spec.passRadiusM)
+        nav:setArrive(ship.agent, b.goal, rules.range)
+        planner:request(ship, b.goal, b.topSpeed, obstacles, 0)
+    elseif b.kind == "Seek" then
         b.points, b.pointIndex, b.phase = {}, 1, "pass"
         for _, point in ipairs(spec.through) do table.insert(b.points, Metres.position(point)) end
         b.passRadius = Metres.length(spec.passRadiusM)
@@ -197,8 +208,12 @@ end
 function ShipBehaviour.advance(nav, ship, arrived, simTime, rules, metrics)
     local b = ship.behaviour
     local speed = ship.rb:getSpeed()
-    if b.kind == "Seek" and b.phase == "pass" and arrived then
-        metrics:seekPassed(ship, b.pointIndex, speed, speed >= PASS_SPEED_FRACTION * b.topSpeed, simTime)
+    if (b.kind == "Seek" or b.kind == "Plan") and b.phase == "pass" and arrived then
+        if b.kind == "Seek" then
+            metrics:seekPassed(ship, b.pointIndex, speed, speed >= PASS_SPEED_FRACTION * b.topSpeed, simTime)
+        else
+            metrics:planPointPassed(ship, b.pointIndex, speed, simTime)
+        end
         b.pointIndex = b.pointIndex + 1
         if b.points[b.pointIndex] then
             ship.target = b.points[b.pointIndex]
@@ -215,6 +230,41 @@ function ShipBehaviour.advance(nav, ship, arrived, simTime, rules, metrics)
         b.phase = "switched"
         nav:setHold(ship.agent, rules.range)
         metrics:log("%s holds at %.0f m/s, %.2f s", ship.label, Metres.toMetres(speed), simTime)
+    end
+end
+
+---Takes a Plan ship's plan: the ship passes the plan's waypoints, the goal last being where it
+---stops. A plan that is not Ok or has no detour leaves the ship flying at the goal.
+---@param nav NavWorld
+---@param ship SandboxShip
+---@param plan SandboxPlan
+---@param simTime number
+function ShipBehaviour.planReceived(nav, ship, plan, simTime)
+    local b = ship.behaviour
+    local points = {}
+    if plan.status == SystemPlanner.Status.Ok then
+        for i = 1, #plan.waypoints - 1 do points[i] = plan.waypoints[i] end
+    end
+    if #points == 0 then
+        b.phase = "arrive"
+        return
+    end
+    b.points, b.pointIndex, b.phase = points, 1, "pass"
+    ship.target = points[1]
+    nav:setSeek(ship.agent, ship.target, b.passRadius)
+    ship.bestDistance, ship.progressTime = math.huge, simTime
+end
+
+---Notes how close a Plan ship is to each obstacle's safe sphere. Called after a physics step.
+---@param ship SandboxShip
+---@param obstacles SandboxObstacle[]
+function ShipBehaviour.trackClearance(ship, obstacles)
+    local b = ship.behaviour
+    if not b or b.kind ~= "Plan" then return end
+    local at = ship.rb:getPos()
+    for i, obstacle in ipairs(obstacles) do
+        local clearance = at:distance(obstacle.rb:getPos()) - obstacle.safeRadius
+        b.clearance[i] = math.min(b.clearance[i] or math.huge, clearance)
     end
 end
 
@@ -291,7 +341,7 @@ function ShipBehaviour.judge(ship, simTime, rules)
         return judgeStation(b, ship, distance, simTime, rules)
     elseif b.kind == "Orbit" then
         return judgeOrbit(b, ship, distance, rules)
-    elseif b.kind == "Seek" then
+    elseif b.kind == "Seek" or b.kind == "Plan" then
         return b.phase == "arrive" and isThere(ship, distance, rules)
     end
     -- Hold: the ship must leave its point and come back to it.

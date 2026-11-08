@@ -5,6 +5,11 @@
 local ScaleConfig   = require("Config.Gen.UniverseScaleConfig")
 local ShipBehaviour = require("States.App.Tests.NavigationSandbox.Support.ShipBehaviour")
 local Metres        = require("States.App.Tests.NavigationSandbox.Support.Metres")
+local SystemPlanner = require("Shared.Helpers.SystemPlanner")
+
+---@type table<integer, string>
+local STATUS_NAMES = {}
+for name, value in pairs(SystemPlanner.Status) do STATUS_NAMES[value] = name end
 
 -- A ship has arrived when it is this close to its target and this slow.
 local ARRIVAL_RANGE_M   = 100
@@ -45,12 +50,15 @@ local RULES = { range = ARRIVAL_RANGE, speed = ARRIVAL_SPEED }
 ---@field entity Entity
 ---@field rb RigidBody
 ---@field radius number Game units
+---@field safeRadius number Game units: the radius planned paths keep out of; `radius` when the scenario sets no factor
+---@field home Position|nil Where a static obstacle is
 ---@field circle SandboxObstacleCircle|nil
 ---@field label string
 ---@field kind "obstacle"
 
 ---@class SandboxObstacleCircle
----@field centre Position
+---@field centre Position|nil Not set for a moon
+---@field around integer|nil Index of the obstacle this one circles; the circle is about that obstacle's position
 ---@field radius number Game units
 ---@field periodS number Seconds for one turn
 
@@ -81,6 +89,10 @@ local ScenarioMetrics = Class("ScenarioMetrics", function(self, name, ships, obs
     self.touching = {} -- pair key -> true while the two bodies overlap
     self.arrivals, self.deadlocks, self.waypoints = 0, 0, 0
     self.passes, self.slowPasses = 0, 0 -- Seek points passed, and those passed too slowly
+    self.plansExpected, self.plansReceived, self.planFailures = 0, 0, 0
+    for _, ship in ipairs(ships) do
+        if ship.behaviour and ship.behaviour.kind == "Plan" then self.plansExpected = self.plansExpected + 1 end
+    end
     self.obstacleCollisions, self.shipCollisions = 0, 0
     self.frames, self.frameMsSum, self.frameMsMax = 0, 0, 0
     self.timedFrames = 0
@@ -156,6 +168,44 @@ function ScenarioMetrics:seekPassed(ship, index, speed, fastEnough, simTime)
     if not fastEnough then self.slowPasses = self.slowPasses + 1 end
     self:log("%s passed point %d at %.2f s, %.0f m/s%s", ship.label, index, simTime,
         Metres.toMetres(speed), fastEnough and "" or " (too slow)")
+end
+
+---Record that a Plan ship passed one of its plan's waypoints. Not judged: the speed at a corner is
+---the controller's, and the plan is judged by its status.
+---@param ship SandboxShip
+---@param index integer Index of the waypoint in the plan
+---@param speed number Game units per second
+---@param simTime number
+function ScenarioMetrics:planPointPassed(ship, index, speed, simTime)
+    self:log("%s passed plan waypoint %d at %.2f s, %.0f m/s", ship.label, index, simTime, Metres.toMetres(speed))
+end
+
+---Record a plan that came back from the worker.
+---@param reply SandboxPlanReply
+---@param simTime number Simulated seconds when it was received
+function ScenarioMetrics:planReceived(reply, simTime)
+    local plan = reply.plan
+    self.plansReceived = self.plansReceived + 1
+    if plan.error then
+        self.planFailures = self.planFailures + 1
+        self:log("%s: the planner worker failed: %s", reply.ship.label, plan.error)
+        return
+    end
+    if plan.status ~= SystemPlanner.Status.Ok then self.planFailures = self.planFailures + 1 end
+    local name = STATUS_NAMES[plan.status] or tostring(plan.status)
+    self:log("%s planned: %s, %d waypoints, kernel %.3f ms, send to receipt %.2f ms, %.2f s simulated until it arrived",
+        reply.ship.label, name, #plan.waypoints, plan.kernelMs, reply.latencyMs, simTime - reply.simTime)
+    for i, waypoint in ipairs(plan.waypoints) do
+        self:log("%s: plan waypoint %d at (%.0f, %.0f, %.0f) m, %.2f s from the start", reply.ship.label, i,
+            metres(waypoint.x), metres(waypoint.y), metres(waypoint.z), plan.times[i])
+    end
+end
+
+---Log the latency probe's reply: the same request again, to a worker that is running.
+---@param reply SandboxPlanReply
+function ScenarioMetrics:planProbed(reply)
+    self:log("planner worker, running: kernel %.3f ms, send to receipt %.2f ms", reply.plan.kernelMs,
+        reply.latencyMs)
 end
 
 ---@class SandboxNeighbour
@@ -284,7 +334,10 @@ end
 ---@param simTime number
 function ScenarioMetrics:update(world, simTime)
     for _, ship in ipairs(self.ships) do
-        if ship.state == "flying" then self:updateProgress(ship, simTime) end
+        if ship.state == "flying" then
+            self:updateProgress(ship, simTime)
+            ShipBehaviour.trackClearance(ship, self.obstacles)
+        end
     end
     self:updateCollisions(world, simTime)
 end
@@ -321,7 +374,27 @@ function ScenarioMetrics:failures()
     if self.slowPasses > 0 then
         table.insert(failures, string.format("%d seek points passed too slowly", self.slowPasses))
     end
+    if self.plansReceived < self.plansExpected then
+        table.insert(failures, string.format("%d plans never arrived", self.plansExpected - self.plansReceived))
+    end
+    if self.planFailures > 0 then
+        table.insert(failures, string.format("%d plans without status Ok", self.planFailures))
+    end
     return failures
+end
+
+---Log a Plan ship's smallest distance to each obstacle's safe sphere (negative: inside it). Logged,
+---not judged: the plan keeps the path out of the spheres, the ship follows it only roughly.
+---@param ship SandboxShip
+function ScenarioMetrics:logClearance(ship)
+    local clearance = ship.behaviour and ship.behaviour.clearance
+    if not clearance then return end
+    for i, obstacle in ipairs(self.obstacles) do
+        if clearance[i] then
+            self:log("%s: smallest clearance to the safe sphere of %s: %.0f m", ship.label, obstacle.label,
+                metres(clearance[i]))
+        end
+    end
 end
 
 ---Log the summary lines.
@@ -342,6 +415,7 @@ function ScenarioMetrics:summarize(simTime)
         if turnRate then
             self:log("%s: largest turn rate while held on station: %.3f rad/s", ship.label, turnRate)
         end
+        self:logClearance(ship)
     end
     local t = self.timings
     self:log("navigation ms per frame, mean (max) over %d frames: step %.3f (%.3f), glue %.3f (%.3f), "

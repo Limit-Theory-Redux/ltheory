@@ -14,6 +14,7 @@
    - [Ship flight control](script/flight.md)
    - [Zones and gravity wells](script/zones.md)
    - [Navigation sandbox](script/navigation-sandbox.md)
+   - [System planner](script/system-planner.md)
    - [HmGui](../script/UI/HmGui/README.md)
 1. [Full structure](LTheory%20Full%20Restructure.md)
 1. [Control keys](GameControlKeys.txt)

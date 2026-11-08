@@ -1,4 +1,5 @@
 local Component = require("Core.ECS.Component")
+local OrbitMath = require("Shared.Helpers.OrbitMath")
 
 ---@alias RadiansPerSecond number An angular speed in radians per second
 
@@ -66,22 +67,14 @@ end
 ---@param t number Seconds from now, may be negative
 ---@return gameunit x, gameunit y, gameunit z
 function OrbitComponent:offsetAt(t)
-    local radius = self.orbitRadius or 0
-    local angle = self.phase + self.angularSpeed * t
-    local x = math.cos(angle) * radius
-    local z = math.sin(angle) * radius
-    return x, z * math.sin(self.inclination), z * math.cos(self.inclination)
+    return OrbitMath.offsetAt(self.orbitRadius or 0, self.phase, self.angularSpeed, self.inclination, t)
 end
 
 ---The body's velocity relative to its parent `t` seconds from now.
 ---@param t number Seconds from now, may be negative
 ---@return gameunit vx, gameunit vy, gameunit vz Game units per second
 function OrbitComponent:relativeVelocityAt(t)
-    local radius = self.orbitRadius or 0
-    local angle = self.phase + self.angularSpeed * t
-    local vx = -math.sin(angle) * radius * self.angularSpeed
-    local vz = math.cos(angle) * radius * self.angularSpeed
-    return vx, vz * math.sin(self.inclination), vz * math.cos(self.inclination)
+    return OrbitMath.velocityAt(self.orbitRadius or 0, self.phase, self.angularSpeed, self.inclination, t)
 end
 
 return OrbitComponent

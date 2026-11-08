@@ -7,4 +7,5 @@
 1. [Zones and gravity wells](zones.md)
 1. [Orbits](orbits.md)
 1. [Navigation sandbox](navigation-sandbox.md)
+1. [System planner](system-planner.md)
 1. [HmGui](../../script/UI/HmGui/README.md)

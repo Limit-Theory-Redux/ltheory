@@ -23,8 +23,10 @@ require("Modules.Cameras.Systems.CameraSystem")
 local RenderingComponents   = require("Modules.Rendering.Components")
 local Entity                = require("Core.ECS.Entity")
 local NavAgentHelper        = require("Shared.Helpers.NavAgentHelper")
+local OrbitMath             = require("Shared.Helpers.OrbitMath")
 
 local ScenarioMetrics      = require("States.App.Tests.NavigationSandbox.Support.ScenarioMetrics")
+local PlanClient            = require("States.App.Tests.NavigationSandbox.Support.PlanClient")
 local NavDebugDraw          = require("States.App.Tests.NavigationSandbox.Support.NavDebugDraw")
 local ShipBehaviour         = require("States.App.Tests.NavigationSandbox.Support.ShipBehaviour")
 local Metres                = require("States.App.Tests.NavigationSandbox.Support.Metres")
@@ -38,7 +40,8 @@ local Metres                = require("States.App.Tests.NavigationSandbox.Suppor
 ---@field hull integer|nil An `Enums.ShipHulls` value, which sets the ship's size; Solo by default
 
 ---@class SandboxObstacleCircleSpec
----@field centre number[] { x, y, z } in metres
+---@field centre number[]|nil { x, y, z } in metres; not used with `around`
+---@field around integer|nil Index of an earlier obstacle: the circle is about that obstacle's position, which may itself move
 ---@field radius number In metres
 ---@field periodS number Seconds for one turn; the sphere starts on the +x side and moves toward +z
 
@@ -51,6 +54,7 @@ local Metres                = require("States.App.Tests.NavigationSandbox.Suppor
 ---@field name string
 ---@field ships SandboxShipSpec[]
 ---@field obstacles SandboxObstacleSpec[]|nil
+---@field safeRadiusFactor number|nil The planner keeps paths out of a sphere this many times an obstacle's radius; 1 when nil
 ---@field timeLimit number|nil Seconds of simulated time for every ship to arrive or deadlock; route ships fly until it ends
 ---@field avoidance SandboxAvoidanceSpec|nil The avoidance tuning; the navigation world's defaults when nil
 
@@ -65,7 +69,7 @@ local NavigationSandbox = Subclass("NavigationSandbox", Application)
 
 -- Every scenario, in the order `NavigationSandbox` runs them; each is an app of its own.
 local SCENARIO_NAMES   = { "SingleShip", "HeadOn", "CrossingStreams", "CircleSwap", "ObstacleField",
-    "SeekThrough", "HoldAfterCruise", "PursueRock", "FollowLeader", "OrbitRock" }
+    "SeekThrough", "HoldAfterCruise", "PursueRock", "FollowLeader", "OrbitRock", "SystemCrossing" }
 local SCENARIO_MODULES = "States.App.Tests.NavigationSandbox."
 local SEED             = 1
 local DEFAULT_HULL     = Enums.ShipHulls.Solo
@@ -151,6 +155,9 @@ function NavigationSandbox:drawMarkers(blendMode)
     NavDebugDraw.begin()
     for _, obstacle in ipairs(self.obstacles) do
         NavDebugDraw.sphere(obstacle.rb:getPos(), obstacle.radius, FILL_COLORS.obstacle)
+        if obstacle.safeRadius > obstacle.radius then
+            NavDebugDraw.sphere(obstacle.rb:getPos(), obstacle.safeRadius, MARKER_COLORS.obstacle, true)
+        end
     end
     for _, ship in ipairs(self.ships) do
         local flying = MARKER_COLORS.flying
@@ -186,6 +193,20 @@ function NavigationSandbox:createCamera()
     self.camera:setTarget(Registry:createEntity())
 end
 
+---The point an obstacle's centre stays within `reach` of, whatever the time: its position when it
+---is static, its circle's centre when it circles one, and the parent's point when it is a moon,
+---with the circle's radius added to the reach.
+---@param obstacle SandboxObstacle
+---@return Position centre
+---@return number reach Game units
+function NavigationSandbox:obstacleFrame(obstacle)
+    local circle = obstacle.circle
+    if not circle then return obstacle.home, 0 end
+    if not circle.around then return circle.centre, circle.radius end
+    local centre, reach = self:obstacleFrame(self.obstacles[circle.around])
+    return centre, reach + circle.radius
+end
+
 ---Point the camera at the middle of every start and target of the scenario.
 ---@param scenario SandboxScenario
 function NavigationSandbox:frameCamera(scenario)
@@ -204,10 +225,11 @@ function NavigationSandbox:frameCamera(scenario)
             table.insert(padding, 0)
         end
     end
-    -- A moving obstacle is framed by its whole circle.
+    -- A moving obstacle is framed by its whole circle, and a moon by its parent's frame.
     for _, obstacle in ipairs(self.obstacles) do
-        table.insert(points, obstacle.circle and obstacle.circle.centre or obstacle.rb:getPos())
-        table.insert(padding, obstacle.radius + (obstacle.circle and obstacle.circle.radius or 0))
+        local centre, reach = self:obstacleFrame(obstacle)
+        table.insert(points, centre)
+        table.insert(padding, obstacle.radius + reach)
     end
     local cx, cy, cz = 0, 0, 0
     for _, p in ipairs(points) do cx, cy, cz = cx + p.x, cy + p.y, cz + p.z end
@@ -262,38 +284,58 @@ function NavigationSandbox:spawnShip(spec, index)
     }
 end
 
----Where a circling obstacle is `t` seconds into the scenario.
----@param circle SandboxObstacleCircle
+---Where an obstacle is `t` seconds into the scenario: a circling one on its circle, about its
+---centre or about the position of the obstacle it circles.
+---@param obstacles SandboxObstacle[]
+---@param obstacle SandboxObstacle
 ---@param t number
 ---@return Position
-local function circlePosition(circle, t)
-    local phase = 2 * math.pi * t / circle.periodS
-    local c = circle.centre
-    return Position(c.x + circle.radius * math.cos(phase), c.y, c.z + circle.radius * math.sin(phase))
+local function obstaclePosition(obstacles, obstacle, t)
+    local circle = obstacle.circle
+    if not circle then return obstacle.home end
+    local c = circle.around and obstaclePosition(obstacles, obstacles[circle.around], t) or circle.centre
+    local x, y, z = OrbitMath.offsetAt(circle.radius, 0, 2 * math.pi / circle.periodS, 0, t)
+    return Position(c.x + x, c.y + y, c.z + z)
 end
 
 ---A sphere: a kinematic unit-radius body scaled to the obstacle's radius. A static one sits at
----its position; one with a circle starts on it and is moved by `moveObstacles`.
+---its position; one with a circle starts on it and is moved by `moveObstacles`. The obstacle a
+---circle is about must already be spawned.
 ---@param spec SandboxObstacleSpec
 ---@param index integer
+---@param safeRadiusFactor number The obstacle's safe radius as a multiple of its radius
 ---@return SandboxObstacle
-function NavigationSandbox:spawnObstacle(spec, index)
+function NavigationSandbox:spawnObstacle(spec, index, safeRadiusFactor)
     local radius = Metres.length(spec.radius)
-    local circle
+    local circle, home
     if spec.circle then
+        local around = spec.circle.around
+        assert(not around or around < index, "an obstacle circles an earlier obstacle")
+        assert(around or spec.circle.centre, "a circle has a centre or circles an obstacle")
         circle = {
-            centre = toPosition(spec.circle.centre),
+            centre = spec.circle.centre and toPosition(spec.circle.centre),
+            around = around,
             radius = Metres.length(spec.circle.radius),
             periodS = spec.circle.periodS,
         }
+    else
+        home = toPosition(spec.position)
     end
+    local obstacle = {
+        radius = radius,
+        safeRadius = radius * safeRadiusFactor,
+        home = home,
+        circle = circle,
+        label = string.format("obstacle %d", index),
+    }
     local rb = RigidBody.CreateSphere()
     rb:setKinematic(true)
-    rb:setPos(circle and circlePosition(circle, 0) or toPosition(spec.position))
+    rb:setPos(obstaclePosition(self.obstacles, obstacle, 0))
     rb:setScale(radius)
-    local entity = Entity.Create("NavigationSandboxObstacle", PhysicsComponents.RigidBody(rb))
+    obstacle.rb = rb
+    obstacle.entity = Entity.Create("NavigationSandboxObstacle", PhysicsComponents.RigidBody(rb))
     self.world:addRigidBody(rb)
-    return { entity = entity, rb = rb, radius = radius, circle = circle, label = string.format("obstacle %d", index) }
+    return obstacle
 end
 
 ---Set the kinematic targets of the circling obstacles to where they are at `t`, so physics sees
@@ -302,7 +344,7 @@ end
 function NavigationSandbox:moveObstacles(t)
     for _, obstacle in ipairs(self.obstacles) do
         if obstacle.circle then
-            obstacle.rb:setKinematicTarget(circlePosition(obstacle.circle, t), obstacle.rb:getRot())
+            obstacle.rb:setKinematicTarget(obstaclePosition(self.obstacles, obstacle, t), obstacle.rb:getRot())
         end
     end
 end
@@ -321,7 +363,7 @@ function NavigationSandbox:createNavigation()
     self.nav:setSensing(SENSING_MASK)
     for _, ship in ipairs(self.ships) do
         if ship.behaviour then
-            ShipBehaviour.start(self.nav, ship, self.ships, self.obstacles, ScenarioMetrics.RULES)
+            ShipBehaviour.start(self.nav, ship, self.ships, self.obstacles, ScenarioMetrics.RULES, self.planner)
         else
             self.nav:setArrive(ship.agent, ship.target, ScenarioMetrics.ARRIVAL_RANGE)
         end
@@ -351,9 +393,12 @@ function NavigationSandbox:startScenario(index)
         table.insert(self.ships, self:spawnShip(spec, i))
     end
     for i, spec in ipairs(scenario.obstacles or {}) do
-        table.insert(self.obstacles, self:spawnObstacle(spec, i))
+        table.insert(self.obstacles, self:spawnObstacle(spec, i, scenario.safeRadiusFactor or 1))
     end
     self.metrics = ScenarioMetrics(scenario.name, self.ships, self.obstacles, scenario.avoidance)
+    if self.metrics.plansExpected > 0 then
+        self.planner = self.planner or PlanClient.start()
+    end
     self:createNavigation()
     self:frameCamera(scenario)
     Log.Info("NavigationSandbox: %s: started, %d ships, %d obstacles", scenario.name, #self.ships, #self.obstacles)
@@ -370,6 +415,7 @@ function NavigationSandbox:endScenario()
             table.concat(failures, ", "), self.timeLimit)
     end
 
+    if self.planner then self.planner:reset() end
     -- Registered bodies must stay in physics while the navigation world exists.
     self.nav = nil
     for _, ship in ipairs(self.ships) do
@@ -406,6 +452,16 @@ function NavigationSandbox:applyNavigation()
     local count, stride = #self.ships, NavWorld.AxisCount()
     self.nav:copyAxes(self.axes, count * stride)
     self.nav:copyArrived(self.arrived, count)
+    if self.planner then
+        for _, reply in ipairs(self.planner:poll()) do
+            if reply.probe then
+                self.metrics:planProbed(reply)
+            else
+                self.metrics:planReceived(reply, self.simTime)
+                ShipBehaviour.planReceived(self.nav, reply.ship, reply.plan, self.simTime)
+            end
+        end
+    end
     for _, ship in ipairs(self.ships) do
         if ship.state ~= "flying" then
             local keeps = ship.behaviour and ShipBehaviour.keepsBehaviour(ship)
