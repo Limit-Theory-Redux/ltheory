@@ -14,7 +14,7 @@ mod world;
 
 pub use agent::{
     AXIS_COUNT, Acceleration, AgentId, AngularAcceleration, Axis, Body, DragRate, Frame, Goal,
-    MIN_ARRIVAL_RADII, Profile,
+    MIN_ARRIVAL_RADII, NO_SPEED_CAP, Profile, Speed,
 };
 pub use avoidance::{AvoidanceTuning, MIN_CLEARANCE_RADII, sensing_range};
 pub use behaviour::{Behaviour, FrameOffset, ORBIT_FIELD_GAIN, ORBIT_THRUST_SHARE};

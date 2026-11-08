@@ -93,11 +93,23 @@ pub type AngularAcceleration = f64;
 /// A drag rate `k` in `dv/dt = -k·v`, per second.
 pub type DragRate = f64;
 
+/// A speed, in length units per second. Relative to the agent's frame wherever an agent's own
+/// speed is meant.
+pub type Speed = f64;
+
+/// The speed cap of an agent that has none.
+pub const NO_SPEED_CAP: Speed = f64::INFINITY;
+
 /// What limits an agent's motion: the accelerations its thrusters and turning gear give at full
 /// input along each of its own axes, and the drag that slows it. A limit of 0 means the agent
 /// has no authority on that axis.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Profile {
+    /// The largest speed the behaviours and avoidance plan at, below the speed the thrust
+    /// settles at; [`NO_SPEED_CAP`] for none. It limits what the agent is asked to do and not
+    /// what it can do: the thrust limits below are unchanged, so an agent over its cap brakes at
+    /// full authority.
+    pub speed_cap: Speed,
     pub linear_drag: DragRate,
     pub angular_drag: DragRate,
     /// Thrust along the nose; forward and reverse are equal.
@@ -115,6 +127,7 @@ impl Profile {
     /// A profile for unit tests: a top speed of 100 against a drag of 2, side thrust a quarter
     /// of the forward thrust, and quick turns.
     pub(crate) const TEST: Self = Self {
+        speed_cap: NO_SPEED_CAP,
         linear_drag: 2.0,
         angular_drag: 5.0,
         accel_forward: 200.0,
@@ -127,14 +140,15 @@ impl Profile {
 }
 
 impl Profile {
-    /// The speed at which forward thrust balances linear drag, in length units per second;
-    /// infinite without drag.
-    pub fn max_speed(&self) -> f64 {
-        if self.linear_drag > 0.0 {
+    /// The top speed the agent is planned at, in length units per second: the speed at which
+    /// forward thrust balances linear drag (infinite without drag), or the speed cap if lower.
+    pub fn max_speed(&self) -> Speed {
+        let thrust_speed = if self.linear_drag > 0.0 {
             self.accel_forward / self.linear_drag
         } else {
             f64::INFINITY
-        }
+        };
+        thrust_speed.min(self.speed_cap)
     }
 }
 

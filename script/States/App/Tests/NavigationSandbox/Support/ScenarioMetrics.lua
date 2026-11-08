@@ -90,7 +90,7 @@ local ScenarioMetrics = Class("ScenarioMetrics", function(self, name, ships, obs
     end
     self.touching = {} -- pair key -> true while the two bodies overlap
     self.arrivals, self.deadlocks, self.waypoints = 0, 0, 0
-    self.passes, self.slowPasses = 0, 0 -- Seek points passed, and those passed too slowly
+    self.passes, self.badPasses = 0, 0 -- Seek points passed, and those passed at the wrong speed
     self.plansExpected, self.plansReceived, self.planFailures = 0, 0, 0
     for _, ship in ipairs(ships) do
         if ship.behaviour and ship.behaviour.kind == "Plan" then self.plansExpected = self.plansExpected + 1 end
@@ -163,13 +163,13 @@ end
 ---@param ship SandboxShip
 ---@param index integer Index of the point in the behaviour's list
 ---@param speed number Game units per second
----@param fastEnough boolean Whether the ship was still at speed, not braking for the point
+---@param problem string|nil What was wrong with the speed ("too slow", "too fast"), if anything
 ---@param simTime number
-function ScenarioMetrics:seekPassed(ship, index, speed, fastEnough, simTime)
+function ScenarioMetrics:seekPassed(ship, index, speed, problem, simTime)
     self.passes = self.passes + 1
-    if not fastEnough then self.slowPasses = self.slowPasses + 1 end
+    if problem then self.badPasses = self.badPasses + 1 end
     self:log("%s passed point %d at %.2f s, %.0f m/s%s", ship.label, index, simTime,
-        Metres.toMetres(speed), fastEnough and "" or " (too slow)")
+        Metres.toMetres(speed), problem and (" (" .. problem .. ")") or "")
 end
 
 ---Record that a Plan ship passed one of its plan's waypoints. Not judged: the speed at a corner is
@@ -375,8 +375,15 @@ function ScenarioMetrics:failures()
     if self:unfinished() > 0 then
         table.insert(failures, string.format("%d ships still flying", self:unfinished()))
     end
-    if self.slowPasses > 0 then
-        table.insert(failures, string.format("%d seek points passed too slowly", self.slowPasses))
+    if self.badPasses > 0 then
+        table.insert(failures, string.format("%d seek points passed at the wrong speed", self.badPasses))
+    end
+    for _, ship in ipairs(self.ships) do
+        local cap, peak = ShipBehaviour.capExceeded(ship)
+        if cap then
+            table.insert(failures, string.format("%s flew at %.0f m/s over its %.0f m/s cap", ship.label,
+                metres(peak), metres(cap)))
+        end
     end
     if self.plansReceived < self.plansExpected then
         table.insert(failures, string.format("%d plans never arrived", self.plansExpected - self.plansReceived))
@@ -420,6 +427,15 @@ function ScenarioMetrics:summarize(simTime)
             self:log("%s: largest turn rate while held on station: %.3f rad/s", ship.label, turnRate)
         end
         self:logClearance(ship)
+        local cap, peak = ShipBehaviour.capReport(ship)
+        if cap then
+            self:log("%s: largest speed %.0f m/s against its cap of %.0f m/s", ship.label, metres(peak), metres(cap))
+        end
+        local radius, speed, share = ShipBehaviour.turnReport(ship)
+        if radius then
+            self:log("%s: tightest turn %.0f m radius at %.0f m/s, %.2f of its forward thrust", ship.label,
+                metres(radius), metres(speed), share)
+        end
     end
     local t = self.timings
     self:log("navigation ms per frame, mean (max) over %d frames: step %.3f (%.3f), glue %.3f (%.3f), "

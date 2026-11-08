@@ -1,8 +1,8 @@
 use std::collections::{BTreeMap, HashSet};
 
 use ::nav::{
-    AXIS_COUNT, AgentId, AvoidanceTuning, Behaviour, Body, Frame, FrameOffset, Goal, Obstacle,
-    ObstacleKey, Profile, sensing_range,
+    AXIS_COUNT, AgentId, AvoidanceTuning, Behaviour, Body, Frame, FrameOffset, Goal, NO_SPEED_CAP,
+    Obstacle, ObstacleKey, Profile, Speed, sensing_range,
 };
 
 use crate::math::*;
@@ -13,6 +13,9 @@ use crate::rf::Rf;
 /// up; pitch, yaw, roll), with its drags per second.
 #[derive(Clone, Copy)]
 struct FlightLimits {
+    /// The top speed the agent may be planned to fly at, relative to its frame; kept here because
+    /// `profile_of` rebuilds the profile at each step.
+    speed_cap: Speed,
     linear_drag: f64,
     angular_drag: f64,
     thrust: [f64; 3],
@@ -54,7 +57,7 @@ fn refresh_target(behaviour: &mut Behaviour, body: Body, offset: DVec3) {
                 ..*goal
             };
         }
-        Behaviour::Seek(_) => {}
+        Behaviour::Seek { .. } => {}
     }
 }
 
@@ -71,6 +74,7 @@ fn profile_of(limits: &FlightLimits, state: &BodyState) -> Profile {
     let inverse_mass = per_unit(1.0, state.mass);
     let [thrust_forward, thrust_right, thrust_up] = limits.thrust.map(|force| force * inverse_mass);
     Profile {
+        speed_cap: limits.speed_cap,
         linear_drag: limits.linear_drag,
         angular_drag: limits.angular_drag,
         accel_forward: thrust_forward,
@@ -352,6 +356,7 @@ impl NavWorld {
     ) -> u32 {
         let handles = self.handles_of(body, "agent");
         let limits = FlightLimits {
+            speed_cap: NO_SPEED_CAP,
             linear_drag,
             angular_drag,
             thrust: [thrust_forward, thrust_right, thrust_up],
@@ -424,12 +429,43 @@ impl NavWorld {
         self.world.set_frame_velocity(agent, *velocity);
     }
 
-    /// Sends the agent through `target` at top speed, without braking.
+    /// Sends the agent through `target` at top speed and does not stop it there. It slows so as to
+    /// pass `target` at `pass_speed` (game units per second, relative to the agent's frame), on
+    /// the braking curve Arrive uses; an infinite `pass_speed`, or one at or above the agent's top
+    /// speed, never slows it.
     ///
     /// # Panics
-    /// If `id` isn't an agent.
-    pub fn set_seek(&mut self, id: u32, target: &Position, arrival_radius: f64) {
-        self.set_fixed(id, Behaviour::Seek(Goal::fixed(target.v, arrival_radius)));
+    /// If `id` isn't an agent, or `pass_speed` is negative or NaN.
+    // The generator maps types by their text, so the speed stays a bare `f64` (`Speed`).
+    pub fn set_seek(&mut self, id: u32, target: &Position, arrival_radius: f64, pass_speed: f64) {
+        assert!(
+            pass_speed >= 0.0,
+            "a pass speed must be zero or more, got {pass_speed}"
+        );
+        self.set_fixed(
+            id,
+            Behaviour::Seek {
+                goal: Goal::fixed(target.v, arrival_radius),
+                pass_speed,
+            },
+        );
+    }
+
+    /// Limits the speed the agent is planned to fly at, in every behaviour and in avoidance, to
+    /// `cap` (game units per second, relative to the agent's frame; see
+    /// [`set_frame_velocity`](NavWorld::set_frame_velocity)), until it is set again. An agent
+    /// above the cap is braked down to it at full thrust. An infinite cap, the default, lifts
+    /// the limit.
+    ///
+    /// # Panics
+    /// If `id` isn't an agent, or `cap` is negative or NaN.
+    // The generator maps types by their text, so the speed stays a bare `f64` (`Speed`).
+    pub fn set_speed_cap(&mut self, id: u32, cap: f64) {
+        assert!(cap >= 0.0, "a speed cap must be zero or more, got {cap}");
+        let agent = self.agent_mut(id);
+        agent.limits.speed_cap = cap;
+        let agent = agent.id;
+        self.world.set_speed_cap(agent, cap);
     }
 
     /// Keeps the agent where its body is now.
@@ -663,6 +699,7 @@ mod tests {
         let state = state_in(&physics, &ship);
         assert!(state.mass > 0.0, "a ship body has mass");
         let limits = FlightLimits {
+            speed_cap: NO_SPEED_CAP,
             linear_drag: LINEAR_DRAG,
             angular_drag: ANGULAR_DRAG,
             thrust: [THRUST_FORWARD, THRUST_SIDE, THRUST_SIDE],
@@ -691,6 +728,7 @@ mod tests {
             ..state_in(&physics, &ship)
         };
         let limits = FlightLimits {
+            speed_cap: NO_SPEED_CAP,
             linear_drag: LINEAR_DRAG,
             angular_drag: ANGULAR_DRAG,
             thrust: [THRUST_FORWARD; 3],
@@ -793,9 +831,84 @@ mod tests {
         let ship = ship_in(&mut physics);
         let mut nav = NavWorld::new(&physics);
         let id = add_ship(&mut nav, &ship);
-        nav.set_seek(id, &goal_at(GOAL_DISTANCE, 0.0), ARRIVAL_RADIUS);
+        nav.set_seek(
+            id,
+            &goal_at(GOAL_DISTANCE, 0.0),
+            ARRIVAL_RADIUS,
+            f64::INFINITY,
+        );
         nav.step();
         assert_eq!(yaw_of(&nav), 1.0);
+    }
+
+    fn forward_thrust_of(nav: &NavWorld) -> f64 {
+        axis(&axes_of(nav), 0, NavAxis::ThrustForward)
+    }
+
+    #[test]
+    fn a_speed_cap_holds_through_the_profile_refresh_of_every_step() {
+        let mut physics = Physics::new();
+        let ship = ship_in(&mut physics);
+        let mut nav = NavWorld::new(&physics);
+        let id = add_ship(&mut nav, &ship);
+        let far = goal_at(0.0, -LONG_GOAL_DISTANCE);
+        nav.set_seek(id, &far, ARRIVAL_RADIUS, f64::INFINITY);
+        nav.step();
+        assert!(
+            forward_thrust_of(&nav) > 0.0,
+            "an uncapped agent at rest accelerates"
+        );
+
+        nav.set_speed_cap(id, 0.0);
+        for _ in 0..3 {
+            nav.step();
+            assert_eq!(forward_thrust_of(&nav), 0.0, "a cap of zero wants rest");
+        }
+
+        nav.set_speed_cap(id, f64::INFINITY);
+        nav.step();
+        assert!(
+            forward_thrust_of(&nav) > 0.0,
+            "an infinite cap lifts the limit"
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "a speed cap must be zero or more")]
+    fn a_negative_speed_cap_is_refused() {
+        let mut physics = Physics::new();
+        let ship = ship_in(&mut physics);
+        let mut nav = NavWorld::new(&physics);
+        let id = add_ship(&mut nav, &ship);
+        nav.set_speed_cap(id, -1.0);
+    }
+
+    #[test]
+    #[should_panic(expected = "a speed cap must be zero or more")]
+    fn a_nan_speed_cap_is_refused() {
+        let mut physics = Physics::new();
+        let ship = ship_in(&mut physics);
+        let mut nav = NavWorld::new(&physics);
+        let id = add_ship(&mut nav, &ship);
+        nav.set_speed_cap(id, f64::NAN);
+    }
+
+    #[test]
+    #[should_panic(expected = "a pass speed must be zero or more")]
+    fn a_negative_pass_speed_is_refused() {
+        let mut physics = Physics::new();
+        let ship = ship_in(&mut physics);
+        let mut nav = NavWorld::new(&physics);
+        let id = add_ship(&mut nav, &ship);
+        nav.set_seek(id, &goal_at(GOAL_DISTANCE, 0.0), ARRIVAL_RADIUS, -1.0);
+    }
+
+    #[test]
+    #[should_panic(expected = "NavWorld has no agent 3")]
+    fn a_speed_cap_for_an_unknown_agent_is_refused() {
+        let physics = Physics::new();
+        let mut nav = NavWorld::new(&physics);
+        nav.set_speed_cap(3, 1.0);
     }
 
     #[test]

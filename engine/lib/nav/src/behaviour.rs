@@ -1,7 +1,7 @@
 use glam::DVec3;
 
-use crate::agent::{AT_REST_RADII_PER_S, Body, Goal, Profile};
-use crate::braking::stopping_speed;
+use crate::agent::{AT_REST_RADII_PER_S, Body, Goal, Profile, Speed};
+use crate::braking::{stopping_distance, stopping_speed};
 
 /// Below this squared length (length units squared), a vector is too short to take a direction from.
 pub(crate) const TINY_SQ: f64 = 1e-24;
@@ -41,9 +41,10 @@ pub struct FrameOffset {
 /// before every step.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Behaviour {
-    /// Fly at the goal's point at top speed, without braking. An agent with no linear drag has no
-    /// top speed, and gets no input.
-    Seek(Goal),
+    /// Fly through the goal's point at top speed, braking only as far as `pass_speed`, the
+    /// largest speed the agent is to have at the point (relative to its frame); infinite for no
+    /// braking. An agent with no top speed (no linear drag and no speed cap) gets no input.
+    Seek { goal: Goal, pass_speed: Speed },
     /// Fly to the goal's point and stop on it.
     Arrive(Goal),
     /// Meet a moving body `stand_off` from its hull, along the line of sight, matching its
@@ -81,7 +82,10 @@ impl Behaviour {
     /// (a goal's, and those of the bodies it names) has that velocity taken off.
     pub(crate) fn seen_from(self, frame_velocity: DVec3) -> Self {
         match self {
-            Self::Seek(goal) => Self::Seek(goal.seen_from(frame_velocity)),
+            Self::Seek { goal, pass_speed } => Self::Seek {
+                goal: goal.seen_from(frame_velocity),
+                pass_speed,
+            },
             Self::Arrive(goal) => Self::Arrive(goal.seen_from(frame_velocity)),
             Self::Pursue {
                 target,
@@ -175,16 +179,32 @@ pub(crate) fn arrive_at(
     wanted_of(point_velocity + direction * closing, direction)
 }
 
-/// Fly at the goal at top speed.
-fn seek(body: &Body, profile: &Profile, goal: &Goal) -> Wanted {
+/// The speed a Seek flies at, `distance` from where it is to pass: top speed, lowered by the
+/// braking curve that ends at `pass_speed` there. That is Arrive's curve shifted by the distance
+/// braking from `pass_speed` covers, so it reaches `pass_speed` where Arrive's would reach rest.
+/// Never below `pass_speed`: near the end the curve's tail cap (a loop of finite gain can't
+/// follow its slope at rest) would otherwise put it under.
+fn seek_speed(profile: &Profile, distance: f64, pass_speed: Speed, top: Speed) -> Speed {
+    if pass_speed >= top {
+        return top;
+    }
+    let braking = stopping_speed(profile, distance + stopping_distance(profile, pass_speed));
+    braking.max(pass_speed).min(top)
+}
+
+/// Fly through the goal at top speed, slowing to `pass_speed` on entering its arrival radius,
+/// which is where the point counts as passed.
+fn seek(body: &Body, profile: &Profile, goal: &Goal, pass_speed: Speed) -> Wanted {
     let top = profile.max_speed();
     let to_target = goal.target - body.position;
     if !top.is_finite() || to_target.length_squared() < TINY_SQ {
         return Wanted::NONE;
     }
-    let direction = to_target.normalize();
+    let distance = to_target.length();
+    let direction = to_target / distance;
+    let to_pass = (distance - goal.effective_arrival_radius(body.radius)).max(0.0);
     Wanted {
-        velocity: direction * top,
+        velocity: direction * seek_speed(profile, to_pass, pass_speed, top),
         direction,
     }
 }
@@ -290,7 +310,7 @@ fn orbit(
 /// What `behaviour` wants of the agent now, and the point it wants the agent at.
 pub(crate) fn steer(behaviour: &Behaviour, body: &Body, profile: &Profile) -> (Wanted, Goal) {
     match *behaviour {
-        Behaviour::Seek(goal) => (seek(body, profile, &goal), goal),
+        Behaviour::Seek { goal, pass_speed } => (seek(body, profile, &goal, pass_speed), goal),
         Behaviour::Arrive(goal) => (arrive(body, profile, &goal), goal),
         Behaviour::Pursue {
             target,
@@ -356,7 +376,7 @@ pub(crate) fn rest_facing(behaviour: &Behaviour, body: &Body, goal: &Goal) -> Op
                 body.frame.forward
             })
         }
-        Behaviour::Seek(_) | Behaviour::Orbit { .. } => None,
+        Behaviour::Seek { .. } | Behaviour::Orbit { .. } => None,
     }
 }
 
@@ -412,7 +432,7 @@ mod tests {
     #[test]
     fn seek_keeps_top_speed_up_to_the_point() {
         let near = goal_at(DVec3::new(0.0, 0.0, -0.5));
-        let wanted = seek(&body_at(DVec3::ZERO), &PROFILE, &near);
+        let wanted = seek(&body_at(DVec3::ZERO), &PROFILE, &near, f64::INFINITY);
         assert_eq!(wanted.velocity, DVec3::new(0.0, 0.0, -100.0));
         assert_eq!(wanted.direction, DVec3::NEG_Z);
     }
@@ -427,8 +447,156 @@ mod tests {
             &body_at(DVec3::ZERO),
             &no_drag,
             &goal_at(DVec3::new(0.0, 0.0, -100.0)),
+            f64::INFINITY,
         );
         assert_eq!(wanted, Wanted::NONE);
+    }
+
+    /// The speed a Seek wants `distance` along -z from the origin.
+    fn seek_speed_at(profile: &Profile, distance: f64, pass_speed: Speed) -> f64 {
+        seek(
+            &body_at(DVec3::ZERO),
+            profile,
+            &goal_at(DVec3::new(0.0, 0.0, -distance)),
+            pass_speed,
+        )
+        .velocity
+        .length()
+    }
+
+    #[test]
+    fn seek_with_a_pass_speed_flies_at_top_speed_far_away_and_at_the_pass_speed_at_the_point() {
+        const PASS_SPEED: f64 = 30.0;
+        assert_eq!(seek_speed_at(&PROFILE, 1.0e6, PASS_SPEED), 100.0);
+        assert_eq!(seek_speed_at(&PROFILE, 1.0e-3, PASS_SPEED), PASS_SPEED);
+    }
+
+    #[test]
+    fn seek_reaches_its_pass_speed_where_its_arrival_radius_starts() {
+        const PASS_SPEED: f64 = 30.0;
+        const RADIUS: f64 = 50.0;
+        let goal = Goal::fixed(DVec3::new(0.0, 0.0, -1000.0), RADIUS);
+        let wanted_at = |distance: f64| {
+            let body = body_at(DVec3::new(0.0, 0.0, -1000.0 + distance));
+            seek(&body, &PROFILE, &goal, PASS_SPEED).velocity.length()
+        };
+        assert_eq!(wanted_at(RADIUS), PASS_SPEED);
+        assert_eq!(wanted_at(RADIUS / 2.0), PASS_SPEED);
+        assert!(wanted_at(RADIUS + 100.0) > PASS_SPEED);
+    }
+
+    #[test]
+    fn seek_with_a_pass_speed_brakes_no_later_than_arrive_would_for_that_speed() {
+        const PASS_SPEED: f64 = 30.0;
+        // Arrive brakes to rest from `stopping_distance(PASS_SPEED)` away, where Seek is to be
+        // at the pass speed: the curve is Arrive's, shifted.
+        let shift = stopping_distance(&PROFILE, PASS_SPEED);
+        let arrive_speed = |distance| stopping_speed(&PROFILE, distance);
+        // The curve ends where the arrival radius starts.
+        let radius = goal_at(DVec3::ZERO).effective_arrival_radius(body_at(DVec3::ZERO).radius);
+        for distance in [20.0, 50.0, 100.0, 400.0] {
+            let seek = seek_speed_at(&PROFILE, distance, PASS_SPEED);
+            let expected = arrive_speed(distance - radius + shift).clamp(PASS_SPEED, 100.0);
+            assert!((seek - expected).abs() < 1e-9, "{distance}: {seek}");
+        }
+    }
+
+    #[test]
+    fn seek_speed_falls_toward_the_point_and_never_goes_below_the_pass_speed() {
+        const PASS_SPEED: f64 = 60.0;
+        let mut last = f64::INFINITY;
+        for step in (0..=200).rev() {
+            let speed = seek_speed_at(&PROFILE, f64::from(step) * 0.5 + 1.0e-3, PASS_SPEED);
+            assert!(speed <= last + 1e-9, "rises to {speed} from {last}");
+            assert!((PASS_SPEED..=100.0).contains(&speed), "{speed}");
+            last = speed;
+        }
+    }
+
+    #[test]
+    fn a_pass_speed_at_or_above_top_speed_is_no_braking() {
+        for pass_speed in [100.0, 150.0, f64::INFINITY] {
+            assert_eq!(seek_speed_at(&PROFILE, 1.0e-3, pass_speed), 100.0);
+        }
+    }
+
+    #[test]
+    fn a_speed_cap_lowers_the_top_speed_of_every_behaviour_that_flies_at_it() {
+        const CAP: f64 = 40.0;
+        let capped = Profile {
+            speed_cap: CAP,
+            ..PROFILE
+        };
+        assert_eq!(capped.max_speed(), CAP);
+        let far = goal_at(DVec3::new(0.0, 0.0, -1.0e6));
+        assert_eq!(
+            seek(&body_at(DVec3::ZERO), &capped, &far, f64::INFINITY)
+                .velocity
+                .length(),
+            CAP
+        );
+        assert_eq!(
+            arrive(&body_at(DVec3::ZERO), &capped, &far)
+                .velocity
+                .length(),
+            CAP
+        );
+        let target = Body {
+            position: far.target,
+            ..Body::AT_REST
+        };
+        let pursue = steer(
+            &Behaviour::Pursue {
+                target,
+                stand_off: 10.0,
+                arrival_radius: 5.0,
+            },
+            &body_at(DVec3::ZERO),
+            &capped,
+        )
+        .0;
+        assert_eq!(pursue.velocity.length(), CAP);
+        let orbit = steer(
+            &Behaviour::Orbit {
+                centre: body_at(DVec3::new(0.0, 0.0, -1.0e6)),
+                radius: 1.0e6,
+                normal: DVec3::Y,
+                arrival_radius: 5.0,
+            },
+            &body_at(DVec3::new(0.0, 0.0, -2.0e6)),
+            &capped,
+        )
+        .0;
+        assert!(
+            orbit.velocity.length() <= CAP + 1e-9,
+            "{}",
+            orbit.velocity.length()
+        );
+    }
+
+    #[test]
+    fn a_speed_cap_above_the_thrust_speed_changes_nothing() {
+        let loose = Profile {
+            speed_cap: 1.0e9,
+            ..PROFILE
+        };
+        assert_eq!(loose.max_speed(), PROFILE.max_speed());
+    }
+
+    #[test]
+    fn a_speed_cap_gives_an_agent_without_drag_a_top_speed() {
+        let no_drag = Profile {
+            linear_drag: 0.0,
+            speed_cap: 25.0,
+            ..PROFILE
+        };
+        let wanted = seek(
+            &body_at(DVec3::ZERO),
+            &no_drag,
+            &goal_at(DVec3::new(0.0, 0.0, -100.0)),
+            f64::INFINITY,
+        );
+        assert_eq!(wanted.velocity, DVec3::new(0.0, 0.0, -25.0));
     }
 
     #[test]
@@ -618,7 +786,10 @@ mod tests {
 
     #[test]
     fn seek_and_orbit_have_no_facing() {
-        let seek = Behaviour::Seek(goal_at(DVec3::new(0.0, 0.0, 10.0)));
+        let seek = Behaviour::Seek {
+            goal: goal_at(DVec3::new(0.0, 0.0, 10.0)),
+            pass_speed: f64::INFINITY,
+        };
         assert_eq!(facing_at(&seek, DVec3::new(0.0, 0.0, 10.0)), None);
         let orbit = Behaviour::Orbit {
             centre: body_at(DVec3::ZERO),

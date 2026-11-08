@@ -894,6 +894,38 @@ mod tests {
     }
 
     #[test]
+    fn a_detour_stays_under_the_speed_cap() {
+        let body = body_at(DVec3::ZERO);
+        let cap = MAX_SPEED * 0.5;
+        let profile = Profile {
+            speed_cap: cap,
+            ..profile_with(MAX_SPEED, UNLIMITED_DRAG)
+        };
+        // A course at the cap, through a rock: the detour must not exceed the cap.
+        let wanted = wanted_toward(DVec3::NEG_Z, cap);
+        let on_course = rock(DVec3::new(2.0, 0.0, -300.0), DVec3::ZERO, 40.0);
+        let steered = avoid(
+            &body,
+            &profile,
+            wanted,
+            &[on_course],
+            &AvoidanceTuning::default(),
+            None,
+            Peers::alone(),
+            &mut None,
+            &mut Vec::new(),
+        );
+
+        assert_ne!(steered, wanted, "it detours");
+        assert!(
+            steered.velocity.length() <= cap + 1e-9,
+            "flies {} against a cap of {cap}",
+            steered.velocity.length()
+        );
+        assert!(closest_approach(&body, steered.velocity, &on_course) >= reach_of(&on_course));
+    }
+
+    #[test]
     fn a_far_obstacle_off_the_detour_does_not_change_it() {
         let body = body_at(DVec3::ZERO);
         let wanted = wanted_toward(DVec3::NEG_Z, 80.0);

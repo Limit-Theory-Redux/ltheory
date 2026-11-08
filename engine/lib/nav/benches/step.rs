@@ -2,7 +2,7 @@ use std::hint::black_box;
 
 use criterion::{Criterion, criterion_group, criterion_main};
 use glam::DVec3;
-use nav::{Behaviour, Body, Goal, Obstacle, ObstacleKey, Profile, World};
+use nav::{Behaviour, Body, Goal, NO_SPEED_CAP, Obstacle, ObstacleKey, Profile, World};
 
 const AGENTS: usize = 100;
 const OBSTACLES: usize = 60;
@@ -14,6 +14,7 @@ const LINEAR_DRAG: f64 = 2.0;
 /// Forward acceleration that holds a top speed of 8,800 against the drag.
 const FORWARD_ACCEL: f64 = 8_800.0 * LINEAR_DRAG;
 const PROFILE: Profile = Profile {
+    speed_cap: NO_SPEED_CAP,
     linear_drag: LINEAR_DRAG,
     angular_drag: 20.0,
     accel_forward: FORWARD_ACCEL,

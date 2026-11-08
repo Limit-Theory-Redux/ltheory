@@ -81,14 +81,30 @@ function NavWorld:setArriveRelative(id, body, offset, arrivalRadius) end
 ---@param velocity Vec3d
 function NavWorld:setFrameVelocity(id, velocity) end
 
--- Sends the agent through `target` at top speed, without braking.
+-- Sends the agent through `target` at top speed and does not stop it there. It slows so as to
+-- pass `target` at `pass_speed` (game units per second, relative to the agent's frame), on
+-- the braking curve Arrive uses; an infinite `pass_speed`, or one at or above the agent's top
+-- speed, never slows it.
 --
 -- # Panics
--- If `id` isn't an agent.
+-- If `id` isn't an agent, or `pass_speed` is negative or NaN.
 ---@param id integer
 ---@param target Position
 ---@param arrivalRadius number
-function NavWorld:setSeek(id, target, arrivalRadius) end
+---@param passSpeed number
+function NavWorld:setSeek(id, target, arrivalRadius, passSpeed) end
+
+-- Limits the speed the agent is planned to fly at, in every behaviour and in avoidance, to
+-- `cap` (game units per second, relative to the agent's frame; see
+-- [`set_frame_velocity`](NavWorld::set_frame_velocity)), until it is set again. An agent
+-- above the cap is braked down to it at full thrust. An infinite cap, the default, lifts
+-- the limit.
+--
+-- # Panics
+-- If `id` isn't an agent, or `cap` is negative or NaN.
+---@param id integer
+---@param cap number
+function NavWorld:setSpeedCap(id, cap) end
 
 -- Keeps the agent where its body is now.
 --

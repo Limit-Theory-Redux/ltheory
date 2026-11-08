@@ -11,6 +11,15 @@ local SystemPlanner       = require("Shared.Helpers.SystemPlanner")
 local STATION_HOLD_S      = 5
 -- A Seek point is passed at least this fraction of top speed: Arrive would be braking there.
 local PASS_SPEED_FRACTION = 0.5
+-- A capped ship is within its cap, and a Seek point with a pass speed is passed within it, up to
+-- this fraction over. The cap is held by the controller's speed limit; a pass speed is the end of
+-- a braking curve that the velocity loop follows with a lag.
+local CAP_TOLERANCE         = 0.05
+local PASS_SPEED_TOLERANCE  = 0.35
+-- A turn is measured at speeds above this fraction of top speed, and over a rotation of the
+-- velocity above this many radians.
+local MIN_TURN_SPEED_FRACTION = 0.1
+local MIN_TURN_ANGLE          = 1e-4
 -- An orbiting ship has orbited after it has turned this far about the centre.
 local FULL_TURN           = 2 * math.pi
 -- An orbiting ship is on its circle within this fraction of the radius: the wanted velocity is
@@ -23,6 +32,9 @@ local MIN_RELATIVE_LENGTH = 1e-6
 ---@field kind "Seek"|"Hold"|"Pursue"|"Follow"|"Orbit"|"Plan"
 ---@field through number[][]|nil Seek: points { x, y, z } in metres, passed at speed in this order; the ship then stops at the ship's `target`
 ---@field passRadiusM number|nil Seek, Plan: a point is passed within this distance, in metres; longer than the distance covered in one frame
+---@field speedCapShare number|nil Seek: the ship's speed cap, as a fraction of top speed; no cap when nil. Flying faster than it fails the run
+---@field passSpeedShare number|nil Seek: each point is passed at this fraction of top speed and the ship brakes for it; top speed, without braking, when nil
+---@field measureTurn boolean|nil Seek: log the tightest turn the ship flew, with the speed and the thrust share it implies
 ---@field holdAtSpeed number|nil Hold: the ship holds when it flies at this fraction of top speed on its way to `target`
 ---@field obstacle integer|nil Pursue, Orbit: index of the scenario's obstacle that is chased or circled
 ---@field ship integer|nil Follow: index of the scenario's ship that is followed
@@ -42,6 +54,10 @@ local MIN_RELATIVE_LENGTH = 1e-6
 ---@field points Position[]|SandboxWaypoint[]|nil Seek: the points to pass. Plan: the plan's waypoints before the goal
 ---@field pointIndex integer|nil Seek, Plan: the point being flown to
 ---@field passRadius number|nil Seek, Plan: game units
+---@field passSpeed number Seek, Plan: game units per second a point is passed at; `math.huge` for top speed
+---@field speedCap number|nil Seek: game units per second, as given to the `NavWorld`
+---@field peakSpeed number Seek: the largest speed the ship has flown at, in game units per second
+---@field turn SandboxTurn|nil Seek with `measureTurn`: the tightest turn so far
 ---@field goal SandboxWaypoint|nil Plan: where the ship stops; with a frame, a point that rides on that obstacle
 ---@field obstacles SandboxObstacle[]|nil Plan: the scenario's obstacles, which waypoint frames index
 ---@field clearance table<integer, number>|nil Plan: per obstacle index, the smallest distance from the ship's centre to the obstacle's safe sphere since the start, in game units
@@ -54,6 +70,12 @@ local MIN_RELATIVE_LENGTH = 1e-6
 ---@field radius number|nil Orbit: game units
 ---@field offset table|nil Follow: the slot, game units
 ---@field standOff number|nil Pursue: game units
+
+---@class SandboxTurn
+---@field radius number Game units: the smallest turn radius seen, speed over the rate the velocity turns at
+---@field speed number Game units per second at that radius
+---@field velocity table|nil The velocity at the last step, { x, y, z }
+---@field time number|nil Simulated time of the last step
 
 ---@class SandboxJudgingRules
 ---@field range number Game units: within this of its point, a ship is there
@@ -97,7 +119,18 @@ end
 ---@param spec SandboxBehaviourSpec
 ---@return SandboxBehaviour
 function ShipBehaviour.create(spec)
-    return { kind = spec.kind, spec = spec, engaged = false, maxError = 0, turned = 0, topSpeed = 0 }
+    return {
+        kind = spec.kind, spec = spec, engaged = false, maxError = 0, turned = 0, topSpeed = 0,
+        passSpeed = math.huge, peakSpeed = 0,
+    }
+end
+
+---Sends a Seek or Plan ship through its current point.
+---@param nav NavWorld
+---@param ship SandboxShip
+local function seekPoint(nav, ship)
+    local b = ship.behaviour
+    nav:setSeek(ship.agent, ship.target, b.passRadius, b.passSpeed)
 end
 
 ---Where a ship tracking a moving point is to be now, in the sandbox's own terms.
@@ -215,8 +248,14 @@ function ShipBehaviour.start(nav, ship, ships, obstacles, rules, planner)
         b.points, b.pointIndex, b.phase = {}, 1, "pass"
         for _, point in ipairs(spec.through) do table.insert(b.points, Metres.position(point)) end
         b.passRadius = Metres.length(spec.passRadiusM)
+        if spec.passSpeedShare then b.passSpeed = spec.passSpeedShare * b.topSpeed end
+        if spec.speedCapShare then
+            b.speedCap = spec.speedCapShare * b.topSpeed
+            nav:setSpeedCap(ship.agent, b.speedCap)
+        end
+        if spec.measureTurn then b.turn = { radius = math.huge, speed = 0 } end
         ship.target = b.points[1]
-        nav:setSeek(ship.agent, ship.target, b.passRadius)
+        seekPoint(nav, ship)
     elseif b.kind == "Hold" then
         b.phase = "cruise"
         nav:setArrive(ship.agent, ship.target, rules.range)
@@ -239,6 +278,41 @@ function ShipBehaviour.start(nav, ship, ships, obstacles, rules, planner)
     ShipBehaviour.refreshTarget(ship)
 end
 
+---What is wrong with the speed a Seek ship passed a point at: too slow for a ship that does not
+---brake for it, too fast for one that does or is capped.
+---@param b SandboxBehaviour
+---@param speed number Game units per second
+---@return string|nil
+local function passProblem(b, speed)
+    local limit = math.min(b.passSpeed, b.speedCap or math.huge)
+    if limit == math.huge then
+        return speed < PASS_SPEED_FRACTION * b.topSpeed and "too slow" or nil
+    end
+    return speed > limit * (1 + PASS_SPEED_TOLERANCE) and "too fast" or nil
+end
+
+---Notes how tightly the ship turns: the smallest radius it has flown, speed over the rate its
+---velocity turns at, between two steps. Called after each navigation step.
+---@param b SandboxBehaviour
+---@param ship SandboxShip
+---@param speed number Game units per second
+---@param simTime number
+local function trackTurn(b, ship, speed, simTime)
+    local turn = b.turn
+    local velocity = ship.rb:getVelocity()
+    local previous = turn.velocity
+    local before = previous and length(previous) or 0
+    if before > 0 and speed >= MIN_TURN_SPEED_FRACTION * b.topSpeed and simTime > turn.time then
+        local cosine = dot(previous, velocity) / (before * speed)
+        local angle = math.acos(math.max(-1, math.min(1, cosine)))
+        if angle > MIN_TURN_ANGLE then
+            local radius = speed / (angle / (simTime - turn.time))
+            if radius < turn.radius then turn.radius, turn.speed = radius, speed end
+        end
+    end
+    turn.velocity, turn.time = { x = velocity.x, y = velocity.y, z = velocity.z }, simTime
+end
+
 ---Moves a Seek or Plan ship on past a point it has passed, aims a Plan ship at where its waypoint
 ---is now, and switches a Hold ship to Hold once it is flying fast enough. Called after each
 ---navigation step.
@@ -251,9 +325,11 @@ end
 function ShipBehaviour.advance(nav, ship, arrived, simTime, rules, metrics)
     local b = ship.behaviour
     local speed = ship.rb:getSpeed()
+    b.peakSpeed = math.max(b.peakSpeed, speed)
+    if b.turn then trackTurn(b, ship, speed, simTime) end
     if (b.kind == "Seek" or b.kind == "Plan") and b.phase == "pass" and arrived then
         if b.kind == "Seek" then
-            metrics:seekPassed(ship, b.pointIndex, speed, speed >= PASS_SPEED_FRACTION * b.topSpeed, simTime)
+            metrics:seekPassed(ship, b.pointIndex, speed, passProblem(b, speed), simTime)
         else
             metrics:planPointPassed(ship, b.pointIndex, speed, simTime)
         end
@@ -268,7 +344,7 @@ function ShipBehaviour.advance(nav, ship, arrived, simTime, rules, metrics)
             end
         elseif b.kind == "Seek" then
             ship.target = b.points[b.pointIndex]
-            nav:setSeek(ship.agent, ship.target, b.passRadius)
+            seekPoint(nav, ship)
         end
         ship.bestDistance, ship.progressTime = math.huge, simTime
     elseif b.kind == "Hold" and b.phase == "cruise" and speed >= b.spec.holdAtSpeed * b.topSpeed then
@@ -281,7 +357,7 @@ function ShipBehaviour.advance(nav, ship, arrived, simTime, rules, metrics)
     if b.kind == "Plan" and b.phase == "pass" then
         -- A waypoint in the frame of a moving obstacle moves: aim at where it is now.
         ship.target = planPoint(b)
-        nav:setSeek(ship.agent, ship.target, b.passRadius)
+        seekPoint(nav, ship)
     end
 end
 
@@ -303,7 +379,7 @@ function ShipBehaviour.planReceived(nav, ship, plan, simTime)
     end
     b.points, b.pointIndex, b.phase = points, 1, "pass"
     ship.target = planPoint(b)
-    nav:setSeek(ship.agent, ship.target, b.passRadius)
+    seekPoint(nav, ship)
     ship.bestDistance, ship.progressTime = math.huge, simTime
 end
 
@@ -400,6 +476,46 @@ function ShipBehaviour.judge(ship, simTime, rules)
     -- Hold: the ship must leave its point and come back to it.
     if b.phase == "switched" and distance > rules.range then b.phase = "returning" end
     return b.phase == "returning" and isThere(ship, distance, rules)
+end
+
+---The speed cap a ship has been flown over: the cap and the largest speed, or nil for a ship
+---without a cap or one that stayed within it.
+---@param ship SandboxShip
+---@return number|nil cap Game units per second
+---@return number|nil peak Game units per second
+function ShipBehaviour.capExceeded(ship)
+    local b = ship.behaviour
+    if b and b.speedCap and b.peakSpeed > b.speedCap * (1 + CAP_TOLERANCE) then
+        return b.speedCap, b.peakSpeed
+    end
+    return nil
+end
+
+---A line for the summary: a capped ship's largest speed against its cap.
+---@param ship SandboxShip
+---@return number|nil cap Game units per second, or nil for a ship without a cap
+---@return number|nil peak Game units per second
+function ShipBehaviour.capReport(ship)
+    local b = ship.behaviour
+    if b and b.speedCap then return b.speedCap, b.peakSpeed end
+    return nil
+end
+
+---A line for the summary: the tightest turn a ship with `measureTurn` flew, and the share of its
+---forward thrust the turn needed. With forward acceleration `a` and linear drag `k`, a turn of
+---radius `r` at speed `s` needs the centripetal `s²/r` across and `k·s` along the velocity: the
+---share is `√(s⁴/r² + k²s²) / a`, the quantity the Orbit behaviour holds at a named constant.
+---@param ship SandboxShip
+---@return number|nil radius Game units, or nil for a ship that does not measure or never turned
+---@return number|nil speed Game units per second at that radius
+---@return number|nil share Fraction of the forward thrust
+function ShipBehaviour.turnReport(ship)
+    local b = ship.behaviour
+    if not (b and b.turn) or b.turn.radius == math.huge then return nil end
+    local profile = ConstructComponents.FlightProfile.ProfileOf(ship.entity)
+    local s, r, k = b.turn.speed, b.turn.radius, profile.linearDrag
+    local share = math.sqrt(s ^ 4 / (r * r) + k * k * s * s) / (profile.thrustForward / profile.mass)
+    return r, s, share
 end
 
 ---A line for the summary: how fast a Pursue or Follow ship turned while it was held on station.

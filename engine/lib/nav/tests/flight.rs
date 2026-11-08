@@ -6,8 +6,8 @@
 
 use glam::{DQuat, DVec3};
 use nav::{
-    AXIS_COUNT, Axis, Behaviour, Body, Frame, FrameOffset, Goal, Obstacle, ObstacleKey, Profile,
-    World,
+    AXIS_COUNT, Axis, Behaviour, Body, Frame, FrameOffset, Goal, NO_SPEED_CAP, Obstacle,
+    ObstacleKey, Profile, World,
 };
 
 const STEP_S: f64 = 1.0 / 60.0;
@@ -31,6 +31,7 @@ const fn profile(max_speed: f64) -> Profile {
     let accel_forward = max_speed * LINEAR_DRAG;
     let turn = TURN_RATE * ANGULAR_DRAG;
     Profile {
+        speed_cap: NO_SPEED_CAP,
         linear_drag: LINEAR_DRAG,
         angular_drag: ANGULAR_DRAG,
         accel_forward,
@@ -595,11 +596,22 @@ fn fly_fleet(
 fn fly_fleet_tracking(
     ships: &mut [Ship],
     seconds: f64,
+    behave: impl FnMut(usize, f64, &[Ship]) -> Behaviour,
+    tracked: impl Fn(usize) -> Option<usize>,
+) -> Vec<Vec<Sample>> {
+    fly_fleet_with(PROFILE, ships, seconds, behave, tracked)
+}
+
+/// Like [`fly_fleet_tracking`], with every ship flying on `profile`.
+fn fly_fleet_with(
+    profile: Profile,
+    ships: &mut [Ship],
+    seconds: f64,
     mut behave: impl FnMut(usize, f64, &[Ship]) -> Behaviour,
     tracked: impl Fn(usize) -> Option<usize>,
 ) -> Vec<Vec<Sample>> {
     let mut world = World::new();
-    let ids: Vec<_> = ships.iter().map(|_| world.add_agent(PROFILE)).collect();
+    let ids: Vec<_> = ships.iter().map(|_| world.add_agent(profile)).collect();
     let mut samples: Vec<Vec<Sample>> = ships.iter().map(|_| Vec::new()).collect();
     let mut time = 0.0;
     while time < seconds {
@@ -621,7 +633,7 @@ fn fly_fleet_tracking(
         world.step();
         for (index, id) in ids.iter().enumerate() {
             let axes = &world.axes()[id.index() * AXIS_COUNT..][..AXIS_COUNT];
-            ships[index].apply(PROFILE, axes);
+            ships[index].apply(profile, axes);
         }
         time += STEP_S;
     }
@@ -649,7 +661,7 @@ fn a_seeking_ship_passes_its_point_at_top_speed() {
     let point = DVec3::new(0.0, 0.0, -POINT_DISTANCE);
     let mut ships = [Ship::new(DVec3::ZERO)];
     let samples = fly_fleet(&mut ships, TIME_LIMIT_S, |_, _, _| {
-        Behaviour::Seek(Goal::fixed(point, ARRIVAL_RADIUS))
+        seek_point(point, f64::INFINITY)
     });
     let pass = samples[0]
         .iter()
@@ -659,6 +671,74 @@ fn a_seeking_ship_passes_its_point_at_top_speed() {
         pass.velocity.length() > 0.8 * PROFILE.max_speed(),
         "passes at {}",
         pass.velocity.length()
+    );
+}
+
+fn seek_point(point: DVec3, pass_speed: f64) -> Behaviour {
+    Behaviour::Seek {
+        goal: Goal::fixed(point, ARRIVAL_RADIUS),
+        pass_speed,
+    }
+}
+
+/// How far above its pass speed a ship may be at its point, as a fraction of it: the velocity
+/// loop lags the wanted speed.
+const PASS_SPEED_TOLERANCE: f64 = 0.15;
+
+#[test]
+fn a_seeking_ship_slows_to_its_pass_speed_at_the_point_after_cruising_at_top_speed() {
+    const POINT_DISTANCE: f64 = 3000.0;
+    const PASS_SPEED: f64 = 30.0;
+    let point = DVec3::new(0.0, 0.0, -POINT_DISTANCE);
+    let mut ships = [Ship::new(DVec3::ZERO)];
+    let samples = fly_fleet(&mut ships, TIME_LIMIT_S, |_, _, _| {
+        seek_point(point, PASS_SPEED)
+    });
+    let pass = samples[0]
+        .iter()
+        .min_by(|a, b| {
+            a.position
+                .distance(point)
+                .total_cmp(&b.position.distance(point))
+        })
+        .expect("the ship flies");
+    let cruise = samples[0]
+        .iter()
+        .map(|sample| sample.velocity.length())
+        .fold(0.0, f64::max);
+    assert!(cruise > 0.9 * PROFILE.max_speed(), "cruises at {cruise}");
+    let passing = pass.velocity.length();
+    assert!(
+        passing <= PASS_SPEED * (1.0 + PASS_SPEED_TOLERANCE),
+        "passes at {passing}, pass speed {PASS_SPEED}"
+    );
+}
+
+#[test]
+fn a_capped_ship_never_flies_faster_than_its_cap() {
+    const CAP: f64 = 40.0;
+    const OVERSHOOT: f64 = 1.05;
+    let capped = Profile {
+        speed_cap: CAP,
+        ..PROFILE
+    };
+    let point = DVec3::new(0.0, 0.0, -3000.0);
+    let mut ships = [Ship::new(DVec3::ZERO)];
+    let samples = fly_fleet_with(
+        capped,
+        &mut ships,
+        TIME_LIMIT_S,
+        |_, _, _| seek_point(point, f64::INFINITY),
+        |_| None,
+    );
+    let fastest = samples[0]
+        .iter()
+        .map(|sample| sample.velocity.length())
+        .fold(0.0, f64::max);
+    assert!(fastest <= CAP * OVERSHOOT, "flies at {fastest}, cap {CAP}");
+    assert!(
+        fastest >= CAP * (2.0 - OVERSHOOT),
+        "cruises at {fastest}, cap {CAP}"
     );
 }
 

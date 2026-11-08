@@ -1,6 +1,6 @@
 use glam::DVec3;
 
-use crate::agent::{AT_REST_RADII_PER_S, AXIS_COUNT, Agent, AgentId, Body, Goal, Profile};
+use crate::agent::{AT_REST_RADII_PER_S, AXIS_COUNT, Agent, AgentId, Body, Goal, Profile, Speed};
 use crate::avoidance::{AvoidanceTuning, Peer, Peers, Sphere, avoid};
 use crate::behaviour::{Behaviour, rest_facing, steer};
 use crate::controller::control;
@@ -104,6 +104,19 @@ impl World {
     /// Panics if `id` isn't an agent of this world.
     pub fn set_profile(&mut self, id: AgentId, profile: Profile) {
         self.agents[id.index()].profile = profile;
+    }
+
+    /// Sets the largest speed the agent's behaviour and avoidance plan at, relative to its frame
+    /// ([`NO_SPEED_CAP`](crate::NO_SPEED_CAP) for none, the default). It lowers the top speed
+    /// only: the thrust limits are unchanged, so an agent over a cap it was just given is steered
+    /// down to it at full authority. It is the profile's `speed_cap`, so a caller that replaces
+    /// the profile ([`set_profile`](World::set_profile)) carries the cap in it.
+    ///
+    /// # Panics
+    /// If `id` isn't an agent of this world, or `cap` is negative or NaN.
+    pub fn set_speed_cap(&mut self, id: AgentId, cap: Speed) {
+        assert!(cap >= 0.0, "a speed cap must be zero or more, got {cap}");
+        self.agents[id.index()].profile.speed_cap = cap;
     }
 
     /// Sets the velocity the agent's surroundings carry it at (zero by default), in length units
@@ -252,6 +265,64 @@ mod tests {
 
     fn goal(target: DVec3) -> Behaviour {
         Behaviour::Arrive(Goal::fixed(target, 5.0))
+    }
+
+    /// The axes of one agent that seeks a far point ahead at `relative_speed` along -z relative to
+    /// its frame, carried at `carry`, under `cap`.
+    fn capped_axes(cap: Speed, carry: DVec3, relative_speed: f64) -> [f64; AXIS_COUNT] {
+        let mut world = World::new();
+        let id = world.add_agent(PROFILE);
+        world.set_speed_cap(id, cap);
+        world.set_frame_velocity(id, carry);
+        world.set_body(
+            id,
+            Body {
+                velocity: carry + DVec3::NEG_Z * relative_speed,
+                ..Body::AT_REST
+            },
+        );
+        let far = DVec3::new(0.0, 0.0, -1.0e6);
+        world.set_behaviour(
+            id,
+            Some(Behaviour::Seek {
+                goal: Goal::fixed(far, 5.0),
+                pass_speed: f64::INFINITY,
+            }),
+        );
+        world.step();
+        world.axes().try_into().expect("one agent")
+    }
+
+    #[test]
+    fn a_speed_cap_is_relative_to_the_frame_velocity() {
+        const CAP: f64 = 40.0;
+        let carry = DVec3::new(300.0, 0.0, -500.0);
+        for relative_speed in [0.0, CAP, 2.0 * CAP] {
+            assert_eq!(
+                capped_axes(CAP, carry, relative_speed),
+                capped_axes(CAP, DVec3::ZERO, relative_speed),
+                "at {relative_speed} relative to the frame"
+            );
+        }
+        let forward = |speed| capped_axes(CAP, DVec3::ZERO, speed)[Axis::ThrustForward as usize];
+        assert!(forward(0.0) > forward(CAP), "accelerates below the cap");
+        assert!(forward(2.0 * CAP) < forward(CAP), "brakes above the cap");
+    }
+
+    #[test]
+    #[should_panic(expected = "a speed cap must be zero or more")]
+    fn a_negative_speed_cap_is_refused() {
+        let mut world = World::new();
+        let id = world.add_agent(PROFILE);
+        world.set_speed_cap(id, -1.0);
+    }
+
+    #[test]
+    #[should_panic(expected = "a speed cap must be zero or more")]
+    fn a_nan_speed_cap_is_refused() {
+        let mut world = World::new();
+        let id = world.add_agent(PROFILE);
+        world.set_speed_cap(id, f64::NAN);
     }
 
     #[test]
