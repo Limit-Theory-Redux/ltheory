@@ -1,5 +1,5 @@
 -- Checks the gravity wells with several ships: each ship with a gravity-well component gets its own
--- zone, following the body it is in, and its own travel-drive cap; ships without the component are
+-- zone, carried with the body it is in, and its own travel-drive cap; ships without the component are
 -- left alone. Logs each failed check and ends with a failure exit code.
 
 local Application           = require("States.Application")
@@ -13,6 +13,7 @@ local ConstructComponents   = require("Modules.Constructs.Components")
 local GravityWellSystem     = require("Modules.Physics.Systems.GravityWellSystem")
 local TravelDriveSystem     = require("Modules.Constructs.Systems.TravelDriveSystem")
 local FlightProfileRegistry = require("Shared.Registries.FlightProfileRegistry")
+local FlightProfileHelper   = require("Shared.Helpers.FlightProfileHelper")
 
 ---@class PhysicsGravityWellTest: Application
 local GravityWellTest = Subclass("PhysicsGravityWellTest", Application)
@@ -21,6 +22,12 @@ local STEP            = 1 / 60
 -- Safety limit for the drive to reach its cap; the ramp takes a few seconds.
 local MAX_DRIVE_STEPS = 60 * 60
 local TOLERANCE       = 1e-6
+-- Velocities are read back in single precision, which resolves a speed of a hundred only to about 1e-5.
+local VELOCITY_TOLERANCE = 1e-3
+-- Frames for a change of frame to settle: the carry's leftover velocity falls by half or more each frame.
+local CARRY_STEPS     = 40
+-- A body move in one frame that is a jump and not a flight.
+local JUMP            = 5000
 
 -- Positions on the x axis, in game units.
 local STAR_X, STAR_ZONE     = 0, 100
@@ -44,11 +51,17 @@ function GravityWellTest:check(ok, what, detail)
     end
 end
 
----A kinematic sphere at `x` on the x axis, owned by `entity`.
-function GravityWellTest:giveBody(entity, x)
+---A sphere at `x` on the x axis, owned by `entity`: kinematic, or a dynamic one with the drag of
+---`profile` when it is given.
+function GravityWellTest:giveBody(entity, x, profile)
     local rbCmp = entity:add(PhysicsComponents.RigidBody())
     local rb = RigidBody.CreateSphere()
-    rb:setKinematic(true)
+    if profile then
+        FlightProfileHelper.applyToRigidBody(profile, rb)
+        rb:setCollidable(false) -- the ships share positions with other bodies, and only the carry is measured
+    else
+        rb:setKinematic(true)
+    end
     rbCmp:setRigidBody(rb)
     self.world:addRigidBody(rb)
     rb:setPos(Position(x, 0, 0))
@@ -68,12 +81,14 @@ function GravityWellTest:spawnBody(name, kind, x, zoneRadius, parent)
 end
 
 ---A ship at `x`; with a gravity-well component unless `withWell` is false. It has a travel drive
----and a flight profile so that the drive system can run it.
-function GravityWellTest:spawnShip(x, withWell)
+---and a flight profile so that the drive system can run it. It is a kinematic body, or a dynamic
+---one when `dynamic` is set.
+function GravityWellTest:spawnShip(x, withWell, dynamic)
     local ship = Registry:createEntity()
-    local rb = self:giveBody(ship, x)
-    local well = withWell ~= false and ship:add(PhysicsComponents.GravityWell()) or nil
-    ship:add(ConstructComponents.FlightProfile(FlightProfileRegistry:get(Enums.FlightProfile.Solo)))
+    local profile = FlightProfileRegistry:get(Enums.FlightProfile.Solo)
+    local rb = self:giveBody(ship, x, dynamic and profile or nil)
+    local well = withWell ~= false and ship:add(PhysicsComponents.GravityWell(profile.linearDrag)) or nil
+    ship:add(ConstructComponents.FlightProfile(profile))
     local drive = ship:add(ConstructComponents.TravelDrive())
     ship:add(ConstructComponents.ControlInput())
     return { entity = ship, rb = rb, well = well, drive = drive }
@@ -88,6 +103,11 @@ function GravityWellTest:buildScene()
     self.world:update(STEP)
 end
 
+---Runs the wells for one frame of the physics step.
+function GravityWellTest:updateWells()
+    GravityWellSystem:update(STEP, self.world:getSolverSubsteps())
+end
+
 function GravityWellTest:checkZones()
     self:check(#GravityWellSystem.zones == 3, "a star, a planet and a moon each have a well",
         "found " .. #GravityWellSystem.zones)
@@ -96,7 +116,7 @@ function GravityWellTest:checkZones()
     local inPlanet = self:spawnShip(IN_PLANET_X)
     local inOpen = self:spawnShip(OPEN_X)
     local noWell = self:spawnShip(IN_MOON_X, false)
-    GravityWellSystem:update()
+    self:updateWells()
 
     self:check(inMoon.well:getZoneType() == "moon", "the innermost well wins", inMoon.well:getZoneType())
     self:check(inPlanet.well:getZoneType() == "planet", "a ship in a planet's well only is in the planet's",
@@ -108,10 +128,10 @@ function GravityWellTest:checkZones()
     self:check(noWell.entity:get(PhysicsComponents.GravityWell) == nil, "a ship without the component is left alone")
 
     inMoon.rb:setPos(Position(OPEN_X, 0, 0))
-    GravityWellSystem:update()
+    self:updateWells()
     self:check(inMoon.well:getZoneType() == "openSpace", "a ship that left a well is in open space")
     inMoon.rb:setPos(Position(IN_MOON_X, 0, 0))
-    GravityWellSystem:update()
+    self:updateWells()
     self:check(inMoon.well:getZoneType() == "moon", "a ship that came back is in the well again")
 
     self.ships = { inMoon = inMoon, inPlanet = inPlanet, inOpen = inOpen, noWell = noWell }
@@ -161,25 +181,81 @@ function GravityWellTest:checkDrivesUseOwnCaps()
         inMoon.drive:getCurrentMult() .. " and " .. inOpen.drive:getCurrentMult())
 end
 
-function GravityWellTest:checkFollowsBody()
-    local inPlanet, inMoon = self.ships.inPlanet, self.ships.inMoon
-    local x0, moonX0 = inPlanet.rb:getPos().x, inMoon.rb:getPos().x
+---One frame: the wells carry their ships, then the physics step runs.
+function GravityWellTest:step()
+    self:updateWells()
+    self.world:update(STEP)
+end
 
-    self.planetRb:setPos(Position(PLANET_X + PLANET_MOVE, 0, 0))
-    GravityWellSystem:update()
-    self:check(near(inPlanet.rb:getPos().x, x0 + PLANET_MOVE), "a ship in a well moves with the body",
-        tostring(inPlanet.rb:getPos().x))
-    self:check(near(inMoon.rb:getPos().x, moonX0), "a ship follows only the body of its own well")
+---Moves the planet to `PLANET_X + moved` (a move of `PLANET_MOVE` per step is a velocity to the
+---system) and runs a frame.
+function GravityWellTest:stepPlanetTo(moved)
+    self.planetRb:setPos(Position(PLANET_X + moved, 0, 0))
+    self:step()
+end
 
-    -- A ship that enters a well on this update is not moved by what the body moved before.
-    local entering = self:spawnShip(IN_PLANET_X + 2 * PLANET_MOVE)
-    self.planetRb:setPos(Position(PLANET_X + 2 * PLANET_MOVE, 0, 0))
-    GravityWellSystem:update()
-    self:check(near(entering.rb:getPos().x, IN_PLANET_X + 2 * PLANET_MOVE), "entering a well does not move the ship")
-    self.planetRb:setPos(Position(PLANET_X + 3 * PLANET_MOVE, 0, 0))
-    GravityWellSystem:update()
-    self:check(near(entering.rb:getPos().x, IN_PLANET_X + 3 * PLANET_MOVE), "the ship follows from its second update",
-        tostring(entering.rb:getPos().x))
+---The ships' speed relative to the frame they are carried at, in game units per second.
+local function relativeSpeed(ship)
+    local v = ship.rb:getVelocity()
+    local cx, cy, cz = ship.well:getCarriedVelocity()
+    return math.sqrt((v.x - cx) ^ 2 + (v.y - cy) ^ 2 + (v.z - cz) ^ 2)
+end
+
+function GravityWellTest:checkCarry()
+    local atRest = self:spawnShip(IN_PLANET_X, true, true)
+    local inMoon = self:spawnShip(IN_MOON_X, true, true)
+    self:step() -- the ships enter their wells
+    local x0, moonX0 = atRest.rb:getPos().x, inMoon.rb:getPos().x
+
+    local moved = PLANET_MOVE
+    self:stepPlanetTo(moved)
+    self:check(near(atRest.rb:getPos().x, x0 + PLANET_MOVE), "a ship in a well moves with the body",
+        tostring(atRest.rb:getPos().x))
+    self:check(relativeSpeed(atRest) <= VELOCITY_TOLERANCE, "a ship carried by a well has no speed relative to it",
+        tostring(relativeSpeed(atRest)))
+    self:check(near(inMoon.rb:getPos().x, moonX0), "a ship is carried only by the body of its own well")
+
+    -- A ship that enters a well is not moved by what the body moved before.
+    moved = moved + PLANET_MOVE
+    self.planetRb:setPos(Position(PLANET_X + moved, 0, 0))
+    local entering = self:spawnShip(IN_PLANET_X + moved, true, true)
+    local enteringX = entering.rb:getPos().x
+    self:step()
+    self:check(near(entering.rb:getPos().x, enteringX), "entering a well does not move the ship",
+        tostring(entering.rb:getPos().x - enteringX))
+    moved = moved + PLANET_MOVE
+    self:stepPlanetTo(moved)
+    self:check(near(entering.rb:getPos().x, enteringX + PLANET_MOVE), "the ship moves with the body from its second frame",
+        tostring(entering.rb:getPos().x - enteringX))
+
+    -- A ship that goes from the planet's well into the moon's, which stands still, stops moving with the planet.
+    for _ = 1, CARRY_STEPS do
+        moved = moved + PLANET_MOVE
+        self:stepPlanetTo(moved)
+    end
+    entering.rb:setPos(Position(MOON_X, 0, 0))
+    local bridgedX = entering.rb:getPos().x
+    for _ = 1, CARRY_STEPS do self:step() end
+    self:check(entering.well:getZoneType() == "moon", "the ship is in the moon's well", entering.well:getZoneType())
+    self:check(near(entering.rb:getPos().x, bridgedX), "a ship that switches to a still body's well stays with it",
+        tostring(entering.rb:getPos().x - bridgedX))
+
+    -- A ship that leaves a well is not carried any more.
+    atRest.rb:setPos(Position(OPEN_X, 0, 0))
+    for _ = 1, CARRY_STEPS do self:step() end
+    self:check(atRest.well:getZoneType() == "openSpace", "the ship is in open space")
+    self:check(atRest.rb:getSpeed() <= VELOCITY_TOLERANCE, "a ship in open space is not carried",
+        tostring(atRest.rb:getSpeed()))
+
+    -- A body that jumps (a rebuilt scene) is not followed as if it had flown there.
+    local jumper = self:spawnShip(IN_PLANET_X + moved, true, true)
+    self:step()
+    self.planetRb:setPos(Position(PLANET_X + moved + JUMP, 0, 0))
+    jumper.rb:setPos(Position(IN_PLANET_X + moved + JUMP, 0, 0))
+    local jumpedX = jumper.rb:getPos().x
+    self:step()
+    self:check(near(jumper.rb:getPos().x, jumpedX), "a body that jumps does not throw its ship",
+        tostring(jumper.rb:getPos().x - jumpedX))
 end
 
 function GravityWellTest:onInit()
@@ -190,7 +266,7 @@ function GravityWellTest:onInit()
     self:checkZones()
     self:checkDriveCaps()
     self:checkDrivesUseOwnCaps()
-    self:checkFollowsBody()
+    self:checkCarry()
 
     Log.Info("PhysicsGravityWellTest: %d checks passed, %d failed", self.passed, self.failed)
     self:quit(self.failed == 0 and Core.ExitCode.Success or Core.ExitCode.Failure)

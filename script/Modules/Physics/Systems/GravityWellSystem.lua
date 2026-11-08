@@ -1,3 +1,4 @@
+local ffi                 = require("ffi")
 local Registry            = require("Core.ECS.Registry")
 local CoreComponents      = require("Modules.Core.Components")
 local PhysicsComponents   = require("Modules.Physics.Components")
@@ -11,13 +12,12 @@ local OPEN_SPACE = PhysicsComponents.GravityWell.OPEN_SPACE
 local MOON_ORBIT_WELL_FACTOR = 1.5
 -- The drive cap starts to fall this many well radii away from a body.
 local INFLUENCE_RADIUS_FACTOR = 2.0
--- Largest body move (game units) that a ship follows in one update; a larger jump is not followed.
+-- Largest body move (game units) in one update that is motion; a larger one is a jump (a rebuilt or
+-- rebased scene), and the ship's carried velocity is kept through it.
 local MAX_FOLLOW_DELTA = 1000
--- Body moves (game units) below this are not followed.
-local MIN_FOLLOW_DELTA = 0.01
 
---- Gravity Well System — finds the well each ship with a `GravityWellComponent` is in, makes it drift
---- with the body it orbits, and gives the travel-drive speed cap at any position.
+--- Gravity Well System — finds the well each ship with a `GravityWellComponent` is in, carries it with
+--- the body it orbits, and gives the travel-drive speed cap at any position.
 ---@class GravityWellSystem
 ---@overload fun(): GravityWellSystem
 local GravityWellSystem = Class("GravityWellSystem", function(self)
@@ -128,35 +128,74 @@ local function innermostZone(zones, position)
     return best
 end
 
---- Move the ship by the distance its body moved since the last update. Only when the ship was in
---- the same well then, so that entering a well does not teleport it.
+--- The velocity the ship's well body has over the coming physics step: its move from where it was
+--- (the previous update's position, or where its rigid body stands when the ship has just entered) to
+--- where this step puts it, over `dt`. A jump keeps the ship's carried velocity.
 ---@param well GravityWellComponent
----@param rb RigidBody
----@param shipPos Position
----@param bodyPos Position
-local function followBody(well, rb, shipPos, bodyPos)
-    local prev = well:getPrevBodyPos()
-    if prev then
-        local dx = Math.Clamp(bodyPos.x - prev.x, -MAX_FOLLOW_DELTA, MAX_FOLLOW_DELTA)
-        local dy = Math.Clamp(bodyPos.y - prev.y, -MAX_FOLLOW_DELTA, MAX_FOLLOW_DELTA)
-        local dz = Math.Clamp(bodyPos.z - prev.z, -MAX_FOLLOW_DELTA, MAX_FOLLOW_DELTA)
-        if math.abs(dx) > MIN_FOLLOW_DELTA or math.abs(dy) > MIN_FOLLOW_DELTA
-            or math.abs(dz) > MIN_FOLLOW_DELTA then
-            rb:setPos(Position(shipPos.x + dx, shipPos.y + dy, shipPos.z + dz))
-        end
+---@param zone table
+---@param dt number
+---@return gameunit vx, gameunit vy, gameunit vz Game units per second
+local function frameVelocity(well, zone, dt)
+    -- The body's position for this step: its rigid body only reaches it when the step runs.
+    local now = OrbitalSystem:predictPos(zone.parentEntity, 0)
+    local prev = well:getPrevBodyPos() or bodyPosition(zone)
+    well:setPrevBodyPos(Position(now.x, now.y, now.z))
+
+    local dx, dy, dz = now.x - prev.x, now.y - prev.y, now.z - prev.z
+    if math.max(math.abs(dx), math.abs(dy), math.abs(dz)) > MAX_FOLLOW_DELTA then
+        return well:getCarriedVelocity()
     end
-    well:setPrevBodyPos(Position(bodyPos.x, bodyPos.y, bodyPos.z))
+    return dx / dt, dy / dt, dz / dt
 end
 
---- Update one ship's well and follow the body it is in.
+--- Give the ship the frame velocity `(vx, vy, vz)` for the coming step: a force that makes the ship
+--- move with the body, as the physics step integrates it. A step of `dt` runs `n` equal substeps of
+--- `s = dt/n`. In each one the force adds `g/n` to the solver velocity, where `g = dt·F/m`, and the
+--- position moves by `s·w/(1 + s·k)`; the stored velocity is the final solver velocity over
+--- `1 + dt·k`. For the carried part `V` of the ship's velocity the step then moves it by
+--- `dt·(V + g·(n+1)/(2n))/(1 + s·k)`. The force sets that equal to the body's move `dt·vNew`, and `V`
+--- becomes the stored velocity `(V + g)/(1 + dt·k)`. The solver is linear, so the rest of the ship's
+--- velocity (thrust, collisions) moves it relative to the body as it would next to a body that
+--- stands still; `V` is what the ship's velocity has over that.
+---@param well GravityWellComponent
+---@param rb RigidBody
+---@param dt number
+---@param substeps integer The physics step's substep count
+---@param vx gameunit
+---@param vy gameunit
+---@param vz gameunit
+local function carry(well, rb, dt, substeps, vx, vy, vz)
+    local k = well:getLinearDrag()
+    local substepDamping = 1 + dt / substeps * k
+    local stepDamping = 1 + dt * k
+    local forceScale = 2 * substeps / (substeps + 1) -- from the mean of the substeps' force increments
+    local oldX, oldY, oldZ = well:getCarriedVelocity()
+    local gx = (vx * substepDamping - oldX) * forceScale
+    local gy = (vy * substepDamping - oldY) * forceScale
+    local gz = (vz * substepDamping - oldZ) * forceScale
+    if gx ~= 0 or gy ~= 0 or gz ~= 0 then
+        local scale = rb:getMass() / dt
+        -- `applyForce` takes single precision and the engine sums the forces in double: the second call
+        -- adds what the first one's rounding left out, so the carry's error doesn't build up as a drift.
+        local fx, fy, fz = scale * gx, scale * gy, scale * gz
+        local rounded = Vec3f(fx, fy, fz)
+        rb:applyForce(rounded)
+        rb:applyForce(Vec3f(fx - rounded.x, fy - rounded.y, fz - rounded.z))
+    end
+    well:setCarriedVelocity((oldX + gx) / stepDamping, (oldY + gy) / stepDamping, (oldZ + gz) / stepDamping)
+end
+
+--- Update one ship's well and carry the ship with the body it is in.
 ---@param shipEntity Entity
 ---@param well GravityWellComponent
 ---@param rb RigidBody
-function GravityWellSystem:_updateShip(shipEntity, well, rb)
-    local shipPos = rb:getPos()
-    local zone = innermostZone(self.zones, shipPos)
+---@param dt number
+---@param substeps integer
+function GravityWellSystem:_updateShip(shipEntity, well, rb, dt, substeps)
+    local zone = innermostZone(self.zones, rb:getPos())
 
     local prevType = well:getZoneType()
+    local vx, vy, vz = 0, 0, 0 -- open space carries nothing
     if not zone then
         well:leave()
     else
@@ -164,9 +203,9 @@ function GravityWellSystem:_updateShip(shipEntity, well, rb)
             well:enter(zone.parentEntity, zone.parentName, zone.zoneType)
             well:setPrevBodyPos(nil)
         end
-        -- The body's position for this step: its rigid body only reaches it when the step runs.
-        followBody(well, rb, shipPos, OrbitalSystem:predictPos(zone.parentEntity, 0))
+        vx, vy, vz = frameVelocity(well, zone, dt)
     end
+    carry(well, rb, dt, substeps, vx, vy, vz)
 
     if well:getZoneType() ~= prevType then
         if zone then
@@ -177,14 +216,21 @@ function GravityWellSystem:_updateShip(shipEntity, well, rb)
     end
 end
 
---- Update every ship that has a gravity-well component and a rigid body.
-function GravityWellSystem:update()
-    if #self.zones == 0 then return end
+--- Update every ship that has a gravity-well component and a rigid body, before the physics step of
+--- `dt` seconds that runs `substeps` solver substeps (`Physics:getSolverSubsteps`). A step of no time
+--- (paused) changes nothing.
+---@param dt number
+---@param substeps integer
+function GravityWellSystem:update(dt, substeps)
+    assert(substeps >= 1, "a physics step has at least one substep")
+    if #self.zones == 0 or dt <= 0 then return end
+    -- `Physics:update` takes single precision: the carry has to use the step the engine integrates.
+    dt = tonumber(ffi.new("float[1]", dt)[0])
     for shipEntity, well in Registry:iterEntities(PhysicsComponents.GravityWell) do
         local rbCmp = shipEntity:get(PhysicsComponents.RigidBody)
         local rb = rbCmp and rbCmp:getRigidBody()
         if rb then
-            self:_updateShip(shipEntity, well, rb)
+            self:_updateShip(shipEntity, well, rb, dt, substeps)
         end
     end
 end

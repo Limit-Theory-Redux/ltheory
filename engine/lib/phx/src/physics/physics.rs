@@ -307,6 +307,14 @@ impl Physics {
         self.integration_parameters.contact_natural_frequency = frequency;
     }
 
+    /// The number of equal substeps each `update` splits its step into. Forces enter the solver
+    /// per substep and damping applies per substep and again over the whole step, so a caller that
+    /// predicts a body's motion under a force needs it. At least 1.
+    pub fn get_solver_substeps(&self) -> u32 {
+        u32::try_from(self.integration_parameters.num_solver_iterations.get())
+            .expect("the solver substep count fits in u32")
+    }
+
     /// Adds this rigid body to this physics world if it doesn't exist, otherwise do nothing.
     ///
     /// Automatically adds all attached Triggers. Automatically adds all

@@ -8,6 +8,7 @@ local ConstructsComponents  = require("Modules.Constructs.Components")
 local Registry              = require("Core.ECS.Registry")
 local EntityPosition        = require("Shared.Helpers.EntityPosition")
 local Pipelines             = require("Render.Pipelines")
+local ShipFlightSystem      = require("Modules.Constructs.Systems.ShipFlightSystem")
 
 -- Scratch color for the shapes below (the batcher copies it at the call).
 local shapeColor = Color(0, 0, 0, 0)
@@ -662,7 +663,7 @@ function SystemMap:draw(state, x, y, sx, sy)
                 local worldDist = math.sqrt(
                     (ap.x - shipPos.x)^2 + (ap.z - shipPos.z)^2)
                 local distStr = formatDistance(worldDist)
-                local speed = shipRb:getRigidBody():getSpeed()
+                local speed = ShipFlightSystem:getSpeed(state.shipEntity)
                 local etaStr = ""
                 if speed > 1 then
                     local eta = worldDist / speed

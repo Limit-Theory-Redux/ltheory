@@ -42,7 +42,12 @@ local SCENE_SPACING = 1e6
 local THRUST        = 1.0
 local YAW_TO_ROCK   = 0.2
 
+-- Free flight (before the hull touches the rock) matches a still rock to this distance.
 local TOLERANCE = 1e-6
+-- In contact the solver sees the carried velocity and not the rock's own, so the flights differ a
+-- little. The closest gaps next to the moving and the still rock may differ by this fraction of the
+-- ship's radius.
+local CONTACT_BOUND_FRACTION = 0.10
 
 function BeltFlightTest:check(ok, what, detail)
     if ok then
@@ -111,7 +116,7 @@ function BeltFlightTest:buildShip(scene)
     local rock = scene.rockPos
     rb:setPos(Position(rock.x - right.x * distance, rock.y - right.y * distance, rock.z - right.z * distance))
 
-    ship:add(PhysicsComponents.GravityWell())
+    ship:add(PhysicsComponents.GravityWell(profile.linearDrag))
     ship:add(ConstructComponents.FlightProfile(profile))
     local input = ship:add(ConstructComponents.ControlInput())
     input:setThrustForward(THRUST)
@@ -129,11 +134,14 @@ local function spawnedRock(scene)
     return nil
 end
 
----Runs the systems in the order of the flight apps' Sim handler.
-function BeltFlightTest:step(scene)
-    OrbitalSystem:update(scene.orbiters, STEP, scene.followers)
+---Runs the systems in the order of the flight apps' Sim handler. The orbits are one per scene; the
+---other systems work on every scene's entities, so they run once per step.
+function BeltFlightTest:step(scenes)
+    for _, scene in ipairs(scenes) do
+        OrbitalSystem:update(scene.orbiters, STEP, scene.followers)
+    end
     AsteroidFieldSystem:updatePositions()
-    GravityWellSystem:update()
+    GravityWellSystem:update(STEP, self.world:getSolverSubsteps())
     ShipFlightSystem:update()
 end
 
@@ -147,7 +155,7 @@ function BeltFlightTest:run(scenes)
     end
 
     for stepIndex = 1, STEPS do
-        for _, scene in ipairs(scenes) do self:step(scene) end
+        self:step(scenes)
         self.world:update(STEP)
         for i, scene in ipairs(scenes) do
             local ship, rock = scene.shipRb:getPos(), scene.rock:getPos()
@@ -160,10 +168,20 @@ function BeltFlightTest:run(scenes)
     return paths, closest
 end
 
----The largest distance between two paths at the same step, and the step it is at.
-local function largestDeviation(a, b)
+---The first step at which the hull touches the rock's surface along `path`, nil if it never does.
+local function firstContactStep(path)
+    for i, rel in ipairs(path) do
+        if math.sqrt(rel.x * rel.x + rel.y * rel.y + rel.z * rel.z) - ROCK_RADIUS - SHIP_RADIUS <= 0 then
+            return i
+        end
+    end
+    return nil
+end
+
+---The largest distance between two paths at the same step up to step `last`, and the step it is at.
+local function largestDeviation(a, b, last)
     local worst, at = 0, 0
-    for i = 1, #a do
+    for i = 1, last do
         local dx, dy, dz = a[i].x - b[i].x, a[i].y - b[i].y, a[i].z - b[i].z
         local d = math.sqrt(dx * dx + dy * dy + dz * dz)
         if d > worst then worst, at = d, i end
@@ -186,9 +204,8 @@ function BeltFlightTest:onInit()
     self:buildShip(moving)
     self:buildShip(still)
     self.world:update(STEP)
-    -- A ship that enters a well is not moved by it on that update: enter now, so that the ships follow
-    -- their planets from the first step of the run.
-    GravityWellSystem:update()
+    -- Enter the wells now, so that the ships are carried with their planets from the first step of the run.
+    GravityWellSystem:update(STEP, self.world:getSolverSubsteps())
 
     -- The system spawns the rocks near the ship it is given; one update per scene.
     AsteroidFieldSystem:update(1.0, { moving.belt }, self.world, moving.ship)
@@ -198,15 +215,20 @@ function BeltFlightTest:onInit()
     local paths, closest = self:run({ moving, still })
     local endX = moving.planet:get(PhysicsComponents.RigidBody):getRigidBody():getPos()
     local travelled = math.sqrt((endX.x - startX) ^ 2 + endX.y ^ 2 + endX.z ^ 2)
-    local deviation, at = largestDeviation(paths[1], paths[2])
+    local contactStep = firstContactStep(paths[2])
+    local deviation, at = largestDeviation(paths[1], paths[2], contactStep and contactStep - 1 or #paths[1])
+    local gapDifference = math.abs(closest[1] - closest[2])
+    local contactBound = CONTACT_BOUND_FRACTION * SHIP_RADIUS
 
-    Log.Info("PhysicsBeltFlightTest: planet moved %.3f, closest gap moving %.6f, still %.6f, deviation %.6g at step %d",
-        travelled, closest[1], closest[2], deviation, at)
+    Log.Info("PhysicsBeltFlightTest: planet moved %.3f, closest gap moving %.6f, still %.6f, first contact at step %s, free-flight deviation %.6g at step %d",
+        travelled, closest[1], closest[2], tostring(contactStep), deviation, at)
 
     self:check(travelled > ROCK_RADIUS, "the planet moves far enough to matter", tostring(travelled))
-    self:check(closest[2] < SHIP_RADIUS, "the ship comes to the rock, so contacts are tested", tostring(closest[2]))
-    self:check(deviation <= TOLERANCE, "the ship moves the same relative to a moving rock as to a still one",
+    self:check(contactStep ~= nil, "the ship comes to the rock, so contacts are tested", tostring(closest[2]))
+    self:check(deviation <= TOLERANCE, "before contact the ship moves the same relative to a moving rock as to a still one",
         string.format("%.6g at step %d", deviation, at))
+    self:check(gapDifference <= contactBound, "in contact the ship stays close to its flight at a still rock",
+        string.format("closest gaps differ by %.6g, bound %.6g", gapDifference, contactBound))
 
     AsteroidFieldSystem:cleanup(self.world)
     Log.Info("PhysicsBeltFlightTest: %d checks passed, %d failed", self.passed, self.failed)

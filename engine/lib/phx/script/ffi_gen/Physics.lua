@@ -21,6 +21,7 @@ function Loader.defineType()
             Physics* Physics_Create                     ();
             void     Physics_SetLengthUnit              (Physics*, double lengthUnit);
             void     Physics_SetContactNaturalFrequency (Physics*, double frequency);
+            uint32   Physics_GetSolverSubsteps          (Physics const*);
             void     Physics_AddRigidBody               (Physics*, RigidBody* rigidBody);
             void     Physics_RemoveRigidBody            (Physics*, RigidBody* rigidBody);
             void     Physics_AddTrigger                 (Physics*, Trigger* trigger);
@@ -60,6 +61,7 @@ function Loader.defineType()
             __index = {
                 setLengthUnit              = libphx.Physics_SetLengthUnit,
                 setContactNaturalFrequency = libphx.Physics_SetContactNaturalFrequency,
+                getSolverSubsteps          = libphx.Physics_GetSolverSubsteps,
                 addRigidBody               = libphx.Physics_AddRigidBody,
                 removeRigidBody            = libphx.Physics_RemoveRigidBody,
                 addTrigger                 = libphx.Physics_AddTrigger,

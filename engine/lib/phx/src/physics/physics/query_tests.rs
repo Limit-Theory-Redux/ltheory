@@ -257,6 +257,15 @@ fn tuning_setters_set_the_integration_parameters() {
 }
 
 #[test]
+fn solver_substeps_are_the_integration_parameters_iterations() {
+    let mut physics = Physics::new();
+    let default = physics.integration_parameters.num_solver_iterations.get();
+    assert_eq!(physics.get_solver_substeps() as usize, default);
+    physics.integration_parameters.num_solver_iterations = 7.try_into().unwrap();
+    assert_eq!(physics.get_solver_substeps(), 7);
+}
+
+#[test]
 #[should_panic(expected = "length unit must be positive")]
 fn length_unit_must_be_positive() {
     Physics::new().set_length_unit(0.0);

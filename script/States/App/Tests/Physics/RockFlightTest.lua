@@ -125,7 +125,7 @@ function RockFlightTest:buildShip(scene)
     local ship = handle.root
     ship:add(ConstructComponents.TravelDrive())
     scene.input = ship:add(ConstructComponents.ControlInput())
-    ship:add(PhysicsComponents.GravityWell())
+    ship:add(PhysicsComponents.GravityWell(ConstructComponents.FlightProfile.ProfileOf(ship).linearDrag))
     scene.ship, scene.shipRb = ship, handle.rigidBody
     -- The hull's bounding sphere: contact is counted when it touches, a little before the hull does.
     scene.shipRadius = handle.rigidBody:getBoundingRadiusCompound()
@@ -170,7 +170,7 @@ function RockFlightTest:step(scenes)
         circleInput(scene)
     end
     AsteroidFieldSystem:updatePositions()
-    GravityWellSystem:update()
+    GravityWellSystem:update(STEP, self.world:getSolverSubsteps())
     TravelDriveSystem:update(STEP)
     ShipFlightSystem:update()
     self.world:update(STEP)
@@ -292,7 +292,7 @@ function RockFlightTest:onInit()
     GravityWellSystem:collectZones()
     for _, scene in ipairs(scenes) do self:buildShip(scene) end
     self.world:update(STEP)
-    GravityWellSystem:update()
+    GravityWellSystem:update(STEP, self.world:getSolverSubsteps())
 
     -- The system spawns rocks near the ship it is given, once its update interval has passed.
     for _, scene in ipairs(scenes) do

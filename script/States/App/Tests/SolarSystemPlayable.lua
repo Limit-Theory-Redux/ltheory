@@ -255,7 +255,8 @@ function SolarSystemPlayable:spawnPlayerShip()
     self.playerShip:add(ConstructComponents.AutoPilot())
     self.playerShip:add(ConstructComponents.ShipFlightControl())
     self.playerShip:add(ConstructComponents.ControlInput())
-    self.playerShip:add(PhysicsComponents.GravityWell())
+    self.playerShip:add(PhysicsComponents.GravityWell(
+        ConstructComponents.FlightProfile.ProfileOf(self.playerShip).linearDrag))
 
     local rbCmp = self.playerShip:get(PhysicsComponents.RigidBody)
     self.world:addRigidBody(rbCmp:getRigidBody())
@@ -485,7 +486,7 @@ function SolarSystemPlayable:onSim(data)
 
     OrbitalSystem:update(self.orbiters, dt, self.followers)  -- moves planets + rings
     AsteroidFieldSystem:updatePositions()                     -- every frame: spawned asteroids follow parent
-    GravityWellSystem:update()
+    GravityWellSystem:update(dt, self.world:getSolverSubsteps())
 
     TravelDriveSystem:update(dt)
     ShipFlightSystem:update()
