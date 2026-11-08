@@ -1,15 +1,31 @@
-local CoreComponents      = require("Modules.Core.Components")
-local PhysicsComponents   = require("Modules.Physics.Components")
-local SpatialComponents   = require("Modules.Spatial.Components")
-local UniverseScaleConfig = require("Config.Gen.UniverseScaleConfig")
-local DrawEx              = require("UI.DrawEx")
-local Primitive           = require("Legacy.Systems.Gen.Primitive")
-local CameraEntity        = require("Modules.Cameras.Entities").Camera
-local CameraManager       = require("Modules.Cameras.Managers.CameraManager")
-local CameraDataComponent = require("Modules.Cameras.Components.CameraDataComponent")
-local RenderCoreSystem    = require("Modules.Rendering.Systems.RenderCoreSystem")
-local Pipelines           = require("Render.Pipelines")
-local ffi                 = require("ffi")
+local CoreComponents       = require("Modules.Core.Components")
+local PhysicsComponents    = require("Modules.Physics.Components")
+local SpatialComponents    = require("Modules.Spatial.Components")
+local UniverseScaleConfig  = require("Config.Gen.UniverseScaleConfig")
+local DrawEx               = require("UI.DrawEx")
+local EntityPosition       = require("Shared.Helpers.EntityPosition")
+local Registry             = require("Core.ECS.Registry")
+local CelestialComponents  = require("Modules.CelestialObjects.Components")
+local ConstructsComponents = require("Modules.Constructs.Components")
+local Primitive            = require("Legacy.Systems.Gen.Primitive")
+local CameraEntity         = require("Modules.Cameras.Entities").Camera
+local CameraManager        = require("Modules.Cameras.Managers.CameraManager")
+local CameraDataComponent  = require("Modules.Cameras.Components.CameraDataComponent")
+local RenderCoreSystem     = require("Modules.Rendering.Systems.RenderCoreSystem")
+local Pipelines            = require("Render.Pipelines")
+local ffi                  = require("ffi")
+
+--- What the map draws, per kind marker. Asteroids only matter up close: their scale is small,
+--- so they cluster into a dot at system zoom.
+local MAP_KINDS = {
+    { marker = CelestialComponents.Star,          label = "Star",          color = Color(1.0, 0.9, 0.3, 0.5), trailWidth = 3.0 },
+    { marker = CelestialComponents.Planet,        label = "Planet",        color = Color(0.3, 0.6, 1.0, 0.5), trailWidth = 2.0, numbered = true },
+    { marker = CelestialComponents.Moon,          label = "Moon",          color = Color(0.5, 0.5, 0.6, 0.4), trailWidth = 0.5, isMoon = true },
+    { marker = ConstructsComponents.SpaceStation, label = "Station",       color = Color(1.0, 0.5, 0.1, 0.4), trailWidth = 0.3 },
+    { marker = CelestialComponents.AsteroidBelt,  label = "Asteroid Belt", color = Color(0.7, 0.5, 0.3, 0.3), trailWidth = 0 },
+    { marker = CelestialComponents.AsteroidRing,  label = "Asteroid Ring", color = Color(0.6, 0.5, 0.4, 0.3), trailWidth = 0 },
+    { marker = CelestialComponents.Asteroid,      label = "Asteroid",      color = Color(0.7, 0.6, 0.5, 0.6), trailWidth = 0 },
+}
 
 -- Orbit trails: additive, drawn with the map's own view and projection.
 local trailState = { blend = BlendMode.Additive }
@@ -73,12 +89,17 @@ function SystemMap3D:setSkybox(state, skyboxEntity)
     state.skyboxEntity = skyboxEntity
 end
 
-function SystemMap3D:collectEntities(state, rootEntity, shipEntity)
+--- Collect all entities with positions, one registry view per kind
+---@param state table
+---@param shipEntity Entity|nil
+function SystemMap3D:collectEntities(state, shipEntity)
     state.entities = {}
     state.shipEntity = shipEntity
     state._planetIdx = 0
     state.maxOrbit = 1
-    self:_walk(state, rootEntity, nil)
+    for _, kind in ipairs(MAP_KINDS) do
+        self:_collectKind(state, kind)
+    end
 
     if shipEntity then
         local rbCmp = shipEntity:get(PhysicsComponents.RigidBody)
@@ -95,58 +116,40 @@ function SystemMap3D:collectEntities(state, rootEntity, shipEntity)
     end
 end
 
-function SystemMap3D:_walk(state, entity, parentPos)
-    local name = tostring(entity)
-    local transform = entity:get(PhysicsComponents.Transform)
-    if not transform then
-        local cc = entity:get(CoreComponents.Children)
-        if cc then for child in cc:iterChildren() do self:_walk(state, child, parentPos) end end
-        return
+---@param state table
+---@param kind table An entry of MAP_KINDS
+function SystemMap3D:_collectKind(state, kind)
+    for entity in Registry:view(kind.marker) do
+        local transform = entity:get(PhysicsComponents.Transform)
+        if transform then
+            local pos = transform:getPos()
+            local rbCmp = entity:get(PhysicsComponents.RigidBody)
+            if rbCmp and rbCmp:getRigidBody() then pos = rbCmp:getRigidBody():getPos() end
+
+            local label = kind.label
+            if kind.numbered then
+                state._planetIdx = state._planetIdx + 1
+                label = label .. " " .. state._planetIdx
+            end
+
+            local orbitCmp = entity:get(SpatialComponents.Orbit)
+            local orbitRadius = orbitCmp and orbitCmp:getOrbitRadius() or 0
+            local incCmp = entity:get(SpatialComponents.Inclination)
+            local inclination = incCmp and math.rad(incCmp:getInclination() or 0) or 0
+            if orbitRadius > state.maxOrbit then state.maxOrbit = orbitRadius end
+
+            local parentCmp = entity:get(CoreComponents.Parent)
+            local parentEntity = parentCmp and parentCmp:getParent()
+
+            table.insert(state.entities, {
+                entity = entity, label = label, pos = pos,
+                scale = transform:getScale(), orbitRadius = orbitRadius,
+                inclination = inclination, isMoon = kind.isMoon or false,
+                parentPos = parentEntity and EntityPosition.Get(parentEntity) or nil,
+                color = kind.color, trailWidth = kind.trailWidth,
+            })
+        end
     end
-
-    local pos = transform:getPos()
-    local label, color, isMoon, trailWidth = nil, nil, false, 1.0
-
-    if name:find("StarEntity") then
-        label = "Star"; color = Color(1.0, 0.9, 0.3, 0.5); trailWidth = 3.0
-    elseif name:find("PlanetEntity") then
-        state._planetIdx = state._planetIdx + 1
-        label = "Planet " .. state._planetIdx; color = Color(0.3, 0.6, 1.0, 0.5); trailWidth = 2.0
-    elseif name:find("MoonEntity") then
-        label = "Moon"; color = Color(0.5, 0.5, 0.6, 0.4); isMoon = true; trailWidth = 0.5
-    elseif name:find("SpaceStationEntity") then
-        label = "Station"; color = Color(1.0, 0.5, 0.1, 0.4); trailWidth = 0.3
-    elseif name:find("AsteroidBeltEntity") then
-        label = "Asteroid Belt"; color = Color(0.7, 0.5, 0.3, 0.3); trailWidth = 0
-    elseif name:find("AsteroidRingEntity") then
-        label = "Asteroid Ring"; color = Color(0.6, 0.5, 0.4, 0.3); trailWidth = 0
-    elseif name:find("AsteroidEntity") then
-        -- Spawned asteroid (AsteroidFieldSystem attaches these to the belt
-        -- entity). Markers only matter up close; the per-entity scale is
-        -- small so they cluster into a dot at system zoom.
-        label = "Asteroid"; color = Color(0.7, 0.6, 0.5, 0.6); trailWidth = 0
-    end
-
-    if label then
-        local rbCmp = entity:get(PhysicsComponents.RigidBody)
-        if rbCmp and rbCmp:getRigidBody() then pos = rbCmp:getRigidBody():getPos() end
-
-        local orbitCmp = entity:get(SpatialComponents.Orbit)
-        local orbitRadius = orbitCmp and orbitCmp:getOrbitRadius() or 0
-        local incCmp = entity:get(SpatialComponents.Inclination)
-        local inclination = incCmp and math.rad(incCmp:getInclination() or 0) or 0
-        if orbitRadius > state.maxOrbit then state.maxOrbit = orbitRadius end
-
-        table.insert(state.entities, {
-            entity = entity, label = label, pos = pos,
-            scale = transform:getScale(), orbitRadius = orbitRadius,
-            inclination = inclination, isMoon = isMoon,
-            parentPos = parentPos, color = color, trailWidth = trailWidth,
-        })
-    end
-
-    local cc = entity:get(CoreComponents.Children)
-    if cc then for child in cc:iterChildren() do self:_walk(state, child, pos) end end
 end
 
 function SystemMap3D:updateTrails(state, dt)

@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 440" font-family="sans-serif" font-size="14">
+  <title>Orbit phase and inclination</title>
+  <defs>
+    <marker id="k" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#111827"/></marker>
+    <marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2563eb"/></marker>
+  </defs>
+  <rect width="800" height="440" fill="#ffffff"/>
+  <!-- top view -->
+  <text x="20" y="28" fill="#111827" font-weight="bold">Seen from above (+y toward the viewer)</text>
+  <circle cx="200" cy="230" r="130" fill="none" stroke="#6b7280" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <line x1="200" y1="230" x2="350" y2="230" stroke="#111827" stroke-width="2" marker-end="url(#k)"/>
+  <text x="356" y="235" fill="#111827">+x</text>
+  <line x1="200" y1="230" x2="200" y2="380" stroke="#111827" stroke-width="2" marker-end="url(#k)"/>
+  <text x="206" y="396" fill="#111827">+z</text>
+  <circle cx="200" cy="230" r="8" fill="#f59e0b"/>
+  <text x="170" y="222" fill="#d97706" text-anchor="end">parent</text>
+  <line x1="200" y1="230" x2="299.6" y2="313.6" stroke="#2563eb" stroke-width="2.5"/>
+  <circle cx="299.6" cy="313.6" r="9" fill="#2563eb"/>
+  <text x="312" y="330" fill="#2563eb">body</text>
+  <path d="M260,230 A60,60 0 0 1 246,268.6" fill="none" stroke="#2563eb" stroke-width="2"/>
+  <text x="268" y="256" fill="#2563eb" font-weight="bold">φ</text>
+  <text x="236" y="290" fill="#2563eb" transform="rotate(40 236 290)" text-anchor="middle">orbitRadius</text>
+  <!-- side view -->
+  <text x="440" y="28" fill="#111827" font-weight="bold">Seen along the x axis</text>
+  <line x1="450" y1="230" x2="750" y2="230" stroke="#111827" stroke-width="2" marker-end="url(#k)"/>
+  <text x="752" y="235" fill="#111827">+z</text>
+  <line x1="600" y1="230" x2="600" y2="70" stroke="#111827" stroke-width="2" marker-end="url(#k)"/>
+  <text x="608" y="76" fill="#111827">+y</text>
+  <line x1="470" y1="305" x2="730" y2="155" stroke="#2563eb" stroke-width="3"/>
+  <text x="730" y="148" fill="#2563eb" text-anchor="end">orbit plane</text>
+  <path d="M680,230 A80,80 0 0 0 669,190" fill="none" stroke="#2563eb" stroke-width="2"/>
+  <text x="688" y="215" fill="#2563eb" font-weight="bold">i</text>
+  <circle cx="600" cy="230" r="8" fill="#f59e0b"/>
+  <text x="20" y="428" fill="#6b7280">The plane is tilted about the x axis by the inclination i; the phase φ is measured in that plane from +x toward +z.</text>
+</svg>

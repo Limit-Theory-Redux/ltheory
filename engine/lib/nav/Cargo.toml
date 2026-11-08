@@ -1,0 +1,23 @@
+[package]
+name = "nav"
+
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+# external crates
+glam.workspace = true
+
+[dev-dependencies]
+# external crates
+criterion.workspace = true
+mlua.workspace = true
+
+[[bench]]
+name = "step"
+harness = false

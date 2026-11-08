@@ -27,7 +27,7 @@ function EventTest:onInit()
         Log.Debug("========")
         iteration = iteration + 1
         if iteration == 3 then
-            os.exit()
+            self:quit()
         end
     end)
 

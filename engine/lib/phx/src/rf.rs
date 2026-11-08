@@ -32,6 +32,12 @@ impl<T> Rf<T> {
     pub fn as_mut(&self) -> RefMut<'_, T> {
         self.0.borrow_mut()
     }
+
+    /// Whether both handles share one value.
+    #[inline]
+    pub fn ptr_eq(&self, other: &Self) -> bool {
+        Rc::ptr_eq(&self.0, &other.0)
+    }
 }
 
 impl<T> From<T> for Rf<T> {

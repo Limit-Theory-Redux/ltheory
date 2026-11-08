@@ -79,7 +79,7 @@ function WorldLabelRenderSystem:draw(labeledEntities, moonDistThreshold)
 end
 
 --- Draw labels for nearby asteroids from belt components
----@param beltEntities table Array of entities with AsteroidBeltComponent
+---@param beltEntities table Array of entities with AsteroidBeltDataComponent
 ---@param maxDist number|nil Maximum distance to show labels (default 500000)
 function WorldLabelRenderSystem:drawAsteroidMarkers(beltEntities, maxDist)
     if not beltEntities then return end
@@ -104,7 +104,7 @@ function WorldLabelRenderSystem:drawAsteroidMarkers(beltEntities, maxDist)
     local CelestialComponents = require("Modules.CelestialObjects.Components")
 
     for _, beltEntity in ipairs(beltEntities) do
-        local beltCmp = beltEntity:get(CelestialComponents.AsteroidBelt)
+        local beltCmp = beltEntity:get(CelestialComponents.AsteroidBeltData)
         if not beltCmp then goto next_belt end
 
         local asteroids = beltCmp:getAsteroidData()

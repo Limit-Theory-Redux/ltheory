@@ -16,6 +16,7 @@ local Core = require("Modules.Core.Components")
 ---@return Entity
 return function(seed, meshes, stats)
     return PhysicalEntity("SpaceStationEntity", seed,
+        Constructs.SpaceStation(),
         Physics.RigidBody(),
         Rendering.Render(meshes),
         Core.Health(stats and stats.maxHealth),

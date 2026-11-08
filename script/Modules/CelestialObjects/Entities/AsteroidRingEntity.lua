@@ -8,6 +8,7 @@ local CelestialObjects = require("Modules.CelestialObjects.Components")
 ---@return Entity
 return function(seed, meshes)
     return PhysicalEntity("AsteroidRingEntity", seed,
+        CelestialObjects.AsteroidRing(),
         Physics.RigidBody(),
         Rendering.Render(meshes),
         CelestialObjects.Simulation.PlanetaryRingMotion(1, 1)

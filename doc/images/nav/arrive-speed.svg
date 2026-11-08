@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" font-family="sans-serif" font-size="14">
+  <title>Arrive wanted speed against distance to the goal</title>
+  <rect width="800" height="400" fill="#ffffff"/>
+  <!-- axes -->
+  <line x1="70" y1="330" x2="660" y2="330" stroke="#111827" stroke-width="1.5"/>
+  <line x1="70" y1="330" x2="70" y2="25" stroke="#111827" stroke-width="1.5"/>
+  <text x="665" y="335" fill="#111827">distance</text>
+  <text x="70" y="18" fill="#111827" text-anchor="middle">wanted speed</text>
+  <text x="70" y="352" fill="#111827" text-anchor="middle">0 (goal)</text>
+  <!-- max_speed -->
+  <line x1="70" y1="107" x2="650" y2="107" stroke="#6b7280" stroke-width="1" stroke-dasharray="6 4"/>
+  <text x="655" y="111" fill="#6b7280">max_speed</text>
+  <!-- drag alone -->
+  <path d="M70,330 L71,330 L73,329 L76,329 L80,328 L84,327 L89,327 L95,326 L100,325 L107,323 L113,322 L121,321 L128,320 L136,318 L144,317 L153,315 L162,313 L171,312 L181,310 L191,308 L202,306 L212,304 L223,302 L235,300 L246,298 L258,296 L270,294 L283,292 L295,290 L308,287 L322,285 L335,282 L349,280 L363,277 L378,275 L392,272 L407,269 L422,267 L437,264 L453,261 L469,258 L485,255 L501,253 L518,250 L535,247 L552,244 L569,240 L586,237 L604,234 L622,231 L640,228" fill="none" stroke="#9ca3af" stroke-width="2" stroke-dasharray="3 4"/>
+  <text x="640" y="220" fill="#6b7280" text-anchor="end">drag alone: distance · k</text>
+  <!-- stopping_speed -->
+  <path d="M70,330 L71,320 L73,312 L76,306 L80,299 L84,293 L89,286 L95,280 L100,274 L107,268 L113,263 L121,257 L128,251 L136,245 L144,239 L153,234 L162,228 L171,222 L181,217 L191,211 L202,205 L212,200 L223,194 L235,189 L246,183 L258,177 L270,172 L283,166 L295,160 L308,154 L322,149 L335,143 L349,137 L363,132 L378,126 L392,120 L407,114 L422,109 L437,103 L453,97 L469,91 L485,85 L501,79 L518,73 L535,68 L552,62 L569,56" fill="none" stroke="#2563eb" stroke-width="2" stroke-dasharray="8 4"/>
+  <text x="575" y="52" fill="#2563eb">stopping_speed(distance)</text>
+  <!-- tail cap -->
+  <path d="M70,330 L71,329 L72,327 L74,326 L75,324 L77,322 L79,320 L82,318 L84,315 L87,312 L89,309 L92,306 L95,303 L99,299 L102,296 L105,292 L109,288 L113,284 L116,280 L120,276 L125,272 L129,267 L133,262 L138,258 L142,253 L147,248 L152,243 L156,238 L161,232 L167,227 L172,221 L177,215 L182,210 L188,204 L194,198 L199,192 L205,186 L211,179 L217,173 L223,166 L229,160 L235,153 L242,146 L248,139 L255,132 L261,125 L268,118 L275,111 L282,104 L289,96" fill="none" stroke="#d97706" stroke-width="2" stroke-dasharray="8 4"/>
+  <text x="296" y="92" fill="#d97706">tail_gain · distance</text>
+  <!-- result -->
+  <path d="M70,330 L71,329 L73,326 L76,323 L80,319 L84,315 L89,309 L95,304 L100,298 L107,291 L113,284 L121,276 L128,268 L136,259 L144,250 L153,241 L162,231 L171,222 L181,217 L191,211 L202,205 L212,200 L223,194 L235,189 L246,183 L258,177 L270,172 L283,166 L295,160 L308,154 L322,149 L335,143 L349,137 L363,132 L378,126 L392,120 L407,114 L422,109 L437,107 L453,107 L469,107 L485,107 L501,107 L518,107 L535,107 L552,107 L569,107 L586,107 L604,107 L622,107 L640,107" fill="none" stroke="#111827" stroke-width="4"/>
+  <text x="520" y="150" fill="#111827" font-weight="bold">wanted speed</text>
+  <text x="520" y="168" fill="#111827">= the lowest of the three</text>
+  <!-- crossing markers -->
+  <line x1="171" y1="222" x2="171" y2="330" stroke="#d97706" stroke-width="1" stroke-dasharray="2 3"/>
+  <line x1="436" y1="107" x2="436" y2="330" stroke="#2563eb" stroke-width="1" stroke-dasharray="2 3"/>
+  <text x="171" y="350" fill="#d97706" text-anchor="middle">close to the goal:</text>
+  <text x="171" y="368" fill="#d97706" text-anchor="middle">the tail cap</text>
+  <text x="436" y="350" fill="#2563eb" text-anchor="middle">far away: top speed</text>
+  <text x="300" y="386" fill="#6b7280" text-anchor="middle">between the two: the braking curve</text>
+</svg>

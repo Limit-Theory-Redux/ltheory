@@ -83,15 +83,7 @@ impl<H: RapierHandle> RapierWrapper<H> {
     pub(crate) fn replace(&mut self) -> Self {
         std::mem::replace(
             self,
-            RapierWrapper::Added(
-                H::invalid(),
-                Rf::new(PhysicsWorld {
-                    island_manager: rp::IslandManager::new(),
-                    rigid_bodies: rp::RigidBodySet::new(),
-                    colliders: rp::ColliderSet::new(),
-                    narrow_phase: rp::NarrowPhase::new(),
-                }),
-            ),
+            RapierWrapper::Added(H::invalid(), Rf::new(PhysicsWorld::new())),
         )
     }
 

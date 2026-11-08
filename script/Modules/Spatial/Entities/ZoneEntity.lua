@@ -6,6 +6,7 @@ local Spatial = require("Modules.Spatial.Components")
 return function()
     return Entity.Create(
         "ZoneEntity",
+        Spatial.Zone(),
         Physics.Transform(),
         Spatial.Shape()
     )

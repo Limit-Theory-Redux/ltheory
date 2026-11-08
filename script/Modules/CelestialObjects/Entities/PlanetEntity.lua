@@ -8,6 +8,7 @@ local CelestialObjects = require("Modules.CelestialObjects.Components")
 ---@return Entity
 return function(seed, meshes)
     return PhysicalEntity("PlanetEntity", seed,
+        CelestialObjects.Planet(),
         Physics.RigidBody(),
         Rendering.Render(meshes),
         CelestialObjects.Simulation.CloudMotion(1, 1)
