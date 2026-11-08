@@ -76,6 +76,9 @@ function PlayerController:_createCameras(config)
         minRadius = chaseCfg.minRadius or 0.5,
         maxRadius = chaseCfg.maxRadius or 8.0,
         zoomSpeed = chaseCfg.zoomSpeed or 0.15,
+        maxLag    = chaseCfg.maxLag,
+        trailReferenceRatio = chaseCfg.trailReferenceRatio,
+        trailTopSpeedRatio  = Config.game.travelDrive.speedMultiplier,
     })
     camChase:get(CameraDataComponent):setController(self.controllers[Enums.CameraMode.Chase])
     self.controllers[Enums.CameraMode.Chase]:setTarget(self.ship)

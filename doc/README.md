@@ -13,6 +13,7 @@
    - [Entity Component System](script/ecs.md)
    - [Ship flight control](script/flight.md)
    - [Zones and gravity wells](script/zones.md)
+   - [Cameras](script/cameras.md)
    - [Navigation sandbox](script/navigation-sandbox.md)
    - [System planner](script/system-planner.md)
    - [HmGui](../script/UI/HmGui/README.md)

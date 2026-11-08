@@ -118,6 +118,10 @@ Config.game = {
         maxRadius      = 8.0,    -- Max zoom
         defaultRadius  = 1.0,    -- Default zoom
         zoomSpeed      = 0.15,   -- Zoom per scroll tick
+        -- Speed trail: the camera pulls back by up to maxLag times the rest distance, on a log
+        -- curve from trailReferenceRatio times the ship's max speed up to the full travel drive
+        maxLag              = 1.5,
+        trailReferenceRatio = 0.1,
     },
 
     -- Orbit camera (chase view of the player ship)
