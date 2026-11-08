@@ -25,3 +25,13 @@ pub struct Obstacle {
     /// Length units.
     pub radius: f64,
 }
+
+impl Obstacle {
+    /// The sphere as seen from a frame that moves at `frame_velocity`.
+    pub(crate) fn seen_from(self, frame_velocity: DVec3) -> Self {
+        Self {
+            velocity: self.velocity - frame_velocity,
+            ..self
+        }
+    }
+}

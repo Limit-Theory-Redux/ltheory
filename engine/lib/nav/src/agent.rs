@@ -73,6 +73,15 @@ impl Body {
         },
         radius: 0.0,
     };
+
+    /// The body as seen from a frame that moves at `frame_velocity`: the same state with that
+    /// velocity taken off. Drag, braking and closing speeds are judged in such a frame.
+    pub(crate) fn seen_from(self, frame_velocity: DVec3) -> Self {
+        Self {
+            velocity: self.velocity - frame_velocity,
+            ..self
+        }
+    }
 }
 
 /// An acceleration, in length units per second squared.
@@ -137,16 +146,36 @@ pub const MIN_ARRIVAL_RADII: f64 = 2.0;
 /// A body moving slower than this many of its own radii per second counts as at rest.
 pub(crate) const AT_REST_RADII_PER_S: f64 = 1.0;
 
-/// A point to fly to and stop at.
+/// A point to fly to and stop at, or to meet if it moves.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Goal {
     pub target: DVec3,
+    /// The velocity of the target point, in length units per second; zero for a fixed point. Only
+    /// Arrive matches it.
+    pub velocity: DVec3,
     /// The agent has arrived when its centre is within this distance of the target, or within
     /// [`MIN_ARRIVAL_RADII`] of its own radii if that is larger.
     pub arrival_radius: f64,
 }
 
 impl Goal {
+    /// A goal that stays where it is.
+    pub fn fixed(target: DVec3, arrival_radius: f64) -> Self {
+        Self {
+            target,
+            velocity: DVec3::ZERO,
+            arrival_radius,
+        }
+    }
+
+    /// The goal as seen from a frame that moves at `frame_velocity`.
+    pub(crate) fn seen_from(self, frame_velocity: DVec3) -> Self {
+        Self {
+            velocity: self.velocity - frame_velocity,
+            ..self
+        }
+    }
+
     /// The distance from the target within which an agent of `body_radius` has arrived.
     pub fn effective_arrival_radius(&self, body_radius: f64) -> f64 {
         self.arrival_radius.max(body_radius * MIN_ARRIVAL_RADII)
@@ -157,6 +186,9 @@ impl Goal {
 pub(crate) struct Agent {
     pub body: Body,
     pub profile: Profile,
+    /// The velocity the agent's surroundings carry it at, in length units per second: the part
+    /// of its velocity that drag does not act on.
+    pub frame_velocity: DVec3,
     pub behaviour: Option<Behaviour>,
     /// The obstacle the behaviour tracks, which the agent doesn't avoid.
     pub tracked: Option<ObstacleKey>,
@@ -170,10 +202,7 @@ mod tests {
 
     #[test]
     fn the_arrival_radius_is_floored_at_two_agent_radii() {
-        let goal = |arrival_radius| Goal {
-            target: DVec3::ZERO,
-            arrival_radius,
-        };
+        let goal = |arrival_radius| Goal::fixed(DVec3::ZERO, arrival_radius);
         assert_eq!(
             goal(1.0).effective_arrival_radius(5.0),
             5.0 * MIN_ARRIVAL_RADII

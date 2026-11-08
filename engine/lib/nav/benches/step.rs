@@ -57,10 +57,7 @@ fn scene() -> World {
         );
         world.set_behaviour(
             id,
-            Some(Behaviour::Arrive(Goal {
-                target: sequence.point(),
-                arrival_radius: 100.0,
-            })),
+            Some(Behaviour::Arrive(Goal::fixed(sequence.point(), 100.0))),
         );
     }
     let obstacles: Vec<Obstacle> = (0..OBSTACLES)
@@ -100,10 +97,10 @@ fn dense_scene() -> World {
         );
         world.set_behaviour(
             id,
-            Some(Behaviour::Arrive(Goal {
-                target: across(&mut sequence) + DVec3::NEG_Z * DENSE_LENGTH,
-                arrival_radius: 100.0,
-            })),
+            Some(Behaviour::Arrive(Goal::fixed(
+                across(&mut sequence) + DVec3::NEG_Z * DENSE_LENGTH,
+                100.0,
+            ))),
         );
     }
     let obstacles: Vec<Obstacle> = (0..OBSTACLES)

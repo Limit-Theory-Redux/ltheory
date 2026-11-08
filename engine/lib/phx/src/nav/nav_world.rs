@@ -24,6 +24,9 @@ struct FlightLimits {
 struct Tracking {
     handles: BodyHandles,
     behaviour: Behaviour,
+    /// Where an Arrive goal lies from the body's centre, in world axes; unused by the other
+    /// behaviours.
+    offset: DVec3,
 }
 
 /// An agent: its id in `nav`, the body it is steered from and the limits of its ship.
@@ -31,18 +34,27 @@ struct Agent {
     id: AgentId,
     handles: BodyHandles,
     limits: FlightLimits,
+    /// The velocity the agent's surroundings carry it at, as last given to `nav`.
+    frame_velocity: DVec3,
     /// `Some` while the agent's behaviour names a target body.
     tracking: Option<Tracking>,
 }
 
-/// Writes the current state of the target body into the body that `behaviour` names; the
-/// behaviours with a fixed point have none.
-fn refresh_target(behaviour: &mut Behaviour, body: Body) {
+/// Writes the current state of the target body into the body that `behaviour` names. An Arrive
+/// goal is the point `offset` from the body, moving with it; Seek has no body.
+fn refresh_target(behaviour: &mut Behaviour, body: Body, offset: DVec3) {
     match behaviour {
         Behaviour::Pursue { target, .. } => *target = body,
         Behaviour::Follow { leader, .. } => *leader = body,
         Behaviour::Orbit { centre, .. } => *centre = body,
-        Behaviour::Seek(_) | Behaviour::Arrive(_) => {}
+        Behaviour::Arrive(goal) => {
+            *goal = Goal {
+                target: body.position + offset,
+                velocity: body.velocity,
+                ..*goal
+            };
+        }
+        Behaviour::Seek(_) => {}
     }
 }
 
@@ -180,22 +192,30 @@ impl NavWorld {
     }
 
     /// Gives the agent a behaviour built by `build` from the state of `target`, which each step
-    /// reads again. With `leave_out`, the agent doesn't avoid `target`.
+    /// reads again (see [`refresh_target`] for `offset`). With `leave_out`, the agent doesn't
+    /// avoid `target`.
     fn set_tracking(
         &mut self,
         id: u32,
         target: &RigidBody,
         leave_out: bool,
+        offset: DVec3,
         build: impl FnOnce(Body) -> Behaviour,
     ) {
         // The agent is looked up first, so an unknown id is reported before a bad target.
         self.agent_mut(id);
         let handles = self.handles_of(target, "target");
         let state = Self::state_of(&self.physics.as_ref(), &handles, "target");
-        let behaviour = build(nav_body(&state));
+        let body = nav_body(&state);
+        let mut behaviour = build(body);
+        refresh_target(&mut behaviour, body, offset);
         let tracked = leave_out.then(|| self.obstacle_key_of(&handles));
         let agent = self.agent_mut(id);
-        agent.tracking = Some(Tracking { handles, behaviour });
+        agent.tracking = Some(Tracking {
+            handles,
+            behaviour,
+            offset,
+        });
         let agent = agent.id;
         self.world.set_behaviour(agent, Some(behaviour));
         self.world.set_tracked(agent, tracked);
@@ -218,11 +238,17 @@ impl NavWorld {
                     &tracking.handles,
                     &format!("agent {index}'s target"),
                 );
-                refresh_target(&mut tracking.behaviour, nav_body(&target));
+                refresh_target(&mut tracking.behaviour, nav_body(&target), tracking.offset);
                 self.world.set_behaviour(agent.id, Some(tracking.behaviour));
             }
             if self.sensing != SENSING_OFF {
-                let range = sensing_range(&body, &profile, self.world.tuning());
+                // Drag, and so the distance the agent covers while braking, follows its velocity
+                // relative to its surroundings.
+                let relative = Body {
+                    velocity: body.velocity - agent.frame_velocity,
+                    ..body
+                };
+                let range = sensing_range(&relative, &profile, self.world.tuning());
                 add_to_queries(&mut self.queried, Ball::new(state.position, range));
             }
         }
@@ -338,6 +364,7 @@ impl NavWorld {
             id,
             handles,
             limits,
+            frame_velocity: DVec3::ZERO,
             tracking: None,
         });
         self.agent_count() - 1
@@ -359,13 +386,42 @@ impl NavWorld {
     /// # Panics
     /// If `id` isn't an agent.
     pub fn set_arrive(&mut self, id: u32, target: &Position, arrival_radius: f64) {
-        self.set_fixed(
-            id,
-            Behaviour::Arrive(Goal {
-                target: target.v,
-                arrival_radius,
-            }),
-        );
+        self.set_fixed(id, Behaviour::Arrive(Goal::fixed(target.v, arrival_radius)));
+    }
+
+    /// Sends the agent to the point `offset` (game units, world axes) from `body`'s centre, which
+    /// moves with `body`, and stops it on that point: the goal has the body's velocity, so the
+    /// agent comes to rest relative to the body. `body` is read from physics at each step. It is
+    /// only a frame: the agent still avoids it. The offset keeps its world direction while the
+    /// body turns. Pair it with [`set_frame_velocity`](NavWorld::set_frame_velocity) when the
+    /// body is carried along by something that drag doesn't act on.
+    ///
+    /// # Panics
+    /// If `id` isn't an agent, or `body` isn't a root body of this world's physics.
+    pub fn set_arrive_relative(
+        &mut self,
+        id: u32,
+        body: &RigidBody,
+        offset: &DVec3,
+        arrival_radius: f64,
+    ) {
+        self.set_tracking(id, body, false, *offset, |_| {
+            Behaviour::Arrive(Goal::fixed(DVec3::ZERO, arrival_radius))
+        });
+    }
+
+    /// Sets the velocity (game units per second, world axes) that carries the agent along with its
+    /// surroundings, such as a gravity well's, until it is set again; zero by default. The agent
+    /// is steered relative to it: drag, top speed, braking and avoidance all follow the velocity
+    /// the agent has relative to it. Set it before each step it changes.
+    ///
+    /// # Panics
+    /// If `id` isn't an agent.
+    pub fn set_frame_velocity(&mut self, id: u32, velocity: &DVec3) {
+        let agent = self.agent_mut(id);
+        agent.frame_velocity = *velocity;
+        let agent = agent.id;
+        self.world.set_frame_velocity(agent, *velocity);
     }
 
     /// Sends the agent through `target` at top speed, without braking.
@@ -373,13 +429,7 @@ impl NavWorld {
     /// # Panics
     /// If `id` isn't an agent.
     pub fn set_seek(&mut self, id: u32, target: &Position, arrival_radius: f64) {
-        self.set_fixed(
-            id,
-            Behaviour::Seek(Goal {
-                target: target.v,
-                arrival_radius,
-            }),
-        );
+        self.set_fixed(id, Behaviour::Seek(Goal::fixed(target.v, arrival_radius)));
     }
 
     /// Keeps the agent where its body is now.
@@ -400,7 +450,7 @@ impl NavWorld {
     /// # Panics
     /// If `id` isn't an agent, or `target` isn't a root body of this world's physics.
     pub fn set_pursue(&mut self, id: u32, target: &RigidBody, stand_off: f64, arrival_radius: f64) {
-        self.set_tracking(id, target, true, |target| Behaviour::Pursue {
+        self.set_tracking(id, target, true, DVec3::ZERO, |target| Behaviour::Pursue {
             target,
             stand_off,
             arrival_radius,
@@ -425,7 +475,7 @@ impl NavWorld {
         forward: f64,
         arrival_radius: f64,
     ) {
-        self.set_tracking(id, leader, true, |leader| Behaviour::Follow {
+        self.set_tracking(id, leader, true, DVec3::ZERO, |leader| Behaviour::Follow {
             leader,
             offset: FrameOffset { right, up, forward },
             arrival_radius,
@@ -453,7 +503,7 @@ impl NavWorld {
             "NavWorld orbit: the normal must be finite and not zero"
         );
         let normal = *normal;
-        self.set_tracking(id, centre, false, |centre| Behaviour::Orbit {
+        self.set_tracking(id, centre, false, DVec3::ZERO, |centre| Behaviour::Orbit {
             centre,
             radius,
             normal,
@@ -536,6 +586,8 @@ impl NavWorld {
 
 #[cfg(test)]
 mod tests {
+    use rapier3d_f64::prelude::nalgebra as na;
+
     use super::*;
     use crate::nav::NavAxis;
 
@@ -1177,6 +1229,151 @@ mod tests {
             nav.obstacle_spheres[0].position,
             state_in(&physics, &within).position
         );
+    }
+
+    /// A velocity far above the ships' top speed.
+    const CARRY: f64 = 400.0;
+    const ANCHOR_DISTANCE: f64 = 500.0;
+
+    fn carry() -> DVec3 {
+        DVec3::new(CARRY, 0.0, 0.0)
+    }
+
+    fn fly_at(body: &mut RigidBody, velocity: DVec3) {
+        body.set_linear_velocity(&na::Vector3::new(velocity.x, velocity.y, velocity.z));
+    }
+
+    /// A ship and an anchor body flying together at `CARRY`, and an agent for the ship whose goal
+    /// is its own position, kept relative to the anchor. The fields only keep the bodies and
+    /// their physics world alive.
+    struct CarriedShip {
+        nav: NavWorld,
+        id: u32,
+        _physics: Physics,
+        _ship: Box<RigidBody>,
+        _anchor: Box<RigidBody>,
+    }
+
+    fn carried_ship_on_its_goal() -> CarriedShip {
+        let mut physics = Physics::new();
+        let mut ship = ship_in(&mut physics);
+        let mut anchor = body_in(&mut physics, SHIP_RADIUS, goal_at(0.0, -ANCHOR_DISTANCE));
+        fly_at(&mut ship, carry());
+        fly_at(&mut anchor, carry());
+        let mut nav = NavWorld::new(&physics);
+        let id = add_ship(&mut nav, &ship);
+        let offset = DVec3::new(0.0, 0.0, ANCHOR_DISTANCE);
+        nav.set_arrive_relative(id, &anchor, &offset, ARRIVAL_RADIUS);
+        CarriedShip {
+            nav,
+            id,
+            _physics: physics,
+            _ship: ship,
+            _anchor: anchor,
+        }
+    }
+
+    fn thrust_of(nav: &NavWorld) -> [f64; 3] {
+        let axes = axes_of(nav);
+        [
+            axis(&axes, 0, NavAxis::ThrustForward),
+            axis(&axes, 0, NavAxis::ThrustRight),
+            axis(&axes, 0, NavAxis::ThrustUp),
+        ]
+    }
+
+    #[test]
+    fn a_ship_at_rest_in_its_frame_on_its_goal_has_no_thrust() {
+        let CarriedShip { mut nav, id, .. } = carried_ship_on_its_goal();
+        nav.set_frame_velocity(id, &carry());
+        nav.step();
+        assert!(arrived_of(&nav));
+        assert_eq!(thrust_of(&nav), [0.0; 3]);
+    }
+
+    #[test]
+    fn a_ship_that_is_not_told_its_frame_thrusts_against_the_drag_of_the_carry() {
+        let CarriedShip { mut nav, .. } = carried_ship_on_its_goal();
+        nav.step();
+        assert_ne!(thrust_of(&nav), [0.0; 3]);
+    }
+
+    #[test]
+    fn an_arrive_relative_goal_follows_the_body_and_keeps_its_offset() {
+        let mut physics = Physics::new();
+        let ship = ship_in(&mut physics);
+        let mut anchor = body_in(&mut physics, SHIP_RADIUS, goal_at(GOAL_DISTANCE, 0.0));
+        let mut nav = NavWorld::new(&physics);
+        let id = add_ship(&mut nav, &ship);
+        nav.set_arrive_relative(id, &anchor, &DVec3::ZERO, ARRIVAL_RADIUS);
+        nav.step();
+        assert_eq!(yaw_of(&nav), 1.0);
+
+        anchor.set_position(&goal_at(-GOAL_DISTANCE, 0.0));
+        nav.step();
+        assert_eq!(yaw_of(&nav), -1.0);
+
+        // The goal lies the offset from the body: back on the right of the ship.
+        let offset = DVec3::new(2.0 * GOAL_DISTANCE, 0.0, 0.0);
+        nav.set_arrive_relative(id, &anchor, &offset, ARRIVAL_RADIUS);
+        nav.step();
+        assert_eq!(yaw_of(&nav), 1.0);
+    }
+
+    #[test]
+    fn an_arrive_relative_goal_does_not_leave_its_body_out_of_the_scene() {
+        let mut flight = flight_past_a_rock();
+        let offset = DVec3::new(0.0, 0.0, -(LONG_GOAL_DISTANCE - ROCK_DISTANCE));
+        flight
+            .nav
+            .set_arrive_relative(FIRST_AGENT, &flight.rock, &offset, ARRIVAL_RADIUS);
+        let blind = axes_sensing(&mut flight, 0);
+        assert_ne!(axes_sensing(&mut flight, ALL_BITS), blind);
+    }
+
+    #[test]
+    fn the_sensing_range_follows_the_velocity_relative_to_the_frame() {
+        let mut physics = Physics::new();
+        let mut ship = ship_in(&mut physics);
+        let mut nav = NavWorld::new(&physics);
+        let id = add_ship(&mut nav, &ship);
+        nav.set_arrive(id, &goal_at(0.0, -LONG_GOAL_DISTANCE), ARRIVAL_RADIUS);
+        nav.set_sensing(ALL_BITS);
+        let state = state_in(&physics, &ship);
+        let profile = profile_of(&nav.agents[0].limits, &state);
+        let range = sensing_range(&nav_body(&state), &profile, nav.world.tuning());
+        let beyond = goal_at(0.0, -(range + f64::from(ROCK_RADIUS) + 1.0));
+        let _beyond = body_in(&mut physics, ROCK_RADIUS, beyond);
+        physics.update(ONE_STEP);
+        // Carried at a speed that would stretch the range if the frame were ignored.
+        fly_at(&mut ship, carry());
+        nav.set_frame_velocity(id, &carry());
+        nav.step();
+        assert!(nav.obstacle_spheres.is_empty(), "the range is that at rest");
+
+        nav.set_frame_velocity(id, &DVec3::ZERO);
+        nav.step();
+        assert_eq!(nav.obstacle_spheres.len(), 1, "the range grows with speed");
+    }
+
+    #[test]
+    #[should_panic(expected = "NavWorld has no agent 3")]
+    fn a_frame_velocity_for_an_unknown_agent_is_refused() {
+        let physics = Physics::new();
+        let mut nav = NavWorld::new(&physics);
+        nav.set_frame_velocity(3, &DVec3::ZERO);
+    }
+
+    #[test]
+    #[should_panic(expected = "target: the body is not a root body of its physics world")]
+    fn an_arrive_relative_body_of_another_physics_world_is_refused() {
+        let mut physics = Physics::new();
+        let mut other = Physics::new();
+        let stranger = ship_in(&mut other);
+        let ship = ship_in(&mut physics);
+        let mut nav = NavWorld::new(&physics);
+        let id = add_ship(&mut nav, &ship);
+        nav.set_arrive_relative(id, &stranger, &DVec3::ZERO, ARRIVAL_RADIUS);
     }
 
     #[test]

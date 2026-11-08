@@ -1338,10 +1338,7 @@ mod tests {
     fn a_goal_next_to_a_sphere_limits_the_clearance_kept_from_it() {
         let sphere = rock(DVec3::new(0.0, 0.0, -20.0), DVec3::ZERO, 5.0);
         let arrival_radius = 3.0 * RADIUS;
-        let goal_at = |x: f64| Goal {
-            target: DVec3::new(x, 0.0, -20.0),
-            arrival_radius,
-        };
+        let goal_at = |x: f64| Goal::fixed(DVec3::new(x, 0.0, -20.0), arrival_radius);
         let hull = 5.0 + RADIUS;
         // Room for the full clearance.
         assert_eq!(
@@ -1360,10 +1357,7 @@ mod tests {
     fn the_clearance_leaves_the_goals_arrival_circle_at_least_two_radii_wide_outside_the_reach() {
         let sphere = rock(DVec3::new(0.0, 0.0, -20.0), DVec3::ZERO, 5.0);
         let hull = 5.0 + RADIUS;
-        let narrow = |x: f64| Goal {
-            target: DVec3::new(x, 0.0, -20.0),
-            arrival_radius: 0.1 * RADIUS,
-        };
+        let narrow = |x: f64| Goal::fixed(DVec3::new(x, 0.0, -20.0), 0.1 * RADIUS);
         // The circle is held to `MIN_ARRIVAL_RADII` radii, so 1 unit of room is left beyond it.
         let floor = RADIUS * MIN_ARRIVAL_RADII;
         assert!((clearance_toward(narrow(hull + floor + 1.0), &sphere) - 1.0).abs() < 1e-12);

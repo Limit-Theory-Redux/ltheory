@@ -1,7 +1,9 @@
 local ConstructComponents = require("Modules.Constructs.Components")
+local PhysicsComponents   = require("Modules.Physics.Components")
 
----Connects ships to a `NavWorld`: registers a ship by its flight profile, and writes an agent's
----control axes into the ship's control input.
+---Connects ships to a `NavWorld`: registers a ship by its flight profile, tells it the velocity
+---the ship's gravity well carries it at, and writes an agent's control axes into the ship's
+---control input.
 ---@class NavAgentHelper
 local NavAgentHelper = {}
 
@@ -24,6 +26,19 @@ function NavAgentHelper.addShip(nav, shipEntity, rb)
         profile.thrustForward, profile.thrustRight, profile.thrustUp,
         profile.torquePitch, profile.torqueYaw, profile.torqueRoll
     )
+end
+
+---Tell `nav` the velocity the ship's gravity well carries it at, so that the agent is steered
+---relative to the well (drag acts on that part of its velocity only). A ship without a well is
+---carried at nothing. Call it before every `nav:step()`.
+---@param nav NavWorld
+---@param agent integer The ship's agent id in `nav`
+---@param shipEntity Entity
+function NavAgentHelper.setFrameFromWell(nav, agent, shipEntity)
+    local well = shipEntity:get(PhysicsComponents.GravityWell)
+    local cx, cy, cz = 0, 0, 0
+    if well then cx, cy, cz = well:getCarriedVelocity() end
+    nav:setFrameVelocity(agent, Vec3d(cx, cy, cz))
 end
 
 ---Copy one agent's slice of the buffer that `NavWorld:copyAxes` filled into a control input.

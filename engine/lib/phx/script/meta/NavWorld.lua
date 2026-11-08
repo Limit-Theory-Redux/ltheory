@@ -55,6 +55,32 @@ function NavWorld:setSensing(mask) end
 ---@param arrivalRadius number
 function NavWorld:setArrive(id, target, arrivalRadius) end
 
+-- Sends the agent to the point `offset` (game units, world axes) from `body`'s centre, which
+-- moves with `body`, and stops it on that point: the goal has the body's velocity, so the
+-- agent comes to rest relative to the body. `body` is read from physics at each step. It is
+-- only a frame: the agent still avoids it. The offset keeps its world direction while the
+-- body turns. Pair it with [`set_frame_velocity`](NavWorld::set_frame_velocity) when the
+-- body is carried along by something that drag doesn't act on.
+--
+-- # Panics
+-- If `id` isn't an agent, or `body` isn't a root body of this world's physics.
+---@param id integer
+---@param body RigidBody
+---@param offset Vec3d
+---@param arrivalRadius number
+function NavWorld:setArriveRelative(id, body, offset, arrivalRadius) end
+
+-- Sets the velocity (game units per second, world axes) that carries the agent along with its
+-- surroundings, such as a gravity well's, until it is set again; zero by default. The agent
+-- is steered relative to it: drag, top speed, braking and avoidance all follow the velocity
+-- the agent has relative to it. Set it before each step it changes.
+--
+-- # Panics
+-- If `id` isn't an agent.
+---@param id integer
+---@param velocity Vec3d
+function NavWorld:setFrameVelocity(id, velocity) end
+
 -- Sends the agent through `target` at top speed, without braking.
 --
 -- # Panics

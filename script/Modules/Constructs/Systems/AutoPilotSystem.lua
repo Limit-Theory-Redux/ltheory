@@ -1,6 +1,7 @@
 local PhysicsComponents   = require("Modules.Physics.Components")
 local ConstructComponents = require("Modules.Constructs.Components")
 local GravityWellSystem   = require("Modules.Physics.Systems.GravityWellSystem")
+local ShipFlightSystem    = require("Modules.Constructs.Systems.ShipFlightSystem")
 local NavAgentHelper      = require("Shared.Helpers.NavAgentHelper")
 
 -- The ship has arrived when it is within this share of the gap between the target's hull and the
@@ -185,17 +186,40 @@ function AutoPilotSystem:getDistanceAndSpeed(shipEntity)
     return math.sqrt(dx * dx + dy * dy + dz * dz), speed
 end
 
---- The velocity of what the autopilot is tracking: its target entity, or the body that a
---- parent-relative target point rides on. Zero for a fixed point.
+--- The body the autopilot's goal moves with: its target entity, or the body that a
+--- parent-relative target point rides on. Nil for a fixed point.
 ---@param ap AutoPilotComponent
----@return gameunit vx, gameunit vy, gameunit vz Game units per second
-local function trackedVelocity(ap)
+---@return RigidBody|nil
+local function trackedBody(ap)
     local source = ap:getTargetEntity() or ap._parentEntity
     local rbCmp = source and source:get(PhysicsComponents.RigidBody)
-    local rb = rbCmp and rbCmp:getRigidBody()
-    if not rb then return 0, 0, 0 end
-    local velocity = rb:getVelocity()
+    return rbCmp and rbCmp:getRigidBody() or nil
+end
+
+--- The velocity of what the autopilot is tracking. Zero for a fixed point.
+---@param body RigidBody|nil
+---@return gameunit vx, gameunit vy, gameunit vz Game units per second
+local function bodyVelocity(body)
+    if not body then return 0, 0, 0 end
+    local velocity = body:getVelocity()
     return velocity.x, velocity.y, velocity.z
+end
+
+--- Fly the agent to `goal`: a point that moves with `frameBody` keeps its place relative to the
+--- body, so the NavWorld matches the body's velocity; a bare point stays where it is.
+---@param nav NavWorld
+---@param agent integer
+---@param frameBody RigidBody|nil
+---@param goal Position
+---@param arrivalRadius gameunit
+local function setGoal(nav, agent, frameBody, goal, arrivalRadius)
+    if not frameBody then
+        nav:setArrive(agent, goal, arrivalRadius)
+        return
+    end
+    local bodyPos = frameBody:getPos()
+    nav:setArriveRelative(agent, frameBody,
+        Vec3d(goal.x - bodyPos.x, goal.y - bodyPos.y, goal.z - bodyPos.z), arrivalRadius)
 end
 
 --- The goal the ship flies to and the radius around it that counts as arrived: the point on the
@@ -372,12 +396,14 @@ function AutoPilotSystem:update(dt, shipEntity)
     if not targetPos then self:disengage(shipEntity); return end
 
     local shipPos = rb:getPos()
-    local speed = rb:getSpeed()
+    -- Relative to the well that carries the ship: the part of its velocity that drag acts on.
+    local speed = ShipFlightSystem:getSpeed(shipEntity)
     local profile = ConstructComponents.FlightProfile.ProfileOf(shipEntity)
     local drive = shipEntity:get(ConstructComponents.TravelDrive)
     local zoneMax = GravityWellSystem:getMaxDriveSpeedAt(shipPos)
 
-    ap.targetVelX, ap.targetVelY, ap.targetVelZ = trackedVelocity(ap)
+    local frameBody = trackedBody(ap)
+    ap.targetVelX, ap.targetVelY, ap.targetVelZ = bodyVelocity(frameBody)
 
     local targetRadius = targetRadiusOf(targetEntity)
     local safeRange = self.standOff(targetRadius)
@@ -450,10 +476,12 @@ function AutoPilotSystem:update(dt, shipEntity)
     local dist = actualDist
 
     -- Fly to the stand-off point; the NavWorld steers (it also brakes and stops there) and says
-    -- when the ship has arrived.
+    -- when the ship has arrived. The point moves with the tracked body, and the ship is steered
+    -- relative to the well that carries it.
     local nav, agent = ap:getNav(), ap:getAgent()
-    nav:setArrive(agent, standOffGoal(shipPos, interceptPos, interceptDist, actualDist, safeRange),
-        arrivalRadius)
+    setGoal(nav, agent, frameBody,
+        standOffGoal(shipPos, interceptPos, interceptDist, actualDist, safeRange), arrivalRadius)
+    NavAgentHelper.setFrameFromWell(nav, agent, shipEntity)
     nav:step()
     nav:copyArrived(ap:getArrived(), 1)
     if ap:getArrived()[0] then

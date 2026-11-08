@@ -74,10 +74,45 @@ pub enum Behaviour {
 impl Behaviour {
     /// Stay where `body` is.
     pub fn hold(body: &Body, arrival_radius: f64) -> Self {
-        Self::Arrive(Goal {
-            target: body.position,
-            arrival_radius,
-        })
+        Self::Arrive(Goal::fixed(body.position, arrival_radius))
+    }
+
+    /// The behaviour as seen from a frame that moves at `frame_velocity`: every velocity in it
+    /// (a goal's, and those of the bodies it names) has that velocity taken off.
+    pub(crate) fn seen_from(self, frame_velocity: DVec3) -> Self {
+        match self {
+            Self::Seek(goal) => Self::Seek(goal.seen_from(frame_velocity)),
+            Self::Arrive(goal) => Self::Arrive(goal.seen_from(frame_velocity)),
+            Self::Pursue {
+                target,
+                stand_off,
+                arrival_radius,
+            } => Self::Pursue {
+                target: target.seen_from(frame_velocity),
+                stand_off,
+                arrival_radius,
+            },
+            Self::Follow {
+                leader,
+                offset,
+                arrival_radius,
+            } => Self::Follow {
+                leader: leader.seen_from(frame_velocity),
+                offset,
+                arrival_radius,
+            },
+            Self::Orbit {
+                centre,
+                radius,
+                normal,
+                arrival_radius,
+            } => Self::Orbit {
+                centre: centre.seen_from(frame_velocity),
+                radius,
+                normal,
+                arrival_radius,
+            },
+        }
     }
 }
 
@@ -101,7 +136,7 @@ fn wanted_of(velocity: DVec3, fallback: DVec3) -> Wanted {
 /// Fly straight at the goal and stop on it. The wanted speed is the one the agent can brake from
 /// within the distance (`braking::stopping_speed`), capped at the profile's top speed.
 pub(crate) fn arrive(body: &Body, profile: &Profile, goal: &Goal) -> Wanted {
-    arrive_at(body, profile, goal.target, DVec3::ZERO)
+    arrive_at(body, profile, goal.target, goal.velocity)
 }
 
 /// Fly at a point that moves at `point_velocity` and stop on it, matching its velocity. The wanted
@@ -225,6 +260,7 @@ fn orbit(
 ) -> (Wanted, Goal) {
     let arrival = |target: DVec3| Goal {
         target,
+        velocity: centre.velocity,
         arrival_radius: 0.0,
     };
     if normal.length_squared() < TINY_SQ || radius <= 0.0 {
@@ -263,6 +299,7 @@ pub(crate) fn steer(behaviour: &Behaviour, body: &Body, profile: &Profile) -> (W
         } => {
             let goal = Goal {
                 target: stand_off_point(body, &target, stand_off),
+                velocity: target.velocity,
                 arrival_radius,
             };
             (arrive_at(body, profile, goal.target, target.velocity), goal)
@@ -274,6 +311,7 @@ pub(crate) fn steer(behaviour: &Behaviour, body: &Body, profile: &Profile) -> (W
         } => {
             let goal = Goal {
                 target: slot_point(&leader, &offset),
+                velocity: leader.velocity,
                 arrival_radius,
             };
             (arrive_at(body, profile, goal.target, leader.velocity), goal)
@@ -338,10 +376,7 @@ mod tests {
     const PROFILE: Profile = Profile::TEST;
 
     fn goal_at(target: DVec3) -> Goal {
-        Goal {
-            target,
-            arrival_radius: 1.0,
-        }
+        Goal::fixed(target, 1.0)
     }
 
     #[test]
@@ -599,10 +634,7 @@ mod tests {
         let body = body_at(DVec3::new(1.0, 2.0, 3.0));
         assert_eq!(
             Behaviour::hold(&body, 4.0),
-            Behaviour::Arrive(Goal {
-                target: body.position,
-                arrival_radius: 4.0
-            })
+            Behaviour::Arrive(Goal::fixed(body.position, 4.0))
         );
     }
 

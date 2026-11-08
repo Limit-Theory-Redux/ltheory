@@ -24,6 +24,8 @@ function Loader.defineType()
             uint32    NavWorld_AddAgent           (NavWorld*, RigidBody const* body, double linearDrag, double angularDrag, double thrustForward, double thrustRight, double thrustUp, double torquePitch, double torqueYaw, double torqueRoll);
             void      NavWorld_SetSensing         (NavWorld*, uint32 mask);
             void      NavWorld_SetArrive          (NavWorld*, uint32 id, Position const* target, double arrivalRadius);
+            void      NavWorld_SetArriveRelative  (NavWorld*, uint32 id, RigidBody const* body, Vec3d const* offset, double arrivalRadius);
+            void      NavWorld_SetFrameVelocity   (NavWorld*, uint32 id, Vec3d const* velocity);
             void      NavWorld_SetSeek            (NavWorld*, uint32 id, Position const* target, double arrivalRadius);
             void      NavWorld_SetHold            (NavWorld*, uint32 id, double arrivalRadius);
             void      NavWorld_SetPursue          (NavWorld*, uint32 id, RigidBody const* target, double standOff, double arrivalRadius);
@@ -58,6 +60,8 @@ function Loader.defineType()
                 addAgent           = libphx.NavWorld_AddAgent,
                 setSensing         = libphx.NavWorld_SetSensing,
                 setArrive          = libphx.NavWorld_SetArrive,
+                setArriveRelative  = libphx.NavWorld_SetArriveRelative,
+                setFrameVelocity   = libphx.NavWorld_SetFrameVelocity,
                 setSeek            = libphx.NavWorld_SetSeek,
                 setHold            = libphx.NavWorld_SetHold,
                 setPursue          = libphx.NavWorld_SetPursue,

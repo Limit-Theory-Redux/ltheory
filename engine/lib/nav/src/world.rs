@@ -1,3 +1,5 @@
+use glam::DVec3;
+
 use crate::agent::{AT_REST_RADII_PER_S, AXIS_COUNT, Agent, AgentId, Body, Goal, Profile};
 use crate::avoidance::{AvoidanceTuning, Peer, Peers, Sphere, avoid};
 use crate::behaviour::{Behaviour, rest_facing, steer};
@@ -15,6 +17,8 @@ pub struct World {
     obstacles: Vec<Obstacle>,
     /// The obstacles and the agents' own spheres of the step in progress, reused between steps.
     scene: Vec<Obstacle>,
+    /// `scene` as seen from the frame of the agent being steered, reused between agents and steps.
+    shifted: Vec<Obstacle>,
     /// The per-obstacle data of the agent being steered, reused between agents and steps.
     spheres: Vec<Sphere>,
     /// What each agent is to the others, in agent order, reused between steps.
@@ -75,6 +79,7 @@ impl World {
         self.agents.push(Agent {
             body: Body::AT_REST,
             profile,
+            frame_velocity: DVec3::ZERO,
             behaviour: None,
             tracked: None,
             commitment: None,
@@ -99,6 +104,15 @@ impl World {
     /// Panics if `id` isn't an agent of this world.
     pub fn set_profile(&mut self, id: AgentId, profile: Profile) {
         self.agents[id.index()].profile = profile;
+    }
+
+    /// Sets the velocity the agent's surroundings carry it at (zero by default), in length units
+    /// per second: the part of its velocity that drag doesn't act on. The agent is steered, and
+    /// judged at rest, relative to it, and the controller's drag, top speed and braking follow.
+    /// It is a translation only: the frame's acceleration and turning are ignored. Set it again
+    /// each step it changes. Panics if `id` isn't an agent of this world.
+    pub fn set_frame_velocity(&mut self, id: AgentId, velocity: DVec3) {
+        self.agents[id.index()].frame_velocity = velocity;
     }
 
     /// Sets what an agent does; `None` leaves it without input. Target bodies inside the
@@ -169,13 +183,27 @@ impl World {
                 *arrived = false;
                 continue;
             };
-            let (toward_goal, goal) = steer(&behaviour, &agent.body, &agent.profile);
-            self.scene.swap(own, last);
+            // An agent in a moving frame works in a still one: every velocity it looks at loses
+            // the frame's. The shifted scene is a copy, because shifting in place and back would
+            // round.
+            let frame = agent.frame_velocity;
+            let scene = if frame == DVec3::ZERO {
+                &mut self.scene
+            } else {
+                self.shifted.clear();
+                self.shifted
+                    .extend(self.scene.iter().map(|sphere| sphere.seen_from(frame)));
+                &mut self.shifted
+            };
+            let body = agent.body.seen_from(frame);
+            let behaviour = behaviour.seen_from(frame);
+            let (toward_goal, goal) = steer(&behaviour, &body, &agent.profile);
+            scene.swap(own, last);
             let wanted = avoid(
-                &agent.body,
+                &body,
                 &agent.profile,
                 toward_goal,
-                &self.scene[..last],
+                &scene[..last],
                 &self.tuning,
                 Some(goal),
                 Peers {
@@ -186,13 +214,13 @@ impl World {
                 &mut agent.commitment,
                 &mut self.spheres,
             );
-            self.scene.swap(own, last);
-            let facing = rest_facing(&behaviour, &agent.body, &goal);
-            *axes = control(&agent.body, &agent.profile, &wanted, facing);
+            scene.swap(own, last);
+            let facing = rest_facing(&behaviour, &body, &goal);
+            *axes = control(&body, &agent.profile, &wanted, facing);
             *arrived = has_reached(
-                &agent.body,
+                &body,
                 goal,
-                &self.scene[self.obstacles.len()..],
+                &scene[self.obstacles.len()..],
                 &self.was_arrived,
                 index,
             );
@@ -218,14 +246,12 @@ mod tests {
 
     use super::*;
     use crate::agent::Axis;
+    use crate::behaviour::FrameOffset;
 
     const PROFILE: Profile = Profile::TEST;
 
     fn goal(target: DVec3) -> Behaviour {
-        Behaviour::Arrive(Goal {
-            target,
-            arrival_radius: 5.0,
-        })
+        Behaviour::Arrive(Goal::fixed(target, 5.0))
     }
 
     #[test]
@@ -504,5 +530,185 @@ mod tests {
             flier_axes(Some(Blocker::default())),
             "the tracker is not a resting sphere"
         );
+    }
+
+    /// A fixed pseudo-random sequence in `[-1, 1)`.
+    struct Sequence(u64);
+
+    impl Sequence {
+        fn next(&mut self) -> f64 {
+            self.0 = self
+                .0
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1_442_695_040_888_963_407);
+            ((self.0 >> 11) as f64 / (1u64 << 53) as f64) * 2.0 - 1.0
+        }
+
+        fn vector(&mut self, scale: f64) -> DVec3 {
+            DVec3::new(self.next(), self.next(), self.next()) * scale
+        }
+    }
+
+    const FRAME_AGENTS: usize = 5;
+    const FRAME_OBSTACLES: usize = 4;
+    const FRAME_SPREAD: f64 = 200.0;
+    const FRAME_SPEED: f64 = 60.0;
+    /// A velocity far above the test profile's top speed, which is 100.
+    const CARRY_SPEED: f64 = 900.0;
+    const AXES_TOLERANCE: f64 = 1e-6;
+
+    /// A world of `FRAME_AGENTS` agents flying every kind of behaviour among obstacles, drawn from
+    /// `seed`, in which every velocity (bodies, goals, targets, obstacles) has `carry` added and
+    /// every agent's frame velocity is `carry`. Pursuers and followers track their target, which
+    /// is among the obstacles. Without `with_obstacles` the world has none of them.
+    fn carried_world(seed: u64, carry: DVec3, with_obstacles: bool) -> World {
+        let mut rng = Sequence(seed);
+        let mut world = World::new();
+        let mut obstacles = Vec::new();
+        for index in 0..FRAME_OBSTACLES {
+            obstacles.push(Obstacle {
+                key: ObstacleKey::Body(index as u64),
+                position: rng.vector(FRAME_SPREAD),
+                velocity: rng.vector(FRAME_SPEED) + carry,
+                radius: 30.0 + 30.0 * rng.next().abs(),
+            });
+        }
+        for index in 0..FRAME_AGENTS {
+            let id = world.add_agent(PROFILE);
+            let body = Body {
+                position: rng.vector(FRAME_SPREAD),
+                velocity: rng.vector(FRAME_SPEED) + carry,
+                radius: 1.0 + 4.0 * rng.next().abs(),
+                ..Body::AT_REST
+            };
+            world.set_body(id, body);
+            world.set_frame_velocity(id, carry);
+            let target = Body {
+                position: rng.vector(FRAME_SPREAD),
+                velocity: rng.vector(FRAME_SPEED) + carry,
+                radius: 5.0,
+                ..Body::AT_REST
+            };
+            let arrival_radius = 10.0;
+            let behaviour = match index % 4 {
+                0 => Behaviour::Arrive(Goal {
+                    target: target.position,
+                    velocity: target.velocity,
+                    arrival_radius,
+                }),
+                1 => Behaviour::Pursue {
+                    target,
+                    stand_off: 30.0,
+                    arrival_radius,
+                },
+                2 => Behaviour::Follow {
+                    leader: target,
+                    offset: FrameOffset {
+                        right: 20.0,
+                        up: 0.0,
+                        forward: -40.0,
+                    },
+                    arrival_radius,
+                },
+                _ => Behaviour::Orbit {
+                    centre: target,
+                    radius: 150.0,
+                    normal: DVec3::Y,
+                    arrival_radius,
+                },
+            };
+            world.set_behaviour(id, Some(behaviour));
+            if matches!(
+                behaviour,
+                Behaviour::Pursue { .. } | Behaviour::Follow { .. }
+            ) {
+                let key = ObstacleKey::Body((FRAME_OBSTACLES + index) as u64);
+                obstacles.push(Obstacle {
+                    key,
+                    position: target.position,
+                    velocity: target.velocity,
+                    radius: target.radius,
+                });
+                world.set_tracked(id, Some(key));
+            }
+        }
+        if with_obstacles {
+            world.set_obstacles(&obstacles);
+        }
+        world
+    }
+
+    fn assert_same_axes(left: &World, right: &World, seed: u64) {
+        for (index, (a, b)) in left.axes().iter().zip(right.axes()).enumerate() {
+            assert!(
+                (a - b).abs() <= AXES_TOLERANCE,
+                "seed {seed}, axis {index}: {a} against {b}"
+            );
+        }
+        for agent in 0..FRAME_AGENTS {
+            let id = AgentId::new(agent);
+            assert_eq!(left.arrived(id), right.arrived(id), "seed {seed}");
+        }
+    }
+
+    #[test]
+    fn a_world_carried_with_its_frame_steers_as_a_still_world() {
+        const SEEDS: u64 = 200;
+        let mut avoided = 0;
+        for seed in 1..=SEEDS {
+            let carry = Sequence(seed ^ 0xC0FFEE).vector(CARRY_SPEED);
+            let mut still = carried_world(seed, DVec3::ZERO, true);
+            let mut moving = carried_world(seed, carry, true);
+            still.step();
+            moving.step();
+            assert_same_axes(&still, &moving, seed);
+
+            let mut open = carried_world(seed, DVec3::ZERO, false);
+            open.step();
+            avoided += usize::from(open.axes() != still.axes());
+        }
+        // The obstacles and the other agents must change what the agents do in most worlds,
+        // or the equality above says nothing about the shifted scene.
+        assert!(avoided > SEEDS as usize / 2, "avoiding in {avoided} worlds");
+    }
+
+    #[test]
+    fn without_its_frame_a_carried_world_is_steered_differently() {
+        let carry = DVec3::new(CARRY_SPEED, 0.0, 0.0);
+        let mut still = carried_world(1, DVec3::ZERO, true);
+        let mut unaware = carried_world(1, carry, true);
+        for index in 0..FRAME_AGENTS {
+            unaware.set_frame_velocity(AgentId::new(index), DVec3::ZERO);
+        }
+        still.step();
+        unaware.step();
+        assert_ne!(still.axes(), unaware.axes());
+    }
+
+    #[test]
+    fn an_agent_at_rest_in_its_frame_with_its_goal_on_it_gets_no_thrust() {
+        let carry = DVec3::new(0.0, 0.0, -CARRY_SPEED);
+        let mut world = World::new();
+        let id = world.add_agent(PROFILE);
+        world.set_body(
+            id,
+            Body {
+                velocity: carry,
+                ..Body::AT_REST
+            },
+        );
+        world.set_frame_velocity(id, carry);
+        world.set_behaviour(
+            id,
+            Some(Behaviour::Arrive(Goal {
+                target: DVec3::ZERO,
+                velocity: carry,
+                arrival_radius: 5.0,
+            })),
+        );
+        world.step();
+        assert!(world.arrived(id));
+        let thrust = &world.axes()[Axis::ThrustForward as usize..AXIS_COUNT];
+        assert_eq!(thrust, [0.0; 3]);
     }
 }

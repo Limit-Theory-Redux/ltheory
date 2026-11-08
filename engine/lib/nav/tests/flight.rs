@@ -139,10 +139,7 @@ fn fly_ship(
     let id = world.add_agent(profile);
     world.set_behaviour(
         id,
-        Some(Behaviour::Arrive(Goal {
-            target,
-            arrival_radius: ARRIVAL_RADIUS,
-        })),
+        Some(Behaviour::Arrive(Goal::fixed(target, ARRIVAL_RADIUS))),
     );
     // Each rock gets its own key, so the side memory tells them apart.
     let mut obstacles = obstacles.to_vec();
@@ -280,6 +277,83 @@ fn a_ship_flies_around_an_obstacle_crossing_its_course() {
         "came within {} of the surface",
         ship.clearance
     );
+}
+
+/// A velocity that the ship's surroundings carry it at, above its top speed of 100.
+const CARRY: DVec3 = DVec3::new(300.0, 0.0, -200.0);
+
+/// Flies a ship that is carried at `CARRY` (drag acts on its velocity relative to the carry) to a
+/// goal and past a rock that both lie at rest in the carried frame. The ship is simulated in the
+/// frame's coordinates, and the world sees it, the goal and the rock moved on by the carry. With
+/// `tell_the_frame` the world is told the carry; without it, the goal is a fixed point that is
+/// updated every step to where the frame has taken it, as an agent unaware of frames would fly.
+fn fly_carried(tell_the_frame: bool) -> (Ship, Option<f64>) {
+    let target = DVec3::new(0.0, 0.0, -800.0);
+    let mut rock = rock(DVec3::new(0.0, 0.0, -400.0), DVec3::ZERO, 50.0);
+    rock.key = ObstacleKey::Body(0);
+    let mut ship = Ship::new(DVec3::ZERO);
+    let mut world = World::new();
+    let id = world.add_agent(PROFILE);
+    if tell_the_frame {
+        world.set_frame_velocity(id, CARRY);
+    }
+    let mut time = 0.0;
+    while time < TIME_LIMIT_S {
+        let drift = CARRY * time;
+        let carried = Body {
+            position: ship.position + drift,
+            velocity: ship.velocity + CARRY,
+            ..ship.body()
+        };
+        world.set_body(id, carried);
+        world.set_obstacles(&[Obstacle {
+            position: rock.position + drift,
+            velocity: CARRY,
+            ..rock
+        }]);
+        world.set_behaviour(
+            id,
+            Some(Behaviour::Arrive(Goal {
+                target: target + drift,
+                velocity: if tell_the_frame { CARRY } else { DVec3::ZERO },
+                arrival_radius: ARRIVAL_RADIUS,
+            })),
+        );
+        world.step();
+        ship.apply(PROFILE, &world.axes()[..AXIS_COUNT]);
+        ship.clearance = ship
+            .clearance
+            .min(ship.position.distance(rock.position) - rock.radius);
+        time += STEP_S;
+        if ship.position.distance(target) <= ARRIVAL_RADIUS
+            && ship.velocity.length() <= ARRIVAL_SPEED
+        {
+            return (ship, Some(time));
+        }
+    }
+    (ship, None)
+}
+
+#[test]
+fn a_ship_carried_faster_than_its_top_speed_arrives_at_a_goal_that_moves_with_the_carry() {
+    let (ship, arrived) = fly_carried(true);
+    assert!(
+        arrived.is_some(),
+        "stopped {} from the goal, moving at {} in the frame",
+        ship.position.distance(DVec3::new(0.0, 0.0, -800.0)),
+        ship.velocity.length()
+    );
+    assert!(
+        ship.clearance > AGENT_RADIUS,
+        "came within {} of the rock",
+        ship.clearance
+    );
+}
+
+#[test]
+fn a_ship_that_is_not_told_the_carry_does_not_arrive() {
+    let (_, arrived) = fly_carried(false);
+    assert!(arrived.is_none());
 }
 
 #[test]
@@ -463,10 +537,7 @@ fn crowd_ships_left_out(start_distance_m: f64) -> Vec<usize> {
         let start = target.normalize() * start_distance_m + DVec3::new(0.0, 30.0 * i as f64, 0.0);
         world.set_behaviour(
             id,
-            Some(Behaviour::Arrive(Goal {
-                target,
-                arrival_radius: SMALL_ARRIVAL_M,
-            })),
+            Some(Behaviour::Arrive(Goal::fixed(target, SMALL_ARRIVAL_M))),
         );
         let ship = Ship {
             radius: SHIP_RADIUS,
@@ -568,10 +639,7 @@ fn target_body(position: DVec3, velocity: DVec3, radius: f64) -> Body {
 }
 
 fn arrive_at_point(target: DVec3) -> Behaviour {
-    Behaviour::Arrive(Goal {
-        target,
-        arrival_radius: ARRIVAL_RADIUS,
-    })
+    Behaviour::Arrive(Goal::fixed(target, ARRIVAL_RADIUS))
 }
 
 #[test]
@@ -581,10 +649,7 @@ fn a_seeking_ship_passes_its_point_at_top_speed() {
     let point = DVec3::new(0.0, 0.0, -POINT_DISTANCE);
     let mut ships = [Ship::new(DVec3::ZERO)];
     let samples = fly_fleet(&mut ships, TIME_LIMIT_S, |_, _, _| {
-        Behaviour::Seek(Goal {
-            target: point,
-            arrival_radius: ARRIVAL_RADIUS,
-        })
+        Behaviour::Seek(Goal::fixed(point, ARRIVAL_RADIUS))
     });
     let pass = samples[0]
         .iter()
@@ -1029,10 +1094,7 @@ fn leader_with_follower_behind(slot_behind: f64, leg: f64) -> FollowRun {
         radius: HULL_RADIUS,
         ..Ship::new(position)
     };
-    let arrive = Behaviour::Arrive(Goal {
-        target: goal,
-        arrival_radius: ARRIVAL,
-    });
+    let arrive = Behaviour::Arrive(Goal::fixed(goal, ARRIVAL));
     // The time after which the leader stays in its arrival circle, whose radius is at least two
     // hulls (`Goal::effective_arrival_radius`).
     let arrival = |samples: &[Sample]| {
