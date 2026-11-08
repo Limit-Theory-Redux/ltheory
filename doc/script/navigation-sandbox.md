@@ -65,6 +65,8 @@ The sandbox draws, in the additive pass, for each ship:
 | Line from the ship to its target | The straight course, while the ship is flying |
 | Grey filled sphere at an obstacle | Its radius |
 
+![A CircleSwap run seen from above: filled blue spheres mark the eight flying ships, wireframe spheres their targets on the opposite side of the circle, and thin lines the straight courses](../images/navigation-sandbox/circle-swap.png)
+
 Filled spheres are drawn at a small fraction of their colour: the additive pass is exposed for dim content, and a full-strength fill saturates to white.
 
 ## Steering

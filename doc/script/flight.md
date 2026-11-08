@@ -41,7 +41,33 @@ A ship gets its profile by passing `flightProfile` in the config of `ShipGenerat
 
 A frame writes control input at `PreSim` and actuates it at `Sim`. The writers (`PlayerController:update(dt)`, and through it `AutoPilotSystem`, which runs after the manual axes are written and replaces them while it is active) run in the app's `PreSim` handler. The app's `Sim` handler then moves the bodies (orbits, asteroid follow), applies the gravity wells' carry force (`GravityWellSystem:update(dt, substeps)`), runs `TravelDriveSystem:update(dt)`, then `ShipFlightSystem:update()`, then the physics step. The `Sim` handler calls them in this order because `EventBus:subscribe` gives no ordering inside a stage, and the bodies must have moved before the ships are actuated. Both actuation systems process every ship that has the components they need.
 
+```mermaid
+flowchart TD
+    subgraph PreSim
+        PC["PlayerController:update<br/>writes the manual axes"] --> AP["AutoPilotSystem<br/>replaces them while it is active"]
+        AP --> CI["ControlInputComponent"]
+    end
+    subgraph Sim
+        OR["Orbits and asteroid follow:<br/>move the bodies"] --> GW["GravityWellSystem:update<br/>carry force"]
+        GW --> TD["TravelDriveSystem:update"]
+        TD --> SF["ShipFlightSystem:update"]
+        SF --> PH["Physics step"]
+    end
+    CI -.-> TD
+    CI -.-> SF
+```
+
 - `ShipFlightSystem` clamps the axes and applies forces and torques. While the travel drive is active it ignores thrust and boost, because the drive provides the forward force, and applies a tenth of the torque.
 - `TravelDriveSystem` runs the drive's states: idle, charging, active, decelerating. An engage request starts charging an idle drive; after `chargeRequired` seconds the drive is active. A disengage request moves a charging or active drive to decelerating. While active, the multiplier approaches `min(zone limit, driveSpeedCap)`: upward linearly at `rampUpSpeed`, downward exponentially with time constant `1 / rampDownSpeed`. All ramps are functions of elapsed time, so the result does not depend on the frame rate.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Idle
+    Idle --> Charging: engage request
+    Charging --> Active: charged for chargeRequired seconds
+    Charging --> Decelerating: disengage request
+    Active --> Decelerating: disengage request
+    Decelerating --> Idle: multiplier falls to the idle threshold
+```
 
 The zone limit is `GravityWellSystem:getMaxDriveSpeedAt(position)`, evaluated at the position of each ship, so every ship has its own limit. See [Zones and gravity wells](zones.md).

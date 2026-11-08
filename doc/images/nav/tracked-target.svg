@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" font-family="sans-serif" font-size="14">
+  <title>The leader leaves a tracker behind it out of its scene</title>
+  <defs>
+    <marker id="k" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#111827"/></marker>
+  </defs>
+  <rect width="800" height="400" fill="#ffffff"/>
+  <rect x="0" y="40" width="400" height="320" fill="#f3f4f6"/>
+  <text x="20" y="28" fill="#111827" font-weight="bold">Leader and a tracker (Pursue or Follow)</text>
+  <text x="20" y="66" fill="#6b7280">behind the plane: left out of the leader's scene</text>
+  <text x="420" y="66" fill="#6b7280">ahead or abreast: avoided, with the half share</text>
+  <!-- plane -->
+  <line x1="400" y1="40" x2="400" y2="360" stroke="#d97706" stroke-width="2" stroke-dasharray="8 4"/>
+  <text x="408" y="350" fill="#d97706">plane through the leader's centre,</text>
+  <text x="408" y="368" fill="#d97706">normal to its wanted course</text>
+  <!-- leader -->
+  <polygon points="430,190 400,250 460,250" transform="rotate(90 400 210)" fill="#9ca3af" stroke="#6b7280" stroke-width="2"/>
+  <text x="372" y="284" fill="#6b7280" text-anchor="end">leader</text>
+  <line x1="450" y1="210" x2="650" y2="210" stroke="#111827" stroke-width="3" marker-end="url(#k)"/>
+  <text x="560" y="200" fill="#111827">wanted course</text>
+  <!-- tracker behind -->
+  <circle cx="170" cy="210" r="12" fill="#2563eb"/>
+  <text x="170" y="240" fill="#2563eb" text-anchor="middle">tracker</text>
+  <line x1="185" y1="210" x2="270" y2="210" stroke="#2563eb" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#k)"/>
+  <!-- tracker ahead -->
+  <circle cx="560" cy="120" r="12" fill="#2563eb"/>
+  <text x="560" y="100" fill="#2563eb" text-anchor="middle">tracker</text>
+  <text x="20" y="392" fill="#6b7280">A tracker never avoids its own target. Near the plane the tracker can switch sides as the leader's course swings.</text>
+</svg>

@@ -10,6 +10,17 @@ Units are the caller's, and they only have to agree: lengths in one unit, time i
 
 The axes depend on the bodies, profiles, goals and obstacles passed in, and on one memory per agent: the side it passes the sphere it is avoiding on (see Obstacle avoidance). Each agent goes through three stages.
 
+```mermaid
+flowchart LR
+    BODY["Body and Profile"] --> BEH["Behaviour:<br/>wanted velocity and goal"]
+    BEH --> AV["Obstacle avoidance:<br/>bends the course"]
+    OBS["Obstacles and<br/>the other agents"] --> AV
+    AV --> CTRL["Controller:<br/>velocity loop, aim, turn, roll"]
+    BODY --> CTRL
+    CTRL --> AXES["Six control axes"]
+    BEH --> ARR["Arrival flag"]
+```
+
 ## Behaviours
 
 A `Behaviour` says what an agent does, and gives a wanted velocity plus a `Goal`: the point it wants to be at now. Avoidance and the arrival flag read that goal. Bodies inside a behaviour (a target, a leader, a centre) are snapshots; the caller sets the behaviour again before each step for a target that moves.
@@ -18,7 +29,11 @@ A `Behaviour` says what an agent does, and gives a wanted velocity plus a `Goal`
 
 Only a share of the thrust is planned on, because the velocity loop lags the wanted velocity: planning on all of it leaves no room to catch up, and the agent overshoots its stop. Drag alone (`distance · k`) plans on none, and starts braking about three times too early at top speed. The curve's slope is unbounded at the stop, which a loop of finite gain can't follow, so close to the goal the speed is also capped at `tail_gain · distance`. The gain is `(VELOCITY_GAIN + k) / 4`, that of a position loop around the velocity loop that is critically damped, and never below `k`, so the speed is never below what drag alone stops from.
 
+![Wanted speed against distance to the goal: the lowest of the top speed, the braking curve and the tail cap, with drag alone for comparison](../images/nav/arrive-speed.svg)
+
 **Moving points.** Every behaviour that follows a point uses one rule: the wanted velocity is the point's velocity plus a closing speed along the line of sight, which keeps the bearing to the point constant (parallel navigation). The closing speed is `min(stopping_speed(distance), c_max)`, where `c_max` is the largest speed that keeps the total within `max_speed`. This leads a crossing target without predicting its path, and an agent that is slower than its target flies the line of sight at top speed. For a point at rest it is exactly Arrive.
+
+![The wanted velocity is the point's velocity plus a closing speed along the line of sight, so the bearing stays constant](../images/nav/moving-point.svg)
 
 **Seek** flies at top speed toward a point and doesn't brake.
 
@@ -26,9 +41,13 @@ Only a share of the thrust is planned on, because the velocity loop lags the wan
 
 **Follow** holds a slot, an offset in the leader's frame (`FrameOffset`: right, up, forward), moving with the leader.
 
+![Pursue settles stand_off beyond the target's hull on the line of sight; Follow holds a slot in the leader's frame](../images/nav/pursue-follow.svg)
+
 **Hold** is Arrive at the body's own position (`Behaviour::hold`).
 
 **Orbit** flies a circle of a given radius around a centre, in the plane normal to `normal`, anticlockwise about it. In the plane the direction is the guidance vector field `normalize(tangent − gain · e · radial)` with `e = (|p|² − r²) / r²` and `gain` `ORBIT_FIELD_GAIN`: tangent on the circle and turning inward from outside and outward from inside. Out of the plane a climb term `clamp(−height · k, ±s)` pulls the agent back to the plane. The circle speed `s` solves `s⁴ / r² + k² s² = (share · a)²`: the centripetal demand and the drag together use `ORBIT_THRUST_SHARE` of the forward thrust `a`, and `s` is capped at top speed, so a ship on the circle keeps thrust in reserve for avoidance. The centre's velocity is added, so a moving centre is followed. A zero normal or a non-positive radius makes the agent match the centre's velocity.
+
+![The orbit field: arrows tangent on the circle, turned inward outside it and outward inside it, and a climb term back to the plane](../images/nav/orbit-field.svg)
 
 An agent has arrived when its centre is within the goal's arrival radius, held to at least `MIN_ARRIVAL_RADII` (2) of the agent's own radii (`Goal::effective_arrival_radius`). A smaller circle can't be honoured by a crowd: goals closer together than the hulls make the agents dodge each other around the goals without any of them reaching its circle, so none arrives. The flag is positional: the agent keeps steering to stop on the goal.
 
@@ -38,9 +57,15 @@ A goal inside the hull of an agent that has settled can't be reached by its own 
 
 Obstacles are spheres with a velocity, assumed constant. Every other agent is one too: a sphere at its position with its bounding radius and its current velocity, whatever its goal (an agent that has arrived or has no goal is a resting sphere). An agent never avoids itself. For each obstacle, the agent's wanted velocity is taken relative to the obstacle, and the time when the agent first comes within the obstacle's *reach* is solved exactly (a quadratic). The reach is the obstacle's radius plus the agent's radius plus a *clearance*. The clearance is the distance the agent takes to brake to rest from the speed it currently closes on that obstacle at (`stopping_distance(closing speed)` on the curve of Arrive, from the agent's body velocity, not the wanted one), clamped between `MIN_CLEARANCE_RADII` (0.5) and `clearance_radii` agent radii. A slow agent therefore fits through gaps that a fast one has to avoid. The clearance is computed from the state at the start of the step, never from the course being tested, so the threat test doesn't change with the course it judges. It is also capped so that the goal's arrival circle (the effective arrival radius) lies outside the reach, down to 0 (the hull itself): a goal next to a sphere, such as the berth beside a ship that has arrived, can still be approached. Obstacles never reached within `horizon_s` are ignored. When none is reached, the wanted velocity is kept.
 
+![An obstacle's reach (its radius, the agent's radius and the clearance) and the aim sphere, with the wanted course and the two candidate courses tangent to the aim sphere](../images/nav/avoidance-reach.svg)
+
 **Reciprocity.** Agents of one world avoid each other reciprocally, after the reciprocal velocity obstacle of van den Berg, Lin and Manocha, "Reciprocal Velocity Obstacles for Real-Time Multi-Agent Navigation" (ICRA 2008, doi 10.1109/ROBOT.2008.4543489). The threat test is a velocity-obstacle test in the other sphere's frame, so the rule is a changed sphere velocity. An agent takes a *share* of the avoidance against each agent sphere: ½ when that agent is steering (it has a behaviour), otherwise 1. Bodies sensed from physics and agents without a behaviour keep the share 1. With a share of ½, the courses are tested against a sphere that moves at the mean of the two agents' velocities, so each agent takes half of the detour, and the closing-speed limit plans the braking on half of the room to the hull, since the other agent brakes the other half. The clearance keeps using the true closing speed from the true velocities. A head-on pair at equal speed turns about half as far each, and a crowd dodges for less time than with the full share.
 
+![Against an obstacle that does not steer the agent takes the whole detour; a pair of steering agents take half each](../images/nav/reciprocity.svg)
+
 **Tracked target.** The body a Pursue or Follow agent tracks is left out of that agent's scene, whether it is an agent of the same world or a sensed body: a follower doesn't swerve from its leader when the leader brakes or the slot lies behind it. The leader leaves its tracker out of its scene too while the tracker is behind it, that is, while the tracker's centre is behind the plane through the leader's centre normal to the leader's wanted course. The tracker is then the one that keeps the distance: the leader's braking would close on a follower that flies at its speed, so avoiding it would forbid the braking, at any share, and the leader would overshoot its goal. A tracker ahead of or abreast of the leader is avoided with the half share of any steering agent, so a follower on the leader's course ahead is still dodged. A tracker near the plane can switch between the two as the leader's course swings. Orbit keeps its centre in the scene, so an orbit that passes through it is bent.
+
+![A tracker behind the plane through the leader's centre, normal to its wanted course, is left out of the leader's scene; one ahead or abreast is avoided](../images/nav/tracked-target.svg)
 
 Each course is tested against every sphere, so a step computes what the tests need of a sphere (offset, distance, reach, aim radius, clearance) once per agent and sphere, and the tests read it. A sphere that no course within the agent's speed bound (its top speed, or its wanted or current speed when larger) can come within reach of inside the horizon is skipped by the course search. Such a sphere can't be a threat, so skipping it never changes the result. The closing-speed limit still looks at every sphere with the limited course itself, which can be faster than the bound.
 
@@ -54,7 +79,11 @@ Each threatening obstacle gives two candidates, one on the side the course alrea
 
 The side memory is the sphere's index and the direction, across the line to its centre, that the course leaned to. While the same sphere is the first one reached, the candidate on that side is taken whenever it is clear, even if the other side turns less. Without it, the side flips as the agent's position and velocity shift, and an agent whose nose follows the course never builds speed. The memory is replaced at every step that has a threat and dropped when the course has no side (it runs at the centre). A candidate on the kept side that a farther obstacle blocks is expanded around that obstacle, passing it on the side the course leans to, before a clear candidate on the other side is accepted: a kept side that a nearby obstacle blocks by a few metres would otherwise flip the side, and an agent that flips between two obstacles slides sideways without getting through. The kept side is given up only when no candidate on it is clear within the expanded obstacles.
 
+![A candidate on the kept side is blocked by a farther obstacle and is expanded around it, instead of switching to the clear candidate on the other side](../images/nav/candidate-search.svg)
+
 The speed the chosen course *closes* on a sphere at is also limited, for every sphere that the wanted course, the chosen course or the agent's own velocity leads into. The limit is `stopping_speed` of the distance to the sphere's hull (its surface plus the agent's radius) less a *braking margin*, the speed from which the agent brakes to rest short of the hull, the same rule as in Arrive. The margin is the distance the agent covers in `BRAKING_REACTION_S` (0.3 s) at its current speed, and at least the smallest clearance. A fast agent turns slowly, because its real velocity lags the wanted one, and a course that flips near a sphere needs room to turn: without the margin the agent reaches the sphere before its nose and velocity have followed. Only the component toward the sphere is limited; the speed along it is kept, so an agent passing a sphere isn't slowed for it. (Capping the whole speed instead makes agents crawl and dither beside every rock.)
+
+![The chosen course split into the component toward the sphere, which is limited by the braking curve to the hull less a margin, and the component along its surface, which is kept](../images/nav/closing-limit.svg)
 
 Special cases:
 
@@ -68,6 +97,18 @@ The method is adapted from the obstacle avoidance of Reynolds, "Steering Behavio
 ## Controller
 
 The controller maps the wanted velocity and the direction of travel to axes with a model of the ship: a damped double integrator, `dv/dt = a − k·v`, with thrust limited per axis. The agent's `Profile` gives the model's constants: the linear and angular drag, the acceleration at full input along the ship's forward, right and up axes, and the angular acceleration at full input about its right (pitch), up (yaw) and forward (roll) axes. A limit of 0 means no authority on that axis.
+
+```mermaid
+flowchart TD
+    W["Wanted velocity"] --> VL["Velocity loop:<br/>gain on the error, plus drag feed-forward"]
+    VL --> SP["Split along forward, right, up,<br/>divided by each axis limit,<br/>scaled together when over"]
+    SP --> TH["Three thrust axes"]
+    W --> AIM["Aim: the nose along the wanted<br/>acceleration or along the course"]
+    AIM --> TURN["Turn: PD law on the heading error<br/>and the angular velocity"]
+    TURN --> PY["Pitch and yaw"]
+    RATE["Measured roll rate"] --> ROLL["Roll damper"]
+    ROLL --> RO["Roll"]
+```
 
 - **Velocity loop.** The wanted acceleration is `VELOCITY_GAIN · (wanted velocity − velocity)` (10 per second) plus `k · wanted velocity`, the thrust that holds the wanted velocity against drag. It is split along the ship's axes, and each part is divided by that axis's limit. When an axis exceeds its limit, all three inputs are scaled down together, so the ship still accelerates in the wanted direction. Forward and reverse thrust follow the sign of the projection, so there is no angular cut-off.
 - **Aim.** The nose points along the wanted acceleration while that speeds the agent up toward its course and exceeds what the side thrusters give, so the main engine does the work. Otherwise it points along the course, and strafing and braking do the rest. Inside the goal's arrival radius the behaviour gives a rest facing instead of the course, so the nose doesn't chase a bearing that swings when the point is metres away: Follow faces the leader's heading, Arrive (and Hold) keeps the agent's own heading, Pursue faces the target's direction of motion when the target moves faster than one of its radii per second and keeps its own heading otherwise. Seek and Orbit give none. The facing turns the nose only; thrust still follows the wanted velocity, and an agent exactly on its point, with no course, still turns to its facing.

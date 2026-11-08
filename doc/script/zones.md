@@ -6,6 +6,8 @@ A zone is a generic region: `ZoneEntity` has a transform and a shape. A zone mea
 
 `GravityWellSystem` (Physics module) turns the zones of stars, planets and moons into gravity wells.
 
+![Nested wells of a star, a planet and a moon: a ship belongs to the smallest well that contains it](../images/zones/wells.svg)
+
 - `collectZones()` goes through the star, planet and moon views and lists a well for each one that has a zone. A planet's well is at least 1.5 times the orbit radius of its outermost moon.
 - A ship takes part when it has a `GravityWellComponent` and a rigid body. The component holds the ship's linear drag (1/s, the value its rigid body has), the well the ship is in (the smallest one that contains it), the zone type, the body's previous position and the velocity the ship is carried at. `update(dt, substeps)` processes every such ship before the physics step of `dt` seconds, and a ship in no well is in open space. `substeps` is `Physics:getSolverSubsteps()`.
 - A ship in a well is carried with its body by a force, so that it drifts with an orbiting body and the physics step sees its velocity. The force is an environment force: it sits outside the thrust budget, and thrust and collisions come on top of it. The body's move over the step is the difference between the position `OrbitalSystem:predictPos` gives for this step ([Orbits](orbits.md)) and its position at the last update, since its rigid body reaches it only when the step runs. The ship's rigid body is not moved directly.
@@ -14,6 +16,8 @@ A zone is a generic region: `ZoneEntity` has a transform and a shape. A zone mea
 - Contacts are not exact: the solver sees the carried part of the velocity, which differs from a kinematic body's own velocity by the drag taken in the step, so a ship that touches a body moving with its well does not reproduce a contact with a still body to the last digit.
 - `ShipFlightSystem:getSpeed` is the speed relative to the carried velocity.
 - `getMaxDriveSpeedAt(position)` is the travel-drive speed multiplier allowed at a position: `Config.game.travelDrive.maxSpeedByZone.openSpace` far from every body, falling with the square of the distance to the zone's minimum at the body's centre, starting at twice the well radius. Where influences overlap, the lowest value applies. The drive system, the autopilot and the HUD call it with a ship's position.
+
+![The travel-drive cap against distance from a body: the open-space cap beyond twice the well radius, falling with the square of the distance to the zone minimum at the centre](../images/zones/drive-cap.svg)
 
 ## Zone components for navigation
 

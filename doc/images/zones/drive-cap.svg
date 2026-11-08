@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" font-family="sans-serif" font-size="14">
+  <title>Travel-drive speed cap against distance from a body</title>
+  <rect width="800" height="400" fill="#ffffff"/>
+  <text x="20" y="28" fill="#111827" font-weight="bold">Travel-drive cap near one body</text>
+  <line x1="80" y1="320" x2="700" y2="320" stroke="#111827" stroke-width="1.5"/>
+  <line x1="80" y1="320" x2="80" y2="45" stroke="#111827" stroke-width="1.5"/>
+  <text x="705" y="325" fill="#111827">distance</text>
+  <text x="92" y="62" fill="#111827">drive speed multiplier</text>
+  <!-- open space -->
+  <line x1="80" y1="80" x2="690" y2="80" stroke="#6b7280" stroke-width="1" stroke-dasharray="6 4"/>
+  <text x="690" y="70" fill="#6b7280" text-anchor="end">open space cap</text>
+  <!-- zone minimum -->
+  <line x1="80" y1="300" x2="300" y2="300" stroke="#6b7280" stroke-width="1" stroke-dasharray="6 4"/>
+  <text x="310" y="305" fill="#6b7280">zone minimum at the body's centre</text>
+  <!-- curve -->
+  <path d="M80,300 L116,297.6 L152,290.4 L188,278.4 L224,261.6 L260,240 L296,213.6 L332,182.4 L368,146.4 L404,105.6 L440,80 L690,80" fill="none" stroke="#2563eb" stroke-width="4"/>
+  <!-- ticks -->
+  <line x1="260" y1="320" x2="260" y2="330" stroke="#111827" stroke-width="1.5"/>
+  <text x="260" y="350" fill="#111827" text-anchor="middle">well radius</text>
+  <line x1="440" y1="80" x2="440" y2="330" stroke="#2563eb" stroke-width="1" stroke-dasharray="3 3"/>
+  <text x="440" y="350" fill="#2563eb" text-anchor="middle">twice the well radius</text>
+  <text x="80" y="340" fill="#111827" text-anchor="middle">0</text>
+  <text x="440" y="368" fill="#2563eb" text-anchor="middle">the cap starts to fall</text>
+  <text x="470" y="200" fill="#2563eb">falls with the square of the</text>
+  <text x="470" y="218" fill="#2563eb">distance to the minimum</text>
+  <text x="20" y="392" fill="#6b7280">Where several wells overlap, the lowest cap applies.</text>
+</svg>
