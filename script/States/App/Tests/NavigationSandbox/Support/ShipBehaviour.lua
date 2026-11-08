@@ -39,10 +39,11 @@ local MIN_RELATIVE_LENGTH = 1e-6
 ---@field engaged boolean Whether the ship has been on station; deadlocks are judged only before
 ---@field maxError number Largest distance from the station point since it was engaged, in game units
 ---@field phase string|nil Seek: "pass" or "arrive". Plan: "waiting" for the plan, then as Seek. Hold: "cruise", "switched" or "returning"
----@field points Position[]|nil Seek, Plan: the points to pass
+---@field points Position[]|SandboxWaypoint[]|nil Seek: the points to pass. Plan: the plan's waypoints before the goal
 ---@field pointIndex integer|nil Seek, Plan: the point being flown to
 ---@field passRadius number|nil Seek, Plan: game units
----@field goal Position|nil Plan: where the ship stops
+---@field goal SandboxWaypoint|nil Plan: where the ship stops; with a frame, a point that rides on that obstacle
+---@field obstacles SandboxObstacle[]|nil Plan: the scenario's obstacles, which waypoint frames index
 ---@field clearance table<integer, number>|nil Plan: per obstacle index, the smallest distance from the ship's centre to the obstacle's safe sphere since the start, in game units
 ---@field onSince number|nil Simulated time the ship has been on station since
 ---@field onStation boolean|nil Pursue, Follow: whether the ship is on station now, whether or not it is yet judged
@@ -126,11 +127,51 @@ end
 
 local TRACKING = { Pursue = true, Follow = true, Orbit = true }
 
----Sets `ship.target` to the point a tracking ship is to be at; other ships keep theirs.
+---The world point of a plan waypoint now: its offset from its frame's obstacle, or the point itself.
+---@param b SandboxBehaviour
+---@param waypoint SandboxWaypoint
+---@return Position
+local function pointNow(b, waypoint)
+    local offset = waypoint.offset
+    if not waypoint.frame then return offset end
+    local centre = b.obstacles[waypoint.frame].rb:getPos()
+    return Position(centre.x + offset.x, centre.y + offset.y, centre.z + offset.z)
+end
+
+---The point a Plan ship flies at now: the waypoint it is passing, then the goal.
+---@param b SandboxBehaviour
+---@return Position
+local function planPoint(b)
+    return pointNow(b, b.phase == "pass" and b.points[b.pointIndex] or b.goal)
+end
+
+---Gives a Plan ship the goal as its arrival target: a goal that rides on an obstacle keeps its
+---place relative to it, so the ship matches the obstacle's velocity there.
+---@param nav NavWorld
+---@param ship SandboxShip
+---@param radius number Game units
+local function arriveAtGoal(nav, ship, radius)
+    local b = ship.behaviour
+    local goal = b.goal
+    if goal.frame then
+        local offset = goal.offset
+        nav:setArriveRelative(ship.agent, b.obstacles[goal.frame].rb, Vec3d(offset.x, offset.y, offset.z), radius)
+    else
+        nav:setArrive(ship.agent, goal.offset, radius)
+    end
+end
+
+---Sets `ship.target` to the point a tracking or Plan ship is to be at, which moves with its body;
+---other ships keep theirs.
 ---@param ship SandboxShip
 function ShipBehaviour.refreshTarget(ship)
     local b = ship.behaviour
-    if b and TRACKING[b.kind] then ship.target = toPosition(stationPoint(b, ship)) end
+    if not b then return end
+    if TRACKING[b.kind] then
+        ship.target = toPosition(stationPoint(b, ship))
+    elseif b.kind == "Plan" then
+        ship.target = planPoint(b)
+    end
 end
 
 ---Whether the ship keeps its behaviour after it has done what it asks: a tracking ship goes on
@@ -165,10 +206,11 @@ function ShipBehaviour.start(nav, ship, ships, obstacles, rules, planner)
     if b.kind == "Plan" then
         -- Flies at the goal while the plan is made; the plan then replaces the course.
         assert(planner, "ShipBehaviour: a Plan ship needs a planner")
-        b.phase, b.goal, b.clearance = "waiting", ship.target, {}
+        b.phase, b.clearance, b.obstacles = "waiting", {}, obstacles
+        b.goal = { frame = ship.targetFrame, offset = ship.targetFrame and ship.targetOffset or ship.target }
         b.passRadius = Metres.length(spec.passRadiusM)
-        nav:setArrive(ship.agent, b.goal, rules.range)
-        planner:request(ship, b.goal, b.topSpeed, obstacles, 0)
+        arriveAtGoal(nav, ship, rules.range)
+        planner:request(ship, b.goal.offset, b.goal.frame, b.topSpeed, obstacles, 0)
     elseif b.kind == "Seek" then
         b.points, b.pointIndex, b.phase = {}, 1, "pass"
         for _, point in ipairs(spec.through) do table.insert(b.points, Metres.position(point)) end
@@ -197,8 +239,9 @@ function ShipBehaviour.start(nav, ship, ships, obstacles, rules, planner)
     ShipBehaviour.refreshTarget(ship)
 end
 
----Moves a Seek ship on past a point it has passed, and switches a Hold ship to Hold once it is
----flying fast enough. Called after each navigation step.
+---Moves a Seek or Plan ship on past a point it has passed, aims a Plan ship at where its waypoint
+---is now, and switches a Hold ship to Hold once it is flying fast enough. Called after each
+---navigation step.
 ---@param nav NavWorld
 ---@param ship SandboxShip
 ---@param arrived boolean The `NavWorld`'s arrival flag for the ship
@@ -215,13 +258,17 @@ function ShipBehaviour.advance(nav, ship, arrived, simTime, rules, metrics)
             metrics:planPointPassed(ship, b.pointIndex, speed, simTime)
         end
         b.pointIndex = b.pointIndex + 1
-        if b.points[b.pointIndex] then
+        if not b.points[b.pointIndex] then
+            b.phase = "arrive"
+            if b.kind == "Seek" then
+                ship.target = Metres.position(ship.spec.target)
+                nav:setArrive(ship.agent, ship.target, rules.range)
+            else
+                arriveAtGoal(nav, ship, rules.range)
+            end
+        elseif b.kind == "Seek" then
             ship.target = b.points[b.pointIndex]
             nav:setSeek(ship.agent, ship.target, b.passRadius)
-        else
-            b.phase = "arrive"
-            ship.target = Metres.position(ship.spec.target)
-            nav:setArrive(ship.agent, ship.target, rules.range)
         end
         ship.bestDistance, ship.progressTime = math.huge, simTime
     elseif b.kind == "Hold" and b.phase == "cruise" and speed >= b.spec.holdAtSpeed * b.topSpeed then
@@ -230,6 +277,11 @@ function ShipBehaviour.advance(nav, ship, arrived, simTime, rules, metrics)
         b.phase = "switched"
         nav:setHold(ship.agent, rules.range)
         metrics:log("%s holds at %.0f m/s, %.2f s", ship.label, Metres.toMetres(speed), simTime)
+    end
+    if b.kind == "Plan" and b.phase == "pass" then
+        -- A waypoint in the frame of a moving obstacle moves: aim at where it is now.
+        ship.target = planPoint(b)
+        nav:setSeek(ship.agent, ship.target, b.passRadius)
     end
 end
 
@@ -250,7 +302,7 @@ function ShipBehaviour.planReceived(nav, ship, plan, simTime)
         return
     end
     b.points, b.pointIndex, b.phase = points, 1, "pass"
-    ship.target = points[1]
+    ship.target = planPoint(b)
     nav:setSeek(ship.agent, ship.target, b.passRadius)
     ship.bestDistance, ship.progressTime = math.huge, simTime
 end
@@ -342,7 +394,8 @@ function ShipBehaviour.judge(ship, simTime, rules)
     elseif b.kind == "Orbit" then
         return judgeOrbit(b, ship, distance, rules)
     elseif b.kind == "Seek" or b.kind == "Plan" then
-        return b.phase == "arrive" and isThere(ship, distance, rules)
+        local frame = b.goal and b.goal.frame and b.obstacles[b.goal.frame]
+        return b.phase == "arrive" and isThere(ship, distance, rules, frame)
     end
     -- Hold: the ship must leave its point and come back to it.
     if b.phase == "switched" and distance > rules.range then b.phase = "returning" end

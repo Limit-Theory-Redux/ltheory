@@ -15,10 +15,16 @@ local TWO_PI        = 2 * math.pi
 local Body          = SystemPlanner.Body
 local NO_PARENT     = -1
 
+---A point of a plan: a world point when `frame` is nil, else an offset, in world axes, from the
+---centre of obstacle `frame`.
+---@class SandboxWaypoint
+---@field frame integer|nil Index of the obstacle the offset is from
+---@field offset Position
+
 ---@class SandboxPlan
 ---@field status integer|nil A `SystemPlanner.Status` value; nil when the worker failed
 ---@field error string|nil The worker's error message
----@field waypoints Position[] The path, the goal last
+---@field waypoints SandboxWaypoint[] The path, the goal last
 ---@field times number[] Seconds from the snapshot to each waypoint at the planning speed
 ---@field kernelMs number Milliseconds the kernel took in the worker
 
@@ -79,11 +85,12 @@ end
 
 ---Sends a request to plan the ship's path to `goal`, from where it is now.
 ---@param ship SandboxShip
----@param goal Position
+---@param goal Position A world point, or an offset from obstacle `goalFrame` when that is given
+---@param goalFrame integer|nil Index of the obstacle the goal rides on
 ---@param speed number The planning speed, game units per second
 ---@param obstacles SandboxObstacle[] Parents come before their moons
 ---@param simTime number Simulated seconds since the scenario started
-function PlanClient:request(ship, goal, speed, obstacles, simTime)
+function PlanClient:request(ship, goal, goalFrame, speed, obstacles, simTime)
     local bodies = {}
     for _, obstacle in ipairs(obstacles) do appendBody(bodies, obstacle, simTime) end
     local at = ship.rb:getPos()
@@ -91,6 +98,7 @@ function PlanClient:request(ship, goal, speed, obstacles, simTime)
         bodies = bodies,
         count = #obstacles,
         start = { at.x, at.y, at.z },
+        goalFrame = goalFrame and goalFrame - 1 or SystemPlanner.SYSTEM_FRAME,
         goal = { goal.x, goal.y, goal.z },
         speed = speed,
         depth = DEPTH_LIMIT,
@@ -108,14 +116,18 @@ function PlanClient:send(ship, simTime, task, probe)
     self.pending[taskId] = { ship = ship, sentAt = InstantTime.Now(), simTime = simTime, task = task, probe = probe }
 end
 
----@param flat number[] `x, y, z, t` per waypoint
----@return Position[] waypoints
+---@param flat number[] `frame, x, y, z, t` per waypoint, as `SystemPlanner.Out` lays them out
+---@return SandboxWaypoint[] waypoints
 ---@return number[] times
 local function unpackWaypoints(flat)
-    local stride, waypoints, times = SystemPlanner.OUT_STRIDE, {}, {}
+    local stride, out, waypoints, times = SystemPlanner.OUT_STRIDE, SystemPlanner.Out, {}, {}
     for i = 1, #flat, stride do
-        table.insert(waypoints, Position(flat[i], flat[i + 1], flat[i + 2]))
-        table.insert(times, flat[i + stride - 1])
+        local frame = flat[i + out.Frame]
+        table.insert(waypoints, {
+            frame = frame ~= SystemPlanner.SYSTEM_FRAME and frame + 1 or nil,
+            offset = Position(flat[i + out.X], flat[i + out.Y], flat[i + out.Z]),
+        })
+        table.insert(times, flat[i + out.T])
     end
     return waypoints, times
 end

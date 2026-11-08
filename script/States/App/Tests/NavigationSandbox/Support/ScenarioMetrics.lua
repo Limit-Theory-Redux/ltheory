@@ -36,7 +36,9 @@ local RULES = { range = ARRIVAL_RANGE, speed = ARRIVAL_SPEED }
 ---@field rb RigidBody
 ---@field input ControlInputComponent
 ---@field agent integer Id in the `NavWorld`
----@field target Position The goal: the destination, or the current waypoint of a route
+---@field target Position The goal: the destination, or the current waypoint of a route; where a point that rides on an obstacle is now
+---@field targetFrame integer|nil Index of the obstacle the target rides on: the spec's `target` is then an offset from it
+---@field targetOffset Position|nil The offset from that obstacle, in game units
 ---@field route Position[]|nil Waypoints flown in a loop
 ---@field waypointIndex integer|nil Index into `route` of the current waypoint
 ---@field label string
@@ -196,8 +198,10 @@ function ScenarioMetrics:planReceived(reply, simTime)
     self:log("%s planned: %s, %d waypoints, kernel %.3f ms, send to receipt %.2f ms, %.2f s simulated until it arrived",
         reply.ship.label, name, #plan.waypoints, plan.kernelMs, reply.latencyMs, simTime - reply.simTime)
     for i, waypoint in ipairs(plan.waypoints) do
-        self:log("%s: plan waypoint %d at (%.0f, %.0f, %.0f) m, %.2f s from the start", reply.ship.label, i,
-            metres(waypoint.x), metres(waypoint.y), metres(waypoint.z), plan.times[i])
+        local offset = waypoint.offset
+        local from = waypoint.frame and string.format("from obstacle %d", waypoint.frame) or "in the world"
+        self:log("%s: plan waypoint %d at (%.0f, %.0f, %.0f) m %s, %.2f s from the start", reply.ship.label, i,
+            metres(offset.x), metres(offset.y), metres(offset.z), from, plan.times[i])
     end
 end
 

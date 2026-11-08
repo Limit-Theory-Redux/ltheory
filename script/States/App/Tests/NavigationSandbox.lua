@@ -33,7 +33,8 @@ local Metres                = require("States.App.Tests.NavigationSandbox.Suppor
 
 ---@class SandboxShipSpec
 ---@field start number[] { x, y, z } in metres
----@field target number[]|nil { x, y, z } in metres; the ship stops there. Not used with a route, nor with a Pursue, Follow or Orbit behaviour, which have their own point
+---@field target number[]|nil { x, y, z } in metres; the ship stops there. Not used with a route, nor with a Pursue, Follow or Orbit behaviour, which have their own point. With `targetFrame`, an offset from that obstacle
+---@field targetFrame integer|nil Plan: index of the obstacle the goal rides on, so the ship stops at rest relative to it; needs `facing`
 ---@field route number[][]|nil Waypoints { x, y, z } in metres, flown in a loop from the first
 ---@field behaviour SandboxBehaviourSpec|nil What the ship does besides flying to `target`; see `ShipBehaviour`
 ---@field facing number[]|nil Direction the ship faces at the start, not along the y axis; toward its first target by default
@@ -215,7 +216,8 @@ function NavigationSandbox:frameCamera(scenario)
     for _, spec in ipairs(scenario.ships) do
         table.insert(points, toPosition(spec.start))
         table.insert(padding, 0)
-        local waypoints = spec.route or (spec.target and { spec.target }) or {}
+        -- A goal on an obstacle is in the frame of the obstacle, which is framed itself.
+        local waypoints = spec.route or (spec.target and not spec.targetFrame and { spec.target }) or {}
         for _, waypoint in ipairs(waypoints) do
             table.insert(points, toPosition(waypoint))
             table.insert(padding, 0)
@@ -251,13 +253,16 @@ function NavigationSandbox:spawnShip(spec, index)
         for _, waypoint in ipairs(spec.route) do table.insert(route, toPosition(waypoint)) end
     end
     local start = toPosition(spec.start)
-    -- A ship that tracks a body has no target until its behaviour gives it one.
-    local target = route and route[1] or spec.target and toPosition(spec.target) or start
+    -- A ship that tracks a body has no target until its behaviour gives it one, and a goal that
+    -- rides on an obstacle is placed once the obstacles exist.
+    local frameOffset = spec.targetFrame and toPosition(spec.target)
+    local target = route and route[1] or not spec.targetFrame and spec.target and toPosition(spec.target) or start
     local facing
     if spec.facing then
         facing = Vec3f(spec.facing[1], spec.facing[2], spec.facing[3])
     else
-        assert(spec.target or route, "a ship without a target or a route needs a facing")
+        assert((spec.target and not spec.targetFrame) or route,
+            "a ship without a target, or with a goal on an obstacle, or a route needs a facing")
         facing = Vec3f(target.x - start.x, target.y - start.y, target.z - start.z)
     end
     local hull = spec.hull or DEFAULT_HULL
@@ -278,6 +283,8 @@ function NavigationSandbox:spawnShip(spec, index)
         spec = spec,
         behaviour = spec.behaviour and ShipBehaviour.create(spec.behaviour),
         target = target,
+        targetFrame = spec.targetFrame,
+        targetOffset = frameOffset,
         route = route,
         waypointIndex = route and 1 or nil,
         label = string.format("ship %d", index),

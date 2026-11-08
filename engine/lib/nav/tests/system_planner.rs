@@ -8,13 +8,17 @@ use common::KernelVm;
 use mlua::{Function, Table, Value};
 
 const BODY_STRIDE: usize = 10;
-const OUT_STRIDE: usize = 4;
+/// A waypoint is `frame, x, y, z, t`.
+const OUT_STRIDE: usize = 5;
+const SYSTEM_FRAME: i32 = -1;
 const STATUS_OK: i64 = 0;
 const STATUS_DEPTH_EXCEEDED: i64 = 1;
 const STATUS_CAPACITY_EXCEEDED: i64 = 2;
 const STATUS_ENDPOINT_INSIDE_BODY: i64 = 3;
 const STATUS_INVALID_INPUT: i64 = 4;
 const STATUS_NO_DETOUR: i64 = 5;
+const STATUS_GOAL_OUTRUN: i64 = 6;
+const STATUS_GOAL_NOT_SETTLED: i64 = 7;
 
 const SPEED: f64 = 1000.0;
 const DEPTH: i64 = 4;
@@ -114,8 +118,13 @@ fn distance(a: Vec3, b: Vec3) -> f64 {
 struct Plan {
     status: i64,
     start: Vec3,
+    /// The waypoints as world points: each frame's position at the waypoint's time plus its offset.
     points: Vec<Vec3>,
     times: Vec<f64>,
+    /// The frame body of each waypoint, `SYSTEM_FRAME` for none.
+    frames: Vec<i32>,
+    /// The offset of each waypoint from its frame, as the kernel wrote it.
+    offsets: Vec<Vec3>,
 }
 
 impl Plan {
@@ -155,6 +164,24 @@ impl Planner {
         depth: i64,
         capacity: usize,
     ) -> Plan {
+        self.run_framed(bodies, start, SYSTEM_FRAME, goal, speed, depth, capacity)
+    }
+
+    /// Plans to `goal`, a point in the system for `SYSTEM_FRAME`, else an offset from that body.
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "mirrors the kernel's plan inputs"
+    )]
+    fn run_framed(
+        &self,
+        bodies: &[Body],
+        start: Vec3,
+        frame: i32,
+        goal: Vec3,
+        speed: f64,
+        depth: i64,
+        capacity: usize,
+    ) -> Plan {
         let flat = flatten(bodies);
         // A zero-length buffer cannot be built, so an empty system gets one unused element.
         let body_buffer: Value = self
@@ -175,6 +202,7 @@ impl Planner {
                 start[0],
                 start[1],
                 start[2],
+                frame,
                 goal[0],
                 goal[1],
                 goal[2],
@@ -189,34 +217,62 @@ impl Planner {
             .vm
             .read_buffer(&out_buffer, capacity.max(1) * OUT_STRIDE)
             .unwrap();
-        let mut points = Vec::new();
-        let mut times = Vec::new();
-        for waypoint in values.chunks(OUT_STRIDE).take(count) {
-            points.push([waypoint[0], waypoint[1], waypoint[2]]);
-            times.push(waypoint[3]);
-        }
-        Plan {
+        let mut plan = Plan {
             status: status as i64,
             start,
-            points,
-            times,
+            points: Vec::new(),
+            times: Vec::new(),
+            frames: Vec::new(),
+            offsets: Vec::new(),
+        };
+        for waypoint in values.chunks(OUT_STRIDE).take(count) {
+            let frame = waypoint[0] as i32;
+            let offset = [waypoint[1], waypoint[2], waypoint[3]];
+            let time = waypoint[4];
+            let centre = if frame == SYSTEM_FRAME {
+                [0.0; 3]
+            } else {
+                body_position(bodies, frame as usize, time)
+            };
+            plan.points.push([
+                centre[0] + offset[0],
+                centre[1] + offset[1],
+                centre[2] + offset[2],
+            ]);
+            plan.times.push(time);
+            plan.frames.push(frame);
+            plan.offsets.push(offset);
         }
+        plan
     }
 
     fn plan(&self, bodies: &[Body], start: Vec3, goal: Vec3) -> Plan {
         self.run(bodies, start, goal, SPEED, DEPTH, CAPACITY)
     }
+
+    fn plan_framed(&self, bodies: &[Body], start: Vec3, frame: i32, offset: Vec3) -> Plan {
+        self.run_framed(bodies, start, frame, offset, SPEED, DEPTH, CAPACITY)
+    }
 }
+
+/// A goal on a moving body is planned for an arrival time that is right to within the kernel's
+/// tolerance (`GOAL_TIME_TOLERANCE`), so the last time of such a plan may differ by that much.
+const GOAL_TIME_SLACK: f64 = 1e-4;
 
 /// The times are the path length so far over the planning speed, and so strictly increase.
 fn assert_times(plan: &Plan, speed: f64) {
     let corners = plan.corners();
+    let slack = if plan.frames.last() == Some(&SYSTEM_FRAME) {
+        0.0
+    } else {
+        GOAL_TIME_SLACK
+    };
     let mut length = 0.0;
     let mut previous = 0.0;
     for (i, time) in plan.times.iter().enumerate() {
         length += distance(corners[i], corners[i + 1]);
         assert!(
-            (time - length / speed).abs() <= 1e-6 * (1.0 + time.abs()),
+            (time - length / speed).abs() <= 1e-6 * (1.0 + time.abs()) + slack,
             "time {time} against {}",
             length / speed
         );
@@ -532,6 +588,139 @@ fn bad_input_is_rejected() {
     rejected(planner.plan(&bad, start, goal), "NaN phase");
 }
 
+#[test]
+fn a_detour_waypoint_is_in_the_frame_of_the_body_it_goes_around() {
+    let planner = Planner::new();
+    // The moon of the earlier test: off the line now, on it at t = 20.
+    let angular_speed = 0.02;
+    let planet = [-10000.0, 0.0, 8000.0];
+    let orbit_radius = (10000.0f64.powi(2) + 8000.0f64.powi(2)).sqrt();
+    let phase = (-8000.0f64).atan2(10000.0) - angular_speed * 20.0;
+    let moon = orbiting(0, orbit_radius, phase, angular_speed, 600.0);
+    let system = [fixed(planet, 10.0, 10.0), moon];
+    let goal = [20000.0, 0.0, 0.0];
+    let plan = planner.plan(&system, [-20000.0, 0.0, 0.0], goal);
+    assert_eq!(plan.status, STATUS_OK);
+    assert!(plan.detours() >= 1);
+
+    let (goal_frame, detour_frames) = plan.frames.split_last().unwrap();
+    assert_eq!(*goal_frame, SYSTEM_FRAME, "the goal keeps its frame");
+    assert_eq!(*plan.offsets.last().unwrap(), goal);
+    assert!(
+        detour_frames.iter().all(|frame| *frame == 1),
+        "{detour_frames:?}"
+    );
+    // Whenever the ship gets there, a point at this offset is as far from the body as planned.
+    for offset in &plan.offsets[..plan.detours()] {
+        let length = distance(*offset, [0.0; 3]);
+        assert!(
+            length >= moon.safe * CLEARANCE_TOLERANCE,
+            "offset {length} against the safe radius {}",
+            moon.safe
+        );
+    }
+}
+
+#[test]
+fn a_goal_on_an_orbiting_body_keeps_its_offset_and_meets_the_body() {
+    let planner = Planner::new();
+    let moon = orbiting(-1, 10000.0, 0.0, 0.05, 600.0);
+    let offset = [3000.0, 500.0, 0.0];
+    let start = [-20000.0, 0.0, 0.0];
+    let plan = planner.plan_framed(&[moon], start, 0, offset);
+    assert_eq!(plan.status, STATUS_OK);
+    assert_eq!(plan.frames.last(), Some(&0));
+    assert_eq!(plan.offsets.last(), Some(&offset));
+    let goal = *plan.points.last().unwrap();
+    assert_ne!(
+        goal,
+        [offset[0] + 10000.0, offset[1], offset[2]],
+        "the body has moved on from where it is now"
+    );
+    // The times are the path's length over the speed, to the goal where the body is on arrival.
+    assert_times(&plan, SPEED);
+    assert_clear(&plan, &[moon], SPEED);
+}
+
+#[test]
+fn a_goal_on_a_static_body_is_the_body_plus_the_offset() {
+    let planner = Planner::new();
+    let system = [fixed([5000.0, 0.0, 0.0], 500.0, 750.0)];
+    let plan = planner.plan_framed(&system, [-5000.0, 0.0, 0.0], 0, [0.0, 2000.0, 0.0]);
+    assert_eq!(plan.status, STATUS_OK);
+    assert_eq!(plan.points, vec![[5000.0, 2000.0, 0.0]]);
+    assert_eq!(plan.frames, vec![0]);
+    let expected = distance([-5000.0, 0.0, 0.0], [5000.0, 2000.0, 0.0]) / SPEED;
+    assert!((plan.times[0] - expected).abs() < 1e-9);
+}
+
+#[test]
+fn a_goal_in_the_system_frame_keeps_its_world_point() {
+    let planner = Planner::new();
+    let goal = [3000.0, 4000.0, 0.0];
+    let plan = planner.plan_framed(&[], [0.0; 3], SYSTEM_FRAME, goal);
+    assert_eq!(plan.status, STATUS_OK);
+    assert_eq!(plan.frames, vec![SYSTEM_FRAME]);
+    assert_eq!(plan.offsets, vec![goal]);
+}
+
+#[test]
+fn a_detour_toward_a_moving_goal_is_planned_for_the_later_arrival() {
+    let planner = Planner::new();
+    // A sphere sits on the line to a goal beside a moon that circles it; the detour makes the
+    // flight longer, so the moon is somewhere else when the ship gets there than at the
+    // straight flight's end.
+    let moon = orbiting(-1, 10000.0, -1.5, 0.05, 300.0);
+    let system = [fixed([0.0; 3], 1000.0, 1500.0), moon];
+    let start = [-20000.0, 0.0, 0.0];
+    let plan = planner.plan_framed(&system, start, 1, [2000.0, 0.0, 0.0]);
+    assert_eq!(plan.status, STATUS_OK, "{:?}", plan.points);
+    assert!(
+        plan.detours() >= 1,
+        "the sphere is in the way: {:?}",
+        plan.points
+    );
+    let arrival = *plan.times.last().unwrap();
+    let straight = distance(start, *plan.points.last().unwrap()) / SPEED;
+    assert!(
+        arrival > straight,
+        "the detour is longer: {arrival} against {straight}"
+    );
+    assert_times(&plan, SPEED);
+    assert_clear(&plan, &system, SPEED);
+}
+
+#[test]
+fn a_goal_on_a_body_that_can_outrun_the_ship_is_an_error() {
+    let planner = Planner::new();
+    // The moon moves at 2 km/s along its orbit, the ship at 1 km/s.
+    let moon = orbiting(-1, 10000.0, 0.0, 0.2, 300.0);
+    let plan = planner.plan_framed(&[moon], [-20000.0, 0.0, 0.0], 0, [2000.0, 0.0, 0.0]);
+    assert_eq!(plan.status, STATUS_GOAL_OUTRUN);
+    assert!(plan.points.is_empty());
+}
+
+#[test]
+fn a_frame_that_is_not_a_body_is_rejected() {
+    let planner = Planner::new();
+    let system = [fixed([0.0, 0.0, 5000.0], 100.0, 150.0)];
+    for frame in [-2, 1, 7] {
+        let plan = planner.plan_framed(&system, [0.0; 3], frame, [100.0, 0.0, 0.0]);
+        assert_eq!(plan.status, STATUS_INVALID_INPUT, "frame {frame}");
+        assert!(plan.points.is_empty(), "frame {frame}");
+    }
+    let plan = planner.plan_framed(&[], [0.0; 3], 0, [100.0, 0.0, 0.0]);
+    assert_eq!(plan.status, STATUS_INVALID_INPUT, "a frame with no bodies");
+}
+
+#[test]
+fn a_goal_offset_inside_the_frame_bodys_hull_is_an_error() {
+    let planner = Planner::new();
+    let system = [fixed([5000.0, 0.0, 0.0], 500.0, 750.0)];
+    let plan = planner.plan_framed(&system, [-5000.0, 0.0, 0.0], 0, [100.0, 0.0, 0.0]);
+    assert_eq!(plan.status, STATUS_ENDPOINT_INSIDE_BODY);
+}
+
 /// A small seeded generator (xorshift64*): the tests need a repeatable spread, not quality.
 struct Rng(u64);
 
@@ -566,11 +755,18 @@ struct Tally {
     multiple_detours: usize,
     depth_exceeded: usize,
     no_detour: usize,
+    goal_outrun: usize,
+    goal_not_settled: usize,
 }
 
 impl Tally {
     fn record(&mut self, plan: &Plan) {
         self.cases += 1;
+        if plan.status == STATUS_GOAL_OUTRUN {
+            self.goal_outrun += 1;
+        } else if plan.status == STATUS_GOAL_NOT_SETTLED {
+            self.goal_not_settled += 1;
+        }
         if plan.status == STATUS_OK {
             self.ok += 1;
             if plan.detours() >= 1 {
@@ -639,6 +835,34 @@ fn random_static_spheres_are_cleared_or_the_status_says_why() {
     );
 }
 
+/// Eight planets on circles about the origin, and a moon for each of the first two.
+fn random_orbiting_system(rng: &mut Rng) -> Vec<Body> {
+    let mut bodies: Vec<Body> = Vec::new();
+    for _ in 0..8 {
+        let radius = rng.range(1500.0, 4000.0);
+        let mut planet = orbiting(
+            -1,
+            rng.range(8000.0, 20000.0),
+            rng.range(0.0, std::f64::consts::TAU),
+            rng.range(-0.05, 0.05),
+            radius,
+        );
+        planet.inclination = rng.range(-0.5, 0.5);
+        bodies.push(planet);
+    }
+    for planet in 0..2 {
+        let radius = rng.range(150.0, 400.0);
+        bodies.push(orbiting(
+            planet,
+            rng.range(3000.0, 5000.0),
+            rng.range(0.0, std::f64::consts::TAU),
+            rng.range(-0.2, 0.2),
+            radius,
+        ));
+    }
+    bodies
+}
+
 #[test]
 fn random_orbiting_systems_are_cleared_or_the_status_says_why() {
     const CASES: usize = 200;
@@ -647,29 +871,7 @@ fn random_orbiting_systems_are_cleared_or_the_status_says_why() {
     let mut rng = Rng(0xD1B5_4A32_D192_ED03);
     let mut tally = Tally::default();
     while tally.cases < CASES {
-        let mut bodies: Vec<Body> = Vec::new();
-        for _ in 0..8 {
-            let radius = rng.range(1500.0, 4000.0);
-            let mut planet = orbiting(
-                -1,
-                rng.range(8000.0, 20000.0),
-                rng.range(0.0, std::f64::consts::TAU),
-                rng.range(-0.05, 0.05),
-                radius,
-            );
-            planet.inclination = rng.range(-0.5, 0.5);
-            bodies.push(planet);
-        }
-        for planet in 0..2 {
-            let radius = rng.range(150.0, 400.0);
-            bodies.push(orbiting(
-                planet,
-                rng.range(3000.0, 5000.0),
-                rng.range(0.0, std::f64::consts::TAU),
-                rng.range(-0.2, 0.2),
-                radius,
-            ));
-        }
+        let bodies = random_orbiting_system(&mut rng);
         let start = rng.point(EXTENT);
         let goal = rng.point(EXTENT);
         let straight_time = distance(start, goal) / SPEED;
@@ -687,4 +889,70 @@ fn random_orbiting_systems_are_cleared_or_the_status_says_why() {
     println!("orbiting: {tally:?}");
     assert!(tally.ok * 10 >= CASES * 6, "most cases plan: {tally:?}");
     assert!(tally.detoured >= 20, "detours occur: {tally:?}");
+}
+
+#[test]
+fn random_goals_on_moving_bodies_are_reached_or_the_status_says_why() {
+    const CASES: usize = 200;
+    const EXTENT: f64 = 25000.0;
+    let planner = Planner::new();
+    let mut rng = Rng(0x2F0B_3A55_91C4_7E6D);
+    let mut tally = Tally::default();
+    let mut framed_detours = 0;
+    while tally.cases < CASES {
+        let bodies = random_orbiting_system(&mut rng);
+        let start = rng.point(EXTENT);
+        let frame = (rng.next() * bodies.len() as f64) as usize;
+        // A point 2 to 4 safe radii from the frame body, in a random direction.
+        let direction = rng.point(1.0);
+        let norm = distance(direction, [0.0; 3]);
+        if norm < 0.1 || !clear_of_all(&bodies, start, 0.0) {
+            continue;
+        }
+        let reach = rng.range(2.0, 4.0) * bodies[frame].safe / norm;
+        let offset = direction.map(|component| component * reach);
+
+        let plan = planner.plan_framed(&bodies, start, frame as i32, offset);
+        if plan.status == STATUS_ENDPOINT_INSIDE_BODY {
+            continue; // another body holds the point
+        }
+        if plan.status != STATUS_GOAL_OUTRUN {
+            assert_eq!(plan.frames.last(), Some(&(frame as i32)));
+            assert_eq!(plan.offsets.last(), Some(&offset));
+        }
+        if plan.status != STATUS_GOAL_OUTRUN && plan.status != STATUS_GOAL_NOT_SETTLED {
+            assert_times(&plan, SPEED);
+        }
+        // A goal inside another body's safe sphere shrinks that sphere for the plan, so only a
+        // goal clear of every body is judged against the full radii.
+        let goal_clear = plan.status == STATUS_OK
+            && clear_of_all(
+                &bodies,
+                *plan.points.last().unwrap(),
+                *plan.times.last().unwrap(),
+            );
+        if goal_clear {
+            assert_clear(&plan, &bodies, SPEED);
+            if plan.detours() >= 1 {
+                framed_detours += 1;
+            }
+        }
+        tally.record(&plan);
+    }
+    println!("framed goals: {tally:?}, with detours {framed_detours}");
+    assert!(tally.ok * 10 >= CASES * 4, "many cases plan: {tally:?}");
+    assert!(
+        framed_detours >= 10,
+        "detours to a moving goal occur: {tally:?}"
+    );
+    assert!(
+        tally.goal_outrun >= 1,
+        "a goal on a fast body occurs: {tally:?}"
+    );
+    // A detour that appears or disappears as the goal moves leaves no arrival time that holds,
+    // which is reported; it stays a minority of the cases.
+    assert!(
+        tally.goal_not_settled * 5 <= CASES,
+        "few goals do not settle: {tally:?}"
+    );
 }

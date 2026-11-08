@@ -1,8 +1,9 @@
 --- System planner kernel: a path through a system of orbiting bodies as waypoints. It starts from
 --- the straight segment, and where the segment enters a body's safe sphere at the body's predicted
 --- position it inserts a waypoint where the tangents from both ends to the sphere meet, then checks
---- the two new legs the same way, down to a bounded depth. Pure numbers in and out (no entities, no
---- globals), so it runs on a worker or in a test state. Not reentrant: it keeps module scratch state.
+--- the two new legs the same way, down to a bounded depth. A waypoint is a body index and an offset
+--- from that body (the system frame for none). Pure numbers in and out (no entities, no globals),
+--- so it runs on a worker or in a test state. Not reentrant: it keeps module scratch state.
 --- Design: doc/script/system-planner.md.
 local OrbitMath = require("Shared.Helpers.OrbitMath")
 
@@ -12,7 +13,8 @@ local max, min, abs = math.max, math.min, math.abs
 local SystemPlanner = {}
 
 ---Result of a plan. The waypoints written are valid for every status except `InvalidInput`,
----`EndpointInsideBody` and `CapacityExceeded` (where they are the ones written before the stop).
+---`EndpointInsideBody`, `GoalOutrun` and `CapacityExceeded` (where they are the ones written
+---before the stop).
 SystemPlanner.Status = {
     Ok                 = 0,
     ---A leg still crosses a safe sphere at the depth limit; that leg is left straight.
@@ -23,6 +25,11 @@ SystemPlanner.Status = {
     InvalidInput       = 4,
     ---A leg crosses a safe sphere and no tangent exists (an end lies inside it); left straight.
     NoDetour           = 5,
+    ---The goal's frame body can move as fast as the ship, so the ship may never catch the goal.
+    GoalOutrun         = 6,
+    ---The arrival time at a goal on a moving body did not settle within the iteration limit; the
+    ---last iteration's plan is kept, and its times may be off.
+    GoalNotSettled     = 7,
 }
 local Status = SystemPlanner.Status
 
@@ -40,9 +47,16 @@ local ANGULAR_SPEED    = 6
 local INCLINATION      = 7
 local BODY_RADIUS      = 8
 local SAFE_RADIUS      = 9
--- Output buffer: OUT_STRIDE doubles per waypoint, the goal last; `t` is the time the ship reaches it.
-local OUT_STRIDE       = 4
-local OUT_T            = 3
+-- Output buffer: OUT_STRIDE doubles per waypoint, the goal last. A waypoint is the index of its
+-- frame body (SYSTEM_FRAME for the system) and the offset from that body's centre, in world axes,
+-- and `t`, the time the ship reaches it. The frame's position at `t` plus the offset is the point.
+local OUT_FRAME        = 0
+local OUT_X            = 1
+local OUT_Y            = 2
+local OUT_Z            = 3
+local OUT_T            = 4
+local OUT_STRIDE       = 5
+local SYSTEM_FRAME     = -1
 
 SystemPlanner.BODY_STRIDE = BODY_STRIDE
 SystemPlanner.Body = {
@@ -50,6 +64,8 @@ SystemPlanner.Body = {
     AngularSpeed = ANGULAR_SPEED, Inclination = INCLINATION, Radius = BODY_RADIUS, SafeRadius = SAFE_RADIUS,
 }
 SystemPlanner.OUT_STRIDE = OUT_STRIDE
+SystemPlanner.Out = { Frame = OUT_FRAME, X = OUT_X, Y = OUT_Y, Z = OUT_Z, T = OUT_T }
+SystemPlanner.SYSTEM_FRAME = SYSTEM_FRAME
 
 -- The smallest step of the hit search, as a fraction of the safe radius: it ends a search that
 -- grazes a sphere, and can miss only a crossing shallower than this fraction.
@@ -68,9 +84,15 @@ local ENDPOINT_SHRINK  = 0.01
 -- Distances below this make a direction undefined.
 local MIN_LENGTH       = 1e-9
 local HALF             = 0.5
+-- A goal on a moving body is re-planned for the time the last plan arrives at it, until that time
+-- changes by less than the tolerance (seconds) or the iteration limit is reached. Each pass
+-- shrinks the error by the goal's speed over the planning speed. The tolerance is above the
+-- jitter that the stepped overlap search puts on a detour point (about 1e-5 s).
+local GOAL_TIME_TOLERANCE = 1e-4
+local MAX_GOAL_ITERATIONS = 50
 
 -- Scratch state of the running plan.
-local bodies, bodyCount, speed, maxDepth, out, capacity, written, status, failures
+local bodies, bodyCount, speed, maxDepth, out, capacity, written, status, failures, goalFrame
 -- Per body: the speed bound of its orbit chain, and the radius of the sphere the hit test uses.
 local speedBound, hitRadius = {}, {}
 
@@ -108,9 +130,15 @@ local function prepareBodies()
         local bound = abs(bodies[base + ORBIT_RADIUS] * bodies[base + ANGULAR_SPEED])
         if parent >= 0 then bound = bound + speedBound[parent + 1] end
         speedBound[i + 1] = bound
-        hitRadius[i + 1] = safe
     end
     return true
+end
+
+---Restores every body's hit radius to its safe radius, undoing the endpoint shrinks of a pass.
+local function resetHitRadii()
+    for i = 0, bodyCount - 1 do
+        hitRadius[i + 1] = bodies[i * BODY_STRIDE + SAFE_RADIUS]
+    end
 end
 
 ---Shrinks the hit radius of every body whose safe sphere holds the point at time `t`.
@@ -254,14 +282,21 @@ local function detourPoint(i, ax, ay, az, length, ux, uy, uz, t0, tIn, tEnd, fli
     return cx + ux * pu + ex * pe, cy + uy * pu + ey * pe, cz + uz * pu + ez * pe
 end
 
----Writes a waypoint. Returns false (and sets the status) when the buffer is full.
-local function append(x, y, z, t)
+---Writes the world point (x, y, z) reached at time `t` as an offset from the frame body's position
+---at `t` (the point itself for the system frame). Returns false (and sets the status) when the
+---buffer is full.
+local function append(x, y, z, t, frame)
     if written >= capacity then
         status = Status.CapacityExceeded
         return false
     end
+    if frame ~= SYSTEM_FRAME then
+        local cx, cy, cz = bodyPosition(frame, t)
+        x, y, z = x - cx, y - cy, z - cz
+    end
     local base = written * OUT_STRIDE
-    out[base], out[base + 1], out[base + 2], out[base + OUT_T] = x, y, z, t
+    out[base + OUT_FRAME], out[base + OUT_X], out[base + OUT_Y], out[base + OUT_Z], out[base + OUT_T] =
+        frame, x, y, z, t
     written = written + 1
     return true
 end
@@ -274,41 +309,42 @@ end
 
 local planLeg
 
----Plans the leg a to b through one detour around body `i` and writes its waypoints. `flip`
----passes the body on the other side.
+---Plans the leg a to b through one detour around body `i` and writes its waypoints; the detour
+---waypoint is in body `i`'s frame, and b in `bFrame`. `flip` passes the body on the other side.
 ---@return number|nil tEnd The time at b, nil when the plan stopped
-local function planDetour(i, ax, ay, az, bx, by, bz, length, ux, uy, uz, t0, tIn, tB, depth, flip)
+local function planDetour(i, ax, ay, az, bx, by, bz, bFrame, length, ux, uy, uz, t0, tIn, tB, depth, flip)
     local wx, wy, wz = detourPoint(i, ax, ay, az, length, ux, uy, uz, t0, tIn, tB, flip)
     if not wx then
         fail(Status.NoDetour)
-        return append(bx, by, bz, tB) and tB or nil
+        return append(bx, by, bz, tB, bFrame) and tB or nil
     end
-    local tW = planLeg(ax, ay, az, t0, wx, wy, wz, depth + 1)
+    local tW = planLeg(ax, ay, az, t0, wx, wy, wz, i, depth + 1)
     if not tW then return nil end
-    return planLeg(wx, wy, wz, tW, bx, by, bz, depth + 1)
+    return planLeg(wx, wy, wz, tW, bx, by, bz, bFrame, depth + 1)
 end
 
----Plans the leg from a to b, starting at time t0, and writes its waypoints. A detour that fails
+---Plans the leg from a to b (a point in frame `bFrame`), starting at time t0, and writes its
+---waypoints. A detour that fails
 ---further down (a waypoint inside another body, a leg that cannot be cleared) is redone on the
 ---other side of the body; if both fail, the first side's result stands.
 ---@return number|nil tEnd The time at b, nil when the plan stopped
-function planLeg(ax, ay, az, t0, bx, by, bz, depth)
+function planLeg(ax, ay, az, t0, bx, by, bz, bFrame, depth)
     local dx, dy, dz = bx - ax, by - ay, bz - az
     local length = sqrt(dx * dx + dy * dy + dz * dz)
     local tB = t0 + length / speed
     if length <= MIN_LENGTH then
-        return append(bx, by, bz, tB) and tB or nil
+        return append(bx, by, bz, tB, bFrame) and tB or nil
     end
     local ux, uy, uz = dx / length, dy / length, dz / length
     local body, tIn = firstHit(ax, ay, az, ux, uy, uz, t0, tB)
     if body < 0 or depth >= maxDepth then
         if body >= 0 then fail(Status.DepthExceeded) end
-        return append(bx, by, bz, tB) and tB or nil
+        return append(bx, by, bz, tB, bFrame) and tB or nil
     end
 
     local savedWritten, savedFailures, savedStatus = written, failures, status
     local function detour(flip)
-        return planDetour(body, ax, ay, az, bx, by, bz, length, ux, uy, uz, t0, tIn, tB, depth, flip)
+        return planDetour(body, ax, ay, az, bx, by, bz, bFrame, length, ux, uy, uz, t0, tIn, tB, depth, flip)
     end
     local tEnd = detour(false)
     if tEnd == nil or failures == savedFailures then return tEnd end
@@ -321,12 +357,42 @@ function planLeg(ax, ay, az, t0, bx, by, bz, depth)
     return detour(false)
 end
 
----Plans a path from the start to the goal through the bodies.
+---Where the goal is at `time`: the point (gx, gy, gz) itself in the system frame, else that offset
+---from the goal's frame body.
+local function goalPoint(gx, gy, gz, time)
+    if goalFrame == SYSTEM_FRAME then return gx, gy, gz end
+    local cx, cy, cz = bodyPosition(goalFrame, time)
+    return gx + cx, gy + cy, gz + cz
+end
+
+---One full plan toward the goal as it is at `goalTime`.
+---@return boolean ok False when an endpoint is inside a body's hull
+---@return number|nil tEnd The time the plan reaches its last point, nil when it stopped
+local function planPass(sx, sy, sz, gx, gy, gz, goalTime)
+    written, status, failures = 0, Status.Ok, 0
+    resetHitRadii()
+    local px, py, pz = goalPoint(gx, gy, gz, goalTime)
+    if not (shrinkAround(sx, sy, sz, 0) and shrinkAround(px, py, pz, goalTime)) then return false end
+    return true, planLeg(sx, sy, sz, 0, px, py, pz, goalFrame, 0)
+end
+
+---Whether the numbers and the frame index of a request are usable.
+local function validRequest(sx, sy, sz, frame, gx, gy, gz, planSpeed, depthLimit, outCapacity)
+    local finite = isFinite(sx) and isFinite(sy) and isFinite(sz) and isFinite(gx) and isFinite(gy) and isFinite(gz)
+    local frameValid = frame == math.floor(frame) and frame >= SYSTEM_FRAME and frame < bodyCount
+    return finite and frameValid and planSpeed > 0 and isFinite(planSpeed) and depthLimit >= 0 and outCapacity >= 1
+        and bodyCount >= 0
+end
+
+---Plans a path from the start to the goal through the bodies. The goal is the point (gx, gy, gz)
+---in the system frame, or that offset (world axes) from the centre of body `frame`; a goal on a
+---moving body is planned for the time the ship gets there.
 ---@param bodiesBuffer userdata `double[?]`, `bodyCount * BODY_STRIDE` values
 ---@param count integer Number of bodies
 ---@param sx number Start x
 ---@param sy number Start y
 ---@param sz number Start z
+---@param frame integer Index of the goal's frame body, or `SYSTEM_FRAME`
 ---@param gx number Goal x
 ---@param gy number Goal y
 ---@param gz number Goal z
@@ -336,24 +402,34 @@ end
 ---@param outCapacity integer Waypoints the output buffer holds
 ---@return integer status A `Status` value
 ---@return integer waypointCount Waypoints written, the goal last when the status allows a plan
-function SystemPlanner.plan(bodiesBuffer, count, sx, sy, sz, gx, gy, gz, planSpeed, depthLimit, outBuffer, outCapacity)
+function SystemPlanner.plan(bodiesBuffer, count, sx, sy, sz, frame, gx, gy, gz, planSpeed, depthLimit, outBuffer,
+                            outCapacity)
     bodies, bodyCount, speed, maxDepth, out, capacity = bodiesBuffer, count, planSpeed, depthLimit, outBuffer, outCapacity
-    written, status, failures = 0, Status.Ok, 0
-    local finiteEndpoints = isFinite(sx) and isFinite(sy) and isFinite(sz) and isFinite(gx) and isFinite(gy)
-        and isFinite(gz)
-    if not finiteEndpoints or not (planSpeed > 0 and isFinite(planSpeed)) or depthLimit < 0 or outCapacity < 1
-        or count < 0 then
+    goalFrame, written, status, failures = frame, 0, Status.Ok, 0
+    if not validRequest(sx, sy, sz, frame, gx, gy, gz, planSpeed, depthLimit, outCapacity) then
         return Status.InvalidInput, 0
     end
     if not prepareBodies() then return Status.InvalidInput, 0 end
+    if frame ~= SYSTEM_FRAME and speedBound[frame + 1] >= planSpeed then return Status.GoalOutrun, 0 end
 
-    local dx, dy, dz = gx - sx, gy - sy, gz - sz
-    local straightTime = sqrt(dx * dx + dy * dy + dz * dz) / planSpeed
-    if not (shrinkAround(sx, sy, sz, 0) and shrinkAround(gx, gy, gz, straightTime)) then
-        return Status.EndpointInsideBody, 0
+    local fx, fy, fz = goalPoint(gx, gy, gz, 0)
+    local dx, dy, dz = fx - sx, fy - sy, fz - sz
+    local goalTime = sqrt(dx * dx + dy * dy + dz * dz) / planSpeed
+    local settled = false
+    for _ = 1, frame == SYSTEM_FRAME and 1 or MAX_GOAL_ITERATIONS do
+        local ok, tEnd = planPass(sx, sy, sz, gx, gy, gz, goalTime)
+        if not ok then return Status.EndpointInsideBody, 0 end
+        settled = frame == SYSTEM_FRAME or tEnd == nil or abs(tEnd - goalTime) <= GOAL_TIME_TOLERANCE
+        if settled then break end
+        goalTime = tEnd
     end
+    if not settled and status == Status.Ok then status = Status.GoalNotSettled end
 
-    planLeg(sx, sy, sz, 0, gx, gy, gz, 0)
+    -- The goal keeps the caller's offset exactly, not the one rounded from the last pass's point.
+    if frame ~= SYSTEM_FRAME and written > 0 and status ~= Status.CapacityExceeded then
+        local base = (written - 1) * OUT_STRIDE
+        out[base + OUT_X], out[base + OUT_Y], out[base + OUT_Z] = gx, gy, gz
+    end
     return status, written
 end
 

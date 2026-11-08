@@ -5,7 +5,9 @@
 --   ship 1 crosses the star, which is static: the plan detours around it;
 --   ship 2 flies toward where the inner planet is now, but the planet is gone when it arrives:
 --     no detour;
---   ship 3 flies where the moon is not yet, but will be when the ship arrives: a detour.
+--   ship 3 flies where the moon is not yet, but will be when the ship arrives: a detour;
+--   ship 4 flies to a point 1.5 km from the moon that rides on it: the plan's goal is an offset
+--     from the moon, so the ship meets the moon where it will be and stops at rest relative to it.
 local NavigationSandbox = require("States.App.Tests.NavigationSandbox")
 
 return NavigationSandbox.ScenarioApp {
@@ -36,6 +38,13 @@ return NavigationSandbox.ScenarioApp {
         {
             start = { 103000, 0, 6830 },
             target = { 35000, 0, 6830 },
+            behaviour = { kind = "Plan", passRadiusM = 600 },
+        },
+        {
+            start = { 38000, 0, -52800 },
+            facing = { 0.346, 0, 0.938 },
+            targetFrame = 4,
+            target = { 1500, 0, 0 },
             behaviour = { kind = "Plan", passRadiusM = 600 },
         },
     },
