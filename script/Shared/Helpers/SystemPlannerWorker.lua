@@ -1,4 +1,4 @@
--- Worker script of the sandbox: runs the system planner kernel on a `TaskQueue` worker thread.
+-- Worker script of the system planner: runs the kernel on a `TaskQueue` worker thread.
 -- A task is a table of numbers (see `Run`); the result carries the kernel's status, its waypoints
 -- and the time the kernel took. Payload arrays arrive as Lua tables, so they are copied into the
 -- `double[?]` buffers the kernel takes; the buffers are kept between tasks of this worker.
@@ -11,11 +11,13 @@ require('Init')
 local WorkerFunction = require("Core.Util.WorkerFunction")
 local SystemPlanner  = require("Shared.Helpers.SystemPlanner")
 
-local BODY_STRIDE = SystemPlanner.BODY_STRIDE
-local OUT_STRIDE  = SystemPlanner.OUT_STRIDE
+local BODY_STRIDE  = SystemPlanner.BODY_STRIDE
+local OUT_STRIDE   = SystemPlanner.OUT_STRIDE
+local DRIVE_STRIDE = SystemPlanner.DRIVE_STRIDE
 
 local bodiesBuffer, bodiesCapacity = nil, 0
 local outBuffer, outCapacity = nil, 0
+local driveBuffer = nil
 
 ---Copies `values` (1-based) into the shared bodies buffer, grown when it is too small.
 ---@param values number[]
@@ -34,8 +36,17 @@ local function reserveOutput(capacity)
     end
 end
 
+---@param values number[]|nil `DRIVE_STRIDE` numbers, nil for no drive
+---@return userdata|nil
+local function fillDrive(values)
+    if not values then return nil end
+    driveBuffer = driveBuffer or ffi.new("double[?]", DRIVE_STRIDE)
+    for i = 1, DRIVE_STRIDE do driveBuffer[i - 1] = values[i] end
+    return driveBuffer
+end
+
 ---Plans one path.
----@param request table `bodies`: count * BODY_STRIDE numbers, `count`, `start` and `goal`: 3 numbers each, `goalFrame`, `speed`, `accel`, `drag`, `depth`, `capacity`
+---@param request table `bodies`: count * BODY_STRIDE numbers, `count`, `start` and `goal`: 3 numbers each, `goalFrame`, `speed`, `accel`, `drag`, `depth`, `capacity`, and `drive`: DRIVE_STRIDE numbers or nil
 ---@return table `status`, `count`, `waypoints` (count * OUT_STRIDE numbers, empty for none), `kernelMs`
 Run = WorkerFunction.Create(function(request)
     local count = request.count
@@ -44,7 +55,8 @@ Run = WorkerFunction.Create(function(request)
     local start, goal = request.start, request.goal
     local begun = InstantTime.Now()
     local status, written = SystemPlanner.plan(bodiesBuffer, count, start[1], start[2], start[3],
-        request.goalFrame, goal[1], goal[2], goal[3], request.speed, request.accel, request.drag, request.depth, outBuffer, request.capacity)
+        request.goalFrame, goal[1], goal[2], goal[3], request.speed, request.accel, request.drag,
+        request.depth, outBuffer, request.capacity, fillDrive(request.drive))
     local kernelMs = InstantTime.Now():durationSince(begun)
     local waypoints = {}
     for i = 1, written * OUT_STRIDE do waypoints[i] = outBuffer[i - 1] end

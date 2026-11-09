@@ -75,12 +75,14 @@ local OUT_STRIDE       = 8
 local SYSTEM_FRAME     = -1
 -- Drive buffer: DRIVE_STRIDE doubles, in the order of these offsets. The multiplier in open
 -- space, the seconds the drive charges at normal speed, and the rates at which its multiplier
--- rises (per second, times the multiplier above 1) and falls (the rate of an exponential).
+-- rises (per second, times the multiplier above 1) and falls (the rate of an exponential), and
+-- the length below which a leg is never flown under the drive.
 local DRIVE_OPEN_CAP   = 0
 local DRIVE_CHARGE     = 1
 local DRIVE_RAMP_UP    = 2
 local DRIVE_RAMP_DOWN  = 3
-local DRIVE_STRIDE     = 4
+local DRIVE_MIN_LENGTH = 4
+local DRIVE_STRIDE     = 5
 
 SystemPlanner.BODY_STRIDE = BODY_STRIDE
 SystemPlanner.Body = {
@@ -96,6 +98,7 @@ SystemPlanner.Out = {
 SystemPlanner.DRIVE_STRIDE = DRIVE_STRIDE
 SystemPlanner.Drive = {
     OpenCap = DRIVE_OPEN_CAP, Charge = DRIVE_CHARGE, RampUp = DRIVE_RAMP_UP, RampDown = DRIVE_RAMP_DOWN,
+    MinLength = DRIVE_MIN_LENGTH,
 }
 SystemPlanner.SYSTEM_FRAME = SYSTEM_FRAME
 
@@ -166,8 +169,10 @@ local bodies, bodyCount, speed, maxDepth, out, capacity, written, status, failur
 local shipAccel, shipDrag, shipTopSpeed, kneeRadius
 -- The travel drive: whether it is planned, the multiplier in open space, the charge time, the
 -- rise and fall rates, the shortest time constant of the drive and the ship's speed, the braking
--- law's time constant and the distance from a leg's end at which the drive is released.
+-- law's time constant and the distance from a leg's end at which the drive is released, and the
+-- length below which a leg is not driven.
 local driveOn, driveOpenCap, driveCharge, driveRampUp, driveRampDown = false, 1, 0, 1, 1
+local driveMinLength = 0
 local driveShortestLag, driveBrakingTime, driveRelease = 1, 1, 0
 -- Per body: the speed bound of its orbit chain, and the radius of the sphere the hit test uses.
 local speedBound, hitRadius = {}, {}
@@ -354,9 +359,10 @@ local function driveProfile(profile, t0, length, ax, ay, az, ux, uy, uz)
 end
 
 ---Fills `profile` with the leg of `length` from `a` along `u` from time `t0`: under the drive when
----that gets to the end sooner, else at the planning speed.
+---that gets to the end sooner, else at the planning speed. A leg shorter than the drive's minimum
+---length is not timed under the drive.
 local function buildProfile(profile, t0, length, ax, ay, az, ux, uy, uz)
-    if driveOn then
+    if driveOn and length >= driveMinLength then
         local timed = driveProfile(profile, t0, length, ax, ay, az, ux, uy, uz)
         if timed and profile.t[profile.count] < t0 + length / speed then return end
         if not timed and length > driveRelease + speed * driveCharge and status == Status.Ok then
@@ -807,13 +813,16 @@ local function setDrive(drive)
     if not driveOn then return true end
     local openCap, charge = drive[DRIVE_OPEN_CAP], drive[DRIVE_CHARGE]
     local rampUp, rampDown = drive[DRIVE_RAMP_UP], drive[DRIVE_RAMP_DOWN]
+    local minLength = drive[DRIVE_MIN_LENGTH]
     local valid = isFinite(openCap) and openCap >= 1 and isFinite(charge) and charge >= 0
         and isFinite(rampUp) and rampUp > 0 and isFinite(rampDown) and rampDown > 0 and shipDrag > 0
+        and isFinite(minLength) and minLength >= 0
     if not valid then
         driveOn = false
         return false
     end
     driveOpenCap, driveCharge, driveRampUp, driveRampDown = openCap, charge, rampUp, rampDown
+    driveMinLength = minLength
     driveShortestLag = min(1 / rampUp, 1 / rampDown, 1 / shipDrag)
     driveBrakingTime = TravelDriveMath.brakingTime(rampDown, shipDrag)
     driveRelease = TravelDriveMath.HANDOVER_MULT * driveBrakingTime * speed
@@ -823,8 +832,8 @@ end
 ---Plans a path from the start to the goal through the bodies. The goal is the point (gx, gy, gz)
 ---in the system frame, or that offset (world axes) from the centre of body `frame`; a goal on a
 ---moving body is planned for the time the ship gets there. With a drive block, a leg is flown
----under the travel drive where that is sooner, and `Out.Drive` marks it; `planSpeed` is then the
----ship's speed without the drive.
+---under the travel drive where that is sooner and the leg is at least the drive's minimum length,
+---and `Out.Drive` marks it; `planSpeed` is then the ship's speed without the drive.
 ---@param bodiesBuffer userdata `double[?]`, `bodyCount * BODY_STRIDE` values
 ---@param count integer Number of bodies
 ---@param sx number Start x

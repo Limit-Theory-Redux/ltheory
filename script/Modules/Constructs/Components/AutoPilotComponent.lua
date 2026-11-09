@@ -21,6 +21,10 @@ local AutoPilotComponent = Subclass("AutoPilotComponent", Component, function(se
     self._axes         = nil     -- double[NavWorld.AxisCount()]
     self._arrived      = nil     -- bool[1]
 
+    -- The engagement's path plan: its phase, the snapshot it was made from, the follower of its
+    -- corners (see `AutoPilotPlan`). Nil while the autopilot is off.
+    self._plan         = nil
+
     -- Computed nav data (written by AutoPilotSystem, read by map/HUD)
     self.interceptPos  = nil     -- predicted intercept position
     self.distance      = 0       -- distance to target
@@ -40,6 +44,8 @@ function AutoPilotComponent:getNav()           return self._nav end
 function AutoPilotComponent:getAgent()         return self._agent end
 function AutoPilotComponent:getAxes()          return self._axes end
 function AutoPilotComponent:getArrived()       return self._arrived end
+function AutoPilotComponent:getPlan()          return self._plan end
+function AutoPilotComponent:setPlan(v)         self._plan = v end
 
 -- SETTERS
 function AutoPilotComponent:setActive(v)        self._active = v end

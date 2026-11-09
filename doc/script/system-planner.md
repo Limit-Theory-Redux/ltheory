@@ -90,17 +90,18 @@ With a drive block, a leg is timed as the travel drive flies it, because the dri
 | `Charge` | Seconds the drive charges, flown at `speed`; zero or more |
 | `RampUp` | The multiplier rises by `(target − 1) · RampUp` per second |
 | `RampDown` | The rate of the exponential with which the multiplier falls to a lower target |
+| `MinLength` | The shortest leg flown under the drive, in game units; zero or more |
 
 ![The speed along a drive leg: charge, ramp up to the zone cap, a dip in a zone, braking to the release, then the planning speed to the corner](../images/system-planner/drive-leg.svg)
 
 1. **Model.** A leg is a chain of time samples from the start of the leg. The ship flies at `speed` while the drive charges. After that the drive's target multiplier is the lowest of the zones' cap at the ship's point and time, `OpenCap`, and the braking law's multiplier for the distance left (`TravelDriveMath.brakingMultiplier`), and at least 1. The multiplier rises and falls toward it as in the table, and the ship's speed follows `speed ·` the multiplier with its drag, the lag of the real ship.
 2. **Zones.** A body's zone caps the drive with `TravelDriveMath.zoneCap`, the formula `GravityWellSystem:getMaxDriveSpeedAt` uses too (see [zones](zones.md)); the zone is where its body is at the time. The braking law, the release distance and the ETA come from the same module, which the autopilot uses (`TravelDriveMath.travelTime`).
 3. **Release.** The drive is released `HANDOVER_MULT · braking time · speed` before the leg's end, and the rest of the leg is flown at `speed`. So a drive leg ends below the multiplier at which the autopilot hands over, and never carries speed into a corner or the goal.
-4. **Policy.** A leg is flown under the drive when its drive timeline ends sooner than flight at `speed`; a leg too short to charge and release is not. Every leg is judged on its own, so a detour splits a drive leg into two, each with its own charge, and the drive is released before every corner. Arcs are flown at the planning speed, at their turn speed, as without the drive.
+4. **Policy.** A leg is flown under the drive when its drive timeline ends sooner than flight at `speed`; a leg too short to charge and release is not, and neither is a leg shorter than `MinLength` (such a leg raises no `DriveNotTimed`). Every leg is judged on its own, so a detour splits a drive leg into two, each with its own charge, and the drive is released before every corner. Arcs are flown at the planning speed, at their turn speed, as without the drive.
 5. **Steps.** A sample step is at most `DRIVE_FEATURE_STEP` of the distance to the nearest zone's edge (counted with the body's speed bound) and of the distance left, and, while the multiplier or the speed is off its target by more than `DRIVE_TRANSIENT_TOLERANCE`, at most `DRIVE_TRANSIENT_STEP` of the shortest time constant. A long cruise therefore costs few steps. A leg that needs more than `MAX_DRIVE_STEPS` is planned at `speed`, with the status `DriveNotTimed`.
 6. **Hit tests.** The hit search and the overlap walk read the ship's distance along the leg from the timeline: each step is bounded by the greatest speed of its interval of samples, so no crossing is skipped, and an overlap that the ship leaves and re-enters is followed to its last time.
 
-`Out.Drive` tells whoever flies the plan which legs to fly under the drive. A leg that ends at a corner is released before the corner, and a corner's arc may begin up to half a leg before it, so a ship that follows the plan releases earlier than the plan does.
+`Out.Drive` tells whoever flies the plan which legs to fly under the drive. A corner's arc may begin up to half a leg before its corner, so a ship that follows the plan releases the drive against the arc's entry, not the corner.
 
 ## Frames
 
@@ -148,4 +149,10 @@ The planner does not move the ship: whoever flies the plan resolves each waypoin
 | `DRIVE_TRANSIENT_TOLERANCE`, `DRIVE_TRANSIENT_STEP` | How far the multiplier or speed may be off its target before steps shrink, and the share of the shortest time constant they shrink to |
 | `DRIVE_MIN_STEP_S`, `MAX_DRIVE_STEPS` | The shortest step, and the most steps of one leg before it is planned without the drive |
 
-The safe radius itself comes from the caller; the sandbox uses a factor on the hull radius, `safeRadiusFactor` (see [navigation sandbox](navigation-sandbox.md)).
+The safe radius itself comes from the caller: the sandbox uses a factor on the hull radius, `safeRadiusFactor` (see [navigation sandbox](navigation-sandbox.md)), and the game takes one per body kind from `Config.game.autoPilot.safeRadiusFactor`.
+
+## Consumers
+
+The shared pieces in `Shared/Helpers`: `PlanClient` (a request to the planner's worker, polled once a frame), `SystemPlannerWorker` (the worker's script), `PlannerSnapshot` (the game's stars, planets, moons and stations as bodies, with the frames that place waypoints as they move on) and `PlanFollower` (flies a plan's corners and arcs). The navigation sandbox and the autopilot both use them.
+
+The autopilot (`Modules/Constructs/Systems/AutoPilotPlan.lua`, see [flight](flight.md)) requests a plan when it engages. It flies straight to the goal in normal flight while the plan is out, then the corners of the plan, then the final approach with its own stand-off steering. A plan with status `Ok`, `GoalNotSettled` or `DriveNotTimed` is flown; any other status (a goal body faster than the planning speed, `GoalOutrun`, is the common one) flies straight to the goal with the final approach's steering and drive law, with no detours. A corner is reached within the distance the ship covers at its top speed in `PASS_TIME_S`, which keeps the ship on the arc's circle. The drive is engaged at the start of a drive leg, capped by the braking law for the distance to the leg's end, and released below the hand-over multiplier; it is off on every arc.

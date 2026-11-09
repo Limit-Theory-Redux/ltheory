@@ -109,8 +109,9 @@ Config.game = {
 
     autoPilot = {
         arrivalRange      = 500,    -- distance to target to consider arrived
-        travelDriveDelay  = 5.0,    -- seconds before auto-engaging travel drive
         enableTravelDrive = true,   -- auto-engage travel drive during autopilot
+        -- The planner keeps the ship this many hull radii from a body of each kind
+        safeRadiusFactor  = { star = 2, planet = 1.5, moon = 1.5, station = 1.5 },
     },
 
     chaseCamera = {

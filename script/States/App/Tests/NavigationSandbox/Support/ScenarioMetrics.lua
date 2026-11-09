@@ -186,7 +186,7 @@ end
 ---Record that a Plan ship has flown an arc of its plan. Not judged: it measures how well the
 ---follower holds the planned arc.
 ---@param ship SandboxShip
----@param flight SandboxArcFlight
+---@param flight PlanArcFlight
 ---@param simTime number
 function ScenarioMetrics:planArcFlown(ship, flight, simTime)
     self:log("%s: arc %d, radius %.0f m planned at %.0f m/s: entered %.2f s at %.0f m/s, left %.2f s, peak %.0f m/s, "

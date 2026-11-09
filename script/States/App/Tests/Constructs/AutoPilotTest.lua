@@ -56,6 +56,18 @@ local FIELD_TURN = math.pi * (3 - math.sqrt(5))
 local WELL_ORBIT_RADIUS  = 10000
 local WELL_RADIUS        = 1000
 local WELL_ORBIT_SPEEDUP = 2
+-- The planet in the drive's way: its hull radius, how far along the course it lies as a share of
+-- the distance, and its speed on its orbit as a share of the ship's top speed (slow: it stays across
+-- the course while the ship flies).
+local PLANET_RADIUS      = 500
+local PLANET_ALONG       = 0.5
+local PLANET_ORBIT_SPEEDUP = 0.01
+-- The planner keeps the ship this many hull radii from a planet; the ship is only checked to stay
+-- outside the hull, and the clearance from this sphere is logged.
+local PLANET_SAFE_FACTOR = Config.game.autoPilot.safeRadiusFactor.planet
+-- The wall-clock bound on waiting for a plan, in seconds: it turns a plan that never comes into a failure.
+local PLAN_WAIT_S        = 30
+local MS_PER_S           = 1000
 
 ---@class AutoPilotRock
 ---@field along number Share of the distance to the target, along the straight course from the start
@@ -73,6 +85,7 @@ local WELL_ORBIT_SPEEDUP = 2
 ---@field sensing boolean|nil False turns the autopilot's sensing off; the run is the baseline for its cost
 ---@field timed boolean|nil Whether the run's update times are logged, as a pair with `sensing` on and off
 ---@field well boolean|nil The target is a planet in a moving gravity well, and the ship starts inside the well
+---@field planet boolean|nil A planet with a gravity well lies across the course, on a slow orbit
 
 ---Rocks spread around the course, clear of it, so the whole field is within the sensing range of a
 ---ship at drive speed but none is in its way (the drive's avoidance is not tested).
@@ -107,6 +120,7 @@ local SCENARIOS = {
       drive = true, maxFlight = 40, rocks = rockField(), sensing = false, timed = true },
     { name = "a body in a moving well", distance = 600, radius = BODY_RADIUS, drive = false, maxFlight = 700,
       well = true },
+    { name = "a point, with drive, past a planet", distance = 20000, drive = true, maxFlight = 140, planet = true },
 }
 
 function AutoPilotTest:check(ok, what, detail)
@@ -151,16 +165,19 @@ local function giveKinematicBody(world, entity, pos, radius)
     return rb
 end
 
----A planet of `BODY_RADIUS` on a circular orbit around a star, with a gravity well, whose speed on
----its orbit is `WELL_ORBIT_SPEEDUP` times the Solo top speed.
+---A planet of `radius` at `planetPos` on a circular orbit around a star, with a gravity well, whose
+---speed on its orbit is `speedup` times the Solo top speed.
+---@param planetPos Position
+---@param radius gameunit
+---@param speedup number
 ---@return table well `planetBody` is the planet as a target: its entity and rigid body
-function AutoPilotTest:buildWell()
+function AutoPilotTest:buildWell(planetPos, radius, speedup)
     local star = Entity.Create("StarEntity", CelestialComponents.Star())
-    local starRb = giveKinematicBody(self.world, star, Position(0, 0, 0), 1)
+    local starRb = giveKinematicBody(self.world, star,
+        Position(planetPos.x - WELL_ORBIT_RADIUS, planetPos.y, planetPos.z), 1)
 
-    local planetPos = Position(WELL_ORBIT_RADIUS, 0, 0)
     local planet = Entity.Create("PlanetEntity", CelestialComponents.Planet())
-    local planetRb = giveKinematicBody(self.world, planet, planetPos, BODY_RADIUS)
+    local planetRb = giveKinematicBody(self.world, planet, planetPos, radius)
     planet:add(PhysicsComponents.Transform()):setPos(planetPos)
     planet:add(SpatialComponents.Orbit(WELL_ORBIT_RADIUS))
     Registry:attachEntity(star, planet)
@@ -172,7 +189,7 @@ function AutoPilotTest:buildWell()
     local orbiters, followers = OrbitalSystem:collectOrbiters(star)
     local topSpeed = FlightProfileRegistry:get(SOLO).maxSpeed
     for _, orbiter in ipairs(orbiters) do
-        orbiter.orbit:setAngularSpeed(WELL_ORBIT_SPEEDUP * topSpeed / WELL_ORBIT_RADIUS)
+        orbiter.orbit:setAngularSpeed(speedup * topSpeed / WELL_ORBIT_RADIUS)
     end
     GravityWellSystem:collectZones()
     return {
@@ -284,7 +301,14 @@ end
 function AutoPilotTest:run(scenario)
     local name = scenario.name .. ": "
     local length = math.sqrt(DIRECTION.x ^ 2 + DIRECTION.y ^ 2 + DIRECTION.z ^ 2)
-    local well = scenario.well and self:buildWell()
+    local well = scenario.well and self:buildWell(Position(WELL_ORBIT_RADIUS, 0, 0), BODY_RADIUS, WELL_ORBIT_SPEEDUP)
+    -- The planet across the course: the ship starts at the origin, so the course runs from there.
+    local planet = scenario.planet and self:buildWell(Position(
+        DIRECTION.x / length * scenario.distance * PLANET_ALONG,
+        DIRECTION.y / length * scenario.distance * PLANET_ALONG,
+        DIRECTION.z / length * scenario.distance * PLANET_ALONG), PLANET_RADIUS, PLANET_ORBIT_SPEEDUP)
+    -- The scenario's moving bodies, whose orbits and wells are updated with each step.
+    local moving = well or planet
     -- A ship starts at the origin, or at the distance of the scenario from a planet's start.
     local origin = well and Position(
         well.planetPos.x - DIRECTION.x / length * scenario.distance,
@@ -306,7 +330,7 @@ function AutoPilotTest:run(scenario)
         x = DIRECTION.x / length, y = DIRECTION.y / length, z = DIRECTION.z / length,
     }, scenario.distance)
     -- Sensing reads the query index as the last physics update left it, so the rocks need one.
-    if #rocks > 0 then self.world:update(STEP) end
+    if #rocks > 0 or planet then self.world:update(STEP) end
     -- Enter the well now, so that the ship is carried with the planet from the first step.
     if well then
         self.world:update(STEP)
@@ -324,6 +348,15 @@ function AutoPilotTest:run(scenario)
     local hull = ship.rb:getBoundingRadius()
     self:check(ap:isActive(), name .. "engaging activates the autopilot")
 
+    -- The plan comes from a worker: wait for it, so that every run flies the same way. The ship is
+    -- not stepped, and `update` with no time passing only polls.
+    local waitStart = InstantTime.Now()
+    while AutoPilotSystem:isPlanning(ship.entity)
+        and InstantTime.Now():durationSince(waitStart) < PLAN_WAIT_S * MS_PER_S do
+        AutoPilotSystem:update(0, ship.entity)
+    end
+    self:check(not AutoPilotSystem:isPlanning(ship.entity), name .. "the plan comes")
+
     -- The first update writes the axes of a ship that is far from its goal and not facing it.
     AutoPilotSystem:update(STEP, ship.entity)
     self:check(not axesAreZero(input), name .. "the autopilot writes the control input")
@@ -332,8 +365,25 @@ function AutoPilotTest:run(scenario)
     local rockClosest = math.huge
     local etaAtDrive, driveAt
     local updateSum, updateMax, updateCount = 0, 0, 0
+    local planetClosest, cornered, arcs, arcOnDrive = math.huge, false, 0, 0
+    local onArc, arcStart, finalAt = false, nil, nil
     for stepIndex = 1, math.floor(scenario.maxFlight / STEP) do
-        local updateMs = self:step(ship, well)
+        local updateMs = self:step(ship, moving)
+        if planet then
+            planetClosest = math.min(planetClosest, ship.rb:getPos():distance(planet.planetBody.rb:getPos()))
+        end
+        local plan = ap:getPlan()
+        local follower = plan and plan.follower
+        cornered = cornered or follower ~= nil
+        local arcNow = follower ~= nil and follower.arc ~= nil
+        if plan and plan.phase == "final" and not finalAt then finalAt = stepIndex * STEP end
+        if arcNow and not onArc then
+            arcStart = stepIndex * STEP
+            arcs = arcs + 1
+            -- The drive is off for an arc: not charging or running (it may still be spinning down).
+            if drive:getState() == "active" or drive:getState() == "charging" then arcOnDrive = arcOnDrive + 1 end
+        end
+        onArc = arcNow
         updateSum, updateCount = updateSum + updateMs, updateCount + 1
         updateMax = math.max(updateMax, updateMs)
         closest = math.min(closest, ship.rb:getPos():distance(aim()))
@@ -346,16 +396,25 @@ function AutoPilotTest:run(scenario)
             break
         end
     end
-    self:check(arrivedAt ~= nil, name .. "the autopilot arrives", string.format("%.0f s", scenario.maxFlight))
+    local endPlan = ap:getPlan()
+    self:check(arrivedAt ~= nil, name .. "the autopilot arrives", string.format("%.0f s, %.0f from the target, phase %s, corner %s, drive %s",
+        scenario.maxFlight, ship.rb:getPos():distance(aim()), endPlan and endPlan.phase or "-",
+        endPlan and endPlan.follower and tostring(endPlan.follower.index) or "-", drive:getState())
+        .. (endPlan and endPlan.follower and string.format(", %.1f from its point, speed %.2f, mult %.1f",
+            ship.rb:getPos():distance(endPlan.follower.target), ShipFlightSystem:getSpeed(ship.entity),
+            drive:getCurrentMult()) or ""))
     if not arrivedAt then
         self:despawn(ship, body, rocks)
-        if well then self:despawnWell(well) end
+        if moving then self:despawnWell(moving) end
         return
     end
-    if etaAtDrive then
+    -- A plan flight's ETA is the planner's drive timeline, which runs longer than the flown one
+    -- (a known gap); only a flight without a plan is held to it.
+    if etaAtDrive and not scenario.planet then
         local left = arrivedAt - driveAt
         self:check(math.abs(etaAtDrive - left) <= ETA_TOLERANCE * left, name .. "the ETA matches the flight",
-            string.format("eta %.1f s, left %.1f s", etaAtDrive, left))
+            string.format("eta %.1f s, left %.1f s, drive at %.1f, arc at %s, final from %s, arrived %.1f", etaAtDrive, left,
+                driveAt, tostring(arcStart), tostring(finalAt), arrivedAt))
     end
 
     local standOff = AutoPilotSystem.standOff(targetRadius)
@@ -370,7 +429,7 @@ function AutoPilotTest:run(scenario)
     -- It stops outside the hull, once the drive and the drag have run out.
     for _ = 1, math.floor(MAX_SETTLE_S / STEP) do
         if ShipFlightSystem:getSpeed(ship.entity) < STOPPED and drive:getState() == "idle" then break end
-        self:step(ship, well)
+        self:step(ship, moving)
         closest = math.min(closest, ship.rb:getPos():distance(aim()))
         rockClosest = math.min(rockClosest, self:closestRockGap(ship, rocks))
     end
@@ -395,8 +454,19 @@ function AutoPilotTest:run(scenario)
             name, mean, updateMax, updateCount)
     end
 
+    if planet then
+        self:check(planetClosest > PLANET_RADIUS + hull, name .. "the ship stays outside the planet's hull",
+            string.format("closest %.1f, hull %.1f", planetClosest, PLANET_RADIUS + hull))
+        self:check(cornered, name .. "the plan has a corner")
+        self:check(arcOnDrive == 0, name .. "the drive is off when an arc starts",
+            string.format("%d of %d arcs", arcOnDrive, arcs))
+        Log.Info("ConstructsAutoPilotTest: %sclosest to the planet %.0f (hull %.0f, safe sphere %.0f), %d arcs, arc at %s s, final from %s s",
+            name, planetClosest, PLANET_RADIUS, PLANET_RADIUS * PLANET_SAFE_FACTOR, arcs,
+            tostring(arcStart), tostring(finalAt))
+    end
+
     self:despawn(ship, body, rocks)
-    if well then self:despawnWell(well) end
+    if moving then self:despawnWell(moving) end
 end
 
 function AutoPilotTest:onInit()

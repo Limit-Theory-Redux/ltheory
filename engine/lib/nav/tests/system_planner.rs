@@ -175,11 +175,18 @@ struct Drive {
     charge: f64,
     ramp_up: f64,
     ramp_down: f64,
+    min_length: f64,
 }
 
 impl Drive {
-    fn block(self) -> [f64; 4] {
-        [self.open_cap, self.charge, self.ramp_up, self.ramp_down]
+    fn block(self) -> [f64; 5] {
+        [
+            self.open_cap,
+            self.charge,
+            self.ramp_up,
+            self.ramp_down,
+            self.min_length,
+        ]
     }
 }
 
@@ -1441,6 +1448,7 @@ const DRIVE: Drive = Drive {
     charge: 3.0,
     ramp_up: 0.3,
     ramp_down: 1.5,
+    min_length: 0.0,
 };
 /// The multiplier the drive is released below, and the braking law's margin and the zone's reach:
 /// the values of `TravelDriveMath`, which `the_zone_cap_is_the_games` holds the kernel's to.
@@ -1580,6 +1588,93 @@ fn a_leg_is_driven_when_that_is_sooner() {
             DRIVE_TIME_TOLERANCE,
             &format!("time of {length}"),
         );
+    }
+}
+
+/// Plans the one leg from the origin to `[length, 0, 0]` under `drive`.
+fn plan_leg_under(planner: &Planner, length: f64, drive: Drive) -> Plan {
+    planner.run_driven(
+        &[],
+        [0.0; 3],
+        SYSTEM_FRAME,
+        [length, 0.0, 0.0],
+        SPEED,
+        SHIP,
+        DEPTH,
+        CAPACITY,
+        Some(drive),
+    )
+}
+
+#[test]
+fn a_leg_shorter_than_the_minimum_is_not_driven() {
+    let planner = Planner::new();
+    let length = 1e8;
+    let free = plan_leg_under(&planner, length, DRIVE);
+    assert_eq!((free.status, free.drives.clone()), (STATUS_OK, vec![true]));
+
+    // The same leg, with a minimum just above it: flown at the planning speed.
+    let held = Drive {
+        min_length: length * 1.001,
+        ..DRIVE
+    };
+    let plan = plan_leg_under(&planner, length, held);
+    assert_eq!(plan.status, STATUS_OK);
+    assert_eq!(plan.drives, vec![false]);
+    assert_eq!(plan.times, vec![length / SPEED]);
+
+    // A minimum at the leg's own length still drives it.
+    let exact = Drive {
+        min_length: length,
+        ..DRIVE
+    };
+    let plan = plan_leg_under(&planner, length, exact);
+    assert_eq!(plan.drives, vec![true]);
+    assert_eq!(plan.times, free.times);
+}
+
+#[test]
+fn the_minimum_applies_to_each_leg_of_a_detour() {
+    let planner = Planner::new();
+    let bodies = vec![planet_with_zone([5e8, 0.0, 0.0])];
+    let start = [0.0; 3];
+    let goal = [1e9, 0.0, 0.0];
+    let both = planner.plan_driven(&bodies, start, goal);
+    assert_eq!(both.drives, vec![true, true]);
+    // Each leg is a little over half the way; a minimum above that leaves both at normal speed.
+    let long_legs = Drive {
+        min_length: 0.6e9,
+        ..DRIVE
+    };
+    let none = planner.run_driven(
+        &bodies,
+        start,
+        SYSTEM_FRAME,
+        goal,
+        SPEED,
+        SHIP,
+        DEPTH,
+        CAPACITY,
+        Some(long_legs),
+    );
+    assert_eq!(none.status, STATUS_OK);
+    assert_eq!(none.drives, vec![false, false]);
+}
+
+#[test]
+fn a_bad_drive_minimum_is_invalid_input() {
+    let planner = Planner::new();
+    for (what, min_length) in [
+        ("negative", -1.0),
+        ("NaN", f64::NAN),
+        ("infinite", f64::INFINITY),
+    ] {
+        let drive = Drive {
+            min_length,
+            ..DRIVE
+        };
+        let plan = plan_leg_under(&planner, 1e8, drive);
+        assert_eq!(plan.status, STATUS_INVALID_INPUT, "{what}");
     }
 }
 

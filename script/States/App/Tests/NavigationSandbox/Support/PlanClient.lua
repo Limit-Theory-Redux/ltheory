@@ -1,13 +1,11 @@
--- The sandbox's side of the system planner: starts the worker that runs the kernel, sends it a
--- snapshot of the scenario's obstacles as bodies on analytic orbits, and collects the plans that
--- come back, with the time each took from send to receipt.
+-- The sandbox's side of the system planner: sends the shared planner client a snapshot of the
+-- scenario's obstacles as bodies on analytic orbits, and collects the plans that come back, with the
+-- time each took from send to receipt.
 -- Design: doc/script/system-planner.md
-local SystemPlanner = require("Shared.Helpers.SystemPlanner")
+local SystemPlanner       = require("Shared.Helpers.SystemPlanner")
+local PlannerClient       = require("Shared.Helpers.PlanClient")
 local ConstructComponents = require("Modules.Constructs.Components")
 
-local WORKER_NAME   = "NavigationSandboxPlanner"
-local WORKER_SCRIPT = "script/States/App/Tests/NavigationSandbox/Support/PlannerWorker.lua"
-local WORKER_COUNT  = 1
 -- How many times a leg may be split; the plan holds at most one waypoint per leg, and the goal.
 local DEPTH_LIMIT   = 5
 local CAPACITY      = 2 ^ DEPTH_LIMIT
@@ -16,49 +14,28 @@ local TWO_PI        = 2 * math.pi
 local Body          = SystemPlanner.Body
 local NO_PARENT     = -1
 
----A point of a plan: a world point when `frame` is nil, else an offset, in world axes, from the
----centre of obstacle `frame`.
----@class SandboxWaypoint
----@field frame integer|nil Index of the obstacle the offset is from
----@field offset Position
----@field radius number The corner's arc radius, game units; zero for a sharp corner and for the goal
----@field speed number The speed the corner is passed at, game units per second; zero to stop there
----@field time number Seconds from the snapshot to the waypoint at the planning speed
-
----@class SandboxPlan
----@field status integer|nil A `SystemPlanner.Status` value; nil when the worker failed
----@field error string|nil The worker's error message
----@field waypoints SandboxWaypoint[] The path, the goal last
----@field times number[] Seconds from the snapshot to each waypoint at the planning speed
----@field kernelMs number Milliseconds the kernel took in the worker
-
 ---@class SandboxPlanReply
 ---@field ship SandboxShip
----@field plan SandboxPlan
+---@field plan Plan
 ---@field latencyMs number Milliseconds from send to receipt, as seen when the result was polled
 ---@field simTime number Simulated seconds when the request was sent
 ---@field probe boolean Whether it answers the latency probe: the ship's plan is not to be taken from it
 
 ---@class PlanClient
----@field workerId integer
----@field pending table<integer, { ship: SandboxShip, sentAt: InstantTime, simTime: number, task: table, probe: boolean }>
----@field stale table<integer, true> Tasks of an ended scenario, whose replies are discarded
+---@field pending table<integer, { ship: SandboxShip, sentAt: InstantTime, simTime: number, task: PlanRequest, probe: boolean }>
 ---@field probed boolean Whether the warm-latency probe has been sent
 local PlanClient = {}
 PlanClient.__index = PlanClient
 
----Starts the worker. The engine stops it at shutdown: a worker stopped from Lua stays registered,
----so it can neither be started again nor be stopped at shutdown without an error.
+---Creates the client. The worker itself belongs to the shared client and starts with the first request.
 ---@return PlanClient
 function PlanClient.start()
-    local workerId = TaskQueue:startWorker(WORKER_NAME, WORKER_SCRIPT, WORKER_COUNT)
-    assert(workerId, "PlanClient: the planner worker did not start")
-    return setmetatable({ workerId = workerId, pending = {}, stale = {}, probed = false }, PlanClient)
+    return setmetatable({ pending = {}, probed = false }, PlanClient)
 end
 
 ---Drops the requests of a scenario that has ended: their replies, if they still come, are discarded.
 function PlanClient:reset()
-    for taskId in pairs(self.pending) do self.stale[taskId] = true end
+    for taskId in pairs(self.pending) do PlannerClient.discard(taskId) end
     self.pending = {}
     self.probed = false
 end
@@ -117,31 +94,11 @@ end
 
 ---@param ship SandboxShip
 ---@param simTime number
----@param task table The worker's task
+---@param task PlanRequest The worker's task
 ---@param probe boolean Whether the reply is only a latency measurement
 function PlanClient:send(ship, simTime, task, probe)
-    local taskId = TaskQueue:sendTask(self.workerId, task)
-    assert(taskId, "PlanClient: the planning request was not sent")
+    local taskId = PlannerClient.request(task)
     self.pending[taskId] = { ship = ship, sentAt = InstantTime.Now(), simTime = simTime, task = task, probe = probe }
-end
-
----@param flat number[] `frame, x, y, z, t, radius, speed` per waypoint, as `SystemPlanner.Out` lays them out
----@return SandboxWaypoint[] waypoints
----@return number[] times
-local function unpackWaypoints(flat)
-    local stride, out, waypoints, times = SystemPlanner.OUT_STRIDE, SystemPlanner.Out, {}, {}
-    for i = 1, #flat, stride do
-        local frame = flat[i + out.Frame]
-        table.insert(waypoints, {
-            frame = frame ~= SystemPlanner.SYSTEM_FRAME and frame + 1 or nil,
-            offset = Position(flat[i + out.X], flat[i + out.Y], flat[i + out.Z]),
-            radius = flat[i + out.Radius],
-            speed = flat[i + out.Speed],
-            time = flat[i + out.T],
-        })
-        table.insert(times, flat[i + out.T])
-    end
-    return waypoints, times
 end
 
 ---The plans that have come back since the last call. Not blocking. The first plan to come back
@@ -149,33 +106,26 @@ end
 ---so its reply measures the latency of a worker that is running.
 ---@return SandboxPlanReply[]
 function PlanClient:poll()
+    PlannerClient.poll()
+    local ids = {}
+    for taskId in pairs(self.pending) do ids[#ids + 1] = taskId end
+    table.sort(ids)
     local replies = {}
-    while true do
-        local taskId, value, err = TaskQueue:nextTaskResult(self.workerId)
-        if not taskId then return replies end
-        local request = self.pending[taskId]
-        self.pending[taskId] = nil
-        if request then
-            self:collect(replies, request, value, err)
-        else
-            assert(self.stale[taskId], "PlanClient: a result for an unknown task")
-            self.stale[taskId] = nil
+    for _, taskId in ipairs(ids) do
+        local plan = PlannerClient.take(taskId)
+        if plan then
+            local request = self.pending[taskId]
+            self.pending[taskId] = nil
+            self:collect(replies, request, plan)
         end
     end
+    return replies
 end
 
 ---@param replies SandboxPlanReply[]
 ---@param request table The pending entry of the task
----@param value table|nil The worker's result
----@param err string|nil
-function PlanClient:collect(replies, request, value, err)
-    local plan
-    if err then
-        plan = { error = err, waypoints = {}, times = {}, kernelMs = 0 }
-    else
-        local waypoints, times = unpackWaypoints(value.waypoints)
-        plan = { status = value.status, waypoints = waypoints, times = times, kernelMs = value.kernelMs }
-    end
+---@param plan Plan
+function PlanClient:collect(replies, request, plan)
     table.insert(replies, {
         ship = request.ship,
         plan = plan,

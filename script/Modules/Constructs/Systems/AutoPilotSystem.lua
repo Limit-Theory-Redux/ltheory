@@ -4,6 +4,9 @@ local GravityWellSystem   = require("Modules.Physics.Systems.GravityWellSystem")
 local ShipFlightSystem    = require("Modules.Constructs.Systems.ShipFlightSystem")
 local NavAgentHelper      = require("Shared.Helpers.NavAgentHelper")
 local TravelDriveMath     = require("Shared.Helpers.TravelDriveMath")
+local AutoPilotPlan       = require("Modules.Constructs.Systems.AutoPilotPlan")
+
+local Phase = AutoPilotPlan.Phase
 
 -- Below this drive multiplier the drive is released and the NavWorld flies the rest.
 local HANDOVER_MULT = TravelDriveMath.HANDOVER_MULT
@@ -24,9 +27,14 @@ local SENSING_MASK = 0xFFFFFFFF
 --- ControlInput from a NavWorld that has the ship as its only agent; it applies no force itself.
 --- The NavWorld senses the collidable bodies around the ship and steers around them. While the
 --- travel drive runs the ship has no lateral thrust and turns weakly, so that avoidance only
---- acts in normal flight.
+--- acts in normal flight. The path to the target comes from the system planner (`AutoPilotPlan`):
+--- the ship flies the plan's corners, under the drive on the legs the plan marks, and then the
+--- final approach on its own steering.
 ---@class AutoPilotSystem
 local AutoPilotSystem = {}
+
+-- Defined below, where the stand-off helpers it uses are.
+local beginPlan
 
 --- The distance from a target's centre at which the autopilot stops the ship.
 ---@param targetRadius gameunit 0 for a point
@@ -78,6 +86,7 @@ function AutoPilotSystem:engageEntity(shipEntity, physics, targetEntity, arrival
     ap:setTargetPos(nil)
     ap:setArrivalRange(arrivalRange or cfg.arrivalRange or 500)
     ap:setElapsed(0)
+    beginPlan(ap, shipEntity)
     Log.Info("AutoPilot: engaged to %s", tostring(targetEntity))
 end
 
@@ -103,6 +112,7 @@ function AutoPilotSystem:engagePosition(shipEntity, physics, pos, arrivalRange, 
     ap._parentEntity = parentEntity
     ap._localOffsetX = localOffsetX
     ap._localOffsetZ = localOffsetZ
+    beginPlan(ap, shipEntity)
     Log.Info("AutoPilot: engaged to position")
 end
 
@@ -119,6 +129,7 @@ function AutoPilotSystem:disengage(shipEntity)
     ap:setTargetEntity(nil)
     ap:setTargetPos(nil)
     ap:setElapsed(0)
+    AutoPilotPlan.drop(ap)
     ap:clearNavigation()
 
     -- Hand the controls back: no axes left over from the autopilot, the travel drive stopped and its cap lifted.
@@ -136,6 +147,15 @@ end
 function AutoPilotSystem:isActive(shipEntity)
     local ap = shipEntity:get(ConstructComponents.AutoPilot)
     return ap and ap:isActive() or false
+end
+
+--- Is the ship's path still being planned? The ship steers straight to the target until the plan has come.
+---@param shipEntity Entity
+---@return boolean
+function AutoPilotSystem:isPlanning(shipEntity)
+    local ap = shipEntity:get(ConstructComponents.AutoPilot)
+    local plan = ap and ap:getPlan()
+    return plan ~= nil and plan.phase == Phase.Planning
 end
 
 --- Get target name for HUD display
@@ -286,15 +306,13 @@ end
 
 --- Drive the travel drive from the braking law: the cap follows the distance to the goal, and the
 --- drive is released for the final approach, which the NavWorld flies at normal speed.
----@param dt number
----@param ap AutoPilotComponent
 ---@param drive TravelDriveComponent
 ---@param input ControlInputComponent
 ---@param profile FlightProfile
 ---@param zoneMax number
 ---@param dist gameunit Distance to the target's centre
 ---@param safeRange gameunit
-local function updateDrive(dt, ap, drive, input, profile, zoneMax, dist, safeRange)
+local function updateDrive(drive, input, profile, zoneMax, dist, safeRange)
     local wanted = brakingMultiplier(math.max(0, dist - safeRange), profile)
     -- The drive system ramps its multiplier toward this cap over time.
     input:setDriveSpeedCap(math.min(zoneMax, math.max(1, wanted)))
@@ -303,11 +321,99 @@ local function updateDrive(dt, ap, drive, input, profile, zoneMax, dist, safeRan
     end
 
     local cfg = Config.game.autoPilot or {}
-    local elapsed = ap:getElapsed() + dt
-    ap:setElapsed(elapsed)
-    if cfg.enableTravelDrive ~= false and elapsed > (cfg.travelDriveDelay or 5.0)
-        and dist > safeRange * DRIVE_ENGAGE_STAND_OFFS and drive:getState() == "idle" then
+    if cfg.enableTravelDrive ~= false and dist > safeRange * DRIVE_ENGAGE_STAND_OFFS
+        and drive:getState() == "idle" then
         input:setDriveRequest(Enums.TravelDriveRequest.Engage)
+    end
+end
+
+--- The position of the target now: its body, else its point.
+---@param ap AutoPilotComponent
+---@return Position|nil
+local function targetPosition(ap)
+    local targetEntity = ap:getTargetEntity()
+    if targetEntity then
+        local tRbCmp = targetEntity:get(PhysicsComponents.RigidBody)
+        if tRbCmp and tRbCmp:getRigidBody() then return tRbCmp:getRigidBody():getPos() end
+        local tTransform = targetEntity:get(PhysicsComponents.Transform)
+        if tTransform then return tTransform:getPos() end
+    end
+    return ap:getTargetPos()
+end
+
+--- Starts the engagement's plan: asks the planner for the path from the ship to the target's
+--- stand-off point. A ship already within the stand-off distance has no path to plan.
+---@param ap AutoPilotComponent
+---@param shipEntity Entity
+function beginPlan(ap, shipEntity)
+    local rb = shipEntity:get(PhysicsComponents.RigidBody):getRigidBody()
+    local targetPos = targetPosition(ap)
+    local targetEntity = ap:getTargetEntity()
+    local safeRange = AutoPilotSystem.standOff(targetRadiusOf(targetEntity))
+    local shipPos = rb:getPos()
+    local dist = targetPos and shipPos:distance(targetPos) or 0
+    if not targetPos or dist <= safeRange then
+        ap:setPlan({ phase = Phase.Final })
+        return
+    end
+    local profile = ConstructComponents.FlightProfile.ProfileOf(shipEntity)
+    AutoPilotPlan.request(ap, shipEntity, rb, profile, standOffGoal(shipPos, targetPos, dist, dist, safeRange),
+        targetEntity or ap._parentEntity, DRIVE_ENGAGE_STAND_OFFS * safeRange)
+end
+
+--- Runs the drive on a leg of the plan: engaged at the leg's start, its cap following the braking
+--- law to the leg's end, released for the end of the leg and not engaged again on that leg. A
+--- leg that the plan does not fly under the drive, and an arc, are flown with it off.
+---@param plan table The engagement's plan state
+---@param rb RigidBody
+---@param drive TravelDriveComponent
+---@param input ControlInputComponent
+---@param profile FlightProfile
+---@param zoneMax number
+local function driveLeg(plan, rb, drive, input, profile, zoneMax)
+    local follower = plan.follower
+    local state = drive:getState()
+    if not follower:drives() then
+        if state ~= "idle" then input:setDriveRequest(Enums.TravelDriveRequest.Disengage) end
+        return
+    end
+    local wanted = brakingMultiplier(rb:getPos():distance(follower.target), profile)
+    input:setDriveSpeedCap(math.min(zoneMax, math.max(1, wanted)))
+    if state ~= "idle" and wanted < HANDOVER_MULT then
+        input:setDriveRequest(Enums.TravelDriveRequest.Disengage)
+        plan.released = follower.index
+    elseif state == "idle" and wanted >= HANDOVER_MULT and plan.released ~= follower.index then
+        input:setDriveRequest(Enums.TravelDriveRequest.Engage)
+    end
+end
+
+--- One step of flying the plan's corners. The NavWorld steers to the follower's point; the
+--- follower moves the point on, and when it has passed the last corner the phase becomes `Final`.
+---@param ap AutoPilotComponent
+---@param shipEntity Entity
+---@param speed number Game units per second, relative to the carrying well
+---@param targetPos Position
+---@param zoneMax number
+local function flyPlan(ap, shipEntity, speed, targetPos, zoneMax)
+    local plan = ap:getPlan()
+    local rb = shipEntity:get(PhysicsComponents.RigidBody):getRigidBody()
+    local nav, agent = ap:getNav(), ap:getAgent()
+    NavAgentHelper.setFrameFromWell(nav, agent, shipEntity)
+    nav:step()
+    nav:copyArrived(ap:getArrived(), 1)
+    plan.follower:advance(ap:getArrived()[0], speed, ap:getElapsed(), plan.listener)
+    nav:copyAxes(ap:getAxes(), NavWorld.AxisCount())
+
+    local input = shipEntity:get(ConstructComponents.ControlInput)
+    if input then NavAgentHelper.writeAxes(ap:getAxes(), agent, input) end
+
+    ap.interceptPos = targetPos
+    ap.distance = rb:getPos():distance(targetPos)
+    ap.eta = math.max(0, plan.goal.time - plan.snapshot.age)
+
+    local drive = shipEntity:get(ConstructComponents.TravelDrive)
+    if drive and input and plan.phase == Phase.Plan then
+        driveLeg(plan, rb, drive, input, ConstructComponents.FlightProfile.ProfileOf(shipEntity), zoneMax)
     end
 end
 
@@ -363,6 +469,20 @@ function AutoPilotSystem:update(dt, shipEntity)
     local targetRadius = targetRadiusOf(targetEntity)
     local safeRange = self.standOff(targetRadius)
     local arrivalRadius = self.arrivalRadius(targetRadius)
+
+    -- The planner's path: take it when it has come, and fly its corners.
+    local plan = ap:getPlan() or { phase = Phase.Direct }
+    if plan.phase == Phase.Planning then
+        AutoPilotPlan.poll(ap, {
+            nav = ap:getNav(), agent = ap:getAgent(), rb = rb, profile = profile,
+        })
+    end
+    ap:setElapsed(ap:getElapsed() + dt)
+    if plan.snapshot then plan.snapshot:advance(dt) end
+    if plan.phase == Phase.Plan then
+        flyPlan(ap, shipEntity, speed, targetPos, zoneMax)
+        return
+    end
 
     -- Quick distance check for approach mode
     local qdx = targetPos.x - shipPos.x
@@ -451,10 +571,10 @@ function AutoPilotSystem:update(dt, shipEntity)
         NavAgentHelper.writeAxes(ap:getAxes(), agent, input)
     end
 
-    if drive and input then
-        updateDrive(dt, ap, drive, input, profile, zoneMax, dist, safeRange)
-    else
-        ap:setElapsed(ap:getElapsed() + dt)
+    -- The drive runs on the planned legs, the final approach and a flight with no usable plan
+    -- (which has no detours), never while the plan is still out.
+    if drive and input and (plan.phase == Phase.Final or plan.phase == Phase.Direct) then
+        updateDrive(drive, input, profile, zoneMax, dist, safeRange)
     end
 end
 
