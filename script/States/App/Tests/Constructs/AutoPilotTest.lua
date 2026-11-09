@@ -19,6 +19,7 @@ local ShipFlightSystem      = require("Modules.Constructs.Systems.ShipFlightSyst
 local TravelDriveSystem     = require("Modules.Constructs.Systems.TravelDriveSystem")
 local FlightProfileRegistry = require("Shared.Registries.FlightProfileRegistry")
 local FlightProfileHelper   = require("Shared.Helpers.FlightProfileHelper")
+local AutoPilotPlan         = require("Modules.Constructs.Systems.AutoPilotPlan")
 
 ---@class ConstructsAutoPilotTest: Application
 local AutoPilotTest = Subclass("ConstructsAutoPilotTest", Application)
@@ -86,6 +87,7 @@ local MS_PER_S           = 1000
 ---@field timed boolean|nil Whether the run's update times are logged, as a pair with `sensing` on and off
 ---@field well boolean|nil The target is a planet in a moving gravity well, and the ship starts inside the well
 ---@field planet boolean|nil A planet with a gravity well lies across the course, on a slow orbit
+---@field outside boolean|nil With `well`: the ship starts outside the well and has to be planned into it
 
 ---Rocks spread around the course, clear of it, so the whole field is within the sensing range of a
 ---ship at drive speed but none is in its way (the drive's avoidance is not tested).
@@ -121,6 +123,8 @@ local SCENARIOS = {
     { name = "a body in a moving well", distance = 600, radius = BODY_RADIUS, drive = false, maxFlight = 700,
       well = true },
     { name = "a point, with drive, past a planet", distance = 20000, drive = true, maxFlight = 140, planet = true },
+    { name = "a body in a moving well, with drive, from outside", distance = 20000, radius = BODY_RADIUS,
+      drive = true, maxFlight = 1100, well = true, outside = true },
 }
 
 function AutoPilotTest:check(ok, what, detail)
@@ -367,6 +371,10 @@ function AutoPilotTest:run(scenario)
     local updateSum, updateMax, updateCount = 0, 0, 0
     local planetClosest, cornered, arcs, arcOnDrive = math.huge, false, 0, 0
     local onArc, arcStart, finalAt = false, nil, nil
+    -- The flight into a moving well: which phases the plan went through, and the ship at the moment
+    -- the well took it.
+    local directSeen, planSeen, wellEntry = false, false, nil
+    local shipWell = ship.entity:get(PhysicsComponents.GravityWell)
     for stepIndex = 1, math.floor(scenario.maxFlight / STEP) do
         local updateMs = self:step(ship, moving)
         if planet then
@@ -374,6 +382,27 @@ function AutoPilotTest:run(scenario)
         end
         local plan = ap:getPlan()
         local follower = plan and plan.follower
+        if plan then
+            directSeen = directSeen or plan.phase == AutoPilotPlan.Phase.Direct
+            planSeen = planSeen or plan.phase == AutoPilotPlan.Phase.Plan
+        end
+        if scenario.outside and not wellEntry and shipWell:getBodyEntity() == well.planetBody.entity then
+            wellEntry = {
+                at = stepIndex * STEP,
+                corner = follower and not follower.finished and follower.index or nil,
+                speed = ShipFlightSystem:getSpeed(ship.entity),
+                toPoint = follower and ship.rb:getPos():distance(follower.target) or nil,
+                drive = drive:getState(),
+                phase = plan and plan.phase,
+                corners = follower and #follower.points or 0,
+            }
+        end
+        -- The entry corner is passed once the follower has moved on from the corner it was on.
+        if wellEntry and wellEntry.corner and not wellEntry.passedAt
+            and (not follower or follower.finished or follower.index > wellEntry.corner) then
+            wellEntry.passedAt = stepIndex * STEP
+            wellEntry.passSpeed = ShipFlightSystem:getSpeed(ship.entity)
+        end
         cornered = cornered or follower ~= nil
         local arcNow = follower ~= nil and follower.arc ~= nil
         if plan and plan.phase == "final" and not finalAt then finalAt = stepIndex * STEP end
@@ -410,7 +439,7 @@ function AutoPilotTest:run(scenario)
     end
     -- A plan flight's ETA is the planner's drive timeline, which runs longer than the flown one
     -- (a known gap); only a flight without a plan is held to it.
-    if etaAtDrive and not scenario.planet then
+    if etaAtDrive and not scenario.planet and not scenario.outside then
         local left = arrivedAt - driveAt
         self:check(math.abs(etaAtDrive - left) <= ETA_TOLERANCE * left, name .. "the ETA matches the flight",
             string.format("eta %.1f s, left %.1f s, drive at %.1f, arc at %s, final from %s, arrived %.1f", etaAtDrive, left,
@@ -463,6 +492,24 @@ function AutoPilotTest:run(scenario)
         Log.Info("ConstructsAutoPilotTest: %sclosest to the planet %.0f (hull %.0f, safe sphere %.0f), %d arcs, arc at %s s, final from %s s",
             name, planetClosest, PLANET_RADIUS, PLANET_RADIUS * PLANET_SAFE_FACTOR, arcs,
             tostring(arcStart), tostring(finalAt))
+    end
+
+    if scenario.outside then
+        self:check(planSeen and not directSeen, name .. "the plan is flown, never replaced by a direct flight",
+            string.format("plan seen %s, direct seen %s", tostring(planSeen), tostring(directSeen)))
+        self:check(wellEntry ~= nil, name .. "the ship enters the planet's well")
+        if wellEntry then
+            -- The plan is the entry corner alone, and the well takes the ship before it passes it.
+            self:check(wellEntry.corners == 1 and wellEntry.corner == 1,
+                name .. "the well carries the ship before the entry corner is passed",
+                string.format("%d corners, on corner %s", wellEntry.corners, tostring(wellEntry.corner)))
+            self:check(wellEntry.passedAt ~= nil, name .. "the entry corner is passed")
+            Log.Info("ConstructsAutoPilotTest: %sentered the well at %.1f s: phase %s, corner %s, speed %.2f, %s from its point, drive %s; corner passed at %s s at speed %s",
+                name, wellEntry.at, tostring(wellEntry.phase), tostring(wellEntry.corner), wellEntry.speed,
+                wellEntry.toPoint and string.format("%.1f", wellEntry.toPoint) or "-", wellEntry.drive,
+                wellEntry.passedAt and string.format("%.1f", wellEntry.passedAt) or "-",
+                wellEntry.passSpeed and string.format("%.2f", wellEntry.passSpeed) or "-")
+        end
     end
 
     self:despawn(ship, body, rocks)
