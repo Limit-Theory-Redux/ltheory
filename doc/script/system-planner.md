@@ -6,7 +6,7 @@ It plans in the frame of the system: bodies on analytic orbits are placed where 
 
 ## Input
 
-`SystemPlanner.plan(bodies, count, sx, sy, sz, frame, gx, gy, gz, speed, accel, drag, depthLimit, out, capacity)` returns `status, waypointCount`. Positions are in game units, times in seconds from the snapshot, and `speed` is the speed the path is flown at (above zero), which sets the times in the output. `accel` is the ship's forward acceleration (game units per second squared, above zero) and `drag` its linear drag (per second, zero or more): they set how fast the ship can take a corner (see [Corners](#corners)).
+`SystemPlanner.plan(bodies, count, sx, sy, sz, frame, gx, gy, gz, speed, accel, drag, depthLimit, out, capacity, drive)` returns `status, waypointCount`. Positions are in game units, times in seconds from the snapshot, and `speed` is the speed the path is flown at (above zero), which sets the times in the output. `accel` is the ship's forward acceleration (game units per second squared, above zero) and `drag` its linear drag (per second, zero or more): they set how fast the ship can take a corner (see [Corners](#corners)). `drive` is optional: a `double[?]` of `DRIVE_STRIDE` values that turns on the travel drive (see [Drive](#drive)); without it every leg is flown at `speed`.
 
 `frame` is the index of the body the goal rides on, or `SystemPlanner.SYSTEM_FRAME` (`-1`) for a goal fixed in the system. `g` is then the goal itself, or its offset from that body's centre, in world axes (see [Frames](#frames)).
 
@@ -20,6 +20,8 @@ It plans in the frame of the system: bodies on analytic orbits are placed where 
 | `Phase`, `AngularSpeed`, `Inclination` | The orbit at the snapshot, as in [orbits](orbits.md) |
 | `Radius` | The hull's radius, above zero |
 | `SafeRadius` | The radius the path keeps out of, at least `Radius` |
+| `ZoneRadius` | The radius of the body's travel-drive zone (see [Drive](#drive)); zero for no zone |
+| `ZoneCap` | The drive multiplier at the body's centre, at least 1 when the body has a zone |
 
 The position of a body at time `t` is its parent's position at `t` (its own fields without a parent) plus `OrbitMath.offsetAt` of its orbit, the formula that `OrbitComponent` uses too.
 
@@ -32,6 +34,7 @@ The position of a body at time `t` is its parent's position at `t` (its own fiel
 | `T` | The time the ship reaches the waypoint when it flies the path at `speed` |
 | `Radius` | The radius of the arc that rounds the corner at the waypoint; zero for a sharp corner, and for the goal |
 | `Speed` | The speed the corner is passed at: the arc's turn speed, `speed` for a corner that barely turns; zero for a sharp corner and for the goal, where the ship stops |
+| `Drive` | 1 when the leg that ends at the waypoint is flown under the travel drive, else 0 |
 
 ## Status
 
@@ -42,9 +45,10 @@ The position of a body at time `t` is its parent's position at `t` (its own fiel
 | `NoDetour` | A leg crosses a safe sphere and no tangent exists; it is left straight | A plan with that leg |
 | `CapacityExceeded` | The output buffer is full | The waypoints written before the stop |
 | `GoalNotSettled` | The arrival time at a goal on a moving body did not settle (see [Frames](#frames)) | The last plan, whose times can be off |
+| `DriveNotTimed` | A leg needed more drive timeline steps than `MAX_DRIVE_STEPS`; it is planned at the planning speed | A plan with that leg |
 | `EndpointInsideBody` | The start or the goal is inside a body's hull | None |
 | `GoalOutrun` | The goal's frame body can move as fast as the ship, so the ship may never catch the goal | None |
-| `InvalidInput` | A layout or number is wrong (a parent after its child, a radius not above zero, a safe radius below the radius, a non-finite value, a speed not above zero, a frame that is neither a body nor `SYSTEM_FRAME`) | None |
+| `InvalidInput` | A layout or number is wrong (a parent after its child, a radius not above zero, a safe radius below the radius, a non-finite value, a speed not above zero, a frame that is neither a body nor `SYSTEM_FRAME`, a zone with a negative radius or a cap below 1, a drive block with a cap below 1, a negative charge time, a rate not above zero, or a ship without drag) | None |
 
 A status other than `Ok` is never hidden: the caller decides whether a plan with a straight leg is usable.
 
@@ -74,6 +78,30 @@ Once the plan has settled, every corner but the goal is rounded into an arc that
 
 `SystemPlanner.cornerArc` gives the arc's entry, exit, centre and normal for a corner and a radius, and `SystemPlanner.pointOnArc` a point on it. They are the only copy of this geometry: whoever flies the plan builds the same arc from the corner's points as they are now.
 
+## Drive
+
+With a drive block, a leg is timed as the travel drive flies it, because the drive's speed changes by orders of magnitude along a leg and the plan's times decide where the moving bodies are predicted. A leg flown at the planning speed would put its detours where the bodies are long gone.
+
+`drive` holds, at the offsets of `SystemPlanner.Drive`:
+
+| Field | Meaning |
+|---|---|
+| `OpenCap` | The drive multiplier in open space, at least 1 |
+| `Charge` | Seconds the drive charges, flown at `speed`; zero or more |
+| `RampUp` | The multiplier rises by `(target − 1) · RampUp` per second |
+| `RampDown` | The rate of the exponential with which the multiplier falls to a lower target |
+
+![The speed along a drive leg: charge, ramp up to the zone cap, a dip in a zone, braking to the release, then the planning speed to the corner](../images/system-planner/drive-leg.svg)
+
+1. **Model.** A leg is a chain of time samples from the start of the leg. The ship flies at `speed` while the drive charges. After that the drive's target multiplier is the lowest of the zones' cap at the ship's point and time, `OpenCap`, and the braking law's multiplier for the distance left (`TravelDriveMath.brakingMultiplier`), and at least 1. The multiplier rises and falls toward it as in the table, and the ship's speed follows `speed ·` the multiplier with its drag, the lag of the real ship.
+2. **Zones.** A body's zone caps the drive with `TravelDriveMath.zoneCap`, the formula `GravityWellSystem:getMaxDriveSpeedAt` uses too (see [zones](zones.md)); the zone is where its body is at the time. The braking law, the release distance and the ETA come from the same module, which the autopilot uses (`TravelDriveMath.travelTime`).
+3. **Release.** The drive is released `HANDOVER_MULT · braking time · speed` before the leg's end, and the rest of the leg is flown at `speed`. So a drive leg ends below the multiplier at which the autopilot hands over, and never carries speed into a corner or the goal.
+4. **Policy.** A leg is flown under the drive when its drive timeline ends sooner than flight at `speed`; a leg too short to charge and release is not. Every leg is judged on its own, so a detour splits a drive leg into two, each with its own charge, and the drive is released before every corner. Arcs are flown at the planning speed, at their turn speed, as without the drive.
+5. **Steps.** A sample step is at most `DRIVE_FEATURE_STEP` of the distance to the nearest zone's edge (counted with the body's speed bound) and of the distance left, and, while the multiplier or the speed is off its target by more than `DRIVE_TRANSIENT_TOLERANCE`, at most `DRIVE_TRANSIENT_STEP` of the shortest time constant. A long cruise therefore costs few steps. A leg that needs more than `MAX_DRIVE_STEPS` is planned at `speed`, with the status `DriveNotTimed`.
+6. **Hit tests.** The hit search and the overlap walk read the ship's distance along the leg from the timeline: each step is bounded by the greatest speed of its interval of samples, so no crossing is skipped, and an overlap that the ship leaves and re-enters is followed to its last time.
+
+`Out.Drive` tells whoever flies the plan which legs to fly under the drive. A leg that ends at a corner is released before the corner, and a corner's arc may begin up to half a leg before it, so a ship that follows the plan releases earlier than the plan does.
+
 ## Frames
 
 A waypoint is a body and an offset from its centre, in world axes, not a fixed point: the bodies move while the ship flies, so a point fixed in the world would be where the body was when the plan was made. The offset does not turn with the body.
@@ -91,6 +119,8 @@ The planner does not move the ship: whoever flies the plan resolves each waypoin
 - The planning speed is constant: the ship's acceleration and turns are not in the times. A ship that accelerates from rest arrives later than the plan says, so a body that was predicted to be clear can be in the way.
 - Arcs do not change the times: the planned path is still the sharp-cornered one, and a ship that slows to a corner's speed arrives later than `T` says. The arc's clearance is checked at the sharp path's times for the same reason.
 - A corner is passed at its turn speed only if the ship can get down to it: the ship brakes toward the corner's speed before the arc, and how well it does is the flyer's, not the planner's.
+- A drive leg's times follow the model above: the ship's charge, climb and lag are as the model has them, not as a flight measured them. A leg's start speed is taken as `speed`, though a ship that leaves an arc is slower.
+- The outrun check compares the goal body's speed with the planning speed, drive or not: the drive is released before the goal, so the last stretch is flown at `speed`.
 - A fast body that crosses the course can leave `NoDetour` or `DepthExceeded`.
 - The retry on the other side makes a failing plan cost up to about 3^depth leg tests, and a goal on a moving body repeats the plan up to `MAX_GOAL_ITERATIONS` times; keep the depth limit small.
 - The kernel keeps module scratch state, so it is not reentrant: one plan at a time per Lua state.
@@ -113,5 +143,9 @@ The planner does not move the ship: whoever flies the plan resolves each waypoin
 | `ARC_CHORDS` | How many chords an arc is checked as |
 | `MAX_ARC_HALVINGS` | How many times a blocked arc is halved before the corner is left sharp |
 | `MIN_ARC_ANGLE` | The turn below which a corner gets no arc, in radians |
+| `DRIVE_FEATURE_STEP` | The share of the distance to the nearest zone edge (and of the distance left) one drive timeline step covers: smaller times a zone more exactly and costs more steps |
+| `DRIVE_FEATURE_FLOOR` | The least distance to a zone's edge that counts, as a share of its influence radius, so a ship on the edge still takes steps |
+| `DRIVE_TRANSIENT_TOLERANCE`, `DRIVE_TRANSIENT_STEP` | How far the multiplier or speed may be off its target before steps shrink, and the share of the shortest time constant they shrink to |
+| `DRIVE_MIN_STEP_S`, `MAX_DRIVE_STEPS` | The shortest step, and the most steps of one leg before it is planned without the drive |
 
 The safe radius itself comes from the caller; the sandbox uses a factor on the hull radius, `safeRadiusFactor` (see [navigation sandbox](navigation-sandbox.md)).

@@ -3,6 +3,10 @@ local ConstructComponents = require("Modules.Constructs.Components")
 local GravityWellSystem   = require("Modules.Physics.Systems.GravityWellSystem")
 local ShipFlightSystem    = require("Modules.Constructs.Systems.ShipFlightSystem")
 local NavAgentHelper      = require("Shared.Helpers.NavAgentHelper")
+local TravelDriveMath     = require("Shared.Helpers.TravelDriveMath")
+
+-- Below this drive multiplier the drive is released and the NavWorld flies the rest.
+local HANDOVER_MULT = TravelDriveMath.HANDOVER_MULT
 
 -- The ship has arrived when it is within this share of the gap between the target's hull and the
 -- stand-off distance from the stand-off point, so a ship that coasts in afterwards stops outside the hull.
@@ -12,14 +16,6 @@ local STAND_OFF_RADII = 1.5
 local MIN_STAND_OFF = 50
 -- The drive engages only beyond this many stand-off distances from the target.
 local DRIVE_ENGAGE_STAND_OFFS = 100
--- The braking time is this many times the sum of the drive multiplier's and the velocity's lag
--- times. The loop from the distance to the wanted speed is third order, and a margin of 4 gives it
--- real roots, so the ship decays onto the goal without overshooting; 2 oscillates.
-local BRAKING_LAG_MARGIN = 4
--- Fixed-point steps that solve the decay rate of the braking law (see `decayRate`).
-local DECAY_RATE_ITERATIONS = 12
--- Below this drive multiplier the drive is released and the NavWorld flies the rest.
-local HANDOVER_MULT = 2
 -- The collision mask the NavWorld senses obstacles with: every collision group.
 local SENSING_MASK = 0xFFFFFFFF
 
@@ -242,43 +238,17 @@ local function standOffGoal(shipPos, steerPos, steerDist, targetDist, safeRange)
         steerPos.z + (shipPos.z - steerPos.z) * back)
 end
 
---- The time constant of the drive's braking law: the wanted speed is the distance to the goal over it.
----@param profile FlightProfile
----@return number seconds
-local function brakingTime(profile)
-    return BRAKING_LAG_MARGIN * (1 / Config.game.travelDrive.rampDownSpeed + 1 / profile.linearDrag)
-end
-
---- The drive multiplier the braking law wants at a distance from the goal. The wanted speed is
---- `goalDist / brakingTime`, and full drive thrust settles at `multiplier · maxSpeed`.
+--- The drive multiplier the braking law wants at a distance from the goal (`TravelDriveMath`).
 ---@param goalDist gameunit
 ---@param profile FlightProfile
 ---@return number
 local function brakingMultiplier(goalDist, profile)
-    return goalDist / (brakingTime(profile) * profile.maxSpeed)
-end
-
---- The rate (1/s) at which the distance to the goal decays under the braking law. The drive
---- multiplier and the velocity lag the falling cap, so a ship sits ahead of the wanted speed
---- and closes faster than `1 / brakingTime`. For a decay `e^(-r·t)` a first-order lag `τ`
---- scales its input by `1 / (1 - r·τ)`, so `r` solves `r = 1 / (T · (1 - r·τ₁) · (1 - r·τ₂))`;
---- the iteration contracts (factor under 0.5 at `BRAKING_LAG_MARGIN` 4).
----@param profile FlightProfile
----@return number rate
-local function decayRate(profile)
-    local driveLag, velocityLag = 1 / Config.game.travelDrive.rampDownSpeed, 1 / profile.linearDrag
-    local gain = 1 / brakingTime(profile)
-    local rate = gain
-    for _ = 1, DECAY_RATE_ITERATIONS do
-        rate = gain / ((1 - driveLag * rate) * (1 - velocityLag * rate))
-    end
-    return rate
+    local lag = TravelDriveMath.brakingTime(Config.game.travelDrive.rampDownSpeed, profile.linearDrag)
+    return TravelDriveMath.brakingMultiplier(goalDist, profile.maxSpeed, lag)
 end
 
 --- Seconds until the ship is within `arrivalRadius` of the goal, from the same law that
---- `updateDrive` flies: a cruise at the zone's cap while the law wants more, an exponential decay
---- down to the hand-over distance or the arrival radius (whichever is larger), then the flight at
---- `maxSpeed`. Ramp-up and charging time are not counted.
+--- `updateDrive` flies (`TravelDriveMath.travelTime`).
 ---@param goalDist gameunit Distance to the goal, 0 or more
 ---@param arrivalRadius gameunit
 ---@param profile FlightProfile
@@ -286,23 +256,8 @@ end
 ---@param driveUsed boolean Whether the drive is, or will be, engaged
 ---@return number seconds
 local function travelTime(goalDist, arrivalRadius, profile, zoneMax, driveUsed)
-    local lag = brakingTime(profile)
-    local handoverDist = HANDOVER_MULT * lag * profile.maxSpeed
-    local decayEnd = math.max(handoverDist, arrivalRadius)
-    if not driveUsed or goalDist <= decayEnd then
-        return math.max(0, goalDist - arrivalRadius) / profile.maxSpeed
-    end
-    local cruiseSpeed = profile.maxSpeed * math.max(1, zoneMax)
-    -- Beyond `cruiseSpeed · lag` the law wants more than the cap, and the ship flies at the cap.
-    local decayTop = math.min(goalDist, math.max(cruiseSpeed * lag, decayEnd))
-    local seconds = math.max(0, handoverDist - arrivalRadius) / profile.maxSpeed
-    if goalDist > decayTop then
-        seconds = seconds + (goalDist - decayTop) / cruiseSpeed
-    end
-    if decayTop > decayEnd then
-        seconds = seconds + math.log(decayTop / decayEnd) / decayRate(profile)
-    end
-    return seconds
+    return TravelDriveMath.travelTime(goalDist, arrivalRadius, profile.maxSpeed,
+        Config.game.travelDrive.rampDownSpeed, profile.linearDrag, zoneMax, driveUsed)
 end
 
 --- Is the drive engaged, or far enough away that it will be?

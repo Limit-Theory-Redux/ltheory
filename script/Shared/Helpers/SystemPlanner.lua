@@ -3,12 +3,15 @@
 --- position it inserts a waypoint where the tangents from both ends to the sphere meet, then checks
 --- the two new legs the same way, down to a bounded depth. Each corner is then rounded into an arc
 --- with a radius and a speed the ship can hold it at. A waypoint is a body index and an offset
---- from that body (the system frame for none). Pure numbers in and out (no entities, no globals),
---- so it runs on a worker or in a test state. Not reentrant: it keeps module scratch state.
+--- from that body (the system frame for none). With a travel-drive block, each leg is timed under
+--- the drive where that is sooner, and the drive ends before every corner. Pure numbers in and out
+--- (no entities, no globals), so it runs on a worker or in a test state. Not reentrant: it keeps
+--- module scratch state.
 --- Design: doc/script/system-planner.md.
-local OrbitMath = require("Shared.Helpers.OrbitMath")
+local OrbitMath       = require("Shared.Helpers.OrbitMath")
+local TravelDriveMath = require("Shared.Helpers.TravelDriveMath")
 
-local sqrt, atan2, acos, sin, cos, tan = math.sqrt, math.atan2, math.acos, math.sin, math.cos, math.tan
+local sqrt, atan2, acos, sin, cos, tan, exp = math.sqrt, math.atan2, math.acos, math.sin, math.cos, math.tan, math.exp
 local max, min, abs = math.max, math.min, math.abs
 
 local SystemPlanner = {}
@@ -31,13 +34,17 @@ SystemPlanner.Status = {
     ---The arrival time at a goal on a moving body did not settle within the iteration limit; the
     ---last iteration's plan is kept, and its times may be off.
     GoalNotSettled     = 7,
+    ---A leg needed more drive timeline steps than the limit; it is planned without the drive.
+    DriveNotTimed      = 8,
 }
 local Status = SystemPlanner.Status
 
 -- Body buffer: BODY_STRIDE doubles per body, in the order of these offsets. A parent comes before
 -- its children. A body with an orbit radius above zero circles its parent's position (its own
--- position without a parent); any other body stays at its position.
-local BODY_STRIDE      = 10
+-- position without a parent); any other body stays at its position. A body with a zone radius
+-- above zero caps the travel drive near it (`TravelDriveMath.zoneCap`): its zone cap is the
+-- multiplier at its centre.
+local BODY_STRIDE      = 12
 local PARENT           = 0 -- index of the parent body, -1 for none
 local POS_X            = 1
 local POS_Y            = 2
@@ -48,11 +55,14 @@ local ANGULAR_SPEED    = 6
 local INCLINATION      = 7
 local BODY_RADIUS      = 8
 local SAFE_RADIUS      = 9
+local ZONE_RADIUS      = 10
+local ZONE_CAP         = 11
 -- Output buffer: OUT_STRIDE doubles per waypoint, the goal last. A waypoint is the index of its
 -- frame body (SYSTEM_FRAME for the system) and the offset from that body's centre, in world axes,
 -- and `t`, the time the ship reaches it. The frame's position at `t` plus the offset is the point.
 -- Radius and speed describe the corner there: the radius of the arc that rounds it (zero for a
--- sharp corner) and the speed the ship is to pass at.
+-- sharp corner) and the speed the ship is to pass at. `drive` is 1 when the leg that ends at the
+-- waypoint is flown under the travel drive, which is released before the waypoint.
 local OUT_FRAME        = 0
 local OUT_X            = 1
 local OUT_Y            = 2
@@ -60,17 +70,32 @@ local OUT_Z            = 3
 local OUT_T            = 4
 local OUT_RADIUS       = 5
 local OUT_SPEED        = 6
-local OUT_STRIDE       = 7
+local OUT_DRIVE        = 7
+local OUT_STRIDE       = 8
 local SYSTEM_FRAME     = -1
+-- Drive buffer: DRIVE_STRIDE doubles, in the order of these offsets. The multiplier in open
+-- space, the seconds the drive charges at normal speed, and the rates at which its multiplier
+-- rises (per second, times the multiplier above 1) and falls (the rate of an exponential).
+local DRIVE_OPEN_CAP   = 0
+local DRIVE_CHARGE     = 1
+local DRIVE_RAMP_UP    = 2
+local DRIVE_RAMP_DOWN  = 3
+local DRIVE_STRIDE     = 4
 
 SystemPlanner.BODY_STRIDE = BODY_STRIDE
 SystemPlanner.Body = {
     Parent = PARENT, X = POS_X, Y = POS_Y, Z = POS_Z, OrbitRadius = ORBIT_RADIUS, Phase = PHASE,
     AngularSpeed = ANGULAR_SPEED, Inclination = INCLINATION, Radius = BODY_RADIUS, SafeRadius = SAFE_RADIUS,
+    ZoneRadius = ZONE_RADIUS, ZoneCap = ZONE_CAP,
 }
 SystemPlanner.OUT_STRIDE = OUT_STRIDE
 SystemPlanner.Out = {
     Frame = OUT_FRAME, X = OUT_X, Y = OUT_Y, Z = OUT_Z, T = OUT_T, Radius = OUT_RADIUS, Speed = OUT_SPEED,
+    Drive = OUT_DRIVE,
+}
+SystemPlanner.DRIVE_STRIDE = DRIVE_STRIDE
+SystemPlanner.Drive = {
+    OpenCap = DRIVE_OPEN_CAP, Charge = DRIVE_CHARGE, RampUp = DRIVE_RAMP_UP, RampDown = DRIVE_RAMP_DOWN,
 }
 SystemPlanner.SYSTEM_FRAME = SYSTEM_FRAME
 
@@ -117,13 +142,39 @@ local MAX_ARC_HALVINGS  = 4
 local MIN_ARC_ANGLE     = 0.02
 
 SystemPlanner.TURN_THRUST_SHARE = TURN_THRUST_SHARE
+
+-- A drive leg is timed in steps. Each step covers at most this share of the distance to the
+-- nearest feature that changes the drive's cap: a zone's edge or body, or the point where the
+-- braking law starts to bind.
+local DRIVE_FEATURE_STEP = 0.05
+-- The distance to a zone's edge counts as at least this share of the zone's influence radius, so
+-- a ship on the edge still takes steps.
+local DRIVE_FEATURE_FLOOR = 0.01
+-- While the drive's multiplier or the ship's speed is off its target by more than this share, a
+-- step is at most `DRIVE_TRANSIENT_STEP` of the shortest time constant that governs them.
+local DRIVE_TRANSIENT_TOLERANCE = 1e-3
+local DRIVE_TRANSIENT_STEP = 0.1
+-- The shortest step (seconds), which ends a search that would creep, and the most steps of one
+-- leg, past which the leg is flown without the drive.
+local DRIVE_MIN_STEP_S = 1e-6
+local MAX_DRIVE_STEPS = 20000
+
 -- Scratch state of the running plan.
 local bodies, bodyCount, speed, maxDepth, out, capacity, written, status, failures, goalFrame
 -- The ship's forward acceleration and drag, its top speed (infinite without drag) and the arc
 -- radius at the turn-speed knee (infinite without drag).
 local shipAccel, shipDrag, shipTopSpeed, kneeRadius
+-- The travel drive: whether it is planned, the multiplier in open space, the charge time, the
+-- rise and fall rates, the shortest time constant of the drive and the ship's speed, the braking
+-- law's time constant and the distance from a leg's end at which the drive is released.
+local driveOn, driveOpenCap, driveCharge, driveRampUp, driveRampDown = false, 1, 0, 1, 1
+local driveShortestLag, driveBrakingTime, driveRelease = 1, 1, 0
 -- Per body: the speed bound of its orbit chain, and the radius of the sphere the hit test uses.
 local speedBound, hitRadius = {}, {}
+-- The timeline of a leg: its samples (time, distance along the leg) and, per interval between two
+-- samples, the greatest speed in it. A leg's profile is kept per recursion depth, so a retry on
+-- the other side of a body finds its parent's intact; chords of an arc use their own.
+local legProfiles, chordProfile = {}, { t = {}, s = {}, vmax = {}, count = 0, drive = false }
 
 ---Where body `i` is `t` seconds from the snapshot.
 local function bodyPosition(i, t)
@@ -144,6 +195,14 @@ local function isFinite(value)
     return value == value and abs(value) ~= math.huge
 end
 
+---Whether a body's zone fields are usable: no zone (radius zero), or a finite radius and a cap of
+---at least 1 (the drive multiplier is never below 1).
+local function zoneValid(base)
+    local zoneRadius, zoneCap = bodies[base + ZONE_RADIUS], bodies[base + ZONE_CAP]
+    if not (isFinite(zoneRadius) and zoneRadius >= 0) then return false end
+    return zoneRadius == 0 or (isFinite(zoneCap) and zoneCap >= 1)
+end
+
 ---Checks the layout and numbers of the input and fills the per-body scratch.
 ---@return boolean valid
 local function prepareBodies()
@@ -156,6 +215,7 @@ local function prepareBodies()
         for field = POS_X, INCLINATION do
             if not isFinite(bodies[base + field]) then return false end
         end
+        if not zoneValid(base) then return false end
         local bound = abs(bodies[base + ORBIT_RADIUS] * bodies[base + ANGULAR_SPEED])
         if parent >= 0 then bound = bound + speedBound[parent + 1] end
         speedBound[i + 1] = bound
@@ -186,43 +246,203 @@ local function shrinkAround(x, y, z, t)
     return true
 end
 
----The first body whose sphere the leg enters, and when. The leg runs from `a` along `u` at the
----planning speed from time `t0` to `tEnd`. Each body is searched by stepping in time by the
----smallest time in which the ship and the body could close the gap to the sphere.
+---The profile of the leg at recursion depth `depth`.
+local function legProfile(depth)
+    local profile = legProfiles[depth + 1]
+    if not profile then
+        profile = { t = {}, s = {}, vmax = {}, count = 0, drive = false }
+        legProfiles[depth + 1] = profile
+    end
+    return profile
+end
+
+---Fills `profile` with a leg of `length` flown at the planning speed from time `t0`.
+local function flatProfile(profile, t0, length)
+    profile.t[1], profile.s[1], profile.vmax[1] = t0, 0, speed
+    profile.t[2], profile.s[2] = t0 + length / speed, length
+    profile.count, profile.drive = 2, false
+end
+
+---What the zones do to the drive at the point (x, y, z) at time `t`, for a ship moving at `v`: the
+---multiplier they allow (the lowest of any zone's, at most the open-space cap) and the longest
+---step in seconds before the cap could have changed much. A step covers at most
+---`DRIVE_FEATURE_STEP` of the distance to a zone's edge, counted relative to the zone's body and
+---at its speed bound.
+---@return number limit
+---@return number step
+local function zoneState(x, y, z, t, v)
+    local limit, step = driveOpenCap, math.huge
+    for i = 0, bodyCount - 1 do
+        local base = i * BODY_STRIDE
+        local zoneRadius = bodies[base + ZONE_RADIUS]
+        if zoneRadius > 0 then
+            local cx, cy, cz = bodyPosition(i, t)
+            local dx, dy, dz = x - cx, y - cy, z - cz
+            local d = sqrt(dx * dx + dy * dy + dz * dz)
+            limit = min(limit, TravelDriveMath.zoneCap(driveOpenCap, bodies[base + ZONE_CAP], zoneRadius, d))
+            local influence = zoneRadius * TravelDriveMath.INFLUENCE_RADIUS_FACTOR
+            local gap = max(abs(d - influence), DRIVE_FEATURE_FLOOR * influence)
+            step = min(step, DRIVE_FEATURE_STEP * gap / (v + speedBound[i + 1]))
+        end
+    end
+    return limit, step
+end
+
+---One step of the drive's multiplier `m` and the ship's speed `v` over `dt` seconds toward a
+---target multiplier: it rises by `(target - 1) · rampUp` per second and falls toward the target
+---exponentially; the speed follows the drive's top speed `speed · m` with the ship's drag.
+---@return number m
+---@return number v
+local function driveStep(m, v, target, dt)
+    local mNew
+    if m < target then
+        mNew = min(target, m + (target - 1) * driveRampUp * dt)
+    else
+        mNew = target + (m - target) * exp(-driveRampDown * dt)
+    end
+    local vTarget = speed * mNew
+    return mNew, vTarget + (v - vTarget) * exp(-shipDrag * dt)
+end
+
+---Fills `profile` with the leg of `length` from `a` along `u` as it is flown under the drive from
+---time `t0`, and returns whether that worked. The ship flies at the planning speed while the
+---drive charges, then the drive follows the lowest of the zones' cap at the ship's point and
+---time and the braking law's multiplier for the distance left, and it is released `driveRelease`
+---before the leg's end, from where the leg is flown at the planning speed. The timeline is a
+---chain of samples, each step bounded by the zones' features, by the share of the distance left
+---and, while the drive or the speed is off its target, by a share of the shortest time constant.
+---False for a leg too short to charge and release, or one that needs more than `MAX_DRIVE_STEPS`.
+local function driveProfile(profile, t0, length, ax, ay, az, ux, uy, uz)
+    local sRelease = length - driveRelease
+    local t, s, m, v = t0 + driveCharge, speed * driveCharge, 1, speed
+    if s >= sRelease then return false end
+    local times, along, vmax = profile.t, profile.s, profile.vmax
+    times[1], along[1] = t0, 0
+    local count = 1
+    if driveCharge > 0 then
+        times[2], along[2], vmax[1], count = t, s, speed, 2
+    end
+    for _ = 1, MAX_DRIVE_STEPS do
+        local limit, dt = zoneState(ax + ux * s, ay + uy * s, az + uz * s, t, v)
+        local distLeft = length - s
+        local wanted = TravelDriveMath.brakingMultiplier(distLeft, speed, driveBrakingTime)
+        local target = max(1, min(limit, wanted))
+        dt = min(dt, DRIVE_FEATURE_STEP * distLeft / v)
+        local offTarget = abs(m - target) > DRIVE_TRANSIENT_TOLERANCE * target
+        local lagging = abs(v - speed * m) > DRIVE_TRANSIENT_TOLERANCE * v
+        if offTarget or lagging then
+            dt = min(dt, DRIVE_TRANSIENT_STEP * driveShortestLag)
+        end
+        dt = max(dt, DRIVE_MIN_STEP_S)
+        local mNew, vNew = driveStep(m, v, target, dt)
+        local sNew = s + HALF * (v + vNew) * dt
+        local released = sNew >= sRelease
+        if released then
+            dt = dt * (sRelease - s) / (sNew - s)
+            sNew = sRelease
+        end
+        count = count + 1
+        times[count], along[count], vmax[count - 1] = t + dt, sNew, max(v, vNew)
+        t, s, m, v = t + dt, sNew, mNew, vNew
+        if released then
+            times[count + 1], along[count + 1], vmax[count] = t + (length - s) / speed, length, speed
+            profile.count, profile.drive = count + 1, true
+            return true
+        end
+    end
+    return false
+end
+
+---Fills `profile` with the leg of `length` from `a` along `u` from time `t0`: under the drive when
+---that gets to the end sooner, else at the planning speed.
+local function buildProfile(profile, t0, length, ax, ay, az, ux, uy, uz)
+    if driveOn then
+        local timed = driveProfile(profile, t0, length, ax, ay, az, ux, uy, uz)
+        if timed and profile.t[profile.count] < t0 + length / speed then return end
+        if not timed and length > driveRelease + speed * driveCharge and status == Status.Ok then
+            status = Status.DriveNotTimed
+        end
+    end
+    flatProfile(profile, t0, length)
+end
+
+---The index of the interval of the profile that holds time `t`, searching on from interval `k`.
+---An interval ends where the next begins, so a time on a boundary belongs to the later one.
+local function locate(profile, t, k)
+    local times, last = profile.t, profile.count - 1
+    while k < last and t >= times[k + 1] do k = k + 1 end
+    return k
+end
+
+---How far along the leg the ship is at time `t`, which lies in interval `k`.
+local function distanceAt(profile, t, k)
+    local t1, t2 = profile.t[k], profile.t[k + 1]
+    local s1, s2 = profile.s[k], profile.s[k + 1]
+    if t >= t2 or t2 <= t1 then return s2 end
+    return s1 + (s2 - s1) * (t - t1) / (t2 - t1)
+end
+
+---The distance from the ship, `t` seconds in (interval `k` of the profile), to the centre of body `i`.
+local function gapAt(profile, k, i, ax, ay, az, ux, uy, uz, t)
+    local along = distanceAt(profile, t, k)
+    local cx, cy, cz = bodyPosition(i, t)
+    local dx, dy, dz = ax + ux * along - cx, ay + uy * along - cy, az + uz * along - cz
+    return sqrt(dx * dx + dy * dy + dz * dz)
+end
+
+---The next time of a step of `step` seconds from `t` in interval `k`, held to the interval's end:
+---the speed bound of an interval holds only inside it.
+local function stepTo(profile, k, t, step)
+    local tNext = t + step
+    if k < profile.count - 1 and tNext > profile.t[k + 1] then return profile.t[k + 1] end
+    return tNext
+end
+
+---The first time up to `tLimit`, from `t0`, that the leg is inside body `i`'s hit sphere. The leg
+---runs from `a` along `u`. The search steps in time by the smallest time in which the ship
+---(at the greatest speed of its interval) and the body could close the gap to the sphere.
+---@return number|nil time Nil when the leg stays outside
+local function bodyHit(profile, i, ax, ay, az, ux, uy, uz, t0, tLimit)
+    local radius, bound = hitRadius[i + 1], speedBound[i + 1]
+    local t, k = t0, 1
+    while t <= tLimit do
+        k = locate(profile, t, k)
+        local d = gapAt(profile, k, i, ax, ay, az, ux, uy, uz, t)
+        if d <= radius then return t end
+        t = stepTo(profile, k, t, max(d - radius, GRAZE_STEP * radius) / (profile.vmax[k] + bound))
+    end
+    return nil
+end
+
+---The first body whose sphere the leg enters, and when. The leg runs from `a` along `u` through
+---the profile's times, from `t0` to `tEnd`.
 ---@return integer body Index, -1 for none
 ---@return number time
-local function firstHit(ax, ay, az, ux, uy, uz, t0, tEnd)
+local function firstHit(profile, ax, ay, az, ux, uy, uz, t0, tEnd)
     local found, foundTime = -1, tEnd
     for i = 0, bodyCount - 1 do
-        local radius = hitRadius[i + 1]
-        local closing = speed + speedBound[i + 1]
-        local t = t0
-        while t <= foundTime do
-            local along = speed * (t - t0)
-            local cx, cy, cz = bodyPosition(i, t)
-            local dx, dy, dz = ax + ux * along - cx, ay + uy * along - cy, az + uz * along - cz
-            local d = sqrt(dx * dx + dy * dy + dz * dz)
-            if d <= radius then
-                found, foundTime = i, t
-                break
-            end
-            t = t + max(d - radius, GRAZE_STEP * radius) / closing
-        end
+        local hit = bodyHit(profile, i, ax, ay, az, ux, uy, uz, t0, foundTime)
+        if hit then found, foundTime = i, hit end
     end
     return found, foundTime
 end
 
----The time in the overlap that is half way between its start and its end.
-local function overlapMidTime(i, ax, ay, az, ux, uy, uz, t0, tIn, tEnd)
-    local radius = hitRadius[i + 1]
-    local step = OVERLAP_STEP * radius / (speed + speedBound[i + 1])
-    local last, t = tIn, tIn
+---The time in the overlap that is half way between its start and its end. The overlap ends at
+---the last time the leg is inside the sphere: the walk steps through the sphere by a share of its
+---radius, and after each exit looks ahead for a re-entry.
+local function overlapMidTime(profile, i, ax, ay, az, ux, uy, uz, tIn, tEnd)
+    local radius, bound = hitRadius[i + 1], speedBound[i + 1]
+    local last, t, k = tIn, tIn, 1
     while t <= tEnd do
-        local along = speed * (t - t0)
-        local cx, cy, cz = bodyPosition(i, t)
-        local dx, dy, dz = ax + ux * along - cx, ay + uy * along - cy, az + uz * along - cz
-        if sqrt(dx * dx + dy * dy + dz * dz) <= radius then last = t end
-        t = t + step
+        k = locate(profile, t, k)
+        if gapAt(profile, k, i, ax, ay, az, ux, uy, uz, t) <= radius then
+            last = t
+            t = stepTo(profile, k, t, OVERLAP_STEP * radius / (profile.vmax[k] + bound))
+        else
+            local reentry = bodyHit(profile, i, ax, ay, az, ux, uy, uz, t, tEnd)
+            if not reentry then break end
+            t = reentry
+        end
     end
     return (tIn + last) * HALF
 end
@@ -277,8 +497,8 @@ end
 ---@return number|nil x
 ---@return number y
 ---@return number z
-local function detourPoint(i, ax, ay, az, length, ux, uy, uz, t0, tIn, tEnd, flip)
-    local tm = overlapMidTime(i, ax, ay, az, ux, uy, uz, t0, tIn, tEnd)
+local function detourPoint(profile, i, ax, ay, az, length, ux, uy, uz, tIn, tEnd, flip)
+    local tm = overlapMidTime(profile, i, ax, ay, az, ux, uy, uz, tIn, tEnd)
     local cx, cy, cz = bodyPosition(i, tm)
     local wx, wy, wz = cx - ax, cy - ay, cz - az
     local along = wx * ux + wy * uy + wz * uz
@@ -312,9 +532,9 @@ local function detourPoint(i, ax, ay, az, length, ux, uy, uz, t0, tIn, tEnd, fli
 end
 
 ---Writes the world point (x, y, z) reached at time `t` as an offset from the frame body's position
----at `t` (the point itself for the system frame). Returns false (and sets the status) when the
----buffer is full.
-local function append(x, y, z, t, frame)
+---at `t` (the point itself for the system frame), reached by a leg flown under the drive or not.
+---Returns false (and sets the status) when the buffer is full.
+local function append(x, y, z, t, frame, drive)
     if written >= capacity then
         status = Status.CapacityExceeded
         return false
@@ -326,7 +546,7 @@ local function append(x, y, z, t, frame)
     local base = written * OUT_STRIDE
     out[base + OUT_FRAME], out[base + OUT_X], out[base + OUT_Y], out[base + OUT_Z], out[base + OUT_T] =
         frame, x, y, z, t
-    out[base + OUT_RADIUS], out[base + OUT_SPEED] = 0, 0
+    out[base + OUT_RADIUS], out[base + OUT_SPEED], out[base + OUT_DRIVE] = 0, 0, drive and 1 or 0
     written = written + 1
     return true
 end
@@ -339,14 +559,15 @@ end
 
 local planLeg
 
----Plans the leg a to b through one detour around body `i` and writes its waypoints; the detour
----waypoint is in body `i`'s frame, and b in `bFrame`. `flip` passes the body on the other side.
+---Plans the leg a to b, whose timeline is `profile`, through one detour around body `i` and writes
+---its waypoints; the detour waypoint is in body `i`'s frame, and b in `bFrame`. `flip` passes the
+---body on the other side.
 ---@return number|nil tEnd The time at b, nil when the plan stopped
-local function planDetour(i, ax, ay, az, bx, by, bz, bFrame, length, ux, uy, uz, t0, tIn, tB, depth, flip)
-    local wx, wy, wz = detourPoint(i, ax, ay, az, length, ux, uy, uz, t0, tIn, tB, flip)
+local function planDetour(profile, i, ax, ay, az, bx, by, bz, bFrame, length, ux, uy, uz, t0, tIn, tB, depth, flip)
+    local wx, wy, wz = detourPoint(profile, i, ax, ay, az, length, ux, uy, uz, tIn, tB, flip)
     if not wx then
         fail(Status.NoDetour)
-        return append(bx, by, bz, tB, bFrame) and tB or nil
+        return append(bx, by, bz, tB, bFrame, profile.drive) and tB or nil
     end
     local tW = planLeg(ax, ay, az, t0, wx, wy, wz, i, depth + 1)
     if not tW then return nil end
@@ -354,27 +575,32 @@ local function planDetour(i, ax, ay, az, bx, by, bz, bFrame, length, ux, uy, uz,
 end
 
 ---Plans the leg from a to b (a point in frame `bFrame`), starting at time t0, and writes its
----waypoints. A detour that fails
+---waypoints. The leg's timeline is the drive's where that is sooner. A detour that fails
 ---further down (a waypoint inside another body, a leg that cannot be cleared) is redone on the
 ---other side of the body; if both fail, the first side's result stands.
 ---@return number|nil tEnd The time at b, nil when the plan stopped
 function planLeg(ax, ay, az, t0, bx, by, bz, bFrame, depth)
     local dx, dy, dz = bx - ax, by - ay, bz - az
     local length = sqrt(dx * dx + dy * dy + dz * dz)
-    local tB = t0 + length / speed
     if length <= MIN_LENGTH then
-        return append(bx, by, bz, tB, bFrame) and tB or nil
+        local tB = t0 + length / speed
+        return append(bx, by, bz, tB, bFrame, false) and tB or nil
     end
     local ux, uy, uz = dx / length, dy / length, dz / length
-    local body, tIn = firstHit(ax, ay, az, ux, uy, uz, t0, tB)
+    -- The leg's profile lives at its depth: the legs of a detour use the next depth, so a retry on
+    -- the other side finds this one intact.
+    local profile = legProfile(depth)
+    buildProfile(profile, t0, length, ax, ay, az, ux, uy, uz)
+    local tB = profile.t[profile.count]
+    local body, tIn = firstHit(profile, ax, ay, az, ux, uy, uz, t0, tB)
     if body < 0 or depth >= maxDepth then
         if body >= 0 then fail(Status.DepthExceeded) end
-        return append(bx, by, bz, tB, bFrame) and tB or nil
+        return append(bx, by, bz, tB, bFrame, profile.drive) and tB or nil
     end
 
     local savedWritten, savedFailures, savedStatus = written, failures, status
     local function detour(flip)
-        return planDetour(body, ax, ay, az, bx, by, bz, bFrame, length, ux, uy, uz, t0, tIn, tB, depth, flip)
+        return planDetour(profile, body, ax, ay, az, bx, by, bz, bFrame, length, ux, uy, uz, t0, tIn, tB, depth, flip)
     end
     local tEnd = detour(false)
     if tEnd == nil or failures == savedFailures then return tEnd end
@@ -474,9 +700,11 @@ local function arcIsClear(ex, ey, ez, ox, oy, oz, kx, ky, kz, turn, radius, tEnt
         local qx, qy, qz = SystemPlanner.pointOnArc(ox, oy, oz, ex, ey, ez, kx, ky, kz, step * j)
         local dx, dy, dz = qx - px, qy - py, qz - pz
         local length = sqrt(dx * dx + dy * dy + dz * dz)
-        if length > MIN_LENGTH
-            and firstHit(px, py, pz, dx / length, dy / length, dz / length, t, t + length / speed) >= 0 then
-            return false
+        if length > MIN_LENGTH then
+            flatProfile(chordProfile, t, length)
+            if firstHit(chordProfile, px, py, pz, dx / length, dy / length, dz / length, t, t + length / speed) >= 0 then
+                return false
+            end
         end
         px, py, pz, t = qx, qy, qz, t + duration
     end
@@ -571,9 +799,32 @@ local function setShip(accel, drag)
     end
 end
 
+---Sets the travel-drive scratch from the drive block, or turns the drive off for none. The drive
+---needs a ship with drag (its braking law divides by it).
+---@return boolean valid
+local function setDrive(drive)
+    driveOn = drive ~= nil
+    if not driveOn then return true end
+    local openCap, charge = drive[DRIVE_OPEN_CAP], drive[DRIVE_CHARGE]
+    local rampUp, rampDown = drive[DRIVE_RAMP_UP], drive[DRIVE_RAMP_DOWN]
+    local valid = isFinite(openCap) and openCap >= 1 and isFinite(charge) and charge >= 0
+        and isFinite(rampUp) and rampUp > 0 and isFinite(rampDown) and rampDown > 0 and shipDrag > 0
+    if not valid then
+        driveOn = false
+        return false
+    end
+    driveOpenCap, driveCharge, driveRampUp, driveRampDown = openCap, charge, rampUp, rampDown
+    driveShortestLag = min(1 / rampUp, 1 / rampDown, 1 / shipDrag)
+    driveBrakingTime = TravelDriveMath.brakingTime(rampDown, shipDrag)
+    driveRelease = TravelDriveMath.HANDOVER_MULT * driveBrakingTime * speed
+    return true
+end
+
 ---Plans a path from the start to the goal through the bodies. The goal is the point (gx, gy, gz)
 ---in the system frame, or that offset (world axes) from the centre of body `frame`; a goal on a
----moving body is planned for the time the ship gets there.
+---moving body is planned for the time the ship gets there. With a drive block, a leg is flown
+---under the travel drive where that is sooner, and `Out.Drive` marks it; `planSpeed` is then the
+---ship's speed without the drive.
 ---@param bodiesBuffer userdata `double[?]`, `bodyCount * BODY_STRIDE` values
 ---@param count integer Number of bodies
 ---@param sx number Start x
@@ -589,17 +840,18 @@ end
 ---@param depthLimit integer Detours nested at most this deep, zero or more
 ---@param outBuffer userdata `double[?]`, `outCapacity * OUT_STRIDE` values
 ---@param outCapacity integer Waypoints the output buffer holds
+---@param driveBuffer userdata|nil `double[?]`, `DRIVE_STRIDE` values, nil for no drive
 ---@return integer status A `Status` value
 ---@return integer waypointCount Waypoints written, the goal last when the status allows a plan
 function SystemPlanner.plan(bodiesBuffer, count, sx, sy, sz, frame, gx, gy, gz, planSpeed, accel, drag, depthLimit,
-                            outBuffer, outCapacity)
+                            outBuffer, outCapacity, driveBuffer)
     bodies, bodyCount, speed, maxDepth, out, capacity = bodiesBuffer, count, planSpeed, depthLimit, outBuffer, outCapacity
     goalFrame, written, status, failures = frame, 0, Status.Ok, 0
     if not validRequest(sx, sy, sz, frame, gx, gy, gz, planSpeed, accel, drag, depthLimit, outCapacity) then
         return Status.InvalidInput, 0
     end
     setShip(accel, drag)
-    if not prepareBodies() then return Status.InvalidInput, 0 end
+    if not setDrive(driveBuffer) or not prepareBodies() then return Status.InvalidInput, 0 end
     if frame ~= SYSTEM_FRAME and speedBound[frame + 1] >= planSpeed then return Status.GoalOutrun, 0 end
 
     local fx, fy, fz = goalPoint(gx, gy, gz, 0)

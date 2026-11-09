@@ -84,6 +84,8 @@ local function appendBody(values, obstacle, simTime)
     row[Body.Inclination + 1] = 0
     row[Body.Radius + 1] = obstacle.radius
     row[Body.SafeRadius + 1] = obstacle.safeRadius
+    -- The sandbox plans without the travel drive: no body has a zone.
+    row[Body.ZoneRadius + 1], row[Body.ZoneCap + 1] = 0, 0
     for i = 1, SystemPlanner.BODY_STRIDE do values[#values + 1] = row[i] end
 end
 

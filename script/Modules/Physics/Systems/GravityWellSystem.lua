@@ -5,13 +5,12 @@ local PhysicsComponents   = require("Modules.Physics.Components")
 local SpatialComponents   = require("Modules.Spatial.Components")
 local CelestialComponents = require("Modules.CelestialObjects.Components")
 local OrbitalSystem       = require("Modules.CelestialObjects.Systems.OrbitalSystem")
+local TravelDriveMath     = require("Shared.Helpers.TravelDriveMath")
 
 local OPEN_SPACE = PhysicsComponents.GravityWell.OPEN_SPACE
 
 -- A planet's well reaches at least this far past its outermost moon's orbit radius.
 local MOON_ORBIT_WELL_FACTOR = 1.5
--- The drive cap starts to fall this many well radii away from a body.
-local INFLUENCE_RADIUS_FACTOR = 2.0
 -- Largest body move (game units) in one update that is motion; a larger one is a jump (a rebuilt or
 -- rebased scene), and the ship's carried velocity is kept through it.
 local MAX_FOLLOW_DELTA = 1000
@@ -246,15 +245,8 @@ function GravityWellSystem:getMaxDriveSpeedAt(position)
     for _, zone in ipairs(self.zones) do
         local bodyPos = bodyPosition(zone)
         if bodyPos then
-            local influenceRadius = zone.radius * INFLUENCE_RADIUS_FACTOR
-            local dist = position:distance(bodyPos)
-            if dist < influenceRadius then
-                -- t: 0 at body center, 1 at edge of influence
-                local t = Math.Clamp(dist / influenceRadius, 0, 1)
-                local zoneMin = cfg[zone.zoneType] or cfg[OPEN_SPACE]
-                local zoneSpeed = zoneMin + (cfg[OPEN_SPACE] - zoneMin) * t * t
-                maxSpeed = math.min(maxSpeed, zoneSpeed)
-            end
+            maxSpeed = math.min(maxSpeed, TravelDriveMath.zoneCap(
+                cfg[OPEN_SPACE], cfg[zone.zoneType] or cfg[OPEN_SPACE], zone.radius, position:distance(bodyPos)))
         end
     end
 
