@@ -1,12 +1,9 @@
---- System planner kernel: a path through a system of orbiting bodies as waypoints. It starts from
---- the straight segment, and where the segment enters a body's safe sphere at the body's predicted
---- position it inserts a waypoint where the tangents from both ends to the sphere meet, then checks
---- the two new legs the same way, down to a bounded depth. Each corner is then rounded into an arc
---- with a radius and a speed the ship can hold it at. A waypoint is a body index and an offset
---- from that body (the system frame for none). With a travel-drive block, each leg is timed under
---- the drive where that is sooner, and the drive ends before every corner. Pure numbers in and out
---- (no entities, no globals), so it runs on a worker or in a test state. Not reentrant: it keeps
---- module scratch state.
+--- System planner kernel: a path through a system of orbiting bodies as waypoints (a body index and
+--- an offset from it). Straight legs get detours around the bodies' safe spheres at their predicted
+--- positions, corners are rounded into arcs, legs are timed under the travel drive where that is
+--- sooner, and a goal inside its body's well is flown in the body's frame from the well's edge.
+--- Pure numbers in and out (no entities, no globals), so it runs on a worker or in a test state.
+--- Not reentrant: it keeps module scratch state.
 --- Design: doc/script/system-planner.md.
 local OrbitMath       = require("Shared.Helpers.OrbitMath")
 local TravelDriveMath = require("Shared.Helpers.TravelDriveMath")
@@ -29,7 +26,8 @@ SystemPlanner.Status = {
     InvalidInput       = 4,
     ---A leg crosses a safe sphere and no tangent exists (an end lies inside it); left straight.
     NoDetour           = 5,
-    ---The goal's frame body can move as fast as the ship, so the ship may never catch the goal.
+    ---The goal's frame body can move as fast as the ship can fly to the body's well (or, for a
+    ---goal outside a well, to the goal), so the ship may never catch it.
     GoalOutrun         = 6,
     ---The arrival time at a goal on a moving body did not settle within the iteration limit; the
     ---last iteration's plan is kept, and its times may be off.
@@ -116,6 +114,9 @@ local MAX_DETOUR_RADII = 4
 local CROSSING_SPEED_FRACTION = 0.1
 -- The safe radius of a body that holds an endpoint shrinks to this fraction below the distance.
 local ENDPOINT_SHRINK  = 0.01
+-- A point this close (a fraction of the radius) outside a safe sphere counts as on it, so that an
+-- endpoint on the surface is inside whatever the rounding of the positions it is measured from.
+local ENDPOINT_TOUCH   = 1e-6
 -- Distances below this make a direction undefined.
 local MIN_LENGTH       = 1e-9
 local HALF             = 0.5
@@ -125,6 +126,12 @@ local HALF             = 0.5
 -- jitter that the stepped overlap search puts on a detour point (about 1e-5 s).
 local GOAL_TIME_TOLERANCE = 1e-4
 local MAX_GOAL_ITERATIONS = 50
+-- A goal inside its body's well is planned from an entry point this share inside the well's radius,
+-- so a ship that arrives a little off the entry is still inside the well that carries it.
+local WELL_ENTRY_MARGIN = 0.05
+-- How a goal on a body relates to the body's well: not in it (or it has none), a ship that starts
+-- inside it, or one that starts outside and has to enter it.
+local WELL_NONE, WELL_INSIDE, WELL_ENTRY = 0, 1, 2
 
 -- The share of the forward thrust a ship spends on holding a turn: the turn model's counterpart of
 -- `ORBIT_THRUST_SHARE` in `nav`. The rest is left for the velocity loop's lag and for avoidance.
@@ -176,6 +183,15 @@ local driveMinLength = 0
 local driveShortestLag, driveBrakingTime, driveRelease = 1, 1, 0
 -- Per body: the speed bound of its orbit chain, and the radius of the sphere the hit test uses.
 local speedBound, hitRadius = {}, {}
+-- The frame the legs being planned are flown in: a body index (the legs are straight lines of
+-- offsets from that body, which carries the ship), or SYSTEM_FRAME. Per body: the speed bound of
+-- its motion relative to that frame. Per waypoint written: the frame of the leg that ends there.
+local legFrame, legBound, legFrameOf = SYSTEM_FRAME, {}, {}
+-- A goal on a body: how it relates to the body's well, the entry sphere's radius, the waypoint
+-- written for the entry, and the entry's offset from the body and its distance from the start in
+-- the last pass.
+local wellMode, entryRadius, entryIndex, entryOffsetX, entryOffsetY, entryOffsetZ, entryChord =
+    WELL_NONE, 0, -1, 0, 0, 0, 0
 -- The timeline of a leg: its samples (time, distance along the leg) and, per interval between two
 -- samples, the greatest speed in it. A leg's profile is kept per recursion depth, so a retry on
 -- the other side of a body finds its parent's intact; chords of an arc use their own.
@@ -235,7 +251,8 @@ local function resetHitRadii()
     end
 end
 
----Shrinks the hit radius of every body whose safe sphere holds the point at time `t`.
+---Shrinks the hit radius of every body whose safe sphere holds the point at time `t`, a point on
+---the sphere's surface included (a leg that ends there counts as inside it).
 ---@return boolean ok False when the point is inside a body's hull
 local function shrinkAround(x, y, z, t)
     for i = 0, bodyCount - 1 do
@@ -244,11 +261,36 @@ local function shrinkAround(x, y, z, t)
         local d = sqrt(dx * dx + dy * dy + dz * dz)
         local radius = bodies[i * BODY_STRIDE + BODY_RADIUS]
         if d <= radius then return false end
-        if d < hitRadius[i + 1] then
+        if d <= hitRadius[i + 1] * (1 + ENDPOINT_TOUCH) then
             hitRadius[i + 1] = max(radius, d * (1 - ENDPOINT_SHRINK))
         end
     end
     return true
+end
+
+---Flies the legs that follow in the frame of body `frame`, or in the system for SYSTEM_FRAME.
+---The bound of a body's motion relative to the frame is at most the sum of the two bounds, and
+---zero for the frame body itself.
+local function setLegFrame(frame)
+    legFrame = frame
+    for i = 0, bodyCount - 1 do
+        if frame == SYSTEM_FRAME then
+            legBound[i + 1] = speedBound[i + 1]
+        elseif i == frame then
+            legBound[i + 1] = 0
+        else
+            legBound[i + 1] = speedBound[i + 1] + speedBound[frame + 1]
+        end
+    end
+end
+
+---Where body `i` is `t` seconds from the snapshot, in the legs' frame: the offset from the frame
+---body's position at `t`, or the system position for the system frame.
+local function legBodyPosition(i, t)
+    local x, y, z = bodyPosition(i, t)
+    if legFrame == SYSTEM_FRAME then return x, y, z end
+    local fx, fy, fz = bodyPosition(legFrame, t)
+    return x - fx, y - fy, z - fz
 end
 
 ---The profile of the leg at recursion depth `depth`.
@@ -281,13 +323,13 @@ local function zoneState(x, y, z, t, v)
         local base = i * BODY_STRIDE
         local zoneRadius = bodies[base + ZONE_RADIUS]
         if zoneRadius > 0 then
-            local cx, cy, cz = bodyPosition(i, t)
+            local cx, cy, cz = legBodyPosition(i, t)
             local dx, dy, dz = x - cx, y - cy, z - cz
             local d = sqrt(dx * dx + dy * dy + dz * dz)
             limit = min(limit, TravelDriveMath.zoneCap(driveOpenCap, bodies[base + ZONE_CAP], zoneRadius, d))
             local influence = zoneRadius * TravelDriveMath.INFLUENCE_RADIUS_FACTOR
             local gap = max(abs(d - influence), DRIVE_FEATURE_FLOOR * influence)
-            step = min(step, DRIVE_FEATURE_STEP * gap / (v + speedBound[i + 1]))
+            step = min(step, DRIVE_FEATURE_STEP * gap / (v + legBound[i + 1]))
         end
     end
     return limit, step
@@ -391,7 +433,7 @@ end
 ---The distance from the ship, `t` seconds in (interval `k` of the profile), to the centre of body `i`.
 local function gapAt(profile, k, i, ax, ay, az, ux, uy, uz, t)
     local along = distanceAt(profile, t, k)
-    local cx, cy, cz = bodyPosition(i, t)
+    local cx, cy, cz = legBodyPosition(i, t)
     local dx, dy, dz = ax + ux * along - cx, ay + uy * along - cy, az + uz * along - cz
     return sqrt(dx * dx + dy * dy + dz * dz)
 end
@@ -409,7 +451,7 @@ end
 ---(at the greatest speed of its interval) and the body could close the gap to the sphere.
 ---@return number|nil time Nil when the leg stays outside
 local function bodyHit(profile, i, ax, ay, az, ux, uy, uz, t0, tLimit)
-    local radius, bound = hitRadius[i + 1], speedBound[i + 1]
+    local radius, bound = hitRadius[i + 1], legBound[i + 1]
     local t, k = t0, 1
     while t <= tLimit do
         k = locate(profile, t, k)
@@ -437,7 +479,7 @@ end
 ---the last time the leg is inside the sphere: the walk steps through the sphere by a share of its
 ---radius, and after each exit looks ahead for a re-entry.
 local function overlapMidTime(profile, i, ax, ay, az, ux, uy, uz, tIn, tEnd)
-    local radius, bound = hitRadius[i + 1], speedBound[i + 1]
+    local radius, bound = hitRadius[i + 1], legBound[i + 1]
     local last, t, k = tIn, tIn, 1
     while t <= tEnd do
         k = locate(profile, t, k)
@@ -479,9 +521,9 @@ end
 ---detour point is not where the body is heading. `n` is the vector from the centre to the nearest
 ---point of the line, and `h` its length.
 local function detourSide(i, tm, ux, uy, uz, nx, ny, nz, h)
-    local delta = OVERLAP_STEP * hitRadius[i + 1] / (speed + speedBound[i + 1])
-    local x1, y1, z1 = bodyPosition(i, tm + delta)
-    local x0, y0, z0 = bodyPosition(i, tm - delta)
+    local delta = OVERLAP_STEP * hitRadius[i + 1] / (speed + legBound[i + 1])
+    local x1, y1, z1 = legBodyPosition(i, tm + delta)
+    local x0, y0, z0 = legBodyPosition(i, tm - delta)
     local vx, vy, vz = (x1 - x0) / (2 * delta), (y1 - y0) / (2 * delta), (z1 - z0) / (2 * delta)
     local alongSpeed = vx * ux + vy * uy + vz * uz
     local sx, sy, sz = vx - alongSpeed * ux, vy - alongSpeed * uy, vz - alongSpeed * uz
@@ -505,7 +547,7 @@ end
 ---@return number z
 local function detourPoint(profile, i, ax, ay, az, length, ux, uy, uz, tIn, tEnd, flip)
     local tm = overlapMidTime(profile, i, ax, ay, az, ux, uy, uz, tIn, tEnd)
-    local cx, cy, cz = bodyPosition(i, tm)
+    local cx, cy, cz = legBodyPosition(i, tm)
     local wx, wy, wz = cx - ax, cy - ay, cz - az
     local along = wx * ux + wy * uy + wz * uz
     -- n: from the centre to the nearest point of the leg's line
@@ -537,18 +579,20 @@ local function detourPoint(profile, i, ax, ay, az, length, ux, uy, uz, tIn, tEnd
     return cx + ux * pu + ex * pe, cy + uy * pu + ey * pe, cz + uz * pu + ez * pe
 end
 
----Writes the world point (x, y, z) reached at time `t` as an offset from the frame body's position
----at `t` (the point itself for the system frame), reached by a leg flown under the drive or not.
----Returns false (and sets the status) when the buffer is full.
+---Writes the point (x, y, z) of the legs' frame reached at time `t` as an offset from the output
+---frame body's position at `t` (the point itself for the system frame), reached by a leg flown under
+---the drive or not, and notes the legs' frame. Returns false (and sets the status) when the buffer
+---is full.
 local function append(x, y, z, t, frame, drive)
     if written >= capacity then
         status = Status.CapacityExceeded
         return false
     end
     if frame ~= SYSTEM_FRAME then
-        local cx, cy, cz = bodyPosition(frame, t)
+        local cx, cy, cz = legBodyPosition(frame, t)
         x, y, z = x - cx, y - cy, z - cz
     end
+    legFrameOf[written + 1] = legFrame
     local base = written * OUT_STRIDE
     out[base + OUT_FRAME], out[base + OUT_X], out[base + OUT_Y], out[base + OUT_Z], out[base + OUT_T] =
         frame, x, y, z, t
@@ -740,26 +784,39 @@ local function roundCorner(px, py, pz, cx, cy, cz, nx, ny, nz, tCorner)
     return 0, 0
 end
 
----The world point of waypoint `k` of the output (the start for -1): its offset from its frame
----body's position at the waypoint's time.
-local function waypointPoint(k, sx, sy, sz)
-    if k < 0 then return sx, sy, sz end
+---The point of waypoint `k` of the output (the start for -1) in the legs' frame: its offset from
+---its frame body's position at the waypoint's time, as seen from the legs' frame.
+local function legWaypointPoint(k, sx, sy, sz)
+    if k < 0 then
+        if legFrame == SYSTEM_FRAME then return sx, sy, sz end
+        local fx, fy, fz = bodyPosition(legFrame, 0)
+        return sx - fx, sy - fy, sz - fz
+    end
     local base = k * OUT_STRIDE
     local frame, x, y, z = out[base + OUT_FRAME], out[base + OUT_X], out[base + OUT_Y], out[base + OUT_Z]
     if frame == SYSTEM_FRAME then return x, y, z end
-    local cx, cy, cz = bodyPosition(frame, out[base + OUT_T])
+    local cx, cy, cz = legBodyPosition(frame, out[base + OUT_T])
     return x + cx, y + cy, z + cz
 end
 
----Gives every corner of the written plan its arc radius and passing speed. The goal keeps radius
----and speed zero, since the ship stops there. The plan's times stay as the legs gave them.
+---Gives every corner of the written plan its arc radius and passing speed. A corner is rounded in
+---the frame its two legs are flown in; the corner where the frame changes (the entry into a well)
+---is not rounded and is passed at the planning speed. The goal keeps radius and speed zero, since
+---the ship stops there. The plan's times stay as the legs gave them.
 local function roundCorners(sx, sy, sz)
     for k = 0, written - 2 do
-        local px, py, pz = waypointPoint(k - 1, sx, sy, sz)
-        local cx, cy, cz = waypointPoint(k, sx, sy, sz)
-        local nx, ny, nz = waypointPoint(k + 1, sx, sy, sz)
         local base = k * OUT_STRIDE
-        out[base + OUT_RADIUS], out[base + OUT_SPEED] = roundCorner(px, py, pz, cx, cy, cz, nx, ny, nz, out[base + OUT_T])
+        local inFrame = legFrameOf[k + 1]
+        if inFrame ~= legFrameOf[k + 2] then
+            out[base + OUT_RADIUS], out[base + OUT_SPEED] = 0, speed
+        else
+            setLegFrame(inFrame)
+            local px, py, pz = legWaypointPoint(k - 1, sx, sy, sz)
+            local cx, cy, cz = legWaypointPoint(k, sx, sy, sz)
+            local nx, ny, nz = legWaypointPoint(k + 1, sx, sy, sz)
+            out[base + OUT_RADIUS], out[base + OUT_SPEED] =
+                roundCorner(px, py, pz, cx, cy, cz, nx, ny, nz, out[base + OUT_T])
+        end
     end
 end
 
@@ -771,15 +828,81 @@ local function goalPoint(gx, gy, gz, time)
     return gx + cx, gy + cy, gz + cz
 end
 
----One full plan toward the goal as it is at `goalTime`.
+---How the goal, an offset (gx, gy, gz) from its body, relates to the body's well: the well applies
+---when the offset is inside the entry sphere, which is larger than the body's safe sphere (else
+---the entry would be inside it). Sets `entryRadius`.
+---@return integer mode `WELL_NONE`, `WELL_INSIDE` (the start is inside the well) or `WELL_ENTRY`
+local function chooseWellMode(sx, sy, sz, gx, gy, gz)
+    entryRadius = 0
+    if goalFrame == SYSTEM_FRAME then return WELL_NONE end
+    local base = goalFrame * BODY_STRIDE
+    local wellRadius = bodies[base + ZONE_RADIUS]
+    local entry = wellRadius * (1 - WELL_ENTRY_MARGIN)
+    if wellRadius <= 0 or entry <= bodies[base + SAFE_RADIUS] then return WELL_NONE end
+    if sqrt(gx * gx + gy * gy + gz * gz) >= entry then return WELL_NONE end
+    entryRadius = entry
+    local cx, cy, cz = bodyPosition(goalFrame, 0)
+    local dx, dy, dz = sx - cx, sy - cy, sz - cz
+    return sqrt(dx * dx + dy * dy + dz * dz) < wellRadius and WELL_INSIDE or WELL_ENTRY
+end
+
+---The offset from the goal's body, at `entryTime`, of the point where the straight line from the
+---start to the goal first crosses the entry sphere: the start is `a` from the body and the goal is
+---`g`, so the line is `a + λ(g − a)` and `λ` is the smaller root of `|a + λ(g − a)|² = r²`. A start
+---already inside the sphere at that time enters at once (`λ = 0`).
+local function entryOffset(sx, sy, sz, gx, gy, gz, entryTime)
+    local cx, cy, cz = bodyPosition(goalFrame, entryTime)
+    local ax, ay, az = sx - cx, sy - cy, sz - cz
+    local dx, dy, dz = gx - ax, gy - ay, gz - az
+    local qa = dx * dx + dy * dy + dz * dz
+    local qb = ax * dx + ay * dy + az * dz
+    local qc = ax * ax + ay * ay + az * az - entryRadius * entryRadius
+    local lambda = 0
+    if qc > 0 and qa > MIN_LENGTH then
+        lambda = max(0, (-qb - sqrt(max(0, qb * qb - qa * qc))) / qa)
+    end
+    return ax + dx * lambda, ay + dy * lambda, az + dz * lambda
+end
+
+---Plans the part of the goal's well: the whole plan in the body's frame when the start is inside
+---the well, else the system part to the entry and the part in the body's frame from there. Notes
+---the entry's waypoint and offset.
+---@return number|nil tEnd The time the plan reaches its last point, nil when it stopped
+---@return number|nil tEntry The time at the entry, nil for a ship that starts inside the well
+local function planWell(sx, sy, sz, gx, gy, gz, entryTime)
+    if wellMode == WELL_INSIDE then
+        setLegFrame(goalFrame)
+        local fx, fy, fz = bodyPosition(goalFrame, 0)
+        return planLeg(sx - fx, sy - fy, sz - fz, 0, gx, gy, gz, goalFrame, 0)
+    end
+    local ex, ey, ez = entryOffset(sx, sy, sz, gx, gy, gz, entryTime)
+    local cx, cy, cz = bodyPosition(goalFrame, entryTime)
+    local wx, wy, wz = ex + cx, ey + cy, ez + cz
+    entryOffsetX, entryOffsetY, entryOffsetZ = ex, ey, ez
+    entryChord = sqrt((wx - sx) ^ 2 + (wy - sy) ^ 2 + (wz - sz) ^ 2)
+    local tEntry = planLeg(sx, sy, sz, 0, wx, wy, wz, goalFrame, 0)
+    if not tEntry then return nil end
+    entryIndex = written - 1
+    setLegFrame(goalFrame)
+    return planLeg(ex, ey, ez, tEntry, gx, gy, gz, goalFrame, 0), tEntry
+end
+
+---One full plan toward the goal as it is at `goalTime` (and, for a goal in a well that the ship
+---has to enter, the entry as it is at `entryTime`).
 ---@return boolean ok False when an endpoint is inside a body's hull
 ---@return number|nil tEnd The time the plan reaches its last point, nil when it stopped
-local function planPass(sx, sy, sz, gx, gy, gz, goalTime)
-    written, status, failures = 0, Status.Ok, 0
+---@return number|nil tEntry The time at the entry, when the plan has one
+local function planPass(sx, sy, sz, gx, gy, gz, goalTime, entryTime)
+    written, status, failures, entryIndex = 0, Status.Ok, 0, -1
     resetHitRadii()
+    setLegFrame(SYSTEM_FRAME)
     local px, py, pz = goalPoint(gx, gy, gz, goalTime)
     if not (shrinkAround(sx, sy, sz, 0) and shrinkAround(px, py, pz, goalTime)) then return false end
-    return true, planLeg(sx, sy, sz, 0, px, py, pz, goalFrame, 0)
+    if wellMode == WELL_NONE then
+        return true, planLeg(sx, sy, sz, 0, px, py, pz, goalFrame, 0)
+    end
+    local tEnd, tEntry = planWell(sx, sy, sz, gx, gy, gz, entryTime)
+    return true, tEnd, tEntry
 end
 
 ---Whether the numbers and the frame index of a request are usable.
@@ -829,11 +952,24 @@ local function setDrive(drive)
     return true
 end
 
+---Whether the goal's body can move as fast as the ship can fly before the ship reaches the body's
+---well, so that the ship may never catch the goal. A ship that starts inside the well is carried
+---with the body, and the body's speed does not matter. Without a well to enter, the ship's top
+---speed is the planning speed; with one, it is the drive's top speed when the plan has a drive.
+local function outrunsBeforePlanning(frame, planSpeed)
+    if frame == SYSTEM_FRAME or wellMode == WELL_INSIDE then return false end
+    local top = planSpeed
+    if wellMode == WELL_ENTRY and driveOn then top = planSpeed * driveOpenCap end
+    return speedBound[frame + 1] >= top
+end
+
 ---Plans a path from the start to the goal through the bodies. The goal is the point (gx, gy, gz)
 ---in the system frame, or that offset (world axes) from the centre of body `frame`; a goal on a
----moving body is planned for the time the ship gets there. With a drive block, a leg is flown
----under the travel drive where that is sooner and the leg is at least the drive's minimum length,
----and `Out.Drive` marks it; `planSpeed` is then the ship's speed without the drive.
+---moving body is planned for the time the ship gets there, and a goal inside that body's well
+---(`ZoneRadius`) is planned to the well's edge in the system, then in the body's frame, which
+---carries the ship. With a drive block, a leg is flown under the travel drive where that is sooner
+---and the leg is at least the drive's minimum length, and `Out.Drive` marks it; `planSpeed` is then
+---the ship's speed without the drive.
 ---@param bodiesBuffer userdata `double[?]`, `bodyCount * BODY_STRIDE` values
 ---@param count integer Number of bodies
 ---@param sx number Start x
@@ -861,25 +997,39 @@ function SystemPlanner.plan(bodiesBuffer, count, sx, sy, sz, frame, gx, gy, gz, 
     end
     setShip(accel, drag)
     if not setDrive(driveBuffer) or not prepareBodies() then return Status.InvalidInput, 0 end
-    if frame ~= SYSTEM_FRAME and speedBound[frame + 1] >= planSpeed then return Status.GoalOutrun, 0 end
+    wellMode = chooseWellMode(sx, sy, sz, gx, gy, gz)
+    if outrunsBeforePlanning(frame, planSpeed) then return Status.GoalOutrun, 0 end
 
     local fx, fy, fz = goalPoint(gx, gy, gz, 0)
     local dx, dy, dz = fx - sx, fy - sy, fz - sz
     local goalTime = sqrt(dx * dx + dy * dy + dz * dz) / planSpeed
-    local settled = false
+    local entryTime = goalTime
+    local settled, tEntry = false, nil
     for _ = 1, frame == SYSTEM_FRAME and 1 or MAX_GOAL_ITERATIONS do
-        local ok, tEnd = planPass(sx, sy, sz, gx, gy, gz, goalTime)
+        local ok, tEnd
+        ok, tEnd, tEntry = planPass(sx, sy, sz, gx, gy, gz, goalTime, entryTime)
         if not ok then return Status.EndpointInsideBody, 0 end
-        settled = frame == SYSTEM_FRAME or tEnd == nil or abs(tEnd - goalTime) <= GOAL_TIME_TOLERANCE
+        settled = frame == SYSTEM_FRAME or tEnd == nil
+            or (abs(tEnd - goalTime) <= GOAL_TIME_TOLERANCE
+                and (tEntry == nil or abs(tEntry - entryTime) <= GOAL_TIME_TOLERANCE))
         if settled then break end
-        goalTime = tEnd
+        goalTime, entryTime = tEnd, tEntry or entryTime
     end
-    if not settled and status == Status.Ok then status = Status.GoalNotSettled end
+    if not settled then
+        -- A ship that cannot close on the well's entry never settles on it.
+        if wellMode == WELL_ENTRY and entryChord <= speedBound[frame + 1] * tEntry then return Status.GoalOutrun, 0 end
+        if status == Status.Ok then status = Status.GoalNotSettled end
+    end
 
-    -- The goal keeps the caller's offset exactly, not the one rounded from the last pass's point.
+    -- The goal and the entry keep their offsets exactly, not the ones rounded from the last pass's
+    -- points.
     if frame ~= SYSTEM_FRAME and written > 0 and status ~= Status.CapacityExceeded then
         local base = (written - 1) * OUT_STRIDE
         out[base + OUT_X], out[base + OUT_Y], out[base + OUT_Z] = gx, gy, gz
+        if entryIndex >= 0 then
+            base = entryIndex * OUT_STRIDE
+            out[base + OUT_X], out[base + OUT_Y], out[base + OUT_Z] = entryOffsetX, entryOffsetY, entryOffsetZ
+        end
     end
     if status ~= Status.CapacityExceeded then roundCorners(sx, sy, sz) end
     return status, written

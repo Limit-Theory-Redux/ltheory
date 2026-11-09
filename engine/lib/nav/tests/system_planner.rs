@@ -1148,6 +1148,364 @@ fn a_goal_on_a_body_that_can_outrun_the_ship_is_an_error() {
     assert!(plan.points.is_empty());
 }
 
+// ---- The goal body's gravity well ----
+
+/// The radius of the well the planet in these tests carries ships in, and the share of it that the
+/// entry waypoint lies at (the rule of `doc/script/system-planner.md`).
+const WELL_RADIUS: f64 = 10000.0;
+const WELL_ENTRY_SHARE: f64 = 0.95;
+const WELL_ORBIT_RADIUS: f64 = 100000.0;
+/// The drive multiplier at the planet's centre.
+const WELL_ZONE_CAP: f64 = 2000.0;
+const PLANET_RADIUS: f64 = 1000.0;
+
+/// A planet on a circle round the origin at `speed`, with a well of `WELL_RADIUS`.
+fn well_planet(speed: f64) -> Body {
+    orbiting(
+        -1,
+        WELL_ORBIT_RADIUS,
+        0.0,
+        speed / WELL_ORBIT_RADIUS,
+        PLANET_RADIUS,
+    )
+    .with_zone(WELL_RADIUS, WELL_ZONE_CAP)
+}
+
+/// The planner's answer for a goal at `offset` from the planet (body 0), under `drive`.
+fn plan_in_well(
+    planner: &Planner,
+    planet: Body,
+    start: Vec3,
+    offset: Vec3,
+    drive: Option<Drive>,
+) -> Plan {
+    planner.run_driven(
+        &[planet],
+        start,
+        0,
+        offset,
+        SPEED,
+        SHIP,
+        DEPTH,
+        CAPACITY,
+        drive,
+    )
+}
+
+/// The distance from the origin to the segment `a`-`b`.
+fn segment_distance_to_origin(a: Vec3, b: Vec3) -> f64 {
+    let ab = sub(b, a);
+    let along = (-dot(a, ab) / dot(ab, ab)).clamp(0.0, 1.0);
+    distance(plus(a, scaled(ab, along)), [0.0; 3])
+}
+
+#[test]
+fn a_body_faster_than_the_ship_is_reached_through_an_entry_in_its_well() {
+    let planner = Planner::new();
+    let planet = well_planet(3.0 * SPEED);
+    let offset = [3000.0, 0.0, 500.0];
+    let start = [-100000.0, 0.0, 50000.0];
+
+    // Without a well the same planet outruns the ship, which is the failure this fixes.
+    let bare = Body {
+        zone_radius: 0.0,
+        zone_cap: 0.0,
+        ..planet
+    };
+    let plan = plan_in_well(&planner, bare, start, offset, Some(DRIVE));
+    assert_eq!(plan.status, STATUS_GOAL_OUTRUN);
+
+    let plan = plan_in_well(&planner, planet, start, offset, Some(DRIVE));
+    assert_eq!(plan.status, STATUS_OK, "{:?}", plan.points);
+    let n = plan.frames.len();
+    assert_eq!(plan.frames[n - 1], 0, "the goal rides on the planet");
+    assert_eq!(plan.offsets[n - 1], offset, "the goal keeps its offset");
+    let e = entry_index(&plan).expect("the entry, in the planet's frame at the entry radius");
+    assert_eq!(e, 0, "the system part is one leg");
+    assert_eq!(plan.radii[e], 0.0, "the entry corner is not rounded");
+    assert!(plan.speeds[e] > 0.0, "and not passed at rest");
+    assert!(plan.drives[e], "the long leg to the well is driven");
+    assert!(plan.times[e] > 0.0 && plan.times[n - 1] > plan.times[e]);
+    // The entry is further than the planning speed gets in its time: the drive reached it.
+    assert!(
+        distance(start, plan.points[e]) > SPEED * plan.times[e],
+        "the entry is further than the planning speed gets in its time"
+    );
+}
+
+/// The waypoint at the entry radius in the planet's frame: the entry that the kernel placed.
+fn entry_index(plan: &Plan) -> Option<usize> {
+    plan.frames
+        .iter()
+        .zip(&plan.offsets)
+        .position(|(frame, offset)| {
+            *frame == 0
+                && (distance(*offset, [0.0; 3]) - WELL_RADIUS * WELL_ENTRY_SHARE).abs()
+                    <= 1e-9 * WELL_RADIUS
+        })
+}
+
+#[test]
+fn a_ship_inside_the_goals_well_is_planned_in_the_frame_whatever_the_bodys_speed() {
+    let planner = Planner::new();
+    // The planet moves ten times the ship's speed, which the ship in its well does not feel.
+    let planet = well_planet(10.0 * SPEED);
+    let centre = body_position(&[planet], 0, 0.0);
+    let start_offset = [-6000.0, 0.0, 2000.0];
+    let start = plus(centre, start_offset);
+    // The line from the start to the goal passes within the planet's safe sphere.
+    let offset = [4000.0, 0.0, 0.0];
+    let plan = plan_in_well(&planner, planet, start, offset, None);
+    assert_eq!(plan.status, STATUS_OK, "{:?}", plan.offsets);
+    assert!(
+        plan.frames.iter().all(|frame| *frame == 0),
+        "{:?}",
+        plan.frames
+    );
+    assert_eq!(plan.offsets.last(), Some(&offset));
+    assert!(
+        plan.detours() >= 1,
+        "the planet is in the way: {:?}",
+        plan.offsets
+    );
+
+    // The path is the same as for a planet that stands still: lengths, times and clearance are
+    // those of the offsets.
+    let mut corners = vec![start_offset];
+    corners.extend(plan.offsets.iter().copied());
+    let mut length = 0.0;
+    for (k, time) in plan.times.iter().enumerate() {
+        length += distance(corners[k], corners[k + 1]);
+        assert_close(
+            *time,
+            length / SPEED,
+            1e-6 * (1.0 + time) + GOAL_TIME_SLACK,
+            "time",
+        );
+        assert!(
+            segment_distance_to_origin(corners[k], corners[k + 1])
+                >= planet.safe * CLEARANCE_TOLERANCE,
+            "leg {k} cuts the planet's safe sphere"
+        );
+    }
+}
+
+#[test]
+fn a_body_that_outruns_the_part_before_its_well_is_an_error() {
+    let planner = Planner::new();
+    let offset = [3000.0, 0.0, 500.0];
+    let start = [-100000.0, 0.0, 50000.0];
+    // Faster than the planning speed, with no drive to catch it.
+    let plan = plan_in_well(&planner, well_planet(3.0 * SPEED), start, offset, None);
+    assert_eq!(plan.status, STATUS_GOAL_OUTRUN);
+    assert!(plan.points.is_empty());
+    // Faster than the drive's top speed.
+    let fast = well_planet(2.0 * DRIVE.open_cap * SPEED);
+    let plan = plan_in_well(&planner, fast, start, offset, Some(DRIVE));
+    assert_eq!(plan.status, STATUS_GOAL_OUTRUN);
+    assert!(plan.points.is_empty());
+}
+
+#[test]
+fn a_part_before_the_well_that_is_too_short_to_drive_cannot_catch_a_fast_body() {
+    let planner = Planner::new();
+    let never = Drive {
+        min_length: 1e9,
+        ..DRIVE
+    };
+    let planet = well_planet(5.0 * SPEED);
+    let start = [-100000.0, 0.0, 50000.0];
+    let offset = [3000.0, 0.0, 500.0];
+    // The part before the well is flown at the planning speed, which the planet outruns: the
+    // arrival at the entry does not settle, and the ship cannot close on it.
+    let plan = plan_in_well(&planner, planet, start, offset, Some(never));
+    assert_eq!(plan.status, STATUS_GOAL_OUTRUN, "{:?}", plan.offsets);
+    assert!(plan.points.is_empty());
+    // The drive that the same part is flown under catches it.
+    let plan = plan_in_well(&planner, planet, start, offset, Some(DRIVE));
+    assert_eq!(plan.status, STATUS_OK, "{:?}", plan.offsets);
+}
+
+#[test]
+fn a_goal_outside_the_bodys_well_is_planned_as_before() {
+    let planner = Planner::new();
+    let start = [-100000.0, 0.0, 50000.0];
+    // Beyond the well: nothing changes for a body that has one.
+    let outside = [2.0 * WELL_RADIUS, 0.0, 0.0];
+    let slow = well_planet(0.5 * SPEED);
+    let bare = Body {
+        zone_radius: 0.0,
+        zone_cap: 0.0,
+        ..slow
+    };
+    let with_well = plan_in_well(&planner, slow, start, outside, None);
+    let without = plan_in_well(&planner, bare, start, outside, None);
+    assert_eq!(with_well.status, STATUS_OK);
+    assert_eq!(with_well.status, without.status);
+    assert_eq!(with_well.frames, without.frames);
+    assert_eq!(with_well.offsets, without.offsets);
+    assert_eq!(with_well.times, without.times);
+    // And a fast body still outruns the ship there.
+    let plan = plan_in_well(
+        &planner,
+        well_planet(3.0 * SPEED),
+        start,
+        outside,
+        Some(DRIVE),
+    );
+    assert_eq!(plan.status, STATUS_GOAL_OUTRUN);
+}
+
+#[test]
+fn a_slow_body_with_a_well_gets_the_same_entry_without_the_drive() {
+    let planner = Planner::new();
+    let planet = well_planet(0.4 * SPEED);
+    let offset = [3000.0, 0.0, 500.0];
+    let plan = plan_in_well(&planner, planet, [-100000.0, 0.0, 50000.0], offset, None);
+    assert_eq!(plan.status, STATUS_OK, "{:?}", plan.points);
+    let n = plan.frames.len();
+    assert_eq!(plan.offsets[n - 1], offset);
+    let e = entry_index(&plan).expect("the entry");
+    assert_eq!(e, 0, "the system part is one leg");
+    // The system part is flown at the planning speed, to where the planet is on entering.
+    assert_close(
+        distance([-100000.0, 0.0, 50000.0], plan.points[e]) / SPEED,
+        plan.times[e],
+        1e-6 * plan.times[e],
+        "entry time",
+    );
+    // The part in the well is a line of offsets, timed as one.
+    let mut length = 0.0;
+    for k in e + 1..n {
+        length += distance(plan.offsets[k - 1], plan.offsets[k]);
+    }
+    assert_close(
+        length / SPEED,
+        plan.times[n - 1] - plan.times[e],
+        1e-6 * plan.times[n - 1] + GOAL_TIME_SLACK,
+        "time in the well",
+    );
+}
+
+#[test]
+fn random_goals_in_a_wells_are_reached_or_the_status_says_why() {
+    const CASES: usize = 200;
+    const EXTENT: f64 = 250000.0;
+    let planner = Planner::new();
+    let mut rng = Rng(0x7C21_90AE_5B33_F0D1);
+    let (mut ok, mut inside, mut entered, mut outrun, mut not_settled) = (0, 0, 0, 0, 0);
+    let mut cases = 0;
+    while cases < CASES {
+        let planet = Body {
+            phase: rng.range(0.0, std::f64::consts::TAU),
+            ..well_planet(rng.range(0.2, 6.0) * SPEED)
+        };
+        let centre = body_position(&[planet], 0, 0.0);
+        // One start in three is inside the well.
+        let start = if rng.next() < 1.0 / 3.0 {
+            plus(centre, rng.point(0.5 * WELL_RADIUS))
+        } else {
+            rng.point(EXTENT)
+        };
+        let direction = rng.point(1.0);
+        let norm = distance(direction, [0.0; 3]);
+        let to_planet = distance(start, centre);
+        if norm < 0.1 || to_planet < 2.0 * planet.safe {
+            continue;
+        }
+        let reach = rng.range(2.0, 0.9 * WELL_RADIUS / planet.safe) * planet.safe / norm;
+        let offset = direction.map(|component| component * reach);
+        let drive = (rng.next() < 0.5).then_some(DRIVE);
+        let plan = plan_in_well(&planner, planet, start, offset, drive);
+        cases += 1;
+        match plan.status {
+            STATUS_OK => {
+                ok += 1;
+                let n = plan.frames.len();
+                assert_eq!(plan.frames[n - 1], 0);
+                assert_eq!(plan.offsets[n - 1], offset);
+                let started_inside = to_planet < WELL_RADIUS;
+                if started_inside {
+                    inside += 1;
+                    assert!(plan.frames.iter().all(|frame| *frame == 0));
+                } else {
+                    entered += 1;
+                    assert!(
+                        entry_index(&plan).is_some(),
+                        "the entry: {:?}",
+                        plan.offsets
+                    );
+                }
+                // Every leg after the entry, or from the start inside the well, keeps clear of
+                // the planet in its frame.
+                let first_framed = entry_index(&plan).map_or(0, |e| e + 1);
+                for k in first_framed.max(1)..n {
+                    assert!(
+                        segment_distance_to_origin(plan.offsets[k - 1], plan.offsets[k])
+                            >= planet.safe * CLEARANCE_TOLERANCE,
+                        "leg {k} cuts the planet: {:?}",
+                        plan.offsets
+                    );
+                }
+            }
+            STATUS_GOAL_OUTRUN => outrun += 1,
+            STATUS_GOAL_NOT_SETTLED => not_settled += 1,
+            other => panic!("status {other}: {:?}", plan.offsets),
+        }
+    }
+    println!(
+        "well goals: ok {ok} (inside {inside}, entered {entered}), outrun {outrun}, not settled {not_settled}"
+    );
+    assert!(ok * 10 >= CASES * 5, "many cases plan: {ok}");
+    assert!(entered >= 20, "entries occur: {entered}");
+    assert!(outrun >= 1, "a body that is too fast occurs");
+    assert!(
+        not_settled * 10 <= CASES,
+        "few cases do not settle: {not_settled}"
+    );
+}
+
+#[test]
+fn a_goal_on_the_safe_sphere_of_its_body_is_reached_straight_whatever_the_rounding() {
+    const DIRECTIONS: usize = 200;
+    const SAFE: f64 = 150.0;
+    const START_DISTANCE: f64 = 600.0;
+    let planner = Planner::new();
+    // The numbers of a ship flying to a planet's stand-off point, which is its safe radius: the
+    // positions are large next to the offsets, so the rounding of the world positions differs from
+    // that of the offsets.
+    let ship = Ship {
+        accel: 1.76,
+        drag: 2.0,
+    };
+    let star = fixed([0.0; 3], 1.0, 2.0);
+    // A planet that outruns the ship, with a well that holds the start, and a slow one with none.
+    let fast = orbiting(0, 10000.0, 0.0, 1.76 / 10000.0, 100.0).with_zone(1000.0, 2000.0);
+    let slow = orbiting(0, 10000.0, 0.0, 0.1 / 10000.0, 100.0);
+    assert_eq!(fast.safe, SAFE);
+    let mut rng = Rng(0x51A7_0E22_4D9B_C3F5);
+    let mut cases = 0;
+    while cases < DIRECTIONS {
+        let direction = rng.point(1.0);
+        if distance(direction, [0.0; 3]) < 0.1 {
+            continue;
+        }
+        cases += 1;
+        let direction = unit(direction);
+        let goal = scaled(direction, SAFE);
+        for planet in [fast, slow] {
+            let system = [star, planet];
+            let start = plus(
+                body_position(&system, 1, 0.0),
+                scaled(direction, START_DISTANCE),
+            );
+            let plan = planner.run_driven(&system, start, 1, goal, 0.88, ship, 5, 32, None);
+            assert_eq!(plan.status, STATUS_OK, "direction {direction:?}");
+            assert_eq!(plan.detours(), 0, "a straight line to the sphere's surface");
+        }
+    }
+}
+
 #[test]
 fn a_frame_that_is_not_a_body_is_rejected() {
     let planner = Planner::new();
