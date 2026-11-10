@@ -17,6 +17,7 @@ local WORKER_COUNT  = 1
 ---@field speed number The speed the corner is passed at, game units per second; zero to stop there
 ---@field time number Seconds from the snapshot to the waypoint, at the speeds of the plan
 ---@field drive boolean Whether the leg that ends at the waypoint is flown under the travel drive
+---@field through boolean Whether the drive is kept on at the waypoint: the legs before and after it are one drive run
 
 ---@class Plan
 ---@field status integer|nil A `SystemPlanner.Status` value; nil when the worker failed
@@ -71,7 +72,7 @@ function PlanClient.request(task)
     return taskId
 end
 
----@param flat number[] `frame, x, y, z, t, radius, speed, drive` per waypoint, as `SystemPlanner.Out` lays them out
+---@param flat number[] `SystemPlanner.OUT_STRIDE` numbers per waypoint, as `SystemPlanner.Out` lays them out
 ---@return PlanWaypoint[] waypoints
 ---@return number[] times
 local function unpackWaypoints(flat)
@@ -85,6 +86,7 @@ local function unpackWaypoints(flat)
             speed = flat[i + out.Speed],
             time = flat[i + out.T],
             drive = flat[i + out.Drive] ~= 0,
+            through = flat[i + out.Through] ~= 0,
         })
         table.insert(times, flat[i + out.T])
     end

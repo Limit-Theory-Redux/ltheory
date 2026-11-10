@@ -1527,6 +1527,63 @@ fn a_detour_in_the_well_ends_the_run_at_the_entry() {
 }
 
 #[test]
+fn a_run_starts_at_a_detour_corner_of_the_system_part_and_goes_through_the_entry() {
+    let planner = Planner::new();
+    // A rock half way along the system leg, a little off the line.
+    let rock = fixed([-1.05e6, 1000.0, 2.6e5], 2000.0, 3000.0);
+    let bodies = [standing_big_planet(), rock];
+    let plan = planner.run_driven(
+        &bodies,
+        RUN_START,
+        0,
+        RUN_GOAL_OFFSET,
+        SPEED,
+        SHIP,
+        DEPTH,
+        CAPACITY,
+        Some(DRIVE),
+    );
+    assert_eq!(plan.status, STATUS_OK, "{:?}", plan.offsets);
+    let n = plan.frames.len();
+    let e = entry_index_in(&plan, BIG_WELL_RADIUS).expect("the entry");
+    assert_eq!(
+        (e, n),
+        (1, 3),
+        "a detour, the entry and the goal: {:?}",
+        plan.offsets
+    );
+    assert_eq!(
+        plan.throughs,
+        vec![false, true, false],
+        "the detour corner ends a run, the entry doesn't"
+    );
+    assert!(
+        plan.drives.iter().all(|drive| *drive),
+        "every leg is driven"
+    );
+    assert!(
+        plan.speeds[e] > SPEED,
+        "at the run's speed: {}",
+        plan.speeds[e]
+    );
+    // The run from the corner charges there, and takes about the time of one leg from the corner
+    // to the goal: the corner, the entry and the goal are all but in line.
+    let run = drive_leg(
+        &bodies,
+        plan.points[0],
+        RUN_GOAL_OFFSET,
+        plan.times[0],
+        DRIVE,
+    );
+    assert_close(
+        plan.times[n - 1],
+        run.last().unwrap().0,
+        DRIVE_TIME_TOLERANCE,
+        "arrival",
+    );
+}
+
+#[test]
 fn a_plan_without_a_driven_system_leg_or_room_for_a_run_has_none() {
     let planner = Planner::new();
     let planet = standing_big_planet();
@@ -1564,6 +1621,7 @@ fn random_runs_through_wide_wells_hold_their_contract() {
     let planner = Planner::new();
     let mut rng = Rng(0x2D6B_41C9_73E5_A810);
     let (mut planned, mut runs, mut driven_entries) = (0, 0, 0);
+    let (mut outrun, mut not_settled) = (0, 0);
     for _ in 0..CASES {
         let planet = Body {
             phase: rng.range(0.0, std::f64::consts::TAU),
@@ -1579,10 +1637,19 @@ fn random_runs_through_wide_wells_hold_their_contract() {
         let reach = rng.range(0.1, 0.8) * BIG_WELL_RADIUS / norm;
         let offset = direction.map(|component| component * reach);
         let plan = plan_in_well(&planner, planet, start, offset, Some(DRIVE));
-        if plan.status != STATUS_OK {
-            continue;
+        match plan.status {
+            STATUS_OK => planned += 1,
+            STATUS_GOAL_OUTRUN => {
+                outrun += 1;
+                continue;
+            }
+            // A run that is kept at one arrival time and dropped at the next would not settle.
+            STATUS_GOAL_NOT_SETTLED => {
+                not_settled += 1;
+                continue;
+            }
+            other => panic!("status {other}: {:?}", plan.offsets),
         }
-        planned += 1;
         let n = plan.frames.len();
         let entry = entry_index_in(&plan, BIG_WELL_RADIUS).expect("the entry");
         driven_entries += usize::from(plan.drives[entry]);
@@ -1611,9 +1678,16 @@ fn random_runs_through_wide_wells_hold_their_contract() {
         }
         assert!(!plan.throughs[n - 1], "the goal ends the run");
     }
-    println!("wide wells: planned {planned}, driven entries {driven_entries}, runs {runs}");
+    println!(
+        "wide wells: planned {planned}, driven entries {driven_entries}, runs {runs}, \
+         outrun {outrun}, not settled {not_settled}"
+    );
     assert!(planned >= CASES / 3, "many cases plan: {planned}");
     assert!(runs >= planned / 4, "runs occur: {runs} of {planned}");
+    assert!(
+        not_settled * 10 <= planned,
+        "few cases do not settle: {not_settled}"
+    );
 }
 
 #[test]

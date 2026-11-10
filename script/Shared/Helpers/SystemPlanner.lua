@@ -195,9 +195,9 @@ local legFrame, legBound, legFrameOf = SYSTEM_FRAME, {}, {}
 -- the last pass.
 local wellMode, entryRadius, entryIndex, entryOffsetX, entryOffsetY, entryOffsetZ, entryChord =
     WELL_NONE, 0, -1, 0, 0, 0, 0
--- A drive run that goes on through the entry: the ship's speed there (nil without a run), and the
--- drive multiplier and speed at the end of the last leg that was timed as the start of a run.
-local entryRunSpeed, runEndMultiplier, runEndSpeed = nil, 1, 0
+-- The drive multiplier and speed at the end of the last leg written with `Through`: the state a
+-- run carries through the entry. Read only when the entry has `Through`.
+local runEndMultiplier, runEndSpeed = 1, 0
 -- The timeline of a leg: its samples (time, distance along the leg) and, per interval between two
 -- samples, the greatest speed in it. A leg's profile is kept per recursion depth, so a retry on
 -- the other side of a body finds its parent's intact; chords of an arc use their own.
@@ -843,16 +843,16 @@ end
 
 ---Gives every corner of the written plan its arc radius and passing speed. A corner is rounded in
 ---the frame its two legs are flown in; the corner where the frame changes (the entry into a well)
----is not rounded and is passed at the planning speed. The goal keeps radius and speed zero, since
----the ship stops there. The plan's times stay as the legs gave them. The entry corner of a drive
----run is passed at the run's speed there.
+---is not rounded, and is passed at the run's speed when a drive run goes on through it, else at
+---the planning speed. The goal keeps radius and speed zero, since the ship stops there. The plan's
+---times stay as the legs gave them.
 local function roundCorners(sx, sy, sz)
     for k = 0, written - 2 do
         local base = k * OUT_STRIDE
         local inFrame = legFrameOf[k + 1]
         if inFrame ~= legFrameOf[k + 2] then
             local through = out[base + OUT_THROUGH] ~= 0
-            out[base + OUT_RADIUS], out[base + OUT_SPEED] = 0, through and entryRunSpeed or speed
+            out[base + OUT_RADIUS], out[base + OUT_SPEED] = 0, through and runEndSpeed or speed
         else
             setLegFrame(inFrame)
             local px, py, pz = legWaypointPoint(k - 1, sx, sy, sz)
@@ -921,10 +921,14 @@ local function planEntryLegs(sx, sy, sz, wx, wy, wz, ex, ey, ez, gx, gy, gz, run
     local carried = nil
     if out[entryIndex * OUT_STRIDE + OUT_THROUGH] ~= 0 then
         carried = { beyond = 0, m = runEndMultiplier, v = runEndSpeed }
-        entryRunSpeed = runEndSpeed
     end
     setLegFrame(goalFrame)
     return planLeg(ex, ey, ez, tEntry, gx, gy, gz, goalFrame, 0, carried), tEntry
+end
+
+---Whether the drive run goes on through the entry waypoint written last.
+local function entryIsThrough()
+    return out[entryIndex * OUT_STRIDE + OUT_THROUGH] ~= 0
 end
 
 ---Whether the part in the body's frame is the continuation of a run: one straight leg from the
@@ -958,8 +962,8 @@ local function planWell(sx, sy, sz, gx, gy, gz, entryTime)
         local tEnd, tEntry = planEntryLegs(sx, sy, sz, wx, wy, wz, ex, ey, ez, gx, gy, gz, { beyond = framedLength })
         -- A stopped plan, a plan whose last system leg is not a run, and a run that reaches the goal
         -- stand as they are.
-        if tEnd == nil or entryRunSpeed == nil or runReachesGoal() then return tEnd, tEntry end
-        written, status, failures, entryRunSpeed = 0, Status.Ok, 0, nil
+        if tEnd == nil or not entryIsThrough() or runReachesGoal() then return tEnd, tEntry end
+        written, status, failures = 0, Status.Ok, 0
     end
     return planEntryLegs(sx, sy, sz, wx, wy, wz, ex, ey, ez, gx, gy, gz, nil)
 end
@@ -970,7 +974,7 @@ end
 ---@return number|nil tEnd The time the plan reaches its last point, nil when it stopped
 ---@return number|nil tEntry The time at the entry, when the plan has one
 local function planPass(sx, sy, sz, gx, gy, gz, goalTime, entryTime)
-    written, status, failures, entryIndex, entryRunSpeed = 0, Status.Ok, 0, -1, nil
+    written, status, failures, entryIndex = 0, Status.Ok, 0, -1
     resetHitRadii()
     setLegFrame(SYSTEM_FRAME)
     local px, py, pz = goalPoint(gx, gy, gz, goalTime)
