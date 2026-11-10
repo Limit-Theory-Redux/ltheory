@@ -9,8 +9,8 @@ use mlua::{Function, Table, Value};
 use nav::{NO_SPEED_CAP, Profile, circle_speed};
 
 const BODY_STRIDE: usize = 12;
-/// A waypoint is `frame, x, y, z, t, radius, speed, drive`.
-const OUT_STRIDE: usize = 8;
+/// A waypoint is `frame, x, y, z, t, radius, speed, drive, through`.
+const OUT_STRIDE: usize = 9;
 const SYSTEM_FRAME: i32 = -1;
 const STATUS_OK: i64 = 0;
 const STATUS_DEPTH_EXCEEDED: i64 = 1;
@@ -166,6 +166,9 @@ struct Plan {
     speeds: Vec<f64>,
     /// Whether the leg that ends at each waypoint is flown under the travel drive.
     drives: Vec<bool>,
+    /// Whether the drive goes on through each waypoint: the leg that ends there and the next one
+    /// are one run.
+    throughs: Vec<bool>,
 }
 
 /// The travel drive as the kernel takes it: the block of `SystemPlanner.Drive`.
@@ -326,6 +329,7 @@ impl Planner {
             radii: Vec::new(),
             speeds: Vec::new(),
             drives: Vec::new(),
+            throughs: Vec::new(),
         };
         for waypoint in values.chunks(OUT_STRIDE).take(count) {
             let frame = waypoint[0] as i32;
@@ -347,6 +351,7 @@ impl Planner {
             plan.radii.push(waypoint[5]);
             plan.speeds.push(waypoint[6]);
             plan.drives.push(waypoint[7] != 0.0);
+            plan.throughs.push(waypoint[8] != 0.0);
         }
         plan
     }
@@ -1225,6 +1230,10 @@ fn a_body_faster_than_the_ship_is_reached_through_an_entry_in_its_well() {
     assert_eq!(plan.radii[e], 0.0, "the entry corner is not rounded");
     assert!(plan.speeds[e] > 0.0, "and not passed at rest");
     assert!(plan.drives[e], "the long leg to the well is driven");
+    assert!(
+        !plan.throughs[e],
+        "the part in the well is shorter than the release distance, so the drive is released"
+    );
     assert!(plan.times[e] > 0.0 && plan.times[n - 1] > plan.times[e]);
     // The entry is further than the planning speed gets in its time: the drive reached it.
     assert!(
@@ -1235,13 +1244,18 @@ fn a_body_faster_than_the_ship_is_reached_through_an_entry_in_its_well() {
 
 /// The waypoint at the entry radius in the planet's frame: the entry that the kernel placed.
 fn entry_index(plan: &Plan) -> Option<usize> {
+    entry_index_in(plan, WELL_RADIUS)
+}
+
+/// The waypoint at the entry radius of a well of `well_radius` in the planet's frame.
+fn entry_index_in(plan: &Plan, well_radius: f64) -> Option<usize> {
     plan.frames
         .iter()
         .zip(&plan.offsets)
         .position(|(frame, offset)| {
             *frame == 0
-                && (distance(*offset, [0.0; 3]) - WELL_RADIUS * WELL_ENTRY_SHARE).abs()
-                    <= 1e-9 * WELL_RADIUS
+                && (distance(*offset, [0.0; 3]) - well_radius * WELL_ENTRY_SHARE).abs()
+                    <= 1e-9 * well_radius
         })
 }
 
@@ -1387,6 +1401,221 @@ fn a_slow_body_with_a_well_gets_the_same_entry_without_the_drive() {
     );
 }
 
+// ---- A drive run through the well's entry ----
+
+/// A well wider than the drive's release distance (`HANDOVER_MULT · braking time · SPEED`, about
+/// 21 000 here), so that a run can reach a goal inside it.
+const BIG_WELL_RADIUS: f64 = 200000.0;
+const BIG_ORBIT_RADIUS: f64 = 5.0e6;
+
+/// A planet that stands still, with the wide well.
+fn standing_big_planet() -> Body {
+    fixed([0.0; 3], PLANET_RADIUS, 1.5 * PLANET_RADIUS).with_zone(BIG_WELL_RADIUS, WELL_ZONE_CAP)
+}
+
+/// A planet on a circle round the origin at `speed`, with the wide well.
+fn big_well_planet(speed: f64) -> Body {
+    orbiting(
+        -1,
+        BIG_ORBIT_RADIUS,
+        0.0,
+        speed / BIG_ORBIT_RADIUS,
+        PLANET_RADIUS,
+    )
+    .with_zone(BIG_WELL_RADIUS, WELL_ZONE_CAP)
+}
+
+/// A start far outside the standing planet's well, and a goal inside it on the near side, so that
+/// the straight line meets the well's entry and goes on to the goal.
+const RUN_START: Vec3 = [-2.0e6, 0.0, 5.0e5];
+const RUN_GOAL_OFFSET: Vec3 = [-1.0e5, 0.0, 2.0e4];
+
+/// The checks that a plan of `RUN_START` to `RUN_GOAL_OFFSET` under `drive` is one drive run, and
+/// takes the time that one leg takes under the same drive.
+fn assert_one_run_to_the_goal(drive: Drive) {
+    let planner = Planner::new();
+    let planet = standing_big_planet();
+    let plan = plan_in_well(&planner, planet, RUN_START, RUN_GOAL_OFFSET, Some(drive));
+    assert_eq!(plan.status, STATUS_OK, "{:?}", plan.offsets);
+    let n = plan.frames.len();
+    let e = entry_index_in(&plan, BIG_WELL_RADIUS).expect("the entry");
+    assert_eq!((e, n), (0, 2), "a system leg and a framed leg");
+    assert_eq!(
+        plan.throughs,
+        vec![true, false],
+        "the run goes through the entry"
+    );
+    assert!(plan.drives[e] && plan.drives[n - 1], "both legs are driven");
+    assert!(
+        plan.speeds[e] > SPEED,
+        "the entry is passed at the run's speed: {}",
+        plan.speeds[e]
+    );
+    // One leg from the start to the goal, timed again from the oracle's own integration, takes the
+    // time of the run. A second charge, or a release at the entry, would add much more.
+    let along = drive_leg(&[planet], RUN_START, RUN_GOAL_OFFSET, 0.0, drive);
+    assert_close(
+        plan.times[n - 1],
+        along.last().unwrap().0,
+        DRIVE_TIME_TOLERANCE,
+        "arrival",
+    );
+    let framed = plan.times[n - 1] - plan.times[e];
+    let framed_length = distance(plan.offsets[e], RUN_GOAL_OFFSET);
+    assert!(
+        framed < 0.5 * framed_length / SPEED,
+        "the framed leg is driven: {framed} s over {framed_length}"
+    );
+}
+
+#[test]
+fn a_drive_run_goes_on_through_the_entry_to_the_goal() {
+    assert_one_run_to_the_goal(DRIVE);
+}
+
+#[test]
+fn the_framed_leg_of_a_run_has_no_minimum_length_and_no_charge() {
+    // The framed leg is about 90 000 long and the system leg is about 1.8 million.
+    assert_one_run_to_the_goal(Drive {
+        min_length: 5.0e5,
+        ..DRIVE
+    });
+}
+
+#[test]
+fn a_detour_in_the_well_ends_the_run_at_the_entry() {
+    let planner = Planner::new();
+    // A rock on the line, inside the well and past the entry.
+    let rock = fixed([-1.5e5, 0.0, 32632.0], 2000.0, 3000.0);
+    let bodies = [standing_big_planet(), rock];
+    let plan = planner.run_driven(
+        &bodies,
+        RUN_START,
+        0,
+        RUN_GOAL_OFFSET,
+        SPEED,
+        SHIP,
+        DEPTH,
+        CAPACITY,
+        Some(DRIVE),
+    );
+    assert_eq!(plan.status, STATUS_OK, "{:?}", plan.offsets);
+    assert!(
+        plan.detours() >= 2,
+        "the entry and a detour: {:?}",
+        plan.offsets
+    );
+    assert!(
+        plan.throughs.iter().all(|through| !through),
+        "{:?}",
+        plan.throughs
+    );
+    let e = entry_index_in(&plan, BIG_WELL_RADIUS).expect("the entry");
+    assert_eq!(e, 0, "the system part is one leg");
+    assert_eq!(
+        plan.speeds[e], SPEED,
+        "the entry is passed at the planning speed"
+    );
+    // The system leg is released before the entry, as a leg that ends there always was.
+    let released = drive_leg(&bodies, RUN_START, plan.points[e], 0.0, DRIVE);
+    assert_close(
+        plan.times[e],
+        released.last().unwrap().0,
+        DRIVE_TIME_TOLERANCE,
+        "time at the entry",
+    );
+}
+
+#[test]
+fn a_plan_without_a_driven_system_leg_or_room_for_a_run_has_none() {
+    let planner = Planner::new();
+    let planet = standing_big_planet();
+    let no_run = |plan: &Plan, what: &str| {
+        assert_eq!(plan.status, STATUS_OK, "{what}: {:?}", plan.offsets);
+        assert!(plan.throughs.iter().all(|through| !through), "{what}");
+        let e = entry_index_in(plan, BIG_WELL_RADIUS).expect("the entry");
+        assert_eq!(plan.speeds[e], SPEED, "{what}");
+    };
+    // No drive at all.
+    let plan = plan_in_well(&planner, planet, RUN_START, RUN_GOAL_OFFSET, None);
+    no_run(&plan, "no drive");
+    // A system leg shorter than the drive's minimum is flown at the planning speed.
+    let never = Drive {
+        min_length: 1.0e9,
+        ..DRIVE
+    };
+    let plan = plan_in_well(&planner, planet, RUN_START, RUN_GOAL_OFFSET, Some(never));
+    no_run(&plan, "system leg below the minimum");
+    // A goal so near the entry that the release distance would fall before it.
+    let plan = plan_in_well(
+        &planner,
+        planet,
+        RUN_START,
+        [-1.8e5, 0.0, 3.0e4],
+        Some(DRIVE),
+    );
+    no_run(&plan, "framed leg below the release distance");
+}
+
+#[test]
+fn random_runs_through_wide_wells_hold_their_contract() {
+    const CASES: usize = 150;
+    const EXTENT: f64 = 3.0e6;
+    let planner = Planner::new();
+    let mut rng = Rng(0x2D6B_41C9_73E5_A810);
+    let (mut planned, mut runs, mut driven_entries) = (0, 0, 0);
+    for _ in 0..CASES {
+        let planet = Body {
+            phase: rng.range(0.0, std::f64::consts::TAU),
+            ..big_well_planet(rng.range(0.2, 6.0) * SPEED)
+        };
+        let centre = body_position(&[planet], 0, 0.0);
+        let start = rng.point(EXTENT);
+        let direction = rng.point(1.0);
+        let norm = distance(direction, [0.0; 3]);
+        if norm < 0.1 || distance(start, centre) < 1.2 * BIG_WELL_RADIUS {
+            continue;
+        }
+        let reach = rng.range(0.1, 0.8) * BIG_WELL_RADIUS / norm;
+        let offset = direction.map(|component| component * reach);
+        let plan = plan_in_well(&planner, planet, start, offset, Some(DRIVE));
+        if plan.status != STATUS_OK {
+            continue;
+        }
+        planned += 1;
+        let n = plan.frames.len();
+        let entry = entry_index_in(&plan, BIG_WELL_RADIUS).expect("the entry");
+        driven_entries += usize::from(plan.drives[entry]);
+        for (k, through) in plan.throughs.iter().enumerate() {
+            if !*through {
+                continue;
+            }
+            runs += 1;
+            assert_eq!(
+                k, entry,
+                "a run goes through the entry only: {:?}",
+                plan.offsets
+            );
+            assert_eq!(
+                k + 2,
+                n,
+                "and then is one leg to the goal: {:?}",
+                plan.offsets
+            );
+            assert!(plan.drives[k] && plan.drives[k + 1], "both legs are driven");
+            assert!(
+                plan.speeds[k] > SPEED,
+                "at the run's speed: {}",
+                plan.speeds[k]
+            );
+        }
+        assert!(!plan.throughs[n - 1], "the goal ends the run");
+    }
+    println!("wide wells: planned {planned}, driven entries {driven_entries}, runs {runs}");
+    assert!(planned >= CASES / 3, "many cases plan: {planned}");
+    assert!(runs >= planned / 4, "runs occur: {runs} of {planned}");
+}
+
 #[test]
 fn random_goals_in_a_wells_are_reached_or_the_status_says_why() {
     const CASES: usize = 200;
@@ -1424,6 +1653,10 @@ fn random_goals_in_a_wells_are_reached_or_the_status_says_why() {
                 let n = plan.frames.len();
                 assert_eq!(plan.frames[n - 1], 0);
                 assert_eq!(plan.offsets[n - 1], offset);
+                assert!(
+                    drive.is_some() || plan.throughs.iter().all(|through| !through),
+                    "no run without a drive"
+                );
                 let started_inside = to_planet < WELL_RADIUS;
                 if started_inside {
                     inside += 1;

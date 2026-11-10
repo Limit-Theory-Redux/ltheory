@@ -60,7 +60,9 @@ local ZONE_CAP         = 11
 -- and `t`, the time the ship reaches it. The frame's position at `t` plus the offset is the point.
 -- Radius and speed describe the corner there: the radius of the arc that rounds it (zero for a
 -- sharp corner) and the speed the ship is to pass at. `drive` is 1 when the leg that ends at the
--- waypoint is flown under the travel drive, which is released before the waypoint.
+-- waypoint is flown under the travel drive, which is released before the waypoint. `through` is 1
+-- when the drive is not released there: the leg that ends at the waypoint and the leg after it are
+-- one drive run, and the waypoint's speed is the run's.
 local OUT_FRAME        = 0
 local OUT_X            = 1
 local OUT_Y            = 2
@@ -69,7 +71,8 @@ local OUT_T            = 4
 local OUT_RADIUS       = 5
 local OUT_SPEED        = 6
 local OUT_DRIVE        = 7
-local OUT_STRIDE       = 8
+local OUT_THROUGH      = 8
+local OUT_STRIDE       = 9
 local SYSTEM_FRAME     = -1
 -- Drive buffer: DRIVE_STRIDE doubles, in the order of these offsets. The multiplier in open
 -- space, the seconds the drive charges at normal speed, and the rates at which its multiplier
@@ -91,7 +94,7 @@ SystemPlanner.Body = {
 SystemPlanner.OUT_STRIDE = OUT_STRIDE
 SystemPlanner.Out = {
     Frame = OUT_FRAME, X = OUT_X, Y = OUT_Y, Z = OUT_Z, T = OUT_T, Radius = OUT_RADIUS, Speed = OUT_SPEED,
-    Drive = OUT_DRIVE,
+    Drive = OUT_DRIVE, Through = OUT_THROUGH,
 }
 SystemPlanner.DRIVE_STRIDE = DRIVE_STRIDE
 SystemPlanner.Drive = {
@@ -192,6 +195,9 @@ local legFrame, legBound, legFrameOf = SYSTEM_FRAME, {}, {}
 -- the last pass.
 local wellMode, entryRadius, entryIndex, entryOffsetX, entryOffsetY, entryOffsetZ, entryChord =
     WELL_NONE, 0, -1, 0, 0, 0, 0
+-- A drive run that goes on through the entry: the ship's speed there (nil without a run), and the
+-- drive multiplier and speed at the end of the last leg that was timed as the start of a run.
+local entryRunSpeed, runEndMultiplier, runEndSpeed = nil, 1, 0
 -- The timeline of a leg: its samples (time, distance along the leg) and, per interval between two
 -- samples, the greatest speed in it. A leg's profile is kept per recursion depth, so a retry on
 -- the other side of a body finds its parent's intact; chords of an arc use their own.
@@ -307,7 +313,7 @@ end
 local function flatProfile(profile, t0, length)
     profile.t[1], profile.s[1], profile.vmax[1] = t0, 0, speed
     profile.t[2], profile.s[2] = t0 + length / speed, length
-    profile.count, profile.drive = 2, false
+    profile.count, profile.drive, profile.through = 2, false, false
 end
 
 ---What the zones do to the drive at the point (x, y, z) at time `t`, for a ship moving at `v`: the
@@ -358,23 +364,29 @@ end
 ---before the leg's end, from where the leg is flown at the planning speed. The timeline is a
 ---chain of samples, each step bounded by the zones' features, by the share of the distance left
 ---and, while the drive or the speed is off its target, by a share of the shortest time constant.
+---A leg that continues a run starts from the multiplier `carryM` and speed `carryV` with no
+---charge. A leg after which the run goes on for `beyond` more length (above zero) is not
+---released: it ends at the end of the leg with the multiplier and speed it has there, and the
+---braking law and the step bound see the distance left to the end of the run.
 ---False for a leg too short to charge and release, or one that needs more than `MAX_DRIVE_STEPS`.
-local function driveProfile(profile, t0, length, ax, ay, az, ux, uy, uz)
-    local sRelease = length - driveRelease
+local function driveProfile(profile, t0, length, ax, ay, az, ux, uy, uz, beyond, carryM, carryV)
+    local continues = beyond > 0
+    local sEnd = continues and length or length - driveRelease
     local t, s, m, v = t0 + driveCharge, speed * driveCharge, 1, speed
-    if s >= sRelease then return false end
+    if carryM then t, s, m, v = t0, 0, carryM, carryV end
+    if s >= sEnd then return false end
     local times, along, vmax = profile.t, profile.s, profile.vmax
     times[1], along[1] = t0, 0
     local count = 1
-    if driveCharge > 0 then
+    if not carryM and driveCharge > 0 then
         times[2], along[2], vmax[1], count = t, s, speed, 2
     end
     for _ = 1, MAX_DRIVE_STEPS do
         local limit, dt = zoneState(ax + ux * s, ay + uy * s, az + uz * s, t, v)
-        local distLeft = length - s
-        local wanted = TravelDriveMath.brakingMultiplier(distLeft, speed, driveBrakingTime)
+        local runLeft = length - s + beyond
+        local wanted = TravelDriveMath.brakingMultiplier(runLeft, speed, driveBrakingTime)
         local target = max(1, min(limit, wanted))
-        dt = min(dt, DRIVE_FEATURE_STEP * distLeft / v)
+        dt = min(dt, DRIVE_FEATURE_STEP * runLeft / v)
         local offTarget = abs(m - target) > DRIVE_TRANSIENT_TOLERANCE * target
         local lagging = abs(v - speed * m) > DRIVE_TRANSIENT_TOLERANCE * v
         if offTarget or lagging then
@@ -383,17 +395,24 @@ local function driveProfile(profile, t0, length, ax, ay, az, ux, uy, uz)
         dt = max(dt, DRIVE_MIN_STEP_S)
         local mNew, vNew = driveStep(m, v, target, dt)
         local sNew = s + HALF * (v + vNew) * dt
-        local released = sNew >= sRelease
-        if released then
-            dt = dt * (sRelease - s) / (sNew - s)
-            sNew = sRelease
+        local done = sNew >= sEnd
+        if done then
+            dt = dt * (sEnd - s) / (sNew - s)
+            sNew = sEnd
+            -- The state the run carries on from is the one at the clipped time.
+            if continues then mNew, vNew = driveStep(m, v, target, dt) end
         end
         count = count + 1
         times[count], along[count], vmax[count - 1] = t + dt, sNew, max(v, vNew)
         t, s, m, v = t + dt, sNew, mNew, vNew
-        if released then
-            times[count + 1], along[count + 1], vmax[count] = t + (length - s) / speed, length, speed
-            profile.count, profile.drive = count + 1, true
+        if done then
+            if continues then
+                profile.count, profile.drive, profile.through = count, true, true
+                profile.endM, profile.endV = m, v
+            else
+                times[count + 1], along[count + 1], vmax[count] = t + (length - s) / speed, length, speed
+                profile.count, profile.drive, profile.through = count + 1, true, false
+            end
             return true
         end
     end
@@ -402,10 +421,14 @@ end
 
 ---Fills `profile` with the leg of `length` from `a` along `u` from time `t0`: under the drive when
 ---that gets to the end sooner, else at the planning speed. A leg shorter than the drive's minimum
----length is not timed under the drive.
-local function buildProfile(profile, t0, length, ax, ay, az, ux, uy, uz)
-    if driveOn and length >= driveMinLength then
-        local timed = driveProfile(profile, t0, length, ax, ay, az, ux, uy, uz)
+---length is not timed under the drive, unless it continues a run. `run` (or nil) describes the
+---run the leg belongs to: `beyond`, the length the run goes on past the leg, and `m` and `v`, the
+---drive multiplier and speed it starts from when it continues a run.
+local function buildProfile(profile, t0, length, ax, ay, az, ux, uy, uz, run)
+    local carried = run and run.m
+    if driveOn and (carried or length >= driveMinLength) then
+        local timed = driveProfile(profile, t0, length, ax, ay, az, ux, uy, uz, run and run.beyond or 0, carried,
+            run and run.v)
         if timed and profile.t[profile.count] < t0 + length / speed then return end
         if not timed and length > driveRelease + speed * driveCharge and status == Status.Ok then
             status = Status.DriveNotTimed
@@ -580,10 +603,10 @@ local function detourPoint(profile, i, ax, ay, az, length, ux, uy, uz, tIn, tEnd
 end
 
 ---Writes the point (x, y, z) of the legs' frame reached at time `t` as an offset from the output
----frame body's position at `t` (the point itself for the system frame), reached by a leg flown under
----the drive or not, and notes the legs' frame. Returns false (and sets the status) when the buffer
----is full.
-local function append(x, y, z, t, frame, drive)
+---frame body's position at `t` (the point itself for the system frame), reached by a leg with the
+---timeline `profile` (nil for a leg that is not timed), and notes the legs' frame. Returns false
+---(and sets the status) when the buffer is full.
+local function append(x, y, z, t, frame, profile)
     if written >= capacity then
         status = Status.CapacityExceeded
         return false
@@ -596,7 +619,10 @@ local function append(x, y, z, t, frame, drive)
     local base = written * OUT_STRIDE
     out[base + OUT_FRAME], out[base + OUT_X], out[base + OUT_Y], out[base + OUT_Z], out[base + OUT_T] =
         frame, x, y, z, t
-    out[base + OUT_RADIUS], out[base + OUT_SPEED], out[base + OUT_DRIVE] = 0, 0, drive and 1 or 0
+    out[base + OUT_RADIUS], out[base + OUT_SPEED] = 0, 0
+    out[base + OUT_DRIVE] = profile and profile.drive and 1 or 0
+    out[base + OUT_THROUGH] = profile and profile.through and 1 or 0
+    if profile and profile.through then runEndMultiplier, runEndSpeed = profile.endM, profile.endV end
     written = written + 1
     return true
 end
@@ -609,48 +635,64 @@ end
 
 local planLeg
 
+---The run of the first part of a leg that a detour splits: it starts as the leg does, and it ends
+---at the detour's corner, where a run ends. Nil for a leg without a run.
+local function headRun(run)
+    if not (run and run.m) then return nil end
+    return { beyond = 0, m = run.m, v = run.v }
+end
+
+---The run of the last part of a leg that a detour splits: it ends as the leg does, and starts at
+---the detour's corner, so it starts a run and doesn't continue one.
+local function tailRun(run)
+    if not (run and run.beyond > 0) then return nil end
+    return { beyond = run.beyond }
+end
+
 ---Plans the leg a to b, whose timeline is `profile`, through one detour around body `i` and writes
 ---its waypoints; the detour waypoint is in body `i`'s frame, and b in `bFrame`. `flip` passes the
----body on the other side.
+---body on the other side. `run` is the leg's run (see `buildProfile`).
 ---@return number|nil tEnd The time at b, nil when the plan stopped
-local function planDetour(profile, i, ax, ay, az, bx, by, bz, bFrame, length, ux, uy, uz, t0, tIn, tB, depth, flip)
+local function planDetour(profile, i, ax, ay, az, bx, by, bz, bFrame, length, ux, uy, uz, t0, tIn, tB, depth, flip, run)
     local wx, wy, wz = detourPoint(profile, i, ax, ay, az, length, ux, uy, uz, tIn, tB, flip)
     if not wx then
         fail(Status.NoDetour)
-        return append(bx, by, bz, tB, bFrame, profile.drive) and tB or nil
+        return append(bx, by, bz, tB, bFrame, profile) and tB or nil
     end
-    local tW = planLeg(ax, ay, az, t0, wx, wy, wz, i, depth + 1)
+    local tW = planLeg(ax, ay, az, t0, wx, wy, wz, i, depth + 1, headRun(run))
     if not tW then return nil end
-    return planLeg(wx, wy, wz, tW, bx, by, bz, bFrame, depth + 1)
+    return planLeg(wx, wy, wz, tW, bx, by, bz, bFrame, depth + 1, tailRun(run))
 end
 
 ---Plans the leg from a to b (a point in frame `bFrame`), starting at time t0, and writes its
 ---waypoints. The leg's timeline is the drive's where that is sooner. A detour that fails
 ---further down (a waypoint inside another body, a leg that cannot be cleared) is redone on the
----other side of the body; if both fail, the first side's result stands.
+---other side of the body; if both fail, the first side's result stands. `run` (nil for none) is
+---the drive run the leg belongs to: how far it goes on past b, and what it starts from.
 ---@return number|nil tEnd The time at b, nil when the plan stopped
-function planLeg(ax, ay, az, t0, bx, by, bz, bFrame, depth)
+function planLeg(ax, ay, az, t0, bx, by, bz, bFrame, depth, run)
     local dx, dy, dz = bx - ax, by - ay, bz - az
     local length = sqrt(dx * dx + dy * dy + dz * dz)
     if length <= MIN_LENGTH then
         local tB = t0 + length / speed
-        return append(bx, by, bz, tB, bFrame, false) and tB or nil
+        return append(bx, by, bz, tB, bFrame, nil) and tB or nil
     end
     local ux, uy, uz = dx / length, dy / length, dz / length
     -- The leg's profile lives at its depth: the legs of a detour use the next depth, so a retry on
     -- the other side finds this one intact.
     local profile = legProfile(depth)
-    buildProfile(profile, t0, length, ax, ay, az, ux, uy, uz)
+    buildProfile(profile, t0, length, ax, ay, az, ux, uy, uz, run)
     local tB = profile.t[profile.count]
     local body, tIn = firstHit(profile, ax, ay, az, ux, uy, uz, t0, tB)
     if body < 0 or depth >= maxDepth then
         if body >= 0 then fail(Status.DepthExceeded) end
-        return append(bx, by, bz, tB, bFrame, profile.drive) and tB or nil
+        return append(bx, by, bz, tB, bFrame, profile) and tB or nil
     end
 
     local savedWritten, savedFailures, savedStatus = written, failures, status
     local function detour(flip)
-        return planDetour(profile, body, ax, ay, az, bx, by, bz, bFrame, length, ux, uy, uz, t0, tIn, tB, depth, flip)
+        return planDetour(profile, body, ax, ay, az, bx, by, bz, bFrame, length, ux, uy, uz, t0, tIn, tB, depth, flip,
+            run)
     end
     local tEnd = detour(false)
     if tEnd == nil or failures == savedFailures then return tEnd end
@@ -802,13 +844,15 @@ end
 ---Gives every corner of the written plan its arc radius and passing speed. A corner is rounded in
 ---the frame its two legs are flown in; the corner where the frame changes (the entry into a well)
 ---is not rounded and is passed at the planning speed. The goal keeps radius and speed zero, since
----the ship stops there. The plan's times stay as the legs gave them.
+---the ship stops there. The plan's times stay as the legs gave them. The entry corner of a drive
+---run is passed at the run's speed there.
 local function roundCorners(sx, sy, sz)
     for k = 0, written - 2 do
         local base = k * OUT_STRIDE
         local inFrame = legFrameOf[k + 1]
         if inFrame ~= legFrameOf[k + 2] then
-            out[base + OUT_RADIUS], out[base + OUT_SPEED] = 0, speed
+            local through = out[base + OUT_THROUGH] ~= 0
+            out[base + OUT_RADIUS], out[base + OUT_SPEED] = 0, through and entryRunSpeed or speed
         else
             setLegFrame(inFrame)
             local px, py, pz = legWaypointPoint(k - 1, sx, sy, sz)
@@ -864,9 +908,38 @@ local function entryOffset(sx, sy, sz, gx, gy, gz, entryTime)
     return ax + dx * lambda, ay + dy * lambda, az + dz * lambda
 end
 
+---Plans the system part to the entry (the point (wx, wy, wz) in the system, (ex, ey, ez) from the
+---body) and the part in the body's frame from there to the goal. With a `run` the system part's
+---last leg goes on through the entry, and the part in the frame is one leg that continues it.
+---@return number|nil tEnd The time the plan reaches its last point, nil when it stopped
+---@return number|nil tEntry The time at the entry
+local function planEntryLegs(sx, sy, sz, wx, wy, wz, ex, ey, ez, gx, gy, gz, run)
+    setLegFrame(SYSTEM_FRAME)
+    local tEntry = planLeg(sx, sy, sz, 0, wx, wy, wz, goalFrame, 0, run)
+    if not tEntry then return nil end
+    entryIndex = written - 1
+    local carried = nil
+    if out[entryIndex * OUT_STRIDE + OUT_THROUGH] ~= 0 then
+        carried = { beyond = 0, m = runEndMultiplier, v = runEndSpeed }
+        entryRunSpeed = runEndSpeed
+    end
+    setLegFrame(goalFrame)
+    return planLeg(ex, ey, ez, tEntry, gx, gy, gz, goalFrame, 0, carried), tEntry
+end
+
+---Whether the part in the body's frame is the continuation of a run: one straight leg from the
+---entry to the goal, flown under the drive. Else the run ends at the entry.
+local function runReachesGoal()
+    local goalBase = (written - 1) * OUT_STRIDE
+    return written == entryIndex + 2 and out[goalBase + OUT_DRIVE] ~= 0
+end
+
 ---Plans the part of the goal's well: the whole plan in the body's frame when the start is inside
 ---the well, else the system part to the entry and the part in the body's frame from there. Notes
----the entry's waypoint and offset.
+---the entry's waypoint and offset. Under the drive, the system part's last leg is planned to go on
+---through the entry when the part in the frame is long enough to be driven; if that part turns out
+---not to be one driven leg (a detour, or too many timeline steps), the plan is made again with the
+---run ending at the entry.
 ---@return number|nil tEnd The time the plan reaches its last point, nil when it stopped
 ---@return number|nil tEntry The time at the entry, nil for a ship that starts inside the well
 local function planWell(sx, sy, sz, gx, gy, gz, entryTime)
@@ -880,11 +953,15 @@ local function planWell(sx, sy, sz, gx, gy, gz, entryTime)
     local wx, wy, wz = ex + cx, ey + cy, ez + cz
     entryOffsetX, entryOffsetY, entryOffsetZ = ex, ey, ez
     entryChord = sqrt((wx - sx) ^ 2 + (wy - sy) ^ 2 + (wz - sz) ^ 2)
-    local tEntry = planLeg(sx, sy, sz, 0, wx, wy, wz, goalFrame, 0)
-    if not tEntry then return nil end
-    entryIndex = written - 1
-    setLegFrame(goalFrame)
-    return planLeg(ex, ey, ez, tEntry, gx, gy, gz, goalFrame, 0), tEntry
+    local framedLength = sqrt((gx - ex) ^ 2 + (gy - ey) ^ 2 + (gz - ez) ^ 2)
+    if driveOn and framedLength > driveRelease then
+        local tEnd, tEntry = planEntryLegs(sx, sy, sz, wx, wy, wz, ex, ey, ez, gx, gy, gz, { beyond = framedLength })
+        -- A stopped plan, a plan whose last system leg is not a run, and a run that reaches the goal
+        -- stand as they are.
+        if tEnd == nil or entryRunSpeed == nil or runReachesGoal() then return tEnd, tEntry end
+        written, status, failures, entryRunSpeed = 0, Status.Ok, 0, nil
+    end
+    return planEntryLegs(sx, sy, sz, wx, wy, wz, ex, ey, ez, gx, gy, gz, nil)
 end
 
 ---One full plan toward the goal as it is at `goalTime` (and, for a goal in a well that the ship
@@ -893,7 +970,7 @@ end
 ---@return number|nil tEnd The time the plan reaches its last point, nil when it stopped
 ---@return number|nil tEntry The time at the entry, when the plan has one
 local function planPass(sx, sy, sz, gx, gy, gz, goalTime, entryTime)
-    written, status, failures, entryIndex = 0, Status.Ok, 0, -1
+    written, status, failures, entryIndex, entryRunSpeed = 0, Status.Ok, 0, -1, nil
     resetHitRadii()
     setLegFrame(SYSTEM_FRAME)
     local px, py, pz = goalPoint(gx, gy, gz, goalTime)
@@ -969,7 +1046,8 @@ end
 ---(`ZoneRadius`) is planned to the well's edge in the system, then in the body's frame, which
 ---carries the ship. With a drive block, a leg is flown under the travel drive where that is sooner
 ---and the leg is at least the drive's minimum length, and `Out.Drive` marks it; `planSpeed` is then
----the ship's speed without the drive.
+---the ship's speed without the drive. A drive run goes on through the well's entry to the goal,
+---and `Out.Through` marks the entry then.
 ---@param bodiesBuffer userdata `double[?]`, `bodyCount * BODY_STRIDE` values
 ---@param count integer Number of bodies
 ---@param sx number Start x
