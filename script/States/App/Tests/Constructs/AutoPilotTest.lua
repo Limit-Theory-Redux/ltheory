@@ -1,7 +1,8 @@
 -- Checks that the autopilot flies a ship through its control input: it arrives at a point and at
 -- a body, with and without the travel drive, stops outside the body's hull, steers around a rock on
 -- its course, and leaves no axes behind. It also arrives at a planet whose orbit is faster than the
--- ship's top speed, from inside the planet's gravity well, which carries the ship with the planet.
+-- ship's top speed, from inside the planet's gravity well, which carries the ship with the planet,
+-- and from outside it, where the travel drive runs on through the well's entry to the stand-off point.
 -- A drive flight among rocks logs the time the autopilot's update takes with and without sensing.
 -- Logs each failed check and ends with a failure exit code.
 local Application           = require("States.Application")
@@ -124,7 +125,7 @@ local SCENARIOS = {
       well = true },
     { name = "a point, with drive, past a planet", distance = 20000, drive = true, maxFlight = 140, planet = true },
     { name = "a body in a moving well, with drive, from outside", distance = 20000, radius = BODY_RADIUS,
-      drive = true, maxFlight = 1100, well = true, outside = true },
+      drive = true, maxFlight = 32, well = true, outside = true },
 }
 
 function AutoPilotTest:check(ok, what, detail)
@@ -374,6 +375,9 @@ function AutoPilotTest:run(scenario)
     -- The flight into a moving well: which phases the plan went through, and the ship at the moment
     -- the well took it.
     local directSeen, planSeen, wellEntry = false, false, nil
+    -- How the drive runs through the entry: the closest the ship came to the entry corner, when the
+    -- drive left `active`, and the largest angle between the nose and the velocity after the corner.
+    local entryTrace = { closestToCorner = math.huge, maxNoseAngle = 0 }
     local shipWell = ship.entity:get(PhysicsComponents.GravityWell)
     for stepIndex = 1, math.floor(scenario.maxFlight / STEP) do
         local updateMs = self:step(ship, moving)
@@ -402,6 +406,28 @@ function AutoPilotTest:run(scenario)
             and (not follower or follower.finished or follower.index > wellEntry.corner) then
             wellEntry.passedAt = stepIndex * STEP
             wellEntry.passSpeed = ShipFlightSystem:getSpeed(ship.entity)
+            wellEntry.passDrive = drive:getState()
+        end
+        if scenario.outside then
+            local now = stepIndex * STEP
+            if follower and not entryTrace.plannedGoal then
+                entryTrace.plannedEntry, entryTrace.plannedGoal = follower.points[1].time, plan.goal.time
+            end
+            if wellEntry and wellEntry.corner and not wellEntry.passedAt and follower and not follower.finished then
+                entryTrace.closestToCorner = math.min(entryTrace.closestToCorner,
+                    ship.rb:getPos():distance(follower:pointNow(follower.points[wellEntry.corner])))
+            end
+            if driveSeen and not entryTrace.driveLeftAt and drive:getState() ~= "active" then
+                entryTrace.driveLeftAt, entryTrace.driveLeftState = now, drive:getState()
+                entryTrace.driveLeftSpeed, entryTrace.driveLeftPhase = ShipFlightSystem:getSpeed(ship.entity), plan and plan.phase
+            end
+            local velocity = ship.rb:getVelocity()
+            local speed = velocity:length()
+            if wellEntry and wellEntry.passedAt and speed > 1 then
+                local nose = ship.rb:getRot():getForward()
+                local cosine = (nose.x * velocity.x + nose.y * velocity.y + nose.z * velocity.z) / speed
+                entryTrace.maxNoseAngle = math.max(entryTrace.maxNoseAngle, math.acos(math.max(-1, math.min(1, cosine))))
+            end
         end
         cornered = cornered or follower ~= nil
         local arcNow = follower ~= nil and follower.arc ~= nil
@@ -504,12 +530,26 @@ function AutoPilotTest:run(scenario)
                 name .. "the well carries the ship before the entry corner is passed",
                 string.format("%d corners, on corner %s", wellEntry.corners, tostring(wellEntry.corner)))
             self:check(wellEntry.passedAt ~= nil, name .. "the entry corner is passed")
+            -- The drive run goes on through the entry: the drive is on when the corner is passed, and
+            -- stays on until the ship arrives, where the autopilot lets it go.
+            self:check(wellEntry.passDrive == "active", name .. "the drive is on at the entry corner",
+                tostring(wellEntry.passDrive))
+            self:check(entryTrace.driveLeftAt ~= nil and entryTrace.driveLeftAt >= arrivedAt - STEP / 2,
+                name .. "the drive stays on until the ship arrives",
+                string.format("left `active` at %s s (%s), arrived at %.1f s", tostring(entryTrace.driveLeftAt),
+                    tostring(entryTrace.driveLeftState), arrivedAt))
             Log.Info("ConstructsAutoPilotTest: %sentered the well at %.1f s: phase %s, corner %s, speed %.2f, %s from its point, drive %s; corner passed at %s s at speed %s",
                 name, wellEntry.at, tostring(wellEntry.phase), tostring(wellEntry.corner), wellEntry.speed,
                 wellEntry.toPoint and string.format("%.1f", wellEntry.toPoint) or "-", wellEntry.drive,
                 wellEntry.passedAt and string.format("%.1f", wellEntry.passedAt) or "-",
                 wellEntry.passSpeed and string.format("%.2f", wellEntry.passSpeed) or "-")
         end
+        Log.Info("ConstructsAutoPilotTest: %sthe plan has the entry at %s s and the goal at %s s",
+            name, tostring(entryTrace.plannedEntry), tostring(entryTrace.plannedGoal))
+        Log.Info("ConstructsAutoPilotTest: %sthe drive started at %s s and left `active` at %s s (%s, phase %s, speed %s); closest to the entry corner %.2f, largest nose-to-velocity angle after it %.2f rad",
+            name, tostring(driveAt), tostring(entryTrace.driveLeftAt), tostring(entryTrace.driveLeftState),
+            tostring(entryTrace.driveLeftPhase), tostring(entryTrace.driveLeftSpeed), entryTrace.closestToCorner,
+            entryTrace.maxNoseAngle)
     end
 
     self:despawn(ship, body, rocks)

@@ -1,33 +1,89 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" font-family="sans-serif" font-size="14">
-  <title>A plan to a goal in a moving body's well: a system leg to the entry waypoint, then a leg in the body's frame</title>
-  <defs>
-    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#111827"/></marker>
-  </defs>
-  <rect width="800" height="500" fill="#ffffff"/>
-  <text x="20" y="28" fill="#111827" font-weight="bold">Goal in the well of a moving body: system leg, entry waypoint, framed leg</text>
-  <!-- the body at time zero and its path to the entry time -->
-  <circle cx="330" cy="250" r="150" fill="none" stroke="#9ca3af" stroke-width="2" stroke-dasharray="4 4"/>
-  <text x="330" y="84" fill="#6b7280" text-anchor="middle">well at t = 0</text>
-  <path d="M345,255 Q440,250 520,262" fill="none" stroke="#9ca3af" stroke-width="1.5" stroke-dasharray="2 5" marker-end="url(#a)"/>
-  <!-- the well at the entry time, the entry sphere inside it -->
-  <circle cx="560" cy="270" r="150" fill="#dbeafe" fill-opacity="0.5" stroke="#2563eb" stroke-width="2" stroke-dasharray="8 4"/>
-  <circle cx="560" cy="270" r="140" fill="none" stroke="#1d4ed8" stroke-width="1.5"/>
-  <circle cx="560" cy="270" r="22" fill="#9ca3af"/>
-  <text x="560" y="275" fill="#ffffff" text-anchor="middle">body</text>
-  <text x="560" y="450" fill="#2563eb" text-anchor="middle">ZoneRadius (the well) at the entry time</text>
-  <text x="560" y="468" fill="#1d4ed8" text-anchor="middle">entry radius = (1 − WELL_ENTRY_MARGIN) · ZoneRadius</text>
-  <!-- the system leg to the entry, and the framed leg to the goal -->
-  <line x1="60" y1="420" x2="436" y2="340" stroke="#111827" stroke-width="3.5"/>
-  <line x1="436" y1="340" x2="600" y2="290" stroke="#2563eb" stroke-width="3.5"/>
-  <circle cx="60" cy="420" r="7" fill="#111827"/>
-  <text x="60" y="446" fill="#111827" text-anchor="middle">start</text>
-  <circle cx="436" cy="340" r="7" fill="#111827"/>
-  <line x1="432" y1="347" x2="380" y2="392" stroke="#111827" stroke-width="1"/>
-  <text x="200" y="408" fill="#111827" font-weight="bold">entry waypoint (Frame, offset, T)</text>
-  <text x="200" y="340" fill="#111827" text-anchor="middle">system part</text>
-  <text x="540" y="330" fill="#2563eb" text-anchor="middle" transform="rotate(-17 540 330)">framed part</text>
-  <circle cx="600" cy="290" r="7" fill="#2563eb"/>
-  <text x="620" y="288" fill="#2563eb">goal</text>
-  <!-- the entry offset from the body's centre at the entry time -->
-  <line x1="541" y1="281" x2="441" y2="337" stroke="#111827" stroke-width="1.5" stroke-dasharray="3 3" marker-end="url(#a)"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 850" font-family="sans-serif" font-size="14">
+  <title>A plan to a goal in a moving body's well: the system leg, the entry waypoint and the framed leg are one drive run, and the speed used on each part</title>
+  <rect width="800" height="850" fill="#ffffff"/>
+  <text x="20" y="28" fill="#111827" font-weight="bold">Goal in the well of a moving body: one drive run through the entry waypoint</text>
+  <text x="20" y="48" fill="#6b7280" font-size="12">The body moves while the ship flies: the well, the entry and the goal are drawn at the entry time.</text>
+
+  <!-- the well at the entry time, the entry sphere inside it, the body -->
+  <circle cx="620" cy="200" r="130" fill="#dbeafe" fill-opacity="0.5" stroke="#2563eb" stroke-width="2" stroke-dasharray="8 4"/>
+  <circle cx="620" cy="200" r="124" fill="none" stroke="#1d4ed8" stroke-width="1.5"/>
+  <circle cx="620" cy="200" r="18" fill="#9ca3af"/>
+  <text x="620" y="204" fill="#ffffff" text-anchor="middle" font-size="12">body</text>
+  <text x="780" y="352" fill="#2563eb" text-anchor="end" font-size="12">dashed: ZoneRadius (the well)</text>
+  <text x="780" y="368" fill="#2563eb" text-anchor="end" font-size="12">solid: entry radius = (1 − WELL_ENTRY_MARGIN) · ZoneRadius</text>
+
+  <!-- the path, coloured by the speed it is flown at: gray = speed, black = drive in the system, blue = drive in the body's frame -->
+  <line x1="60" y1="200" x2="90" y2="200" stroke="#6b7280" stroke-width="4"/>
+  <line x1="90" y1="200" x2="496" y2="200" stroke="#111827" stroke-width="4"/>
+  <line x1="496" y1="200" x2="545" y2="200" stroke="#2563eb" stroke-width="4"/>
+  <line x1="545" y1="200" x2="585" y2="200" stroke="#6b7280" stroke-width="4"/>
+  <circle cx="60" cy="200" r="7" fill="#6b7280"/>
+  <circle cx="496" cy="200" r="7" fill="#ffffff" stroke="#111827" stroke-width="3"/>
+  <circle cx="545" cy="200" r="5" fill="#111827"/>
+  <circle cx="585" cy="200" r="7" fill="#6b7280"/>
+
+  <!-- labels on the path -->
+  <text x="60" y="120" fill="#111827" font-weight="bold">system leg, under the drive</text>
+  <text x="60" y="138" fill="#111827">speed = lowest of the zone caps and the braking law</text>
+  <text x="60" y="156" fill="#111827">(a zone's cap is OpenCap in open space)</text>
+  <text x="60" y="232" fill="#6b7280" font-weight="bold">start</text>
+  <text x="60" y="250" fill="#6b7280">charge at speed</text>
+  <text x="470" y="236" fill="#111827" text-anchor="end" font-weight="bold">entry waypoint: Through = 1</text>
+  <text x="470" y="254" fill="#111827" text-anchor="end">Out.Speed = the run's speed there</text>
+  <line x1="474" y1="230" x2="491" y2="206" stroke="#111827" stroke-width="1"/>
+  <text x="545" y="226" fill="#6b7280" text-anchor="middle" font-size="13" font-weight="bold">release</text>
+  <text x="585" y="172" fill="#6b7280" text-anchor="middle" font-size="13" font-weight="bold">goal</text>
+  <text x="60" y="300" fill="#2563eb" font-weight="bold">framed leg: the same drive run, in the body's frame</text>
+  <text x="60" y="318" fill="#2563eb">no charge, no release, no minimum length</text>
+  <text x="60" y="336" fill="#2563eb">speed = lowest of the goal body's zone cap and the braking law</text>
+  <text x="60" y="354" fill="#2563eb">the release is HANDOVER_MULT · braking time · speed before the goal</text>
+
+  <!-- the speed along the run -->
+  <g transform="translate(0 40)">
+    <text x="20" y="392" fill="#111827" font-weight="bold">Speed along the same run (not to scale)</text>
+    <line x1="70" y1="700" x2="770" y2="700" stroke="#111827" stroke-width="1.5"/>
+    <line x1="70" y1="700" x2="70" y2="410" stroke="#111827" stroke-width="1.5"/>
+    <text x="770" y="724" fill="#111827" text-anchor="end">time along the run</text>
+    <text x="20" y="560" fill="#111827" transform="rotate(-90 20 560)" text-anchor="middle">speed</text>
+    <!-- the planning speed -->
+    <line x1="70" y1="660" x2="770" y2="660" stroke="#9ca3af" stroke-width="1" stroke-dasharray="2 4"/>
+    <text x="78" y="678" fill="#6b7280">speed (the planning speed)</text>
+    <!-- the zone cap: OpenCap in open space, falling toward the body the entry and the goal are near -->
+    <path d="M 70 430 L 340 430 C 410 430 440 480 480 520 C 520 560 560 600 620 625 C 680 645 740 650 770 652"
+          fill="none" stroke="#d97706" stroke-width="2" stroke-dasharray="7 4"/>
+    <text x="78" y="420" fill="#d97706">zone cap: OpenCap, falling toward a body</text>
+    <!-- the braking law: the run's remaining distance over the braking time, one law across the entry -->
+    <path d="M 440 405 C 520 440 590 540 650 600 C 675 630 690 648 705 660" fill="none" stroke="#dc2626" stroke-width="2" stroke-dasharray="7 4"/>
+    <text x="610" y="440" fill="#dc2626">braking law:</text>
+    <text x="610" y="458" fill="#dc2626">the run's remaining</text>
+    <text x="610" y="476" fill="#dc2626">distance / braking time</text>
+    <!-- the ship's speed, coloured like the path -->
+    <path d="M 70 660 L 150 660" fill="none" stroke="#6b7280" stroke-width="3.5"/>
+    <path d="M 150 660 L 245 433 L 340 433 C 410 433 440 483 480 523" fill="none" stroke="#111827" stroke-width="3.5"/>
+    <path d="M 480 523 C 520 563 560 603 620 628 C 650 638 670 644 685 648 C 695 653 700 657 705 660" fill="none" stroke="#2563eb" stroke-width="3.5"/>
+    <path d="M 705 660 L 770 660" fill="none" stroke="#6b7280" stroke-width="3.5"/>
+    <text x="110" y="650" fill="#6b7280" text-anchor="middle">charge</text>
+    <text x="180" y="560" fill="#111827" text-anchor="end">ramp up</text>
+    <text x="292" y="454" fill="#111827" text-anchor="middle">at the cap</text>
+    <!-- the entry, the release and the goal -->
+    <line x1="480" y1="523" x2="480" y2="700" stroke="#111827" stroke-width="1" stroke-dasharray="3 3"/>
+    <circle cx="480" cy="523" r="7" fill="#ffffff" stroke="#111827" stroke-width="3"/>
+    <text x="468" y="590" fill="#111827" text-anchor="end" font-weight="bold">entry waypoint: Through = 1</text>
+    <text x="468" y="608" fill="#111827" text-anchor="end">Out.Speed = the run's speed</text>
+    <line x1="470" y1="574" x2="478" y2="531" stroke="#111827" stroke-width="1"/>
+    <circle cx="705" cy="660" r="5" fill="#111827"/>
+    <line x1="705" y1="660" x2="705" y2="700" stroke="#111827" stroke-width="1" stroke-dasharray="3 3"/>
+    <circle cx="770" cy="660" r="7" fill="#6b7280"/>
+    <!-- the legs, with the speed each is flown at -->
+    <line x1="70" y1="736" x2="480" y2="736" stroke="#111827" stroke-width="3"/>
+    <line x1="480" y1="736" x2="705" y2="736" stroke="#2563eb" stroke-width="3"/>
+    <line x1="705" y1="736" x2="770" y2="736" stroke="#6b7280" stroke-width="3"/>
+    <text x="275" y="756" fill="#111827" text-anchor="middle" font-weight="bold">system leg</text>
+    <text x="275" y="773" fill="#111827" text-anchor="middle">charge at speed, then lowest of cap and law</text>
+    <text x="592" y="756" fill="#2563eb" text-anchor="middle" font-weight="bold">framed leg</text>
+    <text x="592" y="773" fill="#2563eb" text-anchor="middle">lowest of cap and law</text>
+    <text x="737" y="756" fill="#6b7280" text-anchor="middle" font-weight="bold">release, goal</text>
+    <text x="737" y="773" fill="#6b7280" text-anchor="middle">speed</text>
+  </g>
+  <text x="20" y="840" fill="#111827" font-size="13">One engagement: the drive charges once at the start and is released once before the goal; nothing happens to it at the entry.</text>
 </svg>

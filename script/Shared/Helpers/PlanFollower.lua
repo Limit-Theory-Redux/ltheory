@@ -149,6 +149,24 @@ function PlanFollower:drives()
     return not self.finished and not self.arc and self.points[self.index].drive == true
 end
 
+---The distance the drive run that the ship is on has left, from the ship by the waypoints to the run's
+---end: the goal, or the first waypoint the drive is released at. Equal to the distance to `target`
+---unless the corner being flown to is one the drive goes on through (`through`), which adds the leg
+---after it. Meant for a leg flown under the drive (`drives`), whose corner is sharp.
+---@return number Game units
+function PlanFollower:runRemaining()
+    local remaining = self.rb:getPos():distance(self.target)
+    local index = self.index
+    while self.points[index].through do
+        local here = self:pointNow(self.points[index])
+        local nextWaypoint = self.points[index + 1] or self.goal
+        remaining = remaining + here:distance(self:pointNow(nextWaypoint))
+        index = index + 1
+        if not self.points[index] then break end
+    end
+    return remaining
+end
+
 ---The share of its forward thrust a ship needs to fly a circle of `radius` at `speed`. With forward
 ---acceleration `a` and linear drag `k` that is the centripetal `s²/r` across and `k·s` along the
 ---velocity: `√(s⁴/r² + k²s²) / a`, the quantity the Orbit behaviour holds at a named constant.
@@ -167,6 +185,20 @@ function PlanFollower:seekLeg(arc)
     local waypoint = self.points[self.index]
     self.target = arc and toPosition(arc.entry) or self:pointNow(waypoint)
     self.nav:setSeek(self.agent, self.target, self.passRadius, waypoint.speed)
+end
+
+---Whether the ship has crossed the plane through the sharp corner it is flying to, normal to the leg.
+---A drive run goes through such a corner at a speed that covers more than the pass radius in a
+---frame, so the ship can step over the corner without coming within reach of it; crossing the
+---plane counts as passing it. Only a corner the drive is kept at (`through`) is passed this way:
+---any other is reached at a speed the pass radius is sized for.
+---@return boolean
+function PlanFollower:crossedCorner()
+    local waypoint = self.points[self.index]
+    if not waypoint.through or waypoint.radius > 0 then return false end
+    local corner = self:pointNow(waypoint)
+    local before = self.index == 1 and toPosition(self.start) or self:pointNow(self.points[self.index - 1])
+    return dot(sub(corner, before), sub(corner, self.rb:getPos())) <= 0
 end
 
 ---Steps on to the corner after the one passed; after the last, the follower is finished.
@@ -255,7 +287,7 @@ function PlanFollower:advance(arrived, speed, time, listener)
         self:endArc(time, listener)
         if self.finished then return end
         arc = self:currentArc()
-    elseif arrived then
+    elseif arrived or self:crossedCorner() then
         listener:pointPassed(self.index, speed, time)
         if arc then
             self:beginArc(speed, time)

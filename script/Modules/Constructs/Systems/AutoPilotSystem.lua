@@ -362,8 +362,10 @@ function beginPlan(ap, shipEntity)
 end
 
 --- Runs the drive on a leg of the plan: engaged at the leg's start, its cap following the braking
---- law to the leg's end, released for the end of the leg and not engaged again on that leg. A
---- leg that the plan does not fly under the drive, and an arc, are flown with it off.
+--- law to the end of the drive run, released for the end of the run and not engaged again on that
+--- leg. A run goes on through a waypoint the plan marks `through`, so the drive is kept there and
+--- the law brakes on the distance to the run's end. A leg that the plan does not fly under the
+--- drive, and an arc, are flown with it off.
 ---@param plan table The engagement's plan state
 ---@param rb RigidBody
 ---@param drive TravelDriveComponent
@@ -377,7 +379,7 @@ local function driveLeg(plan, rb, drive, input, profile, zoneMax)
         if state ~= "idle" then input:setDriveRequest(Enums.TravelDriveRequest.Disengage) end
         return
     end
-    local wanted = brakingMultiplier(rb:getPos():distance(follower.target), profile)
+    local wanted = brakingMultiplier(follower:runRemaining(), profile)
     input:setDriveSpeedCap(math.min(zoneMax, math.max(1, wanted)))
     if state ~= "idle" and wanted < HANDOVER_MULT then
         input:setDriveRequest(Enums.TravelDriveRequest.Disengage)
