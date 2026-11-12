@@ -26,7 +26,7 @@ A zone that should affect routes carries optional components from the Navigation
 | Component | Contract |
 |---|---|
 | `SpeedLimit` | The highest speed allowed in the region, in game units per second (greater than zero). It is authored in m/s and converted with `UniverseScaleConfig:toGameUnits` before it is stored. |
-| `PathCost` | The extra cost of each metre travelled in the region, dimensionless and at least zero, on top of the distance itself. Zero costs the same as open space. |
+| `PathCost` | The extra cost of each metre travelled in the region, dimensionless and at least zero, on top of the distance itself. Zero costs the same as open space. The system planner's kernel takes a cost per zone sphere and goes around the sphere when that is cheaper than crossing it (see [system planner](system-planner.md#cost-zones)). |
 | `Core.Tag` | Tags such as an asteroid field or hostile space. |
 
 The two navigation components reject a value outside their range when they are created or changed.

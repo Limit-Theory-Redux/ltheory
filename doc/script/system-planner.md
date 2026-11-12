@@ -6,7 +6,7 @@ It plans in the frame of the system: bodies on analytic orbits are placed where 
 
 ## Input
 
-`SystemPlanner.plan(bodies, count, sx, sy, sz, frame, gx, gy, gz, speed, accel, drag, depthLimit, out, capacity, drive, arrival)` returns `status, waypointCount`. Positions are in game units, times in seconds from the snapshot, and `speed` is the speed the path is flown at (above zero), which sets the times in the output. `accel` is the ship's forward acceleration (game units per second squared, above zero) and `drag` its linear drag (per second, zero or more): they set how fast the ship can take a corner (see [Corners](#corners)). `drive` is optional: a `double[?]` of `DRIVE_STRIDE` values that turns on the travel drive (see [Drive](#drive)); without it every leg is flown at `speed`. `arrival` is optional too: the arrival radius, in game units (zero or more, nil for zero), which sets the goal's time (see `T` below). A negative or non-finite radius is `InvalidInput`.
+`SystemPlanner.plan(bodies, count, sx, sy, sz, frame, gx, gy, gz, speed, accel, drag, depthLimit, out, capacity, drive, arrival, zones, zoneCount)` returns `status, waypointCount`. Positions are in game units, times in seconds from the snapshot, and `speed` is the speed the path is flown at (above zero), which sets the times in the output. `accel` is the ship's forward acceleration (game units per second squared, above zero) and `drag` its linear drag (per second, zero or more): they set how fast the ship can take a corner (see [Corners](#corners)). `drive` is optional: a `double[?]` of `DRIVE_STRIDE` values that turns on the travel drive (see [Drive](#drive)); without it every leg is flown at `speed`. `arrival` is optional too: the arrival radius, in game units (zero or more, nil for zero), which sets the goal's time (see `T` below). A negative or non-finite radius is `InvalidInput`. `zones` and `zoneCount` are optional: the cost zones (see [Cost zones](#cost-zones)), nil or zero for none, and the plan is then the plan without them.
 
 `frame` is the index of the body the goal rides on, or `SystemPlanner.SYSTEM_FRAME` (`-1`) for a goal fixed in the system. `g` is then the goal itself, or its offset from that body's centre, in world axes (see [Frames](#frames)).
 
@@ -24,6 +24,15 @@ It plans in the frame of the system: bodies on analytic orbits are placed where 
 | `ZoneCap` | The drive multiplier at the body's centre, at least 1 when the body has a zone |
 
 The position of a body at time `t` is its parent's position at `t` (its own fields without a parent) plus `OrbitMath.offsetAt` of its orbit, the formula that `OrbitComponent` uses too.
+
+`zones` is a `double[?]` of `zoneCount * ZONE_STRIDE` values; the offsets of a zone's fields are `SystemPlanner.Zone`:
+
+| Field | Meaning |
+|---|---|
+| `Frame` | Index of the body the zone rides on, or `SYSTEM_FRAME` |
+| `X`, `Y`, `Z` | The centre: the offset from that body's centre, in world axes; the point itself for the system frame |
+| `Radius` | The sphere's radius, above zero |
+| `Cost` | The extra cost of each metre travelled inside, dimensionless, zero or more: the zone's cost per metre with any weighting already applied |
 
 `out` is a `double[?]` of `capacity * OUT_STRIDE` values, the goal last; the offsets of a waypoint's fields are `SystemPlanner.Out`:
 
@@ -49,9 +58,9 @@ The position of a body at time `t` is its parent's position at `t` (its own fiel
 | `DriveNotTimed` | A leg needed more drive timeline steps than `MAX_DRIVE_STEPS`; it is planned at the planning speed | A plan with that leg |
 | `EndpointInsideBody` | The start or the goal is inside a body's hull | None |
 | `GoalOutrun` | The goal's frame body can move as fast as the ship before the ship reaches the body's well, so the ship may never catch the goal (see [Frames](#frames)) | None |
-| `InvalidInput` | A layout or number is wrong (a parent after its child, a radius not above zero, a safe radius below the radius, a non-finite value, a speed not above zero, a frame that is neither a body nor `SYSTEM_FRAME`, a zone with a negative radius or a cap below 1, a drive block with a cap below 1, a negative charge time, a rate not above zero, or a ship without drag) | None |
+| `InvalidInput` | A layout or number is wrong (a parent after its child, a radius not above zero, a safe radius below the radius, a non-finite value, a speed not above zero, a frame that is neither a body nor `SYSTEM_FRAME`, a body zone with a negative radius or a cap below 1, a cost zone with a bad frame, a non-finite value, a radius not above zero or a negative cost, a zone count without a buffer, a drive block with a cap below 1, a negative charge time, a rate not above zero, or a ship without drag) | None |
 
-A status other than `Ok` is never hidden: the caller decides whether a plan with a straight leg is usable.
+A status other than `Ok` is never hidden: the caller decides whether a plan with a straight leg is usable. A cost zone never sets a status: a leg that cannot go around one crosses it.
 
 ## Algorithm
 
@@ -63,6 +72,26 @@ A status other than `Ok` is never hidden: the caller decides whether a plan with
 ![A straight leg crosses a safe sphere; the detour waypoint is where the tangents from both ends to a slightly larger sphere meet, half way through the overlap](../images/system-planner/detour.svg)
 
 ![A body is placed where it will be when the ship passes, so a leg that is clear of its position now can still need a detour](../images/system-planner/predicted-bodies.svg)
+
+## Cost zones
+
+A cost zone is a sphere that is dear to cross but can be crossed: a belt, a hostile region. The planner goes around it only when that is cheaper. The cost is by distance; the drive's speed caps play no part.
+
+A zone is an obstacle that has no hull. The hit test, the overlap walk and the detour point are a body's, with the zone's radius as the sphere and its centre moving with its frame body. A leg that first hits a zone is judged:
+
+- `crossExtra = Cost · L`, where `L` is the length of the leg inside the zone, from its first entry to its last exit along the leg's timeline.
+- `detourExtra = |a − w| + |w − b| − |a − b|`, for the leg `a` to `b` and the detour point `w` that a body would get.
+
+The leg goes around the zone when `detourExtra < crossExtra`. Otherwise the zone is waived for that leg, and the leg's next hit is taken. The two legs of a detour are judged again, with every zone back in play.
+
+![A leg crosses a zone for a length L inside it; the detour through w is longer than the leg by detourExtra, and the leg goes around only when that is less than the zone's cost times L](../images/system-planner/cost-zone.svg)
+
+- **Soft.** A zone never fails a plan. It is crossed at the depth limit, and when the detour on neither side can be planned (the retry on the other side works as for a body). It never gives `EndpointInsideBody`.
+- **Endpoints.** A zone that holds the start (at time zero) or the goal (at the time the ship gets there) is ignored in that plan: entering it cannot be avoided, and a zone's cost is the cost of crossing it. A zone that costs nothing is ignored too.
+- **Frames.** A detour waypoint around a zone is in the zone's frame, so a zone that rides on an orbiting body is passed where the body is when the ship gets there. A zone in the system that a leg meets inside a goal body's well (a leg flown in the body's frame) has its waypoint in that body's frame, like the leg's other points.
+- **Arcs** are cleared against bodies only, so an arc may cut into a zone. An arc is a fraction of its legs, and the legs' detour was judged.
+- **Drive.** A zone changes neither the drive policy nor the timeline; the legs of its detour are timed as any leg is, and a detour inside the goal's well ends the drive run at the entry, as any detour there does.
+- **The break-even** cost, `detourExtra / L`, depends on the leg. The detour is a V through one waypoint, so a long leg is bent by a small cost, and a short one needs a dear zone. A chord that only grazes the sphere is the cheaper to avoid, since its extra length falls faster than the length inside.
 
 ## Corners
 
@@ -146,6 +175,8 @@ The planner does not move the ship: whoever flies the plan resolves each waypoin
 - A fast body that crosses the course can leave `NoDetour` or `DepthExceeded`.
 - `PlanFollower` builds a corner's arc from the corner's and its neighbours' world points, each as the frame body's position gives it for the planned time. That is the arc the planner cleared for a corner in the system frame; for a corner in the framed part of a plan into a well (a detour inside the well), the neighbours' points are at different times, and the arc is not checked to match the planner's frame-relative one.
 - The retry on the other side makes a failing plan cost up to about 3^depth leg tests, and a goal on a moving body repeats the plan up to `MAX_GOAL_ITERATIONS` times; keep the depth limit small.
+- Cost zones are judged one leg and one zone at a time, as detours are: two zones in a row, or a detour that enters a second zone, are judged by the next leg, so the path is not the cheapest over all the ways round.
+- A cost zone's choice is by distance. A zone that slows the drive is neither preferred nor avoided for the time it takes.
 - The kernel keeps module scratch state, so it is not reentrant: one plan at a time per Lua state.
 
 ## Tuning
@@ -172,6 +203,7 @@ The planner does not move the ship: whoever flies the plan resolves each waypoin
 | `DRIVE_FEATURE_FLOOR` | The least distance to a zone's edge that counts, as a share of its influence radius, so a ship on the edge still takes steps |
 | `DRIVE_TRANSIENT_TOLERANCE`, `DRIVE_TRANSIENT_STEP` | How far the multiplier or speed may be off its target before steps shrink, and the share of the shortest time constant they shrink to |
 | `DRIVE_MIN_STEP_S`, `MAX_DRIVE_STEPS` | The shortest step, and the most steps of one leg before it is planned without the drive |
+| `ZONE_EXIT_BISECTIONS` | How many times the time a leg leaves a cost zone is halved after the overlap walk: the length inside it, and so the choice to go around, is exact to that fraction of a walk step |
 
 The safe radius itself comes from the caller: the sandbox uses a factor on the hull radius, `safeRadiusFactor` (see [navigation sandbox](navigation-sandbox.md)), and the game takes one per body kind from `Config.game.autoPilot.safeRadiusFactor`.
 

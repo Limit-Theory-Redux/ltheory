@@ -1,7 +1,8 @@
 --- System planner kernel: a path through a system of orbiting bodies as waypoints (a body index and
 --- an offset from it). Straight legs get detours around the bodies' safe spheres at their predicted
 --- positions, corners are rounded into arcs, legs are timed under the travel drive where that is
---- sooner, and a goal inside its body's well is flown in the body's frame from the well's edge.
+--- sooner, a goal inside its body's well is flown in the body's frame from the well's edge, and a
+--- cost zone is gone around where that is cheaper than crossing it.
 --- Pure numbers in and out (no entities, no globals), so it runs on a worker or in a test state.
 --- Not reentrant: it keeps module scratch state.
 --- Design: doc/script/system-planner.md.
@@ -84,6 +85,17 @@ local DRIVE_RAMP_UP    = 2
 local DRIVE_RAMP_DOWN  = 3
 local DRIVE_MIN_LENGTH = 4
 local DRIVE_STRIDE     = 5
+-- Zone buffer: ZONE_STRIDE doubles per cost zone, in the order of these offsets. A zone is a sphere
+-- of `radius` at the offset (x, y, z) from the centre of body `frame` (the point itself for
+-- SYSTEM_FRAME), and each metre travelled inside costs `cost` extra. A zone has no hull: a leg is
+-- bent around it only where that is cheaper than crossing it, and it never fails a plan.
+local ZONE_FRAME       = 0
+local ZONE_X           = 1
+local ZONE_Y           = 2
+local ZONE_Z           = 3
+local ZONE_RADIUS_AT   = 4
+local ZONE_COST        = 5
+local ZONE_STRIDE      = 6
 
 SystemPlanner.BODY_STRIDE = BODY_STRIDE
 SystemPlanner.Body = {
@@ -100,6 +112,10 @@ SystemPlanner.DRIVE_STRIDE = DRIVE_STRIDE
 SystemPlanner.Drive = {
     OpenCap = DRIVE_OPEN_CAP, Charge = DRIVE_CHARGE, RampUp = DRIVE_RAMP_UP, RampDown = DRIVE_RAMP_DOWN,
     MinLength = DRIVE_MIN_LENGTH,
+}
+SystemPlanner.ZONE_STRIDE = ZONE_STRIDE
+SystemPlanner.Zone = {
+    Frame = ZONE_FRAME, X = ZONE_X, Y = ZONE_Y, Z = ZONE_Z, Radius = ZONE_RADIUS_AT, Cost = ZONE_COST,
 }
 SystemPlanner.SYSTEM_FRAME = SYSTEM_FRAME
 
@@ -172,8 +188,20 @@ local DRIVE_TRANSIENT_STEP = 0.1
 local DRIVE_MIN_STEP_S = 1e-6
 local MAX_DRIVE_STEPS = 20000
 
+-- The exit of a cost zone is found within a quarter radius by the overlap walk, then bisected this
+-- many times: the length inside the zone is what the cross-or-go-around rule weighs, so it needs
+-- more than the walk's step.
+local ZONE_EXIT_BISECTIONS = 20
+
 -- Scratch state of the running plan.
 local bodies, bodyCount, speed, maxDepth, out, capacity, written, status, failures, goalFrame
+-- The cost zones: their buffer and count. Obstacles are numbered bodies first (0 .. bodyCount - 1),
+-- then zones (bodyCount .. obstacleCount - 1), so the hit test and the detour work on both.
+local zones, zoneCount, obstacleCount = nil, 0, 0
+-- Per zone: whether this plan ignores it (it costs nothing, or it holds an endpoint). Per recursion
+-- depth: the zones left out of the hit test of the leg being planned (ignored, or waived because
+-- crossing is cheaper than going around).
+local zoneIgnored, waivedByDepth = {}, {}
 -- The ship's forward acceleration and drag, its top speed (infinite without drag) and the arc
 -- radius at the turn-speed knee (infinite without drag).
 local shipAccel, shipDrag, shipTopSpeed, kneeRadius
@@ -253,10 +281,32 @@ local function prepareBodies()
     return true
 end
 
----Restores every body's hit radius to its safe radius, undoing the endpoint shrinks of a pass.
+---Checks the zone buffer: every zone is on a body or in the system, with finite numbers, a radius
+---above zero and a cost of zero or more. Needs `prepareBodies` first.
+---@return boolean valid
+local function prepareZones()
+    for z = 0, zoneCount - 1 do
+        local base = z * ZONE_STRIDE
+        local frame = zones[base + ZONE_FRAME]
+        local frameValid = frame == math.floor(frame) and frame >= SYSTEM_FRAME and frame < bodyCount
+        local centreValid = isFinite(zones[base + ZONE_X]) and isFinite(zones[base + ZONE_Y])
+            and isFinite(zones[base + ZONE_Z])
+        local radius, cost = zones[base + ZONE_RADIUS_AT], zones[base + ZONE_COST]
+        if not (frameValid and centreValid and isFinite(radius) and radius > 0 and isFinite(cost) and cost >= 0) then
+            return false
+        end
+    end
+    return true
+end
+
+---Restores every body's hit radius to its safe radius, undoing the endpoint shrinks of a pass, and
+---every zone's to its radius.
 local function resetHitRadii()
     for i = 0, bodyCount - 1 do
         hitRadius[i + 1] = bodies[i * BODY_STRIDE + SAFE_RADIUS]
+    end
+    for z = 0, zoneCount - 1 do
+        hitRadius[bodyCount + z + 1] = zones[z * ZONE_STRIDE + ZONE_RADIUS_AT]
     end
 end
 
@@ -277,29 +327,87 @@ local function shrinkAround(x, y, z, t)
     return true
 end
 
+---The bound of the motion of something that rides on body `owner` (or on the system for
+---SYSTEM_FRAME) relative to the legs' frame: at most the sum of the two bounds, and zero for
+---something that rides on the legs' frame body itself.
+local function boundRelativeToLegs(owner)
+    local own = owner == SYSTEM_FRAME and 0 or speedBound[owner + 1]
+    if legFrame == SYSTEM_FRAME then return own end
+    if owner == legFrame then return 0 end
+    return own + speedBound[legFrame + 1]
+end
+
 ---Flies the legs that follow in the frame of body `frame`, or in the system for SYSTEM_FRAME.
----The bound of a body's motion relative to the frame is at most the sum of the two bounds, and
----zero for the frame body itself.
+---Sets the bound of each obstacle's motion relative to that frame: a zone moves with the body it
+---rides on.
 local function setLegFrame(frame)
     legFrame = frame
     for i = 0, bodyCount - 1 do
-        if frame == SYSTEM_FRAME then
-            legBound[i + 1] = speedBound[i + 1]
-        elseif i == frame then
-            legBound[i + 1] = 0
-        else
-            legBound[i + 1] = speedBound[i + 1] + speedBound[frame + 1]
-        end
+        legBound[i + 1] = boundRelativeToLegs(i)
+    end
+    for z = 0, zoneCount - 1 do
+        legBound[bodyCount + z + 1] = boundRelativeToLegs(zones[z * ZONE_STRIDE + ZONE_FRAME])
     end
 end
 
----Where body `i` is `t` seconds from the snapshot, in the legs' frame: the offset from the frame
----body's position at `t`, or the system position for the system frame.
+---Where zone `z` is `t` seconds from the snapshot, in the system: its offset from the body it rides
+---on, at that body's position at `t`.
+local function zonePosition(z, t)
+    local base = z * ZONE_STRIDE
+    local x, y, zz = zones[base + ZONE_X], zones[base + ZONE_Y], zones[base + ZONE_Z]
+    local frame = zones[base + ZONE_FRAME]
+    if frame == SYSTEM_FRAME then return x, y, zz end
+    local cx, cy, cz = bodyPosition(frame, t)
+    return x + cx, y + cy, zz + cz
+end
+
+---Where obstacle `i` (a body, or a zone from `bodyCount` on) is `t` seconds from the snapshot, in
+---the legs' frame: the offset from the frame body's position at `t`, or the system position for
+---the system frame.
 local function legBodyPosition(i, t)
-    local x, y, z = bodyPosition(i, t)
+    local x, y, z
+    if i >= bodyCount then x, y, z = zonePosition(i - bodyCount, t) else x, y, z = bodyPosition(i, t) end
     if legFrame == SYSTEM_FRAME then return x, y, z end
     local fx, fy, fz = bodyPosition(legFrame, t)
     return x - fx, y - fy, z - fz
+end
+
+---The frame a waypoint of a detour around obstacle `i` is stored in: the body itself, or a zone's
+---frame. A zone in the system, passed inside a well's frame, is stored in that well's frame, where
+---the leg's coordinates are offsets.
+local function detourFrame(i)
+    if i < bodyCount then return i end
+    local frame = zones[(i - bodyCount) * ZONE_STRIDE + ZONE_FRAME]
+    if frame == SYSTEM_FRAME then return legFrame end
+    return frame
+end
+
+---Sets which zones this plan ignores: one that costs nothing, and one that holds the start (at
+---time zero) or the goal (at `goalTime`), since entering that one cannot be avoided.
+local function markIgnoredZones(sx, sy, sz, gx, gy, gz, goalTime)
+    for z = 0, zoneCount - 1 do
+        local radius = zones[z * ZONE_STRIDE + ZONE_RADIUS_AT] * (1 + ENDPOINT_TOUCH)
+        local zx, zy, zz = zonePosition(z, 0)
+        local startHeld = (sx - zx) ^ 2 + (sy - zy) ^ 2 + (sz - zz) ^ 2 <= radius * radius
+        zx, zy, zz = zonePosition(z, goalTime)
+        local goalHeld = (gx - zx) ^ 2 + (gy - zy) ^ 2 + (gz - zz) ^ 2 <= radius * radius
+        zoneIgnored[z + 1] = zones[z * ZONE_STRIDE + ZONE_COST] <= 0 or startHeld or goalHeld
+    end
+end
+
+---The zones left out of the hit test of a leg at recursion depth `depth`: the ignored ones, to
+---which the leg adds those it waives. Nil without zones, so a plan without zones tests nothing.
+---@return table<integer, boolean>|nil
+local function legWaived(depth)
+    if zoneCount == 0 then return nil end
+    local waived = waivedByDepth[depth + 1]
+    if not waived then
+        waived = {}
+        waivedByDepth[depth + 1] = waived
+    end
+    for i = 0, bodyCount - 1 do waived[i] = false end
+    for z = 0, zoneCount - 1 do waived[bodyCount + z] = zoneIgnored[z + 1] end
+    return waived
 end
 
 ---The profile of the leg at recursion depth `depth`.
@@ -499,23 +607,27 @@ local function bodyHit(profile, i, ax, ay, az, ux, uy, uz, t0, tLimit)
     return nil
 end
 
----The first body whose sphere the leg enters, and when. The leg runs from `a` along `u` through
----the profile's times, from `t0` to `tEnd`.
----@return integer body Index, -1 for none
+---The first obstacle (a body, or a zone from `bodyCount` on) whose sphere the leg enters, and
+---when, among the obstacles below `limit` that are not in `waived` (nil for none). The leg runs
+---from `a` along `u` through the profile's times, from `t0` to `tEnd`.
+---@return integer obstacle Index, -1 for none
 ---@return number time
-local function firstHit(profile, ax, ay, az, ux, uy, uz, t0, tEnd)
+local function firstHit(profile, ax, ay, az, ux, uy, uz, t0, tEnd, limit, waived)
     local found, foundTime = -1, tEnd
-    for i = 0, bodyCount - 1 do
-        local hit = bodyHit(profile, i, ax, ay, az, ux, uy, uz, t0, foundTime)
-        if hit then found, foundTime = i, hit end
+    for i = 0, limit - 1 do
+        if not (waived and waived[i]) then
+            local hit = bodyHit(profile, i, ax, ay, az, ux, uy, uz, t0, foundTime)
+            if hit then found, foundTime = i, hit end
+        end
     end
     return found, foundTime
 end
 
----The time in the overlap that is half way between its start and its end. The overlap ends at
----the last time the leg is inside the sphere: the walk steps through the sphere by a share of its
----radius, and after each exit looks ahead for a re-entry.
-local function overlapMidTime(profile, i, ax, ay, az, ux, uy, uz, tIn, tEnd)
+---Walks through the overlap of the leg with obstacle `i`'s sphere, which starts at `tIn`: it steps
+---by a share of the radius, and after each exit looks ahead for a re-entry.
+---@return number last The last time sampled inside the sphere
+---@return number|nil outside The time sampled outside after it, nil when the leg ends inside
+local function overlapWalk(profile, i, ax, ay, az, ux, uy, uz, tIn, tEnd)
     local radius, bound = hitRadius[i + 1], legBound[i + 1]
     local last, t, k = tIn, tIn, 1
     while t <= tEnd do
@@ -525,11 +637,37 @@ local function overlapMidTime(profile, i, ax, ay, az, ux, uy, uz, tIn, tEnd)
             t = stepTo(profile, k, t, OVERLAP_STEP * radius / (profile.vmax[k] + bound))
         else
             local reentry = bodyHit(profile, i, ax, ay, az, ux, uy, uz, t, tEnd)
-            if not reentry then break end
+            if not reentry then return last, t end
             t = reentry
         end
     end
+    return last, nil
+end
+
+---The time in the overlap that is half way between its start and its end. The overlap ends at
+---the last time the walk finds the leg inside the sphere.
+local function overlapMidTime(profile, i, ax, ay, az, ux, uy, uz, tIn, tEnd)
+    local last = overlapWalk(profile, i, ax, ay, az, ux, uy, uz, tIn, tEnd)
     return (tIn + last) * HALF
+end
+
+---The time the leg leaves obstacle `i`'s sphere for good, which it entered at `tIn`: the walk's
+---last inside sample, bisected toward the first outside sample after it. A leg that ends inside
+---leaves at its end.
+local function overlapExitTime(profile, i, ax, ay, az, ux, uy, uz, tIn, tEnd)
+    local last, outside = overlapWalk(profile, i, ax, ay, az, ux, uy, uz, tIn, tEnd)
+    if not outside then return tEnd end
+    local radius = hitRadius[i + 1]
+    local lo, hi, k0 = last, outside, locate(profile, last, 1)
+    for _ = 1, ZONE_EXIT_BISECTIONS do
+        local mid = (lo + hi) * HALF
+        if gapAt(profile, locate(profile, mid, k0), i, ax, ay, az, ux, uy, uz, mid) <= radius then
+            lo = mid
+        else
+            hi = mid
+        end
+    end
+    return (lo + hi) * HALF
 end
 
 ---A unit vector perpendicular to the unit vector `u`, built from the axis least aligned with it.
@@ -664,9 +802,24 @@ local function tailRun(run)
     return { beyond = run.beyond }
 end
 
----Plans the leg a to b, whose timeline is `profile`, through one detour around body `i` and writes
----its waypoints; the detour waypoint is in body `i`'s frame, and b in `bFrame`. `flip` passes the
----body on the other side. `run` is the leg's run (see `buildProfile`).
+---Whether a leg a to b that enters cost zone `i` at `tIn` is cheaper around it than through it:
+---the detour's extra length is less than the zone's cost times the length of the leg inside it,
+---from the entry to the last exit. A zone with no detour point is crossed.
+local function zoneWorthDetour(profile, i, ax, ay, az, bx, by, bz, length, ux, uy, uz, tIn, tB)
+    local wx, wy, wz = detourPoint(profile, i, ax, ay, az, length, ux, uy, uz, tIn, tB, false)
+    if not wx then return false end
+    local viaLength = sqrt((wx - ax) ^ 2 + (wy - ay) ^ 2 + (wz - az) ^ 2)
+        + sqrt((bx - wx) ^ 2 + (by - wy) ^ 2 + (bz - wz) ^ 2)
+    local tOut = overlapExitTime(profile, i, ax, ay, az, ux, uy, uz, tIn, tB)
+    local inside = distanceAt(profile, tOut, locate(profile, tOut, 1))
+        - distanceAt(profile, tIn, locate(profile, tIn, 1))
+    return viaLength - length < zones[(i - bodyCount) * ZONE_STRIDE + ZONE_COST] * inside
+end
+
+---Plans the leg a to b, whose timeline is `profile`, through one detour around obstacle `i` and
+---writes its waypoints; the detour waypoint is in the obstacle's frame (`detourFrame`), and b in
+---`bFrame`. `flip` passes the obstacle on the other side. `run` is the leg's run (see
+---`buildProfile`).
 ---@return number|nil tEnd The time at b, nil when the plan stopped
 local function planDetour(profile, i, ax, ay, az, bx, by, bz, bFrame, length, ux, uy, uz, t0, tIn, tB, depth, flip, run)
     local wx, wy, wz = detourPoint(profile, i, ax, ay, az, length, ux, uy, uz, tIn, tB, flip)
@@ -674,9 +827,32 @@ local function planDetour(profile, i, ax, ay, az, bx, by, bz, bFrame, length, ux
         fail(Status.NoDetour)
         return append(bx, by, bz, tB, bFrame, profile) and tB or nil
     end
-    local tW = planLeg(ax, ay, az, t0, wx, wy, wz, i, depth + 1, headRun(run))
+    local frame = detourFrame(i)
+    local tW = planLeg(ax, ay, az, t0, wx, wy, wz, frame, depth + 1, headRun(run))
     if not tW then return nil end
     return planLeg(wx, wy, wz, tW, bx, by, bz, bFrame, depth + 1, tailRun(run))
+end
+
+---Plans the leg a to b around obstacle `i` on one side, and on the other when that side's legs
+---fail. When both fail, a body's first side stands, and a zone is given up: nothing is kept and
+---`planned` is false, so the leg crosses the zone.
+---@return number|nil tEnd The time at b, nil when the plan stopped
+---@return boolean planned False for a zone that cannot be gone around
+local function planAround(profile, i, ax, ay, az, bx, by, bz, bFrame, length, ux, uy, uz, t0, tIn, tB, depth, run)
+    local savedWritten, savedFailures, savedStatus = written, failures, status
+    local function detour(flip)
+        return planDetour(profile, i, ax, ay, az, bx, by, bz, bFrame, length, ux, uy, uz, t0, tIn, tB, depth, flip, run)
+    end
+    local tEnd = detour(false)
+    if tEnd == nil or failures == savedFailures then return tEnd, true end
+
+    written, failures, status = savedWritten, savedFailures, savedStatus
+    tEnd = detour(true)
+    if tEnd == nil or failures == savedFailures then return tEnd, true end
+
+    written, failures, status = savedWritten, savedFailures, savedStatus
+    if i >= bodyCount then return nil, false end
+    return detour(false), true
 end
 
 ---Plans the leg from a to b (a point in frame `bFrame`), starting at time t0, and writes its
@@ -698,26 +874,26 @@ function planLeg(ax, ay, az, t0, bx, by, bz, bFrame, depth, run)
     local profile = legProfile(depth)
     buildProfile(profile, t0, length, ax, ay, az, ux, uy, uz, run)
     local tB = profile.t[profile.count]
-    local body, tIn = firstHit(profile, ax, ay, az, ux, uy, uz, t0, tB)
-    if body < 0 or depth >= maxDepth then
-        if body >= 0 then fail(Status.DepthExceeded) end
-        return append(bx, by, bz, tB, bFrame, profile) and tB or nil
+    local waived = legWaived(depth)
+    while true do
+        local obstacle, tIn = firstHit(profile, ax, ay, az, ux, uy, uz, t0, tB, obstacleCount, waived)
+        local isZone = obstacle >= bodyCount
+        if obstacle < 0 or (depth >= maxDepth and not isZone) then
+            if obstacle >= 0 then fail(Status.DepthExceeded) end
+            return append(bx, by, bz, tB, bFrame, profile) and tB or nil
+        end
+        -- A zone is crossed at the depth limit, when going round it costs more, and when no detour
+        -- clears it; the leg then goes on to its next hit.
+        local goAround = not isZone
+            or (depth < maxDepth
+                and zoneWorthDetour(profile, obstacle, ax, ay, az, bx, by, bz, length, ux, uy, uz, tIn, tB))
+        if goAround then
+            local tEnd, planned = planAround(profile, obstacle, ax, ay, az, bx, by, bz, bFrame, length, ux, uy, uz, t0,
+                tIn, tB, depth, run)
+            if planned then return tEnd end
+        end
+        waived[obstacle] = true
     end
-
-    local savedWritten, savedFailures, savedStatus = written, failures, status
-    local function detour(flip)
-        return planDetour(profile, body, ax, ay, az, bx, by, bz, bFrame, length, ux, uy, uz, t0, tIn, tB, depth, flip,
-            run)
-    end
-    local tEnd = detour(false)
-    if tEnd == nil or failures == savedFailures then return tEnd end
-
-    written, failures, status = savedWritten, savedFailures, savedStatus
-    tEnd = detour(true)
-    if tEnd == nil or failures == savedFailures then return tEnd end
-
-    written, failures, status = savedWritten, savedFailures, savedStatus
-    return detour(false)
 end
 
 ---The speed at which `TURN_THRUST_SHARE` of the forward acceleration `accel` holds a circle of
@@ -809,9 +985,9 @@ local function arcIsClear(ex, ey, ez, ox, oy, oz, kx, ky, kz, turn, radius, tEnt
         local length = sqrt(dx * dx + dy * dy + dz * dz)
         if length > MIN_LENGTH then
             flatProfile(chordProfile, t, length)
-            if firstHit(chordProfile, px, py, pz, dx / length, dy / length, dz / length, t, t + length / speed) >= 0 then
-                return false
-            end
+            local hit = firstHit(chordProfile, px, py, pz, dx / length, dy / length, dz / length, t, t + length / speed,
+                bodyCount, nil)
+            if hit >= 0 then return false end
         end
         px, py, pz, t = qx, qy, qz, t + duration
     end
@@ -1007,6 +1183,7 @@ local function planPass(sx, sy, sz, gx, gy, gz, goalTime, entryTime)
     setLegFrame(SYSTEM_FRAME)
     local px, py, pz = goalPoint(gx, gy, gz, goalTime)
     if not (shrinkAround(sx, sy, sz, 0) and shrinkAround(px, py, pz, goalTime)) then return false end
+    markIgnoredZones(sx, sy, sz, px, py, pz, goalTime)
     if wellMode == WELL_NONE then
         return true, arrivalTime(planLeg(sx, sy, sz, 0, px, py, pz, goalFrame, 0))
     end
@@ -1099,18 +1276,26 @@ end
 ---@param outCapacity integer Waypoints the output buffer holds
 ---@param driveBuffer userdata|nil `double[?]`, `DRIVE_STRIDE` values, nil for no drive
 ---@param arrival number|nil The arrival radius, game units, zero or more, nil for zero: how close to the goal the ship counts as arrived
+---@param zonesBuffer userdata|nil `double[?]`, `zoneCount * ZONE_STRIDE` values: the cost zones, nil for none
+---@param zoneCountArg integer|nil Number of cost zones, zero or more, nil for zero
 ---@return integer status A `Status` value
 ---@return integer waypointCount Waypoints written, the goal last when the status allows a plan
 function SystemPlanner.plan(bodiesBuffer, count, sx, sy, sz, frame, gx, gy, gz, planSpeed, accel, drag, depthLimit,
-                            outBuffer, outCapacity, driveBuffer, arrival)
+                            outBuffer, outCapacity, driveBuffer, arrival, zonesBuffer, zoneCountArg)
     bodies, bodyCount, speed, maxDepth, out, capacity = bodiesBuffer, count, planSpeed, depthLimit, outBuffer, outCapacity
     goalFrame, written, status, failures = frame, 0, Status.Ok, 0
     arrivalRadius = arrival or 0
+    zones, zoneCount = zonesBuffer, zoneCountArg or 0
     if not validRequest(sx, sy, sz, frame, gx, gy, gz, planSpeed, accel, drag, depthLimit, outCapacity) then
         return Status.InvalidInput, 0
     end
+    local zonesValid = isFinite(zoneCount) and zoneCount >= 0 and zoneCount == math.floor(zoneCount)
+    if not (zonesValid and (zoneCount == 0 or zones)) then
+        return Status.InvalidInput, 0
+    end
+    obstacleCount = bodyCount + zoneCount
     setShip(accel, drag)
-    if not setDrive(driveBuffer) or not prepareBodies() then return Status.InvalidInput, 0 end
+    if not setDrive(driveBuffer) or not prepareBodies() or not prepareZones() then return Status.InvalidInput, 0 end
     wellMode = chooseWellMode(sx, sy, sz, gx, gy, gz)
     if outrunsBeforePlanning(frame, planSpeed) then return Status.GoalOutrun, 0 end
 
