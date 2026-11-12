@@ -28,6 +28,25 @@ function NavAgentHelper.addShip(nav, shipEntity, rb)
     )
 end
 
+---The velocity the ship's gravity well carries it at; zero for a ship without a well.
+---@param shipEntity Entity
+---@return number x
+---@return number y
+---@return number z
+local function carriedVelocity(shipEntity)
+    local well = shipEntity:get(PhysicsComponents.GravityWell)
+    if not well then return 0, 0, 0 end
+    return well:getCarriedVelocity()
+end
+
+---Whether a gravity well carries the ship at a velocity: it moves with the well's body.
+---@param shipEntity Entity
+---@return boolean
+function NavAgentHelper.isCarried(shipEntity)
+    local cx, cy, cz = carriedVelocity(shipEntity)
+    return cx ~= 0 or cy ~= 0 or cz ~= 0
+end
+
 ---Tell `nav` the velocity the ship's gravity well carries it at, so that the agent is steered
 ---relative to the well (drag acts on that part of its velocity only). A ship without a well is
 ---carried at nothing. Call it before every `nav:step()`.
@@ -35,9 +54,7 @@ end
 ---@param agent integer The ship's agent id in `nav`
 ---@param shipEntity Entity
 function NavAgentHelper.setFrameFromWell(nav, agent, shipEntity)
-    local well = shipEntity:get(PhysicsComponents.GravityWell)
-    local cx, cy, cz = 0, 0, 0
-    if well then cx, cy, cz = well:getCarriedVelocity() end
+    local cx, cy, cz = carriedVelocity(shipEntity)
     nav:setFrameVelocity(agent, Vec3d(cx, cy, cz))
 end
 

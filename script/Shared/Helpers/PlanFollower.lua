@@ -1,7 +1,8 @@
 -- Flies a ship along the corners of a system plan through a `NavWorld` agent: each leg is a Seek to
 -- the entry of the next corner's arc (or the corner, when sharp) at the corner's speed, each arc is
 -- flown by pure pursuit under the corner's speed cap. Corner points are taken from where their
--- frame bodies are now; the arcs are the ones the planner cleared, kept at their planned offsets.
+-- frame bodies are now, except a well's entry, which is sought where it is planned to be on arrival;
+-- the arcs are the ones the planner cleared, kept at their planned offsets.
 -- The follower stops after the last corner; the owner flies the leg to the goal.
 -- Design: doc/script/system-planner.md
 local SystemPlanner = require("Shared.Helpers.SystemPlanner")
@@ -57,6 +58,7 @@ local MAX_ARC_LOOKAHEAD = 0.6
 ---@field index integer The corner being flown to
 ---@field arc PlanArcFlight|nil The arc being flown; nil on a leg
 ---@field finished boolean Whether the last corner has been passed
+---@field carried boolean Whether a gravity well carried the ship at the last `advance`
 ---@field target Position The point the ship is steering to: the next corner's arc entry or sharp corner, or the arc's exit
 local PlanFollower = {}
 PlanFollower.__index = PlanFollower
@@ -81,7 +83,7 @@ function PlanFollower.new(spec)
     local follower = setmetatable({
         nav = spec.nav, agent = spec.agent, rb = spec.rb, frames = spec.frames, points = spec.points,
         goal = spec.goal, start = spec.start, passRadius = spec.passRadius, accel = spec.accel,
-        drag = spec.drag, index = 1, finished = false,
+        drag = spec.drag, index = 1, finished = false, carried = false,
     }, PlanFollower)
     follower:seekLeg(follower:currentArc())
     return follower
@@ -178,12 +180,35 @@ function PlanFollower:turnShare(speed, radius)
     return math.sqrt(speed ^ 4 / (radius * radius) + k * k * speed * speed) / self.accel
 end
 
+---Whether corner `index` is the entry into a body's well: a sharp corner on a frame body that the
+---leg before it reaches from outside the frame and the leg after it flies in. The planner places it
+---where the straight system leg meets the moving body.
+---@param index integer
+---@return boolean
+function PlanFollower:isEntry(index)
+    local waypoint = self.points[index]
+    local frame = waypoint.frame
+    if not frame or waypoint.radius > 0 then return false end
+    local before = self.points[index - 1]
+    local after = self.points[index + 1] or self.goal
+    return after.frame == frame and not (before and before.frame == frame)
+end
+
 ---Sends the ship along its leg to the entry of `arc`, or to the sharp corner when there is none,
----to pass it at the corner's speed.
+---to pass it at the corner's speed. A well's entry is sought where it is planned to be when the
+---ship arrives, which keeps the system leg straight; a pursuit of the point where it is now curves
+---the ship's velocity as the body moves on. A ship the well already carries moves with the body, so
+---there the entry is where it is now.
 ---@param arc PlanArc|nil The arc of the corner being flown to
 function PlanFollower:seekLeg(arc)
     local waypoint = self.points[self.index]
-    self.target = arc and toPosition(arc.entry) or self:pointNow(waypoint)
+    local corner
+    if not self.carried and self:isEntry(self.index) then
+        corner = self:pointPlanned(waypoint)
+    else
+        corner = self:pointNow(waypoint)
+    end
+    self.target = arc and toPosition(arc.entry) or corner
     self.nav:setSeek(self.agent, self.target, self.passRadius, waypoint.speed)
 end
 
@@ -277,7 +302,9 @@ end
 ---@param speed number Game units per second
 ---@param time number
 ---@param listener PlanFollowerListener
-function PlanFollower:advance(arrived, speed, time, listener)
+---@param carried boolean|nil Whether a gravity well carries the ship (it moves with the well's body)
+function PlanFollower:advance(arrived, speed, time, listener, carried)
+    self.carried = carried == true
     local arc = self:currentArc()
     if self.arc then
         if arc and self:flyArc(arc, speed) then

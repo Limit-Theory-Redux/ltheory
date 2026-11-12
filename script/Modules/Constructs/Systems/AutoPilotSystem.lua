@@ -403,7 +403,7 @@ local function flyPlan(ap, shipEntity, speed, targetPos, zoneMax)
     NavAgentHelper.setFrameFromWell(nav, agent, shipEntity)
     nav:step()
     nav:copyArrived(ap:getArrived(), 1)
-    plan.follower:advance(ap:getArrived()[0], speed, ap:getElapsed(), plan.listener)
+    plan.follower:advance(ap:getArrived()[0], speed, ap:getElapsed(), plan.listener, NavAgentHelper.isCarried(shipEntity))
     nav:copyAxes(ap:getAxes(), NavWorld.AxisCount())
 
     local input = shipEntity:get(ConstructComponents.ControlInput)

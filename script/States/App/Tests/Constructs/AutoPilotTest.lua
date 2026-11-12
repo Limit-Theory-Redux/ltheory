@@ -58,6 +58,18 @@ local FIELD_TURN = math.pi * (3 - math.sqrt(5))
 local WELL_ORBIT_RADIUS  = 10000
 local WELL_RADIUS        = 1000
 local WELL_ORBIT_SPEEDUP = 2
+-- The planet of a drive flight into a well, as fast as the game's: a generated planet moves at
+-- `0.5 · √(orbit radius)` game units per second (1,000 to 10,000), and the drive brings a ship to the
+-- edge of its well at 2,000 to 9,000 (the braking law's speed for the way left, at most the zone's
+-- cap), so the planet moves at 0.1 to 1 times the ship's speed there. Here the ship's speed at the
+-- entry is about 200 game units per second, and the planet moves at about half of it: 115 times
+-- the Solo top speed.
+local WELL_FAST_SPEEDUP = 115
+-- The nose's turn is judged over this many seconds around the ship's entry into the well.
+local EDGE_WINDOW_S = 3
+-- The most the nose may swing out and back across that window, in radians (about 9 degrees): a
+-- swing a pilot does not see as a wrong turn. The slow planet's flight swings 0.05.
+local MAX_EDGE_SWING = 0.15
 -- The planet in the drive's way: its hull radius, how far along the course it lies as a share of
 -- the distance, and its speed on its orbit as a share of the ship's top speed (slow: it stays across
 -- the course while the ship flies).
@@ -89,6 +101,7 @@ local MS_PER_S           = 1000
 ---@field well boolean|nil The target is a planet in a moving gravity well, and the ship starts inside the well
 ---@field planet boolean|nil A planet with a gravity well lies across the course, on a slow orbit
 ---@field outside boolean|nil With `well`: the ship starts outside the well and has to be planned into it
+---@field wellSpeedup number|nil The planet's speed on its orbit as a multiple of the ship's top speed; `WELL_ORBIT_SPEEDUP` when nil
 
 ---Rocks spread around the course, clear of it, so the whole field is within the sensing range of a
 ---ship at drive speed but none is in its way (the drive's avoidance is not tested).
@@ -126,6 +139,8 @@ local SCENARIOS = {
     { name = "a point, with drive, past a planet", distance = 20000, drive = true, maxFlight = 140, planet = true },
     { name = "a body in a moving well, with drive, from outside", distance = 20000, radius = BODY_RADIUS,
       drive = true, maxFlight = 32, well = true, outside = true },
+    { name = "a body in a moving well, with drive, from outside, a planet as fast as the game's", distance = 20000,
+      radius = BODY_RADIUS, drive = true, maxFlight = 60, well = true, outside = true, wellSpeedup = WELL_FAST_SPEEDUP },
 }
 
 function AutoPilotTest:check(ok, what, detail)
@@ -296,6 +311,39 @@ function AutoPilotTest:step(ship, well)
     return updateMs
 end
 
+---The angle between two vectors in radians, zero for a vector of no length.
+local function angleBetween(a, b)
+    local la = math.sqrt(a.x * a.x + a.y * a.y + a.z * a.z)
+    local lb = math.sqrt(b.x * b.x + b.y * b.y + b.z * b.z)
+    if la == 0 or lb == 0 then return 0 end
+    local cosine = (a.x * b.x + a.y * b.y + a.z * b.z) / (la * lb)
+    return math.acos(math.max(-1, math.min(1, cosine)))
+end
+
+---How far the nose swings out and back across a window of samples: the largest, over the window,
+---of the smaller of its angles to the nose at the start and at the end. A nose that turns once,
+---from one heading to another, stays near zero; one that turns away and returns is as large as the
+---swing.
+---@param samples table[] Samples with a `nose`, in time order
+---@return number radians
+local function noseExcursion(samples)
+    local first, last = samples[1].nose, samples[#samples].nose
+    local excursion = 0
+    for _, sample in ipairs(samples) do
+        excursion = math.max(excursion, math.min(angleBetween(sample.nose, first), angleBetween(sample.nose, last)))
+    end
+    return excursion
+end
+
+---The samples within `EDGE_WINDOW_S` of `at`.
+local function samplesAround(samples, at)
+    local window = {}
+    for _, sample in ipairs(samples) do
+        if math.abs(sample.at - at) <= EDGE_WINDOW_S then window[#window + 1] = sample end
+    end
+    return window
+end
+
 local function axesAreZero(input)
     return input:getThrustForward() == 0 and input:getThrustRight() == 0 and input:getThrustUp() == 0
         and input:getPitch() == 0 and input:getYaw() == 0 and input:getRoll() == 0
@@ -306,7 +354,8 @@ end
 function AutoPilotTest:run(scenario)
     local name = scenario.name .. ": "
     local length = math.sqrt(DIRECTION.x ^ 2 + DIRECTION.y ^ 2 + DIRECTION.z ^ 2)
-    local well = scenario.well and self:buildWell(Position(WELL_ORBIT_RADIUS, 0, 0), BODY_RADIUS, WELL_ORBIT_SPEEDUP)
+    local well = scenario.well and self:buildWell(Position(WELL_ORBIT_RADIUS, 0, 0), BODY_RADIUS,
+        scenario.wellSpeedup or WELL_ORBIT_SPEEDUP)
     -- The planet across the course: the ship starts at the origin, so the course runs from there.
     local planet = scenario.planet and self:buildWell(Position(
         DIRECTION.x / length * scenario.distance * PLANET_ALONG,
@@ -378,6 +427,8 @@ function AutoPilotTest:run(scenario)
     -- How the drive runs through the entry: the closest the ship came to the entry corner, when the
     -- drive left `active`, and the largest angle between the nose and the velocity after the corner.
     local entryTrace = { closestToCorner = math.huge, maxNoseAngle = 0 }
+    -- The nose at every step of a flight into a well, for the turn at its edge.
+    local entrySamples = {}
     local shipWell = ship.entity:get(PhysicsComponents.GravityWell)
     for stepIndex = 1, math.floor(scenario.maxFlight / STEP) do
         local updateMs = self:step(ship, moving)
@@ -428,6 +479,7 @@ function AutoPilotTest:run(scenario)
                 local cosine = (nose.x * velocity.x + nose.y * velocity.y + nose.z * velocity.z) / speed
                 entryTrace.maxNoseAngle = math.max(entryTrace.maxNoseAngle, math.acos(math.max(-1, math.min(1, cosine))))
             end
+            entrySamples[#entrySamples + 1] = { at = now, nose = ship.rb:getRot():getForward() }
         end
         cornered = cornered or follower ~= nil
         local arcNow = follower ~= nil and follower.arc ~= nil
@@ -543,6 +595,13 @@ function AutoPilotTest:run(scenario)
                 wellEntry.toPoint and string.format("%.1f", wellEntry.toPoint) or "-", wellEntry.drive,
                 wellEntry.passedAt and string.format("%.1f", wellEntry.passedAt) or "-",
                 wellEntry.passSpeed and string.format("%.2f", wellEntry.passSpeed) or "-")
+        end
+        if wellEntry then
+            local swing = noseExcursion(samplesAround(entrySamples, wellEntry.at))
+            self:check(swing <= MAX_EDGE_SWING, name .. "the nose does not swing at the well's edge",
+                string.format("%.3f rad against %.2f, within %d s of the edge", swing, MAX_EDGE_SWING, EDGE_WINDOW_S))
+            Log.Info("ConstructsAutoPilotTest: %sthe nose swings out and back by %.3f rad within %d s of the edge",
+                name, swing, EDGE_WINDOW_S)
         end
         Log.Info("ConstructsAutoPilotTest: %sthe plan has the entry at %s s and the goal at %s s",
             name, tostring(entryTrace.plannedEntry), tostring(entryTrace.plannedGoal))
