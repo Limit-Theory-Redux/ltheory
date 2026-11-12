@@ -29,6 +29,11 @@
   <text x="470" y="320" fill="#2563eb" text-anchor="middle">zone</text>
   <text x="600" y="320" fill="#2563eb" text-anchor="end">braking</text>
   <text x="738" y="418" fill="#2563eb" text-anchor="middle">at speed</text>
+  <!-- the arrival: where the goal's time is read -->
+  <line x1="655" y1="226" x2="655" y2="430" stroke="#7c3aed" stroke-width="1.5" stroke-dasharray="3 3"/>
+  <circle cx="655" cy="226" r="5" fill="#7c3aed"/>
+  <text x="649" y="404" fill="#7c3aed" text-anchor="end">goal's T: arrivalRadius</text>
+  <text x="649" y="421" fill="#7c3aed" text-anchor="end">before the end (the drive is still on)</text>
   <!-- the release and the corner -->
   <circle cx="705" cy="390" r="6" fill="#111827"/>
   <text x="770" y="476" fill="#111827" text-anchor="end">release: HANDOVER_MULT · braking time · speed before the end</text>

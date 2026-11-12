@@ -358,7 +358,8 @@ function beginPlan(ap, shipEntity)
     end
     local profile = ConstructComponents.FlightProfile.ProfileOf(shipEntity)
     AutoPilotPlan.request(ap, shipEntity, rb, profile, standOffGoal(shipPos, targetPos, dist, dist, safeRange),
-        targetEntity or ap._parentEntity, DRIVE_ENGAGE_STAND_OFFS * safeRange)
+        targetEntity or ap._parentEntity, DRIVE_ENGAGE_STAND_OFFS * safeRange,
+        AutoPilotSystem.arrivalRadius(targetRadiusOf(targetEntity)))
 end
 
 --- Runs the drive on a leg of the plan: engaged at the leg's start, its cap following the braking

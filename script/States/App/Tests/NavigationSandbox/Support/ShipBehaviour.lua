@@ -250,7 +250,7 @@ function ShipBehaviour.start(nav, ship, ships, obstacles, rules, planner)
         arriveAtGoal(nav, ship, rules.range)
         local at = ship.rb:getPos()
         b.startPoint = { x = at.x, y = at.y, z = at.z }
-        planner:request(ship, b.goal.offset, b.goal.frame, b.topSpeed, obstacles, 0)
+        planner:request(ship, b.goal.offset, b.goal.frame, b.topSpeed, obstacles, 0, rules.range)
     elseif b.kind == "Seek" then
         b.points, b.pointIndex, b.phase = {}, 1, "pass"
         for _, point in ipairs(spec.through) do table.insert(b.points, Metres.position(point)) end

@@ -57,7 +57,8 @@ end
 ---@param goal Position The stand-off point, in the world
 ---@param frameEntity Entity|nil The entity the goal rides on, when it is a body of the system
 ---@param driveMinLength gameunit Legs shorter than this are not flown under the drive
-function AutoPilotPlan.request(ap, shipEntity, rb, profile, goal, frameEntity, driveMinLength)
+---@param arrivalRadius gameunit How close to the goal the autopilot calls the ship arrived
+function AutoPilotPlan.request(ap, shipEntity, rb, profile, goal, frameEntity, driveMinLength, arrivalRadius)
     local snapshot = PlannerSnapshot.take()
     local frameIndex = frameEntity and snapshot:indexOf(frameEntity)
     local goalFrame, gx, gy, gz = SystemPlanner.SYSTEM_FRAME, goal.x, goal.y, goal.z
@@ -78,6 +79,7 @@ function AutoPilotPlan.request(ap, shipEntity, rb, profile, goal, frameEntity, d
         depth = DEPTH_LIMIT,
         capacity = CAPACITY,
         drive = driveBlock(shipEntity, driveMinLength),
+        arrivalRadius = arrivalRadius,
     })
     ap:setPlan({
         phase = Phase.Planning, snapshot = snapshot, taskId = taskId, start = { x = at.x, y = at.y, z = at.z },

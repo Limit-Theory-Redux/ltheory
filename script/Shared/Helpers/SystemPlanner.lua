@@ -198,6 +198,9 @@ local wellMode, entryRadius, entryIndex, entryOffsetX, entryOffsetY, entryOffset
 -- The drive multiplier and speed at the end of the last leg written with `Through`: the state a
 -- run carries through the entry. Read only when the entry has `Through`.
 local runEndMultiplier, runEndSpeed = 1, 0
+-- How close to the goal the ship counts as arrived, and the timeline of the leg written last (nil
+-- for a leg too short to time): the goal's time is read from that timeline.
+local arrivalRadius, lastProfile = 0, nil
 -- The timeline of a leg: its samples (time, distance along the leg) and, per interval between two
 -- samples, the greatest speed in it. A leg's profile is kept per recursion depth, so a retry on
 -- the other side of a body finds its parent's intact; chords of an arc use their own.
@@ -453,6 +456,17 @@ local function distanceAt(profile, t, k)
     return s1 + (s2 - s1) * (t - t1) / (t2 - t1)
 end
 
+---The time the ship is `along` from the start of the leg, linear between the samples of the
+---profile; the leg's start for a distance of zero or less, its end for one past the leg.
+local function timeAtDistance(profile, along)
+    local times, dists = profile.t, profile.s
+    local k, last = 1, profile.count - 1
+    while k < last and dists[k + 1] < along do k = k + 1 end
+    local s1, s2 = dists[k], dists[k + 1]
+    if s2 <= s1 then return times[k] end
+    return times[k] + (times[k + 1] - times[k]) * min(1, max(0, (along - s1) / (s2 - s1)))
+end
+
 ---The distance from the ship, `t` seconds in (interval `k` of the profile), to the centre of body `i`.
 local function gapAt(profile, k, i, ax, ay, az, ux, uy, uz, t)
     local along = distanceAt(profile, t, k)
@@ -623,6 +637,7 @@ local function append(x, y, z, t, frame, profile)
     out[base + OUT_DRIVE] = profile and profile.drive and 1 or 0
     out[base + OUT_THROUGH] = profile and profile.through and 1 or 0
     if profile and profile.through then runEndMultiplier, runEndSpeed = profile.endM, profile.endV end
+    lastProfile = profile
     written = written + 1
     return true
 end
@@ -968,22 +983,35 @@ local function planWell(sx, sy, sz, gx, gy, gz, entryTime)
     return planEntryLegs(sx, sy, sz, wx, wy, wz, ex, ey, ez, gx, gy, gz, nil)
 end
 
+---Moves the goal's time, the last waypoint written, from the time the ship reaches the goal point
+---(`tEnd`) to the time it comes within `arrivalRadius` of it along the last leg's timeline: the
+---leg's start for a leg shorter than the radius. The path itself is not changed.
+---@param tEnd number|nil The time the plan reaches its last point, nil when it stopped
+---@return number|nil tArrive The goal's time
+local function arrivalTime(tEnd)
+    local profile = lastProfile
+    if not tEnd or arrivalRadius <= 0 or not profile then return tEnd end
+    local tArrive = timeAtDistance(profile, profile.s[profile.count] - arrivalRadius)
+    out[(written - 1) * OUT_STRIDE + OUT_T] = tArrive
+    return tArrive
+end
+
 ---One full plan toward the goal as it is at `goalTime` (and, for a goal in a well that the ship
 ---has to enter, the entry as it is at `entryTime`).
 ---@return boolean ok False when an endpoint is inside a body's hull
----@return number|nil tEnd The time the plan reaches its last point, nil when it stopped
+---@return number|nil tEnd The time the ship arrives at the goal, nil when the plan stopped
 ---@return number|nil tEntry The time at the entry, when the plan has one
 local function planPass(sx, sy, sz, gx, gy, gz, goalTime, entryTime)
-    written, status, failures, entryIndex = 0, Status.Ok, 0, -1
+    written, status, failures, entryIndex, lastProfile = 0, Status.Ok, 0, -1, nil
     resetHitRadii()
     setLegFrame(SYSTEM_FRAME)
     local px, py, pz = goalPoint(gx, gy, gz, goalTime)
     if not (shrinkAround(sx, sy, sz, 0) and shrinkAround(px, py, pz, goalTime)) then return false end
     if wellMode == WELL_NONE then
-        return true, planLeg(sx, sy, sz, 0, px, py, pz, goalFrame, 0)
+        return true, arrivalTime(planLeg(sx, sy, sz, 0, px, py, pz, goalFrame, 0))
     end
     local tEnd, tEntry = planWell(sx, sy, sz, gx, gy, gz, entryTime)
-    return true, tEnd, tEntry
+    return true, arrivalTime(tEnd), tEntry
 end
 
 ---Whether the numbers and the frame index of a request are usable.
@@ -991,8 +1019,9 @@ local function validRequest(sx, sy, sz, frame, gx, gy, gz, planSpeed, accel, dra
     local finite = isFinite(sx) and isFinite(sy) and isFinite(sz) and isFinite(gx) and isFinite(gy) and isFinite(gz)
     local frameValid = frame == math.floor(frame) and frame >= SYSTEM_FRAME and frame < bodyCount
     local shipValid = accel > 0 and isFinite(accel) and drag >= 0 and isFinite(drag)
-    return finite and frameValid and shipValid and planSpeed > 0 and isFinite(planSpeed) and depthLimit >= 0
-        and outCapacity >= 1 and bodyCount >= 0
+    local arrivalValid = isFinite(arrivalRadius) and arrivalRadius >= 0
+    return finite and frameValid and shipValid and arrivalValid and planSpeed > 0 and isFinite(planSpeed)
+        and depthLimit >= 0 and outCapacity >= 1 and bodyCount >= 0
 end
 
 ---Sets the ship scratch from its forward acceleration and drag: the top speed, and the arc radius
@@ -1051,7 +1080,8 @@ end
 ---carries the ship. With a drive block, a leg is flown under the travel drive where that is sooner
 ---and the leg is at least the drive's minimum length, and `Out.Drive` marks it; `planSpeed` is then
 ---the ship's speed without the drive. A drive run goes on through the well's entry to the goal,
----and `Out.Through` marks the entry then.
+---and `Out.Through` marks the entry then. The goal's time is when the ship comes within
+---`arrivalRadius` of the goal; the path and the other times are those of a plan without a radius.
 ---@param bodiesBuffer userdata `double[?]`, `bodyCount * BODY_STRIDE` values
 ---@param count integer Number of bodies
 ---@param sx number Start x
@@ -1068,12 +1098,14 @@ end
 ---@param outBuffer userdata `double[?]`, `outCapacity * OUT_STRIDE` values
 ---@param outCapacity integer Waypoints the output buffer holds
 ---@param driveBuffer userdata|nil `double[?]`, `DRIVE_STRIDE` values, nil for no drive
+---@param arrival number|nil The arrival radius, game units, zero or more, nil for zero: how close to the goal the ship counts as arrived
 ---@return integer status A `Status` value
 ---@return integer waypointCount Waypoints written, the goal last when the status allows a plan
 function SystemPlanner.plan(bodiesBuffer, count, sx, sy, sz, frame, gx, gy, gz, planSpeed, accel, drag, depthLimit,
-                            outBuffer, outCapacity, driveBuffer)
+                            outBuffer, outCapacity, driveBuffer, arrival)
     bodies, bodyCount, speed, maxDepth, out, capacity = bodiesBuffer, count, planSpeed, depthLimit, outBuffer, outCapacity
     goalFrame, written, status, failures = frame, 0, Status.Ok, 0
+    arrivalRadius = arrival or 0
     if not validRequest(sx, sy, sz, frame, gx, gy, gz, planSpeed, accel, drag, depthLimit, outCapacity) then
         return Status.InvalidInput, 0
     end

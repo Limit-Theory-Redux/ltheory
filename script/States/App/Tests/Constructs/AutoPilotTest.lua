@@ -31,8 +31,9 @@ local SOLO         = Enums.FlightProfile.Solo
 -- Bound on the time a ship takes to stop once the autopilot has let go: it turns a ship that never
 -- stops into a failure.
 local MAX_SETTLE_S = 120
--- The ETA at the moment the drive runs may differ from the flight that remains by this share. It
--- leaves out the drive's ramp-up, so it runs short.
+-- The ETA at the moment the drive runs may differ from the flight that remains by this share. A
+-- flight without a plan estimates the drive's time without its ramp-up, so it runs short; a plan's
+-- ETA is the time the planner gives the ship to come within the arrival radius.
 local ETA_TOLERANCE = 0.2
 -- The ship has stopped below this speed, in game units per second.
 local STOPPED      = 1e-3
@@ -515,9 +516,7 @@ function AutoPilotTest:run(scenario)
         if moving then self:despawnWell(moving) end
         return
     end
-    -- A plan flight's ETA is the planner's drive timeline, which runs longer than the flown one
-    -- (a known gap); only a flight without a plan is held to it.
-    if etaAtDrive and not scenario.planet and not scenario.outside then
+    if etaAtDrive then
         local left = arrivedAt - driveAt
         self:check(math.abs(etaAtDrive - left) <= ETA_TOLERANCE * left, name .. "the ETA matches the flight",
             string.format("eta %.1f s, left %.1f s, drive at %.1f, arc at %s, final from %s, arrived %.1f", etaAtDrive, left,

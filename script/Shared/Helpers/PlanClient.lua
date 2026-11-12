@@ -27,8 +27,9 @@ local WORKER_COUNT  = 1
 ---@field kernelMs number Milliseconds the kernel took in the worker
 
 ---What a request carries: the worker's task. `bodies` is `count * BODY_STRIDE` numbers, `start` and
----`goal` are 3 numbers, `goalFrame` is a 0-based body index or `SYSTEM_FRAME`, and `drive` is
----`DRIVE_STRIDE` numbers or nil.
+---`goal` are 3 numbers, `goalFrame` is a 0-based body index or `SYSTEM_FRAME`, `drive` is
+---`DRIVE_STRIDE` numbers or nil, and `arrivalRadius` is how close to the goal the ship counts as
+---arrived (game units, nil for zero): the goal's time is when the ship comes within it.
 ---@class PlanRequest
 ---@field bodies number[]
 ---@field count integer
@@ -41,6 +42,7 @@ local WORKER_COUNT  = 1
 ---@field depth integer
 ---@field capacity integer
 ---@field drive number[]|nil
+---@field arrivalRadius gameunit|nil
 
 ---@class PlanClient
 local PlanClient = {}

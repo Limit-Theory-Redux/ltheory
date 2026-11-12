@@ -73,7 +73,8 @@ end
 ---@param speed number The planning speed, game units per second
 ---@param obstacles SandboxObstacle[] Parents come before their moons
 ---@param simTime number Simulated seconds since the scenario started
-function PlanClient:request(ship, goal, goalFrame, speed, obstacles, simTime)
+---@param arrivalRadius number How close to the goal the ship counts as arrived, game units
+function PlanClient:request(ship, goal, goalFrame, speed, obstacles, simTime, arrivalRadius)
     local bodies = {}
     for _, obstacle in ipairs(obstacles) do appendBody(bodies, obstacle, simTime) end
     local at = ship.rb:getPos()
@@ -89,6 +90,7 @@ function PlanClient:request(ship, goal, goalFrame, speed, obstacles, simTime)
         drag = profile.linearDrag,
         depth = DEPTH_LIMIT,
         capacity = CAPACITY,
+        arrivalRadius = arrivalRadius,
     }, false)
 end
 
