@@ -329,9 +329,26 @@ local cameraLabel = UIComponent.Container {
     },
 }
 
+-- Centre of the screen while the game is paused with P. (The pause menu
+-- replaces this view, so it never shows there.)
+local pausedText = UIComponent.Container {
+    visible = function() return hudVisible() and GameState.paused end,
+    align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
+    childrenAlign = { AlignHorizontal.Center, AlignVertical.Center },
+    contents = {
+        UIComponent.Text {
+            text = "PAUSED",
+            font = "Unageo-Semibold",
+            size = function() return px(46) end,
+            color = Color(1.0, 1.0, 1.0, 1.0),
+        },
+    },
+}
+
 InGame:addContent(speedReadout)
 InGame:addContent(travelBlock)
 InGame:addContent(zoneLine)
 InGame:addContent(cameraLabel)
+InGame:addContent(pausedText)
 
 return InGame
