@@ -4,6 +4,12 @@ local InGame = UICore.View {
     noDarken = true -- in-game overlay: never dim the game view
 }
 
+local ShipFlightSystem    = require("Modules.Constructs.Systems.ShipFlightSystem")
+local AutoPilotSystem     = require("Modules.Constructs.Systems.AutoPilotSystem")
+local GravityWellSystem   = require("Modules.Physics.Systems.GravityWellSystem")
+local ConstructComponents = require("Modules.Constructs.Components")
+local UniverseScaleConfig = require("Config.Gen.UniverseScaleConfig")
+
 -- NOTE: in-game input (pause, map, camera, autopilot) is owned by
 -- LimitTheoryRedux:onInput and the PlayerController; the In_Game view only
 -- draws.
@@ -13,22 +19,6 @@ local InGame = UICore.View {
 ---@type PlayerController|nil
 InGame.player = nil
 InGame.hudShown = false
-
--- Systems the HUD reads, required on first use: views load at startup, before
--- the game's modules.
-local deps
-local function systems()
-    if not deps then
-        deps = {
-            flight     = require("Modules.Constructs.Systems.ShipFlightSystem"),
-            autoPilot  = require("Modules.Constructs.Systems.AutoPilotSystem"),
-            wells      = require("Modules.Physics.Systems.GravityWellSystem"),
-            constructs = require("Modules.Constructs.Components"),
-            scale      = require("Config.Gen.UniverseScaleConfig"),
-        }
-    end
-    return deps
-end
 
 --- What the HUD shows this frame; filled in by onUpdate, read by the components.
 local hud = {
@@ -59,21 +49,21 @@ end
 
 ---@return number[]
 local function speedStateColor(ship, speed)
-    local drive = ship:get(systems().constructs.TravelDrive)
+    local drive = ship:get(ConstructComponents.TravelDrive)
     local state = drive and drive:getState()
     if state == "active" or state == "decelerating" then return TRAVEL end
     local max = Config.game.shipFlight.maxSpeedGame
     if speed > max * 1.02 then return BOOST end
-    if speed / systems().scale.globalScale < 1 then return STOPPED end -- below 1 m/s
+    if speed / UniverseScaleConfig.globalScale < 1 then return STOPPED end -- below 1 m/s
     return mix(SLOW, AT_MAX, math.min(1, speed / max))
 end
 
 local function updateSpeed(ship, dt)
-    local speed = systems().flight:getSpeed(ship)
+    local speed = ShipFlightSystem:getSpeed(ship)
     speedColor = mix(speedColor, speedStateColor(ship, speed), 1 - math.exp(-dt / COLOR_BLEND_TIME))
     local c = mix(speedColor, { 1, 1, 1 }, SPEED_TEXT_TINT)
     hud.speedColor = Color(c[1], c[2], c[3], 1)
-    hud.speedText = systems().scale:formatSpeed(speed)
+    hud.speedText = UniverseScaleConfig:formatSpeed(speed)
 end
 
 ------------------------------------------------------------------------------
@@ -86,7 +76,7 @@ local DRIVE_FADE_TIME = 0.5 -- seconds
 local blinkPhase, driveFadeLeft = 0, 0
 
 local function updateDrive(ship, dt)
-    local drive = ship:get(systems().constructs.TravelDrive)
+    local drive = ship:get(ConstructComponents.TravelDrive)
     local state = drive and drive:getState() or "idle"
     if state == "charging" then
         local progress = math.min(1, drive:getChargeProgress())
@@ -132,15 +122,14 @@ local function etaText(seconds)
 end
 
 local function updateAutopilot(ship)
-    local autoPilot = systems().autoPilot
-    if not autoPilot:isActive(ship) then
+    if not AutoPilotSystem:isActive(ship) then
         hud.autopilotText = ""
         return
     end
-    local cmp = ship:get(systems().constructs.AutoPilot)
+    local cmp = ship:get(ConstructComponents.AutoPilot)
     hud.autopilotText = string.format("AUTOPILOT  ›  %s  ·  %s%s  ·  N to cancel",
-        targetName(autoPilot:getTargetName(ship)),
-        systems().scale:formatDistance(cmp and cmp.distance or 0),
+        targetName(AutoPilotSystem:getTargetName(ship)),
+        UniverseScaleConfig:formatDistance(cmp and cmp.distance or 0),
         etaText(cmp and cmp.eta or 0))
 end
 
@@ -158,7 +147,7 @@ local function thousands(n)
 end
 
 local function updateZone()
-    local wells = systems().wells
+    local wells = GravityWellSystem
     hud.zoneText = string.format("Zone: %s  ·  Travel cap ×%s",
         ZONE_NAMES[wells.currentZoneType] or wells.currentZoneType, thousands(wells:getMaxDriveSpeed()))
 end

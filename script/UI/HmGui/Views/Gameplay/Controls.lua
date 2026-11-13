@@ -5,17 +5,17 @@ local Controls = UICore.View {
 
 ---@type ResponsiveSize
 local ResponsiveSize = require("Types.ResponsiveSize")
+local ControlsHelp = require("Input.ControlsHelp")
 
 -- NOTE: Escape (back to the pause menu) is handled by LimitTheoryRedux:onInput,
 -- like the Paused view; this view only draws the list and the Back button.
 
--- Built from the bindings each time the view opens. Required here rather than
--- at load: views load at startup, before the game state and its bindings.
+-- Built from the bindings each time the view opens.
 ---@type ControlsHelpGroup[]
 Controls.groups = {}
 
 function Controls:onViewOpen(isPageOpen)
-    self.groups = require("Input.ControlsHelp").groups()
+    self.groups = ControlsHelp.groups()
 end
 
 local WHITE = Color(1.0, 1.0, 1.0, 1.0)
