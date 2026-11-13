@@ -33,7 +33,10 @@ cli-table = { version = "0.5", default-features = false }
 crossbeam = "0.8"
 directories = "6.0"
 flate2 = "1.1"
-freetype-sys = "0.20"
+# "bundled": compile FreeType from source on every platform. Since 0.21, without
+# it the crate needs a system FreeType via pkg-config (none on Windows or Linux CI).
+# Not 0.23 yet: its bundled build can't find zlib.h on Windows (freetype-sys#149).
+freetype-sys = { version = "0.22", features = ["bundled"] }
 gilrs = "0.11"
 glam = { version = "0.29", features = ["scalar-math"] }
 image = "0.25"
