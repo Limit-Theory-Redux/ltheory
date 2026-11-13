@@ -13,8 +13,9 @@ local Backdrop = require("Render.Backdrop")
 local MusicPlayer = require('Shared.Audio.MusicPlayer')
 local InitFiles = require('Legacy.Systems.Files.InitFiles')
 
--- UI pages (HmGui). The main menu is the only HmGui page; in-game UI is
--- drawn by the state's onRender through the rendering systems.
+-- UI pages (HmGui): the Main_Menu page before a game, the Gameplay page in
+-- game (In_Game view, Paused view for the pause menu). The HUD and the maps
+-- are still drawn by the state's onRender through the rendering systems.
 local UIRouter = require('UI.HmGui.UICore.UIRouter')
 local UIPageMainMenu = require('UI.HmGui.Pages.MainMenu')
 local UIPageGameplay = require('UI.HmGui.Pages.Gameplay')
@@ -250,14 +251,13 @@ function LimitTheoryRedux:openPauseMenu()
     -- Free the cursor (visible, no grab): gameplay runs FPS-style Locked,
     -- which pins the cursor and makes the Paused view unclickable.
     CursorManager:free()
-    UIRouter:setCurrentPage("Gameplay")
     UIPageGameplay:setView("Paused")
 end
 
 --- Close the in-game pause menu and resume the sim.
 function LimitTheoryRedux:closePauseMenu()
     self.pauseMenuOpen = false
-    UIRouter:clearCurrentPage()
+    UIPageGameplay:setView("In_Game")
     GameState:Unpause()
     -- Re-apply the gameplay cursor state for the current camera mode
     -- (Locked/Confined/Free), same pattern as the map-mode close path.
@@ -383,9 +383,10 @@ function LimitTheoryRedux:startGame(seed)
 
     self._simTunnel = EventBus:subscribe(Event.Sim, self, self.onStateSim)
 
-    -- Close the menu; in-game UI (HUD, labels) is drawn by the state's
-    -- onRender through the rendering systems, not the HmGui pages.
-    UIRouter:clearCurrentPage()
+    -- Swap the menu for the Gameplay page. Its In_Game view draws on top of
+    -- the HUD and labels that the state's onRender draws.
+    UIRouter:setCurrentPage("Gameplay")
+    UIPageGameplay:setView("In_Game")
 end
 
 ---@param seed integer

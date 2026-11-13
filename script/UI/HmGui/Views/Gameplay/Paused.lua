@@ -7,7 +7,8 @@ local Paused = UICore.View {
 local ResponsiveSize = require("Types.ResponsiveSize")
 
 -- NOTE: Escape handling is owned by LimitTheoryRedux:onInput (single
--- toggle point); the Paused view only provides the button callbacks.
+-- toggle point); the Paused view only provides the button callbacks. The
+-- cursor is owned by LimitTheoryRedux too, through the CursorManager.
 
 function Paused:onInput() end
 
@@ -15,15 +16,10 @@ function Paused:onUpdate(dt) end
 
 function Paused:onViewOpen(isPageOpen)
     GameState:Pause()
-    Input:setCursorVisible(true)
 end
 
 function Paused:onViewClose(isPageClose)
     GameState:Unpause()
-
-    if not isPageClose then
-        Input:setCursorVisible(false)
-    end
 end
 
 local menuContainer = UIComponent.Container {
