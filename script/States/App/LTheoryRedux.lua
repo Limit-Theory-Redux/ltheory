@@ -244,7 +244,7 @@ function LimitTheoryRedux:cleanupMenuBackground()
 end
 
 --- Open the in-game pause menu (Escape). The Gameplay page's Paused view
---- provides Return to Game / Back to Main Menu / Exit.
+--- provides Return to Game / Controls / Back to Main Menu / Exit.
 function LimitTheoryRedux:openPauseMenu()
     self.pauseMenuOpen = true
     GameState:Pause()
@@ -257,6 +257,7 @@ end
 --- Close the in-game pause menu and resume the sim.
 function LimitTheoryRedux:closePauseMenu()
     self.pauseMenuOpen = false
+    self.controlsOpen = false
     UIPageGameplay:setView("In_Game")
     GameState:Unpause()
     -- Re-apply the gameplay cursor state for the current camera mode
@@ -264,6 +265,18 @@ function LimitTheoryRedux:closePauseMenu()
     if self.player then
         self.player:setMode(self.player:getMode())
     end
+end
+
+--- Show the Controls (help) screen; the game stays paused.
+function LimitTheoryRedux:openControls()
+    self.controlsOpen = true
+    UIPageGameplay:setView("Controls")
+end
+
+--- Back from the Controls screen to the pause menu.
+function LimitTheoryRedux:closeControls()
+    self.controlsOpen = false
+    UIPageGameplay:setView("Paused")
 end
 
 --- P freezes the sim without opening the pause menu.
@@ -613,13 +626,16 @@ function LimitTheoryRedux:onRender(data)
         self:immediateUI(function()
             Gui:draw()
             LensFlareSystem:draw(self.starEntity, self.labeledEntities)
-            if not self.hudHidden then
+            -- These draw after Gui:draw, so they'd sit on top of the pause menu
+            -- and the Controls screen: hide them while those are open.
+            local showHud = not self.hudHidden and not self.pauseMenuOpen
+            if showHud then
                 GameplayHUDSystem:draw(self.playerShip, self.player:getModeName(), self.player:isPiloting())
                 WorldLabelRenderSystem:draw(self.labeledEntities)
             end
 
             local spawned = AsteroidFieldSystem:getSpawnedEntities()
-            if #spawned > 0 and not self.hudHidden then
+            if #spawned > 0 and showHud then
                 local eye = CameraManager:getEye()
                 if eye then
                     for _, aInfo in ipairs(spawned) do
@@ -665,9 +681,12 @@ function LimitTheoryRedux:onInput(data)
     if not self.playerShip then return end
     local dt = data:deltaTime()
 
-    -- Escape toggles the pause menu (Return to Game / Back to Main Menu / Exit).
+    -- Escape toggles the pause menu (Return to Game / Controls / Back to Main
+    -- Menu / Exit); from the Controls screen it goes back to the pause menu.
     if Input:isPressed(ApplicationBindings.Escape) then
-        if self.pauseMenuOpen then
+        if self.controlsOpen then
+            self:closeControls()
+        elseif self.pauseMenuOpen then
             self:closePauseMenu()
         else
             self:openPauseMenu()

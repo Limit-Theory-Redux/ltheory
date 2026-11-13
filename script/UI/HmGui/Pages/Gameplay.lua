@@ -14,6 +14,8 @@ local InGameView = require("UI.HmGui.Views.Gameplay.InGame")
 Gameplay:addViewToPage(InGameView)
 local PausedView = require("UI.HmGui.Views.Gameplay.Paused")
 Gameplay:addViewToPage(PausedView)
+local ControlsView = require("UI.HmGui.Views.Gameplay.Controls")
+Gameplay:addViewToPage(ControlsView)
 local SystemMapView = require("UI.HmGui.Views.Gameplay.SystemMap")
 Gameplay:addViewToPage(SystemMapView)
 
