@@ -14,11 +14,13 @@ local MusicPlayer = require('Shared.Audio.MusicPlayer')
 local InitFiles = require('Legacy.Systems.Files.InitFiles')
 
 -- UI pages (HmGui): the Main_Menu page before a game, the Gameplay page in
--- game (In_Game view, Paused view for the pause menu). The HUD and the maps
--- are still drawn by the state's onRender through the rendering systems.
+-- game (In_Game view with the HUD text, Paused and Controls views for the pause
+-- menu). The maps and world labels are still drawn by the state's onRender
+-- through the rendering systems.
 local UIRouter = require('UI.HmGui.UICore.UIRouter')
 local UIPageMainMenu = require('UI.HmGui.Pages.MainMenu')
 local UIPageGameplay = require('UI.HmGui.Pages.Gameplay')
+local UIViewInGame = require('UI.HmGui.Views.Gameplay.InGame')
 local ApplicationBindings = require('States.ApplicationBindings')
 
 -- ECS registry, physics/construct/celestial components, camera manager,
@@ -37,7 +39,6 @@ local AutoPilotSystem = require('Modules.Constructs.Systems.AutoPilotSystem')
 local GravityWellSystem = require('Modules.Physics.Systems.GravityWellSystem')
 local CelestialLightingSystem = require('Modules.Rendering.Systems.CelestialLightingSystem')
 local LensFlareSystem = require('Modules.Rendering.Systems.LensFlareSystem')
-local GameplayHUDSystem = require('Modules.UI.Systems.GameplayHUDSystem')
 local WorldLabelRenderSystem = require('Modules.UI.Systems.WorldLabelRenderSystem')
 local AsteroidFieldSystem = require('Modules.CelestialObjects.Systems.AsteroidFieldSystem')
 local GeneralActions = require('Input.ActionBindings.GeneralActions')
@@ -323,6 +324,7 @@ function LimitTheoryRedux:returnToMainMenu()
     RenderCoreSystem:setDebugPhysics(nil)
 
     self.playerShip = nil
+    UIViewInGame:setPlayer(nil)
     self.stations = {}
     self.mapMode = 0
 
@@ -393,6 +395,7 @@ function LimitTheoryRedux:startGame(seed)
             mouseSensitivity = free.mouseSensitivity,
         },
     })
+    UIViewInGame:setPlayer(self.player)
 
     self._simTunnel = EventBus:subscribe(Event.Sim, self, self.onStateSim)
 
@@ -611,6 +614,9 @@ function LimitTheoryRedux:onRender(data)
 
     CelestialLightingSystem:update(self.starEntity)
 
+    -- The HUD text (In_Game view) hides with the HUD toggle and in the 3D map.
+    UIViewInGame:setHudShown(not self.hudHidden and self.mapMode ~= 2)
+
     if self.mapMode == 2 then
         SystemMap3D:collectEntities(self.map3DState, self.universe, self.playerShip)
         SystemMap3D:render(self.map3DState, data)
@@ -630,7 +636,6 @@ function LimitTheoryRedux:onRender(data)
             -- and the Controls screen: hide them while those are open.
             local showHud = not self.hudHidden and not self.pauseMenuOpen
             if showHud then
-                GameplayHUDSystem:draw(self.playerShip, self.player:getModeName(), self.player:isPiloting())
                 WorldLabelRenderSystem:draw(self.labeledEntities)
             end
 
