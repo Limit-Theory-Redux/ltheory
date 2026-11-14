@@ -34,6 +34,7 @@ GameState.render = {
     resX                = Config.render.window.defaultResX,
     resY                = Config.render.window.defaultResY,
     presentMode         = Config.render.general.presentMode,
+    superSampleRate     = Config.render.general.superSampleRate,
     fov                 = Config.render.camera.fov,
     zNear               = Config.render.camera.zNear,
     zFar                = Config.render.camera.zFar,
