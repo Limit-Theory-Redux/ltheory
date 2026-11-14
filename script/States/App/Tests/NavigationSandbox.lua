@@ -21,6 +21,11 @@ local CameraDataComponent   = require("Modules.Cameras.Components.CameraDataComp
 require("Modules.Cameras.Systems.CameraSystem")
 
 local RenderingComponents   = require("Modules.Rendering.Components")
+local CoreComponents        = require("Modules.Core.Components")
+local NavigationComponents  = require("Modules.Navigation.Components")
+local SpatialComponents     = require("Modules.Spatial.Components")
+local SpatialEntities       = require("Modules.Spatial.Entities")
+local CostProfileRegistry   = require("Shared.Registries.CostProfileRegistry")
 local Entity                = require("Core.ECS.Entity")
 local NavAgentHelper        = require("Shared.Helpers.NavAgentHelper")
 local OrbitMath             = require("Shared.Helpers.OrbitMath")
@@ -39,6 +44,23 @@ local Metres                = require("States.App.Tests.NavigationSandbox.Suppor
 ---@field behaviour SandboxBehaviourSpec|nil What the ship does besides flying to `target`; see `ShipBehaviour`
 ---@field facing number[]|nil Direction the ship faces at the start, not along the y axis; toward its first target by default
 ---@field hull integer|nil An `Enums.ShipHulls` value, which sets the ship's size; Solo by default
+---@field costProfile string|nil Name in `Enums.CostProfile`: how the ship weighs the scenario's zones; none by default, so the zones cost their `pathCost`
+---@field costProfileChange SandboxCostProfileChange|nil Plan: the ship changes its cost profile
+---@field expect SandboxShipExpectation|nil Plan: what the run is judged by besides arriving
+
+---@class SandboxCostProfileChange
+---@field afterPlans integer The change is made once the ship has taken this many plans
+---@field to string Name in `Enums.CostProfile`
+
+---@class SandboxShipExpectation
+---@field zone "avoid"|"cross"|nil The ship keeps out of every cost zone, or goes through one
+---@field replans integer|nil How many times the ship asks for a new plan, because its profile changed
+
+---@class SandboxZoneSpec
+---@field position number[] { x, y, z } in metres
+---@field radius number In metres
+---@field pathCost number Extra cost per metre crossed, before a profile weighs it
+---@field tags string[]|nil Names of `ZoneKind` tags
 
 ---@class SandboxObstacleCircleSpec
 ---@field centre number[]|nil { x, y, z } in metres; not used with `around`
@@ -55,6 +77,7 @@ local Metres                = require("States.App.Tests.NavigationSandbox.Suppor
 ---@field name string
 ---@field ships SandboxShipSpec[]
 ---@field obstacles SandboxObstacleSpec[]|nil
+---@field zones SandboxZoneSpec[]|nil Cost zones, spheres that a planned path goes around when that is cheaper than crossing them
 ---@field safeRadiusFactor number|nil The planner keeps paths out of a sphere this many times an obstacle's radius; 1 when nil
 ---@field timeLimit number|nil Seconds of simulated time for every ship to arrive or deadlock; route ships fly until it ends
 ---@field avoidance SandboxAvoidanceSpec|nil The avoidance tuning; the navigation world's defaults when nil
@@ -70,7 +93,7 @@ local NavigationSandbox = Subclass("NavigationSandbox", Application)
 
 -- Every scenario, in the order `NavigationSandbox` runs them; each is an app of its own.
 local SCENARIO_NAMES   = { "SingleShip", "HeadOn", "CrossingStreams", "CircleSwap", "ObstacleField",
-    "SeekThrough", "HoldAfterCruise", "PursueRock", "FollowLeader", "OrbitRock", "SystemCrossing", "SpeedCap" }
+    "SeekThrough", "HoldAfterCruise", "PursueRock", "FollowLeader", "OrbitRock", "SystemCrossing", "SpeedCap", "CostZoneReplan" }
 local SCENARIO_MODULES = "States.App.Tests.NavigationSandbox."
 local SEED             = 1
 local DEFAULT_HULL     = Enums.ShipHulls.Solo
@@ -101,6 +124,7 @@ local MARKER_COLORS    = {
     arrived    = { 0.3, 1.0, 0.4, 1.0 },
     deadlocked = { 1.0, 0.3, 0.2, 1.0 },
     obstacle   = { 0.5, 0.5, 0.5, 1.0 },
+    zone       = { 1.0, 0.6, 0.2, 1.0 },
 }
 -- Filled spheres are drawn at this fraction of their colour: the additive pass is exposed for
 -- much dimmer content, and a full-strength fill saturates to white.
@@ -159,6 +183,10 @@ function NavigationSandbox:drawMarkers(blendMode)
         if obstacle.safeRadius > obstacle.radius then
             NavDebugDraw.sphere(obstacle.rb:getPos(), obstacle.safeRadius, MARKER_COLORS.obstacle, true)
         end
+    end
+    for _, zone in ipairs(self.zones) do
+        NavDebugDraw.sphere(zone.centre, zone.radius, FILL_COLORS.zone)
+        NavDebugDraw.sphere(zone.centre, zone.radius, MARKER_COLORS.zone, true)
     end
     for _, ship in ipairs(self.ships) do
         local flying = MARKER_COLORS.flying
@@ -233,6 +261,10 @@ function NavigationSandbox:frameCamera(scenario)
         table.insert(points, centre)
         table.insert(padding, obstacle.radius + reach)
     end
+    for _, zone in ipairs(self.zones) do
+        table.insert(points, zone.centre)
+        table.insert(padding, zone.radius)
+    end
     local cx, cy, cz = 0, 0, 0
     for _, p in ipairs(points) do cx, cy, cz = cx + p.x, cy + p.y, cz + p.z end
     local centre = Position(cx / #points, cy / #points, cz / #points)
@@ -275,6 +307,12 @@ function NavigationSandbox:spawnShip(spec, index)
         flightProfile = Enums.FlightProfile.Solo,
     })
     entity:add(ConstructComponents.ControlInput())
+    if spec.costProfile then
+        local id = assert(Enums.CostProfile[spec.costProfile], "unknown cost profile " .. spec.costProfile)
+        entity:add(NavigationComponents.CostProfile(CostProfileRegistry:get(id)))
+    end
+    assert(not spec.costProfileChange or (spec.costProfile and spec.behaviour and spec.behaviour.kind == "Plan"),
+        "a cost profile change needs a Plan ship with a cost profile")
     local rb = entity:get(PhysicsComponents.RigidBody):getRigidBody()
     self.world:addRigidBody(rb)
     return {
@@ -347,6 +385,24 @@ function NavigationSandbox:spawnObstacle(spec, index, safeRadiusFactor)
     return obstacle
 end
 
+---A cost zone: a zone entity with a sphere shape, a path cost and tags, which planners find through
+---the registry. It is not a physics body: ships fly through it, and its cost is in their plans.
+---@param spec SandboxZoneSpec
+---@param index integer
+---@return SandboxZone
+function NavigationSandbox:spawnZone(spec, index)
+    local centre = toPosition(spec.position)
+    local radius = Metres.length(spec.radius)
+    local entity = SpatialEntities.Zone()
+    local shape = entity:get(SpatialComponents.Shape)
+    shape:setShape(Enums.ZoneShape.Sphere)
+    shape:setRadius(radius)
+    entity:get(PhysicsComponents.Transform):setPos(centre)
+    entity:add(NavigationComponents.PathCost(spec.pathCost))
+    if spec.tags then entity:add(CoreComponents.Tag(table.unpack(spec.tags))) end
+    return { entity = entity, centre = centre, radius = radius, label = string.format("zone %d", index) }
+end
+
 ---Set the kinematic targets of the circling obstacles to where they are at `t`, so physics sees
 ---their velocity over the step that ends there.
 ---@param t number Seconds into the scenario
@@ -404,7 +460,11 @@ function NavigationSandbox:startScenario(index)
     for i, spec in ipairs(scenario.obstacles or {}) do
         table.insert(self.obstacles, self:spawnObstacle(spec, i, scenario.safeRadiusFactor or 1))
     end
-    self.metrics = ScenarioMetrics(scenario.name, self.ships, self.obstacles, scenario.avoidance)
+    self.zones = {}
+    for i, spec in ipairs(scenario.zones or {}) do
+        table.insert(self.zones, self:spawnZone(spec, i))
+    end
+    self.metrics = ScenarioMetrics(scenario.name, self.ships, self.obstacles, self.zones, scenario.avoidance)
     if self.metrics.plansExpected > 0 then
         self.planner = self.planner or PlanClient.start()
     end
@@ -435,7 +495,10 @@ function NavigationSandbox:endScenario()
         self.world:removeRigidBody(obstacle.rb)
         Registry:destroyEntity(obstacle.entity, Enums.Registry.EntityDestroyMode.DestroyChildren)
     end
-    self.ships, self.obstacles, self.metrics, self.world = nil, nil, nil, nil
+    for _, zone in ipairs(self.zones) do
+        Registry:destroyEntity(zone.entity, Enums.Registry.EntityDestroyMode.DestroyChildren)
+    end
+    self.ships, self.obstacles, self.zones, self.metrics, self.world = nil, nil, nil, nil, nil
     self.axes, self.arrived = nil, nil
 
     if self.scenarioIndex < #self.scenarios then
@@ -451,6 +514,16 @@ end
 ---@return number
 local function msSince(start)
     return InstantTime.Now():durationSince(start)
+end
+
+---Gives a ship the cost profile its spec changes to, once it has taken the plans the spec waits for.
+---@param ship SandboxShip
+function NavigationSandbox:applyProfileChange(ship)
+    local change = ship.spec.costProfileChange
+    if not change or ship.profileChanged or ship.behaviour.plansTaken < change.afterPlans then return end
+    ship.profileChanged = true
+    local id = assert(Enums.CostProfile[change.to], "unknown cost profile " .. change.to)
+    ship.entity:get(NavigationComponents.CostProfile):setProfile(CostProfileRegistry:get(id))
 end
 
 ---The glue between the navigation step and the ships' control inputs: advance route ships whose
@@ -479,8 +552,14 @@ function NavigationSandbox:applyNavigation()
                 ship.released = true
             end
         elseif ship.behaviour then
-            ShipBehaviour.advance(self.nav, ship, self.arrived[ship.agent], self.simTime,
-                ScenarioMetrics.RULES, self.metrics)
+            self:applyProfileChange(ship)
+            if ShipBehaviour.planIsStale(ship) then
+                ShipBehaviour.replan(self.nav, ship, ScenarioMetrics.RULES, self.planner, self.simTime)
+                self.metrics:planRequestedAgain(ship, self.simTime)
+            else
+                ShipBehaviour.advance(self.nav, ship, self.arrived[ship.agent], self.simTime,
+                    ScenarioMetrics.RULES, self.metrics)
+            end
         elseif ship.route and self.arrived[ship.agent] then
             self.metrics:waypointReached(ship, self.simTime)
             self.nav:setArrive(ship.agent, ship.target, ScenarioMetrics.ARRIVAL_RANGE)

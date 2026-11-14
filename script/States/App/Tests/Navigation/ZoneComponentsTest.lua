@@ -8,7 +8,6 @@ local Registry             = require("Core.ECS.Registry")
 local CoreComponents       = require("Modules.Core.Components")
 local NavigationComponents = require("Modules.Navigation.Components")
 local SpatialEntities      = require("Modules.Spatial.Entities")
-local Tags                 = require("Shared.Registries.Tags")
 local UniverseScaleConfig  = require("Config.Gen.UniverseScaleConfig")
 
 ---@class NavigationZoneComponentsTest: Application
@@ -58,8 +57,6 @@ function ZoneComponentsTest:checkRanges()
 end
 
 function ZoneComponentsTest:checkQueries()
-    Tags:new("ZoneKind", { "AsteroidField", "HostileSpace" })
-
     local belt = SpatialEntities.Zone()
     belt:add(NavigationComponents.SpeedLimit(UniverseScaleConfig:toGameUnits(SPEED_LIMIT_MS)))
     belt:add(NavigationComponents.PathCost(PATH_COST))

@@ -3,11 +3,13 @@
 -- (and the legs that are flown under the travel drive); the final approach to the goal is flown by
 -- the autopilot's own steering.
 -- Design: doc/script/system-planner.md
-local ConstructComponents = require("Modules.Constructs.Components")
-local PlanClient          = require("Shared.Helpers.PlanClient")
-local PlanFollower        = require("Shared.Helpers.PlanFollower")
-local PlannerSnapshot     = require("Shared.Helpers.PlannerSnapshot")
-local SystemPlanner       = require("Shared.Helpers.SystemPlanner")
+
+local ConstructComponents  = require("Modules.Constructs.Components")
+local NavigationComponents = require("Modules.Navigation.Components")
+local PlanClient           = require("Shared.Helpers.PlanClient")
+local PlanFollower         = require("Shared.Helpers.PlanFollower")
+local PlannerSnapshot      = require("Shared.Helpers.PlannerSnapshot")
+local SystemPlanner        = require("Shared.Helpers.SystemPlanner")
 
 -- How many times a leg may be split; the plan holds at most one waypoint per leg, and the goal.
 local DEPTH_LIMIT = 5
@@ -59,7 +61,7 @@ end
 ---@param driveMinLength gameunit Legs shorter than this are not flown under the drive
 ---@param arrivalRadius gameunit How close to the goal the autopilot calls the ship arrived
 function AutoPilotPlan.request(ap, shipEntity, rb, profile, goal, frameEntity, driveMinLength, arrivalRadius)
-    local snapshot = PlannerSnapshot.take()
+    local snapshot = PlannerSnapshot.take(NavigationComponents.CostProfile.ProfileOf(shipEntity))
     local frameIndex = frameEntity and snapshot:indexOf(frameEntity)
     local goalFrame, gx, gy, gz = SystemPlanner.SYSTEM_FRAME, goal.x, goal.y, goal.z
     if frameIndex then
@@ -80,6 +82,8 @@ function AutoPilotPlan.request(ap, shipEntity, rb, profile, goal, frameEntity, d
         capacity = CAPACITY,
         drive = driveBlock(shipEntity, driveMinLength),
         arrivalRadius = arrivalRadius,
+        zones = snapshot.zones,
+        zoneCount = snapshot.zoneCount,
     })
     ap:setPlan({
         phase = Phase.Planning, snapshot = snapshot, taskId = taskId, start = { x = at.x, y = at.y, z = at.z },

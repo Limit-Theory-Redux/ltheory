@@ -1,5 +1,7 @@
 --! this can be split up better
 require("Shared.Definitions.FlightProfileDefs")
+require("Shared.Definitions.ZoneTagDefs")
+require("Shared.Definitions.CostProfileDefs")
 
 Config.game = {
     boostCost              = 20,

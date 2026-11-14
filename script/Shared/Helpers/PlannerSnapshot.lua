@@ -1,7 +1,9 @@
 -- A snapshot of the star system for the system planner: every star, planet, moon and station as a
 -- body of the planner's body buffer (orbits at the moment of the snapshot, hull and safe radii,
--- travel-drive zones), and the frames that place a plan's waypoints as the bodies move on.
+-- travel-drive zones), the cost zones weighted by a cost profile, and the frames that place a
+-- plan's waypoints as the bodies move on.
 -- Design: doc/script/system-planner.md
+
 local Registry            = require("Core.ECS.Registry")
 local CoreComponents      = require("Modules.Core.Components")
 local PhysicsComponents   = require("Modules.Physics.Components")
@@ -12,6 +14,7 @@ local OrbitalSystem       = require("Modules.CelestialObjects.Systems.OrbitalSys
 local GravityWellSystem   = require("Modules.Physics.Systems.GravityWellSystem")
 local EntityPosition      = require("Shared.Helpers.EntityPosition")
 local SystemPlanner       = require("Shared.Helpers.SystemPlanner")
+local CostZones           = require("Shared.Helpers.CostZones")
 
 local Body      = SystemPlanner.Body
 local NO_PARENT = -1
@@ -31,6 +34,8 @@ local BODY_KINDS = {
 ---@field entities Entity[] The entity of each body, 1-based like a plan's `frame`
 ---@field frames PlanFrame[] A frame per body, for `PlanFollower`
 ---@field index table<EntityId, integer> The 1-based body index of an entity
+---@field zones number[] The planner's zone buffer, `zoneCount * ZONE_STRIDE` numbers, costs weighted by the profile
+---@field zoneCount integer
 ---@field age number Seconds since the snapshot was taken
 local PlannerSnapshot = {}
 PlannerSnapshot.__index = PlannerSnapshot
@@ -128,8 +133,9 @@ local function appendBody(values, item, indexOf, zone)
 end
 
 ---Takes a snapshot of the system as it is now.
+---@param costProfile CostProfile|nil How the ship weighs the cost zones; nil takes each at its path cost
 ---@return PlannerSnapshot
-function PlannerSnapshot.take()
+function PlannerSnapshot.take(costProfile)
     local self = setmetatable({ bodies = {}, entities = {}, frames = {}, index = {}, age = 0 }, PlannerSnapshot)
     local ordered = parentsFirst(collectBodies())
     for i, item in ipairs(ordered) do self.index[item.entity.id] = i end
@@ -145,6 +151,7 @@ function PlannerSnapshot.take()
         }
     end
     self.count = #ordered
+    self.zones, self.zoneCount = CostZones.collect(costProfile, function(entity) return self.index[entity.id] end)
     return self
 end
 

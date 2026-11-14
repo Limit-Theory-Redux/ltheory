@@ -1,10 +1,13 @@
 -- The sandbox's side of the system planner: sends the shared planner client a snapshot of the
--- scenario's obstacles as bodies on analytic orbits, and collects the plans that come back, with the
--- time each took from send to receipt.
+-- scenario's obstacles as bodies on analytic orbits and of its cost zones weighted by the ship's
+-- profile, and collects the plans that come back, with the time each took from send to receipt.
 -- Design: doc/script/system-planner.md
-local SystemPlanner       = require("Shared.Helpers.SystemPlanner")
-local PlannerClient       = require("Shared.Helpers.PlanClient")
-local ConstructComponents = require("Modules.Constructs.Components")
+
+local SystemPlanner        = require("Shared.Helpers.SystemPlanner")
+local PlannerClient        = require("Shared.Helpers.PlanClient")
+local CostZones            = require("Shared.Helpers.CostZones")
+local ConstructComponents  = require("Modules.Constructs.Components")
+local NavigationComponents = require("Modules.Navigation.Components")
 
 -- How many times a leg may be split; the plan holds at most one waypoint per leg, and the goal.
 local DEPTH_LIMIT   = 5
@@ -40,6 +43,21 @@ function PlanClient:reset()
     self.probed = false
 end
 
+---Drops the ship's plan requests that are out: their replies, if they still come, are discarded.
+---The latency probe is not the ship's plan, and stays.
+---@param ship SandboxShip
+function PlanClient:discardFor(ship)
+    for taskId, request in pairs(self.pending) do
+        if request.ship == ship and not request.probe then
+            PlannerClient.discard(taskId)
+            self.pending[taskId] = nil
+        end
+    end
+end
+
+---The sandbox's obstacles are not entities, so no zone rides on a body.
+local function noBody() return nil end
+
 ---Appends obstacle `index` as a body to `values`: where it is, and the orbit it follows, at `simTime`.
 ---@param values number[]
 ---@param obstacle SandboxObstacle
@@ -66,7 +84,8 @@ local function appendBody(values, obstacle, simTime)
     for i = 1, SystemPlanner.BODY_STRIDE do values[#values + 1] = row[i] end
 end
 
----Sends a request to plan the ship's path to `goal`, from where it is now.
+---Sends a request to plan the ship's path to `goal`, from where it is now, with the scenario's cost
+---zones weighted by the ship's cost profile (none when it has none).
 ---@param ship SandboxShip
 ---@param goal Position A world point, or an offset from obstacle `goalFrame` when that is given
 ---@param goalFrame integer|nil Index of the obstacle the goal rides on
@@ -79,6 +98,7 @@ function PlanClient:request(ship, goal, goalFrame, speed, obstacles, simTime, ar
     for _, obstacle in ipairs(obstacles) do appendBody(bodies, obstacle, simTime) end
     local at = ship.rb:getPos()
     local profile = ConstructComponents.FlightProfile.ProfileOf(ship.entity)
+    local zones, zoneCount = CostZones.collect(NavigationComponents.CostProfile.ProfileOf(ship.entity), noBody)
     self:send(ship, simTime, {
         bodies = bodies,
         count = #obstacles,
@@ -91,6 +111,8 @@ function PlanClient:request(ship, goal, goalFrame, speed, obstacles, simTime, ar
         depth = DEPTH_LIMIT,
         capacity = CAPACITY,
         arrivalRadius = arrivalRadius,
+        zones = zones,
+        zoneCount = zoneCount,
     }, false)
 end
 

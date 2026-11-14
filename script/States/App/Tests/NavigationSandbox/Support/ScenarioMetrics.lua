@@ -59,6 +59,13 @@ local RULES = { range = ARRIVAL_RANGE, speed = ARRIVAL_SPEED }
 ---@field label string
 ---@field kind "obstacle"
 
+---A cost zone of the scenario: a sphere that costs extra to cross.
+---@class SandboxZone
+---@field entity Entity
+---@field centre Position
+---@field radius number Game units
+---@field label string
+
 ---@class SandboxObstacleCircle
 ---@field centre Position|nil Not set for a moon
 ---@field around integer|nil Index of the obstacle this one circles; the circle is about that obstacle's position
@@ -71,11 +78,12 @@ local RULES = { range = ARRIVAL_RANGE, speed = ARRIVAL_SPEED }
 ---@field max number
 
 ---@class ScenarioMetrics
----@overload fun(name: string, ships: SandboxShip[], obstacles: SandboxObstacle[], avoidance: SandboxAvoidanceSpec|nil): ScenarioMetrics
-local ScenarioMetrics = Class("ScenarioMetrics", function(self, name, ships, obstacles, avoidance)
+---@overload fun(name: string, ships: SandboxShip[], obstacles: SandboxObstacle[], zones: SandboxZone[], avoidance: SandboxAvoidanceSpec|nil): ScenarioMetrics
+local ScenarioMetrics = Class("ScenarioMetrics", function(self, name, ships, obstacles, zones, avoidance)
     self.name = name
     self.ships = ships
     self.obstacles = obstacles
+    self.zones = zones
     self.avoidance = avoidance -- the scenario's tuning; nil for the navigation world's defaults
     self.byId = {} -- entity id -> the ship or obstacle, for labels and kinds
     for _, ship in ipairs(ships) do
@@ -193,6 +201,16 @@ function ScenarioMetrics:planArcFlown(ship, flight, simTime)
         .. "%.0f m furthest from the arc, %.2f of its forward thrust at the peak", ship.label, flight.index,
         metres(flight.radius), metres(flight.speed), flight.enteredAt, metres(flight.entrySpeed), simTime,
         metres(flight.peakSpeed), metres(flight.maxError), flight.maxShare)
+end
+
+---Record that a Plan ship asked for a new plan, because its cost profile changed. The new plan is
+---one more to expect.
+---@param ship SandboxShip
+---@param simTime number
+function ScenarioMetrics:planRequestedAgain(ship, simTime)
+    self.plansExpected = self.plansExpected + 1
+    self:log("%s: cost profile changed at %.2f s, plan requested again from (%.0f, %.0f, %.0f) m", ship.label,
+        simTime, metres(ship.rb:getPos().x), metres(ship.rb:getPos().y), metres(ship.rb:getPos().z))
 end
 
 ---Record a plan that came back from the worker.
@@ -354,7 +372,7 @@ function ScenarioMetrics:update(world, simTime)
     for _, ship in ipairs(self.ships) do
         if ship.state == "flying" then
             self:updateProgress(ship, simTime)
-            ShipBehaviour.trackClearance(ship, self.obstacles)
+            ShipBehaviour.trackClearance(ship, self.obstacles, self.zones)
         end
     end
     self:updateCollisions(world, simTime)
@@ -372,6 +390,29 @@ function ScenarioMetrics:unfinished()
         if ship.state == "flying" and not ship.route then count = count + 1 end
     end
     return count
+end
+
+---What a Plan ship's `expect` asks of it that it did not do: keep out of every cost zone ("avoid")
+---or go through one ("cross"), and make the given number of requests again.
+---@param ship SandboxShip
+---@return string[]
+function ScenarioMetrics:expectationFailures(ship)
+    local failures = {}
+    local expect, b = ship.spec.expect, ship.behaviour
+    if not (expect and b) then return failures end
+    local smallest = math.huge
+    for i in ipairs(self.zones) do smallest = math.min(smallest, b.zoneClearance[i] or math.huge) end
+    if expect.zone == "avoid" and smallest < 0 then
+        table.insert(failures, string.format("%s went %.0f m into a cost zone it should avoid", ship.label,
+            metres(-smallest)))
+    elseif expect.zone == "cross" and smallest >= 0 then
+        table.insert(failures, string.format("%s kept out of the cost zone it should cross", ship.label))
+    end
+    if expect.replans and b.replans ~= expect.replans then
+        table.insert(failures, string.format("%s asked for a new plan %d times, not %d", ship.label, b.replans,
+            expect.replans))
+    end
+    return failures
 end
 
 ---@return string[] failures What fails the run: a collision, a deadlock, an unfinished ship
@@ -402,6 +443,9 @@ function ScenarioMetrics:failures()
     if self.plansReceived < self.plansExpected then
         table.insert(failures, string.format("%d plans never arrived", self.plansExpected - self.plansReceived))
     end
+    for _, ship in ipairs(self.ships) do
+        for _, failure in ipairs(self:expectationFailures(ship)) do table.insert(failures, failure) end
+    end
     if self.planFailures > 0 then
         table.insert(failures, string.format("%d plans without status Ok", self.planFailures))
     end
@@ -418,6 +462,13 @@ function ScenarioMetrics:logClearance(ship)
         if clearance[i] then
             self:log("%s: smallest clearance to the safe sphere of %s: %.0f m", ship.label, obstacle.label,
                 metres(clearance[i]))
+        end
+    end
+    for i, zone in ipairs(self.zones) do
+        local zoneClearance = ship.behaviour.zoneClearance[i]
+        if zoneClearance then
+            self:log("%s: smallest clearance to the sphere of %s: %.0f m, %d plans taken, %d requested again",
+                ship.label, zone.label, metres(zoneClearance), ship.behaviour.plansTaken, ship.behaviour.replans)
         end
     end
 end

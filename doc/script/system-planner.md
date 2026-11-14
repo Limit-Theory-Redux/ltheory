@@ -93,6 +93,27 @@ The leg goes around the zone when `detourExtra < crossExtra`. Otherwise the zone
 - **Drive.** A zone changes neither the drive policy nor the timeline; the legs of its detour are timed as any leg is, and a detour inside the goal's well ends the drive run at the entry, as any detour there does.
 - **The break-even** cost, `detourExtra / L`, depends on the leg. The detour is a V through one waypoint, so a long leg is bent by a small cost, and a short one needs a dear zone. A chord that only grazes the sphere is the cheaper to avoid, since its extra length falls faster than the length inside.
 
+## Cost profiles
+
+The kernel takes each zone's cost with the ship's profile already applied. A zone entity (`Spatial.Zone`) with a sphere `Shape`, a `PathCost` and, optionally, `Core.Tag` tags is a cost zone; a ship's `CostProfile` component says how much it minds each kind of zone.
+
+```mermaid
+flowchart LR
+    zone["Zone entity<br/>Shape, PathCost, Tag"] --> collect["CostZones.collect<br/>weights the cost"]
+    profile["Ship's CostProfile<br/>weights by tag"] --> collect
+    collect --> snapshot["PlannerSnapshot<br/>zones, zoneCount"]
+    snapshot --> client["PlanClient request"]
+    client --> worker["SystemPlannerWorker<br/>zones buffer"]
+    worker --> kernel["SystemPlanner.plan"]
+```
+
+- **Tags.** The tag group `ZoneKind` has `AsteroidField`, `HostileSpace` and `GravityWell`. A tag must be registered before any tag component is made.
+- **Profiles.** A `CostProfile` is a name and a weight by tag name, each weight finite and at least zero; a tag name that is not registered is an error, so a typo cannot silently weigh one. A profile with an id is registered in `CostProfileRegistry` (`Enums.CostProfile`: `Standard`, which names nothing, `Cautious`, which weighs a belt and hostile space at ten, and `Bold`, which weighs them at zero); a profile with no id is inline and unregistered.
+- **The weight of a zone** is the largest weight the profile gives to the zone's tags (`CostProfile:weightOf`). A tag the profile doesn't name weighs one, and so does a zone with no tag. A zone is therefore free only when every one of its tags is weighed at zero: under `Bold`, a belt that is also a gravity well costs its path cost, for the well. The kernel's cost per metre is `PathCost × weight`.
+- **No profile.** A ship that has none plans with each zone's path cost as authored.
+- **Rows.** `CostZones.collect(profile, indexOf)` gives the rows in `SystemPlanner.Zone` layout, in entity order. A zone attached to a body that `indexOf` finds is in that body's frame with no offset, so it moves with the body; any other zone is a point of the system at its transform. Only spheres are planned: a `PathCost` on another shape, or on a sphere with no radius, is an error.
+- **Revision.** `CostProfileComponent:setProfile` raises the component's revision. A plan holder keeps the revision it asked under and asks again when it differs: a plan made under another profile is stale. The navigation sandbox does so (see [navigation sandbox](navigation-sandbox.md)); the autopilot takes the profile when it requests a plan and doesn't ask again when the profile changes.
+
 ## Corners
 
 Once the plan has settled, every corner but the goal is rounded into an arc that is tangent to both legs and has a speed the ship can hold it at. This runs for every status that keeps a plan, on the world points of the waypoints at their times.
@@ -209,6 +230,6 @@ The safe radius itself comes from the caller: the sandbox uses a factor on the h
 
 ## Consumers
 
-The shared pieces in `Shared/Helpers`: `PlanClient` (a request to the planner's worker, polled once a frame), `SystemPlannerWorker` (the worker's script), `PlannerSnapshot` (the game's stars, planets, moons and stations as bodies, with the frames that place waypoints as they move on) and `PlanFollower` (flies a plan's corners and arcs). The navigation sandbox and the autopilot both use them.
+The shared pieces in `Shared/Helpers`: `PlanClient` (a request to the planner's worker, polled once a frame), `SystemPlannerWorker` (the worker's script), `PlannerSnapshot` (the game's stars, planets, moons and stations as bodies, with the frames that place waypoints as they move on, and the cost zones weighted by the ship's profile) and `PlanFollower` (flies a plan's corners and arcs). The navigation sandbox and the autopilot both use them.
 
 The autopilot (`Modules/Constructs/Systems/AutoPilotPlan.lua`, see [flight](flight.md)) requests a plan when it engages, with its arrival radius, so the goal's time is the time at which it calls the ship arrived (the navigation sandbox sends the range of its rules). It flies straight to the goal in normal flight while the plan is out, then the corners of the plan, then the final approach with its own stand-off steering. A plan with status `Ok`, `GoalNotSettled` or `DriveNotTimed` is flown; any other status (a goal body that outruns the ship before its well, `GoalOutrun`, is the common one; a planet's well carries the ship, so a goal in a planet's well is planned) flies straight to the goal with the final approach's steering and drive law, with no detours. A corner is reached within the distance the ship covers at its top speed in `PASS_TIME_S`, which keeps the ship on the arc's circle. The entry waypoint of a plan into a goal body's well is a sharp corner like any other: it lies `WELL_ENTRY_MARGIN` of the well's radius inside the well, so the well carries the ship before it reaches the entry, and the entry waypoint, which moves with the body, is then at rest relative to the ship's frame. Until the well carries the ship, the follower seeks the entry where the plan puts it at the entry time (`PlanFollower:isEntry`), a fixed point of the system, so the system leg stays the straight line the planner timed; seeking where the entry is now would curve the ship's velocity, and turn the nose, as the body moves on. Once the well carries the ship, the entry is where it is now. Other corners on a moving body are sought where the body is now. The drive's cap in that zone and its braking law bring the ship to the corner at the corner's speed. The drive is engaged at the start of a drive leg, capped by the braking law for the distance to the end of its run (`PlanFollower:runRemaining`: the distance to the corner, plus the legs after it while the corner is marked `Through`), and released below the hand-over multiplier; it is off on every arc. At a `Through` corner the drive is kept: the final approach then goes on under the drive, which brakes on the distance to the stand-off point. A drive run covers more than the pass radius in a frame, so the follower counts a sharp `Through` corner as passed when the ship crosses the plane through it normal to the leg (`PlanFollower:crossedCorner`), as well as on the `NavWorld`'s arrival flag.

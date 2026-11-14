@@ -3,10 +3,12 @@
 -- verdict on whether it has done what the behaviour asks. The geometry here is the sandbox's own,
 -- written from the behaviour's definition, so it checks the engine's maths instead of repeating it.
 -- Design: doc/script/navigation-sandbox.md
-local Metres              = require("States.App.Tests.NavigationSandbox.Support.Metres")
-local ConstructComponents = require("Modules.Constructs.Components")
-local SystemPlanner       = require("Shared.Helpers.SystemPlanner")
-local PlanFollower        = require("Shared.Helpers.PlanFollower")
+
+local Metres               = require("States.App.Tests.NavigationSandbox.Support.Metres")
+local ConstructComponents  = require("Modules.Constructs.Components")
+local NavigationComponents = require("Modules.Navigation.Components")
+local SystemPlanner        = require("Shared.Helpers.SystemPlanner")
+local PlanFollower         = require("Shared.Helpers.PlanFollower")
 
 -- A ship that tracks a moving point has done so when it has stayed on station this long.
 local STATION_HOLD_S      = 5
@@ -65,6 +67,11 @@ local MIN_RELATIVE_LENGTH = 1e-6
 ---@field goal PlanWaypoint|nil Plan: where the ship stops; with a frame, a point that rides on that obstacle
 ---@field obstacles SandboxObstacle[]|nil Plan: the scenario's obstacles, which waypoint frames index
 ---@field clearance table<integer, number>|nil Plan: per obstacle index, the smallest distance from the ship's centre to the obstacle's safe sphere since the start, in game units
+---@field zoneClearance table<integer, number>|nil Plan: per cost zone index, the smallest distance from the ship's centre to the zone's sphere since the start (negative: inside it), in game units
+---@field planTime number|nil Plan: simulated seconds when the plan being made or flown was requested; the plan's times are from then
+---@field revision integer|nil Plan: the revision of the ship's cost profile the plan was requested under; nil for a ship with none
+---@field plansTaken integer|nil Plan: plans received and taken
+---@field replans integer|nil Plan: requests made again because the cost profile changed
 ---@field onSince number|nil Simulated time the ship has been on station since
 ---@field onStation boolean|nil Pursue, Follow: whether the ship is on station now, whether or not it is yet judged
 ---@field turnRate number|nil Pursue, Follow: largest turn rate, in radians per second, since the ship was last off station or not yet judged
@@ -230,6 +237,29 @@ function ShipBehaviour.exemptFromDeadlock(ship)
     return (TRACKING[b.kind] and b.engaged) or (b.kind == "Hold" and b.phase ~= "cruise")
 end
 
+---The revision of the ship's cost profile, nil when it has none.
+---@param ship SandboxShip
+---@return integer|nil
+local function costRevision(ship)
+    local component = ship.entity:get(NavigationComponents.CostProfile)
+    return component and component:getRevision() or nil
+end
+
+---Sends a Plan ship's request from where it is now, and has it fly at the goal until the plan comes.
+---@param nav NavWorld
+---@param ship SandboxShip
+---@param rules SandboxJudgingRules
+---@param planner PlanClient
+---@param simTime number
+local function requestPlan(nav, ship, rules, planner, simTime)
+    local b = ship.behaviour
+    b.phase, b.planTime, b.revision = "waiting", simTime, costRevision(ship)
+    arriveAtGoal(nav, ship, rules.range)
+    local at = ship.rb:getPos()
+    b.startPoint = { x = at.x, y = at.y, z = at.z }
+    planner:request(ship, b.goal.offset, b.goal.frame, b.topSpeed, b.obstacles, simTime, rules.range)
+end
+
 ---Looks up the bodies the behaviour is about, and gives the ship its first order.
 ---@param nav NavWorld
 ---@param ship SandboxShip
@@ -244,13 +274,11 @@ function ShipBehaviour.start(nav, ship, ships, obstacles, rules, planner)
     if b.kind == "Plan" then
         -- Flies at the goal while the plan is made; the plan then replaces the course.
         assert(planner, "ShipBehaviour: a Plan ship needs a planner")
-        b.phase, b.clearance, b.obstacles = "waiting", {}, obstacles
+        b.clearance, b.zoneClearance, b.obstacles = {}, {}, obstacles
+        b.plansTaken, b.replans = 0, 0
         b.goal = { frame = ship.targetFrame, offset = ship.targetFrame and ship.targetOffset or ship.target }
         b.passRadius = Metres.length(spec.passRadiusM)
-        arriveAtGoal(nav, ship, rules.range)
-        local at = ship.rb:getPos()
-        b.startPoint = { x = at.x, y = at.y, z = at.z }
-        planner:request(ship, b.goal.offset, b.goal.frame, b.topSpeed, obstacles, 0, rules.range)
+        requestPlan(nav, ship, rules, planner, 0)
     elseif b.kind == "Seek" then
         b.points, b.pointIndex, b.phase = {}, 1, "pass"
         for _, point in ipairs(spec.through) do table.insert(b.points, Metres.position(point)) end
@@ -408,6 +436,43 @@ function ShipBehaviour.advance(nav, ship, arrived, simTime, rules, metrics)
     end
 end
 
+---The obstacles as the frames of the plan being flown: each has the body (`rb`) and where it is at
+---a planned time, which counts from the moment the plan was requested.
+---@param b SandboxBehaviour
+---@return PlanFrame[]
+local function planFrames(b)
+    local frames = {}
+    for i, obstacle in ipairs(b.obstacles) do
+        frames[i] = { rb = obstacle.rb, positionAt = function(t) return obstacle.positionAt(b.planTime + t) end }
+    end
+    return frames
+end
+
+---Whether a Plan ship's plan was made under a cost profile that has since changed.
+---@param ship SandboxShip
+---@return boolean
+function ShipBehaviour.planIsStale(ship)
+    local b = ship.behaviour
+    return b.kind == "Plan" and b.revision ~= costRevision(ship)
+end
+
+---Drops a Plan ship's plan, or the request for it, and asks for a new one from where the ship is.
+---The ship flies at the goal until it comes.
+---@param nav NavWorld
+---@param ship SandboxShip
+---@param rules SandboxJudgingRules
+---@param planner PlanClient
+---@param simTime number
+function ShipBehaviour.replan(nav, ship, rules, planner, simTime)
+    local b = ship.behaviour
+    planner:discardFor(ship)
+    b.follower, b.listener = nil, nil
+    nav:setSpeedCap(ship.agent, math.huge)
+    b.replans = b.replans + 1
+    requestPlan(nav, ship, rules, planner, simTime)
+    ship.bestDistance, ship.progressTime = math.huge, simTime
+end
+
 ---Takes a Plan ship's plan: the ship passes the plan's waypoints, the goal last being where it
 ---stops. A plan that is not Ok or has no detour leaves the ship flying at the goal.
 ---@param nav NavWorld
@@ -416,6 +481,7 @@ end
 ---@param simTime number
 function ShipBehaviour.planReceived(nav, ship, plan, simTime)
     local b = ship.behaviour
+    b.plansTaken = b.plansTaken + 1
     local points = {}
     if plan.status == SystemPlanner.Status.Ok then
         for i = 1, #plan.waypoints - 1 do points[i] = plan.waypoints[i] end
@@ -426,9 +492,8 @@ function ShipBehaviour.planReceived(nav, ship, plan, simTime)
     end
     b.goal.time = plan.waypoints[#plan.waypoints].time
     local profile = ConstructComponents.FlightProfile.ProfileOf(ship.entity)
-    -- The obstacles are the frames: each has the body (`rb`) and where it is at a planned time.
     b.follower = PlanFollower.new({
-        nav = nav, agent = ship.agent, rb = ship.rb, frames = b.obstacles, points = points, goal = b.goal,
+        nav = nav, agent = ship.agent, rb = ship.rb, frames = planFrames(b), points = points, goal = b.goal,
         start = b.startPoint, passRadius = b.passRadius, accel = profile.thrustForward / profile.mass,
         drag = profile.linearDrag,
     })
@@ -438,16 +503,22 @@ function ShipBehaviour.planReceived(nav, ship, plan, simTime)
     ship.bestDistance, ship.progressTime = math.huge, simTime
 end
 
----Notes how close a Plan ship is to each obstacle's safe sphere. Called after a physics step.
+---Notes how close a Plan ship is to each obstacle's safe sphere and to each cost zone's sphere.
+---Called after a physics step.
 ---@param ship SandboxShip
 ---@param obstacles SandboxObstacle[]
-function ShipBehaviour.trackClearance(ship, obstacles)
+---@param zones SandboxZone[]
+function ShipBehaviour.trackClearance(ship, obstacles, zones)
     local b = ship.behaviour
     if not b or b.kind ~= "Plan" then return end
     local at = ship.rb:getPos()
     for i, obstacle in ipairs(obstacles) do
         local clearance = at:distance(obstacle.rb:getPos()) - obstacle.safeRadius
         b.clearance[i] = math.min(b.clearance[i] or math.huge, clearance)
+    end
+    for i, zone in ipairs(zones) do
+        local clearance = at:distance(zone.centre) - zone.radius
+        b.zoneClearance[i] = math.min(b.zoneClearance[i] or math.huge, clearance)
     end
 end
 

@@ -15,7 +15,10 @@ local BODY_STRIDE  = SystemPlanner.BODY_STRIDE
 local OUT_STRIDE   = SystemPlanner.OUT_STRIDE
 local DRIVE_STRIDE = SystemPlanner.DRIVE_STRIDE
 
+local ZONE_STRIDE  = SystemPlanner.ZONE_STRIDE
+
 local bodiesBuffer, bodiesCapacity = nil, 0
+local zonesBuffer, zonesCapacity = nil, 0
 local outBuffer, outCapacity = nil, 0
 local driveBuffer = nil
 
@@ -27,6 +30,19 @@ local function fillBodies(values, count)
         bodiesBuffer, bodiesCapacity = ffi.new("double[?]", count * BODY_STRIDE), count
     end
     for i = 1, count * BODY_STRIDE do bodiesBuffer[i - 1] = values[i] end
+end
+
+---Copies `values` (1-based) into the shared zones buffer, grown when it is too small.
+---@param values number[]|nil
+---@param count integer|nil Zones, nil for none
+---@return userdata|nil buffer Nil when there are no zones
+local function fillZones(values, count)
+    if not values or not count or count == 0 then return nil end
+    if count > zonesCapacity then
+        zonesBuffer, zonesCapacity = ffi.new("double[?]", count * ZONE_STRIDE), count
+    end
+    for i = 1, count * ZONE_STRIDE do zonesBuffer[i - 1] = values[i] end
+    return zonesBuffer
 end
 
 ---@param capacity integer Waypoints
@@ -46,7 +62,7 @@ local function fillDrive(values)
 end
 
 ---Plans one path.
----@param request table `bodies`: count * BODY_STRIDE numbers, `count`, `start` and `goal`: 3 numbers each, `goalFrame`, `speed`, `accel`, `drag`, `depth`, `capacity`, `drive`: DRIVE_STRIDE numbers or nil, and `arrivalRadius`: a number or nil
+---@param request table `bodies`: count * BODY_STRIDE numbers, `count`, `start` and `goal`: 3 numbers each, `goalFrame`, `speed`, `accel`, `drag`, `depth`, `capacity`, `drive`: DRIVE_STRIDE numbers or nil, `arrivalRadius`: a number or nil, and `zones`: zoneCount * ZONE_STRIDE numbers or nil, with `zoneCount`
 ---@return table `status`, `count`, `waypoints` (count * OUT_STRIDE numbers, empty for none), `kernelMs`
 Run = WorkerFunction.Create(function(request)
     local count = request.count
@@ -56,7 +72,8 @@ Run = WorkerFunction.Create(function(request)
     local begun = InstantTime.Now()
     local status, written = SystemPlanner.plan(bodiesBuffer, count, start[1], start[2], start[3],
         request.goalFrame, goal[1], goal[2], goal[3], request.speed, request.accel, request.drag,
-        request.depth, outBuffer, request.capacity, fillDrive(request.drive), request.arrivalRadius)
+        request.depth, outBuffer, request.capacity, fillDrive(request.drive), request.arrivalRadius,
+        fillZones(request.zones, request.zoneCount), request.zoneCount)
     local kernelMs = InstantTime.Now():durationSince(begun)
     local waypoints = {}
     for i = 1, written * OUT_STRIDE do waypoints[i] = outBuffer[i - 1] end
