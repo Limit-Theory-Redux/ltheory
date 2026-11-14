@@ -42,7 +42,7 @@ function Text:new(args)
         visible = args.visible,
         font = args.font or "Unageo-Medium",
         size = args.size or 14,
-        padding = args.padding or { 0, 0 }, -- a vertical padding of 10 or more is required for letters with descenders (j, p, q, y)
+        padding = args.padding or { 0, 0 },
         margin = args.margin or { 0, 0 },
         color = args.color or Color(1, 1, 1, 1),
         text = args.text or "undefined text",

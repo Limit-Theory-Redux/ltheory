@@ -34,7 +34,6 @@ cli-table = { version = "0.5", default-features = false }
 crossbeam = "0.8"
 directories = "6.0"
 flate2 = "1.1"
-freetype-sys = "0.20"
 gilrs = "0.11"
 glam.workspace = true
 glutin = "0.32"

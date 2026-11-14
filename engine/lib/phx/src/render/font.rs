@@ -1,20 +1,14 @@
-#![allow(unsafe_code)] // TODO: remove
-
 use std::collections::HashMap;
-use std::ffi::{CStr, CString};
-use std::ptr::addr_of_mut;
 
-use freetype_sys::{
-    FT_Face, FT_Get_Char_Index, FT_Get_Kerning, FT_Init_FreeType, FT_KERNING_DEFAULT, FT_Library,
-    FT_Load_Glyph, FT_New_Face, FT_Set_Pixel_Sizes, FT_Vector,
-};
 use glam::{IVec2, IVec4};
+use swash::scale::{Render, ScaleContext, Source};
+use swash::shape::ShapeContext;
+use swash::zeno::{Format, Vector};
+use swash::{CacheKey, FontRef};
 
 use super::{Color, Imm2DVertex, Renderer, Samplers, Shape, Tex2D, TexFormat};
 use crate::rf::Rf;
-use crate::system::{Profiler, Resource_GetPath, ResourceType};
-
-/* TODO : Re-implement UTF-8 support */
+use crate::system::{Profiler, Resource, ResourceType};
 
 /// Side of an atlas page, in texels (one 1024x1024 R8 texture per page).
 const ATLAS_SIZE: u32 = 1024;
@@ -22,7 +16,13 @@ const ATLAS_SIZE: u32 = 1024;
 /// never reach a neighbour.
 const ATLAS_PAD: u32 = 1;
 
-/* NOTE : Gamma of 1.8 recommended by FreeType */
+/// Glyphs are rasterized at this many horizontal subpixel positions (quarter
+/// pixels), so a line keeps the spacing the font asks for instead of every
+/// glyph snapping to a whole pixel.
+const SUBPIXEL_STEPS: u32 = 4;
+
+/// Coverage is gamma corrected with 1.8 (the value FreeType recommends, kept
+/// from the FreeType renderer so text keeps its weight).
 const K_GAMMA: f32 = 1.8;
 const K_RCP_GAMMA: f32 = 1.0 / K_GAMMA;
 
@@ -37,8 +37,22 @@ impl std::fmt::Debug for Font {
 
 struct FontData {
     name: String,
-    handle: FT_Face,
-    glyphs: HashMap<u32, Glyph>,
+    /// The font file; with `offset` and `key` it makes a swash `FontRef`.
+    data: Vec<u8>,
+    offset: u32,
+    key: CacheKey,
+    /// Pixels per em.
+    size: f32,
+    /// The line box: whole pixels above and below the baseline (rounded up),
+    /// from the font's own metrics.
+    ascent: i32,
+    descent: i32,
+    /// Distance between the baselines of two lines.
+    line_height: i32,
+    shape_ctx: ShapeContext,
+    scale_ctx: ScaleContext,
+    /// Rasterized glyphs by glyph id and subpixel step.
+    glyphs: HashMap<(u16, u8), Glyph>,
     /// The glyph atlas: pages are added as the current one fills up.
     pages: Vec<AtlasPage>,
 }
@@ -118,81 +132,120 @@ impl AtlasPage {
     }
 }
 
-#[derive(Clone)]
-pub struct Glyph {
-    pub index: i32,
-    /// Atlas page and the glyph's top-left texel in it; `sx` x `sy` texels.
-    /// Glyphs without a bitmap (spaces) have no page.
-    pub page: Option<usize>,
-    pub ax: u32,
-    pub ay: u32,
-    pub x0: i32,
-    pub y0: i32,
-    pub x1: i32,
-    pub y1: i32,
-    pub sx: i32,
-    pub sy: i32,
-    pub advance: i32,
+/// A rasterized glyph: its bitmap's offset from the pen position (`x0`, `y0`,
+/// y down) and size, and where the bitmap sits in the atlas. Glyphs without
+/// a bitmap (spaces) have no page.
+#[derive(Clone, Copy)]
+struct Glyph {
+    page: Option<usize>,
+    ax: u32,
+    ay: u32,
+    x0: i32,
+    y0: i32,
+    sx: i32,
+    sy: i32,
 }
 
-static mut FT: FT_Library = std::ptr::null_mut();
+/// One glyph of a shaped line, with its pen position relative to the start
+/// of the line on the baseline, in pixels (y down).
+#[derive(Clone, Copy)]
+struct PlacedGlyph {
+    id: u16,
+    x: f32,
+    y: f32,
+}
 
-impl Font {
-    pub fn name(&self) -> String {
-        let font_data = self.0.as_ref();
+struct ShapedLine {
+    glyphs: Vec<PlacedGlyph>,
+    /// Total advance width in pixels.
+    width: f32,
+}
 
-        font_data.name.clone()
+/// Splits a pen x position into the whole pixel the glyph's bitmap is placed
+/// from and the subpixel step it is rasterized at.
+fn snap_x(x: f32) -> (f32, u8) {
+    let base = x.floor();
+    let step = ((x - base) * SUBPIXEL_STEPS as f32).round() as u32;
+    if step == SUBPIXEL_STEPS {
+        (base + 1.0, 0)
+    } else {
+        (base, step as u8)
+    }
+}
+
+impl FontData {
+    /// Lay out `text` as one line: glyph ids and positions, with the font's
+    /// kerning (GPOS) and other default OpenType features applied. Characters
+    /// the font has no glyph for are skipped, without an advance.
+    fn shape(&mut self, text: &str) -> ShapedLine {
+        let font = FontRef {
+            data: &self.data,
+            offset: self.offset,
+            key: self.key,
+        };
+        let mut shaper = self.shape_ctx.builder(font).size(self.size).build();
+        shaper.add_str(text);
+
+        let mut glyphs = Vec::with_capacity(text.len());
+        let mut x = 0.0;
+        shaper.shape_with(|cluster| {
+            for glyph in cluster.glyphs {
+                if glyph.id == 0 {
+                    continue;
+                }
+                // swash offsets are y up, the screen is y down.
+                glyphs.push(PlacedGlyph {
+                    id: glyph.id,
+                    x: x + glyph.x,
+                    y: -glyph.y,
+                });
+                x += glyph.advance;
+            }
+        });
+
+        ShapedLine { glyphs, width: x }
     }
 
-    fn get_glyph(&self, r: &mut Renderer, code_point: u32) {
-        let mut font_ref = self.0.as_mut();
-        let font_data = &mut *font_ref;
-        let face = font_data.handle;
+    /// The glyph `id` rasterized at subpixel `step`, added to the atlas the
+    /// first time it is asked for.
+    fn glyph(&mut self, r: &mut Renderer, id: u16, step: u8) -> Glyph {
+        if let Some(glyph) = self.glyphs.get(&(id, step)) {
+            return *glyph;
+        }
 
-        if !font_data.glyphs.contains_key(&code_point) {
-            let glyph_index = unsafe { FT_Get_Char_Index(face, code_point as _) };
-
-            if glyph_index == 0 {
-                return;
-            }
-
-            unsafe {
-                if FT_Load_Glyph(
-                    face,
-                    glyph_index,
-                    (((1 as libc::c_long) << 5) | ((1 as libc::c_long) << 2)) as _,
-                ) != 0
-                {
-                    return;
-                }
-            }
-
-            let face_glyph = unsafe { &mut *(*face).glyph };
-            let bitmap = &mut face_glyph.bitmap;
-
-            /* Create a new glyph and fill out metrics. */
-            let x0 = face_glyph.bitmap_left;
-            let y0 = -face_glyph.bitmap_top;
-            let sx = bitmap.width as i32;
-            let sy = bitmap.rows as i32;
-            let mut glyph = Glyph {
-                index: glyph_index as _,
-                page: None,
-                ax: 0,
-                ay: 0,
-                x0,
-                y0,
-                sx,
-                sy,
-                x1: x0 + sx,
-                y1: y0 + sy,
-                advance: (face_glyph.advance.x >> 6) as _,
+        let image = {
+            let font = FontRef {
+                data: &self.data,
+                offset: self.offset,
+                key: self.key,
             };
+            let mut scaler = self.scale_ctx.builder(font).size(self.size).build();
+            Render::new(&[Source::Outline])
+                .format(Format::Alpha)
+                .offset(Vector::new(step as f32 / SUBPIXEL_STEPS as f32, 0.0))
+                .render(&mut scaler, id)
+        };
 
-            if sx > 0 && sy > 0 {
+        let mut glyph = Glyph {
+            page: None,
+            ax: 0,
+            ay: 0,
+            x0: 0,
+            y0: 0,
+            sx: 0,
+            sy: 0,
+        };
+
+        if let Some(image) = image {
+            let (w, h) = (image.placement.width, image.placement.height);
+            glyph.x0 = image.placement.left;
+            glyph.y0 = -image.placement.top;
+            glyph.sx = w as i32;
+            glyph.sy = h as i32;
+
+            if w > 0 && h > 0 {
                 /* Find room for it in the atlas. */
-                let (w, h) = (sx as u32, sy as u32);
-                let slot = font_data
+                let slot = self
                     .pages
                     .iter_mut()
                     .enumerate()
@@ -200,22 +253,19 @@ impl Font {
                 let (page_index, (ax, ay)) = slot.unwrap_or_else(|| {
                     let mut page = AtlasPage::new(r);
                     let at = page.alloc(w, h).expect("glyph larger than an atlas page");
-                    font_data.pages.push(page);
-                    (font_data.pages.len() - 1, at)
+                    self.pages.push(page);
+                    (self.pages.len() - 1, at)
                 });
 
-                /* Copy rendered bitmap (gamma corrected coverage) into the page. */
-                let page = &mut font_data.pages[page_index];
-                let mut p_bitmap = bitmap.buffer;
-                for dy in 0..bitmap.rows {
-                    let row = ((ay + dy as u32) * ATLAS_SIZE + ax) as usize;
-                    for dx in 0..bitmap.width {
-                        let value =
-                            unsafe { (*p_bitmap.offset(dx as isize) as f32 / 255.0) as f64 };
+                /* Copy the coverage (gamma corrected) into the page. */
+                let page = &mut self.pages[page_index];
+                for dy in 0..h {
+                    let row = ((ay + dy) * ATLAS_SIZE + ax) as usize;
+                    for dx in 0..w {
+                        let value = (image.data[(dy * w + dx) as usize] as f32 / 255.0) as f64;
                         let a = value.powf(K_RCP_GAMMA as f64) as f32;
                         page.cpu[row + dx as usize] = (a * 255.0 + 0.5) as u8;
                     }
-                    p_bitmap = unsafe { p_bitmap.offset(bitmap.pitch as isize) };
                 }
                 page.mark_dirty(ay, ay + h);
 
@@ -223,16 +273,15 @@ impl Font {
                 glyph.ax = ax;
                 glyph.ay = ay;
             }
-
-            /* Add to glyph cache. */
-            font_data.glyphs.insert(code_point, glyph);
         }
+
+        self.glyphs.insert((id, step), glyph);
+        glyph
     }
 
     /// Send the rows of every page that changed since the last upload.
-    fn flush_atlas(&self, r: &mut Renderer) {
-        let mut font_data = self.0.as_mut();
-        for page in &mut font_data.pages {
+    fn flush_atlas(&mut self, r: &mut Renderer) {
+        for page in &mut self.pages {
             let Some((y0, y1)) = page.dirty.take() else {
                 continue;
             };
@@ -248,76 +297,115 @@ impl Font {
             );
         }
     }
+}
+
+impl Font {
+    pub fn name(&self) -> String {
+        self.0.as_ref().name.clone()
+    }
+
+    /// Pixels the font's line box reaches above the baseline.
+    pub fn ascent(&self) -> i32 {
+        self.0.as_ref().ascent
+    }
+
+    /// Pixels the font's line box reaches below the baseline.
+    pub fn descent(&self) -> i32 {
+        self.0.as_ref().descent
+    }
+
+    /// Make a font of `size` pixels per em from the contents of a font file.
+    pub(crate) fn from_bytes(name: &str, data: Vec<u8>, size: u32) -> Self {
+        let size = size as f32;
+        let (offset, key, ascent, descent, line_height) = {
+            let font = FontRef::from_index(&data, 0)
+                .unwrap_or_else(|| panic!("Font_Load: <{name}> is not a font file we can read"));
+            let metrics = font.metrics(&[]).scale(size);
+            (
+                font.offset,
+                font.key,
+                metrics.ascent.ceil() as i32,
+                metrics.descent.ceil() as i32,
+                (metrics.ascent + metrics.descent + metrics.leading).round() as i32,
+            )
+        };
+
+        Self(
+            FontData {
+                name: name.into(),
+                data,
+                offset,
+                key,
+                size,
+                ascent,
+                descent,
+                line_height,
+                shape_ctx: ShapeContext::new(),
+                scale_ctx: ScaleContext::new(),
+                glyphs: HashMap::new(),
+                pages: Vec::new(),
+            }
+            .into(),
+        )
+    }
 
     fn draw_shape(
         &self,
         r: &mut Renderer,
         shape: Shape,
         text: &str,
-        mut x: f32,
-        mut y: f32,
+        x: f32,
+        y: f32,
         color: &Color,
     ) {
         Profiler::begin("Font_Draw");
 
-        let mut glyph_last = 0;
-
-        x = f64::floor(x as f64) as _;
-        y = f64::floor(y as f64) as _;
-
-        // Rasterize what is missing first, then upload the changed rows once.
-        for c in text.chars() {
-            self.get_glyph(r, c as u32);
-        }
-        self.flush_atlas(r);
-
+        let x = x.floor();
+        let y = y.floor();
         let c = [color.r, color.g, color.b, color.a];
         let inv = 1.0 / ATLAS_SIZE as f32;
         let mut runs: Vec<Vec<Imm2DVertex>> = Vec::new();
 
         {
-            let font_data = self.0.as_ref();
-            let face = font_data.handle;
-            runs.resize_with(font_data.pages.len(), Vec::new);
+            let mut font_data = self.0.as_mut();
+            let line = font_data.shape(text);
 
-            for ch in text.chars() {
-                let Some(glyph) = font_data.glyphs.get(&(ch as u32)) else {
-                    glyph_last = 0;
+            // Rasterize what is missing first, then upload the changed rows once.
+            for placed in &line.glyphs {
+                let (base_x, step) = snap_x(x + placed.x);
+                let glyph = font_data.glyph(r, placed.id, step);
+                let Some(page) = glyph.page else {
                     continue;
                 };
-                if glyph_last != 0 {
-                    x += self.get_kerning(face, glyph_last, glyph.index) as f32;
+                if runs.len() <= page {
+                    runs.resize_with(page + 1, Vec::new);
                 }
 
-                if let Some(page) = glyph.page {
-                    let x0 = x + glyph.x0 as f32;
-                    let y0 = y + glyph.y0 as f32;
-                    let (x1, y1) = (x0 + glyph.sx as f32, y0 + glyph.sy as f32);
-                    let (u0, v0) = (glyph.ax as f32 * inv, glyph.ay as f32 * inv);
-                    let (u1, v1) = (
-                        (glyph.ax + glyph.sx as u32) as f32 * inv,
-                        (glyph.ay + glyph.sy as u32) as f32 * inv,
-                    );
-                    let v = |px: f32, py: f32, u: f32, w: f32| Imm2DVertex {
-                        pos: [px, py],
-                        uv: [u, w],
-                        color: c,
-                        p: [0.0; 4],
-                        q: [0.0; 4],
-                    };
-                    // The corners of `Draw.RectEx`, as two triangles of its fan.
-                    let (a, b, cc, d) = (
-                        v(x0, y0, u0, v0),
-                        v(x0, y1, u0, v1),
-                        v(x1, y1, u1, v1),
-                        v(x1, y0, u1, v0),
-                    );
-                    runs[page].extend_from_slice(&[a, b, cc, a, cc, d]);
-                }
-
-                x += glyph.advance as f32;
-                glyph_last = glyph.index;
+                let x0 = base_x + glyph.x0 as f32;
+                let y0 = (y + placed.y).round() + glyph.y0 as f32;
+                let (x1, y1) = (x0 + glyph.sx as f32, y0 + glyph.sy as f32);
+                let (u0, v0) = (glyph.ax as f32 * inv, glyph.ay as f32 * inv);
+                let (u1, v1) = (
+                    (glyph.ax + glyph.sx as u32) as f32 * inv,
+                    (glyph.ay + glyph.sy as u32) as f32 * inv,
+                );
+                let v = |px: f32, py: f32, u: f32, w: f32| Imm2DVertex {
+                    pos: [px, py],
+                    uv: [u, w],
+                    color: c,
+                    p: [0.0; 4],
+                    q: [0.0; 4],
+                };
+                // The corners of `Draw.RectEx`, as two triangles of its fan.
+                let (a, b, cc, d) = (
+                    v(x0, y0, u0, v0),
+                    v(x0, y1, u0, v1),
+                    v(x1, y1, u1, v1),
+                    v(x1, y0, u1, v0),
+                );
+                runs[page].extend_from_slice(&[a, b, cc, a, cc, d]);
             }
+            font_data.flush_atlas(r);
         }
 
         for (page, verts) in runs.iter().enumerate() {
@@ -330,58 +418,20 @@ impl Font {
 
         Profiler::end();
     }
-
-    fn get_kerning(&self, face: FT_Face, a: i32, b: i32) -> i32 {
-        let mut kern = FT_Vector { x: 0, y: 0 };
-
-        unsafe {
-            FT_Get_Kerning(
-                face,
-                a as _,
-                b as _,
-                FT_KERNING_DEFAULT as i32 as _,
-                &mut kern,
-            )
-        };
-
-        (kern.x >> 6) as _
-    }
 }
 
 #[luajit_ffi_gen::luajit_ffi]
 impl Font {
     pub fn load(_r: &mut Renderer, name: &str, size: u32) -> Self {
-        let handle = unsafe {
-            if FT.is_null() {
-                FT_Init_FreeType(addr_of_mut!(FT));
-            }
+        let path = Resource::get_path(ResourceType::Font, name);
+        let data = std::fs::read(&path).unwrap_or_else(|err| {
+            panic!(
+                "Font_Load: Failed to load font <{name}> from file {path:?}: {err}. Current folder: {:?}",
+                std::env::current_dir()
+            )
+        });
 
-            let name_cstr = CString::new(name).expect("Cannot convert string to C string");
-            let path = Resource_GetPath(ResourceType::Font, name_cstr.as_ptr());
-            let mut handle = std::ptr::null_mut();
-
-            if FT_New_Face(FT, path, 0 as _, &mut handle) != 0 {
-                panic!(
-                    "Font_Load: Failed to load font <{name}> from file {:?}. Current folder: {:?}",
-                    CStr::from_ptr(path),
-                    std::env::current_dir()
-                );
-            }
-
-            FT_Set_Pixel_Sizes(handle, 0 as _, size);
-
-            handle
-        };
-
-        Self(
-            FontData {
-                name: name.into(),
-                handle,
-                glyphs: Default::default(),
-                pages: Vec::new(),
-            }
-            .into(),
-        )
+        Self::from_bytes(name, data, size)
     }
 
     /// Draw `text` with its baseline-relative top-left corner at `x, y`, alpha
@@ -391,97 +441,115 @@ impl Font {
         self.draw_shape(r, Shape::Text, text, x, y, color);
     }
 
+    /// Distance between the baselines of two lines of this font.
     pub fn get_line_height(&self) -> i32 {
-        let font_data = self.0.as_ref();
-
-        unsafe { ((*(*font_data.handle).size).metrics.height >> 6) as _ }
+        self.0.as_ref().line_height
     }
 
+    /// The box the glyphs of `text` actually cover (their "ink"), relative to
+    /// the start of the line on the baseline: `(x, y, width, height)`, y down.
     pub fn get_size(&self, r: &mut Renderer, text: &str, out: &mut IVec4) {
         Profiler::begin("Font_GetSize");
 
-        let mut x = 0;
-        let y = 0;
+        let mut font_data = self.0.as_mut();
+        let line = font_data.shape(text);
         let mut lower = IVec2::new(i32::MAX, i32::MAX);
         let mut upper = IVec2::new(i32::MIN, i32::MIN);
 
-        let mut glyph_last = 0;
+        for placed in &line.glyphs {
+            let (base_x, step) = snap_x(placed.x);
+            let glyph = font_data.glyph(r, placed.id, step);
+            let x0 = base_x as i32 + glyph.x0;
+            let y0 = placed.y.round() as i32 + glyph.y0;
 
-        if text.is_empty() {
-            *out = IVec4::ZERO;
-        } else {
-            for c in text.chars() {
-                let code_point = c as u32;
-
-                self.get_glyph(r, code_point);
-
-                let mut font_data = self.0.as_mut();
-                let face = font_data.handle;
-                let glyph = font_data.glyphs.get_mut(&code_point);
-
-                if let Some(glyph) = glyph {
-                    if glyph_last != 0 {
-                        x += self.get_kerning(face, glyph_last, glyph.index);
-                    }
-
-                    lower.x = i32::min(lower.x, x + glyph.x0);
-                    lower.y = i32::min(lower.y, y + glyph.y0);
-                    upper.x = i32::max(upper.x, x + glyph.x1);
-                    upper.y = i32::max(upper.y, y + glyph.y1);
-
-                    x += glyph.advance;
-                    glyph_last = glyph.index;
-                } else {
-                    glyph_last = 0;
-                }
-            }
-
-            *out = IVec4::new(lower.x, lower.y, upper.x - lower.x, upper.y - lower.y);
+            lower.x = lower.x.min(x0);
+            lower.y = lower.y.min(y0);
+            upper.x = upper.x.max(x0 + glyph.sx);
+            upper.y = upper.y.max(y0 + glyph.sy);
         }
+
+        *out = if line.glyphs.is_empty() {
+            IVec4::ZERO
+        } else {
+            IVec4::new(lower.x, lower.y, upper.x - lower.x, upper.y - lower.y)
+        };
+
         Profiler::end();
     }
 
-    // NOTE : The height returned here is the maximal *ascender* height for the
-    //        string. This allows easy centering of text while still allowing
-    //        descending characters to look correct.
-    //
-    //        To correctly center text, first compute bounds via this function,
-    //        then draw it at:
-    //
-    //           pos.x - (size.x - bound.x) / 2
-    //           pos.y - (size.y + bound.y) / 2
-    //
-
-    pub fn get_size2(&self, r: &mut Renderer, text: &str) -> IVec2 {
+    /// The size of `text` as one line of layout: `x` is its advance width,
+    /// `y` the font's line box (ascent + descent). The height is the same for
+    /// every text of this font, so descenders fit and lines line up; the
+    /// baseline is `ascent()` below the top of the box.
+    pub fn get_size2(&self, _r: &mut Renderer, text: &str) -> IVec2 {
         Profiler::begin("Font_GetSize2");
 
-        let mut res = IVec2::ZERO;
-        let mut glyph_last = 0;
-
-        for c in text.chars() {
-            let code_point = c as u32;
-            self.get_glyph(r, code_point);
-
-            let mut font_data = self.0.as_mut();
-            let face = font_data.handle;
-            let glyph = font_data.glyphs.get_mut(&code_point);
-
-            if let Some(glyph) = glyph {
-                if glyph_last != 0 {
-                    res.x += self.get_kerning(face, glyph_last, glyph.index);
-                }
-
-                res.x += glyph.advance;
-                res.y = i32::max(res.y, -glyph.y0 + 1);
-
-                glyph_last = glyph.index;
-            } else {
-                glyph_last = 0;
-            }
-        }
+        let mut font_data = self.0.as_mut();
+        let width = font_data.shape(text).width.ceil() as i32;
+        let size = IVec2::new(width, font_data.ascent + font_data.descent);
 
         Profiler::end();
 
-        res
+        size
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn font(name: &str, size: u32) -> Font {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../../res/font")
+            .join(format!("{name}.ttf"));
+        Font::from_bytes(name, std::fs::read(path).expect("font file"), size)
+    }
+
+    #[test]
+    fn line_box_holds_descenders() {
+        let font = font("Exo2", 14);
+        let mut r = Renderer::new_headless();
+
+        let caps = font.get_size2(&mut r, "AAA");
+        let tails = font.get_size2(&mut r, "gjpqy");
+        assert_eq!(
+            caps.y, tails.y,
+            "every text of a font gets the same line box"
+        );
+        assert_eq!(caps.y, font.ascent() + font.descent());
+
+        let mut ink = IVec4::ZERO;
+        font.get_size(&mut r, "gjpqy", &mut ink);
+        assert!(ink.y + ink.w > 0, "the tails reach below the baseline");
+        assert!(
+            ink.y + ink.w <= font.descent(),
+            "the tails end inside the line box ({} > {})",
+            ink.y + ink.w,
+            font.descent()
+        );
+
+        font.get_size(&mut r, "AAA", &mut ink);
+        assert!(-ink.y <= font.ascent(), "capitals fit above the baseline");
+    }
+
+    #[test]
+    fn kerning_is_applied() {
+        let font = font("Exo2", 32);
+        let mut font_data = font.0.as_mut();
+
+        let pair = font_data.shape("AV").width;
+        let apart = font_data.shape("A").width + font_data.shape("V").width;
+        assert!(
+            pair < apart - 0.5,
+            "the font's kerning pulls A and V together ({pair} vs {apart})"
+        );
+    }
+
+    #[test]
+    fn subpixel_steps_round_into_the_next_pixel() {
+        assert_eq!(snap_x(3.0), (3.0, 0));
+        assert_eq!(snap_x(3.3), (3.0, 1));
+        assert_eq!(snap_x(3.5), (3.0, 2));
+        assert_eq!(snap_x(3.9), (4.0, 0));
     }
 }

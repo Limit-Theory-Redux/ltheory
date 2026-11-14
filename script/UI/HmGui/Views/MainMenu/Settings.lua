@@ -73,25 +73,8 @@ local function settingsGeneral()
         widthInLayout = getRemainingWidthPercentage,
         layoutType = GuiLayoutType.Vertical,
         contents = {
-            UILayout.Grid {
-                align = { AlignHorizontal.Stretch, AlignVertical.Center },
-                stackDirection = GuiLayoutType.Horizontal,
-                contents = {
-                    UILayout.Grid {
-                        align = { AlignHorizontal.Center, AlignVertical.Center },
-                        widthInLayout = 0.35, -- 35% of the parent grid width
-                        layoutType = GuiLayoutType.Vertical,
-                        contents = {
-                        }
-                    },
-                    UILayout.Grid {
-                        align = { AlignHorizontal.Center, AlignVertical.Center },
-                        widthInLayout = 0.65, -- 65% of the parent grid width
-                        layoutType = GuiLayoutType.Vertical,
-                        contents = {
-                        }
-                    }
-                }
+            UILayout.SettingList {
+                rows = {}
             }
         }
     }
@@ -107,59 +90,37 @@ local function settingsAudio()
         widthInLayout = getRemainingWidthPercentage,
         layoutType = GuiLayoutType.Vertical,
         contents = {
-            UILayout.Grid {
-                align = { AlignHorizontal.Stretch, AlignVertical.Center },
-                stackDirection = GuiLayoutType.Horizontal,
-                contents = {
-                    UILayout.Grid {
-                        align = { AlignHorizontal.Center, AlignVertical.Center },
-                        widthInLayout = 0.35, -- 35% of the parent grid width
-                        layoutType = GuiLayoutType.Vertical,
-                        contents = {
-                            UIComponent.Text {
-                                text = "Global Audio",
-                                size = 24,
-                                margin = { 0, 14 },
-                                align = { AlignHorizontal.Left, AlignVertical.Center }
-                            },
-                            UIComponent.Text {
-                                text = "Music Volume",
-                                size = 24,
-                                margin = { 0, 14 },
-                                align = { AlignHorizontal.Left, AlignVertical.Center }
-                            }
+            UILayout.SettingList {
+                rows = {
+                    UILayout.SettingRow {
+                        label = "Global Audio",
+                        control = UIComponent.Switch {
+                            size = ResponsiveSize(80, 20),
+                            margin = { 0, 14 },
+                            align = { AlignHorizontal.Center, AlignVertical.Center },
+                            sound = Config.audio.sounds.click,
+                            toolTip = function() return "Turns all game audio off and on." end,
+                            currentValue = function() return GameState.audio.soundEnabled end, -- send value back to component
+                            callback = function(v)
+                                GameState.audio.soundEnabled = v;
+                                MusicPlayer:setGlobalVolume();
+                            end -- get value change from component
                         }
                     },
-                    UILayout.Grid {
-                        align = { AlignHorizontal.Center, AlignVertical.Center },
-                        widthInLayout = 0.65, -- 65% of the parent grid width
-                        layoutType = GuiLayoutType.Vertical,
-                        contents = {
-                            UIComponent.Switch {
-                                size = ResponsiveSize(80, 20),
-                                margin = { 0, 14 },
-                                align = { AlignHorizontal.Center, AlignVertical.Center },
-                                sound = Config.audio.sounds.click,
-                                toolTip = function() return "Turns all game audio off and on." end,
-                                currentValue = function() return GameState.audio.soundEnabled end, -- send value back to component
-                                callback = function(v)
-                                    GameState.audio.soundEnabled = v;
-                                    MusicPlayer:setGlobalVolume();
-                                end -- get value change from component
-                            },
-                            UIComponent.Slider {
-                                size = ResponsiveSize(300, 20),
-                                margin = { 0, 14 },
-                                align = { AlignHorizontal.Center, AlignVertical.Center },
-                                sound = Config.audio.sounds.click,
-                                toolTip = function() return "Adjusts the music volume." end,
-                                showValueAsPercentage = true,
-                                increment = 0.01,
-                                minValue = 0,
-                                maxValue = 1,
-                                currentValue = GameState.audio.musicVolume,
-                                callback = function(v) MusicPlayer:setVolume(v) end
-                            }
+                    UILayout.SettingRow {
+                        label = "Music Volume",
+                        control = UIComponent.Slider {
+                            size = ResponsiveSize(300, 20),
+                            margin = { 0, 14 },
+                            align = { AlignHorizontal.Center, AlignVertical.Center },
+                            sound = Config.audio.sounds.click,
+                            toolTip = function() return "Adjusts the music volume." end,
+                            showValueAsPercentage = true,
+                            increment = 0.01,
+                            minValue = 0,
+                            maxValue = 1,
+                            currentValue = GameState.audio.musicVolume,
+                            callback = function(v) MusicPlayer:setVolume(v) end
                         }
                     }
                 }
@@ -178,81 +139,56 @@ local function settingsGraphics()
         widthInLayout = getRemainingWidthPercentage,
         layoutType = GuiLayoutType.Vertical,
         contents = {
-            UILayout.Grid {
-                align = { AlignHorizontal.Stretch, AlignVertical.Center },
-                stackDirection = GuiLayoutType.Horizontal,
-                contents = {
-                    UILayout.Grid {
-                        align = { AlignHorizontal.Center, AlignVertical.Center },
-                        widthInLayout = 0.35, -- 35% of the parent grid width
-                        layoutType = GuiLayoutType.Vertical,
-                        contents = {
-                            UIComponent.Text {
-                                text = "Fullscreen",
-                                size = 24,
-                                margin = { 0, 14 },
-                                align = { AlignHorizontal.Left, AlignVertical.Center }
-                            },
-                            UIComponent.Text {
-                                text = "Enable Exclusive Fullscreen",
-                                size = 24,
-                                margin = { 0, 14 },
-                                align = { AlignHorizontal.Left, AlignVertical.Center }
-                            },
-                            UIComponent.Text {
-                                text = "Supersampling",
-                                size = 24,
-                                margin = { 0, 14 },
-                                align = { AlignHorizontal.Left, AlignVertical.Center }
-                            }
+            UILayout.SettingList {
+                rows = {
+                    UILayout.SettingRow {
+                        label = "Fullscreen",
+                        control = UIComponent.Switch {
+                            size = ResponsiveSize(80, 20),
+                            margin = { 0, 14 },
+                            align = { AlignHorizontal.Center, AlignVertical.Center },
+                            sound = Config.audio.sounds.click,
+                            toolTip = function() return "Switches between fullscreen and windowed modes." end,
+                            currentValue = function() return GameState.render.fullscreen end, -- send value back to component
+                            callback = function(v)
+                                GameState.render.fullscreen = v;
+                                Window:setFullscreen(GameState.render.fullscreen,
+                                    GameState.render.fullscreenExclusive);
+                            end -- get value change from component
                         }
                     },
-                    UILayout.Grid {
-                        align = { AlignHorizontal.Center, AlignVertical.Center },
-                        widthInLayout = 0.65, -- 65% of the parent grid width
-                        layoutType = GuiLayoutType.Vertical,
-                        contents = {
-                            UIComponent.Switch {
-                                size = ResponsiveSize(80, 20),
-                                margin = { 0, 14 },
-                                align = { AlignHorizontal.Center, AlignVertical.Center },
-                                sound = Config.audio.sounds.click,
-                                toolTip = function() return "Switches between fullscreen and windowed modes." end,
-                                currentValue = function() return GameState.render.fullscreen end, -- send value back to component
-                                callback = function(v)
-                                    GameState.render.fullscreen = v;
-                                    Window:setFullscreen(GameState.render.fullscreen,
-                                        GameState.render.fullscreenExclusive);
-                                end -- get value change from component
-                            },
-                            UIComponent.Switch {
-                                size = ResponsiveSize(80, 20),
-                                margin = { 0, 14 },
-                                align = { AlignHorizontal.Center, AlignVertical.Center },
-                                sound = Config.audio.sounds.click,
-                                toolTip = function() return "Switches between exclusive and borderless fullscreen modes." end,
-                                currentValue = function() return GameState.render.fullscreenExclusive end, -- send value back to component
-                                callback = function(v)
-                                    GameState.render.fullscreenExclusive = v;
-                                    Window:setFullscreen(GameState.render.fullscreen,
-                                        GameState.render.fullscreenExclusive);
-                                end -- get value change from component
-                            },
-                            UIComponent.Slider {
-                                size = ResponsiveSize(300, 20),
-                                margin = { 0, 14 },
-                                align = { AlignHorizontal.Center, AlignVertical.Center },
-                                sound = Config.audio.sounds.click,
-                                toolTip = function()
-                                    return
-                                    "EXPERIMENTAL: Switches supersampling between Off, 2x, and 4x.\nNOTE: 2x and 4x are completely unusable at this time."
-                                end,
-                                increment = 1,
-                                minValue = 1,
-                                maxValue = 3,
-                                currentValue = Settings.get("render.superSample"),
-                                callback = function(v) Settings.set("render.superSample", v) end
-                            }
+                    UILayout.SettingRow {
+                        label = "Enable Exclusive Fullscreen",
+                        control = UIComponent.Switch {
+                            size = ResponsiveSize(80, 20),
+                            margin = { 0, 14 },
+                            align = { AlignHorizontal.Center, AlignVertical.Center },
+                            sound = Config.audio.sounds.click,
+                            toolTip = function() return "Switches between exclusive and borderless fullscreen modes." end,
+                            currentValue = function() return GameState.render.fullscreenExclusive end, -- send value back to component
+                            callback = function(v)
+                                GameState.render.fullscreenExclusive = v;
+                                Window:setFullscreen(GameState.render.fullscreen,
+                                    GameState.render.fullscreenExclusive);
+                            end -- get value change from component
+                        }
+                    },
+                    UILayout.SettingRow {
+                        label = "Supersampling",
+                        control = UIComponent.Slider {
+                            size = ResponsiveSize(300, 20),
+                            margin = { 0, 14 },
+                            align = { AlignHorizontal.Center, AlignVertical.Center },
+                            sound = Config.audio.sounds.click,
+                            toolTip = function()
+                                return
+                                "EXPERIMENTAL: Switches supersampling between Off, 2x, and 4x.\nNOTE: 2x and 4x are completely unusable at this time."
+                            end,
+                            increment = 1,
+                            minValue = 1,
+                            maxValue = 3,
+                            currentValue = Settings.get("render.superSample"),
+                            callback = function(v) Settings.set("render.superSample", v) end
                         }
                     }
                 }
@@ -271,88 +207,63 @@ local function settingsInterface()
         widthInLayout = getRemainingWidthPercentage,
         layoutType = GuiLayoutType.Vertical,
         contents = {
-            UILayout.Grid {
-                align = { AlignHorizontal.Stretch, AlignVertical.Center },
-                stackDirection = GuiLayoutType.Horizontal,
-                contents = {
-                    UILayout.Grid {
-                        align = { AlignHorizontal.Center, AlignVertical.Center },
-                        widthInLayout = 0.35, -- 35% of the parent grid width
-                        layoutType = GuiLayoutType.Vertical,
-                        contents = {
-                            UIComponent.Text {
-                                text = "Cursor Style",
-                                size = 24,
-                                margin = { 0, 14 },
-                                align = { AlignHorizontal.Left, AlignVertical.Center }
-                            },
-                            UIComponent.Text {
-                                text = "HUD Display Style",
-                                size = 24,
-                                margin = { 0, 14 },
-                                align = { AlignHorizontal.Left, AlignVertical.Center }
-                            },
-                            UIComponent.Text {
-                                text = "UI Scale",
-                                size = 24,
-                                margin = { 0, 14 },
-                                align = { AlignHorizontal.Left, AlignVertical.Center }
-                            }
+            UILayout.SettingList {
+                rows = {
+                    UILayout.SettingRow {
+                        label = "Cursor Style",
+                        control = UIComponent.Slider {
+                            size = ResponsiveSize(300, 20),
+                            margin = { 0, 14 },
+                            align = { AlignHorizontal.Center, AlignVertical.Center },
+                            sound = Config.audio.sounds.click,
+                            toolTip = function()
+                                return
+                                "Switch between game pointers.\nNOTE: This function is not yet fully implemented."
+                            end,
+                            increment = 1,
+                            minValue = 1,
+                            maxValue = Enums.CursorStyleCount,
+                            currentValue = GameState.ui.cursorStyle,
+                            callback = function(v)
+                                GameState.ui.cursorStyle = v;
+                                -- TODO: find a way to call setIcon(icon, style)
+                            end
                         }
                     },
-                    UILayout.Grid {
-                        align = { AlignHorizontal.Center, AlignVertical.Center },
-                        widthInLayout = 0.65, -- 65% of the parent grid width
-                        layoutType = GuiLayoutType.Vertical,
-                        contents = {
-                            UIComponent.Slider {
-                                size = ResponsiveSize(300, 20),
-                                margin = { 0, 14 },
-                                align = { AlignHorizontal.Center, AlignVertical.Center },
-                                sound = Config.audio.sounds.click,
-                                toolTip = function()
-                                    return
-                                    "Switch between game pointers.\nNOTE: This function is not yet fully implemented."
-                                end,
-                                increment = 1,
-                                minValue = 1,
-                                maxValue = Enums.CursorStyleCount,
-                                currentValue = GameState.ui.cursorStyle,
-                                callback = function(v)
-                                    GameState.ui.cursorStyle = v;
-                                    -- TODO: find a way to call setIcon(icon, style)
-                                end
-                            },
-                            UIComponent.Slider {
-                                size = ResponsiveSize(300, 20),
-                                margin = { 0, 14 },
-                                align = { AlignHorizontal.Center, AlignVertical.Center },
-                                sound = Config.audio.sounds.click,
-                                toolTip = function()
-                                    return
-                                    "Switches between HUD display styles\n(HUD Off, Cursor Only, Wide, Medium, Narrow)."
-                                end,
-                                increment = 1,
-                                minValue = 1,
-                                maxValue = Enums.HudStyleCount,
-                                currentValue = GameState.ui.hudStyle,
-                                callback = function(v) GameState.ui.hudStyle = v end
-                            },
-                            UIComponent.Slider {
-                                size = ResponsiveSize(300, 20),
-                                margin = { 0, 14 },
-                                align = { AlignHorizontal.Center, AlignVertical.Center },
-                                sound = Config.audio.sounds.click,
-                                toolTip = function()
-                                    return
-                                    "Scales all responsive UI components"
-                                end,
-                                increment = 0.05,
-                                minValue = 0.4,
-                                maxValue = 1.0,
-                                currentValue = GameState.ui.scaleFactor,
-                                callback = function(v) GameState.ui.scaleFactor = v end
-                            }
+                    UILayout.SettingRow {
+                        label = "HUD Display Style",
+                        control = UIComponent.Slider {
+                            size = ResponsiveSize(300, 20),
+                            margin = { 0, 14 },
+                            align = { AlignHorizontal.Center, AlignVertical.Center },
+                            sound = Config.audio.sounds.click,
+                            toolTip = function()
+                                return
+                                "Switches between HUD display styles\n(HUD Off, Cursor Only, Wide, Medium, Narrow)."
+                            end,
+                            increment = 1,
+                            minValue = 1,
+                            maxValue = Enums.HudStyleCount,
+                            currentValue = GameState.ui.hudStyle,
+                            callback = function(v) GameState.ui.hudStyle = v end
+                        }
+                    },
+                    UILayout.SettingRow {
+                        label = "UI Scale",
+                        control = UIComponent.Slider {
+                            size = ResponsiveSize(300, 20),
+                            margin = { 0, 14 },
+                            align = { AlignHorizontal.Center, AlignVertical.Center },
+                            sound = Config.audio.sounds.click,
+                            toolTip = function()
+                                return
+                                "Scales all responsive UI components"
+                            end,
+                            increment = 0.05,
+                            minValue = 0.4,
+                            maxValue = 1.0,
+                            currentValue = GameState.ui.scaleFactor,
+                            callback = function(v) GameState.ui.scaleFactor = v end
                         }
                     }
                 }

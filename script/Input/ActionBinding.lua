@@ -47,16 +47,27 @@ end
 ---@field keyboard? table[]
 ---@field mouse? table[]
 ---@field gamepad? table[]
+---@field label? string shown in the Controls screen (default: the action's name, split into words)
+---@field group? string Controls screen group, e.g. "Flight" (default: "Other")
+---@field hidden? boolean leave out of the Controls screen (bindings that don't do anything yet)
+
+-- Creation counter: Lua evaluates a table constructor's fields in order, so this
+-- is the order the bindings are declared in their file (the Controls screen
+-- lists them in that order; Lua tables themselves don't keep it).
+local nextOrder = 0
 
 ---@class ActionBinding
 ---@field deviceBindings DeviceBindings
 ---@field category ControlCategory
+---@field order integer declaration order (see nextOrder)
 ---@field value number
 ---@field prevValue number
 ---@field consumed boolean
 ---@field downTime number
 ---@field holdThreshold number
 local ActionBinding = Class("ActionBinding", function(self, deviceBindings)
+    nextOrder = nextOrder + 1
+    self.order = nextOrder
     self.deviceBindings = deviceBindings
     self.category = getCategory(deviceBindings)
     self.value = 0.0

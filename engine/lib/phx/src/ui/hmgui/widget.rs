@@ -321,8 +321,11 @@ impl HmGuiWidget {
                 }
                 WidgetItem::Text(text) => {
                     let x = pos.x + (size.x - self.inner_min_size.x) / 2.0; // center text
+                    // The text's box is the font's line box (ascent + descent),
+                    // so the baseline sits `descent` above its bottom.
                     let y = pos.y + self.min_size.y
-                        - (self.border_width * 2.0 + self.margin_upper.y + self.margin_lower.y);
+                        - (self.border_width * 2.0 + self.margin_upper.y + self.margin_lower.y)
+                        - text.font.descent() as f32;
 
                     text.draw(&mut hmgui.renderer, Vec2::new(x, y));
                 }

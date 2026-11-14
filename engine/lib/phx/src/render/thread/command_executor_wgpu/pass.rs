@@ -842,9 +842,7 @@ impl WgpuCommandExecutor {
             let first = (0..4)
                 .find(|&g| pass.layouts[g] != groups[g].id)
                 .unwrap_or(4);
-            for g in first..4 {
-                pass.set[g] = None;
-            }
+            pass.set[first..].fill(None);
             pass.layouts = std::array::from_fn(|g| groups[g].id);
             pass.rpass.as_mut().expect("open").set_pipeline(&variant);
             pass.variant = Some(key);
