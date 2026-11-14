@@ -396,8 +396,6 @@ function LimitTheoryRedux:startGame(seed)
     })
     UIViewInGame:setPlayer(self.player)
 
-    self._simTunnel = EventBus:subscribe(Event.Sim, self, self.onStateSim)
-
     -- Swap the menu for the Gameplay page. Its In_Game view draws on top of
     -- the HUD and labels that the state's onRender draws.
     UIRouter:setCurrentPage("Gameplay")

@@ -8,6 +8,7 @@ local ShipFlightSystem    = require("Modules.Constructs.Systems.ShipFlightSystem
 local AutoPilotSystem     = require("Modules.Constructs.Systems.AutoPilotSystem")
 local GravityWellSystem   = require("Modules.Physics.Systems.GravityWellSystem")
 local ConstructComponents = require("Modules.Constructs.Components")
+local PhysicsComponents   = require("Modules.Physics.Components")
 local UniverseScaleConfig = require("Config.Gen.UniverseScaleConfig")
 
 -- NOTE: in-game input (pause, map, camera, autopilot) is owned by
@@ -52,7 +53,7 @@ local function speedStateColor(ship, speed)
     local drive = ship:get(ConstructComponents.TravelDrive)
     local state = drive and drive:getState()
     if state == "active" or state == "decelerating" then return TRAVEL end
-    local max = Config.game.shipFlight.maxSpeedGame
+    local max = ConstructComponents.FlightProfile.ProfileOf(ship).maxSpeed
     if speed > max * 1.02 then return BOOST end
     if speed / UniverseScaleConfig.globalScale < 1 then return STOPPED end -- below 1 m/s
     return mix(SLOW, AT_MAX, math.min(1, speed / max))
@@ -146,10 +147,12 @@ local function thousands(n)
     return (grouped:gsub("^,", ""))
 end
 
-local function updateZone()
-    local wells = GravityWellSystem
+local function updateZone(ship)
+    local well = ship:get(PhysicsComponents.GravityWell)
+    local zoneType = well and well:getZoneType() or PhysicsComponents.GravityWell.OPEN_SPACE
+    local rb = ship:get(PhysicsComponents.RigidBody):getRigidBody()
     hud.zoneText = string.format("Zone: %s  ·  Travel cap ×%s",
-        ZONE_NAMES[wells.currentZoneType] or wells.currentZoneType, thousands(wells:getMaxDriveSpeed()))
+        ZONE_NAMES[zoneType] or zoneType, thousands(GravityWellSystem:getMaxDriveSpeedAt(rb:getPos())))
 end
 
 ------------------------------------------------------------------------------
@@ -213,7 +216,7 @@ function InGame:onUpdate()
     updateSpeed(ship, dt)
     updateDrive(ship, dt)
     updateAutopilot(ship)
-    updateZone()
+    updateZone(ship)
     updateCamera(player, dt)
 end
 
