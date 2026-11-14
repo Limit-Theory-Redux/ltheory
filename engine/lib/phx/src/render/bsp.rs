@@ -717,8 +717,7 @@ impl Bsp {
         };
         if relationship == BspNodeRel::Parent {
             if node_ref.index != 0 {
-                for i in 0..self.nodes.len() {
-                    let node_to_check = &self.nodes[i];
+                for (i, node_to_check) in self.nodes.iter().enumerate() {
                     if (*node_to_check).child[BACK_INDEX].index == node_ref.index
                         || (*node_to_check).child[FRONT_INDEX].index == node_ref.index
                     {
