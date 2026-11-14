@@ -13,11 +13,14 @@ local Backdrop = require("Render.Backdrop")
 local MusicPlayer = require('Shared.Audio.MusicPlayer')
 local InitFiles = require('Legacy.Systems.Files.InitFiles')
 
--- UI pages (HmGui). The main menu is the only HmGui page; in-game UI is
--- drawn by the state's onRender through the rendering systems.
+-- UI pages (HmGui): the Main_Menu page before a game, the Gameplay page in
+-- game (In_Game view with the HUD text, Paused and Controls views for the pause
+-- menu). The maps and world labels are still drawn by the state's onRender
+-- through the rendering systems.
 local UIRouter = require('UI.HmGui.UICore.UIRouter')
 local UIPageMainMenu = require('UI.HmGui.Pages.MainMenu')
 local UIPageGameplay = require('UI.HmGui.Pages.Gameplay')
+local UIViewInGame = require('UI.HmGui.Views.Gameplay.InGame')
 local ApplicationBindings = require('States.ApplicationBindings')
 
 -- ECS registry, physics/construct/celestial components, camera manager,
@@ -36,7 +39,6 @@ local AutoPilotSystem = require('Modules.Constructs.Systems.AutoPilotSystem')
 local GravityWellSystem = require('Modules.Physics.Systems.GravityWellSystem')
 local CelestialLightingSystem = require('Modules.Rendering.Systems.CelestialLightingSystem')
 local LensFlareSystem = require('Modules.Rendering.Systems.LensFlareSystem')
-local GameplayHUDSystem = require('Modules.UI.Systems.GameplayHUDSystem')
 local WorldLabelRenderSystem = require('Modules.UI.Systems.WorldLabelRenderSystem')
 local AsteroidFieldSystem = require('Modules.CelestialObjects.Systems.AsteroidFieldSystem')
 local GeneralActions = require('Input.ActionBindings.GeneralActions')
@@ -243,27 +245,39 @@ function LimitTheoryRedux:cleanupMenuBackground()
 end
 
 --- Open the in-game pause menu (Escape). The Gameplay page's Paused view
---- provides Return to Game / Back to Main Menu / Exit.
+--- provides Return to Game / Controls / Back to Main Menu / Exit.
 function LimitTheoryRedux:openPauseMenu()
     self.pauseMenuOpen = true
     GameState:Pause()
     -- Free the cursor (visible, no grab): gameplay runs FPS-style Locked,
     -- which pins the cursor and makes the Paused view unclickable.
     CursorManager:free()
-    UIRouter:setCurrentPage("Gameplay")
     UIPageGameplay:setView("Paused")
 end
 
 --- Close the in-game pause menu and resume the sim.
 function LimitTheoryRedux:closePauseMenu()
     self.pauseMenuOpen = false
-    UIRouter:clearCurrentPage()
+    self.controlsOpen = false
+    UIPageGameplay:setView("In_Game")
     GameState:Unpause()
     -- Re-apply the gameplay cursor state for the current camera mode
     -- (Locked/Confined/Free), same pattern as the map-mode close path.
     if self.player then
         self.player:setMode(self.player:getMode())
     end
+end
+
+--- Show the Controls (help) screen; the game stays paused.
+function LimitTheoryRedux:openControls()
+    self.controlsOpen = true
+    UIPageGameplay:setView("Controls")
+end
+
+--- Back from the Controls screen to the pause menu.
+function LimitTheoryRedux:closeControls()
+    self.controlsOpen = false
+    UIPageGameplay:setView("Paused")
 end
 
 --- P freezes the sim without opening the pause menu.
@@ -310,6 +324,7 @@ function LimitTheoryRedux:returnToMainMenu()
     RenderCoreSystem:setDebugPhysics(nil)
 
     self.playerShip = nil
+    UIViewInGame:setPlayer(nil)
     self.stations = {}
     self.mapMode = 0
 
@@ -380,12 +395,14 @@ function LimitTheoryRedux:startGame(seed)
             mouseSensitivity = free.mouseSensitivity,
         },
     })
+    UIViewInGame:setPlayer(self.player)
 
     self._simTunnel = EventBus:subscribe(Event.Sim, self, self.onStateSim)
 
-    -- Close the menu; in-game UI (HUD, labels) is drawn by the state's
-    -- onRender through the rendering systems, not the HmGui pages.
-    UIRouter:clearCurrentPage()
+    -- Swap the menu for the Gameplay page. Its In_Game view draws on top of
+    -- the HUD and labels that the state's onRender draws.
+    UIRouter:setCurrentPage("Gameplay")
+    UIPageGameplay:setView("In_Game")
 end
 
 ---@param seed integer
@@ -597,6 +614,9 @@ function LimitTheoryRedux:onRender(data)
 
     CelestialLightingSystem:update(self.starEntity)
 
+    -- The HUD text (In_Game view) hides with the HUD toggle and in the 3D map.
+    UIViewInGame:setHudShown(not self.hudHidden and self.mapMode ~= 2)
+
     if self.mapMode == 2 then
         SystemMap3D:collectEntities(self.map3DState, self.universe, self.playerShip)
         SystemMap3D:render(self.map3DState, data)
@@ -612,13 +632,15 @@ function LimitTheoryRedux:onRender(data)
         self:immediateUI(function()
             Gui:draw()
             LensFlareSystem:draw(self.starEntity, self.labeledEntities)
-            if not self.hudHidden then
-                GameplayHUDSystem:draw(self.playerShip, self.player:getModeName(), self.player:isPiloting())
+            -- These draw after Gui:draw, so they'd sit on top of the pause menu
+            -- and the Controls screen: hide them while those are open.
+            local showHud = not self.hudHidden and not self.pauseMenuOpen
+            if showHud then
                 WorldLabelRenderSystem:draw(self.labeledEntities)
             end
 
             local spawned = AsteroidFieldSystem:getSpawnedEntities()
-            if #spawned > 0 and not self.hudHidden then
+            if #spawned > 0 and showHud then
                 local eye = CameraManager:getEye()
                 if eye then
                     for _, aInfo in ipairs(spawned) do
@@ -664,9 +686,12 @@ function LimitTheoryRedux:onInput(data)
     if not self.playerShip then return end
     local dt = data:deltaTime()
 
-    -- Escape toggles the pause menu (Return to Game / Back to Main Menu / Exit).
+    -- Escape toggles the pause menu (Return to Game / Controls / Back to Main
+    -- Menu / Exit); from the Controls screen it goes back to the pause menu.
     if Input:isPressed(ApplicationBindings.Escape) then
-        if self.pauseMenuOpen then
+        if self.controlsOpen then
+            self:closeControls()
+        elseif self.pauseMenuOpen then
             self:closePauseMenu()
         else
             self:openPauseMenu()
