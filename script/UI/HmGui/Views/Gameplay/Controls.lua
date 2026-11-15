@@ -16,7 +16,10 @@ Controls.groups = {}
 
 function Controls:onViewOpen(isPageOpen)
     self.groups = ControlsHelp.groups()
+    self.screen = nil -- rebuilt on the next render
 end
+
+local Grid = UILayout.Grid
 
 local WHITE = Color(1.0, 1.0, 1.0, 1.0)
 local GREY = Color(0.75, 0.77, 0.80, 1.0)
@@ -32,21 +35,18 @@ local function scale()
     return math.max(0.7, math.min(1.0, Window:width() / 1920))
 end
 
---- One left-aligned text cell, optionally of a fixed width. The vertical padding
---- keeps descenders (g, p, y) from being clipped.
-local function cell(text, font, color, width, padY)
-    Gui:beginStackContainer()
-    if width then Gui:setFixedWidth(width) end
-    Gui:setPadding(0, padY or 3)
-    Gui:text(text, font, color)
-    Gui:setAlignment(AlignHorizontal.Left, AlignVertical.Center)
-    Gui:endContainer()
-end
-
---- Empty vertical space.
-local function gap(height)
-    Gui:rect()
-    Gui:setFixedSize(1, height)
+--- One left-aligned line of text. The vertical padding keeps descenders (g, p, y)
+--- from being clipped.
+---@return UIComponentText
+local function text(value, font, size, color, padY)
+    return UIComponent.Text {
+        text = value,
+        font = font,
+        size = size,
+        color = color,
+        padding = { 0, padY or 3 },
+        align = { AlignHorizontal.Left, AlignVertical.Center }
+    }
 end
 
 --- Split the groups over two columns of about equal height (in rows).
@@ -67,40 +67,67 @@ local function splitColumns(groups)
     return left, right
 end
 
+--- One column: the column headers, then each group as a title, a rule and a table
+--- of action / keyboard & mouse / gamepad rows.
+---@param groups ControlsHelpGroup[]
+---@param s number scale
+---@return UILayoutGrid
 local function column(groups, s)
-    local actionWidth, keysWidth, gamepadWidth = ACTION_WIDTH * s, KEYS_WIDTH * s, GAMEPAD_WIDTH * s
-    local headerFont = Cache.Font("Unageo-Medium", math.floor(14 * s))
-    local groupFont = Cache.Font("Unageo-Semibold", math.floor(22 * s))
-    local rowFont = Cache.Font("Unageo-Regular", math.floor(17 * s))
+    local columns = { Grid.Fixed(ACTION_WIDTH * s), Grid.Fixed(KEYS_WIDTH * s), Grid.Fixed(GAMEPAD_WIDTH * s) }
+    local headerSize = math.floor(14 * s)
+    local groupSize = math.floor(22 * s)
+    local rowSize = math.floor(17 * s)
+    local spacing = math.floor(2 * s)
 
-    Gui:beginVerticalContainer()
-    Gui:setSpacing(math.floor(2 * s))
-
-    Gui:beginHorizontalContainer()
-    cell("", headerFont, DIM, actionWidth)
-    cell("KEYBOARD & MOUSE", headerFont, DIM, keysWidth)
-    cell("GAMEPAD", headerFont, DIM, gamepadWidth)
-    Gui:endContainer()
+    local contents = {
+        Grid {
+            cells = columns,
+            contents = {
+                text("", "Unageo-Medium", headerSize, DIM),
+                text("KEYBOARD & MOUSE", "Unageo-Medium", headerSize, DIM),
+                text("GAMEPAD", "Unageo-Medium", headerSize, DIM)
+            }
+        }
+    }
 
     for _, group in ipairs(groups) do
-        gap(math.floor(12 * s))
-        cell(group.title, groupFont, ACCENT, nil, 4)
-        Gui:rect()
-        Gui:setFixedSize(actionWidth + keysWidth + gamepadWidth, 1)
-        Gui:setBackgroundColor(RULE)
-        gap(math.floor(4 * s))
+        local rows = {}
         for _, row in ipairs(group.rows) do
-            Gui:beginHorizontalContainer()
-            Gui:setFixedHeight(math.floor(23 * s)) -- same height whether or not the text has descenders
-            Gui:setChildrenAlignment(AlignHorizontal.Left, AlignVertical.Center)
-            cell(row.action, rowFont, GREY, actionWidth)
-            cell(row.keys, rowFont, WHITE, keysWidth)
-            cell(row.gamepad, rowFont, WHITE, gamepadWidth)
-            Gui:endContainer()
+            rows[#rows + 1] = Grid {
+                fixedHeight = math.floor(23 * s), -- same height whether or not the text has descenders
+                cells = columns,
+                contents = {
+                    text(row.action, "Unageo-Regular", rowSize, GREY),
+                    text(row.keys, "Unageo-Regular", rowSize, WHITE),
+                    text(row.gamepad, "Unageo-Regular", rowSize, WHITE)
+                }
+            }
         end
+        contents[#contents + 1] = Grid {
+            layoutType = GuiLayoutType.Vertical,
+            padding = { 0, math.floor(12 * s) + spacing, 0, 0 },
+            spacing = spacing,
+            cells = Grid.Fit(),
+            contents = {
+                text(group.title, "Unageo-Semibold", groupSize, ACCENT, 4),
+                UIComponent.Divider { color = RULE },
+                Grid {
+                    layoutType = GuiLayoutType.Vertical,
+                    padding = { 0, math.floor(4 * s) + spacing, 0, 0 },
+                    spacing = spacing,
+                    cells = Grid.Fit(),
+                    contents = rows
+                }
+            }
+        }
     end
 
-    Gui:endContainer()
+    return Grid {
+        layoutType = GuiLayoutType.Vertical,
+        spacing = spacing,
+        cells = Grid.Fit(),
+        contents = contents
+    }
 end
 
 local backButton = UIComponent.Button_MainMenu {
@@ -111,36 +138,46 @@ local backButton = UIComponent.Button_MainMenu {
     callback = function() LimitTheoryRedux:closeControls() end
 }
 
---- The whole screen: title, the groups in two columns, Back button. Drawn with
---- plain Gui calls: UIComponent.Container always fills its parent, which doesn't
---- suit fixed-width columns.
-local controlsList = {
+--- The whole screen: title, the groups in two columns, Back button.
+---@param groups ControlsHelpGroup[]
+---@param s number scale
+---@return UILayoutGrid
+local function screen(groups, s)
+    local left, right = splitColumns(groups)
+
+    return Grid {
+        layoutType = GuiLayoutType.Vertical,
+        align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
+        childrenAlign = { AlignHorizontal.Center, AlignVertical.Center },
+        cellAlign = { AlignHorizontal.Center, AlignVertical.Center },
+        color = { background = Color(0, 0, 0, 0.75) },
+        padding = { 0, math.floor(40 * s) },
+        spacing = math.floor(28 * s),
+        cells = Grid.Fit(),
+        contents = {
+            text("Controls", "Unageo-Semibold", math.floor(40 * s), WHITE),
+            Grid {
+                spacing = COLUMN_GAP * s,
+                cells = Grid.Fit(),
+                contents = { column(left, s), column(right, s) }
+            },
+            backButton
+        }
+    }
+end
+
+-- Built on the first render after the view opens, and again when the window size
+-- changes the scale.
+Controls:addContent({
     state = {},
-    render = function(self)
+    render = function()
         local s = scale()
-        local left, right = splitColumns(Controls.groups)
-
-        Gui:beginVerticalContainer()
-        Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Stretch)
-        Gui:setChildrenAlignment(AlignHorizontal.Center, AlignVertical.Center)
-        Gui:setBackgroundColor(Color(0, 0, 0, 0.75))
-        Gui:setPadding(0, math.floor(40 * s))
-        Gui:setSpacing(math.floor(28 * s))
-
-        cell("Controls", Cache.Font("Unageo-Semibold", math.floor(40 * s)), WHITE)
-
-        Gui:beginHorizontalContainer()
-        Gui:setSpacing(COLUMN_GAP * s)
-        column(left, s)
-        column(right, s)
-        Gui:endContainer()
-
-        backButton:render()
-
-        Gui:endContainer()
+        if not Controls.screen or Controls.screenScale ~= s then
+            Controls.screen = screen(Controls.groups, s)
+            Controls.screenScale = s
+        end
+        Controls.screen:render()
     end
-}
-
-Controls:addContent(controlsList)
+})
 
 return Controls

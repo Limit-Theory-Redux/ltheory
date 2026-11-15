@@ -7,15 +7,14 @@ local meta = {
     end
 }
 
----@class UILayoutSettingList
----@field render fun(self: UILayoutSettingList) renders the list
+---@class UILayoutSettingList: UILayoutGrid
 
 ---@class UILayoutSettingListConstructor
 ---@field rows table<UILayoutSettingRow> the settings, top to bottom
 
----A vertical list of `UILayout.SettingRow`s, as wide as its parent and centred vertically
----in it. Every row gets the same height (the list's height shared evenly), and the labels
----form one left-aligned block, centred in the label column.
+---A vertical `UILayout.Grid` of `UILayout.SettingRow`s, as wide as its parent and centred
+---vertically in it. Every row gets the same height (the list's height shared evenly), and
+---the labels form one left-aligned block, centred in the label column.
 ---@param args UILayoutSettingListConstructor
 ---@return UILayoutSettingList|nil
 function SettingList:new(args)
@@ -23,25 +22,29 @@ function SettingList:new(args)
         return
     end
 
-    local newList = { rows = args.rows or {} }
+    local rows = args.rows or {}
+
+    local newList = UILayout.Grid {
+        align = { AlignHorizontal.Stretch, AlignVertical.Center },
+        layoutType = GuiLayoutType.Vertical,
+        contents = rows
+    }
+
+    local renderGrid = newList.render
+    local labelBlockWidth
 
     newList.render = function(self)
-        if not self.labelBlockWidth then
-            self.labelBlockWidth = 0
-            for _, row in ipairs(self.rows) do
-                self.labelBlockWidth = math.max(self.labelBlockWidth, row:measureLabel())
+        if not labelBlockWidth then
+            labelBlockWidth = 0
+            for _, row in ipairs(rows) do
+                labelBlockWidth = math.max(labelBlockWidth, row:measureLabel())
+            end
+            for _, row in ipairs(rows) do
+                row.labelBlockWidth = labelBlockWidth
             end
         end
 
-        Gui:beginContainer(GuiLayoutType.Vertical)
-        Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Center)
-
-        for _, row in ipairs(self.rows) do
-            row:render(self.labelBlockWidth)
-            Gui:setPercentHeight(100 / #self.rows)
-        end
-
-        Gui:endContainer()
+        renderGrid(self)
     end
 
     return newList
