@@ -1,5 +1,4 @@
 use glam::Vec4;
-use parley::style::Brush;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[repr(C)]
@@ -164,8 +163,6 @@ impl Default for Color {
         Self::WHITE
     }
 }
-
-impl Brush for Color {}
 
 impl From<[f32; 4]> for Color {
     #[inline]

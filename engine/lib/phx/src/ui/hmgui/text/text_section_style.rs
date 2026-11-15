@@ -1,6 +1,6 @@
 use std::ops::Range;
 
-use parley::context::RangedBuilder;
+use parley::RangedBuilder;
 
 use super::TextStyle;
 use crate::render::Color;
@@ -38,7 +38,7 @@ impl TextSectionStyle {
     }
 
     /// Apply text sections styling to the text layout builder.
-    pub fn apply<'a>(&'a self, builder: &mut RangedBuilder<'a, Color, &str>) {
+    pub fn apply<'a>(&'a self, builder: &mut RangedBuilder<'a, Color>) {
         for section_style in &self.section_styles {
             section_style
                 .style
