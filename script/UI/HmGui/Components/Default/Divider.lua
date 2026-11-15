@@ -16,7 +16,7 @@ local meta = {
 ---@field thickness number|nil thickness of the line in pixels (default 1)
 ---@field length number|nil length of the line in pixels (default: the parent's full width, or height for a vertical line)
 ---@field color Color|nil colour of the line (default white at 25% opacity)
----@field margin table<number, number>|nil space around the line, `{ x, y }`; a full-length line's margin is taken from its length
+---@field margin table<number, number>|nil space around the line, `{ x, y }` or `{ left, top, right, bottom }`; a full-length line's margin is taken from its length
 ---@field align table<AlignHorizontal, AlignVertical>|nil
 
 ---returns a divider object: a straight line to separate parts of a UI, such as the groups
@@ -59,7 +59,13 @@ function Divider:new(args)
             Gui:setFixedHeight(thickness)
         end
 
-        Gui:setMargin(self.state.margin()[1], self.state.margin()[2])
+        local margin = self.state.margin()
+
+        if #margin == 4 then
+            Gui:setMarginEx(margin[1], margin[2], margin[3], margin[4])
+        else
+            Gui:setMargin(margin[1], margin[2])
+        end
     end
 
     return newDivider

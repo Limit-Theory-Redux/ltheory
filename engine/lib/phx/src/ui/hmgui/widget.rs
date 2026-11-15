@@ -70,7 +70,9 @@ pub struct HmGuiWidget {
     // Layout
     pub default_size: [Length; 2],
     pub alignment: [Alignment; 2],
+    /// Right/bottom margin (the side with the larger coordinate)
     pub margin_upper: Vec2,
+    /// Left/top margin (the side with the smaller coordinate)
     pub margin_lower: Vec2,
     pub border_width: f32,
 
@@ -173,7 +175,7 @@ impl HmGuiWidget {
     /// Do not subtract if outer width and/or height is 0.
     fn calculate_inner_pos_size_dim<const DIM: usize>(&mut self) {
         if self.size[DIM] > 0.0 {
-            self.inner_pos[DIM] = self.pos[DIM] + self.border_width + self.margin_upper[DIM];
+            self.inner_pos[DIM] = self.pos[DIM] + self.border_width + self.margin_lower[DIM];
             self.inner_size[DIM] = self.size[DIM]
                 - (self.border_width * 2.0 + self.margin_upper[DIM] + self.margin_lower[DIM]);
         } else {

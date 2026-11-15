@@ -27,7 +27,7 @@ local meta = {
 ---@field childrenAlign table<AlignHorizontal, AlignVertical>|nil where cells that don't fill the grid sit in it (like `UIComponent.Container`'s `childrenAlign`)
 ---@field cellAlign table<AlignHorizontal, AlignVertical>|nil when set, every child keeps its own size and sits in its cell at this alignment
 ---@field padding table<number, number> `{ x, y }` or `{ left, top, right, bottom }`
----@field margin table<number, number>
+---@field margin table<number, number> `{ x, y }` or `{ left, top, right, bottom }`
 ---@field spacing number|nil pixels between cells
 ---@field fixedWidth number|nil width of the grid in pixels (default: from `align` and the contents)
 ---@field fixedHeight number|nil height of the grid in pixels (default: from `align` and the contents)
@@ -82,6 +82,15 @@ local function setPadding(padding)
         Gui:setPaddingEx(padding[1], padding[2], padding[3], padding[4])
     else
         Gui:setPadding(padding[1], padding[2])
+    end
+end
+
+---@param margin table<number> `{ x, y }` or `{ left, top, right, bottom }`
+local function setMargin(margin)
+    if #margin == 4 then
+        Gui:setMarginEx(margin[1], margin[2], margin[3], margin[4])
+    else
+        Gui:setMargin(margin[1], margin[2])
     end
 end
 
@@ -219,7 +228,7 @@ function Grid:new(args)
         Gui:beginContainer(self.state.layoutType())
         Gui:setAlignment(self.state.align()[1], self.state.align()[2])
         setPadding(self.state.padding())
-        Gui:setMargin(self.state.margin()[1], self.state.margin()[2])
+        setMargin(self.state.margin())
 
         if self.state.childrenAlign then
             Gui:setChildrenAlignment(self.state.childrenAlign()[1], self.state.childrenAlign()[2])

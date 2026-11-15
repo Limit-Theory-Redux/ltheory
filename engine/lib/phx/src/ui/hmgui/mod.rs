@@ -923,6 +923,83 @@ mod tests {
         );
     }
 
+    // One-sided margins: the left/top margin moves the widget's inner rect,
+    // the right/bottom margin only adds space after it.
+    #[test]
+    fn test_hmgui_one_sided_margins() {
+        let (mut gui, input, mut r) = init_test();
+
+        gui.begin_gui(300.0, 200.0);
+
+        gui.begin_vertical_container();
+        gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
+        gui.set_children_horizontal_alignment(AlignHorizontal::Left);
+
+        gui.rect();
+        gui.set_fixed_size(30.0, 20.0);
+        gui.set_margin_ex(4.0, 6.0, 0.0, 0.0); // left and top only
+
+        gui.rect();
+        gui.set_fixed_size(30.0, 20.0);
+        gui.set_margin_ex(0.0, 0.0, 4.0, 6.0); // right and bottom only
+
+        gui.rect();
+        gui.set_fixed_size(30.0, 20.0);
+        gui.set_margin_left(3.0);
+        gui.set_margin_top(5.0);
+        gui.set_margin_right(7.0);
+        gui.set_margin_bottom(9.0);
+        gui.set_border_width(2.0);
+
+        gui.end_container();
+
+        gui.end_gui(&mut r, &input);
+
+        let root_widget_rf = gui.root();
+        let root_widget = root_widget_rf.as_ref();
+
+        check_widget(
+            &root_widget,
+            &WidgetCheck(
+                "Root",
+                (0.0, 0.0),
+                (300.0, 200.0), // Root widget should always keep it's position and size
+                (300.0, 200.0),
+                Some(vec![WidgetCheck(
+                    "Vertical",
+                    (0.0, 0.0),
+                    (300.0, 200.0), // Vertical container expanded so has the same position and size as root one
+                    (300.0, 200.0),
+                    Some(vec![
+                        WidgetCheck("Rect1", (0.0, 0.0), (34.0, 26.0), (30.0, 20.0), None),
+                        WidgetCheck("Rect2", (0.0, 26.0), (34.0, 26.0), (30.0, 20.0), None),
+                        WidgetCheck("Rect3", (0.0, 52.0), (44.0, 38.0), (30.0, 20.0), None),
+                    ]),
+                )]),
+            ),
+        );
+
+        // check_widget compares outer positions; which side a margin is on shows in inner_pos.
+        let vertical_rf = root_widget.get_container_item().children[0].clone();
+        let vertical = vertical_rf.as_ref();
+        let inner_pos: Vec<Vec2> = vertical
+            .get_container_item()
+            .children
+            .iter()
+            .map(|child| child.as_ref().inner_pos)
+            .collect();
+
+        assert_eq!(
+            inner_pos,
+            vec![
+                Vec2::new(4.0, 6.0),  // Moved by its left/top margin
+                Vec2::new(0.0, 26.0), // A right/bottom margin doesn't move it
+                Vec2::new(5.0, 59.0), // Left/top margin plus border
+            ],
+            "Inner rects must be offset by the left/top margin"
+        );
+    }
+
     #[test]
     fn test_hmgui_stack_percentage_size() {
         let (mut gui, input, mut r) = init_test();
