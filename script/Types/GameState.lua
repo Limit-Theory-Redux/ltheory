@@ -7,7 +7,8 @@ GameState = {
 }
 
 GameState.input = {
-    invertPitch = false,
+    invertPitch      = false,
+    mouseSensitivity = 0.5, -- 0-1, 0.5 = the cameras' and flight's own sensitivity (see UserSettings)
 }
 
 GameState.debug = {
@@ -35,6 +36,11 @@ GameState.render = {
     resY                = Config.render.window.defaultResY,
     presentMode         = Config.render.general.presentMode,
     superSampleRate     = Config.render.general.superSampleRate,
+    vsync               = Config.render.general.vsync,
+    brightness          = Config.render.general.brightness,
+    bloom               = Config.render.postFx.bloom.enable,
+    smoothing           = Config.render.postFx.fxaa.enable,
+    textureQuality      = Config.render.general.textureQuality,
     fov                 = Config.render.camera.fov,
     zNear               = Config.render.camera.zNear,
     zFar                = Config.render.camera.zFar,
@@ -47,11 +53,12 @@ GameState.render = {
 }
 
 GameState.audio = {
-    manager      = nil,
-    soundEnabled = Config.audio.general.soundEnabled,
-    fxVolume     = Config.audio.general.fxVolume,
-    musicVolume  = Config.audio.general.musicVolume,
-    menuTheme    = Config.audio.general.mainMenu
+    manager       = nil,
+    soundEnabled  = Config.audio.general.soundEnabled,
+    masterVolume  = Config.audio.general.masterVolume,
+    effectsVolume = Config.audio.general.effectsVolume,
+    musicVolume   = Config.audio.general.musicVolume,
+    menuTheme     = Config.audio.general.mainMenu
 }
 
 GameState.ui = {
@@ -63,6 +70,9 @@ GameState.ui = {
     sensorsDisplayed                 = Config.ui.general.sensorsDisplayed,
 
     scaleFactor                      = Config.ui.general.scaleFactor,
+
+    drawHud                          = Config.ui.general.drawHud,
+    showIndicatorNames               = Config.ui.general.showIndicatorNames,
 
     -- Trackers
     showTrackers                     = Config.ui.general.showTrackers,

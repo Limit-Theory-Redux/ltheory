@@ -13,7 +13,7 @@ function MusicPlayer:init()
     self.currentlyPlaying = nil
     self.currentTrackNum = 0
     self.loadList = {}
-    self.volume = GameState.audio.soundEnabled and GameState.audio.musicVolume or 0
+    self.volume = self:getEffectiveVolume()
     self.lastVolume = self.volume
 
     self:findMusic()
@@ -24,37 +24,46 @@ function MusicPlayer:registerEvents()
     EventBus:subscribe(Event.PreRender, self, self.onPreRender)
 end
 
+---The volume music plays at: the music volume scaled by the master volume, or
+---0 with the sound off.
+---@return number
+function MusicPlayer:getEffectiveVolume()
+    if not GameState.audio.soundEnabled then
+        return 0
+    end
+    return GameState.audio.musicVolume * (GameState.audio.masterVolume or 1)
+end
+
+---Set the music volume (the Music Volume setting, 0-1).
+---@param volume number
+---@param fadeMS integer|nil
 function MusicPlayer:setVolume(volume, fadeMS)
-    if volume == self.volume then
+    if volume == GameState.audio.musicVolume then
         return
     end
 
     self.lastVolume = GameState.audio.musicVolume
     GameState.audio.musicVolume = volume
 
-    if not GameState.audio.soundEnabled then
-        return
-    end
-
+    local actualVolume = self:getEffectiveVolume()
     for _, soundObject in ipairs(self.trackList) do
-        soundObject:setVolume(volume, fadeMS)
+        soundObject:setVolume(actualVolume, fadeMS)
     end
 end
 
+---Apply the sound switch and the music and master volumes to every track: after
+---any of them changes.
 function MusicPlayer:setGlobalVolume()
-    local actualVolume = GameState.audio.musicVolume
-    if not GameState.audio.soundEnabled then
-        actualVolume = 0
-    end
-
+    local actualVolume = self:getEffectiveVolume()
     for _, soundObject in ipairs(self.trackList) do
         soundObject:setVolume(actualVolume, 0)
     end
 end
 
 function MusicPlayer:onPreRender(dt)
-    if GameState.audio.musicVolume ~= self.volume then
-        self.volume = GameState.audio.musicVolume
+    local effectiveVolume = self:getEffectiveVolume()
+    if effectiveVolume ~= self.volume then
+        self.volume = effectiveVolume
     end
 
     if self.currentlyPlaying and not self.currentlyPlaying:IsPlaying() then
