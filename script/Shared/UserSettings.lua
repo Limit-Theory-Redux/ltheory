@@ -51,8 +51,6 @@ local defaults = {
     render = {
         fullscreen          = true,
         fullscreenExclusive = false,
-        resX                = Config.render.window.defaultResX,
-        resY                = Config.render.window.defaultResY,
         vsync               = Config.render.general.vsync,
         superSampleRate     = Config.render.general.superSampleRate,
         fov                 = Config.render.camera.fov,
@@ -130,18 +128,24 @@ function UserSettings.resolutionName(size)
     return string.format("%dx%d", size[1], size[2])
 end
 
----Resize the window to GameState.render.resX x resY. Only changes what you see
----in windowed mode: fullscreen windows take the screen's size.
+---Resize the window to GameState.render.resX x resY, in windowed mode only: a
+---fullscreen window has the screen's size, and resX/resY must keep saying so
+---(UI code reads them as the window size; Application updates them on resize).
 function UserSettings.applyResolution()
-    Window:setSize(GameState.render.resX, GameState.render.resY)
-    if not GameState.render.fullscreen then
-        Window:setCenteredPosition()
+    if GameState.render.fullscreen then
+        return
     end
+    Window:setSize(GameState.render.resX, GameState.render.resY)
+    Window:setCenteredPosition()
 end
 
+---Pick a window size (the Resolution setting). Does nothing in fullscreen.
 ---@param width integer
 ---@param height integer
 function UserSettings.setResolution(width, height)
+    if GameState.render.fullscreen then
+        return
+    end
     GameState.render.resX = width
     GameState.render.resY = height
     UserSettings.applyResolution()
@@ -223,8 +227,8 @@ local groups = {
         { "ui", "scaleFactor" }, { "ui", "cursorStyle" }, { "ui", "hudStyle" },
     },
     graphics = {
-        { "render", "fullscreen" }, { "render", "fullscreenExclusive" },
-        { "render", "resX" }, { "render", "resY" }, { "render", "vsync" },
+        -- not resX/resY: they are the window's current size (see applyResolution)
+        { "render", "fullscreen" }, { "render", "fullscreenExclusive" }, { "render", "vsync" },
         { "render", "superSampleRate" }, { "render", "fov" }, { "render", "brightness" },
         { "render", "bloom" }, { "render", "smoothing" }, { "render", "textureQuality" },
     },
@@ -244,7 +248,6 @@ function UserSettings.reset(group)
 
     if group == "graphics" then
         UserSettings.applyAll()
-        UserSettings.applyResolution()
     elseif group == "audio" then
         -- required here, so flight and camera code can use this module without the audio code
         require("Shared.Audio.MusicPlayer"):setGlobalVolume()
