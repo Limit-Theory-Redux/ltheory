@@ -6,7 +6,7 @@ use super::layer::UIRendererLayer;
 use super::panel::UIRendererPanel;
 use super::rect::UIRendererRect;
 use super::text::UIRendererText;
-use crate::render::{Color, Font, Renderer, Tex2D};
+use crate::render::{Color, Font, Renderer, Tex2D, TextOutline};
 
 pub struct UIRenderer {
     current_layer_id: Option<UIRendererLayerId>,
@@ -148,7 +148,14 @@ impl UIRenderer {
         }
     }
 
-    pub fn text(&mut self, font: &Font, text: &str, pos: Vec2, color: Color) {
+    pub fn text(
+        &mut self,
+        font: &Font,
+        text: &str,
+        pos: Vec2,
+        color: Color,
+        outline: Option<TextOutline>,
+    ) {
         if let Some(current_layer_id) = self.current_layer_id {
             let next = self.layers[*current_layer_id].text_id;
             let item = UIRendererText {
@@ -157,6 +164,7 @@ impl UIRenderer {
                 font: font as _,
                 text: text.into(),
                 color,
+                outline,
             };
 
             self.layers[*current_layer_id].text_id = Some(self.texts.len().into());

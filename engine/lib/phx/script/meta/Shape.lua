@@ -13,7 +13,9 @@
 -- | Box, Grid, PanelGlow, Point, PointGlow | none | | | |
 --
 -- `Triangle` and `LineGlow*` have their own entry points (`Imm.TriGlow`,
--- `Imm.LineGlow`).
+-- `Imm.LineGlow`). `Text` and `TextOutlined` are the glyph quads of
+-- `Font::draw` and `Font::draw_outlined` (`TextOutlined`: `p` = outline
+-- colour, `q` = halo colour).
 ---@class Shape
 ---@field Solid integer
 ---@field Image integer
@@ -34,6 +36,7 @@
 ---@field Wedge integer
 ---@field Annulus integer
 ---@field LineGlow integer
+---@field TextOutlined integer
 Shape = {
     Solid = 0,
     Image = 1,
@@ -54,4 +57,5 @@ Shape = {
     Wedge = 16,
     Annulus = 17,
     LineGlow = 18,
+    TextOutlined = 19,
 }

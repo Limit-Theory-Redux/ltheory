@@ -445,6 +445,34 @@ impl HmGui {
             text: text.into(),
             font: font.clone(),
             color: *color,
+            outline: None,
+        };
+        let widget_rf = self.init_widget(WidgetItem::Text(item));
+        let _ = widget_rf.as_mut();
+    }
+
+    /// Add a text element like `text`, with a 1 px `outline` and a 3 px
+    /// `halo` around the glyphs so it stays readable on any background (see
+    /// `Font::draw_outlined`). An alpha of 0 leaves a part out: a transparent
+    /// outline gives the halo alone. Takes the same room as `text`: outline
+    /// and halo spill past the widget, so a clipping container cuts them off
+    /// at its edge.
+    pub fn text_outlined(
+        &mut self,
+        text: &str,
+        font: &Font,
+        color: &Color,
+        outline: &Color,
+        halo: &Color,
+    ) {
+        let item = HmGuiText {
+            text: text.into(),
+            font: font.clone(),
+            color: *color,
+            outline: Some(TextOutline {
+                outline: *outline,
+                halo: *halo,
+            }),
         };
         let widget_rf = self.init_widget(WidgetItem::Text(item));
         let _ = widget_rf.as_mut();

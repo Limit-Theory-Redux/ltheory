@@ -77,7 +77,9 @@ impl ImmLayout {
 /// | Box, Grid, PanelGlow, Point, PointGlow | none | | | |
 ///
 /// `Triangle` and `LineGlow*` have their own entry points (`Imm.TriGlow`,
-/// `Imm.LineGlow`).
+/// `Imm.LineGlow`). `Text` and `TextOutlined` are the glyph quads of
+/// `Font::draw` and `Font::draw_outlined` (`TextOutlined`: `p` = outline
+/// colour, `q` = halo colour).
 #[luajit_ffi_gen::luajit_ffi(repr = "u32")]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Shape {
@@ -100,10 +102,11 @@ pub enum Shape {
     Wedge,
     Annulus,
     LineGlow,
+    TextOutlined,
 }
 
 impl Shape {
-    const COUNT: usize = 19;
+    const COUNT: usize = 20;
 
     /// Fragment shader, blend mode and whether it samples a texture.
     fn info(self) -> (&'static str, BlendMode, bool) {
@@ -128,6 +131,7 @@ impl Shape {
             Shape::Wedge => ("fragment/ui/wedge", Additive, false),
             Shape::Annulus => ("fragment/ui/annulus", Alpha, false),
             Shape::LineGlow => ("fragment/ui/line", Additive, false),
+            Shape::TextOutlined => ("fragment/ui/text_outlined", Alpha, true),
         }
     }
 

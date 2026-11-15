@@ -20,6 +20,28 @@ function Font.Load(r, name, size) end
 ---@param color Color
 function Font:draw(r, text, x, y, color) end
 
+-- Draw `text` like [`Self::draw`], with a 1 px `outline` and a 3 px
+-- `halo` around its glyphs, for text that has to stay readable on any
+-- background. Both are baked into a second atlas of this font the first
+-- time a glyph is drawn outlined, so nothing is added up at run time:
+-- the glyphs are drawn twice, outline and halo of every glyph first, the
+-- text on top (so a glyph's halo never covers its neighbour), both from
+-- the same atlas page in one draw.
+--
+-- A colour with alpha 0 leaves its part out (a transparent outline gives
+-- the halo alone); a halo alpha of 1 is the halo's full strength, about
+-- 0.95 opaque next to the glyphs. The text's alpha fades outline and
+-- halo with it. With both left out the text looks exactly as `draw`
+-- draws it.
+---@param r Renderer
+---@param text string
+---@param x number
+---@param y number
+---@param color Color
+---@param outline Color
+---@param halo Color
+function Font:drawOutlined(r, text, x, y, color, outline, halo) end
+
 -- Distance between the baselines of two lines of this font.
 ---@return integer
 function Font:getLineHeight() end

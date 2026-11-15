@@ -223,7 +223,9 @@ end
 
 ------------------------------------------------------------------------------
 -- Components. Each is a screen-filling container (UIComponent.Container always
--- fills its parent) that places its text with alignment and padding.
+-- fills its parent) that places its text with alignment and padding. Every HUD
+-- text is outlined (a halo, plus a 1 px outline from 24 px), so it stays
+-- readable in front of a sun or a bright nebula.
 
 --- Sizes scale with the window height (1080 p = 1).
 local function px(n)
@@ -255,6 +257,7 @@ local speedReadout = UIComponent.Container {
             font = "UbuntuBold",
             size = function() return px(22) end,
             color = function() return hud.speedColor end,
+            outline = true,
         },
     },
 }
@@ -274,6 +277,7 @@ local travelBlock = UIComponent.Container {
             size = function() return px(24) end,
             height = function() return px(34) end,
             color = AUTOPILOT_COLOR,
+            outline = true,
         },
         UIComponent.Text {
             visible = function() return hud.driveText ~= "" end,
@@ -281,6 +285,7 @@ local travelBlock = UIComponent.Container {
             font = "Unageo-Semibold",
             size = function() return px(46) end,
             color = function() return Color(1.0, 1.0, 1.0, hud.driveAlpha) end,
+            outline = true,
         },
     },
 }
@@ -298,6 +303,7 @@ local zoneLine = UIComponent.Container {
             size = function() return px(18) end,
             padding = descenderPadding,
             color = ZONE_COLOR,
+            outline = true,
         },
     },
 }
@@ -314,6 +320,7 @@ local cameraLabel = UIComponent.Container {
             size = function() return px(20) end,
             padding = descenderPadding,
             color = function() return Color(0.80, 0.88, 0.97, hud.cameraAlpha) end,
+            outline = true,
         },
     },
 }
@@ -330,6 +337,7 @@ local pausedText = UIComponent.Container {
             font = "Unageo-Semibold",
             size = function() return px(46) end,
             color = Color(1.0, 1.0, 1.0, 1.0),
+            outline = true,
         },
     },
 }

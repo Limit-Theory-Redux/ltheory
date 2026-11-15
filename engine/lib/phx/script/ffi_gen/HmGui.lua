@@ -39,6 +39,7 @@ function Loader.defineType()
             void  HmGui_Image                          (HmGui*, Tex2D* image);
             void  HmGui_Rect                           (HmGui*);
             void  HmGui_Text                           (HmGui*, cstr text, Font const* font, Color const* color);
+            void  HmGui_TextOutlined                   (HmGui*, cstr text, Font const* font, Color const* color, Color const* outline, Color const* halo);
             void  HmGui_TextView                       (HmGui*, TextData* textData, bool editable);
             bool  HmGui_GetTextViewChanges             (HmGui*, TextData* textData);
             bool  HmGui_IsMouseOver                    (HmGui const*, FocusType ty);
@@ -114,6 +115,7 @@ function Loader.defineType()
                 image                          = libphx.HmGui_Image,
                 rect                           = libphx.HmGui_Rect,
                 text                           = libphx.HmGui_Text,
+                textOutlined                   = libphx.HmGui_TextOutlined,
                 textView                       = libphx.HmGui_TextView,
                 getTextViewChanges             = libphx.HmGui_GetTextViewChanges,
                 isMouseOver                    = libphx.HmGui_IsMouseOver,

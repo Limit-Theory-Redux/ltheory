@@ -65,7 +65,8 @@ impl Tex2D {
         Self::create(r, TexDesc::d2(sx as u32, sy as u32, format), Some(bytes))
     }
 
-    /// Replace a rectangle of a one-byte-per-texel texture (tightly packed rows).
+    /// Replace a rectangle of the texture with texels in its own format
+    /// (tightly packed rows).
     pub fn update_rect_bytes(
         &self,
         r: &mut Renderer,
@@ -76,7 +77,10 @@ impl Tex2D {
         bytes: Vec<u8>,
     ) {
         let this = self.shared.as_ref();
-        debug_assert_eq!(this.desc.format, TexFormat::R8);
+        debug_assert_eq!(
+            bytes.len(),
+            (width * height * TexFormat::get_size(this.desc.format)) as usize
+        );
         r.update_texture(
             this.handle.id(),
             TexRegion::rect(x as u32, y as u32, width as u32, height as u32),

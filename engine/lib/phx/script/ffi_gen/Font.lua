@@ -20,6 +20,7 @@ function Loader.defineType()
             void  Font_Free          (Font*);
             Font* Font_Load          (Renderer* r, cstr name, uint32 size);
             void  Font_Draw          (Font const*, Renderer* r, cstr text, float x, float y, Color const* color);
+            void  Font_DrawOutlined  (Font const*, Renderer* r, cstr text, float x, float y, Color const* color, Color const* outline, Color const* halo);
             int   Font_GetLineHeight (Font const*);
             void  Font_GetSize       (Font const*, Renderer* r, cstr text, Vec4i* out);
             Vec2i Font_GetSize2      (Font const*, Renderer* r, cstr text);
@@ -43,6 +44,7 @@ function Loader.defineType()
         local mt = {
             __index = {
                 draw          = libphx.Font_Draw,
+                drawOutlined  = libphx.Font_DrawOutlined,
                 getLineHeight = libphx.Font_GetLineHeight,
                 getSize       = libphx.Font_GetSize,
                 getSize2      = libphx.Font_GetSize2,
