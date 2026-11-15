@@ -65,6 +65,12 @@ local function switchToCreditsView()
     UIRouter:getCurrentPage():setView("Credits")
 end
 
+-- The idle screensaver view, on demand (it also opens after `timeTillBackground`
+-- seconds without mouse movement).
+local function switchToBackgroundView()
+    UIRouter:getCurrentPage():setView("Background")
+end
+
 local menuGrid = UILayout.Grid {
     align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
     padding = { 125, 0 },
@@ -152,6 +158,13 @@ local menuGrid = UILayout.Grid {
                     heightInLayout = 1 / 10,
                     layoutType = GuiLayoutType.Vertical,
                     contents = {
+                        UIComponent.Button_MainMenu {
+                            title = "Background",
+                            size = ResponsiveSize(300, 40, true),
+                            font = { name = "Unageo-Medium", size = 20 },
+                            callback = switchToBackgroundView,
+                            align = { AlignHorizontal.Center, AlignVertical.Center }
+                        },
                         UIComponent.Text {
                             text = Config.gameVersion,
                             align = { AlignHorizontal.Center, AlignVertical.Center },
