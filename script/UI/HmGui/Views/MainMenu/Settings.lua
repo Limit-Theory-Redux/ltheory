@@ -10,6 +10,7 @@ local ResponsiveSize = require("Types.ResponsiveSize")
 local MusicPlayer = require("Shared.Audio.MusicPlayer")
 local InitFiles = require("Legacy.Systems.Files.InitFiles")
 local UserSettings = require("Shared.UserSettings")
+local ControlsHelp = require("Input.ControlsHelp")
 
 -- The tabs follow the start menu mockups: Interface, Graphics, Audio, Keybinding.
 -- Each tab is rebuilt every frame from GameState (so "Reset to Default" shows at
@@ -29,7 +30,11 @@ end
 
 function SettingsView:onInput() end
 function SettingsView:onUpdate(dt) end
-function SettingsView:onViewOpen(isPageOpen) end
+local keybindingTab -- built from the bindings when needed, see settingsKeybinding
+
+function SettingsView:onViewOpen(isPageOpen)
+    keybindingTab = nil
+end
 
 --- Leaving the Settings screen saves the settings to user.ini, so they are kept
 --- however the game is closed afterwards (not only through the Exit button).
@@ -459,17 +464,135 @@ local function settingsAudio()
     }, "audio")
 end
 
+-- KEYBINDING: the bindings as a table, the same list as the in-game Controls
+-- screen (Input/ControlsHelp.lua). Read-only for now: rebinding needs bindings
+-- that can be changed and saved, which they can't yet.
+
+local KEY_TEXT = Color(1.0, 1.0, 1.0, 1.0)
+local KEY_ACTION = Color(0.75, 0.77, 0.80, 1.0)
+local KEY_DIM = Color(0.51, 0.54, 0.59, 1.0)
+local KEY_ACCENT = Color(0.10, 0.60, 1.00, 1.0)
+local KEY_RULE = Color(0.10, 0.60, 1.00, 0.35)
+
+-- Column widths at 1920 px window width: function, keyboard & mouse, gamepad.
+local KEY_COLUMN_WIDTHS = { 360, 320, 240 }
+
+---@return number scale for the window width
+local function keybindingScale()
+    return math.max(0.7, math.min(1.0, Window:width() / 1920))
+end
+
+---One left-aligned line of text.
+---@return UIComponentText
+local function keybindingText(value, font, size, color)
+    return UIComponent.Text {
+        text = value,
+        font = font,
+        size = size,
+        color = color,
+        align = { AlignHorizontal.Left, AlignVertical.Center }
+    }
+end
+
+---The table: column headers, then each group as a title, a rule and its rows.
+---@param s number scale
+---@return UILayoutGrid
+local function keybindingTable(s)
+    local Grid = UILayout.Grid
+    local columns = {}
+    for index, width in ipairs(KEY_COLUMN_WIDTHS) do columns[index] = Grid.Fixed(width * s) end
+    local spacing = math.floor(2 * s)
+
+    local contents = {
+        Grid {
+            cells = columns,
+            contents = {
+                keybindingText("FUNCTION", "Unageo-Medium", math.floor(16 * s), KEY_DIM),
+                keybindingText("KEYBOARD & MOUSE", "Unageo-Medium", math.floor(16 * s), KEY_DIM),
+                keybindingText("GAMEPAD", "Unageo-Medium", math.floor(16 * s), KEY_DIM)
+            }
+        }
+    }
+
+    for _, group in ipairs(ControlsHelp.groups()) do
+        local rows = {}
+        for _, row in ipairs(group.rows) do
+            rows[#rows + 1] = Grid {
+                fixedHeight = math.floor(24 * s),
+                cells = columns,
+                contents = {
+                    keybindingText(row.action, "Unageo-Regular", math.floor(18 * s), KEY_ACTION),
+                    keybindingText(row.keys, "Unageo-Regular", math.floor(18 * s), KEY_TEXT),
+                    keybindingText(row.gamepad, "Unageo-Regular", math.floor(18 * s), KEY_TEXT)
+                }
+            }
+        end
+        contents[#contents + 1] = Grid {
+            layoutType = GuiLayoutType.Vertical,
+            padding = { 0, math.floor(14 * s), 0, 0 },
+            spacing = spacing,
+            cells = Grid.Fit(),
+            contents = {
+                keybindingText(group.title, "Unageo-Semibold", math.floor(22 * s), KEY_ACCENT),
+                UIComponent.Divider { color = KEY_RULE },
+                Grid {
+                    layoutType = GuiLayoutType.Vertical,
+                    padding = { 0, math.floor(4 * s), 0, 0 },
+                    spacing = spacing,
+                    cells = Grid.Fit(),
+                    contents = rows
+                }
+            }
+        }
+    end
+
+    return Grid {
+        layoutType = GuiLayoutType.Vertical,
+        spacing = spacing,
+        cells = Grid.Fit(),
+        contents = contents
+    }
+end
+
+---The Keybinding tab. Unlike the other tabs it is built once (when the screen
+---opens, and again when the window size changes the scale): it has nothing to
+---change, and the scroll area keeps its position.
 ---@return UIComponentContainer
 local function settingsKeybinding()
-    return UIComponent.Container {
-        align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
-        childrenAlign = { AlignHorizontal.Center, AlignVertical.Center },
-        padding = { 0, 0 },
-        margin = { 0, 0 },
-        widthInLayout = getRemainingWidthPercentage,
-        layoutType = GuiLayoutType.Vertical,
-        contents = {}
-    }
+    local s = keybindingScale()
+    if not keybindingTab or keybindingTab.scale ~= s then
+        keybindingTab = UIComponent.Container {
+            align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
+            childrenAlign = { AlignHorizontal.Center, AlignVertical.Center },
+            padding = { 0, 0 },
+            margin = { 40, 0 },
+            widthInLayout = getRemainingWidthPercentage,
+            layoutType = GuiLayoutType.Vertical,
+            contents = {
+                UIComponent.ScrollArea {
+                    align = { AlignHorizontal.Center, AlignVertical.Center },
+                    padding = { 20, 10 },
+                    margin = { 0, 0 },
+                    height = function() return math.floor(Window:height() * 0.75) end,
+                    layoutType = GuiLayoutType.Vertical,
+                    scrollDirection = Enums.UI.ScrollDirection.Vertical,
+                    scrollbarFading = true,
+                    showVScrollbar = true,
+                    color = { background = Color(0, 0, 0, 0.3) },
+                    contents = { keybindingTable(s) }
+                },
+                UIComponent.Text {
+                    text = "Changing the bindings isn't possible yet.",
+                    font = "Unageo-Regular",
+                    size = 16,
+                    color = KEY_DIM,
+                    align = { AlignHorizontal.Center, AlignVertical.Center }
+                }
+            }
+        }
+        keybindingTab.scale = s
+    end
+    return keybindingTab
 end
 
 local settingsTabs = { settingsInterface, settingsGraphics, settingsAudio, settingsKeybinding }
