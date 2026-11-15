@@ -90,6 +90,86 @@ function HmGui:image(image) end
 
 function HmGui:rect() end
 
+-- Add a ring band (annulus), centred in the widget: its outer diameter
+-- is the widget's smaller side and it is `thickness` pixels wide,
+-- inwards. Nothing is drawn at thickness 0.
+--
+-- Shapes draw over rects and under texts. `glow` draws additive
+-- (brightens only, with a soft halo) instead of alpha blended; any glow
+-- reaches past the widget's edge.
+---@param color Color
+---@param thickness number
+---@param glow boolean
+function HmGui:annulus(color, thickness, glow) end
+
+-- Add a filled circle with a soft edge, centred in the widget, as wide
+-- as the widget's smaller side. `glow`: see `annulus`.
+---@param color Color
+---@param glow boolean
+function HmGui:circle(color, glow) end
+
+-- Add a point of light: a small bright core in the widget's centre
+-- whose soft glow fills the widget. `glow`: see `annulus`.
+---@param color Color
+---@param glow boolean
+function HmGui:point(color, glow) end
+
+-- Add a thin circle line, centred in the widget, as wide as the
+-- widget's smaller side. `glow`: see `annulus`.
+---@param color Color
+---@param glow boolean
+function HmGui:ring(color, glow) end
+
+-- Add a piece of a ring band (wedge), centred in the widget: its outer
+-- diameter is the widget's smaller side, it is `thickness` pixels deep,
+-- inwards, and it runs from `start` to `start + sweep` degrees, where 0
+-- is up and angles grow clockwise (like CSS `conic-gradient`). Nothing
+-- is drawn at thickness or sweep 0. `glow`: see `annulus`.
+--
+-- Wedges of one widget size stacked in one container share a centre,
+-- so each piece of an arc can be its own widget.
+---@param color Color
+---@param thickness number
+---@param start number
+---@param sweep number
+---@param glow boolean
+function HmGui:wedge(color, thickness, start, sweep, glow) end
+
+-- Add a filled triangle with soft edges. Its corners are fractions of
+-- the widget: (0, 0) is the top left, (1, 1) the bottom right (like CSS
+-- `clip-path: polygon()`). A point at the left middle:
+-- `triangle(c, 1, 0, 0, 0.5, 1, 1, false)`. `glow`: see `annulus`.
+---@param color Color
+---@param x1 number
+---@param y1 number
+---@param x2 number
+---@param y2 number
+---@param x3 number
+---@param y3 number
+---@param glow boolean
+function HmGui:triangle(color, x1, y1, x2, y2, x3, y3, glow) end
+
+-- Add a thin line from (`x1`, `y1`) to (`x2`, `y2`), fractions of the
+-- widget as in `triangle`. Across the middle: `line(c, 0, 0.5, 1, 0.5,
+-- false)`. `glow`: see `annulus`.
+---@param color Color
+---@param x1 number
+---@param y1 number
+---@param x2 number
+---@param y2 number
+---@param glow boolean
+function HmGui:line(color, x1, y1, x2, y2, glow) end
+
+-- Fade the last shape (annulus, circle, point, ring or wedge) by
+-- direction: fully drawn within `visible` degrees of `centre`, gone
+-- beyond `gone` degrees, smooth in between (0 = up, clockwise, measured
+-- from the shape's centre). Shapes that share a centre and a fade fade
+-- as one, like the pieces of a curved tape.
+---@param centre number
+---@param visible number
+---@param gone number
+function HmGui:setShapeFade(centre, visible, gone) end
+
 ---@param text string
 ---@param font Font
 ---@param color Color

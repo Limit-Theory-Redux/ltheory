@@ -6,14 +6,22 @@
 --
 -- | shape | a | b | c | d |
 -- |---|---|---|---|---|
--- | Circle, Hex, Ring, RingGlow, RingDim | radius | | | |
+-- | Circle, CircleAlpha, Hex, Ring, RingGlow, RingDim | radius | | | |
 -- | Panel | inner alpha | bevel | | |
--- | Wedge | r1 | r2 | to | tw |
--- | Annulus | inner radius | outer radius | | |
+-- | Wedge, WedgeAlpha | r1 | r2 | to | tw |
+-- | Annulus, AnnulusGlow | inner radius | outer radius | | |
 -- | Box, Grid, PanelGlow, Point, PointGlow | none | | | |
 --
--- `Triangle` and `LineGlow*` have their own entry points (`Imm.TriGlow`,
--- `Imm.LineGlow`).
+-- Twins share a fragment shader and differ in blend mode: additive glow
+-- brightens what is behind it, alpha blending can also darken it (a dark
+-- halo under a glowing shape). `Ring`/`RingGlow`, `Point`/`PointGlow`,
+-- `Annulus`/`AnnulusGlow` (the glow twin also gets a soft halo),
+-- `Circle`/`CircleAlpha`, `Wedge`/`WedgeAlpha`, `Triangle`/`TriangleAlpha` and
+-- `LineGlow`/`LineAlpha`.
+--
+-- `Triangle`, `TriangleAlpha`, `LineGlow` and `LineAlpha` have their own entry
+-- points (`Imm.TriGlow`, `Imm.LineGlow`; `Renderer::imm_tri_shape`,
+-- `Renderer::imm_line_shape`).
 ---@class Shape
 ---@field Solid integer
 ---@field Image integer
@@ -34,6 +42,11 @@
 ---@field Wedge integer
 ---@field Annulus integer
 ---@field LineGlow integer
+---@field AnnulusGlow integer
+---@field CircleAlpha integer
+---@field WedgeAlpha integer
+---@field TriangleAlpha integer
+---@field LineAlpha integer
 Shape = {
     Solid = 0,
     Image = 1,
@@ -54,4 +67,9 @@ Shape = {
     Wedge = 16,
     Annulus = 17,
     LineGlow = 18,
+    AnnulusGlow = 19,
+    CircleAlpha = 20,
+    WedgeAlpha = 21,
+    TriangleAlpha = 22,
+    LineAlpha = 23,
 }

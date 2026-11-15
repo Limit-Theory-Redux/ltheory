@@ -140,6 +140,19 @@ impl HmGui {
         widget_rf.clone()
     }
 
+    /// Add a shape widget (`annulus`, `circle`, `line`, `point`, `ring`,
+    /// `triangle`, `wedge`).
+    fn shape(&mut self, kind: HmGuiShapeKind, color: &Color, glow: bool) {
+        let item = HmGuiShape {
+            kind,
+            color: *color,
+            glow,
+            fade: None,
+        };
+
+        let _ = self.init_widget(WidgetItem::Shape(item));
+    }
+
     /// Get persistent readonly data of the widget by its hash if exists.
     pub fn data(&self, widget_hash: u64) -> Option<&HmGuiData> {
         self.data.get(&widget_hash)
@@ -438,6 +451,104 @@ impl HmGui {
 
     pub fn rect(&mut self) {
         let _ = self.init_widget(WidgetItem::Rect);
+    }
+
+    /// Add a ring band (annulus), centred in the widget: its outer diameter
+    /// is the widget's smaller side and it is `thickness` pixels wide,
+    /// inwards. Nothing is drawn at thickness 0.
+    ///
+    /// Shapes draw over rects and under texts. `glow` draws additive
+    /// (brightens only, with a soft halo) instead of alpha blended; any glow
+    /// reaches past the widget's edge.
+    pub fn annulus(&mut self, color: &Color, thickness: f32, glow: bool) {
+        self.shape(HmGuiShapeKind::Annulus { thickness }, color, glow);
+    }
+
+    /// Add a filled circle with a soft edge, centred in the widget, as wide
+    /// as the widget's smaller side. `glow`: see `annulus`.
+    pub fn circle(&mut self, color: &Color, glow: bool) {
+        self.shape(HmGuiShapeKind::Circle, color, glow);
+    }
+
+    /// Add a point of light: a small bright core in the widget's centre
+    /// whose soft glow fills the widget. `glow`: see `annulus`.
+    pub fn point(&mut self, color: &Color, glow: bool) {
+        self.shape(HmGuiShapeKind::Point, color, glow);
+    }
+
+    /// Add a thin circle line, centred in the widget, as wide as the
+    /// widget's smaller side. `glow`: see `annulus`.
+    pub fn ring(&mut self, color: &Color, glow: bool) {
+        self.shape(HmGuiShapeKind::Ring, color, glow);
+    }
+
+    /// Add a piece of a ring band (wedge), centred in the widget: its outer
+    /// diameter is the widget's smaller side, it is `thickness` pixels deep,
+    /// inwards, and it runs from `start` to `start + sweep` degrees, where 0
+    /// is up and angles grow clockwise (like CSS `conic-gradient`). Nothing
+    /// is drawn at thickness or sweep 0. `glow`: see `annulus`.
+    ///
+    /// Wedges of one widget size stacked in one container share a centre,
+    /// so each piece of an arc can be its own widget.
+    pub fn wedge(&mut self, color: &Color, thickness: f32, start: f32, sweep: f32, glow: bool) {
+        self.shape(
+            HmGuiShapeKind::Wedge {
+                thickness,
+                start,
+                sweep,
+            },
+            color,
+            glow,
+        );
+    }
+
+    /// Add a filled triangle with soft edges. Its corners are fractions of
+    /// the widget: (0, 0) is the top left, (1, 1) the bottom right (like CSS
+    /// `clip-path: polygon()`). A point at the left middle:
+    /// `triangle(c, 1, 0, 0, 0.5, 1, 1, false)`. `glow`: see `annulus`.
+    #[allow(clippy::too_many_arguments)]
+    pub fn triangle(
+        &mut self,
+        color: &Color,
+        x1: f32,
+        y1: f32,
+        x2: f32,
+        y2: f32,
+        x3: f32,
+        y3: f32,
+        glow: bool,
+    ) {
+        let points = [Vec2::new(x1, y1), Vec2::new(x2, y2), Vec2::new(x3, y3)];
+        self.shape(HmGuiShapeKind::Triangle { points }, color, glow);
+    }
+
+    /// Add a thin line from (`x1`, `y1`) to (`x2`, `y2`), fractions of the
+    /// widget as in `triangle`. Across the middle: `line(c, 0, 0.5, 1, 0.5,
+    /// false)`. `glow`: see `annulus`.
+    pub fn line(&mut self, color: &Color, x1: f32, y1: f32, x2: f32, y2: f32, glow: bool) {
+        let (from, to) = (Vec2::new(x1, y1), Vec2::new(x2, y2));
+        self.shape(HmGuiShapeKind::Line { from, to }, color, glow);
+    }
+
+    /// Fade the last shape (annulus, circle, point, ring or wedge) by
+    /// direction: fully drawn within `visible` degrees of `centre`, gone
+    /// beyond `gone` degrees, smooth in between (0 = up, clockwise, measured
+    /// from the shape's centre). Shapes that share a centre and a fade fade
+    /// as one, like the pieces of a curved tape.
+    pub fn set_shape_fade(&self, centre: f32, visible: f32, gone: f32) {
+        let last = self.last();
+        let mut widget = last.as_mut();
+
+        match &mut widget.item {
+            WidgetItem::Shape(shape) if shape.kind.is_round() => {
+                shape.fade = Some(HmGuiShapeFade {
+                    centre,
+                    visible,
+                    gone,
+                });
+            }
+            _ => warn!("setShapeFade: the last widget is not a round shape"),
+        }
     }
 
     pub fn text(&mut self, text: &str, font: &Font, color: &Color) {

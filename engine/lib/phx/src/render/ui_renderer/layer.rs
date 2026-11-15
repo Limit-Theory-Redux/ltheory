@@ -3,9 +3,11 @@ use glam::Vec2;
 use super::image::UIRendererImage;
 use super::panel::UIRendererPanel;
 use super::rect::UIRendererRect;
+use super::shape::{UIRendererShape, UIShapeGeometry};
 use super::text::UIRendererText;
 use super::{
-    UIRendererImageId, UIRendererLayerId, UIRendererPanelId, UIRendererRectId, UIRendererTextId,
+    UIRendererImageId, UIRendererLayerId, UIRendererPanelId, UIRendererRectId, UIRendererShapeId,
+    UIRendererTextId,
 };
 use crate::render::{ClipRect, Color, Renderer, Samplers, Shape};
 
@@ -18,6 +20,7 @@ pub struct UIRendererLayer {
     pub image_id: Option<UIRendererImageId>,
     pub panel_id: Option<UIRendererPanelId>,
     pub rect_id: Option<UIRendererRectId>,
+    pub shape_id: Option<UIRendererShapeId>,
     pub text_id: Option<UIRendererTextId>,
 
     pub pos: Vec2,
@@ -34,6 +37,7 @@ impl UIRendererLayer {
         images: &Vec<UIRendererImage>,
         panels: &Vec<UIRendererPanel>,
         rects: &Vec<UIRendererRect>,
+        shapes: &Vec<UIRendererShape>,
         texts: &Vec<UIRendererText>,
     ) {
         if self.clip {
@@ -110,6 +114,43 @@ impl UIRendererLayer {
             rect_id_opt = rect.next;
         }
 
+        // Shapes go over rects and under texts, so labels sit on top of rings.
+        let mut shape_id_opt = self.shape_id;
+        while let Some(shape_id) = shape_id_opt {
+            let shape = &shapes[*shape_id];
+
+            match shape.geometry {
+                UIShapeGeometry::Quad {
+                    pos,
+                    size,
+                    params,
+                    fade,
+                } => r.imm_shape_faded(
+                    shape.shape,
+                    pos.x,
+                    pos.y,
+                    size.x,
+                    size.y,
+                    &shape.color,
+                    params,
+                    fade,
+                ),
+                UIShapeGeometry::Triangle { points, pad } => {
+                    r.imm_tri_shape(shape.shape, points.map(|p| p.to_array()), &shape.color, pad)
+                }
+                UIShapeGeometry::Line { from, to, pad } => r.imm_line_shape(
+                    shape.shape,
+                    from.to_array(),
+                    to.to_array(),
+                    &shape.color,
+                    false,
+                    pad,
+                ),
+            }
+
+            shape_id_opt = shape.next;
+        }
+
         let mut text_id_opt = self.text_id;
         while let Some(text_id) = text_id_opt {
             let text = &texts[*text_id];
@@ -126,7 +167,7 @@ impl UIRendererLayer {
         while let Some(layer_id) = layer_id_opt {
             let layer = &layers[*layer_id];
 
-            layer.draw(r, layers, images, panels, rects, texts);
+            layer.draw(r, layers, images, panels, rects, shapes, texts);
 
             layer_id_opt = layer.next;
         }

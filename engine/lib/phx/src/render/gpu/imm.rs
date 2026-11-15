@@ -28,8 +28,9 @@ use crate::system::Metric;
 /// one vertex-ring chunk).
 pub const IMM_MAX_RUN_VERTS: usize = 8190;
 
-/// UI vertex: pixel position, uv, color and the two parameter vectors of the
-/// shape (see `Shape::pack`).
+/// UI vertex: pixel position, uv, color and the parameter vectors of the
+/// shape: `p` and `q` (see `Shape::pack`) and `r`, the fade window of the
+/// round shapes (see `Renderer::imm_shape_faded`; all zero = no fade).
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub struct Imm2DVertex {
@@ -38,6 +39,7 @@ pub struct Imm2DVertex {
     pub color: [f32; 4],
     pub p: [f32; 4],
     pub q: [f32; 4],
+    pub r: [f32; 4],
 }
 
 /// Debug and backdrop vertex.
@@ -70,14 +72,22 @@ impl ImmLayout {
 ///
 /// | shape | a | b | c | d |
 /// |---|---|---|---|---|
-/// | Circle, Hex, Ring, RingGlow, RingDim | radius | | | |
+/// | Circle, CircleAlpha, Hex, Ring, RingGlow, RingDim | radius | | | |
 /// | Panel | inner alpha | bevel | | |
-/// | Wedge | r1 | r2 | to | tw |
-/// | Annulus | inner radius | outer radius | | |
+/// | Wedge, WedgeAlpha | r1 | r2 | to | tw |
+/// | Annulus, AnnulusGlow | inner radius | outer radius | | |
 /// | Box, Grid, PanelGlow, Point, PointGlow | none | | | |
 ///
-/// `Triangle` and `LineGlow*` have their own entry points (`Imm.TriGlow`,
-/// `Imm.LineGlow`).
+/// Twins share a fragment shader and differ in blend mode: additive glow
+/// brightens what is behind it, alpha blending can also darken it (a dark
+/// halo under a glowing shape). `Ring`/`RingGlow`, `Point`/`PointGlow`,
+/// `Annulus`/`AnnulusGlow` (the glow twin also gets a soft halo),
+/// `Circle`/`CircleAlpha`, `Wedge`/`WedgeAlpha`, `Triangle`/`TriangleAlpha` and
+/// `LineGlow`/`LineAlpha`.
+///
+/// `Triangle`, `TriangleAlpha`, `LineGlow` and `LineAlpha` have their own entry
+/// points (`Imm.TriGlow`, `Imm.LineGlow`; `Renderer::imm_tri_shape`,
+/// `Renderer::imm_line_shape`).
 #[luajit_ffi_gen::luajit_ffi(repr = "u32")]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Shape {
@@ -100,14 +110,21 @@ pub enum Shape {
     Wedge,
     Annulus,
     LineGlow,
+    // New shapes go at the end, so the numbers Lua sees for the others stay.
+    AnnulusGlow,
+    CircleAlpha,
+    WedgeAlpha,
+    TriangleAlpha,
+    LineAlpha,
 }
 
 impl Shape {
-    const COUNT: usize = 19;
+    /// The number of shapes: the last one plus one.
+    const COUNT: usize = Shape::LineAlpha as usize + 1;
 
     /// Fragment shader, blend mode and whether it samples a texture.
     fn info(self) -> (&'static str, BlendMode, bool) {
-        use BlendMode::{Additive, Alpha};
+        use BlendMode::{Additive, Alpha, PreMultAlpha};
         match self {
             Shape::Solid => ("fragment/ui/solidcolor", Alpha, false),
             Shape::Image => ("fragment/ui/image", Alpha, true),
@@ -126,8 +143,16 @@ impl Shape {
             Shape::RingDim => ("fragment/ui/ringdim", Additive, false),
             Shape::Triangle => ("fragment/ui/triangle", Additive, false),
             Shape::Wedge => ("fragment/ui/wedge", Additive, false),
-            Shape::Annulus => ("fragment/ui/annulus", Alpha, false),
+            // `annulus.glsl` writes premultiplied colour, so one shader serves
+            // both blends (premultiplied alpha looks the same as straight
+            // alpha did).
+            Shape::Annulus => ("fragment/ui/annulus", PreMultAlpha, false),
             Shape::LineGlow => ("fragment/ui/line", Additive, false),
+            Shape::AnnulusGlow => ("fragment/ui/annulus", Additive, false),
+            Shape::CircleAlpha => ("fragment/ui/circle", Alpha, false),
+            Shape::WedgeAlpha => ("fragment/ui/wedge", Alpha, false),
+            Shape::TriangleAlpha => ("fragment/ui/triangle", Alpha, false),
+            Shape::LineAlpha => ("fragment/ui/line", Alpha, false),
         }
     }
 
@@ -135,16 +160,19 @@ impl Shape {
     fn pack(self, w: f32, h: f32, a: f32, b: f32, c: f32, d: f32) -> ([f32; 4], [f32; 4]) {
         match self {
             // radius, size
-            Shape::Circle | Shape::Hex | Shape::RingDim => ([a, w, h, 0.0], [0.0; 4]),
+            Shape::Circle | Shape::CircleAlpha | Shape::Hex | Shape::RingDim => {
+                ([a, w, h, 0.0], [0.0; 4])
+            }
             // radius, size, glow flag
             Shape::Ring => ([a, w, h, 0.0], [0.0; 4]),
             Shape::RingGlow => ([a, w, h, 0.0], [1.0, 0.0, 0.0, 0.0]),
             // innerAlpha, size, bevel
             Shape::Panel => ([a, w, h, b], [0.0; 4]),
             // r1, r2, to, tw; size
-            Shape::Wedge => ([a, b, c, d], [w, h, 0.0, 0.0]),
-            // innerRadius, outerRadius, size
+            Shape::Wedge | Shape::WedgeAlpha => ([a, b, c, d], [w, h, 0.0, 0.0]),
+            // innerRadius, outerRadius, size, glow flag
             Shape::Annulus => ([a, b, w, h], [0.0; 4]),
+            Shape::AnnulusGlow => ([a, b, w, h], [1.0, 0.0, 0.0, 0.0]),
             // size only
             Shape::Box | Shape::Grid | Shape::PanelGlow | Shape::Point | Shape::PointGlow => {
                 ([w, h, 0.0, 0.0], [0.0; 4])
@@ -240,6 +268,7 @@ fn quad2d(
         color,
         p,
         q,
+        r: [0.0; 4],
     };
     triangulate([
         v(x1, y1, uv[0], uv[1]),
@@ -449,9 +478,33 @@ impl Renderer {
         color: &Color,
         params: [f32; 4],
     ) {
+        self.imm_shape_faded(shape, x, y, w, h, color, params, [0.0; 4]);
+    }
+
+    /// `imm_shape` with a fade window, read by the round shapes (`Annulus`,
+    /// `Circle`, `Point`, `Ring`, `Wedge` and their twins): `fade` is
+    /// `[centre, visible, gone, 1]`, angles in radians measured from the
+    /// quad's centre (0 = right, counter-clockwise). A pixel within `visible`
+    /// of the centre direction is drawn fully, one beyond `gone` not at all,
+    /// smoothly in between. `[0; 4]` fades nothing.
+    #[allow(clippy::too_many_arguments)]
+    pub fn imm_shape_faded(
+        &mut self,
+        shape: Shape,
+        x: f32,
+        y: f32,
+        w: f32,
+        h: f32,
+        color: &Color,
+        params: [f32; 4],
+        fade: [f32; 4],
+    ) {
         let pipeline = self.imm_shape_pipeline(shape);
         let (p, q) = shape.pack(w, h, params[0], params[1], params[2], params[3]);
-        let quad = quad2d(x, y, x + w, y + h, [0.0, 0.0, 1.0, 1.0], rgba(color), p, q);
+        let mut quad = quad2d(x, y, x + w, y + h, [0.0, 0.0, 1.0, 1.0], rgba(color), p, q);
+        for v in &mut quad {
+            v.r = fade;
+        }
         self.imm_push2d(pipeline, None, &quad);
     }
 
@@ -502,6 +555,7 @@ impl Renderer {
             color: rgba(color),
             p: [0.0; 4],
             q: [0.0; 4],
+            r: [0.0; 4],
         };
         let tri = [v(p[0], 0.0, 0.0), v(p[1], 0.0, 1.0), v(p[2], 1.0, 1.0)];
         self.imm_push2d(pipeline, None, &tri);
@@ -510,7 +564,13 @@ impl Renderer {
     /// The soft-edged triangle (`ui/triangle`): its vertices ride in the
     /// parameters, the quad is the padded bounding box.
     pub fn imm_tri_glow(&mut self, p: [[f32; 2]; 3], color: &Color, pad: f32) {
-        let pipeline = self.imm_shape_pipeline(Shape::Triangle);
+        self.imm_tri_shape(Shape::Triangle, p, color, pad);
+    }
+
+    /// `imm_tri_glow` with its blend twin: `shape` is `Triangle` (additive) or
+    /// `TriangleAlpha`.
+    pub fn imm_tri_shape(&mut self, shape: Shape, p: [[f32; 2]; 3], color: &Color, pad: f32) {
+        let pipeline = self.imm_shape_pipeline(shape);
         let min_x = p.iter().map(|v| v[0]).fold(f32::MAX, f32::min) - pad;
         let min_y = p.iter().map(|v| v[1]).fold(f32::MAX, f32::min) - pad;
         let max_x = p.iter().map(|v| v[0]).fold(f32::MIN, f32::max) + pad;
@@ -545,6 +605,7 @@ impl Renderer {
             color: c,
             p: [0.0; 4],
             q: [0.0; 4],
+            r: [0.0; 4],
         };
         let quad = triangulate([
             v(a[0] + nx, a[1] + ny, 0.0, 0.0),
@@ -557,7 +618,22 @@ impl Renderer {
 
     /// The soft-edged line of `ui/line` (`fade` dims it towards its end).
     pub fn imm_line_glow(&mut self, a: [f32; 2], b: [f32; 2], color: &Color, fade: bool, pad: f32) {
-        let pipeline = self.imm_shape_pipeline(Shape::LineGlow);
+        self.imm_line_shape(Shape::LineGlow, a, b, color, fade, pad);
+    }
+
+    /// `imm_line_glow` with its blend twin: `shape` is `LineGlow` (additive)
+    /// or `LineAlpha`.
+    #[allow(clippy::too_many_arguments)]
+    pub fn imm_line_shape(
+        &mut self,
+        shape: Shape,
+        a: [f32; 2],
+        b: [f32; 2],
+        color: &Color,
+        fade: bool,
+        pad: f32,
+    ) {
+        let pipeline = self.imm_shape_pipeline(shape);
         let quad = quad2d(
             a[0].min(b[0]) - pad,
             a[1].min(b[1]) - pad,
@@ -584,6 +660,7 @@ impl Renderer {
             color: c,
             p: [0.0; 4],
             q: [0.0; 4],
+            r: [0.0; 4],
         };
         let mut verts = Vec::with_capacity((points.len() - 2) * 3);
         for i in 1..points.len() - 1 {

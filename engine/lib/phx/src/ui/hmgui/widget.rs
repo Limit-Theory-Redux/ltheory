@@ -2,7 +2,9 @@ use std::borrow::BorrowMut;
 
 use glam::Vec2;
 
-use super::{Alignment, FocusType, HmGui, HmGuiContainer, HmGuiImage, HmGuiText, IDENT, TEXT_CTX};
+use super::{
+    Alignment, FocusType, HmGui, HmGuiContainer, HmGuiImage, HmGuiShape, HmGuiText, IDENT, TEXT_CTX,
+};
 use crate::input::Input;
 use crate::render::{Color, Renderer};
 use crate::rf::Rf;
@@ -15,6 +17,7 @@ pub enum WidgetItem {
     Rect,
     Image(HmGuiImage),
     TextView(Option<HmGuiImage>),
+    Shape(HmGuiShape),
 }
 
 impl WidgetItem {
@@ -25,6 +28,7 @@ impl WidgetItem {
             WidgetItem::Rect => "Rect".into(),
             WidgetItem::Image(_) => "Image".into(),
             WidgetItem::TextView(_) => "TextView".into(),
+            WidgetItem::Shape(_) => "Shape".into(),
         }
     }
 
@@ -330,6 +334,9 @@ impl HmGuiWidget {
                     text.draw(&mut hmgui.renderer, Vec2::new(x, y));
                 }
                 WidgetItem::Rect => {}
+                WidgetItem::Shape(shape) => {
+                    shape.draw(&mut hmgui.renderer, pos, size);
+                }
                 WidgetItem::Image(image) => {
                     image.draw(hmgui, pos, size);
                 }
@@ -406,6 +413,7 @@ impl HmGuiWidget {
                 Some(item) => item.dump(ident + 1),
                 None => println!("{ident_str}- image: None")
             },
+            WidgetItem::Shape(item) => item.dump(ident + 1),
         }
     }
 }

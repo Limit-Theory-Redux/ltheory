@@ -5,6 +5,7 @@ mod focus_type;
 mod gui;
 mod image;
 mod layer;
+mod shape;
 mod text;
 mod text_line;
 mod widget;
@@ -15,6 +16,7 @@ use data::*;
 pub use focus_type::*;
 pub use gui::*;
 pub use layer::*;
+pub use shape::*;
 pub use text::*;
 pub use text_line::*;
 pub use widget::*;
@@ -1259,5 +1261,85 @@ mod tests {
                 )]),
             ),
         );
+    }
+
+    #[test]
+    fn test_hmgui_shape_widgets() {
+        let (mut gui, input, mut r) = init_test();
+
+        gui.begin_gui(300.0, 200.0);
+        gui.begin_stack_container();
+        gui.set_alignment(AlignHorizontal::Center, AlignVertical::Center);
+        gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
+
+        // Shapes lay out like rects: they take the size the layout gives them.
+        gui.annulus(&crate::render::Color::WHITE, 10.0, false);
+        gui.set_fixed_size(120.0, 80.0);
+
+        gui.wedge(&crate::render::Color::WHITE, 4.0, 270.0, 45.0, true);
+        gui.set_fixed_size(60.0, 60.0);
+
+        gui.end_container();
+        gui.end_gui(&mut r, &input);
+
+        let root_widget_rf = gui.root();
+        let root_widget = root_widget_rf.as_ref();
+
+        check_widget(
+            &root_widget,
+            &WidgetCheck(
+                "Root",
+                (0.0, 0.0),
+                (300.0, 200.0),
+                (300.0, 200.0),
+                Some(vec![WidgetCheck(
+                    "Stack",
+                    (90.0, 60.0),
+                    (120.0, 80.0),
+                    (120.0, 80.0),
+                    Some(vec![
+                        WidgetCheck("Annulus", (90.0, 60.0), (120.0, 80.0), (120.0, 80.0), None),
+                        WidgetCheck("Wedge", (120.0, 70.0), (60.0, 60.0), (60.0, 60.0), None),
+                    ]),
+                )]),
+            ),
+        );
+
+        // Each shape is centred in its widget, so both share the stack's
+        // centre (150, 100), whatever their widget sizes.
+        let stack_rf = root_widget.get_container_item().children[0].clone();
+        let stack = stack_rf.as_ref();
+        let quads: Vec<_> = stack
+            .get_container_item()
+            .children
+            .iter()
+            .map(|widget_rf| {
+                let widget = widget_rf.as_ref();
+                let WidgetItem::Shape(shape) = &widget.item else {
+                    panic!("Expected a shape widget");
+                };
+                match shape.geometry(widget.inner_pos, widget.inner_size) {
+                    Some((
+                        shape,
+                        crate::render::UIShapeGeometry::Quad {
+                            pos, size, params, ..
+                        },
+                    )) => (shape, pos + 0.5 * size, params),
+                    other => panic!("Expected a quad, got {other:?}"),
+                }
+            })
+            .collect();
+
+        // Radius 40 (half the widget's smaller side), 10 px thick.
+        assert_eq!(
+            quads[0],
+            (
+                crate::render::Shape::Annulus,
+                Vec2::new(150.0, 100.0),
+                [30.0, 40.0, 0.0, 0.0]
+            )
+        );
+        assert_eq!(quads[1].0, crate::render::Shape::Wedge);
+        assert_eq!(quads[1].1, Vec2::new(150.0, 100.0));
     }
 }

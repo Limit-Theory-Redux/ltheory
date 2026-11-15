@@ -38,6 +38,14 @@ function Loader.defineType()
             void  HmGui_UpdateElementOffset            (HmGui*, Vec2f offset);
             void  HmGui_Image                          (HmGui*, Tex2D* image);
             void  HmGui_Rect                           (HmGui*);
+            void  HmGui_Annulus                        (HmGui*, Color const* color, float thickness, bool glow);
+            void  HmGui_Circle                         (HmGui*, Color const* color, bool glow);
+            void  HmGui_Point                          (HmGui*, Color const* color, bool glow);
+            void  HmGui_Ring                           (HmGui*, Color const* color, bool glow);
+            void  HmGui_Wedge                          (HmGui*, Color const* color, float thickness, float start, float sweep, bool glow);
+            void  HmGui_Triangle                       (HmGui*, Color const* color, float x1, float y1, float x2, float y2, float x3, float y3, bool glow);
+            void  HmGui_Line                           (HmGui*, Color const* color, float x1, float y1, float x2, float y2, bool glow);
+            void  HmGui_SetShapeFade                   (HmGui const*, float centre, float visible, float gone);
             void  HmGui_Text                           (HmGui*, cstr text, Font const* font, Color const* color);
             void  HmGui_TextView                       (HmGui*, TextData* textData, bool editable);
             bool  HmGui_GetTextViewChanges             (HmGui*, TextData* textData);
@@ -113,6 +121,14 @@ function Loader.defineType()
                 updateElementOffset            = libphx.HmGui_UpdateElementOffset,
                 image                          = libphx.HmGui_Image,
                 rect                           = libphx.HmGui_Rect,
+                annulus                        = libphx.HmGui_Annulus,
+                circle                         = libphx.HmGui_Circle,
+                point                          = libphx.HmGui_Point,
+                ring                           = libphx.HmGui_Ring,
+                wedge                          = libphx.HmGui_Wedge,
+                triangle                       = libphx.HmGui_Triangle,
+                line                           = libphx.HmGui_Line,
+                setShapeFade                   = libphx.HmGui_SetShapeFade,
                 text                           = libphx.HmGui_Text,
                 textView                       = libphx.HmGui_TextView,
                 getTextViewChanges             = libphx.HmGui_GetTextViewChanges,
