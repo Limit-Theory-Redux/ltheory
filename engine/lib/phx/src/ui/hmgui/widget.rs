@@ -335,7 +335,7 @@ impl HmGuiWidget {
                 }
                 WidgetItem::Rect => {}
                 WidgetItem::Shape(shape) => {
-                    shape.draw(&mut hmgui.renderer, pos, size);
+                    shape.draw(&hmgui.looks, &mut hmgui.renderer, pos, size);
                 }
                 WidgetItem::Image(image) => {
                     image.draw(hmgui, pos, size);

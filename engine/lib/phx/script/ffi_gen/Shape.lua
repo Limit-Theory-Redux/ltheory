@@ -42,11 +42,9 @@ function Loader.defineType()
             Wedge         = 16,
             Annulus       = 17,
             LineGlow      = 18,
-            AnnulusGlow   = 19,
-            CircleAlpha   = 20,
-            WedgeAlpha    = 21,
-            TriangleAlpha = 22,
-            LineAlpha     = 23,
+            CircleAlpha   = 19,
+            TriangleAlpha = 20,
+            Stroke        = 21,
 
             ToString      = libphx.Shape_ToString,
         }

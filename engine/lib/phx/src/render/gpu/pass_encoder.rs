@@ -174,6 +174,9 @@ pub struct PassState {
     /// The pass's own scissor (`pass:setScissor`), `[x, y, w, h]`. The
     /// scissor a draw gets is this intersected with the `ClipRect` stack.
     pub scissor: Option<[i32; 4]>,
+    /// The group-2 block of the caller's last `RenderPass:alloc`, sent again
+    /// after a batch that binds its own (the shape parameter block).
+    pub draw_block: Option<(RingOffset, u32)>,
 }
 
 impl Default for PassState {
@@ -188,6 +191,7 @@ impl Default for PassState {
             user_pipeline: None,
             bound_pipeline: None,
             scissor: None,
+            draw_block: None,
         }
     }
 }

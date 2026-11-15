@@ -1,7 +1,7 @@
 use glam::Vec2;
 
 use super::UIRendererShapeId;
-use crate::render::{Color, Shape};
+use crate::render::{Color, Shape, Stroke, StrokeLook};
 
 /// Where and how a UI shape is drawn, by the engine entry point that draws it.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -16,8 +16,8 @@ pub enum UIShapeGeometry {
     },
     /// A triangle with its corners in pixels (`Renderer::imm_tri_shape`).
     Triangle { points: [Vec2; 3], pad: f32 },
-    /// A line between two points in pixels (`Renderer::imm_line_shape`).
-    Line { from: Vec2, to: Vec2, pad: f32 },
+    /// A bendable stroke with its look (`Renderer::imm_stroke`).
+    Stroke { stroke: Stroke, look: StrokeLook },
 }
 
 /// One of the engine's `ui/*` shapes.

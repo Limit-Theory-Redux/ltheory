@@ -138,14 +138,9 @@ impl UIRendererLayer {
                 UIShapeGeometry::Triangle { points, pad } => {
                     r.imm_tri_shape(shape.shape, points.map(|p| p.to_array()), &shape.color, pad)
                 }
-                UIShapeGeometry::Line { from, to, pad } => r.imm_line_shape(
-                    shape.shape,
-                    from.to_array(),
-                    to.to_array(),
-                    &shape.color,
-                    false,
-                    pad,
-                ),
+                UIShapeGeometry::Stroke { stroke, look } => {
+                    r.imm_stroke(&stroke, &shape.color, &look)
+                }
             }
 
             shape_id_opt = shape.next;

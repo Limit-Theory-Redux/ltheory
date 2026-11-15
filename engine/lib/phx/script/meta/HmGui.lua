@@ -170,6 +170,120 @@ function HmGui:line(color, x1, y1, x2, y2, glow) end
 ---@param gone number
 function HmGui:setShapeFade(centre, visible, gone) end
 
+-- Add a bendable stroke from (`x1`, `y1`) to (`x2`, `y2`), fractions of
+-- the widget as in `triangle`, bent `bend` degrees on the way (positive
+-- curves clockwise; below a full turn, since at 360 degrees the ends
+-- meet and the circle's size is unknown), `thickness` pixels wide.
+-- A bend of 0 is a straight line.
+--
+-- Strokes draw with the plain `stroke` look (a line in its colour)
+-- until `setStrokeLook` names another; `setStrokeDash`,
+-- `setStrokeRoundCaps` and `setStrokeFade` change the last one. Like
+-- the other shapes they draw over rects and under texts, and glow
+-- reaches past the widget's edge.
+---@param color Color
+---@param x1 number
+---@param y1 number
+---@param x2 number
+---@param y2 number
+---@param bend number
+---@param thickness number
+function HmGui:strokeBetween(color, x1, y1, x2, y2, bend, thickness) end
+
+-- Add a bendable stroke that starts at (`x`, `y`), a fraction of the
+-- widget, leaves in `direction` degrees (0 = up, clockwise) and is
+-- `length` pixels long, turning `bend` degrees in all (positive =
+-- clockwise): bending curls it up with its length kept, and 360 closes
+-- it into a circle. `thickness` and the rest: see `strokeBetween`.
+---@param color Color
+---@param x number
+---@param y number
+---@param direction number
+---@param length number
+---@param bend number
+---@param thickness number
+function HmGui:strokeBent(color, x, y, direction, length, bend, thickness) end
+
+-- Add a stroke around the widget's centre, its middle line on the circle
+-- as wide as the widget's smaller side, from `start` to `start + sweep`
+-- degrees (0 = up, clockwise; negative sweeps go counter-clockwise; 360
+-- is a full circle), `thickness` pixels wide. Arcs of one widget size
+-- stacked in one container share their middle line whatever their
+-- thickness. It is a round shape, so `setShapeFade` works on it too.
+-- The rest: see `strokeBetween`.
+---@param color Color
+---@param thickness number
+---@param start number
+---@param sweep number
+function HmGui:arc(color, thickness, start, sweep) end
+
+-- Dash the last stroke (or annulus, ring, wedge, line): `dash` pixels
+-- drawn, then `gap` pixels left out, the pattern shifted back by `phase`
+-- pixels (like SVG's `stroke-dashoffset`; animate it to make the dashes
+-- run). Lengths are along the stroke's middle; round caps add half the
+-- thickness to both ends of each dash, so `dash` 0 with round caps
+-- makes dots. A `gap` of 0 is solid again.
+---@param dash number
+---@param gap number
+---@param phase number
+function HmGui:setStrokeDash(dash, gap, phase) end
+
+-- Round ends (half circles, also on every dash) on the last stroke
+-- instead of flat ones. Lines have round ends to begin with.
+---@param round boolean
+function HmGui:setStrokeRoundCaps(round) end
+
+-- Round the corners of the last stroke's flat ends (and of its dashes)
+-- by `radius` pixels, at most half its thickness. Wedges have 2 to
+-- begin with; 0 makes them sharp.
+---@param radius number
+function HmGui:setStrokeCornerRadius(radius) end
+
+-- Fade the last stroke along its length: fully drawn within `visible`
+-- pixels of the point `centre` pixels from its start, gone beyond
+-- `gone`, smooth in between. Replaces a `setShapeFade` window.
+---@param centre number
+---@param visible number
+---@param gone number
+function HmGui:setStrokeFade(centre, visible, gone) end
+
+-- Draw the last stroke with the look called `look` (see `defineLook`).
+-- A name not defined yet gets the default values until it is.
+---@param look string
+function HmGui:setStrokeLook(look) end
+
+-- Set one look value for the last stroke only, on top of its look (for
+-- example a glow that pulses on one element). `param` is one of `core`,
+-- `coreWidth`, `glow`, `glowWidth`, `boost`, `shade`, `halo`, `haloWidth`
+-- (see `defineLook`).
+---@param param string
+---@param value number
+function HmGui:setStrokeLookParam(param, value) end
+
+-- (Re)define the look called `look` with the default values: set what
+-- differs with `setLookParam` (`UICore.Look.define` does both). Looks
+-- outlive frames, so define them once; every stroke that uses one
+-- follows when it changes. The built-in looks `annulus`, `ring`,
+-- `wedge`, `line` and their `*Glow` twins are what those calls draw
+-- with, and redefining one restyles them all.
+--
+-- The values (defaults in brackets): `core` [1] and `coreWidth` [0.5]:
+-- strength of the solid core and how soft its edge is, in pixels;
+-- `glow` [0] and `glowWidth` [4]: strength and reach of the glow around
+-- it; `boost` [1]: multiplies the colour of the light; `shade` [1]: how
+-- much it covers what is behind it, 0 = only adds light (neon), 1 =
+-- normal alpha; `halo` [0] and `haloWidth` [8]: a dark halo darkening
+-- what is behind out to that many pixels, 1 = black.
+---@param look string
+function HmGui:defineLook(look) end
+
+-- Set one value of the look called `look` (created with the default
+-- values if new). The values: see `defineLook`.
+---@param look string
+---@param param string
+---@param value number
+function HmGui:setLookParam(look, param, value) end
+
 ---@param text string
 ---@param font Font
 ---@param color Color

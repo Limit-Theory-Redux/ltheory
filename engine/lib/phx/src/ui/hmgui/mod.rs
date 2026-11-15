@@ -5,6 +5,7 @@ mod focus_type;
 mod gui;
 mod image;
 mod layer;
+mod look;
 mod shape;
 mod text;
 mod text_line;
@@ -16,6 +17,7 @@ use data::*;
 pub use focus_type::*;
 pub use gui::*;
 pub use layer::*;
+pub use look::*;
 pub use shape::*;
 pub use text::*;
 pub use text_line::*;
@@ -1309,7 +1311,9 @@ mod tests {
         // centre (150, 100), whatever their widget sizes.
         let stack_rf = root_widget.get_container_item().children[0].clone();
         let stack = stack_rf.as_ref();
-        let quads: Vec<_> = stack
+        // Both are drawn as strokes on a circle: (centre, radius, thickness).
+        let looks = HmGuiLooks::new();
+        let circles: Vec<_> = stack
             .get_container_item()
             .children
             .iter()
@@ -1318,28 +1322,28 @@ mod tests {
                 let WidgetItem::Shape(shape) = &widget.item else {
                     panic!("Expected a shape widget");
                 };
-                match shape.geometry(widget.inner_pos, widget.inner_size) {
+                match shape.geometry(widget.inner_pos, widget.inner_size, &looks) {
                     Some((
-                        shape,
-                        crate::render::UIShapeGeometry::Quad {
-                            pos, size, params, ..
-                        },
-                    )) => (shape, pos + 0.5 * size, params),
-                    other => panic!("Expected a quad, got {other:?}"),
+                        crate::render::Shape::Stroke,
+                        crate::render::UIShapeGeometry::Stroke { stroke, .. },
+                    )) => (
+                        stroke.start + stroke.normal() / stroke.curvature,
+                        1.0 / stroke.curvature.abs(),
+                        stroke.thickness,
+                    ),
+                    other => panic!("Expected a stroke, got {other:?}"),
                 }
             })
             .collect();
 
-        // Radius 40 (half the widget's smaller side), 10 px thick.
-        assert_eq!(
-            quads[0],
-            (
-                crate::render::Shape::Annulus,
-                Vec2::new(150.0, 100.0),
-                [30.0, 40.0, 0.0, 0.0]
-            )
-        );
-        assert_eq!(quads[1].0, crate::render::Shape::Wedge);
-        assert_eq!(quads[1].1, Vec2::new(150.0, 100.0));
+        let close = |a: Vec2, b: Vec2| a.distance(b) < 1e-3;
+        // Radius 40 (half the widget's smaller side), 10 px thick: the
+        // stroke runs along its middle, 35.
+        assert!(close(circles[0].0, Vec2::new(150.0, 100.0)), "{circles:?}");
+        assert!((circles[0].1 - 35.0).abs() < 1e-3, "{circles:?}");
+        // Radius 30, 4 px deep.
+        assert!(close(circles[1].0, Vec2::new(150.0, 100.0)), "{circles:?}");
+        assert!((circles[1].1 - 28.0).abs() < 1e-3, "{circles:?}");
+        assert_eq!(circles[1].2, 4.0);
     }
 }

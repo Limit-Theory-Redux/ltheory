@@ -8,20 +8,20 @@
 -- |---|---|---|---|---|
 -- | Circle, CircleAlpha, Hex, Ring, RingGlow, RingDim | radius | | | |
 -- | Panel | inner alpha | bevel | | |
--- | Wedge, WedgeAlpha | r1 | r2 | to | tw |
--- | Annulus, AnnulusGlow | inner radius | outer radius | | |
+-- | Wedge | r1 | r2 | to | tw |
+-- | Annulus | inner radius | outer radius | | |
 -- | Box, Grid, PanelGlow, Point, PointGlow | none | | | |
 --
 -- Twins share a fragment shader and differ in blend mode: additive glow
 -- brightens what is behind it, alpha blending can also darken it (a dark
 -- halo under a glowing shape). `Ring`/`RingGlow`, `Point`/`PointGlow`,
--- `Annulus`/`AnnulusGlow` (the glow twin also gets a soft halo),
--- `Circle`/`CircleAlpha`, `Wedge`/`WedgeAlpha`, `Triangle`/`TriangleAlpha` and
--- `LineGlow`/`LineAlpha`.
+-- `Circle`/`CircleAlpha` and `Triangle`/`TriangleAlpha`.
 --
--- `Triangle`, `TriangleAlpha`, `LineGlow` and `LineAlpha` have their own entry
--- points (`Imm.TriGlow`, `Imm.LineGlow`; `Renderer::imm_tri_shape`,
--- `Renderer::imm_line_shape`).
+-- `Triangle`, `TriangleAlpha` and `LineGlow` have their own entry points
+-- (`Imm.TriGlow`, `Imm.LineGlow`; `Renderer::imm_tri_shape`), and so has
+-- `Stroke` (`Renderer::imm_stroke`), the bendable stroke whose look comes
+-- from the shape parameter block: one pipeline, premultiplied, for additive
+-- and alpha blended strokes alike.
 ---@class Shape
 ---@field Solid integer
 ---@field Image integer
@@ -42,11 +42,9 @@
 ---@field Wedge integer
 ---@field Annulus integer
 ---@field LineGlow integer
----@field AnnulusGlow integer
 ---@field CircleAlpha integer
----@field WedgeAlpha integer
 ---@field TriangleAlpha integer
----@field LineAlpha integer
+---@field Stroke integer
 Shape = {
     Solid = 0,
     Image = 1,
@@ -67,9 +65,7 @@ Shape = {
     Wedge = 16,
     Annulus = 17,
     LineGlow = 18,
-    AnnulusGlow = 19,
-    CircleAlpha = 20,
-    WedgeAlpha = 21,
-    TriangleAlpha = 22,
-    LineAlpha = 23,
+    CircleAlpha = 19,
+    TriangleAlpha = 20,
+    Stroke = 21,
 }
