@@ -198,7 +198,7 @@ function Core.Call(fn, ...)
     local status, ret = xpcall(fn, ErrorHandler, ...)
     if not status then
         printf('Error calling: %s(%s). Ret: %s', fn, ..., ret)
-        os.exit()
+        os.exit(1) -- a failure exit code, so scripts and tests see the crash
     end
     return ret
 end

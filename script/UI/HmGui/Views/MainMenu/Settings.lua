@@ -41,6 +41,24 @@ local settingsCategoryNames = { { "GENERAL", "General" },
     { "INTERFACE", "Interface" },
     { "KEYBINDS",  "Keybinds" } }
 
+--- Show one of the settings tabs (1 = General … `getCategoryCount()`), as its
+--- button does. Used by the menu smoke test (`States/App/Tests/MenuSmokeTest.lua`).
+---@param index integer
+function SettingsView:setCategory(index)
+    settingsCategory = index
+end
+
+---@return integer count the number of settings tabs
+function SettingsView:getCategoryCount()
+    return #settingsCategoryNames
+end
+
+---@param index integer
+---@return string name the tab's button title
+function SettingsView:getCategoryName(index)
+    return settingsCategoryNames[index][2]
+end
+
 local function switchToMainScreen()
     UIRouter:getCurrentPage():setView("Main")
 end
