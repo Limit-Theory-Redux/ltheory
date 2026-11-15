@@ -3,9 +3,11 @@ mod layer;
 mod panel;
 mod rect;
 mod renderer;
+mod shape;
 mod text;
 
 pub use renderer::*;
+pub use shape::UIShapeGeometry;
 
 macro_rules! def_id {
     ($name:ident) => {
@@ -46,4 +48,5 @@ def_id!(UIRendererLayerId);
 def_id!(UIRendererImageId);
 def_id!(UIRendererPanelId);
 def_id!(UIRendererRectId);
+def_id!(UIRendererShapeId);
 def_id!(UIRendererTextId);

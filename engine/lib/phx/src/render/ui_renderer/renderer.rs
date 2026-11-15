@@ -5,8 +5,9 @@ use super::image::UIRendererImage;
 use super::layer::UIRendererLayer;
 use super::panel::UIRendererPanel;
 use super::rect::UIRendererRect;
+use super::shape::{UIRendererShape, UIShapeGeometry};
 use super::text::UIRendererText;
-use crate::render::{Color, Font, Renderer, Tex2D};
+use crate::render::{Color, Font, Renderer, Shape, Tex2D};
 
 pub struct UIRenderer {
     current_layer_id: Option<UIRendererLayerId>,
@@ -15,6 +16,7 @@ pub struct UIRenderer {
     images: Vec<UIRendererImage>,
     panels: Vec<UIRendererPanel>,
     rects: Vec<UIRendererRect>,
+    shapes: Vec<UIRendererShape>,
     texts: Vec<UIRendererText>,
 }
 
@@ -26,6 +28,7 @@ impl UIRenderer {
             images: Vec::new(),
             panels: Vec::new(),
             rects: Vec::new(),
+            shapes: Vec::new(),
             texts: Vec::new(),
         }
     }
@@ -37,6 +40,7 @@ impl UIRenderer {
         self.images.clear();
         self.panels.clear();
         self.rects.clear();
+        self.shapes.clear();
         self.texts.clear();
 
         let vp = r.target_size();
@@ -56,6 +60,7 @@ impl UIRenderer {
                 &self.images,
                 &self.panels,
                 &self.rects,
+                &self.shapes,
                 &self.texts,
             );
         } else {
@@ -143,6 +148,24 @@ impl UIRenderer {
 
             self.layers[*current_layer_id].rect_id = Some(self.rects.len().into());
             self.rects.push(item);
+        } else {
+            unreachable!();
+        }
+    }
+
+    /// One of the engine's `ui/*` shapes, drawn over rects and under texts.
+    pub fn shape(&mut self, shape: Shape, geometry: UIShapeGeometry, color: Color) {
+        if let Some(current_layer_id) = self.current_layer_id {
+            let next = self.layers[*current_layer_id].shape_id;
+            let item = UIRendererShape {
+                next,
+                shape,
+                geometry,
+                color,
+            };
+
+            self.layers[*current_layer_id].shape_id = Some(self.shapes.len().into());
+            self.shapes.push(item);
         } else {
             unreachable!();
         }

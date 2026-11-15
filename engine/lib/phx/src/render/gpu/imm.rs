@@ -17,19 +17,25 @@ use std::collections::HashMap;
 use glam::{Mat4, Vec3};
 
 use super::{
-    DepthState, PASS_FLUSH_LIMIT, PassCmd, PipelineDesc, PipelineId, PolygonMode, SamplerId,
-    Samplers, TexView, Topology, VertexLayout,
+    DepthState, PASS_FLUSH_LIMIT, PassCmd, PipelineDesc, PipelineId, PolygonMode,
+    SHAPE_PARAM_BYTES, SHAPE_PARAM_VEC4S, SamplerId, Samplers, TexView, Topology, VertexLayout,
 };
 use crate::math::Box3;
-use crate::render::{BlendMode, Color, Renderer, ResourceId, ScissorUpdate, Shader, Tex2D};
+use crate::render::{
+    BlendMode, Color, Renderer, ResourceId, STROKE_LOOK, ScissorUpdate, Shader, Stroke, StrokeLook,
+    Tex2D, stroke_look_reach,
+};
 use crate::system::Metric;
 
 /// Vertices per `DrawImm` at most (a multiple of 6 and of 3, and the bytes fit
 /// one vertex-ring chunk).
 pub const IMM_MAX_RUN_VERTS: usize = 8190;
 
-/// UI vertex: pixel position, uv, color and the two parameter vectors of the
-/// shape (see `Shape::pack`).
+/// UI vertex: pixel position, uv, color and the parameter vectors of the
+/// shape: `p` and `q` (see `Shape::pack`) and `r`, the fade window of the
+/// circle and point (see `Renderer::imm_shape_faded`; all zero = no fade).
+/// A stroke uses all three for its geometry and its uv for its own frame
+/// (see `Renderer::imm_stroke`).
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub struct Imm2DVertex {
@@ -38,6 +44,7 @@ pub struct Imm2DVertex {
     pub color: [f32; 4],
     pub p: [f32; 4],
     pub q: [f32; 4],
+    pub r: [f32; 4],
 }
 
 /// Debug and backdrop vertex.
@@ -70,14 +77,22 @@ impl ImmLayout {
 ///
 /// | shape | a | b | c | d |
 /// |---|---|---|---|---|
-/// | Circle, Hex, Ring, RingGlow, RingDim | radius | | | |
+/// | Circle, CircleAlpha, Hex, Ring, RingGlow, RingDim | radius | | | |
 /// | Panel | inner alpha | bevel | | |
 /// | Wedge | r1 | r2 | to | tw |
 /// | Annulus | inner radius | outer radius | | |
 /// | Box, Grid, PanelGlow, Point, PointGlow | none | | | |
 ///
-/// `Triangle` and `LineGlow*` have their own entry points (`Imm.TriGlow`,
-/// `Imm.LineGlow`).
+/// Twins share a fragment shader and differ in blend mode: additive glow
+/// brightens what is behind it, alpha blending can also darken it (a dark
+/// halo under a glowing shape). `Ring`/`RingGlow`, `Point`/`PointGlow`,
+/// `Circle`/`CircleAlpha` and `Triangle`/`TriangleAlpha`.
+///
+/// `Triangle`, `TriangleAlpha` and `LineGlow` have their own entry points
+/// (`Imm.TriGlow`, `Imm.LineGlow`; `Renderer::imm_tri_shape`), and so has
+/// `Stroke` (`Renderer::imm_stroke`), the bendable stroke whose look comes
+/// from the shape parameter block: one pipeline, premultiplied, for additive
+/// and alpha blended strokes alike.
 #[luajit_ffi_gen::luajit_ffi(repr = "u32")]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Shape {
@@ -100,14 +115,19 @@ pub enum Shape {
     Wedge,
     Annulus,
     LineGlow,
+    // New shapes go at the end, so the numbers Lua sees for the others stay.
+    CircleAlpha,
+    TriangleAlpha,
+    Stroke,
 }
 
 impl Shape {
-    const COUNT: usize = 19;
+    /// The number of shapes: the last one plus one.
+    const COUNT: usize = Shape::Stroke as usize + 1;
 
     /// Fragment shader, blend mode and whether it samples a texture.
     fn info(self) -> (&'static str, BlendMode, bool) {
-        use BlendMode::{Additive, Alpha};
+        use BlendMode::{Additive, Alpha, PreMultAlpha};
         match self {
             Shape::Solid => ("fragment/ui/solidcolor", Alpha, false),
             Shape::Image => ("fragment/ui/image", Alpha, true),
@@ -128,6 +148,11 @@ impl Shape {
             Shape::Wedge => ("fragment/ui/wedge", Additive, false),
             Shape::Annulus => ("fragment/ui/annulus", Alpha, false),
             Shape::LineGlow => ("fragment/ui/line", Additive, false),
+            Shape::CircleAlpha => ("fragment/ui/circle", Alpha, false),
+            Shape::TriangleAlpha => ("fragment/ui/triangle", Alpha, false),
+            // Light added, alpha covering what is behind: the look decides
+            // how much (additive at 0, normal alpha at full coverage).
+            Shape::Stroke => ("fragment/ui/stroke", PreMultAlpha, false),
         }
     }
 
@@ -135,7 +160,9 @@ impl Shape {
     fn pack(self, w: f32, h: f32, a: f32, b: f32, c: f32, d: f32) -> ([f32; 4], [f32; 4]) {
         match self {
             // radius, size
-            Shape::Circle | Shape::Hex | Shape::RingDim => ([a, w, h, 0.0], [0.0; 4]),
+            Shape::Circle | Shape::CircleAlpha | Shape::Hex | Shape::RingDim => {
+                ([a, w, h, 0.0], [0.0; 4])
+            }
             // radius, size, glow flag
             Shape::Ring => ([a, w, h, 0.0], [0.0; 4]),
             Shape::RingGlow => ([a, w, h, 0.0], [1.0, 0.0, 0.0, 0.0]),
@@ -186,6 +213,11 @@ pub struct ImmBatcher {
     key: Option<RunKey>,
     v2: Vec<Imm2DVertex>,
     v3: Vec<Imm3DVertex>,
+    /// The shape parameter block of the current run (`include/shape_params`),
+    /// and where each distinct set of values in it starts and how long it is
+    /// (in `vec4`s), so equal values are written once.
+    params: Vec<[f32; 4]>,
+    param_sets: Vec<(usize, usize)>,
     /// Shape shaders (kept alive here) and the pipeline made from each, with
     /// the shader resource it was made for (a hot reload changes it).
     shaders: Vec<Option<Shader>>,
@@ -200,6 +232,8 @@ impl ImmBatcher {
             key: None,
             v2: Vec::with_capacity(1024),
             v3: Vec::new(),
+            params: Vec::with_capacity(SHAPE_PARAM_VEC4S),
+            param_sets: Vec::new(),
             shaders: vec![None; Shape::COUNT],
             pipes: vec![None; Shape::COUNT],
             debug_shader: None,
@@ -209,6 +243,26 @@ impl ImmBatcher {
 
     pub fn has_pending(&self) -> bool {
         self.key.is_some()
+    }
+
+    /// Where `values` start in the run's parameter block (in `vec4`s): an
+    /// equal set already there, or a new one at the end; `None` when the
+    /// block has no room left.
+    fn param_offset(&mut self, values: &[[f32; 4]]) -> Option<usize> {
+        let found = self
+            .param_sets
+            .iter()
+            .find(|&&(at, len)| len == values.len() && self.params[at..at + len] == *values);
+        if let Some(&(at, _)) = found {
+            return Some(at);
+        }
+        let at = self.params.len();
+        if at + values.len() > SHAPE_PARAM_VEC4S {
+            return None;
+        }
+        self.params.extend_from_slice(values);
+        self.param_sets.push((at, values.len()));
+        Some(at)
     }
 }
 
@@ -240,6 +294,7 @@ fn quad2d(
         color,
         p,
         q,
+        r: [0.0; 4],
     };
     triangulate([
         v(x1, y1, uv[0], uv[1]),
@@ -350,6 +405,47 @@ impl Renderer {
         }
     }
 
+    /// `imm_push2d` for a primitive whose shader reads `values` from the
+    /// shape parameter block: they join the run's block (once per distinct
+    /// set) and every vertex gets their offset in `q.w`. A full block ends
+    /// the run.
+    fn imm_push2d_params(
+        &mut self,
+        pipeline: PipelineId,
+        verts: &mut [Imm2DVertex],
+        values: &[[f32; 4]],
+    ) {
+        self.pass_require_open("imm");
+        let key = RunKey {
+            layout: ImmLayout::D2,
+            pipeline,
+            tex: None,
+            scissor: self.imm_scissor(),
+        };
+        if self.data.imm_batch.key != Some(key) {
+            self.imm_flush();
+            self.data.imm_batch.key = Some(key);
+        }
+        let at = match self.data.imm_batch.param_offset(values) {
+            Some(at) => at,
+            None => {
+                self.imm_flush();
+                self.data.imm_batch.key = Some(key);
+                self.data
+                    .imm_batch
+                    .param_offset(values)
+                    .expect("a parameter set fits an empty block")
+            }
+        };
+        for v in verts.iter_mut() {
+            v.q[3] = at as f32;
+        }
+        self.data.imm_batch.v2.extend_from_slice(verts);
+        if self.data.imm_batch.v2.len() >= IMM_MAX_RUN_VERTS {
+            self.imm_flush();
+        }
+    }
+
     fn imm_push3d(&mut self, pipeline: PipelineId, verts: &[Imm3DVertex]) {
         self.pass_require_open("imm");
         let key = RunKey {
@@ -374,6 +470,17 @@ impl Renderer {
     pub(crate) fn imm_flush(&mut self) {
         let Some(key) = self.data.imm_batch.key.take() else {
             return;
+        };
+        // The run's shape parameter block, if its shader reads one.
+        let params = if self.data.imm_batch.params.is_empty() {
+            None
+        } else {
+            let mut block = [[0.0f32; 4]; SHAPE_PARAM_VEC4S];
+            let used = self.data.imm_batch.params.len();
+            block[..used].copy_from_slice(&self.data.imm_batch.params);
+            self.data.imm_batch.params.clear();
+            self.data.imm_batch.param_sets.clear();
+            Some(block)
         };
         let (bytes, count): (&[u8], usize) = match key.layout {
             ImmLayout::D2 => {
@@ -409,11 +516,27 @@ impl Renderer {
             // the caller staged goes out again with their next draw.
             self.data.encoder.inputs_dirty = true;
         }
+        if let Some(block) = &params {
+            // The first block of group 2, like a scene draw's `DrawBlock`.
+            let block_at = self.data.ring.alloc_copy(bytemuck_bytes(&block[..]));
+            self.data.encoder.push(PassCmd::SetDraw {
+                at: block_at,
+                size: SHAPE_PARAM_BYTES as u32,
+            });
+        }
         self.data.encoder.push(PassCmd::DrawImm {
             layout: key.layout,
             vertices: at,
             count: count as u32,
         });
+        if params.is_some() {
+            // Give the caller's `RenderPass:alloc` block back to their draws.
+            if let Some((draw_at, size)) = self.data.pass.draw_block {
+                self.data
+                    .encoder
+                    .push(PassCmd::SetDraw { at: draw_at, size });
+            }
+        }
         Metric::add_draw_imm(count as u64 / 6, count as u64 / 3, count as u64);
         if self.data.encoder.len() >= PASS_FLUSH_LIMIT {
             self.flush_pass_encoder();
@@ -449,9 +572,33 @@ impl Renderer {
         color: &Color,
         params: [f32; 4],
     ) {
+        self.imm_shape_faded(shape, x, y, w, h, color, params, [0.0; 4]);
+    }
+
+    /// `imm_shape` with a fade window, read by `Circle`, `Point` and their
+    /// twins (HmGui's circle and point widgets): `fade` is
+    /// `[centre, visible, gone, 1]`, angles in radians measured from the
+    /// quad's centre (0 = right, counter-clockwise). A pixel within `visible`
+    /// of the centre direction is drawn fully, one beyond `gone` not at all,
+    /// smoothly in between. `[0; 4]` fades nothing.
+    #[allow(clippy::too_many_arguments)]
+    pub fn imm_shape_faded(
+        &mut self,
+        shape: Shape,
+        x: f32,
+        y: f32,
+        w: f32,
+        h: f32,
+        color: &Color,
+        params: [f32; 4],
+        fade: [f32; 4],
+    ) {
         let pipeline = self.imm_shape_pipeline(shape);
         let (p, q) = shape.pack(w, h, params[0], params[1], params[2], params[3]);
-        let quad = quad2d(x, y, x + w, y + h, [0.0, 0.0, 1.0, 1.0], rgba(color), p, q);
+        let mut quad = quad2d(x, y, x + w, y + h, [0.0, 0.0, 1.0, 1.0], rgba(color), p, q);
+        for v in &mut quad {
+            v.r = fade;
+        }
         self.imm_push2d(pipeline, None, &quad);
     }
 
@@ -502,6 +649,7 @@ impl Renderer {
             color: rgba(color),
             p: [0.0; 4],
             q: [0.0; 4],
+            r: [0.0; 4],
         };
         let tri = [v(p[0], 0.0, 0.0), v(p[1], 0.0, 1.0), v(p[2], 1.0, 1.0)];
         self.imm_push2d(pipeline, None, &tri);
@@ -510,7 +658,13 @@ impl Renderer {
     /// The soft-edged triangle (`ui/triangle`): its vertices ride in the
     /// parameters, the quad is the padded bounding box.
     pub fn imm_tri_glow(&mut self, p: [[f32; 2]; 3], color: &Color, pad: f32) {
-        let pipeline = self.imm_shape_pipeline(Shape::Triangle);
+        self.imm_tri_shape(Shape::Triangle, p, color, pad);
+    }
+
+    /// `imm_tri_glow` with its blend twin: `shape` is `Triangle` (additive) or
+    /// `TriangleAlpha`.
+    pub fn imm_tri_shape(&mut self, shape: Shape, p: [[f32; 2]; 3], color: &Color, pad: f32) {
+        let pipeline = self.imm_shape_pipeline(shape);
         let min_x = p.iter().map(|v| v[0]).fold(f32::MAX, f32::min) - pad;
         let min_y = p.iter().map(|v| v[1]).fold(f32::MAX, f32::min) - pad;
         let max_x = p.iter().map(|v| v[0]).fold(f32::MIN, f32::max) + pad;
@@ -526,6 +680,45 @@ impl Renderer {
             [p[2][0], p[2][1], 0.0, 0.0],
         );
         self.imm_push2d(pipeline, None, &quad);
+    }
+
+    /// A bendable stroke (`ui/stroke`, see `Stroke`) with its `look` (the
+    /// `STROKE_LOOK` parameters). The quad follows the stroke's own frame,
+    /// grown by the look's reach, so a long diagonal line covers no more
+    /// than its band. Strokes of every look batch into one draw: the look
+    /// goes into the run's shape parameter block.
+    pub fn imm_stroke(&mut self, stroke: &Stroke, color: &Color, look: &StrokeLook) {
+        if stroke.is_empty() {
+            return;
+        }
+        let pipeline = self.imm_shape_pipeline(Shape::Stroke);
+        let corners = stroke.quad(stroke_look_reach(look));
+        // `p.w`: below 0 round ends, else how much flat ends' corners round.
+        let p = [
+            stroke.length,
+            stroke.curvature,
+            0.5 * stroke.thickness,
+            if stroke.round_caps {
+                -1.0
+            } else {
+                stroke.corner.max(0.0)
+            },
+        ];
+        // `q.w` gets the look's offset in the parameter block.
+        let q = [stroke.dash.dash, stroke.dash.gap, stroke.dash.phase, 0.0];
+        let r = stroke.fade.to_array();
+        let c = rgba(color);
+        let v = |(pos, local): (glam::Vec2, glam::Vec2)| Imm2DVertex {
+            pos: pos.to_array(),
+            uv: local.to_array(),
+            color: c,
+            p,
+            q,
+            r,
+        };
+        let mut quad = triangulate(corners.map(v));
+        let values = STROKE_LOOK.pack(look);
+        self.imm_push2d_params(pipeline, &mut quad, &values);
     }
 
     /// A solid line of `width` pixels, as a quad.
@@ -545,6 +738,7 @@ impl Renderer {
             color: c,
             p: [0.0; 4],
             q: [0.0; 4],
+            r: [0.0; 4],
         };
         let quad = triangulate([
             v(a[0] + nx, a[1] + ny, 0.0, 0.0),
@@ -584,6 +778,7 @@ impl Renderer {
             color: c,
             p: [0.0; 4],
             q: [0.0; 4],
+            r: [0.0; 4],
         };
         let mut verts = Vec::with_capacity((points.len() - 2) * 3);
         for i in 1..points.len() - 1 {

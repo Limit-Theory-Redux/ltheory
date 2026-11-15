@@ -5,6 +5,8 @@ mod focus_type;
 mod gui;
 mod image;
 mod layer;
+mod look;
+mod shape;
 mod text;
 mod text_line;
 mod widget;
@@ -15,6 +17,8 @@ use data::*;
 pub use focus_type::*;
 pub use gui::*;
 pub use layer::*;
+pub use look::*;
+pub use shape::*;
 pub use text::*;
 pub use text_line::*;
 pub use widget::*;
@@ -1336,5 +1340,87 @@ mod tests {
                 )]),
             ),
         );
+    }
+
+    #[test]
+    fn test_hmgui_shape_widgets() {
+        let (mut gui, input, mut r) = init_test();
+
+        gui.begin_gui(300.0, 200.0);
+        gui.begin_stack_container();
+        gui.set_alignment(AlignHorizontal::Center, AlignVertical::Center);
+        gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
+
+        // Shapes lay out like rects: they take the size the layout gives them.
+        gui.annulus(&crate::render::Color::WHITE, 10.0, false);
+        gui.set_fixed_size(120.0, 80.0);
+
+        gui.wedge(&crate::render::Color::WHITE, 4.0, 270.0, 45.0, true);
+        gui.set_fixed_size(60.0, 60.0);
+
+        gui.end_container();
+        gui.end_gui(&mut r, &input);
+
+        let root_widget_rf = gui.root();
+        let root_widget = root_widget_rf.as_ref();
+
+        check_widget(
+            &root_widget,
+            &WidgetCheck(
+                "Root",
+                (0.0, 0.0),
+                (300.0, 200.0),
+                (300.0, 200.0),
+                Some(vec![WidgetCheck(
+                    "Stack",
+                    (90.0, 60.0),
+                    (120.0, 80.0),
+                    (120.0, 80.0),
+                    Some(vec![
+                        WidgetCheck("Annulus", (90.0, 60.0), (120.0, 80.0), (120.0, 80.0), None),
+                        WidgetCheck("Wedge", (120.0, 70.0), (60.0, 60.0), (60.0, 60.0), None),
+                    ]),
+                )]),
+            ),
+        );
+
+        // Each shape is centred in its widget, so both share the stack's
+        // centre (150, 100), whatever their widget sizes.
+        let stack_rf = root_widget.get_container_item().children[0].clone();
+        let stack = stack_rf.as_ref();
+        // Both are drawn as strokes on a circle: (centre, radius, thickness).
+        let looks = HmGuiLooks::new();
+        let circles: Vec<_> = stack
+            .get_container_item()
+            .children
+            .iter()
+            .map(|widget_rf| {
+                let widget = widget_rf.as_ref();
+                let WidgetItem::Shape(shape) = &widget.item else {
+                    panic!("Expected a shape widget");
+                };
+                match shape.geometry(widget.inner_pos, widget.inner_size, &looks) {
+                    Some((
+                        crate::render::Shape::Stroke,
+                        crate::render::UIShapeGeometry::Stroke { stroke, .. },
+                    )) => (
+                        stroke.start + stroke.normal() / stroke.curvature,
+                        1.0 / stroke.curvature.abs(),
+                        stroke.thickness,
+                    ),
+                    other => panic!("Expected a stroke, got {other:?}"),
+                }
+            })
+            .collect();
+
+        let close = |a: Vec2, b: Vec2| a.distance(b) < 1e-3;
+        // Radius 40 (half the widget's smaller side), 10 px thick: the
+        // stroke runs along its middle, 35.
+        assert!(close(circles[0].0, Vec2::new(150.0, 100.0)), "{circles:?}");
+        assert!((circles[0].1 - 35.0).abs() < 1e-3, "{circles:?}");
+        // Radius 30, 4 px deep.
+        assert!(close(circles[1].0, Vec2::new(150.0, 100.0)), "{circles:?}");
+        assert!((circles[1].1 - 28.0).abs() < 1e-3, "{circles:?}");
+        assert_eq!(circles[1].2, 4.0);
     }
 }
