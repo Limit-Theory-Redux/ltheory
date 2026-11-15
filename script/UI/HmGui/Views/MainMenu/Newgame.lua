@@ -46,9 +46,61 @@ local ShipHullsText = {
 
 local selectedSeedIndex = nil
 
+-- 2^64 - 1, the largest seed
+local MAX_SEED = 18446744073709551615ULL
+
+---The seed as the player sees it: digits, without LuaJIT's `ULL` suffix.
+---@param seed integer
+---@return string
+local function seedToText(seed)
+    return (tostring(seed):gsub("U?LL$", ""))
+end
+
+---The seed a text stands for. A whole number from 0 to 2^64 - 1 is used as it is;
+---any other text (a word, a longer number) is hashed, so it works as a seed too.
+---Empty text gives nil: a random seed.
+---@param text string
+---@return integer|nil
+local function textToSeed(text)
+    text = text:match("^%s*(.-)%s*$")
+    if text == "" then
+        return nil
+    end
+    if text:match("^%d+$") then
+        local seed = 0ULL
+        for i = 1, #text do
+            local digit = text:byte(i) - 48
+            if seed > (MAX_SEED - digit) / 10ULL then
+                return Hash.FNVStr64(text) -- larger than 2^64 - 1
+            end
+            seed = seed * 10ULL + digit
+        end
+        return seed
+    end
+    return Hash.FNVStr64(text)
+end
+
+-- The universe seed: filled with a random seed whenever the view opens, so the
+-- player can see (and note down or share) the seed of the game they start.
+local seedView = UIComponent.TextView {
+    text = "",
+    editable = true,
+    multiline = false,
+    style = { font = { size = 20 } },
+    backgroundColor = Color(0.08, 0.09, 0.11, 0.9),
+    borderWidth = 1,
+    borderColor = Color(0.45, 0.48, 0.52, 1.0),
+    width = 300,
+    align = { AlignHorizontal.Center, AlignVertical.Center },
+}
+
+local function rollSeed()
+    seedView.state.textData():setText(seedToText(rng:get64()))
+end
+
 function NewgameView:onInput() end
 function NewgameView:onUpdate(dt) end
-function NewgameView:onViewOpen(isPageOpen) end
+function NewgameView:onViewOpen(isPageOpen) rollSeed() end
 function NewgameView:onViewClose(isPageClose) end
 
 local function getLayoutContainerWidthPercentage() --todo: needs replacement with a more sophisticated layout system
@@ -151,6 +203,31 @@ local newgameGrid = UILayout.Grid {
             contents = {
                 UILayout.SettingList {
                     rows = {
+                        UILayout.SettingRow {
+                            label = "Universe Seed",
+                            control = UIComponent.Container {
+                                align = { AlignHorizontal.Center, AlignVertical.Center },
+                                childrenAlign = { AlignHorizontal.Center, AlignVertical.Center },
+                                padding = { 0, 0 },
+                                margin = { 0, 18 },
+                                spacing = 10,
+                                layoutType = GuiLayoutType.Horizontal,
+                                contents = {
+                                    seedView,
+                                    UIComponent.Button {
+                                        title = "New Seed",
+                                        size = ResponsiveSize(140, 34),
+                                        font = { name = "Unageo-Medium", size = 18 },
+                                        sound = Config.audio.sounds.click,
+                                        toolTip = function()
+                                            return
+                                            "Picks a new random seed.\nYou can also type a number, or any text."
+                                        end,
+                                        callback = rollSeed,
+                                    }
+                                }
+                            }
+                        },
                         UILayout.SettingRow {
                             label = "Nebula Brightness",
                             control = UIComponent.Slider {
@@ -335,8 +412,8 @@ local newgameGrid = UILayout.Grid {
                     margin = { 0, 10 },
                     size = ResponsiveSize(300, 60),
                     font = { name = "Unageo-Medium", size = 24 },
-                    toolTip = function() return "Press to start a new game with a random seed." end,
-                    callback = function() newGame(rng:get64()) end,
+                    toolTip = function() return "Starts a new game with the universe seed above." end,
+                    callback = function() newGame(textToSeed(seedView.state.textData():text())) end,
                 }
             }
         }
