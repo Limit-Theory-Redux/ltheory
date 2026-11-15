@@ -67,13 +67,13 @@ local function toggleClock()
 end
 
 local backgroundGrid = UILayout.Grid {
-    visible = getMenuVisible,
     align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
     padding = { 125, 0 },
     margin = { 0, 0 },
     stackDirection = GuiLayoutType.Horizontal,
     contents = {
         UILayout.Grid {
+            visible = getMenuVisible, -- the side panel hides when the mouse rests; the clock stays
             align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
             padding = { 0, 0 },
             margin = { 0, 0 },
