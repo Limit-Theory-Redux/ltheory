@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::iter;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, LazyLock, Mutex};
 
 use parley::fontique::{
@@ -163,6 +164,7 @@ impl TextContext {
             weight: info.weight(),
         };
         self.files.insert(key, font.clone());
+        FONT_GENERATION.fetch_add(1, Ordering::Relaxed);
         Some(font)
     }
 
@@ -224,6 +226,16 @@ fn default_font_dirs() -> Vec<PathBuf> {
 }
 
 pub static TEXT_CTX: LazyLock<Mutex<TextContext>> = LazyLock::new(Default::default);
+
+/// Counts font registrations. A registered font can change which font a
+/// character falls back to, so text laid out before it may be stale.
+static FONT_GENERATION: AtomicU64 = AtomicU64::new(0);
+
+/// The number of fonts registered so far (in any text context), readable
+/// without locking [`TEXT_CTX`].
+pub fn font_generation() -> u64 {
+    FONT_GENERATION.load(Ordering::Relaxed)
+}
 
 #[cfg(test)]
 mod tests {
