@@ -223,6 +223,10 @@ function Grid:new(args)
     end
 
     newGridLayout.render = function(self)
+        if not self.state.visible() then
+            return
+        end
+
         local horizontal = self.state.layoutType() == GuiLayoutType.Horizontal
 
         Gui:beginContainer(self.state.layoutType())

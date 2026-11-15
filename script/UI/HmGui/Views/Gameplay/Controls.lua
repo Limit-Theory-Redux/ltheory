@@ -35,16 +35,14 @@ local function scale()
     return math.max(0.7, math.min(1.0, Window:width() / 1920))
 end
 
---- One left-aligned line of text. The vertical padding keeps descenders (g, p, y)
---- from being clipped.
+--- One left-aligned line of text.
 ---@return UIComponentText
-local function text(value, font, size, color, padY)
+local function text(value, font, size, color)
     return UIComponent.Text {
         text = value,
         font = font,
         size = size,
         color = color,
-        padding = { 0, padY or 3 },
         align = { AlignHorizontal.Left, AlignVertical.Center }
     }
 end
@@ -94,7 +92,7 @@ local function column(groups, s)
         local rows = {}
         for _, row in ipairs(group.rows) do
             rows[#rows + 1] = Grid {
-                fixedHeight = math.floor(23 * s), -- same height whether or not the text has descenders
+                fixedHeight = math.floor(23 * s), -- the row pitch; the text is centred in it
                 cells = columns,
                 contents = {
                     text(row.action, "Unageo-Regular", rowSize, GREY),
@@ -109,7 +107,7 @@ local function column(groups, s)
             spacing = spacing,
             cells = Grid.Fit(),
             contents = {
-                text(group.title, "Unageo-Semibold", groupSize, ACCENT, 4),
+                text(group.title, "Unageo-Semibold", groupSize, ACCENT),
                 UIComponent.Divider { color = RULE },
                 Grid {
                     layoutType = GuiLayoutType.Vertical,

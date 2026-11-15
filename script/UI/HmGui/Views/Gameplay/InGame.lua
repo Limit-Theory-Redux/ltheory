@@ -234,12 +234,6 @@ local function hudVisible()
     return InGame.hudShown and InGame.player ~= nil
 end
 
--- HmGui measures text only above the baseline (Font::get_size2), so the
--- container clips descenders (p, g, y). Vertical padding makes room for them.
-local function descenderPadding()
-    return { 0, px(4) }
-end
-
 local AUTOPILOT_COLOR = Color(0.51, 0.92, 1.00, 1.0)
 local ZONE_COLOR = Color(0.35, 0.70, 1.00, 1.0)
 
@@ -296,7 +290,6 @@ local zoneLine = UIComponent.Container {
             text = function() return hud.zoneText end,
             font = "UbuntuBold",
             size = function() return px(18) end,
-            padding = descenderPadding,
             color = ZONE_COLOR,
         },
     },
@@ -312,7 +305,6 @@ local cameraLabel = UIComponent.Container {
             text = function() return hud.cameraText end,
             font = "Unageo-Medium",
             size = function() return px(20) end,
-            padding = descenderPadding,
             color = function() return Color(0.80, 0.88, 0.97, hud.cameraAlpha) end,
         },
     },
