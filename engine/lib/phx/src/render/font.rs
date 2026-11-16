@@ -777,6 +777,7 @@ impl Font {
                         color,
                         p,
                         q,
+                        r: [0.0; 4],
                     };
                     // The corners of `Draw.RectEx`, as two triangles of its fan.
                     let (a, b, c, d) = (

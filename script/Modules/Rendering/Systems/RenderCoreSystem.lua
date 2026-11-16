@@ -27,6 +27,11 @@ local FullscreenAdditive = { vertex = VertexLayout.Fullscreen, blend = BlendMode
 -- recur; anything beyond this is a stale set from before a resize.
 local MAX_CACHED_DESCS = 4
 
+-- Largest texture side the device accepts: `max_texture_dimension_2d` of the
+-- `wgpu::Limits::default()` that `window/wgpu_render.rs` requests. The
+-- supersampled scene buffers must fit in it.
+local MAX_TEXTURE_DIMENSION = 8192
+
 -- Scratch for `buildPassLists`: out-param of RigidBody:getPos (double precision),
 -- reused across entities and frames to avoid per-entity allocation.
 local scratchPos = Position()
@@ -44,8 +49,9 @@ end)
 function RenderCoreSystem:registerVars()
     self.profiler        = QuickProfiler("RenderCoreSystem", false, false)
 
+    -- The supersampling rate is a player setting: `GameState.render.superSampleRate`
+    -- (saved in user.ini, see `fittingSuperSampleRate`).
     self.settings        = {
-        superSampleRate = Config.render.general.superSampleRate,
         downSampleRate  = Config.render.general.downSampleRate,
         showBuffers     = Config.render.debug.showBuffers,
         cullFace        = Config.render.renderState.cullFace,
@@ -82,8 +88,9 @@ function RenderCoreSystem:registerVars()
 
     local win            = Window:size()
     self.resX, self.resY = win.x, win.y
-    self.ssResX          = self.resX * self.settings.superSampleRate
-    self.ssResY          = self.resY * self.settings.superSampleRate
+    local ssRate         = self:fittingSuperSampleRate(self.resX, self.resY)
+    self.ssResX          = self.resX * ssRate
+    self.ssResY          = self.resY * ssRate
     self.dsResX          = self.resX / self.settings.downSampleRate
     self.dsResY          = self.resY / self.settings.downSampleRate
 
@@ -391,18 +398,46 @@ end
 function RenderCoreSystem:handleResize()
     local win = Window:size()
     local rx, ry = win.x, win.y
-    local ssx = rx * self.settings.superSampleRate
+    local ssRate = self:fittingSuperSampleRate(rx, ry)
+    local ssx = rx * ssRate
     local dsx = rx / self.settings.downSampleRate
 
     if self.resX ~= rx or self.resY ~= ry or self.ssResX ~= ssx then
+        if ssRate ~= GameState.render.superSampleRate then
+            Log.Warn("Supersampling %sx does not fit a %dx%d window (texture limit %d), using %sx",
+                GameState.render.superSampleRate, rx, ry, MAX_TEXTURE_DIMENSION, ssRate)
+        end
         self.resX, self.resY = rx, ry
-        self.ssResX, self.ssResY = ssx, ry * self.settings.superSampleRate
+        self.ssResX, self.ssResY = ssx, ry * ssRate
         self.dsResX, self.dsResY = dsx, ry / self.settings.downSampleRate
         self:initializeBuffers()
     end
 
     -- Post-processing samples explicit mip views (`downsampleForPost` picks the level)
     self.level = 0
+end
+
+--- The supersampling rate the scene buffers use for a window of the given
+--- size. The scene renders at this multiple of the window size per axis and
+--- is resolved down before post-processing.
+---
+--- The player's rate is `GameState.render.superSampleRate` (1 = off, 2 or 4;
+--- the Graphics settings page sets it, user.ini keeps it). A change takes
+--- effect on the next frame: `handleResize` reallocates the buffers. The rate
+--- is halved until the buffers fit the device's texture size limit (halving
+--- keeps a power of two one, which `downsampleForPost` needs).
+---@param rx integer window width
+---@param ry integer window height
+---@return number
+function RenderCoreSystem:fittingSuperSampleRate(rx, ry)
+    local rate = GameState.render.superSampleRate
+    if not (type(rate) == "number" and rate >= 1) then
+        rate = 1 -- a broken user.ini value (0, negative, text) must not make empty buffers
+    end
+    while rate > 1 and math.max(rx, ry) * rate > MAX_TEXTURE_DIMENSION do
+        rate = math.max(1, rate / 2)
+    end
+    return rate
 end
 
 --- Draw one scene pass: the custom render fns, then the scene list's bucket
@@ -577,7 +612,7 @@ function RenderCoreSystem:applyFilter(fragName, fill, extra)
 end
 
 function RenderCoreSystem:downsampleForPost()
-    if self.settings.superSampleRate <= 1 then
+    if self.ssResX <= self.resX and self.ssResY <= self.resY then
         self.level = 0
         return
     end

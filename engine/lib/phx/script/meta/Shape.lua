@@ -6,16 +6,26 @@
 --
 -- | shape | a | b | c | d |
 -- |---|---|---|---|---|
--- | Circle, Hex, Ring, RingGlow, RingDim | radius | | | |
+-- | Circle, CircleAlpha, Hex, Ring, RingGlow, RingDim | radius | | | |
 -- | Panel | inner alpha | bevel | | |
 -- | Wedge | r1 | r2 | to | tw |
 -- | Annulus | inner radius | outer radius | | |
 -- | Box, Grid, PanelGlow, Point, PointGlow | none | | | |
 --
--- `Triangle` and `LineGlow*` have their own entry points (`Imm.TriGlow`,
--- `Imm.LineGlow`). `Text` and `TextOutlined` are the glyph quads of
--- `Font::draw` and `Font::draw_outlined` (`TextOutlined`: `p` = outline
--- colour, `q` = halo colour).
+-- Twins share a fragment shader and differ in blend mode: additive glow
+-- brightens what is behind it, alpha blending can also darken it (a dark
+-- halo under a glowing shape). `Ring`/`RingGlow`, `Point`/`PointGlow`,
+-- `Circle`/`CircleAlpha` and `Triangle`/`TriangleAlpha`.
+--
+-- `Triangle`, `TriangleAlpha` and `LineGlow` have their own entry points
+-- (`Imm.TriGlow`, `Imm.LineGlow`; `Renderer::imm_tri_shape`), and so has
+-- `Stroke` (`Renderer::imm_stroke`), the bendable stroke whose look comes
+-- from the shape parameter block: one pipeline, premultiplied, for additive
+-- and alpha blended strokes alike.
+--
+-- `Text` and `TextOutlined` are the glyph quads of `Font::draw` and
+-- `Font::draw_outlined` (`TextOutlined`: `p` = outline colour, `q` = halo
+-- colour).
 ---@class Shape
 ---@field Solid integer
 ---@field Image integer
@@ -36,6 +46,9 @@
 ---@field Wedge integer
 ---@field Annulus integer
 ---@field LineGlow integer
+---@field CircleAlpha integer
+---@field TriangleAlpha integer
+---@field Stroke integer
 ---@field TextOutlined integer
 Shape = {
     Solid = 0,
@@ -57,5 +70,8 @@ Shape = {
     Wedge = 16,
     Annulus = 17,
     LineGlow = 18,
-    TextOutlined = 19,
+    CircleAlpha = 19,
+    TriangleAlpha = 20,
+    Stroke = 21,
+    TextOutlined = 22,
 }

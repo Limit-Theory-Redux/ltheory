@@ -144,8 +144,8 @@ pub(super) fn mesh_attributes(format: &VertexFormat) -> Vec<wgpu::VertexAttribut
 }
 
 /// Per-vertex attributes of the immediate batcher's 2D vertex (`Imm2DVertex`):
-/// position, uv, color and the two shape parameter vectors.
-pub(super) const IMM2D_ATTRIBUTES: [wgpu::VertexAttribute; 5] = [
+/// position, uv, color and the three shape parameter vectors.
+pub(super) const IMM2D_ATTRIBUTES: [wgpu::VertexAttribute; 6] = [
     wgpu::VertexAttribute {
         format: wgpu::VertexFormat::Float32x2,
         offset: 0,
@@ -170,6 +170,11 @@ pub(super) const IMM2D_ATTRIBUTES: [wgpu::VertexAttribute; 5] = [
         format: wgpu::VertexFormat::Float32x4,
         offset: 48,
         shader_location: 12,
+    },
+    wgpu::VertexAttribute {
+        format: wgpu::VertexFormat::Float32x4,
+        offset: 64,
+        shader_location: 13,
     },
 ];
 

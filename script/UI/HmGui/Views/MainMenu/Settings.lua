@@ -8,11 +8,29 @@ local UIRouter = require("UI.HmGui.UICore.UIRouter")
 ---@type ResponsiveSize
 local ResponsiveSize = require("Types.ResponsiveSize")
 local MusicPlayer = require("Shared.Audio.MusicPlayer")
+local InitFiles = require("Legacy.Systems.Files.InitFiles")
+
+-- Supersampling slider steps (Off, 2x, 4x) as `GameState.render.superSampleRate`
+-- values (the renderer reads it every frame, user.ini keeps it).
+local superSampleRates = { 1, 2, 4 }
+
+local function getSuperSampleStep()
+    local rate = GameState.render.superSampleRate
+    for step, stepRate in ipairs(superSampleRates) do
+        if stepRate == rate then return step end
+    end
+    return 1
+end
 
 function SettingsView:onInput() end
 function SettingsView:onUpdate(dt) end
 function SettingsView:onViewOpen(isPageOpen) end
-function SettingsView:onViewClose(isPageClose) end
+
+--- Leaving the Settings screen saves the settings to user.ini, so they are kept
+--- however the game is closed afterwards (not only through the Exit button).
+function SettingsView:onViewClose(isPageClose)
+    InitFiles:writeUserInits()
+end
 
 local logo = Tex2D.Load("./res/images/LTR-logo-name.png")
 
@@ -22,6 +40,24 @@ local settingsCategoryNames = { { "GENERAL", "General" },
     { "GRAPHICS",  "Graphics" },
     { "INTERFACE", "Interface" },
     { "KEYBINDS",  "Keybinds" } }
+
+--- Show one of the settings tabs (1 = General … `getCategoryCount()`), as its
+--- button does. Used by the menu smoke test (`States/App/Tests/MenuSmokeTest.lua`).
+---@param index integer
+function SettingsView:setCategory(index)
+    settingsCategory = index
+end
+
+---@return integer count the number of settings tabs
+function SettingsView:getCategoryCount()
+    return #settingsCategoryNames
+end
+
+---@param index integer
+---@return string name the tab's button title
+function SettingsView:getCategoryName(index)
+    return settingsCategoryNames[index][2]
+end
 
 local function switchToMainScreen()
     UIRouter:getCurrentPage():setView("Main")
@@ -182,13 +218,13 @@ local function settingsGraphics()
                             sound = Config.audio.sounds.click,
                             toolTip = function()
                                 return
-                                "EXPERIMENTAL: Switches supersampling between Off, 2x, and 4x.\nNOTE: 2x and 4x are completely unusable at this time."
+                                "Renders the scene at 2x or 4x the screen resolution, for smoother edges.\nCosts frame rate. 4x only fits screens up to 2048 pixels wide; larger screens use 2x."
                             end,
                             increment = 1,
                             minValue = 1,
                             maxValue = 3,
-                            currentValue = Settings.get("render.superSample"),
-                            callback = function(v) Settings.set("render.superSample", v) end
+                            currentValue = getSuperSampleStep(),
+                            callback = function(v) GameState.render.superSampleRate = superSampleRates[v] end
                         }
                     }
                 }

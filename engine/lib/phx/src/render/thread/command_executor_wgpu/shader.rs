@@ -31,7 +31,7 @@ use crate::render::{
 
 /// Fixed vertex attribute locations by name (OpenGL binds attributes by name,
 /// wgpu by location), matching the vertex buffer layouts of the draw commands.
-pub(super) const ATTRIBUTE_LOCATIONS: [(&str, u32); 11] = [
+pub(super) const ATTRIBUTE_LOCATIONS: [(&str, u32); 12] = [
     ("vertex_position", 0),
     ("vertex_normal", 1),
     ("vertex_uv", 2),
@@ -43,6 +43,7 @@ pub(super) const ATTRIBUTE_LOCATIONS: [(&str, u32); 11] = [
     ("instance_color", 8),
     ("imm_params", 11),
     ("imm_params2", 12),
+    ("imm_params3", 13),
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
