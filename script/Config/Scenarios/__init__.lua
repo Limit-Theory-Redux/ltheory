@@ -57,6 +57,10 @@ local ids = {
     "StandardSolarSystem",
     "BinaryStarSystem",
     "TrinaryStarSystem",
+    "ShipShowcase",
+    "StationShowcase",
+    "MoonShowcase",
+    "PlanetShowcase",
 }
 
 ---@type Scenario[]

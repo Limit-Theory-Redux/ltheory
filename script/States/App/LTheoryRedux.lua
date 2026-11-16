@@ -483,10 +483,10 @@ end
 --- Something a scenario added to the scene: it is removed with the scene
 --- (Back to Main Menu, Regenerate), and labelled if it has a label.
 ---@param entity Entity
----@param options { label: string|nil, addBody: boolean|nil }|nil addBody: put its rigid body into the physics world (and take it out again on removal)
+---@param options { label: string|nil, addBody: boolean|nil, bodyAdded: boolean|nil }|nil addBody: put its rigid body into the physics world (and take it out again on removal); bodyAdded: it is in the world already (take it out on removal)
 function LimitTheoryRedux:addSceneEntity(entity, options)
     options = options or {}
-    local ownsBody = false
+    local ownsBody = options.bodyAdded == true
     if options.addBody then
         local rbCmp = entity:get(PhysicsComponents.RigidBody)
         if rbCmp and rbCmp:getRigidBody() then
@@ -562,6 +562,9 @@ end
 ---@param distances table|nil zoom range, see `orbitDistances`
 function LimitTheoryRedux:setOrbitFocus(entity, distances)
     self.player:setOrbitTarget(entity, distances)
+    -- From the lit side: a little off the sun's direction, from slightly above
+    local sun = CameraManager:getStarDir()
+    self.player:setOrbitAngles(math.atan2(sun.x, sun.z) + 0.5, 0.25)
     self.player:setMode(Enums.CameraMode.Orbit)
 end
 
@@ -731,16 +734,29 @@ end
 
 --- Spawn the player's ship where the scenario says, or at the default spot.
 function LimitTheoryRedux:spawnPlayerShip()
-    local flightCfg = Config.game.shipFlight
     local spawnPos = self.scenario.spawnShip and self.scenario.spawnShip(self) or self:defaultShipSpawn()
+    self:createPlayerShip(spawnPos, Enums.ShipType.Fighter, 1, self.rng:get31())
+end
+
+--- Build a flyable ship for the player.
+---@param position Position
+---@param shipType integer Enums.ShipType
+---@param hullIdx integer index into Config.game.shipHulls (size and mass)
+---@param seed integer
+function LimitTheoryRedux:createPlayerShip(position, shipType, hullIdx, seed)
+    local flightCfg = Config.game.shipFlight
+    local hullCfg = Config.game.shipHulls
 
     self.playerShipHandle = self.constructManager:createShip({
-        seed = self.rng:get31(),
-        shipType = Enums.ShipType.Fighter,
+        seed = seed,
+        shipType = shipType,
         config = {
-            position = spawnPos,
-            scale = Config.game.shipHulls.scale[1],
+            position = position,
+            scale = hullCfg.scale[hullIdx],
             isKinematic = false,
+            -- The Legacy basic and capital generators size the hull by its
+            -- index; the fighter's has its own size
+            hull = shipType ~= Enums.ShipType.Fighter and hullIdx or nil,
         },
     })
     self.playerShip = self.playerShipHandle.root
@@ -749,8 +765,6 @@ function LimitTheoryRedux:spawnPlayerShip()
     self.playerShip:add(ConstructComponents.AutoPilot())
     self.playerShip:add(ConstructComponents.ShipFlightControl())
 
-    local hullIdx = 1
-    local hullCfg = Config.game.shipHulls
     local rbCmp = self.playerShip:get(PhysicsComponents.RigidBody)
     local rb = rbCmp:getRigidBody()
     rb:setMass(hullCfg.mass[hullIdx])
@@ -758,7 +772,24 @@ function LimitTheoryRedux:spawnPlayerShip()
     rb:setFriction(0)
     rb:setSleepThreshold(0, 0)
 
-    Log.Info("Player ship spawned at (%.1f, %.1f, %.1f)", spawnPos.x, spawnPos.y, spawnPos.z)
+    Log.Info("Player ship spawned at (%.1f, %.1f, %.1f)", position.x, position.y, position.z)
+end
+
+--- Swap the player's ship for a new one in the same place (a scenario's
+--- showcase of hulls, say).
+---@param shipType integer Enums.ShipType
+---@param hullIdx integer index into Config.game.shipHulls
+---@param seed integer
+function LimitTheoryRedux:replacePlayerShip(shipType, hullIdx, seed)
+    local oldBody = self.playerShip:get(PhysicsComponents.RigidBody):getRigidBody()
+    local position = oldBody:getPos()
+    -- The orbit camera goes back to following the ship (the new one)
+    if self.player:getOrbitTarget() == self.playerShip then
+        self.player:setOrbitTarget(nil)
+    end
+    self.constructManager:destroy(self.playerShipHandle)
+    self:createPlayerShip(Position(position.x, position.y, position.z), shipType, hullIdx, seed)
+    self.player:setShip(self.playerShip)
 end
 
 --- Spawn stations near planets.

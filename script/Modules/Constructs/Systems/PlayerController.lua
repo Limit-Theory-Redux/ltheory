@@ -292,6 +292,13 @@ function PlayerController:setOrbitTarget(entity, distances)
     end
 end
 
+--- Turn the orbit camera to these angles around its target.
+---@param yaw number radians around the vertical axis (0 = on the target's +Z side)
+---@param pitch number radians above the horizontal plane
+function PlayerController:setOrbitAngles(yaw, pitch)
+    self.controllers[Enums.CameraMode.Orbit]:setAngles(yaw, pitch)
+end
+
 --- What the orbit camera follows: the ship, or what `setOrbitTarget` gave it.
 ---@return Entity
 function PlayerController:getOrbitTarget()
