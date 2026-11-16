@@ -22,48 +22,36 @@ InGame.hudShown = false
 
 --- What the HUD shows this frame; filled in by onUpdate, read by the components.
 local hud = {
-    speedText = "", speedColor = Color(1, 1, 1, 1),
     driveText = "", driveAlpha = 0,
     autopilotText = "",
     zoneText = "",
     cameraText = "", cameraAlpha = 0,
 }
 
-------------------------------------------------------------------------------
--- Speed readout: the number the speed tape will be built around. Its colour
--- follows the speed state and blends between states.
-
-local STOPPED = { 0.69, 0.71, 0.75 } -- dim grey-white
-local SLOW    = { 0.12, 0.41, 0.84 } -- deep blue at low speed ...
-local AT_MAX  = { 0.43, 0.80, 1.00 } -- ... to light blue at max normal speed
-local BOOST   = { 0.16, 0.94, 1.00 } -- full cyan
-local TRAVEL  = { 0.96, 0.98, 1.00 } -- bright white
-local SPEED_TEXT_TINT = 0.35         -- text = state colour mixed this much towards white, so it stays readable
-local COLOR_BLEND_TIME = 0.1         -- seconds; time constant of the colour blend (~0.3 s to settle)
-
-local speedColor = { 1, 1, 1 }
-
-local function mix(a, b, t)
-    return { a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t, a[3] + (b[3] - a[3]) * t }
+local function hudVisible()
+    return InGame.hudShown and InGame.player ~= nil
 end
 
----@return number[]
-local function speedStateColor(ship, speed)
+------------------------------------------------------------------------------
+-- Speed tape, curved around the reticle on its left (Components/Hud/SpeedTape).
+
+-- ShipFlightSystem multiplies the thrust by 1 + 2 x boost; with linear drag the
+-- top speed scales with the thrust, so boosting triples it.
+local BOOST_SPEED_FACTOR = 3
+
+local speedTape = UIComponent.SpeedTape { visible = hudVisible }
+
+local function updateSpeedTape(ship, dt)
     local drive = ship:get(ConstructComponents.TravelDrive)
     local state = drive and drive:getState()
-    if state == "active" or state == "decelerating" then return TRAVEL end
-    local max = Config.game.shipFlight.maxSpeedGame
-    if speed > max * 1.02 then return BOOST end
-    if speed / UniverseScaleConfig.globalScale < 1 then return STOPPED end -- below 1 m/s
-    return mix(SLOW, AT_MAX, math.min(1, speed / max))
-end
-
-local function updateSpeed(ship, dt)
-    local speed = ShipFlightSystem:getSpeed(ship)
-    speedColor = mix(speedColor, speedStateColor(ship, speed), 1 - math.exp(-dt / COLOR_BLEND_TIME))
-    local c = mix(speedColor, { 1, 1, 1 }, SPEED_TEXT_TINT)
-    hud.speedColor = Color(c[1], c[2], c[3], 1)
-    hud.speedText = UniverseScaleConfig:formatSpeed(speed)
+    local maxSpeed = Config.game.shipFlight.maxSpeedGame
+    speedTape:update({
+        speed = ShipFlightSystem:getSpeed(ship),
+        maxSpeed = maxSpeed,
+        boostSpeed = maxSpeed * BOOST_SPEED_FACTOR,
+        travelSpeed = maxSpeed * GravityWellSystem:getMaxDriveSpeed(),
+        travel = state == "active" or state == "decelerating",
+    }, dt)
 end
 
 ------------------------------------------------------------------------------
@@ -210,7 +198,7 @@ function InGame:onUpdate()
     local ship = player and player:getShip()
     if not ship then return end
 
-    updateSpeed(ship, dt)
+    updateSpeedTape(ship, dt)
     updateDrive(ship, dt)
     updateAutopilot(ship)
     updateZone()
@@ -230,28 +218,8 @@ local function px(n)
     return math.floor(n * math.max(0.7, math.min(1.3, Window:height() / 1080)))
 end
 
-local function hudVisible()
-    return InGame.hudShown and InGame.player ~= nil
-end
-
 local AUTOPILOT_COLOR = Color(0.51, 0.92, 1.00, 1.0)
 local ZONE_COLOR = Color(0.35, 0.70, 1.00, 1.0)
-
--- Left of the reticle, at its height: where the speed tape's tag will sit.
-local speedReadout = UIComponent.Container {
-    visible = hudVisible,
-    align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
-    childrenAlign = { AlignHorizontal.Left, AlignVertical.Center },
-    padding = function() return { math.floor(Window:width() * 0.30), 0 } end,
-    contents = {
-        UIComponent.Text {
-            text = function() return hud.speedText end,
-            font = "UbuntuBold",
-            size = function() return px(22) end,
-            color = function() return hud.speedColor end,
-        },
-    },
-}
 
 -- Centre, slightly above: autopilot status over the travel drive text. The
 -- autopilot line keeps a fixed height, so the drive text never moves.
@@ -326,7 +294,7 @@ local pausedText = UIComponent.Container {
     },
 }
 
-InGame:addContent(speedReadout)
+InGame:addContent(speedTape)
 InGame:addContent(travelBlock)
 InGame:addContent(zoneLine)
 InGame:addContent(cameraLabel)
