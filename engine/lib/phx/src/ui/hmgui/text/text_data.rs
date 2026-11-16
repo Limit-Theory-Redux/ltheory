@@ -1,7 +1,6 @@
 use glam::Vec2;
 use parley::Layout;
 use parley::layout::{Alignment, GlyphRun};
-use parley::style::StyleProperty;
 use swash::FontRef;
 use swash::scale::ScaleContext;
 
@@ -296,6 +295,11 @@ impl TextData {
         let mut buffer = vec![Color::TRANSPARENT; (width * height) as usize];
         let selection_end = self.selection.end();
 
+        // The selection: a highlight behind the selected text, which keeps its colour.
+        if let Some(range) = self.selection.get_forward_range() {
+            self.render_selection(&mut buffer, width, height, &range);
+        }
+
         // Iterate over laid out lines
         for line in self.layout.lines() {
             // Iterate over GlyphRun's within each line
@@ -333,10 +337,6 @@ impl TextData {
             self.default_style.apply_default(&mut builder);
 
             self.section_style.apply(&mut builder);
-
-            if let Some(range) = self.selection.get_forward_range() {
-                builder.push(&StyleProperty::Brush(self.selection_color), range);
-            }
 
             // Build the builder into a Layout
             builder.build_into(&mut self.layout);
@@ -505,6 +505,58 @@ impl TextData {
         if text_changed {
             self.text_changed = true;
             self.invalidate_layout();
+        }
+    }
+
+    /// Fill the background of the selected characters with the selection
+    /// colour, line by line (from the top of a line's leading to its bottom).
+    fn render_selection(
+        &self,
+        buffer: &mut [Color],
+        image_width: u32,
+        image_height: u32,
+        range: &std::ops::Range<usize>,
+    ) {
+        for line in self.layout.lines() {
+            let metrics = line.metrics();
+            let top = (metrics.baseline - metrics.ascent - metrics.leading * 0.5)
+                .floor()
+                .max(0.0) as u32;
+            let bottom = ((metrics.baseline + metrics.descent + metrics.leading * 0.5).ceil()
+                as u32)
+                .min(image_height);
+
+            // the selected characters as spans from left to right, neighbours
+            // joined, so each pixel is painted once
+            let mut spans: Vec<(f32, f32)> = vec![];
+            let mut x = metrics.offset + self.padding;
+            for run in line.runs() {
+                for cluster in run.visual_clusters() {
+                    let advance = cluster.advance();
+                    let text_range = cluster.text_range();
+
+                    if text_range.start < range.end && text_range.end > range.start {
+                        match spans.last_mut() {
+                            Some(span) if (span.1 - x).abs() < 0.01 => span.1 = x + advance,
+                            _ => spans.push((x, x + advance)),
+                        }
+                    }
+
+                    x += advance;
+                }
+            }
+
+            for (start, end) in spans {
+                let left = start.round().max(0.0) as usize;
+                let right = (end.round().max(0.0) as usize).min(image_width as usize);
+
+                for y in top..bottom {
+                    let row = (y * image_width) as usize;
+                    for pixel in &mut buffer[row + left..row + right.max(left)] {
+                        pixel.paint_over(&self.selection_color);
+                    }
+                }
+            }
         }
     }
 
