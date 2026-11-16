@@ -9,12 +9,13 @@ local white = Color(1.0, 1.0, 1.0, 1.0)
 local dim = Color(0.6, 0.65, 0.7, 1.0)
 local bandColor = Color(0.10, 0.11, 0.14, 1.0)
 local boxColor = Color(0.14, 0.41, 0.87, 0.85)
+local boxColor2 = Color(0.30, 0.55, 0.95, 0.85)
 local backdrop = Color(0.02, 0.025, 0.04, 1.0)
 
 local BAND_WIDTH, BAND_HEIGHT = 520, 64
 
-local function label(text)
-    return UIComponent.Text { text = text, font = "Unageo-Medium", size = 14, color = white }
+local function label(text, size)
+    return UIComponent.Text { text = text, font = "Unageo-Medium", size = size or 14, color = white }
 end
 
 --- A Container sample: a blue box with its options as the label.
@@ -52,12 +53,36 @@ function Test:onInit()
         { 'Slider, default align', UIComponent.Slider {
             title = "Volume", size = Vec2f(220, 20), callback = noop } },
     }
+
+    -- Percent-sized children of a container that sizes to its content: it
+    -- makes room for each child's content at its percentage, so equal shares
+    -- stay equal and nothing is cut.
+    local function share(text, size, color, width, height)
+        return UIComponent.Container {
+            width = width, height = height, color = { background = color },
+            childrenAlign = { AlignHorizontal.Center, AlignVertical.Center },
+            padding = { 8, 0 }, contents = { label(text, size) },
+        }
+    end
+    self.percentShares = {
+        { '3 rows of "33.333%", column "fit"', UIComponent.Container {
+            width = 200, height = "fit", layoutType = GuiLayoutType.Vertical, contents = {
+                share("small", 14, boxColor, "fill", "33.333%"),
+                share("Large", 30, boxColor2, "fill", "33.333%"),
+                share("medium", 20, boxColor, "fill", "33.333%"),
+            } }, 150 },
+        { '2 cells of "50%", row "fit"', UIComponent.Container {
+            width = "fit", height = "fit", contents = {
+                share("Hull", 14, boxColor, "50%", "fill"),
+                share("Shield generator", 14, boxColor2, "50%", "fill"),
+            } } },
+    }
 end
 
 function Test:onInput() end
 
 --- A sample row: the caption, then the band (the parent) with the component in it.
-function Test:sample(caption, component)
+function Test:sample(caption, component, bandHeight)
     Gui:beginHorizontalContainer()
     Gui:setSpacing(16)
     Gui:setChildrenVerticalAlignment(AlignVertical.Center)
@@ -66,7 +91,7 @@ function Test:sample(caption, component)
     Gui:setFixedWidth(260)
 
     Gui:beginStackContainer()
-    Gui:setFixedSize(BAND_WIDTH, BAND_HEIGHT)
+    Gui:setFixedSize(BAND_WIDTH, bandHeight or BAND_HEIGHT)
     Gui:setBackgroundColor(bandColor)
     Gui:setChildrenAlignment(AlignHorizontal.Left, AlignVertical.Center)
     component:render()
@@ -80,7 +105,7 @@ function Test:section(title, samples)
     Gui:setSpacing(10)
     Gui:text(title, self.titleFont, white)
     for _, sample in ipairs(samples) do
-        self:sample(sample[1], sample[2])
+        self:sample(sample[1], sample[2], sample[3])
     end
     Gui:endContainer()
 end
@@ -88,12 +113,20 @@ end
 function Test:buildGui()
     Gui:beginGui(self.resX, self.resY)
 
-    Gui:beginVerticalContainer()
+    Gui:beginHorizontalContainer()
     Gui:setPadding(30, 20)
-    Gui:setSpacing(24)
+    Gui:setSpacing(60)
 
+    Gui:beginVerticalContainer()
+    Gui:setSpacing(24)
     self:section('UIComponent.Container sizes', self.containerSizes)
     self:section('Components place themselves by align', self.componentAlign)
+    Gui:endContainer()
+
+    Gui:beginVerticalContainer()
+    Gui:setSpacing(24)
+    self:section('Percent sizes in a parent that fits its content', self.percentShares)
+    Gui:endContainer()
 
     Gui:endContainer()
 
