@@ -82,7 +82,7 @@ end
 ---illuminating point light. Aging, looping and teardown are owned by
 ---ExplosionEffectSystem (call update(dt) once per frame); spawn-and-forget.
 ---@param seed integer
----@param config table {position, size, duration, loop?, lightColor=Color,
+---@param config table {position, size, duration, loop?, flare?, lightColor=Color,
 --- lightIntensity, lightRadius}
 ---@return Entity
 return function(seed, config)
@@ -101,6 +101,7 @@ return function(seed, config)
             size = config.size,
             duration = config.duration,
             loop = config.loop,
+            flare = config.flare,
             lightColor = config.lightColor,
             lightIntensity = config.lightIntensity,
             lightRadius = config.lightRadius,

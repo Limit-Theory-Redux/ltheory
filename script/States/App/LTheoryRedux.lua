@@ -887,8 +887,9 @@ function LimitTheoryRedux:onRender(data)
         RenderCoreSystem:render(data)
 
         self:immediateUI(function()
-            -- The flare goes under the HUD and the pause menu
+            -- The flares go under the HUD and the pause menu
             LensFlareSystem:draw(self.starEntity, self.labeledEntities)
+            ExplosionEffectSystem:drawFlares()
             Gui:draw()
             -- These draw after Gui:draw, so they'd sit on top of the pause menu
             -- and the Controls screen: hide them while those are open.
