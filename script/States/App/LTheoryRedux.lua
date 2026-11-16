@@ -877,16 +877,18 @@ function LimitTheoryRedux:onRender(data)
         SystemMap3D:render(self.map3DState, data)
 
         self:immediateUI(function()
-            Gui:draw()
+            -- The flare goes under the HUD and the pause menu
             LensFlareSystem:draw(self.starEntity, self.labeledEntities)
+            Gui:draw()
             SystemMap3D:renderOverlay(self.map3DState, 0, 0, Window:width(), Window:height())
         end)
     else
         RenderCoreSystem:render(data)
 
         self:immediateUI(function()
-            Gui:draw()
+            -- The flare goes under the HUD and the pause menu
             LensFlareSystem:draw(self.starEntity, self.labeledEntities)
+            Gui:draw()
             -- These draw after Gui:draw, so they'd sit on top of the pause menu
             -- and the Controls screen: hide them while those are open.
             local showHud = not self.hudHidden and not self.pauseMenuOpen
