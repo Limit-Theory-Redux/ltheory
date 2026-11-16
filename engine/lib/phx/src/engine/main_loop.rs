@@ -9,6 +9,7 @@ use winit::keyboard::PhysicalKey;
 use winit::window::WindowId;
 
 use super::Engine;
+use crate::render::Font;
 use crate::window::*;
 
 pub struct MainLoop {
@@ -306,6 +307,9 @@ impl ApplicationHandler for MainLoop {
         engine.input.update_gamepad(|state| state.update());
 
         // Tick operations
+        // A new frame for the fonts' line caches.
+        Font::next_frame();
+
         // Dispatch engine events
         engine.call_lua("AppEventLoop").unwrap_or_else(|e| {
             panic!("Error calling AppEventLoop: {e}");
