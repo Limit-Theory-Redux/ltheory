@@ -28,6 +28,17 @@ local function copyVector(value)
     return Vec3f(value.x, value.y, value.z)
 end
 
+-- World positions stay in double precision: in a star system the ships are
+-- millions of units from the origin, where a Vec3f is kilometres off.
+local function copyPosition(value)
+    return Position(value.x, value.y, value.z)
+end
+
+---@return Position position moved by offset
+local function offsetPosition(position, offset)
+    return Position(position.x + offset.x, position.y + offset.y, position.z + offset.z)
+end
+
 local function add(a, b)
     return Vec3f(a.x + b.x, a.y + b.y, a.z + b.z)
 end
@@ -165,7 +176,7 @@ function WeaponTrackingSystem:updateContactTrack(state, contactBody, contactKey,
     local track = store[contactKey]
     if not track then
         store[contactKey] = {
-            position = copyVector(contactBody:getPos()),
+            position = copyPosition(contactBody:getPos()),
             velocity = getBodyVelocity(contactBody),
             acceleration = Vec3f(0, 0, 0),
             rotation = contactBody.getRot and contactBody:getRot() or Quat.Identity(),
@@ -198,7 +209,7 @@ function WeaponTrackingSystem:updateContactTrack(state, contactBody, contactKey,
     local delta = residual <= expectedStep and 0.045 or -0.08
     track.confidence = clamp((track.confidence or 0.2) + delta, 0, 1)
 
-    track.position = copyVector(currentPosition)
+    track.position = copyPosition(currentPosition)
     track.velocity = lerp(track.velocity, finiteVelocity, velocityResponse)
     track.acceleration = lerp(track.acceleration, rawAcceleration, accelerationResponse)
     track.rotation = contactBody.getRot and contactBody:getRot() or track.rotation
@@ -220,7 +231,7 @@ function WeaponTrackingSystem:updateMotionTrack(component, state, targetBody, ta
         component.sampleTime = 0
         component.confidence = 0.2
         component.track = {
-            position = copyVector(currentPosition),
+            position = copyPosition(currentPosition),
             velocity = getBodyVelocity(targetBody),
             acceleration = Vec3f(0, 0, 0),
             rotation = currentRotation,
@@ -257,7 +268,7 @@ function WeaponTrackingSystem:updateMotionTrack(component, state, targetBody, ta
     local expectedStep = math.max(0.05, length(finiteVelocity) * math.max(dt, ROOT_EPSILON) * 2)
     local confidenceDelta = residual <= expectedStep and 0.045 or -0.08
 
-    track.position = copyVector(currentPosition)
+    track.position = copyPosition(currentPosition)
     track.velocity = lerp(track.velocity, finiteVelocity, velocityResponse)
     track.acceleration = lerp(track.acceleration, rawAcceleration, accelerationResponse)
     track.rotation = currentRotation
@@ -272,7 +283,7 @@ end
 ---@param track table
 ---@param time number
 ---@param config table
----@return Vec3f
+---@return Position
 function WeaponTrackingSystem:predictPosition(track, time, config)
     assert(track and time >= 0 and config)
     local position = track.position
@@ -314,7 +325,7 @@ function WeaponTrackingSystem:predictPosition(track, time, config)
                     scale(normalize(velocity) or Vec3f(0, 0, 0),
                         0.5 * accelerationAlongVelocity * time * time))
             end
-            return add(position, displacement)
+            return offsetPosition(position, displacement)
         end
     end
 
@@ -322,9 +333,9 @@ function WeaponTrackingSystem:predictPosition(track, time, config)
     local dampedAcceleration = time > ROOT_EPSILON
         and scale(acceleration, (1 - math.exp(-damping * time)) / damping)
         or Vec3f(0, 0, 0)
-    return add(
-        add(position, scale(velocity, time)),
-        scale(dampedAcceleration, 0.5 * time))
+    return offsetPosition(position, add(
+        scale(velocity, time),
+        scale(dampedAcceleration, 0.5 * time)))
 end
 
 function WeaponTrackingSystem:predictTargetPoint(track, targetPointLocal, targetScale, time, config)
@@ -339,7 +350,7 @@ function WeaponTrackingSystem:predictTargetPoint(track, targetPointLocal, target
         local deltaRotation = Quat.FromAxisAngle(axis, angularSpeed * time)
         predictedOffset = deltaRotation:mulV(currentOffset)
     end
-    return add(predictedCenter, predictedOffset)
+    return offsetPosition(predictedCenter, predictedOffset)
 end
 
 function WeaponTrackingSystem:solveIntercept(
@@ -365,7 +376,7 @@ function WeaponTrackingSystem:solveIntercept(
         range and range / projectileSpeed or 0)
     local function residual(time)
         local predicted = self:predictTargetPoint(track, targetPointLocal, targetScale, time, config)
-        local source = add(origin, scale(originVelocity, time))
+        local source = offsetPosition(origin, scale(originVelocity, time))
         return length(subtract(predicted, source)) - projectileSpeed * time
     end
 

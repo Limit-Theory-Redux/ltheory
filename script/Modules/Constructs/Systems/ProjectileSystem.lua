@@ -28,7 +28,7 @@ function ProjectileSystem:segmentSphereHit(startPosition, endPosition, center, r
     local c = fx * fx + fy * fy + fz * fz - radius * radius
 
     if c <= 0 then
-        return { t = 0, position = Vec3f(startPosition.x, startPosition.y, startPosition.z) }
+        return { t = 0, position = Position(startPosition.x, startPosition.y, startPosition.z) }
     end
     if a < EPSILON then
         return nil
@@ -55,9 +55,10 @@ function ProjectileSystem:segmentSphereHit(startPosition, endPosition, center, r
         return nil
     end
 
+    -- Double precision, like the world positions
     return {
         t = t,
-        position = Vec3f(
+        position = Position(
             startPosition.x + dx * t,
             startPosition.y + dy * t,
             startPosition.z + dz * t

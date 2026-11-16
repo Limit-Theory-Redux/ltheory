@@ -65,7 +65,7 @@ local function getRayHitPosition(hit, hitBody)
         return hit.position
     end
     if hit and hit.posx ~= nil and hit.posy ~= nil and hit.posz ~= nil then
-        return Vec3f(hit.posx, hit.posy, hit.posz)
+        return Position(hit.posx, hit.posy, hit.posz)
     end
     if hitBody and hitBody.getPos then
         return hitBody:getPos()
@@ -211,7 +211,7 @@ end
 
 ---@param sample table target point sample in local target coordinates
 ---@param targetBody RigidBody
----@return Vec3f world target point
+---@return Position world target point (double precision: far from the origin a Vec3f is kilometres off)
 function WeaponSystem:targetPointToWorld(sample, targetBody)
     assert(sample and sample.position and targetBody and targetBody.getPos)
     local scale = targetBody.getScale and targetBody:getScale() or 1
@@ -222,7 +222,7 @@ function WeaponSystem:targetPointToWorld(sample, targetBody)
     local rotation = targetBody.getRot and targetBody:getRot() or nil
     local rotated = rotation and rotation:mulV(localPosition) or localPosition
     local center = targetBody:getPos()
-    return Vec3f(
+    return Position(
         center.x + rotated.x,
         center.y + rotated.y,
         center.z + rotated.z)
@@ -427,7 +427,7 @@ function WeaponSystem:solveIntercept(
 
     return {
         time = time,
-        position = Vec3f(
+        position = Position(
             targetPosition.x + targetVelocity.x * time,
             targetPosition.y + targetVelocity.y * time,
             targetPosition.z + targetVelocity.z * time
@@ -441,7 +441,7 @@ end
 ---@return table
 function WeaponSystem:sampleTargetMotion(origin, time, motion)
     assert(origin and time and motion)
-    local position = Vec3f(origin.x, origin.y, origin.z)
+    local position = Position(origin.x, origin.y, origin.z)
     local velocity = Vec3f()
     if motion.enabled == false then
         return { position = position, velocity = velocity }
@@ -554,7 +554,7 @@ function WeaponSystem:applyAccuracy(sourcePosition, targetPosition, weapon, seed
     local distanceSquared = dx * dx + dy * dy + dz * dz
     if distanceSquared < ROOT_EPSILON then
         return {
-            position = Vec3f(targetPosition.x, targetPosition.y, targetPosition.z),
+            position = Position(targetPosition.x, targetPosition.y, targetPosition.z),
             offset = Vec3f(),
             angles = Vec3f(),
         }
@@ -602,7 +602,7 @@ function WeaponSystem:applyAccuracy(sourcePosition, targetPosition, weapon, seed
         rightZ * rightOffset + upZ * upOffset)
 
     return {
-        position = Vec3f(
+        position = Position(
             targetPosition.x + offset.x,
             targetPosition.y + offset.y,
             targetPosition.z + offset.z),
