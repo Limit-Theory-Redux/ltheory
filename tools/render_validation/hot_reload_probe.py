@@ -1,9 +1,11 @@
-"""Hot-reload probe: edit a material shader while PlanetTest runs.
+"""Hot-reload probe: edit a material shader while PlanetScene runs.
 
     python tools/render_validation/hot_reload_probe.py [wgpu]
 
-Four captures of PlanetTest at the same frame (the engine uses a fixed time
-step, so equal scenes give equal pixels). While the later ones run, the script
+Four captures of PlanetScene (the planet scene Benchmark builds on, formerly
+PlanetTest; PlanetTest is now a shortcut into the game, whose ship and HUD are
+not pixel-identical from run to run over this many frames) at the same frame
+(the engine uses a fixed time step, so equal scenes give equal pixels). While the later ones run, the script
 edits `res/shader/fragment/material/planet.glsl` after the scene is up:
 
   C  no edit                          the reference
@@ -73,7 +75,7 @@ def capture(mode, original):
     env.update(LTHEORY_CAPTURE=str(png), LTHEORY_CAPTURE_FRAME=FRAME)
     launch.prepare_env(env, backend)
     with log_path.open("w", encoding="utf-8", newline="") as log:
-        proc = subprocess.Popen([str(exe), "-e", "./script/Main.lua", "PlanetTest"],
+        proc = subprocess.Popen([str(exe), "-e", "./script/Main.lua", "PlanetScene"],
                                 cwd=workdir, env=env, stdout=log, stderr=subprocess.STDOUT,
                                 **launch.POPEN_GROUP)
         try:
