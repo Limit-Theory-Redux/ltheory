@@ -61,6 +61,8 @@ local ids = {
     "StationShowcase",
     "MoonShowcase",
     "PlanetShowcase",
+    "PhysicsTest",
+    "CameraTest",
 }
 
 ---@type Scenario[]
