@@ -54,6 +54,7 @@ local MemoryReporter = require('Modules.Profiling.MemoryReporter')
 local ConstructManager = require('Modules.Constructs.Managers.ConstructManager')
 local StationGenerator = require('Modules.Constructs.Managers.Generators.StationGenerator')
 local WeaponCombatSystem = require('Modules.Constructs.Systems.WeaponCombatSystem')
+local ExplosionEffectSystem = require('Modules.Constructs.Systems.ExplosionEffectSystem')
 
 -- Skybox. This state also draws from the light-transport nebula, which the
 -- Legacy namespace load used to register.
@@ -1090,6 +1091,8 @@ function LimitTheoryRedux:onStatePostSim(data)
     if not self.playerShip then return end
     -- Projectiles, beams, expired effect lights
     self.weaponCombat:postUpdate(data:deltaTime())
+    -- Explosions age, and go when they are done
+    ExplosionEffectSystem:update(data:deltaTime())
 end
 
 --- Regenerate (B): what the scenario does for it, or by default a new seed
