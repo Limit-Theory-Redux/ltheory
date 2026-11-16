@@ -3,7 +3,7 @@
 ---
 --- Sizes are design pixels on a 2000 x 1125 screen and are scaled to the window
 --- (`MenuStyle.context`). The widgets that use this live in
---- `UI/HmGui/Components/MainMenu/MenuWidgets.lua`.
+--- `UI/HmGui/Components/MainMenu/MenuWidgets/` (one file per widget).
 local MenuStyle = {}
 
 MenuStyle.DESIGN_WIDTH = 2000
