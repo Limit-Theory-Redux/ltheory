@@ -1,6 +1,5 @@
 use glam::Vec2;
-use parley::Layout;
-use parley::layout::{Alignment, GlyphRun};
+use parley::{Alignment, AlignmentOptions, GlyphRun, Layout, PositionedLayoutItem};
 use swash::FontRef;
 use swash::scale::ScaleContext;
 
@@ -340,20 +339,17 @@ impl TextData {
         // Iterate over laid out lines
         for line in self.layout.lines() {
             // Iterate over GlyphRun's within each line
-            for glyph_run in line.glyph_runs() {
-                self.render_glyph_run(&mut text_ctx.scale, &glyph_run, &mut buffer, width);
+            for item in line.items() {
+                if let PositionedLayoutItem::GlyphRun(glyph_run) = item {
+                    self.render_glyph_run(&mut text_ctx.scale, &glyph_run, &mut buffer, width);
+                }
             }
         }
 
         // calculate cursor rect
         if (self.text_changed || selection_changed) && editable && focused {
-            self.cursor_rect.build(
-                &self.layout,
-                height,
-                selection_end,
-                self.padding,
-                self.text.len(),
-            );
+            self.cursor_rect
+                .build(&self.layout, height, selection_end, self.padding);
         }
 
         // Create texture
@@ -366,17 +362,20 @@ impl TextData {
         if self.rebuild_layout {
             self.rebuild_layout = false;
 
-            let mut builder =
-                text_ctx
-                    .layout
-                    .ranged_builder(&mut text_ctx.font, &self.text, self.scale_factor);
+            // Quantized: baselines and line boxes land on whole pixels.
+            let mut builder = text_ctx.layout.ranged_builder(
+                &mut text_ctx.font,
+                &self.text,
+                self.scale_factor,
+                true,
+            );
 
             self.default_style.apply_default(&mut builder);
 
             self.section_style.apply(&mut builder);
 
             // Build the builder into a Layout
-            builder.build_into(&mut self.layout);
+            builder.build_into(&mut self.layout, &self.text);
             self.texture_stale = true;
 
             if self.rebuild_line_breaks {
@@ -389,8 +388,11 @@ impl TextData {
                     None
                 };
 
-                // Perform layout (including bidi resolution and shaping) with alignment
-                self.layout.break_all_lines(max_advance, self.alignment);
+                // Perform layout (including bidi resolution and shaping) with alignment.
+                // Building the layout resets its alignment, so it is set every time.
+                self.layout
+                    .set_alignment(self.alignment, AlignmentOptions::default());
+                self.layout.break_all_lines(max_advance);
             }
 
             true
@@ -557,12 +559,9 @@ impl TextData {
     ) {
         for line in self.layout.lines() {
             let metrics = line.metrics();
-            let top = (metrics.baseline - metrics.ascent - metrics.leading * 0.5)
-                .floor()
-                .max(0.0) as u32;
-            let bottom = ((metrics.baseline + metrics.descent + metrics.leading * 0.5).ceil()
-                as u32)
-                .min(image_height);
+            // The line box: ascent + descent plus half the leading on each side.
+            let top = metrics.block_min_coord.floor().max(0.0) as u32;
+            let bottom = (metrics.block_max_coord.ceil() as u32).min(image_height);
 
             // the selected characters as spans from left to right, neighbours
             // joined, so each pixel is painted once
@@ -606,8 +605,6 @@ impl TextData {
         image_width: u32,
     ) {
         // Resolve properties of the GlyphRun
-        let mut run_x = glyph_run.offset();
-        let run_y = glyph_run.baseline();
         let style = glyph_run.style();
         let color = style.brush;
 
@@ -619,7 +616,7 @@ impl TextData {
         let font_size = run.font_size();
         let normalized_coords = run.normalized_coords();
 
-        // Convert from parley::Font to swash::FontRef
+        // Convert from parley::FontData to swash::FontRef
         let font_ref = FontRef::from_index(font.data.as_ref(), font.index as usize).unwrap();
 
         // Build a scaler. As the font properties are constant across an entire run of glyphs
@@ -628,21 +625,19 @@ impl TextData {
             .builder(font_ref)
             .size(font_size)
             .hint(true)
-            .normalized_coords(normalized_coords)
+            .normalized_coords(normalized_coords.iter().map(|coord| coord.to_bits()))
             .build();
 
-        // Iterates over the glyphs in the GlyphRun
-        for glyph in glyph_run.glyphs() {
-            let glyph_x = run_x + glyph.x + self.padding;
-            let glyph_y = run_y - glyph.y;
-
-            run_x += glyph.advance;
+        // Iterates over the glyphs in the GlyphRun, positioned in the layout (y down)
+        for glyph in glyph_run.positioned_glyphs() {
+            let glyph_x = glyph.x + self.padding;
+            let glyph_y = glyph.y;
 
             render_glyph(
                 buffer,
                 &mut scaler,
                 &color,
-                &glyph,
+                glyph.id as u16,
                 glyph_x,
                 glyph_y,
                 image_width,

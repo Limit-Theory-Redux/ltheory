@@ -1,7 +1,7 @@
 use std::ops::Range;
 
 use glam::Vec2;
-use parley::layout::Cursor;
+use parley::Cursor;
 
 use super::TextLayout;
 use crate::input::{Button, Input};
@@ -176,7 +176,7 @@ impl TextSelection {
         {
             let widget_mouse_pos = cur_mouse_pos - widget_pos;
 
-            self.on_mouse(layout, widget_mouse_pos, input, text.len());
+            self.on_mouse(layout, widget_mouse_pos, input);
 
             *mouse_pos = cur_mouse_pos;
 
@@ -221,42 +221,16 @@ impl TextSelection {
         false
     }
 
-    fn on_mouse(
-        &mut self,
-        layout: &TextLayout,
-        widget_mouse_pos: Vec2,
-        input: &Input,
-        text_len: usize,
-    ) {
-        let cursor = Cursor::from_point(layout, widget_mouse_pos.x, widget_mouse_pos.y);
+    fn on_mouse(&mut self, layout: &TextLayout, widget_mouse_pos: Vec2, input: &Input) {
+        // The text position nearest to the mouse: the side of the character it
+        // is on, never after a line's explicit line break (parley handles both).
+        let pos = Cursor::from_point(layout, widget_mouse_pos.x, widget_mouse_pos.y).index();
 
-        if input.is_pressed(Button::MouseLeft) {
-            if input.is_keyboard_shift_down() {
-                if self.is_forward() && cursor.text_end >= text_len {
-                    // to allow last text symbol to be selected
-                    self.set_end(cursor.text_end);
-                } else {
-                    // this is needed to avoid jumping cursor to the start of the next line
-                    // while Shift+clicking outside of the non-last line
-                    self.set_end(cursor.text_start);
-                }
-            } else if cursor.text_end >= text_len {
-                // to allow last text symbol to be selected
-                self.set_cursor(cursor.text_end);
-            } else {
-                // this is needed to avoid jumping cursor to the start of the next line
-                // while clicking outside of the non-last line
-                self.set_cursor(cursor.text_start);
-            }
-        } else if self.is_forward() && cursor.text_end >= text_len {
-            // TODO: there is a problem with condition above -
-            // it keeps either 1 or 2 last symbols unselected depending on
-            // if >= or > comparison is used
-            self.set_end(cursor.text_end);
+        if input.is_pressed(Button::MouseLeft) && !input.is_keyboard_shift_down() {
+            self.set_cursor(pos);
         } else {
-            // this is needed to avoid jumping cursor to the start of the next line
-            // while dragging mouse outside of the non-last line
-            self.set_end(cursor.text_start);
+            // Shift+click or dragging extends the selection.
+            self.set_end(pos);
         }
     }
 

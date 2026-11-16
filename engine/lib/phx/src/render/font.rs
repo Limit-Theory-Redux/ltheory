@@ -1,14 +1,21 @@
+use std::borrow::Cow;
 use std::collections::HashMap;
+use std::path::Path;
+use std::rc::Rc;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use glam::{IVec2, IVec4};
+use parley::fontique::Blob;
+use parley::style::{FontFamily, FontStyle, FontWeight, FontWidth, StyleProperty};
+use parley::{Layout, PositionedLayoutItem};
 use swash::scale::{Render, ScaleContext, Source};
-use swash::shape::ShapeContext;
 use swash::zeno::{Format, Vector};
 use swash::{CacheKey, FontRef};
 
 use super::{Color, Imm2DVertex, Renderer, Samplers, Shape, Tex2D, TexFormat};
 use crate::rf::Rf;
 use crate::system::{Profiler, Resource, ResourceType};
+use crate::ui::hmgui::{RegisteredFont, TEXT_CTX, TextContext, font_generation};
 
 /// Side of an atlas page, in texels (one 1024x1024 R8 texture per page).
 const ATLAS_SIZE: u32 = 1024;
@@ -26,6 +33,10 @@ const SUBPIXEL_STEPS: u32 = 4;
 const K_GAMMA: f32 = 1.8;
 const K_RCP_GAMMA: f32 = 1.0 / K_GAMMA;
 
+/// Engine frames so far, advanced by [`Font::next_frame`]. A font keeps the
+/// lines it shaped for as long as they are asked for every frame.
+static FRAME: AtomicU64 = AtomicU64::new(0);
+
 #[derive(Clone)]
 pub struct Font(Rf<FontData>);
 
@@ -37,10 +48,12 @@ impl std::fmt::Debug for Font {
 
 struct FontData {
     name: String,
-    /// The font file; with `offset` and `key` it makes a swash `FontRef`.
-    data: Vec<u8>,
-    offset: u32,
-    key: CacheKey,
+    /// The family, width, style and weight that make parley pick this font's
+    /// file (see [`RegisteredFont`]).
+    family: String,
+    width: FontWidth,
+    style: FontStyle,
+    weight: FontWeight,
     /// Pixels per em.
     size: f32,
     /// The line box: whole pixels above and below the baseline (rounded up),
@@ -49,10 +62,23 @@ struct FontData {
     descent: i32,
     /// Distance between the baselines of two lines.
     line_height: i32,
-    shape_ctx: ShapeContext,
+    /// The font files glyphs were taken from: this font's own file first,
+    /// then every fallback font parley picked for a character it lacks.
+    faces: Vec<Face>,
+    /// Reused for every line this font lays out.
+    layout: Layout<Color>,
+    /// Shaped lines by text. HmGui asks for the same texts every frame (and
+    /// twice: to measure and to draw), so a line is shaped once and kept while
+    /// it is used; one not asked for during a whole frame is dropped.
+    lines: HashMap<String, CachedLine>,
+    /// The frame `lines` was last swept in.
+    lines_frame: u64,
+    /// The text context's font generation the lines were shaped with: a font
+    /// registered later can change which fallback font a character gets.
+    lines_generation: u64,
     scale_ctx: ScaleContext,
-    /// Rasterized glyphs by glyph id and subpixel step.
-    glyphs: HashMap<(u16, u8), Glyph>,
+    /// Rasterized glyphs by face, glyph id and subpixel step.
+    glyphs: HashMap<(u16, u16, u8), Glyph>,
     /// The glyph atlas: pages are added as the current one fills up.
     pages: Vec<AtlasPage>,
 }
@@ -146,10 +172,58 @@ struct Glyph {
     sy: i32,
 }
 
+/// A font file glyphs come from, as swash needs it to rasterize them.
+struct Face {
+    blob: Blob<u8>,
+    /// Index of the font in its file (a collection holds several).
+    index: u32,
+    offset: u32,
+    key: CacheKey,
+}
+
+impl Face {
+    fn new(blob: Blob<u8>, index: u32) -> Option<Self> {
+        let font = FontRef::from_index(blob.data(), index as usize)?;
+        let (offset, key) = (font.offset, font.key);
+        Some(Self {
+            blob,
+            index,
+            offset,
+            key,
+        })
+    }
+
+    fn font_ref(&self) -> FontRef<'_> {
+        FontRef {
+            data: self.blob.data(),
+            offset: self.offset,
+            key: self.key,
+        }
+    }
+}
+
+/// The index of parley's `font` in `faces`, added the first time it is used.
+/// `None` if swash can't read it.
+fn face_index(faces: &mut Vec<Face>, font: &parley::FontData) -> Option<u16> {
+    let found = faces
+        .iter()
+        .position(|face| face.blob.id() == font.data.id() && face.index == font.index);
+    let index = match found {
+        Some(index) => index,
+        None => {
+            faces.push(Face::new(font.data.clone(), font.index)?);
+            faces.len() - 1
+        }
+    };
+    u16::try_from(index).ok()
+}
+
 /// One glyph of a shaped line, with its pen position relative to the start
 /// of the line on the baseline, in pixels (y down).
 #[derive(Clone, Copy)]
 struct PlacedGlyph {
+    /// Index into the font's faces.
+    face: u16,
     id: u16,
     x: f32,
     y: f32,
@@ -159,6 +233,12 @@ struct ShapedLine {
     glyphs: Vec<PlacedGlyph>,
     /// Total advance width in pixels.
     width: f32,
+}
+
+/// A shaped line in a font's cache, with the last frame it was asked for.
+struct CachedLine {
+    line: Rc<ShapedLine>,
+    frame: u64,
 }
 
 /// Splits a pen x position into the whole pixel the glyph's bitmap is placed
@@ -174,51 +254,107 @@ fn snap_x(x: f32) -> (f32, u8) {
 }
 
 impl FontData {
-    /// Lay out `text` as one line: glyph ids and positions, with the font's
-    /// kerning (GPOS) and other default OpenType features applied. Characters
-    /// the font has no glyph for are skipped, without an advance.
-    fn shape(&mut self, text: &str) -> ShapedLine {
-        let font = FontRef {
-            data: &self.data,
-            offset: self.offset,
-            key: self.key,
-        };
-        let mut shaper = self.shape_ctx.builder(font).size(self.size).build();
-        shaper.add_str(text);
-
-        let mut glyphs = Vec::with_capacity(text.len());
-        let mut x = 0.0;
-        shaper.shape_with(|cluster| {
-            for glyph in cluster.glyphs {
-                if glyph.id == 0 {
-                    continue;
-                }
-                // swash offsets are y up, the screen is y down.
-                glyphs.push(PlacedGlyph {
-                    id: glyph.id,
-                    x: x + glyph.x,
-                    y: -glyph.y,
-                });
-                x += glyph.advance;
-            }
-        });
-
-        ShapedLine { glyphs, width: x }
+    /// `text` laid out as one line: from the cache, or shaped with parley in
+    /// the shared text context.
+    fn shape(&mut self, text: &str) -> Rc<ShapedLine> {
+        self.shape_at(text, FRAME.load(Ordering::Relaxed), font_generation())
     }
 
-    /// The glyph `id` rasterized at subpixel `step`, added to the atlas the
-    /// first time it is asked for.
-    fn glyph(&mut self, r: &mut Renderer, id: u16, step: u8) -> Glyph {
-        if let Some(glyph) = self.glyphs.get(&(id, step)) {
+    /// [`Self::shape`] in engine frame `frame`, with the text context at font
+    /// generation `generation`. Lines last asked for before the previous frame
+    /// are dropped first (once per frame), and all lines when the generation
+    /// changed.
+    fn shape_at(&mut self, text: &str, frame: u64, generation: u64) -> Rc<ShapedLine> {
+        if generation != self.lines_generation {
+            self.lines.clear();
+            self.lines_generation = generation;
+        }
+        if frame != self.lines_frame {
+            self.lines
+                .retain(|_, cached| cached.frame.saturating_add(1) >= frame);
+            self.lines_frame = frame;
+        }
+
+        if let Some(cached) = self.lines.get_mut(text) {
+            cached.frame = frame;
+            return cached.line.clone();
+        }
+
+        let line = {
+            let mut text_ctx = TEXT_CTX.lock().expect("Cannot use text context");
+            Rc::new(self.shape_in(&mut text_ctx, text))
+        };
+        self.lines.insert(
+            text.to_owned(),
+            CachedLine {
+                line: line.clone(),
+                frame,
+            },
+        );
+        line
+    }
+
+    /// Lay out `text` as one line with parley: glyph ids and positions, with
+    /// the font's kerning (GPOS) and other default OpenType features applied.
+    /// A character this font lacks comes from the fallback font (DejaVu Sans);
+    /// one that no font has (the `.notdef` glyph) keeps its advance but isn't
+    /// drawn. Line breaks are dropped: this text is always one line.
+    fn shape_in(&mut self, text_ctx: &mut TextContext, text: &str) -> ShapedLine {
+        let text: Cow<'_, str> = if text.contains(['\n', '\r']) {
+            text.replace(['\n', '\r'], "").into()
+        } else {
+            text.into()
+        };
+
+        let TextContext { font, layout, .. } = text_ctx;
+        let mut builder = layout.ranged_builder(font, &text, 1.0, false);
+        builder.push_default(FontFamily::named(&self.family));
+        builder.push_default(StyleProperty::FontSize(self.size));
+        builder.push_default(StyleProperty::FontWidth(self.width));
+        builder.push_default(StyleProperty::FontStyle(self.style));
+        builder.push_default(StyleProperty::FontWeight(self.weight));
+        builder.build_into(&mut self.layout, &text);
+        self.layout.break_all_lines(None);
+
+        let mut glyphs = Vec::with_capacity(text.len());
+        if let Some(line) = self.layout.lines().next() {
+            let baseline = line.metrics().baseline;
+            for item in line.items() {
+                let PositionedLayoutItem::GlyphRun(run) = item else {
+                    continue;
+                };
+                let Some(face) = face_index(&mut self.faces, run.run().font()) else {
+                    continue;
+                };
+                for glyph in run.positioned_glyphs() {
+                    if glyph.id == 0 {
+                        continue;
+                    }
+                    glyphs.push(PlacedGlyph {
+                        face,
+                        id: glyph.id as u16,
+                        x: glyph.x,
+                        y: glyph.y - baseline,
+                    });
+                }
+            }
+        }
+
+        ShapedLine {
+            glyphs,
+            width: self.layout.full_width(),
+        }
+    }
+
+    /// The glyph `id` of `face` rasterized at subpixel `step`, added to the
+    /// atlas the first time it is asked for.
+    fn glyph(&mut self, r: &mut Renderer, face: u16, id: u16, step: u8) -> Glyph {
+        if let Some(glyph) = self.glyphs.get(&(face, id, step)) {
             return *glyph;
         }
 
         let image = {
-            let font = FontRef {
-                data: &self.data,
-                offset: self.offset,
-                key: self.key,
-            };
+            let font = self.faces[face as usize].font_ref();
             let mut scaler = self.scale_ctx.builder(font).size(self.size).build();
             Render::new(&[Source::Outline])
                 .format(Format::Alpha)
@@ -275,7 +411,7 @@ impl FontData {
             }
         }
 
-        self.glyphs.insert((id, step), glyph);
+        self.glyphs.insert((face, id, step), glyph);
         glyph
     }
 
@@ -314,33 +450,54 @@ impl Font {
         self.0.as_ref().descent
     }
 
-    /// Make a font of `size` pixels per em from the contents of a font file.
-    pub(crate) fn from_bytes(name: &str, data: Vec<u8>, size: u32) -> Self {
+    /// Start a new engine frame for the fonts' line caches: a line not asked
+    /// for during the frame that just ended is dropped next time its font is
+    /// used. Called once per frame by the main loop.
+    pub fn next_frame() {
+        FRAME.fetch_add(1, Ordering::Relaxed);
+    }
+
+    /// Make a font of `size` pixels per em from the font file at `path`,
+    /// registered with the shared text context.
+    pub(crate) fn from_file(name: &str, path: &Path, size: u32) -> Self {
+        let registered = TEXT_CTX
+            .lock()
+            .expect("Cannot use text context")
+            .register_font_file(path)
+            .unwrap_or_else(|| {
+                panic!(
+                    "Font_Load: Failed to load font <{name}> from file {path:?}. Current folder: {:?}",
+                    std::env::current_dir()
+                )
+            });
+
+        Self::from_registered(name, &registered, size)
+    }
+
+    /// Make a font of `size` pixels per em from a font file registered with
+    /// the text context. Its line box comes from the file's own metrics.
+    fn from_registered(name: &str, registered: &RegisteredFont, size: u32) -> Self {
         let size = size as f32;
-        let (offset, key, ascent, descent, line_height) = {
-            let font = FontRef::from_index(&data, 0)
-                .unwrap_or_else(|| panic!("Font_Load: <{name}> is not a font file we can read"));
-            let metrics = font.metrics(&[]).scale(size);
-            (
-                font.offset,
-                font.key,
-                metrics.ascent.ceil() as i32,
-                metrics.descent.ceil() as i32,
-                (metrics.ascent + metrics.descent + metrics.leading).round() as i32,
-            )
-        };
+        let face = Face::new(registered.blob.clone(), 0)
+            .unwrap_or_else(|| panic!("Font_Load: <{name}> is not a font file we can read"));
+        let metrics = face.font_ref().metrics(&[]).scale(size);
 
         Self(
             FontData {
                 name: name.into(),
-                data,
-                offset,
-                key,
+                family: registered.family.clone(),
+                width: registered.width,
+                style: registered.style,
+                weight: registered.weight,
                 size,
-                ascent,
-                descent,
-                line_height,
-                shape_ctx: ShapeContext::new(),
+                ascent: metrics.ascent.ceil() as i32,
+                descent: metrics.descent.ceil() as i32,
+                line_height: (metrics.ascent + metrics.descent + metrics.leading).round() as i32,
+                faces: vec![face],
+                layout: Layout::new(),
+                lines: HashMap::new(),
+                lines_frame: FRAME.load(Ordering::Relaxed),
+                lines_generation: font_generation(),
                 scale_ctx: ScaleContext::new(),
                 glyphs: HashMap::new(),
                 pages: Vec::new(),
@@ -373,7 +530,7 @@ impl Font {
             // Rasterize what is missing first, then upload the changed rows once.
             for placed in &line.glyphs {
                 let (base_x, step) = snap_x(x + placed.x);
-                let glyph = font_data.glyph(r, placed.id, step);
+                let glyph = font_data.glyph(r, placed.face, placed.id, step);
                 let Some(page) = glyph.page else {
                     continue;
                 };
@@ -425,14 +582,7 @@ impl Font {
 impl Font {
     pub fn load(_r: &mut Renderer, name: &str, size: u32) -> Self {
         let path = Resource::get_path(ResourceType::Font, name);
-        let data = std::fs::read(&path).unwrap_or_else(|err| {
-            panic!(
-                "Font_Load: Failed to load font <{name}> from file {path:?}: {err}. Current folder: {:?}",
-                std::env::current_dir()
-            )
-        });
-
-        Self::from_bytes(name, data, size)
+        Self::from_file(name, Path::new(&path), size)
     }
 
     /// Draw `text` with its baseline-relative top-left corner at `x, y`, alpha
@@ -459,7 +609,7 @@ impl Font {
 
         for placed in &line.glyphs {
             let (base_x, step) = snap_x(placed.x);
-            let glyph = font_data.glyph(r, placed.id, step);
+            let glyph = font_data.glyph(r, placed.face, placed.id, step);
             let x0 = base_x as i32 + glyph.x0;
             let y0 = placed.y.round() as i32 + glyph.y0;
 
@@ -500,10 +650,10 @@ mod tests {
     use super::*;
 
     fn font(name: &str, size: u32) -> Font {
-        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../../../res/font")
             .join(format!("{name}.ttf"));
-        Font::from_bytes(name, std::fs::read(path).expect("font file"), size)
+        Font::from_file(name, &path, size)
     }
 
     #[test]
@@ -544,6 +694,98 @@ mod tests {
             pair < apart - 0.5,
             "the font's kerning pulls A and V together ({pair} vs {apart})"
         );
+    }
+
+    #[test]
+    fn missing_characters_come_from_the_fallback_font() {
+        let font = font("Exo2", 16);
+        let mut font_data = font.0.as_mut();
+
+        let latin = font_data.shape("Exo");
+        assert!(latin.glyphs.iter().all(|glyph| glyph.face == 0));
+
+        // Exo 2 has no Hebrew: before parley these glyphs were dropped.
+        let hebrew = font_data.shape("\u{5e9}\u{5dc}\u{5d5}\u{5dd}");
+        assert_eq!(hebrew.glyphs.len(), 4, "every character is drawn");
+        assert!(
+            hebrew.glyphs.iter().all(|glyph| glyph.face != 0),
+            "the glyphs come from the fallback font"
+        );
+    }
+
+    #[test]
+    fn text_stays_one_line() {
+        let font = font("Exo2", 16);
+        let mut font_data = font.0.as_mut();
+
+        let joined = font_data.shape("ab");
+        let broken = font_data.shape("a\nb\r");
+        assert_eq!(broken.glyphs.len(), 2);
+        assert_eq!(broken.width, joined.width, "line breaks take no room");
+        assert!(
+            broken.glyphs.iter().all(|glyph| glyph.y == 0.0),
+            "both glyphs sit on the one baseline"
+        );
+    }
+
+    #[test]
+    fn lines_are_kept_while_they_are_used() {
+        let font = font("Exo2", 16);
+        let mut font_data = font.0.as_mut();
+        let generation = font_data.lines_generation;
+
+        let first = font_data.shape_at("Back", 10, generation);
+        let again = font_data.shape_at("Back", 10, generation);
+        assert!(Rc::ptr_eq(&first, &again), "measure and draw share a line");
+
+        for frame in 11..14 {
+            let next = font_data.shape_at("Back", frame, generation);
+            assert!(
+                Rc::ptr_eq(&first, &next),
+                "a line asked for every frame stays (frame {frame})"
+            );
+        }
+    }
+
+    #[test]
+    fn unused_lines_are_dropped() {
+        let font = font("Exo2", 16);
+        let mut font_data = font.0.as_mut();
+        let generation = font_data.lines_generation;
+
+        let back = font_data.shape_at("Back", 10, generation);
+        font_data.shape_at("Speed 1", 11, generation);
+        assert!(
+            font_data.lines.contains_key("Back"),
+            "kept through the next frame"
+        );
+
+        font_data.shape_at("Speed 2", 12, generation);
+        assert!(
+            !font_data.lines.contains_key("Back"),
+            "gone once a whole frame passed without it"
+        );
+        assert!(
+            font_data.lines.contains_key("Speed 1"),
+            "used in the previous frame"
+        );
+        assert!(font_data.lines.contains_key("Speed 2"));
+
+        let later = font_data.shape_at("Back", 20, generation);
+        assert!(!Rc::ptr_eq(&back, &later), "shaped again");
+        assert_eq!(font_data.lines.len(), 1, "frames without the font drop all");
+    }
+
+    #[test]
+    fn a_registered_font_clears_the_lines() {
+        let font = font("Exo2", 16);
+        let mut font_data = font.0.as_mut();
+        let generation = font_data.lines_generation;
+
+        let before = font_data.shape_at("Back", 10, generation);
+        let after = font_data.shape_at("Back", 10, generation + 1);
+        assert!(!Rc::ptr_eq(&before, &after));
+        assert_eq!(before.glyphs.len(), after.glyphs.len());
     }
 
     #[test]
