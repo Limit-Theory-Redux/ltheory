@@ -103,7 +103,9 @@ end
 ---The TextView for the field at this scale (font size), made again when needed.
 local function getSeedView(s)
     local size = math.max(8, math.floor(24 * s + 0.5))
-    local key = size .. (usingTestSeed() and ":test" or ":own")
+    -- a new TextView (new text data) for every choice: the engine copies new
+    -- text data into the field, also into an editable one
+    local key = size .. (usingTestSeed() and (":test" .. testSeedIndex) or ":own")
     if seedViewKey ~= key then
         if seedView and not usingTestSeed() and seedViewKey and seedViewKey:find(":own") then
             ownSeedText = textOf(seedView) -- keep what the player typed
