@@ -16,6 +16,9 @@ local OrbitCameraController = Subclass("OrbitCameraController", CameraController
     self.minDistance = config.minDistance or 2.0
     self.maxDistance = config.maxDistance or 100.0
     self.zoomSpeed = config.zoomSpeed or 5.0
+    -- When set, each zoom step changes the distance by this fraction of it
+    -- (for targets of very different sizes) instead of by zoomSpeed.
+    self.zoomRatio = config.zoomRatio
 
     self.mouseSensitivity = config.mouseSensitivity or 0.003
     self.yaw = config.initialYaw or 0.0
@@ -40,6 +43,28 @@ function OrbitCameraController:setDistance(distance)
     self.distance = Math.Clamp(distance, self.minDistance, self.maxDistance)
 end
 
+---Sets the zoom range and jumps to the distance (no zoom animation).
+---@param distances { distance: number, minDistance: number, maxDistance: number, zoomSpeed: number|nil, zoomRatio: number|nil }
+function OrbitCameraController:setDistances(distances)
+    self.minDistance = distances.minDistance
+    self.maxDistance = distances.maxDistance
+    self.zoomSpeed = distances.zoomSpeed or self.zoomSpeed
+    self.zoomRatio = distances.zoomRatio
+    self.distance = Math.Clamp(distances.distance, self.minDistance, self.maxDistance)
+    self.currentDistance = self.distance
+end
+
+---The zoom range and distance, as `setDistances` takes them.
+function OrbitCameraController:getDistances()
+    return {
+        distance = self.distance,
+        minDistance = self.minDistance,
+        maxDistance = self.maxDistance,
+        zoomSpeed = self.zoomSpeed,
+        zoomRatio = self.zoomRatio,
+    }
+end
+
 ---@param dt number
 function OrbitCameraController:onInput(dt)
     if not self.enabled or not Window:isFocused() then return end
@@ -61,7 +86,13 @@ function OrbitCameraController:onInput(dt)
     -- Zoom
     local zoom = CameraActions.Zoom:get()
     if math.abs(zoom) > 0.001 then
-        self.distance = Math.Clamp(self.distance - zoom * self.zoomSpeed, self.minDistance, self.maxDistance)
+        local distance
+        if self.zoomRatio then
+            distance = self.distance * math.max(0.1, 1 - zoom * self.zoomRatio)
+        else
+            distance = self.distance - zoom * self.zoomSpeed
+        end
+        self.distance = Math.Clamp(distance, self.minDistance, self.maxDistance)
     end
 end
 

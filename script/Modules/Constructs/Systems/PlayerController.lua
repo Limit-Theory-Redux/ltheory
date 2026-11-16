@@ -95,6 +95,8 @@ function PlayerController:_createCameras(config)
     camOrbit:get(CameraDataComponent):setController(self.controllers[Enums.CameraMode.Orbit])
     self.controllers[Enums.CameraMode.Orbit]:setTarget(self.ship)
     self.cameraEntities[Enums.CameraMode.Orbit] = camOrbit
+    -- The ship's zoom range, restored when the orbit camera goes back to it
+    self.shipOrbitDistances = self.controllers[Enums.CameraMode.Orbit]:getDistances()
 
     -- Free camera (detached)
     local camFree = CameraEntity()
@@ -268,8 +270,32 @@ function PlayerController:setShip(shipEntity)
     local fp = self.controllers[Enums.CameraMode.FirstPerson]
     if fp then fp:setTarget(shipEntity) end
 
+    -- The orbit camera follows the ship unless it was given something else
     local orbit = self.controllers[Enums.CameraMode.Orbit]
-    if orbit then orbit:setTarget(shipEntity) end
+    if orbit and not self.orbitTarget then orbit:setTarget(shipEntity) end
+end
+
+--- Point the orbit camera at something other than the ship (a scenario's
+--- planet or station, say), with a zoom range that suits it. nil points it
+--- back at the ship with the ship's zoom range.
+---@param entity Entity|nil
+---@param distances table|nil { distance, minDistance, maxDistance, zoomSpeed?, zoomRatio? }; nil keeps the current ones
+function PlayerController:setOrbitTarget(entity, distances)
+    self.orbitTarget = entity
+    local orbit = self.controllers[Enums.CameraMode.Orbit]
+    if entity then
+        if distances then orbit:setDistances(distances) end
+        orbit:setTarget(entity)
+    else
+        orbit:setDistances(self.shipOrbitDistances)
+        orbit:setTarget(self.ship)
+    end
+end
+
+--- What the orbit camera follows: the ship, or what `setOrbitTarget` gave it.
+---@return Entity
+function PlayerController:getOrbitTarget()
+    return self.orbitTarget or self.ship
 end
 
 return PlayerController

@@ -7,6 +7,7 @@ local NewgameView = UICore.View {
 ---@type UIRouter
 local UIRouter = require("UI.HmGui.UICore.UIRouter")
 local MenuStyle = require("UI.HmGui.Styles.MenuStyle")
+local Scenarios = require("Config.Scenarios")
 ---@type RandomNumberGenerator
 local rng = RNG.FromTime()
 
@@ -34,6 +35,9 @@ local testSeeds = {
     { "looks pretty cool",                                15887563511063255006ULL },
     { "looks pretty cool too",                            976665863517979971ULL },
 }
+
+local scenarioNames = {}
+for i, scenario in ipairs(Scenarios) do scenarioNames[i] = scenario.name end
 
 local testSeedNames = { "None" }
 for _, entry in ipairs(testSeeds) do testSeedNames[#testSeedNames + 1] = entry[1] end
@@ -76,6 +80,7 @@ end
 -- 1 = None: the player's own seed in the field. Otherwise a test seed, which
 -- the field shows (dimmed, read-only) instead of the player's text.
 local testSeedIndex = 1
+local scenarioIndex = 1 -- in Scenarios (Config/Scenarios); 1 = the default
 local ownSeedText = ""
 
 local FIELD_W, FIELD_H = 340, 40
@@ -180,12 +185,12 @@ local function startNewGame()
     -- Rulesets + SolarSystemVisualizer) via the seam the state exposes
     -- in onInit (GameState.startGame).
     if GameState.startGame then
-        GameState.startGame(seed)
+        GameState.startGame(seed, Scenarios[scenarioIndex])
     end
 end
 
 local seedField = UIComponent.MenuRaw {
-    x = 305, y = 130, w = FIELD_W, h = FIELD_H,
+    x = 305, y = 236, w = FIELD_W, h = FIELD_H,
     fn = function(ctx)
         local s = ctx.s
         local C = MenuStyle.color
@@ -209,7 +214,7 @@ NewgameView:addContent(UIComponent.MenuScreen {
                 UIComponent.MenuButton { x = 17, y = 996, w = 140, h = 44, title = "Back", callback = switchToMainScreen },
                 UIComponent.MenuButton {
                     x = 178, y = 996, w = 140, h = 44, title = "Start", style = "go",
-                    toolTip = "Starts a new game with the universe seed (or the test seed).",
+                    toolTip = "Starts the scenario with the universe seed (or the test seed).",
                     callback = startNewGame
                 },
             }
@@ -217,29 +222,41 @@ NewgameView:addContent(UIComponent.MenuScreen {
         UIComponent.MenuPanel {
             x = 432, y = 52, w = 1508, h = 1018,
             contents = {
-                UIComponent.MenuLabel { x = 100, y = 130, h = 40, text = "Universe Seed" },
+                UIComponent.MenuLabel { x = 100, y = 130, h = 40, text = "Scenario" },
+                UIComponent.MenuDropdown {
+                    x = 305, y = 130, w = 510,
+                    toolTip = "How the game starts: the star system, and test setups.",
+                    selections = scenarioNames,
+                    getIndex = function() return scenarioIndex end,
+                    setIndex = function(index) scenarioIndex = index end
+                },
+                UIComponent.MenuLabel {
+                    x = 305, y = 174, h = 30, size = 19, font = "regular", color = MenuStyle.color.dim,
+                    text = function() return Scenarios[scenarioIndex].description or "" end
+                },
+                UIComponent.MenuLabel { x = 100, y = 236, h = 40, text = "Universe Seed" },
                 seedField,
                 UIComponent.MenuButton {
-                    x = 665, y = 129, w = 150, h = 42, size = 26, uppercase = false, title = "New Seed",
+                    x = 665, y = 235, w = 150, h = 42, size = 26, uppercase = false, title = "New Seed",
                     enabled = function() return not usingTestSeed() end,
                     toolTip = "Picks a new random seed.\nYou can also type a number, or any text.",
                     callback = rollSeed
                 },
-                UIComponent.MenuLabel { x = 100, y = 192, h = 40, text = "Test Seed" },
+                UIComponent.MenuLabel { x = 100, y = 298, h = 40, text = "Test Seed" },
                 UIComponent.MenuDropdown {
-                    x = 305, y = 192, w = FIELD_W,
+                    x = 305, y = 298, w = FIELD_W,
                     toolTip = "Known seeds for testing. A test seed replaces the Universe Seed.",
                     selections = testSeedNames,
                     getIndex = function() return testSeedIndex end,
                     setIndex = setTestSeed
                 },
                 UIComponent.MenuLabel {
-                    x = 305, y = 236, h = 30, size = 19, font = "regular", color = MenuStyle.color.dim,
+                    x = 305, y = 342, h = 30, size = 19, font = "regular", color = MenuStyle.color.dim,
                     text = "Starts with this test seed. Pick None to use your own.",
                     visible = usingTestSeed
                 },
                 UIComponent.MenuSlider {
-                    x = 100, y = 304, label = "Nebula Brightness",
+                    x = 100, y = 410, label = "Nebula Brightness",
                     toolTip = "1 = low brightness, 10 = high brightness.",
                     min = 1, max = 10, increment = 1,
                     format = function(v) return string.format("%d", math.floor(v + 0.5)) end,

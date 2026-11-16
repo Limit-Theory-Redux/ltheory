@@ -5,6 +5,10 @@ new game with its HUD, the pause menu and the Controls screen. It catches a
 screen that throws while it is built or drawn, like a setting that no longer
 exists.
 
+Then every scenario in New Game's Scenario list (Config/Scenarios) is started
+from the main menu and regenerated once (B), so a scenario that throws while
+it is built, run, drawn or rebuilt fails the test too.
+
 Run it from the repository root after a build:
 
     ./bin/ltr.exe MenuSmokeTest      (macOS/Linux: ./bin/ltr MenuSmokeTest)
@@ -27,6 +31,7 @@ still use Legacy objects and are not wired into the new game yet.
 local Game = require('States.App.LTheoryRedux')
 local UIPageMainMenu = require('UI.HmGui.Pages.MainMenu')
 local SettingsView = require('UI.HmGui.Views.MainMenu.Settings')
+local Scenarios = require('Config.Scenarios')
 
 local FRAMES_PER_SCREEN = 5
 local GAME_SEED = 1
@@ -40,8 +45,8 @@ os.remove(Config.paths.files .. Config.userInitFilename .. '_backup' .. Config.u
 --- The screens in the order they are opened: { name, open = function }.
 local screens = {}
 
-local function screen(name, open)
-    screens[#screens + 1] = { name = name, open = open }
+local function screen(name, open, frames)
+    screens[#screens + 1] = { name = name, open = open, frames = frames or FRAMES_PER_SCREEN }
 end
 
 for _, view in ipairs({ 'Title', 'Main', 'Newgame', 'Loadgame' }) do
@@ -66,6 +71,16 @@ screen('Game > HUD', function() Game:startGame(GAME_SEED) end)
 screen('Game > Pause menu', function() Game:openPauseMenu() end)
 screen('Game > Controls', function() Game:openControls() end)
 
+-- From the main menu, as a player would (a frame or more apart: tearing a
+-- big star system down and building the next one in one frame needs GPU
+-- memory for both). Regenerate gets more frames: it builds a few frames after
+-- tearing down.
+for _, scenario in ipairs(Scenarios) do
+    screen('Scenario > ' .. scenario.name .. ' > Main menu', function() Game:returnToMainMenu() end)
+    screen('Scenario > ' .. scenario.name, function() Game:startGame(GAME_SEED, scenario) end)
+    screen('Scenario > ' .. scenario.name .. ' > Regenerate', function() Game:regenerateScenario() end, 12)
+end
+
 local current = 0
 local framesOnScreen = 0
 
@@ -73,7 +88,10 @@ local framesOnScreen = 0
 --- the next one; after the last one, report the pass and quit.
 local function advance()
     framesOnScreen = framesOnScreen + 1
-    if current > 0 and framesOnScreen < FRAMES_PER_SCREEN then
+    if current > #screens then
+        return -- passed; the engine stops after this frame
+    end
+    if current > 0 and framesOnScreen < screens[current].frames then
         return
     end
 
