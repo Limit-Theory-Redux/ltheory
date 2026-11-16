@@ -37,6 +37,21 @@ function Test:onInit()
         { 'width = "50%", height = "fit"', box('50 %', { width = "50%", height = "fit" }) },
         { 'width = "fit", height = "75%"', box('fit x 75 %', { width = "fit", height = "75%" }) },
     }
+
+    -- Each band aligns its children left, so a component that follows its own
+    -- `align` sits right; `textAlign` only places the title.
+    local right = { AlignHorizontal.Right, AlignVertical.Center }
+    local function noop() end
+    self.componentAlign = {
+        { 'Slider, align = Right', UIComponent.Slider {
+            title = "Volume", size = Vec2f(220, 20), align = right, callback = noop } },
+        { 'Switch, align = Right', UIComponent.Switch {
+            title = "Bloom", size = Vec2f(50, 22), currentValue = true, align = right, callback = noop } },
+        { 'ProgressBar, align = Right', UIComponent.ProgressBar {
+            title = "Hull", size = Vec2f(220, 20), currentValue = 70, align = right } },
+        { 'Slider, default align', UIComponent.Slider {
+            title = "Volume", size = Vec2f(220, 20), callback = noop } },
+    }
 end
 
 function Test:onInput() end
@@ -78,6 +93,7 @@ function Test:buildGui()
     Gui:setSpacing(24)
 
     self:section('UIComponent.Container sizes', self.containerSizes)
+    self:section('Components place themselves by align', self.componentAlign)
 
     Gui:endContainer()
 
