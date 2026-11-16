@@ -15,7 +15,7 @@ local function Overlay(args)
         Gui:beginLayer()
         Gui:beginStackContainer()
         Gui:setAlignment(AlignHorizontal.Left, AlignVertical.Top)
-        Gui:setFixedSize(Window:width(), Window:height())
+        Gui:setPercentSize(100, 100) -- the window: percentages aren't scaled
         Gui:setBackgroundColor(C.overlay)
         Gui:isMouseOver(FocusType.Mouse) -- the widgets under the overlay don't get the mouse
         renderChildren(args.contents, ctx)

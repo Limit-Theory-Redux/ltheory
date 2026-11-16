@@ -7,8 +7,8 @@ local meta = {
     end
 }
 
---- From this size (real pixels) `outline = true` draws the 1 px outline as
---- well as the halo; smaller text gets the halo alone.
+--- From this size (the text's own size, before any UI scale) `outline = true`
+--- draws the 1 px outline as well as the halo; smaller text gets the halo alone.
 Text.OutlineMinSize = 24
 
 local NO_OUTLINE = Color(0, 0, 0, 0)

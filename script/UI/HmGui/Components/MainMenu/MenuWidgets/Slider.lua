@@ -32,7 +32,7 @@ local function Slider(args)
             dragging = false
         end
         if dragging and range > 0 then
-            local t = (mouse:position().x - pos.x) / (BAR_W * s)
+            local t = (mouse:position().x - pos.x) / (BAR_W * s) -- window pixels
             t = math.max(0, math.min(1, t))
             local v = args.min + t * range
             if args.increment and args.increment > 0 then
@@ -49,12 +49,12 @@ local function Slider(args)
             frac = math.max(0, math.min(1, (args.get() - args.min) / range))
         end
         Gui:setBackgroundColor(C.track)
-        Gui:setBorderWidth(MenuStyle.border(2, s))
+        Gui:setBorderWidth(2)
         Gui:setBorderColor(C.fieldBorder)
         if frac > 0 then
             Gui:rect()
             Gui:setAlignment(AlignHorizontal.Left, AlignVertical.Stretch)
-            Gui:setFixedWidth(frac * (BAR_W - 4) * s)
+            Gui:setFixedWidth(frac * (BAR_W - 4))
             Gui:setBackgroundColor((hover or dragging) and C.fillHover or C.fill)
         end
         Gui:endContainer()
