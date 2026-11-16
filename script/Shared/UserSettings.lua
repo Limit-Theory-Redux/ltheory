@@ -238,6 +238,58 @@ local groups = {
     },
 }
 
+---A copy of every value the Settings screen changes (all tabs, plus the window
+---size), to compare with later (`differsFrom`) or to go back to (`restore`).
+---@return table<string, any> snapshot
+function UserSettings.snapshot()
+    local snapshot = {}
+    for _, entries in pairs(groups) do
+        for _, entry in ipairs(entries) do
+            snapshot[entry[1] .. "." .. entry[2]] = GameState[entry[1]][entry[2]]
+        end
+    end
+    snapshot["render.resX"] = GameState.render.resX
+    snapshot["render.resY"] = GameState.render.resY
+    return snapshot
+end
+
+---Whether a windowed window's size differs from a snapshot's. Only then is the
+---window size a setting: in fullscreen it follows the screen.
+local function windowSizeDiffers(snapshot)
+    return not snapshot["render.fullscreen"] and not GameState.render.fullscreen
+        and (snapshot["render.resX"] ~= GameState.render.resX or snapshot["render.resY"] ~= GameState.render.resY)
+end
+
+---Whether any value the Settings screen changes differs from a snapshot.
+---@param snapshot table<string, any> from `UserSettings.snapshot`
+---@return boolean
+function UserSettings.differsFrom(snapshot)
+    for _, entries in pairs(groups) do
+        for _, entry in ipairs(entries) do
+            if snapshot[entry[1] .. "." .. entry[2]] ~= GameState[entry[1]][entry[2]] then
+                return true
+            end
+        end
+    end
+    return windowSizeDiffers(snapshot)
+end
+
+---Put every value the Settings screen changes back as it was in a snapshot,
+---and apply them (the Settings screen's "Undo changes").
+---@param snapshot table<string, any> from `UserSettings.snapshot`
+function UserSettings.restore(snapshot)
+    for _, entries in pairs(groups) do
+        for _, entry in ipairs(entries) do
+            GameState[entry[1]][entry[2]] = snapshot[entry[1] .. "." .. entry[2]]
+        end
+    end
+    UserSettings.applyAll()
+    if windowSizeDiffers(snapshot) then
+        UserSettings.setResolution(snapshot["render.resX"], snapshot["render.resY"])
+    end
+    require("Shared.Audio.MusicPlayer"):setGlobalVolume()
+end
+
 ---Put one Settings tab's values back to their defaults and apply them.
 ---@param group "interface"|"graphics"|"audio"
 function UserSettings.reset(group)

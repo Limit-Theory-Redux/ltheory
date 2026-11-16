@@ -1,13 +1,11 @@
 ---@type UIView
 local MainView = UICore.View {
-    name = "Main"
+    name = "Main",
+    noDarken = true -- the sidebar carries its own background
 }
 
 ---@type UIRouter
 local UIRouter = require("UI.HmGui.UICore.UIRouter")
----@type ResponsiveSize
-local ResponsiveSize = require("Types.ResponsiveSize")
-local InitFiles = require('Legacy.Systems.Files.InitFiles')
 
 local logo = Tex2D.Load("./res/images/LTR-logo-name.png")
 
@@ -41,154 +39,26 @@ end
 
 function MainView:onViewClose(isPageClose) end
 
-local function getLayoutContainerWidthPercentage() --todo: needs replacement with a more sophisticated layout system
-    return GameState.render.resX / 1600 * 170 * 2 / GameState.render.resX
-end
-
-local function getRemainingWidthPercentage()
-    return 1 - getLayoutContainerWidthPercentage()
-end
-
-local function switchToNewgameView()
-    UIRouter:getCurrentPage():setView("Newgame")
-end
-
-local function switchToLoadgameView()
-    UIRouter:getCurrentPage():setView("Loadgame")
-end
-
-local function switchToSettingsView()
-    UIRouter:getCurrentPage():setView("Settings")
-end
-
-local function switchToCreditsView()
-    UIRouter:getCurrentPage():setView("Credits")
-end
-
 -- The idle screensaver view, on demand (it also opens after `timeTillBackground`
 -- seconds without mouse movement).
 local function switchToBackgroundView()
     UIRouter:getCurrentPage():setView("Background")
 end
 
-local menuGrid = UILayout.Grid {
-    align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
-    padding = { 125, 0 },
-    margin = { 0, 0 },
-    stackDirection = GuiLayoutType.Horizontal,
+MainView:addContent(UIComponent.MenuScreen {
     contents = {
-        UILayout.Grid {
-            align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
-            padding = { 0, 0 },
-            margin = { 0, 0 },
-            widthInLayout = getLayoutContainerWidthPercentage,
-            layoutType = GuiLayoutType.Vertical,
-            color = {
-                background = Color(0, 0, 0, 0.3)
-            },
+        UIComponent.MenuSidebar {
             contents = {
-                UIComponent.RawInput {
-                    heightInLayout = 2 / 10,
-                    fn = function()
-                        Gui:beginStackContainer()
-                        Gui:setPaddingTop(10)
-                        Gui:setPaddingRight(5)
-                        Gui:setPaddingBottom(10)
-                        Gui:setPaddingLeft(5)
-                        Gui:setPercentSize(100, 100)
-                        Gui:setChildrenAlignment(AlignHorizontal.Center, AlignVertical.Center)
-
-                        Gui:image(logo)
-                        Gui:setPercentSize(100, 42)
-
-                        Gui:endContainer()
-                    end
+                UIComponent.MenuImage { x = 32, y = 92, w = 268, image = logo },
+                UIComponent.MenuMainNav {},
+                UIComponent.MenuNav {
+                    y = 980, size = 26, itemHeight = 60,
+                    items = { { title = "Background", callback = switchToBackgroundView } }
                 },
-                UIComponent.Container {
-                    align = { AlignHorizontal.Stretch, AlignVertical.Top },
-                    padding = { 0, 50 },
-                    margin = { 0, 0 },
-                    layoutType = GuiLayoutType.Vertical,
-                    heightInLayout = 7 / 10,
-                    contents = {
-                        UIComponent.Button_MainMenu {
-                            title = "New Game",
-                            size = ResponsiveSize(300, 60, true),
-                            font = { name = "Unageo-Medium", size = 24 },
-                            callback = switchToNewgameView,
-                            align = { AlignHorizontal.Center, AlignVertical.Center }
-                        },
-                        UIComponent.Button_MainMenu {
-                            title = "Load Game",
-                            size = ResponsiveSize(300, 60, true),
-                            font = { name = "Unageo-Medium", size = 24 },
-                            callback = switchToLoadgameView,
-                            align = { AlignHorizontal.Center, AlignVertical.Center }
-                        },
-                        UIComponent.Button_MainMenu {
-                            title = "Settings",
-                            size = ResponsiveSize(300, 60, true),
-                            font = { name = "Unageo-Medium", size = 24 },
-                            align = { AlignHorizontal.Center, AlignVertical.Center },
-                            callback = switchToSettingsView
-                        },
-                        UIComponent.Button_MainMenu {
-                            title = "Credits",
-                            size = ResponsiveSize(300, 60, true),
-                            font = { name = "Unageo-Medium", size = 24 },
-                            callback = switchToCreditsView,
-                            align = { AlignHorizontal.Center, AlignVertical.Center }
-                        },
-                        UIComponent.Button_MainMenu {
-                            title = "Exit",
-                            size = ResponsiveSize(300, 60, true),
-                            font = { name = "Unageo-Medium", size = 24 },
-                            callback = function()
-                                LimitTheoryRedux:exit() -- run pre-exit operations & exit game
-                            end,
-                            align = { AlignHorizontal.Center, AlignVertical.Center }
-                        },
-                    }
-                },
-                UIComponent.Container {
-                    align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
-                    childrenAlign = { AlignHorizontal.Center, AlignVertical.Center },
-                    padding = { 0, 0 },
-                    margin = { 0, 0 },
-                    heightInLayout = 1 / 10,
-                    layoutType = GuiLayoutType.Vertical,
-                    contents = {
-                        UIComponent.Button_MainMenu {
-                            title = "Background",
-                            size = ResponsiveSize(300, 40, true),
-                            font = { name = "Unageo-Medium", size = 20 },
-                            callback = switchToBackgroundView,
-                            align = { AlignHorizontal.Center, AlignVertical.Center }
-                        },
-                        UIComponent.Text {
-                            text = Config.gameVersion,
-                            align = { AlignHorizontal.Center, AlignVertical.Center },
-                            font = "Exo2",
-                            size = 12
-                        }
-                    }
-                }
+                UIComponent.MenuVersion(),
             }
         },
-        UIComponent.Container {
-            align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
-            childrenAlign = { AlignHorizontal.Center, AlignVertical.Center },
-            padding = { 0, 0 },
-            margin = { 0, 0 },
-            widthInLayout = getRemainingWidthPercentage,
-            layoutType = GuiLayoutType.Vertical,
-            contents = {
-                UIComponent.RawInput { fn = function() end }
-            }
-        }
     }
-}
-
-MainView:addContent(menuGrid)
+})
 
 return MainView
