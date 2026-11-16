@@ -95,6 +95,13 @@ impl HmGui {
         self.layers[index].root.clone()
     }
 
+    /// The root widget of a layer (0 = the base layer), for the layout tests
+    /// (which only run on Linux, see `mod tests`).
+    #[cfg(all(test, target_os = "linux"))]
+    pub(super) fn layer_root(&self, index: usize) -> Rf<HmGuiWidget> {
+        self.layers[index].root.clone()
+    }
+
     #[inline]
     pub fn container(&self) -> Rf<HmGuiWidget> {
         self.layers[self.layer_index].container.clone()
@@ -237,17 +244,19 @@ impl HmGui {
         let layers_root: Vec<_> = self
             .layers
             .iter()
-            .map(|layer| (layer.root.clone(), layer.location))
+            .map(|layer| (layer.root.clone(), layer.location.clone()))
             .collect();
         for (root_rf, location) in &layers_root {
             let mut root = root_rf.as_mut();
 
-            if let HmGuiLayerLocation::Below(widget_hash) = location {
-                // we assume here that widget_hash points to the widget on the previous layer,
-                // so its position and size are already calculated
-                let data = self.data_mut(*widget_hash);
+            if let HmGuiLayerLocation::Below(widget_rf) = location {
+                // The widget is on an earlier layer, so it's laid out already (this
+                // frame). The layer starts under its border box: margins don't count.
+                let widget = widget_rf.as_ref();
+                let box_pos = widget.pos + widget.margin_lower;
+                let box_size = widget.size - widget.margin_lower - widget.margin_upper;
 
-                root.pos = Vec2::new(data.pos.x, data.pos.y + data.size.y);
+                root.pos = Vec2::new(box_pos.x, box_pos.y + box_size.y);
                 root.inner_pos = root.pos;
                 root.size = self.screen_size - root.pos; // rest of the screen
                 root.inner_size = root.size;
@@ -280,12 +289,9 @@ impl HmGui {
 
         self.renderer.begin(r);
 
-        let layers_root: Vec<_> = self
-            .layers
-            .iter()
-            .rev()
-            .map(|layer| layer.root.clone())
-            .collect();
+        // In order: a later layer (a dropdown list, a tooltip) is drawn over the
+        // earlier ones, as the mouse finds it first (`end_gui`).
+        let layers_root: Vec<_> = self.layers.iter().map(|layer| layer.root.clone()).collect();
         for root_rf in layers_root {
             let root = root_rf.as_ref();
 
@@ -329,10 +335,10 @@ impl HmGui {
     /// All new elements will be added to this new layer.
     /// Each layer has its own separate layout system.
     pub fn begin_layer_below(&mut self) {
-        let hash = self.last().as_ref().hash;
+        let widget = self.last();
 
         let layer_index = self.layers.len();
-        let layer = HmGuiLayer::new_below(self.layer_index, hash);
+        let layer = HmGuiLayer::new_below(self.layer_index, widget);
 
         self.layers.push(layer);
         self.layer_index = layer_index;
@@ -722,12 +728,11 @@ impl HmGui {
         }
     }
 
+    /// Add a line of text. A text widget narrower than its text (a fixed or
+    /// stretched width, or a parent that is too small) shows as much of the
+    /// text as fits, ended with "…".
     pub fn text(&mut self, text: &str, font: &Font, color: &Color) {
-        let item = HmGuiText {
-            text: text.into(),
-            font: font.clone(),
-            color: *color,
-        };
+        let item = HmGuiText::new(text, font, color);
         let widget_rf = self.init_widget(WidgetItem::Text(item));
         let _ = widget_rf.as_mut();
     }
@@ -814,26 +819,75 @@ impl HmGui {
         false
     }
 
+    /// The widget is at least this wide (excluding margin and border); a
+    /// container or text is wider when its content needs it.
     pub fn set_min_width(&self, width: f32) {
         let last = self.last();
         let mut widget = last.as_mut();
 
         widget.inner_min_size.x = width;
+        widget.min_size_request.x = width;
     }
 
+    /// The widget is at least this high (excluding margin and border); a
+    /// container or text is higher when its content needs it.
     pub fn set_min_height(&self, height: f32) {
         let last = self.last();
         let mut widget = last.as_mut();
 
         widget.inner_min_size.y = height;
+        widget.min_size_request.y = height;
     }
 
+    /// The widget is at least this big (excluding margin and border); a
+    /// container or text is bigger when its content needs it.
     pub fn set_min_size(&self, width: f32, height: f32) {
         let last = self.last();
         let mut widget = last.as_mut();
 
-        widget.inner_min_size.x = width;
-        widget.inner_min_size.y = height;
+        widget.inner_min_size = Vec2::new(width, height);
+        widget.min_size_request = Vec2::new(width, height);
+    }
+
+    /// The widget is at most this wide (excluding margin and border), also when
+    /// stretched or given a fixed size; a text that is wider is cut and ends
+    /// with "…" (like CSS `max-width` with `text-overflow: ellipsis`).
+    pub fn set_max_width(&self, width: f32) {
+        let last = self.last();
+        let mut widget = last.as_mut();
+
+        widget.max_size.x = width;
+    }
+
+    /// The widget is at most this high (excluding margin and border), also when
+    /// stretched or given a fixed size.
+    pub fn set_max_height(&self, height: f32) {
+        let last = self.last();
+        let mut widget = last.as_mut();
+
+        widget.max_size.y = height;
+    }
+
+    /// The widget is at most this big (excluding margin and border); see
+    /// `set_max_width`.
+    pub fn set_max_size(&self, width: f32, height: f32) {
+        let last = self.last();
+        let mut widget = last.as_mut();
+
+        widget.max_size = Vec2::new(width, height);
+    }
+
+    /// Place the widget at (x, y) relative to its parent container's top left
+    /// corner inside the border (the parent's padding doesn't apply; its scroll
+    /// offset does). The widget leaves its parent's layout, like CSS
+    /// `position: absolute`: it doesn't move its siblings or make its parent
+    /// bigger, and its alignment is not used. Its size is its fixed, percent or
+    /// min size; its margins still apply.
+    pub fn set_position(&self, x: f32, y: f32) {
+        let last = self.last();
+        let mut widget = last.as_mut();
+
+        widget.position = Some(Vec2::new(x, y));
     }
 
     pub fn set_fixed_width(&self, width: f32) {

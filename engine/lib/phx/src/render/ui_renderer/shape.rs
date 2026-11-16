@@ -1,6 +1,5 @@
 use glam::Vec2;
 
-use super::UIRendererShapeId;
 use crate::render::{Color, Shape, Stroke, StrokeLook};
 
 /// Where and how a UI shape is drawn, by the engine entry point that draws it.
@@ -23,7 +22,6 @@ pub enum UIShapeGeometry {
 /// One of the engine's `ui/*` shapes.
 #[derive(Clone)]
 pub struct UIRendererShape {
-    pub next: Option<UIRendererShapeId>,
     pub shape: Shape,
     pub geometry: UIShapeGeometry,
     pub color: Color,

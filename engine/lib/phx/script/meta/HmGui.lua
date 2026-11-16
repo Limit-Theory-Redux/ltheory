@@ -284,6 +284,9 @@ function HmGui:defineLook(look) end
 ---@param value number
 function HmGui:setLookParam(look, param, value) end
 
+-- Add a line of text. A text widget narrower than its text (a fixed or
+-- stretched width, or a parent that is too small) shows as much of the
+-- text as fits, ended with "…".
 ---@param text string
 ---@param font Font
 ---@param color Color
@@ -318,15 +321,48 @@ function HmGui:hasFocus() end
 ---@return boolean
 function HmGui:hasActiveInput() end
 
+-- The widget is at least this wide (excluding margin and border); a
+-- container or text is wider when its content needs it.
 ---@param width number
 function HmGui:setMinWidth(width) end
 
+-- The widget is at least this high (excluding margin and border); a
+-- container or text is higher when its content needs it.
 ---@param height number
 function HmGui:setMinHeight(height) end
 
+-- The widget is at least this big (excluding margin and border); a
+-- container or text is bigger when its content needs it.
 ---@param width number
 ---@param height number
 function HmGui:setMinSize(width, height) end
+
+-- The widget is at most this wide (excluding margin and border), also when
+-- stretched or given a fixed size; a text that is wider is cut and ends
+-- with "…" (like CSS `max-width` with `text-overflow: ellipsis`).
+---@param width number
+function HmGui:setMaxWidth(width) end
+
+-- The widget is at most this high (excluding margin and border), also when
+-- stretched or given a fixed size.
+---@param height number
+function HmGui:setMaxHeight(height) end
+
+-- The widget is at most this big (excluding margin and border); see
+-- `set_max_width`.
+---@param width number
+---@param height number
+function HmGui:setMaxSize(width, height) end
+
+-- Place the widget at (x, y) relative to its parent container's top left
+-- corner inside the border (the parent's padding doesn't apply; its scroll
+-- offset does). The widget leaves its parent's layout, like CSS
+-- `position: absolute`: it doesn't move its siblings or make its parent
+-- bigger, and its alignment is not used. Its size is its fixed, percent or
+-- min size; its margins still apply.
+---@param x number
+---@param y number
+function HmGui:setPosition(x, y) end
 
 ---@param width number
 function HmGui:setFixedWidth(width) end

@@ -70,9 +70,16 @@ impl HmGuiContainer {
 
         let mut min_size = Vec2::ZERO;
 
+        // Positioned children (`set_position`) are out of the layout: they don't
+        // make the container bigger.
+        let flow_children = self
+            .children
+            .iter()
+            .filter(|widget_rf| widget_rf.as_ref().position.is_none());
+
         match self.layout {
             LayoutType::Stack => {
-                for widget_rf in &self.children {
+                for widget_rf in flow_children {
                     let widget = widget_rf.as_ref();
                     let widget_min_size = widget.min_size;
 
@@ -80,7 +87,7 @@ impl HmGuiContainer {
                 }
             }
             LayoutType::Horizontal => {
-                for (i, widget_rf) in self.children.iter().enumerate() {
+                for (i, widget_rf) in flow_children.enumerate() {
                     let widget = widget_rf.as_ref();
                     let widget_min_size = widget.min_size;
 
@@ -93,7 +100,7 @@ impl HmGuiContainer {
                 }
             }
             LayoutType::Vertical => {
-                for (i, widget_rf) in self.children.iter().enumerate() {
+                for (i, widget_rf) in flow_children.enumerate() {
                     let widget = widget_rf.as_ref();
                     let widget_min_size = widget.min_size;
 
@@ -122,6 +129,10 @@ impl HmGuiContainer {
         size: Vec2,
         mut extra: Vec2,
     ) -> Vec2 {
+        // positioned children are placed from the top left inside the border
+        let positioned_origin = pos + self.offset;
+        let positioned_area = size;
+
         let mut pos = pos + self.padding_lower + self.offset;
         let size = size - self.padding_lower - self.padding_upper;
 
@@ -138,6 +149,13 @@ impl HmGuiContainer {
 
             for widget_rf in &self.children {
                 let mut widget = widget_rf.as_mut();
+
+                if widget.position.is_some() {
+                    // a percentage of the area it's placed in; takes no space
+                    Self::widget_percent_size::<0>(&mut widget, positioned_area.x);
+                    Self::widget_percent_size::<1>(&mut widget, positioned_area.y);
+                    continue;
+                }
 
                 extra_diff.x += stretch_x * Self::widget_percent_size::<0>(&mut widget, size.x);
                 extra_diff.y += stretch_y * Self::widget_percent_size::<1>(&mut widget, size.y);
@@ -170,7 +188,29 @@ impl HmGuiContainer {
             self.calculate_children_layout::<false, false>(hmgui, r, input, pos, size, extra_size)
         };
 
+        self.layout_positioned_children(hmgui, r, input, positioned_origin);
+
         children_size + self.padding_lower + self.padding_upper
+    }
+
+    /// Place the positioned children (`set_position`) at their positions, at
+    /// their min (fixed, percent) size.
+    fn layout_positioned_children(
+        &self,
+        hmgui: &mut HmGui,
+        r: &mut Renderer,
+        input: &Input,
+        origin: Vec2,
+    ) {
+        for widget_rf in &self.children {
+            let mut widget = widget_rf.as_mut();
+
+            if let Some(position) = widget.position {
+                widget.pos = origin + position;
+                widget.size = widget.min_size;
+                widget.layout(hmgui, r, input);
+            }
+        }
     }
 
     fn widget_percent_size<const DIM: usize>(widget: &mut HmGuiWidget, size: f32) -> f32 {
@@ -204,6 +244,10 @@ impl HmGuiContainer {
             for (i, widget_rf) in self.children.iter().enumerate() {
                 let widget = widget_rf.as_ref();
 
+                if widget.position.is_some() {
+                    continue; // out of the layout
+                }
+
                 if widget.alignment[DIM].is_extend() // child stretching/expanding has always priority
                     || widget.default_size[DIM].is_auto() // fixed/percent size has priority over children docking
                         && self.children_alignment[DIM].is_extend()
@@ -228,6 +272,10 @@ impl HmGuiContainer {
 
             for (i, widget_rf) in self.children.iter().enumerate() {
                 let widget = widget_rf.as_ref();
+
+                if widget.position.is_some() {
+                    continue; // out of the layout
+                }
 
                 if widget.alignment[DIM].is_expand() // child expanding has always priority
                     || widget.default_size[DIM].is_auto() // fixed/percent size has priority over children docking
@@ -281,6 +329,10 @@ impl HmGuiContainer {
                 for widget_rf in &self.children {
                     let mut widget = widget_rf.as_mut();
 
+                    if widget.position.is_some() {
+                        continue; // placed by layout_positioned_children
+                    }
+
                     self.calculate_layout::<0>(&mut widget, pos.x, size.x);
                     self.calculate_layout::<1>(&mut widget, pos.y, size.y);
 
@@ -300,6 +352,10 @@ impl HmGuiContainer {
 
                 for (i, widget_rf) in self.children.iter().enumerate() {
                     let mut widget = widget_rf.as_mut();
+
+                    if widget.position.is_some() {
+                        continue; // placed by layout_positioned_children
+                    }
 
                     widget.pos.x = pos.x;
                     widget.size.x = widget.min_size.x + extra_size[i];
@@ -322,6 +378,10 @@ impl HmGuiContainer {
 
                 for (i, widget_rf) in self.children.iter().enumerate() {
                     let mut widget = widget_rf.as_mut();
+
+                    if widget.position.is_some() {
+                        continue; // placed by layout_positioned_children
+                    }
 
                     self.calculate_layout::<0>(&mut widget, pos.x, size.x);
 
@@ -388,8 +448,10 @@ impl HmGuiContainer {
     pub fn draw(&self, hmgui: &mut HmGui, pos: Vec2, size: Vec2) {
         hmgui.renderer.begin_layer(pos, size, self.clip);
 
+        // In order: a later child is drawn over an earlier one, as the mouse
+        // finds it first (`HmGui::check_mouse_over`).
         // TODO: [optimization] do not draw children outside of clipped container or screen
-        for widget_rf in self.children.iter().rev() {
+        for widget_rf in &self.children {
             widget_rf.as_ref().draw(hmgui);
         }
 
