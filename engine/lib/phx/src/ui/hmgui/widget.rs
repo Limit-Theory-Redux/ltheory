@@ -398,14 +398,15 @@ impl HmGuiWidget {
                     image.draw(hmgui, pos, size);
 
                     if hmgui.in_focus(self) {
-                        // draw cursor
+                        // draw cursor (only where the player can type)
                         let data = hmgui.data_mut(self.hash);
                         let text_view =
                             data.text_view.as_mut().expect("Text view data was not set");
+                        let editable = text_view.is_editable();
                         let cursor_rect = text_view.data().cursor_rect();
                         let cursor_size = cursor_rect.size();
 
-                        if cursor_size.x > 0.0 && cursor_size.y > 0.0 {
+                        if editable && cursor_size.x > 0.0 && cursor_size.y > 0.0 {
                             let cursor_pos = self.inner_pos + cursor_rect.pos();
                             let color = cursor_rect.color();
 

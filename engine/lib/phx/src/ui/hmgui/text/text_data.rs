@@ -37,6 +37,14 @@ pub struct TextData {
     rebuild_layout: bool,
     rebuild_line_breaks: bool,
     layout: TextLayout,
+
+    /// Changed through its API (from Lua) since `Gui:textView` last copied it
+    /// into its view. New text data counts as changed.
+    needs_sync: bool,
+    /// The layout was rebuilt since the texture was last rendered. Measuring
+    /// the text (`calculate_rect`, before the layout pass) can rebuild it, so
+    /// "rebuilt now" isn't enough to know the texture is out of date.
+    texture_stale: bool,
 }
 
 impl PartialEq for TextData {
@@ -95,6 +103,9 @@ impl TextData {
             rebuild_layout: true,
             rebuild_line_breaks: true,
             layout: TextLayout::new(),
+
+            needs_sync: true,
+            texture_stale: true,
         }
     }
 
@@ -106,6 +117,7 @@ impl TextData {
         if self.text != text {
             self.text = text.into();
             self.invalidate_layout();
+            self.needs_sync = true;
         }
     }
 
@@ -128,6 +140,7 @@ impl TextData {
     pub fn set_section_style(&mut self, start_pos: usize, end_pos: usize, style: &TextStyle) {
         self.section_style.add(start_pos, end_pos, style);
         self.invalidate_layout();
+        self.needs_sync = true;
     }
 
     /// Sets cursor position in a text before character at position `pos`.
@@ -144,11 +157,14 @@ impl TextData {
         if self.selection != selection {
             self.selection = selection;
             self.invalidate_layout();
+            self.needs_sync = true;
         }
     }
 
     pub fn set_selection_color(&mut self, color: &Color) {
         self.selection_color = *color;
+        self.invalidate_layout();
+        self.needs_sync = true;
     }
 
     pub fn set_selection(&mut self, start_pos: usize, end_pos: usize) {
@@ -160,11 +176,18 @@ impl TextData {
         if self.selection != selection {
             self.selection = selection;
             self.invalidate_layout();
+            self.needs_sync = true;
         }
     }
 }
 
 impl TextData {
+    /// Whether the text data was changed through its API since the last call,
+    /// and forget it: `Gui:textView` copies such changes into its view.
+    pub fn take_needs_sync(&mut self) -> bool {
+        std::mem::take(&mut self.needs_sync)
+    }
+
     pub fn is_text_changed(&self) -> bool {
         self.text_changed
     }
@@ -221,6 +244,19 @@ impl TextData {
         } else {
             false
         };
+
+        updated |= if self.selection_color != text_data.selection_color {
+            self.selection_color = text_data.selection_color;
+            true
+        } else {
+            false
+        };
+
+        // a shorter text: the cursor or selection must stay inside it
+        if self.selection.end() > self.text.len() || self.selection.start() > self.text.len() {
+            self.selection = TextSelection::Cursor(self.text.len());
+            updated = true;
+        }
 
         if updated {
             self.invalidate_layout();
@@ -285,8 +321,9 @@ impl TextData {
         self.set_scale_factor(scale_factor);
         self.set_max_advance(width);
 
-        if !self.update_text_layout(text_ctx) {
-            return None;
+        self.update_text_layout(text_ctx);
+        if !std::mem::take(&mut self.texture_stale) {
+            return None; // the texture shows the current layout
         }
 
         // Create buffer to render into
@@ -340,6 +377,7 @@ impl TextData {
 
             // Build the builder into a Layout
             builder.build_into(&mut self.layout);
+            self.texture_stale = true;
 
             if self.rebuild_line_breaks {
                 self.rebuild_line_breaks = false;
@@ -610,5 +648,47 @@ impl TextData {
                 image_width,
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn data(text: &str) -> TextData {
+        TextData::new(
+            text,
+            &TextStyle::default(),
+            &Color::WHITE,
+            &Color::WHITE,
+            TextAlignment::Start,
+            false,
+        )
+    }
+
+    #[test]
+    fn changes_through_the_api_are_copied_once() {
+        let mut lua = data("123");
+        assert!(
+            lua.take_needs_sync(),
+            "new text data is copied into its view"
+        );
+        assert!(!lua.take_needs_sync());
+
+        lua.set_text("456");
+        assert!(lua.take_needs_sync());
+
+        lua.set_text("456"); // the same text: nothing changed
+        assert!(!lua.take_needs_sync());
+    }
+
+    #[test]
+    fn a_shorter_text_keeps_the_cursor_inside_it() {
+        let mut view = data("12345678");
+        view.set_cursor_pos(8);
+
+        view.update(&data("123"));
+        assert_eq!(view.selection(), &TextSelection::Cursor(3));
+        assert_eq!(view.text(), "123");
     }
 }
