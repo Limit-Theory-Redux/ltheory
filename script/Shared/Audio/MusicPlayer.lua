@@ -206,6 +206,8 @@ end
 ---Load the discovered tracks as MusicObjects (streamed by the audio
 ---manager). The main-menu track is loopable, the rest play once.
 function MusicPlayer:loadMusic()
+    -- The volume as it is now: user.ini is read after init.
+    self.volume = self:getEffectiveVolume()
     for fname, path in pairs(self.loadList) do
         local newMusicObject = MusicObject:create {
             name = fname,

@@ -105,8 +105,10 @@ function LimitTheoryRedux:onInit()
     -- Presentation: borderless fullscreen with VSync off, unless user.ini says
     -- otherwise (exclusive mode forces a mode switch that lowers frame rates).
     UserSettings.useGameDisplayDefaults()
+    -- Before user.ini: init lists the soundtracks that its menuTheme is matched
+    -- against. The tracks get the saved volumes in loadMusic below.
+    MusicPlayer:init()
     InitFiles:readUserInits()
-    MusicPlayer:init() -- after user.ini: it starts at the saved volumes
 
     Window:setSize(GameState.render.resX, GameState.render.resY)
     Window:setCenteredPosition()
