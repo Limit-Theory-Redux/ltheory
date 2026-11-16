@@ -1,4 +1,4 @@
-use parley::layout::Glyph;
+use swash::GlyphId;
 use swash::scale::image::Content;
 use swash::scale::{Render, Scaler, Source, StrikeWith};
 use swash::zeno::{Format, Vector};
@@ -9,7 +9,7 @@ pub(super) fn render_glyph(
     buffer: &mut [Color],
     scaler: &mut Scaler,
     color: &Color,
-    glyph: &Glyph,
+    glyph_id: GlyphId,
     glyph_x: f32,
     glyph_y: f32,
     image_width: u32,
@@ -33,7 +33,7 @@ pub(super) fn render_glyph(
     // Apply the fractional offset
     .offset(offset)
     // Render the image
-    .render(scaler, glyph.id)
+    .render(scaler, glyph_id)
     .unwrap();
 
     let glyph_width = glyph_image.placement.width;
@@ -55,7 +55,7 @@ pub(super) fn render_glyph(
                         let alpha = color_u8_to_f32(glyph_image.data[i]);
                         let color = color.with_alpha(alpha);
 
-                        buffer[idx as usize].blend_with(&color);
+                        buffer[idx as usize].paint_over(&color);
                     }
 
                     i += 1;
@@ -81,7 +81,7 @@ pub(super) fn render_glyph(
                             color_u8_to_f32(pixel[3]),
                         );
 
-                        buffer[idx as usize].blend_with(&color);
+                        buffer[idx as usize].paint_over(&color);
                     }
                 }
             }

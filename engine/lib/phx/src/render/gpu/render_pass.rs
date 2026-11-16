@@ -424,6 +424,7 @@ impl Renderer {
         pass.user_pipeline = None;
         pass.bound_pipeline = None;
         pass.scissor = None;
+        pass.draw_block = None;
         pass.view = ViewBlock::new(&camera, viewport, desc.backbuffer);
         // Every wgpu pass starts without a scissor; the first draw sends the
         // one it needs.
@@ -537,6 +538,7 @@ impl Renderer {
         }
         let (at, ptr) = self.data.ring.alloc(size);
         self.data.encoder.push(PassCmd::SetDraw { at, size });
+        self.data.pass.draw_block = Some((at, size));
         self.data.draw_alloc_flush = Some(self.data.pass_flushes);
         ptr
     }

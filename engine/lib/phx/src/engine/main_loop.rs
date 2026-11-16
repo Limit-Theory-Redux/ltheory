@@ -9,6 +9,7 @@ use winit::keyboard::PhysicalKey;
 use winit::window::WindowId;
 
 use super::Engine;
+use crate::render::Font;
 use crate::window::*;
 
 pub struct MainLoop {
@@ -103,12 +104,12 @@ impl ApplicationHandler for MainLoop {
                         )
                     });
                 }
+                // `text` is only set when a key is pressed (or repeats), not
+                // when it is released, so every character comes once.
                 if let Some(text) = event.text {
-                    let time = engine.get_time();
-
                     engine
                         .input
-                        .update_keyboard(device_id, |state| state.set_text(text.as_str(), time));
+                        .update_keyboard(device_id, |state| state.add_text(text.as_str()));
                 }
             }
             WindowEvent::CursorMoved {
@@ -311,6 +312,9 @@ impl ApplicationHandler for MainLoop {
         engine.input.update_gamepad(|state| state.update());
 
         // Tick operations
+        // A new frame for the fonts' line caches.
+        Font::next_frame();
+
         // Dispatch engine events
         engine.call_lua("AppEventLoop").unwrap_or_else(|e| {
             panic!("Error calling AppEventLoop: {e}");

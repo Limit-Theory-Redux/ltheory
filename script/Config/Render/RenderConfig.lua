@@ -9,6 +9,11 @@ Config.render.general = {
     fullscreenExclusive = false,
     presentMode         = PresentMode.Vsync,
     frustumCulling      = true,
+
+    -- Settings screen values the game applies through `Shared.UserSettings`
+    vsync               = false, -- the game's presentation: VSync off
+    brightness          = 0.5,   -- 0-1, 0.5 = the tonemap's own exposure
+    textureQuality      = 3,     -- index into UserSettings.textureQualities (3 = High, 1024 px)
 }
 
 Config.render.window = {

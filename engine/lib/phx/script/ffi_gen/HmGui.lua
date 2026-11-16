@@ -38,7 +38,27 @@ function Loader.defineType()
             void  HmGui_UpdateElementOffset            (HmGui*, Vec2f offset);
             void  HmGui_Image                          (HmGui*, Tex2D* image);
             void  HmGui_Rect                           (HmGui*);
+            void  HmGui_Annulus                        (HmGui*, Color const* color, float thickness, bool glow);
+            void  HmGui_Circle                         (HmGui*, Color const* color, bool glow);
+            void  HmGui_Point                          (HmGui*, Color const* color, bool glow);
+            void  HmGui_Ring                           (HmGui*, Color const* color, bool glow);
+            void  HmGui_Wedge                          (HmGui*, Color const* color, float thickness, float start, float sweep, bool glow);
+            void  HmGui_Triangle                       (HmGui*, Color const* color, float x1, float y1, float x2, float y2, float x3, float y3, bool glow);
+            void  HmGui_Line                           (HmGui*, Color const* color, float x1, float y1, float x2, float y2, bool glow);
+            void  HmGui_SetShapeFade                   (HmGui const*, float centre, float visible, float gone);
+            void  HmGui_StrokeBetween                  (HmGui*, Color const* color, float x1, float y1, float x2, float y2, float bend, float thickness);
+            void  HmGui_StrokeBent                     (HmGui*, Color const* color, float x, float y, float direction, float length, float bend, float thickness);
+            void  HmGui_Arc                            (HmGui*, Color const* color, float thickness, float start, float sweep);
+            void  HmGui_SetStrokeDash                  (HmGui const*, float dash, float gap, float phase);
+            void  HmGui_SetStrokeRoundCaps             (HmGui const*, bool round);
+            void  HmGui_SetStrokeCornerRadius          (HmGui const*, float radius);
+            void  HmGui_SetStrokeFade                  (HmGui const*, float centre, float visible, float gone);
+            void  HmGui_SetStrokeLook                  (HmGui*, cstr look);
+            void  HmGui_SetStrokeLookParam             (HmGui const*, cstr param, float value);
+            void  HmGui_DefineLook                     (HmGui*, cstr look);
+            void  HmGui_SetLookParam                   (HmGui*, cstr look, cstr param, float value);
             void  HmGui_Text                           (HmGui*, cstr text, Font const* font, Color const* color);
+            void  HmGui_TextOutlined                   (HmGui*, cstr text, Font const* font, Color const* color, Color const* outline, Color const* halo);
             void  HmGui_TextView                       (HmGui*, TextData* textData, bool editable);
             bool  HmGui_GetTextViewChanges             (HmGui*, TextData* textData);
             bool  HmGui_IsMouseOver                    (HmGui const*, FocusType ty);
@@ -48,6 +68,10 @@ function Loader.defineType()
             void  HmGui_SetMinWidth                    (HmGui const*, float width);
             void  HmGui_SetMinHeight                   (HmGui const*, float height);
             void  HmGui_SetMinSize                     (HmGui const*, float width, float height);
+            void  HmGui_SetMaxWidth                    (HmGui const*, float width);
+            void  HmGui_SetMaxHeight                   (HmGui const*, float height);
+            void  HmGui_SetMaxSize                     (HmGui const*, float width, float height);
+            void  HmGui_SetPosition                    (HmGui const*, float x, float y);
             void  HmGui_SetFixedWidth                  (HmGui const*, float width);
             void  HmGui_SetFixedHeight                 (HmGui const*, float height);
             void  HmGui_SetFixedSize                   (HmGui const*, float width, float height);
@@ -113,7 +137,27 @@ function Loader.defineType()
                 updateElementOffset            = libphx.HmGui_UpdateElementOffset,
                 image                          = libphx.HmGui_Image,
                 rect                           = libphx.HmGui_Rect,
+                annulus                        = libphx.HmGui_Annulus,
+                circle                         = libphx.HmGui_Circle,
+                point                          = libphx.HmGui_Point,
+                ring                           = libphx.HmGui_Ring,
+                wedge                          = libphx.HmGui_Wedge,
+                triangle                       = libphx.HmGui_Triangle,
+                line                           = libphx.HmGui_Line,
+                setShapeFade                   = libphx.HmGui_SetShapeFade,
+                strokeBetween                  = libphx.HmGui_StrokeBetween,
+                strokeBent                     = libphx.HmGui_StrokeBent,
+                arc                            = libphx.HmGui_Arc,
+                setStrokeDash                  = libphx.HmGui_SetStrokeDash,
+                setStrokeRoundCaps             = libphx.HmGui_SetStrokeRoundCaps,
+                setStrokeCornerRadius          = libphx.HmGui_SetStrokeCornerRadius,
+                setStrokeFade                  = libphx.HmGui_SetStrokeFade,
+                setStrokeLook                  = libphx.HmGui_SetStrokeLook,
+                setStrokeLookParam             = libphx.HmGui_SetStrokeLookParam,
+                defineLook                     = libphx.HmGui_DefineLook,
+                setLookParam                   = libphx.HmGui_SetLookParam,
                 text                           = libphx.HmGui_Text,
+                textOutlined                   = libphx.HmGui_TextOutlined,
                 textView                       = libphx.HmGui_TextView,
                 getTextViewChanges             = libphx.HmGui_GetTextViewChanges,
                 isMouseOver                    = libphx.HmGui_IsMouseOver,
@@ -123,6 +167,10 @@ function Loader.defineType()
                 setMinWidth                    = libphx.HmGui_SetMinWidth,
                 setMinHeight                   = libphx.HmGui_SetMinHeight,
                 setMinSize                     = libphx.HmGui_SetMinSize,
+                setMaxWidth                    = libphx.HmGui_SetMaxWidth,
+                setMaxHeight                   = libphx.HmGui_SetMaxHeight,
+                setMaxSize                     = libphx.HmGui_SetMaxSize,
+                setPosition                    = libphx.HmGui_SetPosition,
                 setFixedWidth                  = libphx.HmGui_SetFixedWidth,
                 setFixedHeight                 = libphx.HmGui_SetFixedHeight,
                 setFixedSize                   = libphx.HmGui_SetFixedSize,

@@ -1,4 +1,5 @@
 local CameraController = require("Modules.Cameras.Managers").CameraController
+local UserSettings     = require("Shared.UserSettings")
 
 ---@class RTSCameraController : CameraController
 ---@field focusPoint Vec3f The current camera focus point in world coordinates
@@ -158,11 +159,13 @@ function RTSCameraController:onInput(dt)
 
         local delta = Input:mouse():delta()
         if delta:length() > 0.001 then
-            -- Apply mouse sensitivity for yaw (horizontal rotation)
-            self.yaw = self.yaw - delta.x * self.mouseSensitivity * dt
+            -- Apply mouse sensitivity for yaw (horizontal rotation), scaled by the
+            -- Mouse Sensitivity setting
+            local sensitivity = self.mouseSensitivity * UserSettings.mouseSensitivityFactor()
+            self.yaw = self.yaw - delta.x * sensitivity * dt
 
             -- Apply pitch adjustment (vertical camera angle)
-            local pitchSensitivity = self.mouseSensitivity * 0.5
+            local pitchSensitivity = sensitivity * 0.5
             local pitchDelta = delta.y * pitchSensitivity * dt
 
             -- Adjust pitch with clamping relative to base pitch

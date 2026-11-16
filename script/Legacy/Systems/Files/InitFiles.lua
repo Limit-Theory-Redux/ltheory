@@ -5,8 +5,72 @@ local function comment(commentTable)
     for _, headerLine in ipairs(commentTable) do io.write(format("# %s\n", headerLine)) end
 end
 
+-- Settings whose user.ini value is a name from an option list (or its number).
+local optionLists = {
+    cursorStyle   = function() return Enums.CursorStyleNames end,
+    hudStyle      = function() return Enums.HudStyleNames end,
+    startupCamera = function() return Enums.CameraModeNames end,
+}
+
+---A file name in lower case, without its extension.
+---@param name string
+---@return string
+local function withoutExtension(name)
+    return (string.lower(name):gsub("(%..-)$", ""))
+end
+
+---The value a user.ini line gives a setting, checked against what the setting holds.
+---@param var string the setting's name
+---@param text string the value as written in user.ini
+---@param current any the setting's current value, which gives the kind of value it takes
+---@return any|nil value nil if the text doesn't fit
+---@return string|nil problem why it doesn't fit
+local function parseSettingValue(var, text, current)
+    local optionList = optionLists[var]
+    local names = optionList and optionList()
+    if names then
+        local index = tonumber(text)
+        if index and names[index] then
+            return index
+        end
+        for nameIndex, name in ipairs(names) do
+            if string.lower(name) == string.lower(text) then
+                return nameIndex
+            end
+        end
+        return nil, format("expected one of <%s>", string.lower(table.concat(names, ", ")))
+    end
+
+    if var == "menuTheme" then
+        for _, name in ipairs(Enums.SoundtrackNames or {}) do
+            if withoutExtension(name) == withoutExtension(text) then
+                return name
+            end
+        end
+        return nil, "no soundtrack has that name"
+    end
+
+    local kind = type(current)
+    if kind == "boolean" then
+        if text == "true" then return true end
+        if text == "false" then return false end
+        return nil, "expected true or false"
+    elseif kind == "number" then
+        local number = tonumber(text)
+        if number and number == number then -- not NaN
+            return number
+        end
+        return nil, "expected a number"
+    elseif kind == "string" then
+        return text
+    end
+    return nil, format("can't be set from user.ini (it holds a %s)", kind)
+end
+
+---Reads user.ini into GameState. Nothing in the file stops the game: a line that
+---can't be read, an unknown section or setting, or a value of the wrong kind is
+---logged as a warning and skipped, and that setting keeps its current value.
 function InitFiles:readUserInits()
-    -- Reads user initialization values from file
     -- TODO: Encase io.xxx functions in local wrappers for security/safety
     local filename = Config.userInitFilename
     local filetype = Config.userInitFiletype
@@ -20,184 +84,83 @@ function InitFiles:readUserInits()
     end
 
     local lines = {}
-
-    -- Sets the input file for reading
-    io.input(openedFile)
-
-    -- Reads all lines from the file
-    for line in openedFile.lines(openedFile) do
+    for line in openedFile:lines() do
         lines[#lines + 1] = line
     end
+    openedFile:close()
 
-    -- Closes the open file
-    io.close(openedFile)
+    local section     -- the GameState table of the current [section]; nil if unknown
+    local sectionName -- its name as written, for warnings
 
-    -- Scan all lines and apply values to matched game values
-    local stringToBoolean = { ["true"] = true, ["false"] = false }
-
-    local function findCategory(line)
-        if not string.match(line, "=") then
-            return true
-        end
-        return false
+    local function firstToLower(name)
+        return (name:gsub("^%u", string.lower))
     end
 
-    local categories = {}
-
-    for index, line in ipairs(lines) do
-        -- Skip comments or empty lines
-        if string.sub(line, 1, 1) == "#" or string.sub(line, 1, 1) == "" then
-            goto skip
-        end
-
-        if findCategory(line) then
-            local categoryName
-            local subCategoryName
-            categoryName = string.gsub(line, "%[", "")
-            categoryName = string.gsub(categoryName, "%]", "")
-
-            if string.match(categoryName, "%.") then
-                subCategoryName = string.gsub(categoryName, ".*%.", "")
-                categoryName = string.gsub(categoryName, "%..*", "")
-            end
-
-            local gameStateTable = GameState[categoryName]
-
-            if subCategoryName then
-                gameStateTable = GameState[categoryName][subCategoryName]
-            end
-
-            if gameStateTable then
-                local categoryTable = {
-                    name = categoryName,
-                    gameState = gameStateTable,
-                    index = index,
-                    vars = {}
-                }
-                table.insert(categories, categoryTable)
-            else
-                Log.Warn("Could not find game state for config category: " .. categoryName)
-            end
-        end
-        ::skip::
+    local function firstToUpper(name)
+        return (name:gsub("^%l", string.upper))
     end
 
-    local function findValuesForCategory(categoryTable)
-        local function checkIfCursorStyle(val)
-            for cursorStyle = 1, Enums.CursorStyleCount do
-                if string.match(string.lower(val), string.lower(Enums.CursorStyleNames[cursorStyle])) then
-                    return cursorStyle
-                end
-            end
-            return nil
+    ---A [section] line: find its GameState table ("ui.trackerBracketingRenderDistances"
+    ---is GameState.ui.trackerBracketingRenderDistances).
+    local function readSection(name)
+        sectionName = name
+        local found = GameState
+        for part in string.gmatch(name, "[^%.]+") do
+            found = type(found) == "table" and found[part] or nil
         end
-
-        local function checkIfHudStyle(val)
-            for hudStyle = 1, Enums.HudStyleCount do
-                if string.match(string.lower(val), string.lower(Enums.HudStyleNames[hudStyle])) then
-                    return hudStyle
-                end
-            end
-            return nil
+        if type(found) == "table" then
+            section = found
+        else
+            section = nil
+            Log.Warn("user.ini: no settings section [%s]; its lines are skipped", name)
         end
-
-        local function checkIfCameraMode(val)
-            for cameraMode = 1, Enums.CameraModeCount do
-                if string.match(string.lower(val), string.lower(Enums.CameraModeNames[cameraMode])) then
-                    return cameraMode
-                end
-            end
-            return nil
-        end
-
-        local function checkIfSoundtrack(val)
-            for soundtrackId = 1, Enums.SoundtrackCount do
-                local soundtrackName = string.lower(string.gsub(Enums.SoundtrackNames[soundtrackId], "(%..-)$", ""))
-                if string.match(string.lower(val), soundtrackName) then
-                    return Enums.SoundtrackNames[soundtrackId]
-                end
-            end
-            return nil
-        end
-
-        local function firstToLower(string)
-            return (string:gsub("^%L", string.lower))
-        end
-
-        local function firstToUpper(string)
-            return (string:gsub("^%l", string.upper))
-        end
-
-        local function setValue(var, val)
-            local lower = firstToLower(var)
-            local upper = firstToUpper(var)
-
-            if categoryTable.gameState[lower] ~= nil then
-                categoryTable.gameState[lower] = val
-            elseif categoryTable.gameState[upper] ~= nil then
-                categoryTable.gameState[upper] = val
-            else
-                Log.Warn("Can't find key in gamestate cat %s for var: %s with value %s", categoryTable.name, var,
-                    val)
-            end
-        end
-
-        local iterator = tonumber(categoryTable.index) + 1
-        local vars = {}
-        local currentLine = lines[iterator]
-
-        while currentLine and not string.match(currentLine, "%[") do
-            -- skip comments or empty lines
-            if string.match(currentLine, "#") or string.sub(currentLine, 1, 1) == "" then
-                iterator = iterator + 1
-                currentLine = lines[iterator]
-                goto skipLine
-            end
-
-            -- parse vars
-            local eIndex = string.find(currentLine, "=")
-            --Log.Debug("Line %s: %s", iterator, currentLine)
-            --Log.Debug("Current eIndex: %s", eIndex)
-            local var = string.sub(currentLine, 1, eIndex - 1)
-            local val = string.sub(currentLine, eIndex + 1)
-            val = string.gsub(val, "^%s*(.-)%s*$", "%1")
-
-            if val == "true" or val == "false" then
-                local bool = stringToBoolean[val]
-                setValue(var, bool)
-            elseif tonumber(val) then
-                setValue(var, tonumber(val))
-            elseif checkIfCursorStyle(val) then
-                local style = checkIfCursorStyle(val)
-                setValue(var, style)
-                val = tostring(style)
-            elseif checkIfHudStyle(val) then
-                local style = checkIfHudStyle(val)
-                setValue(var, style)
-                val = tostring(style)
-            elseif checkIfCameraMode(val) then
-                local mode = checkIfCameraMode(val)
-                setValue(var, mode)
-                val = tostring(mode)
-            elseif checkIfSoundtrack(val) then
-                local soundtrack = checkIfSoundtrack(val)
-                setValue(var, soundtrack)
-                val = tostring(soundtrack)
-            else
-                setValue(var, val)
-            end
-
-            iterator = iterator + 1
-            currentLine = lines[iterator]
-            --Log.Debug("Setting var to gamestate: %s with value: %s", var, val)
-            ::skipLine::
-        end
-        return vars
     end
 
-    for _, categoryTable in ipairs(categories) do
-        categoryTable.vars = findValuesForCategory(categoryTable)
-        -- do whatever with vars if needed
+    ---A name=value line: set the setting if the value fits it.
+    local function readSetting(lineNumber, var, text)
+        if not section then
+            return -- the unknown section was reported once
+        end
+        local key = var
+        if section[key] == nil then key = firstToLower(var) end
+        if section[key] == nil then key = firstToUpper(var) end
+        if section[key] == nil then
+            Log.Warn("user.ini line %d: no setting %s in [%s]; skipped", lineNumber, var, sectionName)
+            return
+        end
+
+        local value, problem = parseSettingValue(key, text, section[key])
+        if value == nil then
+            Log.Warn("user.ini line %d: %s=%s ignored (%s); keeping %s", lineNumber, var, text, problem,
+                tostring(section[key]))
+            return
+        end
+        section[key] = value
+    end
+
+    local function readLine(lineNumber, line)
+        line = string.match(line, "^%s*(.-)%s*$")
+        if line == "" or string.sub(line, 1, 1) == "#" then
+            return
+        end
+        local name = string.match(line, "^%[(.+)%]$")
+        if name then
+            readSection(name)
+            return
+        end
+        local var, text = string.match(line, "^([^=]-)%s*=%s*(.*)$")
+        if var and var ~= "" then
+            readSetting(lineNumber, var, text)
+            return
+        end
+        Log.Warn("user.ini line %d: not a [section] or name=value line; skipped: %s", lineNumber, line)
+    end
+
+    for lineNumber, line in ipairs(lines) do
+        local ok, err = pcall(readLine, lineNumber, line)
+        if not ok then
+            Log.Warn("user.ini line %d skipped, it could not be read (%s): %s", lineNumber, tostring(err), line)
+        end
     end
 
     Log.Info("Loaded configuration from: %s", configPath)
@@ -242,10 +205,21 @@ function InitFiles:writeUserInits()
         return
     end
 
-    local cursorType = string.lower(Enums.CursorStyleNames[GameState.ui.cursorStyle])
-    local hudType = string.lower(Enums.HudStyleNames[GameState.ui.hudStyle])
-    local startupCameraMode = string.lower(Enums.CameraModeNames[GameState.player.currentCamera])
-    local menuTheme = string.lower(GameState.audio.menuTheme):gsub("(%..-)$", "")
+    ---An option's name as user.ini writes it (lower case), or its number if it has
+    ---none (the file is already open for writing: an error here would leave it empty).
+    local function optionName(names, index)
+        local name = names and names[index]
+        if name then
+            return string.lower(name)
+        end
+        Log.Warn("user.ini: no option name for %s; writing it as a number", tostring(index))
+        return tostring(index)
+    end
+
+    local cursorType = optionName(Enums.CursorStyleNames, GameState.ui.cursorStyle)
+    local hudType = optionName(Enums.HudStyleNames, GameState.ui.hudStyle)
+    local startupCameraMode = optionName(Enums.CameraModeNames, GameState.player.currentCamera)
+    local menuTheme = withoutExtension(tostring(GameState.audio.menuTheme))
 
     -- Sets the input file for writing
     io.output(openedFileWritable)
@@ -344,7 +318,7 @@ function InitFiles:writeUserInits()
                         l_Value = menuTheme
                         local cleanSoundtrackNames = {}
 
-                        for _, name in ipairs(Enums.SoundtrackNames) do
+                        for _, name in ipairs(Enums.SoundtrackNames or {}) do
                             local cleanName = name:gsub("(%..-)$", "")
                             table.insert(cleanSoundtrackNames, cleanName)
                         end

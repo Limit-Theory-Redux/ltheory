@@ -26,4 +26,8 @@ function onDef_Font_t(t, mt)
     mt.__index.draw = function(self, text, x, y, color)
         libphx.Font_Draw(self, Renderer, text, x, y, color)
     end
+
+    mt.__index.drawOutlined = function(self, text, x, y, color, outline, halo)
+        libphx.Font_DrawOutlined(self, Renderer, text, x, y, color, outline, halo)
+    end
 end

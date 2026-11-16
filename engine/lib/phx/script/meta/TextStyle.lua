@@ -28,6 +28,7 @@ function TextStyle:setFontItalic(italic) end
 ---@param weight number
 function TextStyle:setFontWeight(weight) end
 
+-- BCP 47 language tag (`en-US`); no tag or an invalid one means no locale.
 ---@param locale string?
 function TextStyle:setLocale(locale) end
 
@@ -67,7 +68,8 @@ function TextStyle:setStrikethroughSize(size) end
 ---@param color Color?
 function TextStyle:setStrikethroughBrush(color) end
 
--- Line height multiplier.
+-- Line height as a multiple of the font's own line height (ascent +
+-- descent + line gap).
 ---@param height number
 function TextStyle:setLineHeight(height) end
 

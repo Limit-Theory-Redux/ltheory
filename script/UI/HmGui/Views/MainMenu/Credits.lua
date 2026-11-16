@@ -1,132 +1,102 @@
 ---@type UIView
 local CreditsView = UICore.View {
-    name = "Credits"
+    name = "Credits",
+    noDarken = true -- the modal carries its own background
 }
 
 ---@type UIRouter
 local UIRouter = require("UI.HmGui.UICore.UIRouter")
----@type ResponsiveSize
-local ResponsiveSize = require("Types.ResponsiveSize")
+local MenuStyle = require("UI.HmGui.Styles.MenuStyle")
+
+local logo = Tex2D.Load("./res/images/LTR-logo-full-hori.png")
 
 function CreditsView:onInput() end
 function CreditsView:onUpdate(dt) end
 function CreditsView:onViewOpen(isPageOpen) end
 function CreditsView:onViewClose(isPageClose) end
 
-local function getLayoutContainerWidthPercentage() --todo: needs replacement with a more sophisticated layout system
-    return GameState.render.resX / 1600 * 170 * 2 / GameState.render.resX
-end
-
-local function getRemainingWidthPercentage()
-    return 1 - getLayoutContainerWidthPercentage()
-end
-
 local function switchToMainScreen()
     UIRouter:getCurrentPage():setView("Main")
 end
 
-local creditsGrid = UILayout.Grid {
-    align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
-    padding = { 125, 0 },
-    margin = { 0, 0 },
-    stackDirection = GuiLayoutType.Horizontal,
-    contents = {
-        UILayout.Grid {
-            align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
-            padding = { 0, 0 },
-            margin = { 0, 0 },
-            widthInLayout = getLayoutContainerWidthPercentage,
-            layoutType = GuiLayoutType.Vertical,
-            color = {
-                background = Color(0, 0, 0, 0.3)
-            },
-            contents = {
-                UIComponent.Container {
-                    align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
-                    childrenAlign = { AlignHorizontal.Center, AlignVertical.Center },
-                    padding = { 10, 10 },
-                    margin = { 0, 0 },
-                    layoutType = GuiLayoutType.Vertical,
-                    heightInLayout = 2 / 10,
-                    contents = {
-                        UIComponent.Text {
-                            text = "CREDITS",
-                            size = 40,
-                            font = "Unageo-Medium"
-                        }
-                    }
-                },
-                UIComponent.Container {
-                    align = { AlignHorizontal.Stretch, AlignVertical.Top },
-                    padding = { 0, 50 },
-                    margin = { 0, 0 },
-                    layoutType = GuiLayoutType.Vertical,
-                    heightInLayout = 7 / 10,
-                    contents = {
-                        UIComponent.Button_MainMenu {
-                            title = "Back",
-                            size = ResponsiveSize(300, 60, true),
-                            font = { name = "Unageo-Medium", size = 24 },
-                            callback = switchToMainScreen,
-                            align = { AlignHorizontal.Center, AlignVertical.Center }
-                        }
-                    }
-                },
-                UIComponent.Container {
-                    align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
-                    childrenAlign = { AlignHorizontal.Center, AlignVertical.Center },
-                    padding = { 0, 0 },
-                    margin = { 0, 0 },
-                    heightInLayout = 1 / 10,
-                    layoutType = GuiLayoutType.Vertical,
-                    contents = {
-                        UIComponent.Text {
-                            text = Config.gameVersion,
-                            align = { AlignHorizontal.Center, AlignVertical.Center },
-                            font = "Exo2",
-                            size = 12
-                        }
-                    }
-                }
-            }
-        },
-        UIComponent.Container {
-            align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
-            childrenAlign = { AlignHorizontal.Center, AlignVertical.Center },
-            padding = { 0, 0 },
-            margin = { 50, 50 },
-            spacing = 10,
-            widthInLayout = getRemainingWidthPercentage,
-            layoutType = GuiLayoutType.Vertical,
-            contents = {
-                UIComponent.TextView {
-                    text = "Credits",
-                    style = { font = { size = 25, weight = 600 } },
-                    align = { AlignHorizontal.Center, AlignVertical.Center },
-                },
-                UIComponent.ScrollArea {
-                    color = {
-                        background = Color(0, 0, 0, 0.3)
-                    },
-                    align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
-                    padding = { 50, 50 },
-                    margin = { 0, 0 },
-                    layoutType = GuiLayoutType.Vertical,
-                    contents = {
-                        UIComponent.TextView {
-                            text = Config.credits:formatted(),
-                            style = { font = { size = 16 } },
-                            multiline = true,
-                            align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
-                        }
-                    }
-                }
-            }
-        }
-    }
+-- The credits (Config/Credits.lua) as lines: a heading per group, then each
+-- run of people with the same role under that role as a subheading.
+local headerOrder = { "BASED ON THE IDEAS & WORKS OF", "MAINTAINERS", "CONTRIBUTORS" }
+
+local function creditLines()
+    local headers = {}
+    local listed = {}
+    for _, header in ipairs(headerOrder) do
+        if type(Config.credits[header]) == "table" then
+            headers[#headers + 1] = header
+            listed[header] = true
+        end
+    end
+    local others = {}
+    for header, people in pairs(Config.credits) do
+        if type(people) == "table" and not listed[header] then others[#others + 1] = header end
+    end
+    table.sort(others)
+    for _, header in ipairs(others) do headers[#headers + 1] = header end
+
+    local lines = {}
+    for _, header in ipairs(headers) do
+        lines[#lines + 1] = { kind = "heading", text = MenuStyle.sentenceCase(header) }
+        local lastRole
+        for _, person in ipairs(Config.credits[header]) do
+            if person.teams and person.teams ~= lastRole then
+                lines[#lines + 1] = { kind = "role", text = person.teams }
+                lastRole = person.teams
+            end
+            lines[#lines + 1] = { kind = "name", text = person.name }
+        end
+    end
+    return lines
+end
+
+local lines = creditLines()
+
+local MODAL_W = 590
+
+local creditsList = UIComponent.MenuRaw {
+    x = 0, y = 180, w = MODAL_W, h = 730,
+    fn = function(ctx)
+        local s = ctx.s
+        local C = MenuStyle.color
+        Gui:beginVerticalContainer()
+        Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Top)
+        Gui:setChildrenAlignment(AlignHorizontal.Center, AlignVertical.Top)
+        for _, line in ipairs(lines) do
+            if line.kind == "heading" then
+                Gui:text(line.text, MenuStyle.fontOf("light", 37, s), C.heading)
+                Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Top)
+                Gui:setMarginEx(0, 16 * s, 0, 4 * s)
+            elseif line.kind == "role" then
+                Gui:text(line.text, MenuStyle.fontOf("light", 27, s), C.subheading)
+                Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Top)
+                Gui:setMarginEx(0, 8 * s, 0, 2 * s)
+            else
+                Gui:text(line.text, MenuStyle.fontOf("light", 25, s), C.text)
+                Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Top)
+                Gui:setMarginEx(0, 3 * s, 0, 3 * s)
+            end
+        end
+        Gui:endContainer()
+    end
 }
 
-
-CreditsView:addContent(creditsGrid)
+CreditsView:addContent(UIComponent.MenuScreen {
+    contents = {
+        UIComponent.MenuPanel {
+            x = 705, y = 55, w = MODAL_W, h = 1010, band = 172,
+            contents = {
+                UIComponent.MenuImage { x = 64, y = 42, w = 462, image = logo },
+                UIComponent.MenuClose { x = MODAL_W - 48, y = 6, callback = switchToMainScreen },
+                creditsList,
+                UIComponent.MenuButton { x = 226, y = 930, w = 138, h = 44, size = 26, title = "Close", callback = switchToMainScreen },
+            }
+        },
+    }
+})
 
 return CreditsView

@@ -14,6 +14,7 @@ local AutoPilotSystem         = require("Modules.Constructs.Systems.AutoPilotSys
 local CursorManager           = require("Input.CursorManager")
 local GeneralActions          = require("Input.ActionBindings.GeneralActions")
 local ShipActions             = require("Input.ActionBindings.ShipActions")
+local UserSettings            = require("Shared.UserSettings")
 
 -- Fire input above this stops the travel drive.
 local FIRE_THRESHOLD           = 0.5
@@ -270,11 +271,12 @@ local function firstPersonAxes(dt, flightCtrl)
     if not flightCtrl then return 0, 0 end
 
     local delta = Input:mouse():delta()
+    local sensitivity = FPS_AIM_SENSITIVITY * UserSettings.mouseSensitivityFactor() -- Mouse Sensitivity setting
     local yaw = Math.Clamp(
-        flightCtrl:getTargetYaw() + delta.x / Window:width() * FPS_AIM_SENSITIVITY,
+        flightCtrl:getTargetYaw() + delta.x / Window:width() * sensitivity,
         -FPS_AIM_LIMIT, FPS_AIM_LIMIT)
     local pitch = Math.Clamp(
-        flightCtrl:getTargetPitch() - delta.y / Window:height() * FPS_AIM_SENSITIVITY,
+        flightCtrl:getTargetPitch() - delta.y / Window:height() * sensitivity,
         -FPS_AIM_LIMIT, FPS_AIM_LIMIT)
 
     local decay = math.exp(-FPS_AIM_DECAY_RATE * dt)
@@ -303,7 +305,8 @@ function PlayerController:writeAxes(dt, input)
 
         local cfg = Config.game.playerFlight
         if cfg.invertYaw   then yaw   = -yaw end
-        if cfg.invertPitch then pitch = -pitch end
+        -- The Invert Vertical Look setting is read every frame, so changing it applies straight away.
+        if cfg.invertPitch or GameState.input.invertPitch then pitch = -pitch end
     end
 
     input:setThrustForward(ShipActions.ThrustZ:get())

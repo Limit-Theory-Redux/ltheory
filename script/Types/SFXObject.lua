@@ -21,9 +21,13 @@ function SFXObject:create(arg)
     return object
 end
 
+---Play the sound, scaled by the Effects Volume and Master Volume settings.
+---@param volume number|nil default: the volume it was created with
+---@param pos Position|nil plays in 3D at this position
 function SFXObject:play(volume, pos)
     if self.last_created:getElapsed() > 0.05 then
-        local vol = volume or self.volume
+        local vol = (volume or self.volume)
+            * (GameState.audio.effectsVolume or 1) * (GameState.audio.masterVolume or 1)
 
         local soundGroup = Enums.SoundGroups.Effects
 

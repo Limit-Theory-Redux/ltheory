@@ -1,6 +1,7 @@
 local CameraController = require("Modules.Cameras.Managers").CameraController
 local CameraActions    = require("Input.ActionBindings.CameraActions")
 local CursorManager    = require("Input.CursorManager")
+local UserSettings     = require("Shared.UserSettings")
 
 ---@class FreeCameraController : CameraController
 ---@overload fun(entity: Entity, config?: table): FreeCameraController
@@ -49,7 +50,7 @@ function FreeCameraController:onInput(dt)
     CameraActions.SlowMove:update(dt)
 
     local invertX = -1
-    local invertY = -1
+    local invertY = GameState.input.invertPitch and 1 or -1 -- Invert Vertical Look setting
 
     -- Toggle mouse capture
     if CameraActions.MouseCapture:isPressed() then
@@ -61,8 +62,9 @@ function FreeCameraController:onInput(dt)
 
         local delta = Input:mouse():delta()
         if delta:length() > 0.001 then
-            local yawDelta   = delta.x * invertX * self.mouseSensitivity * dt
-            local pitchDelta = delta.y * invertY * self.mouseSensitivity * dt
+            local sensitivity = self.mouseSensitivity * UserSettings.mouseSensitivityFactor()
+            local yawDelta   = delta.x * invertX * sensitivity * dt
+            local pitchDelta = delta.y * invertY * sensitivity * dt
             self:rotate(yawDelta, pitchDelta, 0)
         end
     else

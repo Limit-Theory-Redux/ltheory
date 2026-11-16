@@ -2,7 +2,9 @@ use std::borrow::BorrowMut;
 
 use glam::Vec2;
 
-use super::{Alignment, FocusType, HmGui, HmGuiContainer, HmGuiImage, HmGuiText, IDENT, TEXT_CTX};
+use super::{
+    Alignment, FocusType, HmGui, HmGuiContainer, HmGuiImage, HmGuiShape, HmGuiText, IDENT, TEXT_CTX,
+};
 use crate::input::Input;
 use crate::render::{Color, Renderer};
 use crate::rf::Rf;
@@ -15,6 +17,7 @@ pub enum WidgetItem {
     Rect,
     Image(HmGuiImage),
     TextView(Option<HmGuiImage>),
+    Shape(HmGuiShape),
 }
 
 impl WidgetItem {
@@ -25,6 +28,7 @@ impl WidgetItem {
             WidgetItem::Rect => "Rect".into(),
             WidgetItem::Image(_) => "Image".into(),
             WidgetItem::TextView(_) => "TextView".into(),
+            WidgetItem::Shape(_) => "Shape".into(),
         }
     }
 
@@ -69,8 +73,22 @@ pub struct HmGuiWidget {
 
     // Layout
     pub default_size: [Length; 2],
+    /// Min size asked for with `set_min_width/height/size`, excluding margin and
+    /// border. A container or text is at least this big, and bigger if its
+    /// content needs it.
+    pub min_size_request: Vec2,
+    /// Max size (`set_max_width/height/size`), excluding margin and border:
+    /// the widget is never bigger, also when stretched; a text is cut to it.
+    /// Infinite when not set.
+    pub max_size: Vec2,
+    /// Position relative to the parent container's top left corner inside its
+    /// border (`set_position`). A positioned widget is out of its parent's
+    /// layout: it doesn't move its siblings or size its parent.
+    pub position: Option<Vec2>,
     pub alignment: [Alignment; 2],
+    /// Right/bottom margin (the side with the larger coordinate)
     pub margin_upper: Vec2,
+    /// Left/top margin (the side with the smaller coordinate)
     pub margin_lower: Vec2,
     pub border_width: f32,
 
@@ -101,6 +119,9 @@ impl HmGuiWidget {
             inner_size: Default::default(),
 
             default_size: Default::default(),
+            min_size_request: Vec2::ZERO,
+            max_size: Vec2::INFINITY,
+            position: None,
             alignment: Default::default(),
             margin_upper: Default::default(),
             margin_lower: Default::default(),
@@ -158,7 +179,21 @@ impl HmGuiWidget {
             self.inner_min_size[DIM]
         };
 
-        inner_min_size + self.border_width * 2.0 + self.margin_upper[DIM] + self.margin_lower[DIM]
+        inner_min_size.min(self.max_size[DIM]) + self.outer_extra_dim::<DIM>()
+    }
+
+    /// Border and margins in a dimension: what the outer size adds to the inner one.
+    fn outer_extra_dim<const DIM: usize>(&self) -> f32 {
+        self.border_width * 2.0 + self.margin_upper[DIM] + self.margin_lower[DIM]
+    }
+
+    /// Keep the size the parent gave within the max size.
+    fn apply_max_size(&mut self) {
+        let max_x = self.max_size.x + self.outer_extra_dim::<0>();
+        let max_y = self.max_size.y + self.outer_extra_dim::<1>();
+
+        self.size.x = self.size.x.min(max_x);
+        self.size.y = self.size.y.min(max_y);
     }
 
     /// Calculate outer min size that includes margin and border.
@@ -173,7 +208,7 @@ impl HmGuiWidget {
     /// Do not subtract if outer width and/or height is 0.
     fn calculate_inner_pos_size_dim<const DIM: usize>(&mut self) {
         if self.size[DIM] > 0.0 {
-            self.inner_pos[DIM] = self.pos[DIM] + self.border_width + self.margin_upper[DIM];
+            self.inner_pos[DIM] = self.pos[DIM] + self.border_width + self.margin_lower[DIM];
             self.inner_size[DIM] = self.size[DIM]
                 - (self.border_width * 2.0 + self.margin_upper[DIM] + self.margin_lower[DIM]);
         } else {
@@ -190,9 +225,9 @@ impl HmGuiWidget {
     }
 
     pub fn compute_size(&mut self, hmgui: &mut HmGui, r: &mut Renderer) {
-        match &self.item {
+        match &mut self.item {
             WidgetItem::Container(container) => {
-                self.inner_min_size = container.compute_size(hmgui, r);
+                self.inner_min_size = container.compute_size(hmgui, r).max(self.min_size_request);
 
                 self.min_size = self.calculate_min_size();
 
@@ -200,9 +235,7 @@ impl HmGuiWidget {
                 data.min_size = self.min_size;
             }
             WidgetItem::Text(text_item) => {
-                let size = text_item.font.get_size2(r, &text_item.text);
-
-                self.inner_min_size = Vec2::new(size.x as f32, size.y as f32);
+                self.inner_min_size = text_item.measure(r).max(self.min_size_request);
 
                 self.min_size = self.calculate_min_size();
             }
@@ -221,7 +254,7 @@ impl HmGuiWidget {
                         .calculate_rect(text_ctx.borrow_mut(), scale_factor);
 
                     if let Some(size) = size {
-                        self.inner_min_size = size;
+                        self.inner_min_size = size.max(self.min_size_request);
                     }
                 }
 
@@ -234,6 +267,7 @@ impl HmGuiWidget {
     }
 
     pub fn layout(&mut self, hmgui: &mut HmGui, r: &mut Renderer, input: &Input) {
+        self.apply_max_size();
         self.calculate_inner_pos_size();
 
         let focused = hmgui.in_focus(self);
@@ -242,13 +276,23 @@ impl HmGuiWidget {
         match &mut self.item {
             WidgetItem::Container(container) => {
                 let is_root = self.parent.is_none();
+                // A stretched, fixed, percent or capped (max) size is decided
+                // outside the container: it doesn't grow around bigger children
+                // (they overflow).
+                let constrained = |dim: usize| {
+                    !is_root
+                        && (self.alignment[dim] == Alignment::Stretch
+                            || !self.default_size[dim].is_auto()
+                            || self.max_size[dim].is_finite())
+                };
+                let (constrained_x, constrained_y) = (constrained(0), constrained(1));
 
                 self.inner_size = container.layout(
                     hmgui,
                     r,
                     input,
-                    !is_root && self.alignment[0] == Alignment::Stretch,
-                    !is_root && self.alignment[1] == Alignment::Stretch,
+                    constrained_x,
+                    constrained_y,
                     self.inner_pos,
                     self.inner_size,
                     self.inner_size - self.inner_min_size,
@@ -294,6 +338,10 @@ impl HmGuiWidget {
                     hmgui.clipboard_set_text(clipboard);
                 }
             }
+            WidgetItem::Text(text) => {
+                // narrower than its text: cut it and end it with an ellipsis
+                text.fit(r, self.inner_size.x);
+            }
             _ => {}
         }
     }
@@ -304,6 +352,9 @@ impl HmGuiWidget {
         if size.x > 0.0 && size.y > 0.0 {
             let pos = self.inner_pos;
 
+            // background, border, then content: in that order on screen
+            self.draw_background(hmgui, pos, size);
+
             if self.border_width > 0.0 || self.border_color.is_opaque() {
                 hmgui.renderer.rect(
                     pos - self.border_width,
@@ -313,14 +364,17 @@ impl HmGuiWidget {
                 );
             }
 
-            self.draw_background(hmgui, pos, size);
-
             match &self.item {
                 WidgetItem::Container(container) => {
                     container.draw(hmgui, pos, size);
                 }
                 WidgetItem::Text(text) => {
-                    let x = pos.x + (size.x - self.inner_min_size.x) / 2.0; // center text
+                    // centred in the widget; a cut text fills it from the left
+                    let x = if text.shown.is_some() {
+                        pos.x
+                    } else {
+                        pos.x + (size.x - text.size.x) / 2.0
+                    };
                     // The text's box is the font's line box (ascent + descent),
                     // so the baseline sits `descent` above its bottom.
                     let y = pos.y + self.min_size.y
@@ -330,6 +384,9 @@ impl HmGuiWidget {
                     text.draw(&mut hmgui.renderer, Vec2::new(x, y));
                 }
                 WidgetItem::Rect => {}
+                WidgetItem::Shape(shape) => {
+                    shape.draw(&hmgui.looks, &mut hmgui.renderer, pos, size);
+                }
                 WidgetItem::Image(image) => {
                     image.draw(hmgui, pos, size);
                 }
@@ -341,14 +398,15 @@ impl HmGuiWidget {
                     image.draw(hmgui, pos, size);
 
                     if hmgui.in_focus(self) {
-                        // draw cursor
+                        // draw cursor (only where the player can type)
                         let data = hmgui.data_mut(self.hash);
                         let text_view =
                             data.text_view.as_mut().expect("Text view data was not set");
+                        let editable = text_view.is_editable();
                         let cursor_rect = text_view.data().cursor_rect();
                         let cursor_size = cursor_rect.size();
 
-                        if cursor_size.x > 0.0 && cursor_size.y > 0.0 {
+                        if editable && cursor_size.x > 0.0 && cursor_size.y > 0.0 {
                             let cursor_pos = self.inner_pos + cursor_rect.pos();
                             let color = cursor_rect.color();
 
@@ -406,6 +464,7 @@ impl HmGuiWidget {
                 Some(item) => item.dump(ident + 1),
                 None => println!("{ident_str}- image: None")
             },
+            WidgetItem::Shape(item) => item.dump(ident + 1),
         }
     }
 }

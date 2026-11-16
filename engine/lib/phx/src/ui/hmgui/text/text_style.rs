@@ -1,8 +1,10 @@
 use std::ops::Range;
 
 use indexmap::IndexMap;
-use parley::context::RangedBuilder;
-use parley::style::{FontStack, FontStretch, FontStyle, FontWeight, StyleProperty};
+use parley::RangedBuilder;
+use parley::fontique::Language;
+use parley::style::{FontFamily, FontStyle, FontWeight, FontWidth, LineHeight, StyleProperty};
+use tracing::warn;
 
 use crate::render::Color;
 
@@ -40,7 +42,7 @@ impl TextStyle {
     pub fn set_font_stretch(&mut self, stretch: f32) {
         self.style_properties.insert(
             TextStylePropertyId::FontStretch,
-            TextStyleProperty::FontStretch(FontStretch::from_ratio(stretch)),
+            TextStyleProperty::FontStretch(FontWidth::from_ratio(stretch)),
         );
     }
 
@@ -64,10 +66,16 @@ impl TextStyle {
         );
     }
 
+    /// BCP 47 language tag (`en-US`); no tag or an invalid one means no locale.
     pub fn set_locale(&mut self, locale: Option<&str>) {
+        let language = locale.and_then(|tag| {
+            Language::parse(tag)
+                .inspect_err(|err| warn!("Ignoring invalid locale <{tag}>: {err:?}"))
+                .ok()
+        });
         self.style_properties.insert(
             TextStylePropertyId::Locale,
-            TextStyleProperty::Locale(locale.map(|l| l.into())),
+            TextStyleProperty::Locale(language),
         );
     }
 
@@ -141,7 +149,8 @@ impl TextStyle {
         );
     }
 
-    /// Line height multiplier.
+    /// Line height as a multiple of the font's own line height (ascent +
+    /// descent + line gap).
     pub fn set_line_height(&mut self, height: f32) {
         self.style_properties.insert(
             TextStylePropertyId::LineHeight,
@@ -168,20 +177,20 @@ impl TextStyle {
 
 impl TextStyle {
     /// Apply default text styling to the text layout builder.
-    pub fn apply_default<'a>(&'a self, builder: &mut RangedBuilder<'a, Color, &str>) {
+    pub fn apply_default<'a>(&'a self, builder: &mut RangedBuilder<'a, Color>) {
         for (_, property) in &self.style_properties {
-            builder.push_default(&property.as_parley());
+            builder.push_default(property.as_parley());
         }
     }
 
     /// Apply text styling to the range of text into the text layout builder.
     pub fn apply_to_section<'a>(
         &'a self,
-        builder: &mut RangedBuilder<'a, Color, &str>,
+        builder: &mut RangedBuilder<'a, Color>,
         range: &Range<usize>,
     ) {
         for (_, property) in &self.style_properties {
-            builder.push(&property.as_parley(), range.start..range.end);
+            builder.push(property.as_parley(), range.start..range.end);
         }
     }
 }
@@ -217,12 +226,12 @@ enum TextStylePropertyId {
 enum TextStyleProperty {
     FontFamily(String),
     FontSize(f32),
-    FontStretch(FontStretch),
+    FontStretch(FontWidth),
     FontStyle(FontStyle),
     FontWeight(FontWeight),
     // FontVariations(FontSettings<'a, FontVariation>),
     // FontFeatures(FontSettings<'a, FontFeature>),
-    Locale(Option<String>),
+    Locale(Option<Language>),
     Brush(Color),
     Underline(bool),
     UnderlineOffset(Option<f32>),
@@ -241,13 +250,13 @@ impl TextStyleProperty {
     fn as_parley(&self) -> StyleProperty<'_, Color> {
         match self {
             Self::FontFamily(family) => {
-                StyleProperty::FontStack(FontStack::Source(family.as_str()))
+                StyleProperty::FontFamily(FontFamily::from(family.as_str()))
             }
             Self::FontSize(size) => StyleProperty::FontSize(*size),
-            Self::FontStretch(stretch) => StyleProperty::FontStretch(*stretch),
+            Self::FontStretch(stretch) => StyleProperty::FontWidth(*stretch),
             Self::FontStyle(style) => StyleProperty::FontStyle(*style),
             Self::FontWeight(weight) => StyleProperty::FontWeight(*weight),
-            Self::Locale(locale) => StyleProperty::Locale(locale.as_ref().map(|l| l.as_str())),
+            Self::Locale(locale) => StyleProperty::Locale(*locale),
             Self::Brush(brush) => StyleProperty::Brush(*brush),
             Self::Underline(underline) => StyleProperty::Underline(*underline),
             Self::UnderlineOffset(offset) => StyleProperty::UnderlineOffset(*offset),
@@ -257,7 +266,9 @@ impl TextStyleProperty {
             Self::StrikethroughOffset(offset) => StyleProperty::StrikethroughOffset(*offset),
             Self::StrikethroughSize(size) => StyleProperty::StrikethroughSize(*size),
             Self::StrikethroughBrush(brush) => StyleProperty::StrikethroughBrush(*brush),
-            Self::LineHeight(height) => StyleProperty::LineHeight(*height),
+            Self::LineHeight(height) => {
+                StyleProperty::LineHeight(LineHeight::MetricsRelative(*height))
+            }
             Self::WordSpacing(spacing) => StyleProperty::WordSpacing(*spacing),
             Self::LetterSpacing(spacing) => StyleProperty::LetterSpacing(*spacing),
         }

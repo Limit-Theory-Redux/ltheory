@@ -25,6 +25,10 @@ pub struct HmGui {
     focus_pos: Vec2,
     active_widget: Option<u64>,
 
+    /// Named stroke looks (`define_look`, `set_stroke_look`); they outlive
+    /// frames.
+    pub(super) looks: HmGuiLooks,
+
     /// `None` when no clipboard backend is available, e.g. on a headless Linux CI runner
     /// without an X11/Wayland connection.
     clipboard: Option<Clipboard>,
@@ -42,6 +46,7 @@ impl HmGui {
             mouse_over_widget_hash: [0; 2],
             focus_pos: Vec2::ZERO,
             active_widget: None,
+            looks: HmGuiLooks::new(),
             clipboard: Clipboard::new()
                 .inspect_err(|err| warn!("Cannot create clipboard. Error: {err}"))
                 .ok(),
@@ -87,6 +92,13 @@ impl HmGui {
         } else {
             self.layer_index
         };
+        self.layers[index].root.clone()
+    }
+
+    /// The root widget of a layer (0 = the base layer), for the layout tests
+    /// (which only run on Linux, see `mod tests`).
+    #[cfg(all(test, target_os = "linux"))]
+    pub(super) fn layer_root(&self, index: usize) -> Rf<HmGuiWidget> {
         self.layers[index].root.clone()
     }
 
@@ -138,6 +150,25 @@ impl HmGui {
         self.set_last(widget_rf.clone());
 
         widget_rf.clone()
+    }
+
+    /// Add a shape widget (`annulus`, `circle`, `line`, `point`, `ring`,
+    /// `triangle`, `wedge`, and the strokes).
+    fn shape(&mut self, kind: HmGuiShapeKind, color: &Color, glow: bool) {
+        let item = HmGuiShape::new(kind, *color, glow);
+        let _ = self.init_widget(WidgetItem::Shape(item));
+    }
+
+    /// Change the last widget if it is a stroke (`what` names the caller in
+    /// the warning when it is not).
+    fn with_last_stroke(&self, what: &str, f: impl FnOnce(&mut HmGuiShape)) {
+        let last = self.last();
+        let mut widget = last.as_mut();
+
+        match &mut widget.item {
+            WidgetItem::Shape(shape) if shape.kind.is_stroke() => f(shape),
+            _ => warn!("{what}: the last widget is not a stroke"),
+        }
     }
 
     /// Get persistent readonly data of the widget by its hash if exists.
@@ -213,17 +244,19 @@ impl HmGui {
         let layers_root: Vec<_> = self
             .layers
             .iter()
-            .map(|layer| (layer.root.clone(), layer.location))
+            .map(|layer| (layer.root.clone(), layer.location.clone()))
             .collect();
         for (root_rf, location) in &layers_root {
             let mut root = root_rf.as_mut();
 
-            if let HmGuiLayerLocation::Below(widget_hash) = location {
-                // we assume here that widget_hash points to the widget on the previous layer,
-                // so its position and size are already calculated
-                let data = self.data_mut(*widget_hash);
+            if let HmGuiLayerLocation::Below(widget_rf) = location {
+                // The widget is on an earlier layer, so it's laid out already (this
+                // frame). The layer starts under its border box: margins don't count.
+                let widget = widget_rf.as_ref();
+                let box_pos = widget.pos + widget.margin_lower;
+                let box_size = widget.size - widget.margin_lower - widget.margin_upper;
 
-                root.pos = Vec2::new(data.pos.x, data.pos.y + data.size.y);
+                root.pos = Vec2::new(box_pos.x, box_pos.y + box_size.y);
                 root.inner_pos = root.pos;
                 root.size = self.screen_size - root.pos; // rest of the screen
                 root.inner_size = root.size;
@@ -256,12 +289,9 @@ impl HmGui {
 
         self.renderer.begin(r);
 
-        let layers_root: Vec<_> = self
-            .layers
-            .iter()
-            .rev()
-            .map(|layer| layer.root.clone())
-            .collect();
+        // In order: a later layer (a dropdown list, a tooltip) is drawn over the
+        // earlier ones, as the mouse finds it first (`end_gui`).
+        let layers_root: Vec<_> = self.layers.iter().map(|layer| layer.root.clone()).collect();
         for root_rf in layers_root {
             let root = root_rf.as_ref();
 
@@ -305,10 +335,10 @@ impl HmGui {
     /// All new elements will be added to this new layer.
     /// Each layer has its own separate layout system.
     pub fn begin_layer_below(&mut self) {
-        let hash = self.last().as_ref().hash;
+        let widget = self.last();
 
         let layer_index = self.layers.len();
-        let layer = HmGuiLayer::new_below(self.layer_index, hash);
+        let layer = HmGuiLayer::new_below(self.layer_index, widget);
 
         self.layers.push(layer);
         self.layer_index = layer_index;
@@ -440,12 +470,292 @@ impl HmGui {
         let _ = self.init_widget(WidgetItem::Rect);
     }
 
-    pub fn text(&mut self, text: &str, font: &Font, color: &Color) {
-        let item = HmGuiText {
-            text: text.into(),
-            font: font.clone(),
-            color: *color,
+    /// Add a ring band (annulus), centred in the widget: its outer diameter
+    /// is the widget's smaller side and it is `thickness` pixels wide,
+    /// inwards. Nothing is drawn at thickness 0.
+    ///
+    /// Shapes draw over rects and under texts. `glow` draws additive
+    /// (brightens only, with a soft halo) instead of alpha blended; any glow
+    /// reaches past the widget's edge.
+    pub fn annulus(&mut self, color: &Color, thickness: f32, glow: bool) {
+        self.shape(HmGuiShapeKind::Annulus { thickness }, color, glow);
+    }
+
+    /// Add a filled circle with a soft edge, centred in the widget, as wide
+    /// as the widget's smaller side. `glow`: see `annulus`.
+    pub fn circle(&mut self, color: &Color, glow: bool) {
+        self.shape(HmGuiShapeKind::Circle, color, glow);
+    }
+
+    /// Add a point of light: a small bright core in the widget's centre
+    /// whose soft glow fills the widget. `glow`: see `annulus`.
+    pub fn point(&mut self, color: &Color, glow: bool) {
+        self.shape(HmGuiShapeKind::Point, color, glow);
+    }
+
+    /// Add a thin circle line, centred in the widget, as wide as the
+    /// widget's smaller side. `glow`: see `annulus`.
+    pub fn ring(&mut self, color: &Color, glow: bool) {
+        self.shape(HmGuiShapeKind::Ring, color, glow);
+    }
+
+    /// Add a piece of a ring band (wedge), centred in the widget: its outer
+    /// diameter is the widget's smaller side, it is `thickness` pixels deep,
+    /// inwards, and it runs from `start` to `start + sweep` degrees, where 0
+    /// is up and angles grow clockwise (like CSS `conic-gradient`). Nothing
+    /// is drawn at thickness or sweep 0. `glow`: see `annulus`.
+    ///
+    /// Wedges of one widget size stacked in one container share a centre,
+    /// so each piece of an arc can be its own widget.
+    pub fn wedge(&mut self, color: &Color, thickness: f32, start: f32, sweep: f32, glow: bool) {
+        self.shape(
+            HmGuiShapeKind::Wedge {
+                thickness,
+                start,
+                sweep,
+            },
+            color,
+            glow,
+        );
+    }
+
+    /// Add a filled triangle with soft edges. Its corners are fractions of
+    /// the widget: (0, 0) is the top left, (1, 1) the bottom right (like CSS
+    /// `clip-path: polygon()`). A point at the left middle:
+    /// `triangle(c, 1, 0, 0, 0.5, 1, 1, false)`. `glow`: see `annulus`.
+    #[allow(clippy::too_many_arguments)]
+    pub fn triangle(
+        &mut self,
+        color: &Color,
+        x1: f32,
+        y1: f32,
+        x2: f32,
+        y2: f32,
+        x3: f32,
+        y3: f32,
+        glow: bool,
+    ) {
+        let points = [Vec2::new(x1, y1), Vec2::new(x2, y2), Vec2::new(x3, y3)];
+        self.shape(HmGuiShapeKind::Triangle { points }, color, glow);
+    }
+
+    /// Add a thin line from (`x1`, `y1`) to (`x2`, `y2`), fractions of the
+    /// widget as in `triangle`. Across the middle: `line(c, 0, 0.5, 1, 0.5,
+    /// false)`. `glow`: see `annulus`.
+    pub fn line(&mut self, color: &Color, x1: f32, y1: f32, x2: f32, y2: f32, glow: bool) {
+        let (from, to) = (Vec2::new(x1, y1), Vec2::new(x2, y2));
+        self.shape(HmGuiShapeKind::Line { from, to }, color, glow);
+    }
+
+    /// Fade the last shape (annulus, circle, point, ring or wedge) by
+    /// direction: fully drawn within `visible` degrees of `centre`, gone
+    /// beyond `gone` degrees, smooth in between (0 = up, clockwise, measured
+    /// from the shape's centre). Shapes that share a centre and a fade fade
+    /// as one, like the pieces of a curved tape.
+    pub fn set_shape_fade(&self, centre: f32, visible: f32, gone: f32) {
+        let last = self.last();
+        let mut widget = last.as_mut();
+
+        match &mut widget.item {
+            WidgetItem::Shape(shape) if shape.kind.is_round() => {
+                shape.fade = Some(HmGuiShapeFade {
+                    centre,
+                    visible,
+                    gone,
+                });
+            }
+            _ => warn!("setShapeFade: the last widget is not a round shape"),
+        }
+    }
+
+    /// Add a bendable stroke from (`x1`, `y1`) to (`x2`, `y2`), fractions of
+    /// the widget as in `triangle`, bent `bend` degrees on the way (positive
+    /// curves clockwise; below a full turn, since at 360 degrees the ends
+    /// meet and the circle's size is unknown), `thickness` pixels wide.
+    /// A bend of 0 is a straight line.
+    ///
+    /// Strokes draw with the plain `stroke` look (a line in its colour)
+    /// until `setStrokeLook` names another; `setStrokeDash`,
+    /// `setStrokeRoundCaps` and `setStrokeFade` change the last one. Like
+    /// the other shapes they draw over rects and under texts, and glow
+    /// reaches past the widget's edge.
+    #[allow(clippy::too_many_arguments)]
+    pub fn stroke_between(
+        &mut self,
+        color: &Color,
+        x1: f32,
+        y1: f32,
+        x2: f32,
+        y2: f32,
+        bend: f32,
+        thickness: f32,
+    ) {
+        let form = HmGuiStrokeForm::Between {
+            from: Vec2::new(x1, y1),
+            to: Vec2::new(x2, y2),
+            bend,
+            thickness,
         };
+        self.shape(HmGuiShapeKind::Stroke(form), color, false);
+    }
+
+    /// Add a bendable stroke that starts at (`x`, `y`), a fraction of the
+    /// widget, leaves in `direction` degrees (0 = up, clockwise) and is
+    /// `length` pixels long, turning `bend` degrees in all (positive =
+    /// clockwise): bending curls it up with its length kept, and 360 closes
+    /// it into a circle. `thickness` and the rest: see `strokeBetween`.
+    #[allow(clippy::too_many_arguments)]
+    pub fn stroke_bent(
+        &mut self,
+        color: &Color,
+        x: f32,
+        y: f32,
+        direction: f32,
+        length: f32,
+        bend: f32,
+        thickness: f32,
+    ) {
+        let form = HmGuiStrokeForm::Bent {
+            start: Vec2::new(x, y),
+            direction,
+            length,
+            bend,
+            thickness,
+        };
+        self.shape(HmGuiShapeKind::Stroke(form), color, false);
+    }
+
+    /// Add a stroke around the widget's centre, its middle line on the circle
+    /// as wide as the widget's smaller side, from `start` to `start + sweep`
+    /// degrees (0 = up, clockwise; negative sweeps go counter-clockwise; 360
+    /// is a full circle), `thickness` pixels wide. Arcs of one widget size
+    /// stacked in one container share their middle line whatever their
+    /// thickness. It is a round shape, so `setShapeFade` works on it too.
+    /// The rest: see `strokeBetween`.
+    pub fn arc(&mut self, color: &Color, thickness: f32, start: f32, sweep: f32) {
+        let form = HmGuiStrokeForm::Arc {
+            start,
+            sweep,
+            thickness,
+        };
+        self.shape(HmGuiShapeKind::Stroke(form), color, false);
+    }
+
+    /// Dash the last stroke (or annulus, ring, wedge, line): `dash` pixels
+    /// drawn, then `gap` pixels left out, the pattern shifted back by `phase`
+    /// pixels (like SVG's `stroke-dashoffset`; animate it to make the dashes
+    /// run). Lengths are along the stroke's middle; round caps add half the
+    /// thickness to both ends of each dash, so `dash` 0 with round caps
+    /// makes dots. A `gap` of 0 is solid again.
+    pub fn set_stroke_dash(&self, dash: f32, gap: f32, phase: f32) {
+        self.with_last_stroke("setStrokeDash", |shape| {
+            shape.stroke.dash = StrokeDash::new(dash, gap, phase);
+        });
+    }
+
+    /// Round ends (half circles, also on every dash) on the last stroke
+    /// instead of flat ones. Lines have round ends to begin with.
+    pub fn set_stroke_round_caps(&self, round: bool) {
+        self.with_last_stroke("setStrokeRoundCaps", |shape| {
+            shape.stroke.round_caps = Some(round);
+        });
+    }
+
+    /// Round the corners of the last stroke's flat ends (and of its dashes)
+    /// by `radius` pixels, at most half its thickness. Wedges have 2 to
+    /// begin with; 0 makes them sharp.
+    pub fn set_stroke_corner_radius(&self, radius: f32) {
+        self.with_last_stroke("setStrokeCornerRadius", |shape| {
+            shape.stroke.corner = Some(radius.max(0.0));
+        });
+    }
+
+    /// Fade the last stroke along its length: fully drawn within `visible`
+    /// pixels of the point `centre` pixels from its start, gone beyond
+    /// `gone`, smooth in between. Replaces a `setShapeFade` window.
+    pub fn set_stroke_fade(&self, centre: f32, visible: f32, gone: f32) {
+        self.with_last_stroke("setStrokeFade", |shape| {
+            shape.stroke.fade = Some(StrokeFade::along(centre, visible, gone));
+        });
+    }
+
+    /// Draw the last stroke with the look called `look` (see `defineLook`).
+    /// A name not defined yet gets the default values until it is.
+    pub fn set_stroke_look(&mut self, look: &str) {
+        let (id, created) = self.looks.get_or_insert(look);
+        if created {
+            warn!("setStrokeLook: look '{look}' is not defined yet; it draws as a plain stroke");
+        }
+        self.with_last_stroke("setStrokeLook", |shape| shape.stroke.look = Some(id));
+    }
+
+    /// Set one look value for the last stroke only, on top of its look (for
+    /// example a glow that pulses on one element). `param` is one of `core`,
+    /// `coreWidth`, `glow`, `glowWidth`, `boost`, `shade`, `halo`, `haloWidth`
+    /// (see `defineLook`).
+    pub fn set_stroke_look_param(&self, param: &str, value: f32) {
+        match look_param_slot(param) {
+            Ok(slot) => self.with_last_stroke("setStrokeLookParam", |shape| {
+                shape.stroke.overrides[slot] = Some(value);
+            }),
+            Err(e) => warn!("setStrokeLookParam: {e}"),
+        }
+    }
+
+    /// (Re)define the look called `look` with the default values: set what
+    /// differs with `setLookParam` (`UICore.Look.define` does both). Looks
+    /// outlive frames, so define them once; every stroke that uses one
+    /// follows when it changes. The built-in looks `annulus`, `ring`,
+    /// `wedge`, `line` and their `*Glow` twins are what those calls draw
+    /// with, and redefining one restyles them all.
+    ///
+    /// The values (defaults in brackets): `core` [1] and `coreWidth` [0.5]:
+    /// strength of the solid core and how soft its edge is, in pixels;
+    /// `glow` [0] and `glowWidth` [4]: strength and reach of the glow around
+    /// it; `boost` [1]: multiplies the colour of the light; `shade` [1]: how
+    /// much it covers what is behind it, 0 = only adds light (neon), 1 =
+    /// normal alpha; `halo` [0] and `haloWidth` [8]: a dark halo darkening
+    /// what is behind out to that many pixels, 1 = black.
+    pub fn define_look(&mut self, look: &str) {
+        let _ = self.looks.define(look);
+    }
+
+    /// Set one value of the look called `look` (created with the default
+    /// values if new). The values: see `defineLook`.
+    pub fn set_look_param(&mut self, look: &str, param: &str, value: f32) {
+        if let Err(e) = self.looks.set_param(look, param, value) {
+            warn!("setLookParam: {e}");
+        }
+    }
+
+    /// Add a line of text. A text widget narrower than its text (a fixed or
+    /// stretched width, or a parent that is too small) shows as much of the
+    /// text as fits, ended with "…".
+    pub fn text(&mut self, text: &str, font: &Font, color: &Color) {
+        let item = HmGuiText::new(text, font, color);
+        let widget_rf = self.init_widget(WidgetItem::Text(item));
+        let _ = widget_rf.as_mut();
+    }
+
+    /// Add a text element like `text`, with a 1 px `outline` and a 3 px
+    /// `halo` around the glyphs so it stays readable on any background (see
+    /// `Font::draw_outlined`). An alpha of 0 leaves a part out: a transparent
+    /// outline gives the halo alone. Takes the same room as `text`: outline
+    /// and halo spill past the widget, so a clipping container cuts them off
+    /// at its edge.
+    pub fn text_outlined(
+        &mut self,
+        text: &str,
+        font: &Font,
+        color: &Color,
+        outline: &Color,
+        halo: &Color,
+    ) {
+        let mut item = HmGuiText::new(text, font, color);
+        item.outline = Some(TextOutline {
+            outline: *outline,
+            halo: *halo,
+        });
         let widget_rf = self.init_widget(WidgetItem::Text(item));
         let _ = widget_rf.as_mut();
     }
@@ -457,9 +767,16 @@ impl HmGui {
 
         let data = self.data_mut(widget.hash);
 
+        // changes from Lua (or new text data) since the last frame
+        let changed = text_data.take_needs_sync();
+
         if let Some(text_view) = &mut data.text_view {
-            if !editable {
-                // apply changes from Lua side. Readonly text view only
+            text_view.set_editable(editable);
+
+            // a read-only view always shows the Lua data; an editable one takes
+            // it when Lua changed it (what the player types goes the other way,
+            // `get_text_view_changes`)
+            if changed || !editable {
                 text_view.set_data(text_data);
             }
         } else {
@@ -532,26 +849,75 @@ impl HmGui {
         false
     }
 
+    /// The widget is at least this wide (excluding margin and border); a
+    /// container or text is wider when its content needs it.
     pub fn set_min_width(&self, width: f32) {
         let last = self.last();
         let mut widget = last.as_mut();
 
         widget.inner_min_size.x = width;
+        widget.min_size_request.x = width;
     }
 
+    /// The widget is at least this high (excluding margin and border); a
+    /// container or text is higher when its content needs it.
     pub fn set_min_height(&self, height: f32) {
         let last = self.last();
         let mut widget = last.as_mut();
 
         widget.inner_min_size.y = height;
+        widget.min_size_request.y = height;
     }
 
+    /// The widget is at least this big (excluding margin and border); a
+    /// container or text is bigger when its content needs it.
     pub fn set_min_size(&self, width: f32, height: f32) {
         let last = self.last();
         let mut widget = last.as_mut();
 
-        widget.inner_min_size.x = width;
-        widget.inner_min_size.y = height;
+        widget.inner_min_size = Vec2::new(width, height);
+        widget.min_size_request = Vec2::new(width, height);
+    }
+
+    /// The widget is at most this wide (excluding margin and border), also when
+    /// stretched or given a fixed size; a text that is wider is cut and ends
+    /// with "…" (like CSS `max-width` with `text-overflow: ellipsis`).
+    pub fn set_max_width(&self, width: f32) {
+        let last = self.last();
+        let mut widget = last.as_mut();
+
+        widget.max_size.x = width;
+    }
+
+    /// The widget is at most this high (excluding margin and border), also when
+    /// stretched or given a fixed size.
+    pub fn set_max_height(&self, height: f32) {
+        let last = self.last();
+        let mut widget = last.as_mut();
+
+        widget.max_size.y = height;
+    }
+
+    /// The widget is at most this big (excluding margin and border); see
+    /// `set_max_width`.
+    pub fn set_max_size(&self, width: f32, height: f32) {
+        let last = self.last();
+        let mut widget = last.as_mut();
+
+        widget.max_size = Vec2::new(width, height);
+    }
+
+    /// Place the widget at (x, y) relative to its parent container's top left
+    /// corner inside the border (the parent's padding doesn't apply; its scroll
+    /// offset does). The widget leaves its parent's layout, like CSS
+    /// `position: absolute`: it doesn't move its siblings or make its parent
+    /// bigger, and its alignment is not used. Its size is its fixed, percent or
+    /// min size; its margins still apply.
+    pub fn set_position(&self, x: f32, y: f32) {
+        let last = self.last();
+        let mut widget = last.as_mut();
+
+        widget.position = Some(Vec2::new(x, y));
     }
 
     pub fn set_fixed_width(&self, width: f32) {

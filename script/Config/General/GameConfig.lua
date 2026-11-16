@@ -143,7 +143,8 @@ Config.game = {
         mouseSensitivity = 0.003,
     },
 
-    -- Texture quality (cube map resolution for planet/moon surfaces)
+    -- Texture quality (cube map resolution for planet/moon surfaces). The game sets
+    -- both from the Texture Quality setting (`UserSettings.applyTextureQuality`).
     planetTexRes       = 1024,
     moonTexRes         = 1024,
 

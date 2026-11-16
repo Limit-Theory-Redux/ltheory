@@ -17,5 +17,5 @@ void main() {
   alpha += 0.8 * exp(-pow(32.0 * d, 4.0));
 
   vec3 c = 2.0 * color.xyz;
-  outColor = alpha * color.w * vec4(c.xyz, 1.0);
+  outColor = alpha * color.w * imm_fade(uv) * vec4(c.xyz, 1.0);
 }

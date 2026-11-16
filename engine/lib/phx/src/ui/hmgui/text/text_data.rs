@@ -1,7 +1,5 @@
 use glam::Vec2;
-use parley::Layout;
-use parley::layout::{Alignment, GlyphRun};
-use parley::style::StyleProperty;
+use parley::{Alignment, AlignmentOptions, GlyphRun, Layout, PositionedLayoutItem};
 use swash::FontRef;
 use swash::scale::ScaleContext;
 
@@ -38,6 +36,14 @@ pub struct TextData {
     rebuild_layout: bool,
     rebuild_line_breaks: bool,
     layout: TextLayout,
+
+    /// Changed through its API (from Lua) since `Gui:textView` last copied it
+    /// into its view. New text data counts as changed.
+    needs_sync: bool,
+    /// The layout was rebuilt since the texture was last rendered. Measuring
+    /// the text (`calculate_rect`, before the layout pass) can rebuild it, so
+    /// "rebuilt now" isn't enough to know the texture is out of date.
+    texture_stale: bool,
 }
 
 impl PartialEq for TextData {
@@ -96,6 +102,9 @@ impl TextData {
             rebuild_layout: true,
             rebuild_line_breaks: true,
             layout: TextLayout::new(),
+
+            needs_sync: true,
+            texture_stale: true,
         }
     }
 
@@ -107,6 +116,7 @@ impl TextData {
         if self.text != text {
             self.text = text.into();
             self.invalidate_layout();
+            self.needs_sync = true;
         }
     }
 
@@ -129,6 +139,7 @@ impl TextData {
     pub fn set_section_style(&mut self, start_pos: usize, end_pos: usize, style: &TextStyle) {
         self.section_style.add(start_pos, end_pos, style);
         self.invalidate_layout();
+        self.needs_sync = true;
     }
 
     /// Sets cursor position in a text before character at position `pos`.
@@ -145,11 +156,14 @@ impl TextData {
         if self.selection != selection {
             self.selection = selection;
             self.invalidate_layout();
+            self.needs_sync = true;
         }
     }
 
     pub fn set_selection_color(&mut self, color: &Color) {
         self.selection_color = *color;
+        self.invalidate_layout();
+        self.needs_sync = true;
     }
 
     pub fn set_selection(&mut self, start_pos: usize, end_pos: usize) {
@@ -161,11 +175,18 @@ impl TextData {
         if self.selection != selection {
             self.selection = selection;
             self.invalidate_layout();
+            self.needs_sync = true;
         }
     }
 }
 
 impl TextData {
+    /// Whether the text data was changed through its API since the last call,
+    /// and forget it: `Gui:textView` copies such changes into its view.
+    pub fn take_needs_sync(&mut self) -> bool {
+        std::mem::take(&mut self.needs_sync)
+    }
+
     pub fn is_text_changed(&self) -> bool {
         self.text_changed
     }
@@ -222,6 +243,19 @@ impl TextData {
         } else {
             false
         };
+
+        updated |= if self.selection_color != text_data.selection_color {
+            self.selection_color = text_data.selection_color;
+            true
+        } else {
+            false
+        };
+
+        // a shorter text: the cursor or selection must stay inside it
+        if self.selection.end() > self.text.len() || self.selection.start() > self.text.len() {
+            self.selection = TextSelection::Cursor(self.text.len());
+            updated = true;
+        }
 
         if updated {
             self.invalidate_layout();
@@ -286,8 +320,9 @@ impl TextData {
         self.set_scale_factor(scale_factor);
         self.set_max_advance(width);
 
-        if !self.update_text_layout(text_ctx) {
-            return None;
+        self.update_text_layout(text_ctx);
+        if !std::mem::take(&mut self.texture_stale) {
+            return None; // the texture shows the current layout
         }
 
         // Create buffer to render into
@@ -296,23 +331,25 @@ impl TextData {
         let mut buffer = vec![Color::TRANSPARENT; (width * height) as usize];
         let selection_end = self.selection.end();
 
+        // The selection: a highlight behind the selected text, which keeps its colour.
+        if let Some(range) = self.selection.get_forward_range() {
+            self.render_selection(&mut buffer, width, height, &range);
+        }
+
         // Iterate over laid out lines
         for line in self.layout.lines() {
             // Iterate over GlyphRun's within each line
-            for glyph_run in line.glyph_runs() {
-                self.render_glyph_run(&mut text_ctx.scale, &glyph_run, &mut buffer, width);
+            for item in line.items() {
+                if let PositionedLayoutItem::GlyphRun(glyph_run) = item {
+                    self.render_glyph_run(&mut text_ctx.scale, &glyph_run, &mut buffer, width);
+                }
             }
         }
 
         // calculate cursor rect
         if (self.text_changed || selection_changed) && editable && focused {
-            self.cursor_rect.build(
-                &self.layout,
-                height,
-                selection_end,
-                self.padding,
-                self.text.len(),
-            );
+            self.cursor_rect
+                .build(&self.layout, height, selection_end, self.padding);
         }
 
         // Create texture
@@ -325,21 +362,21 @@ impl TextData {
         if self.rebuild_layout {
             self.rebuild_layout = false;
 
-            let mut builder =
-                text_ctx
-                    .layout
-                    .ranged_builder(&mut text_ctx.font, &self.text, self.scale_factor);
+            // Quantized: baselines and line boxes land on whole pixels.
+            let mut builder = text_ctx.layout.ranged_builder(
+                &mut text_ctx.font,
+                &self.text,
+                self.scale_factor,
+                true,
+            );
 
             self.default_style.apply_default(&mut builder);
 
             self.section_style.apply(&mut builder);
 
-            if let Some(range) = self.selection.get_forward_range() {
-                builder.push(&StyleProperty::Brush(self.selection_color), range);
-            }
-
             // Build the builder into a Layout
-            builder.build_into(&mut self.layout);
+            builder.build_into(&mut self.layout, &self.text);
+            self.texture_stale = true;
 
             if self.rebuild_line_breaks {
                 self.rebuild_line_breaks = false;
@@ -351,8 +388,11 @@ impl TextData {
                     None
                 };
 
-                // Perform layout (including bidi resolution and shaping) with alignment
-                self.layout.break_all_lines(max_advance, self.alignment);
+                // Perform layout (including bidi resolution and shaping) with alignment.
+                // Building the layout resets its alignment, so it is set every time.
+                self.layout
+                    .set_alignment(self.alignment, AlignmentOptions::default());
+                self.layout.break_all_lines(max_advance);
             }
 
             true
@@ -508,6 +548,55 @@ impl TextData {
         }
     }
 
+    /// Fill the background of the selected characters with the selection
+    /// colour, line by line (from the top of a line's leading to its bottom).
+    fn render_selection(
+        &self,
+        buffer: &mut [Color],
+        image_width: u32,
+        image_height: u32,
+        range: &std::ops::Range<usize>,
+    ) {
+        for line in self.layout.lines() {
+            let metrics = line.metrics();
+            // The line box: ascent + descent plus half the leading on each side.
+            let top = metrics.block_min_coord.floor().max(0.0) as u32;
+            let bottom = (metrics.block_max_coord.ceil() as u32).min(image_height);
+
+            // the selected characters as spans from left to right, neighbours
+            // joined, so each pixel is painted once
+            let mut spans: Vec<(f32, f32)> = vec![];
+            let mut x = metrics.offset + self.padding;
+            for run in line.runs() {
+                for cluster in run.visual_clusters() {
+                    let advance = cluster.advance();
+                    let text_range = cluster.text_range();
+
+                    if text_range.start < range.end && text_range.end > range.start {
+                        match spans.last_mut() {
+                            Some(span) if (span.1 - x).abs() < 0.01 => span.1 = x + advance,
+                            _ => spans.push((x, x + advance)),
+                        }
+                    }
+
+                    x += advance;
+                }
+            }
+
+            for (start, end) in spans {
+                let left = start.round().max(0.0) as usize;
+                let right = (end.round().max(0.0) as usize).min(image_width as usize);
+
+                for y in top..bottom {
+                    let row = (y * image_width) as usize;
+                    for pixel in &mut buffer[row + left..row + right.max(left)] {
+                        pixel.paint_over(&self.selection_color);
+                    }
+                }
+            }
+        }
+    }
+
     fn render_glyph_run(
         &self,
         context: &mut ScaleContext,
@@ -516,8 +605,6 @@ impl TextData {
         image_width: u32,
     ) {
         // Resolve properties of the GlyphRun
-        let mut run_x = glyph_run.offset();
-        let run_y = glyph_run.baseline();
         let style = glyph_run.style();
         let color = style.brush;
 
@@ -529,7 +616,7 @@ impl TextData {
         let font_size = run.font_size();
         let normalized_coords = run.normalized_coords();
 
-        // Convert from parley::Font to swash::FontRef
+        // Convert from parley::FontData to swash::FontRef
         let font_ref = FontRef::from_index(font.data.as_ref(), font.index as usize).unwrap();
 
         // Build a scaler. As the font properties are constant across an entire run of glyphs
@@ -538,25 +625,65 @@ impl TextData {
             .builder(font_ref)
             .size(font_size)
             .hint(true)
-            .normalized_coords(normalized_coords)
+            .normalized_coords(normalized_coords.iter().map(|coord| coord.to_bits()))
             .build();
 
-        // Iterates over the glyphs in the GlyphRun
-        for glyph in glyph_run.glyphs() {
-            let glyph_x = run_x + glyph.x + self.padding;
-            let glyph_y = run_y - glyph.y;
-
-            run_x += glyph.advance;
+        // Iterates over the glyphs in the GlyphRun, positioned in the layout (y down)
+        for glyph in glyph_run.positioned_glyphs() {
+            let glyph_x = glyph.x + self.padding;
+            let glyph_y = glyph.y;
 
             render_glyph(
                 buffer,
                 &mut scaler,
                 &color,
-                &glyph,
+                glyph.id as u16,
                 glyph_x,
                 glyph_y,
                 image_width,
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn data(text: &str) -> TextData {
+        TextData::new(
+            text,
+            &TextStyle::default(),
+            &Color::WHITE,
+            &Color::WHITE,
+            TextAlignment::Start,
+            false,
+        )
+    }
+
+    #[test]
+    fn changes_through_the_api_are_copied_once() {
+        let mut lua = data("123");
+        assert!(
+            lua.take_needs_sync(),
+            "new text data is copied into its view"
+        );
+        assert!(!lua.take_needs_sync());
+
+        lua.set_text("456");
+        assert!(lua.take_needs_sync());
+
+        lua.set_text("456"); // the same text: nothing changed
+        assert!(!lua.take_needs_sync());
+    }
+
+    #[test]
+    fn a_shorter_text_keeps_the_cursor_inside_it() {
+        let mut view = data("12345678");
+        view.set_cursor_pos(8);
+
+        view.update(&data("123"));
+        assert_eq!(view.selection(), &TextSelection::Cursor(3));
+        assert_eq!(view.text(), "123");
     }
 }

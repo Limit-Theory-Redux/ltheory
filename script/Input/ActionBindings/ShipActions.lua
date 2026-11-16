@@ -113,16 +113,7 @@ local ShipActions = {
     }),
 }
 
--- handle pitch invert
-if GameState and GameState.input and GameState.input.invertPitch then
-    local order = ShipActions.Pitch.order -- keep its place in the Controls screen
-    ---@type ActionBinding
-    ShipActions.Pitch = ActionBinding({
-        label = "Steer up / down", group = "Flight",
-        mouse = { Control.MouseY() },  -- non-inverted
-        gamepad = { Control.GamepadAxis(Button.GamepadRightStickY) },
-    })
-    ShipActions.Pitch.order = order
-end
+-- Invert Vertical Look (GameState.input.invertPitch) is applied by PlayerController
+-- every frame, so it covers mouse and gamepad and changes without a restart.
 
 return ShipActions

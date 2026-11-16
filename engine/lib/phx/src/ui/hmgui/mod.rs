@@ -5,6 +5,8 @@ mod focus_type;
 mod gui;
 mod image;
 mod layer;
+mod look;
+mod shape;
 mod text;
 mod text_line;
 mod widget;
@@ -15,6 +17,8 @@ use data::*;
 pub use focus_type::*;
 pub use gui::*;
 pub use layer::*;
+pub use look::*;
+pub use shape::*;
 pub use text::*;
 pub use text_line::*;
 pub use widget::*;
@@ -923,6 +927,83 @@ mod tests {
         );
     }
 
+    // One-sided margins: the left/top margin moves the widget's inner rect,
+    // the right/bottom margin only adds space after it.
+    #[test]
+    fn test_hmgui_one_sided_margins() {
+        let (mut gui, input, mut r) = init_test();
+
+        gui.begin_gui(300.0, 200.0);
+
+        gui.begin_vertical_container();
+        gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
+        gui.set_children_horizontal_alignment(AlignHorizontal::Left);
+
+        gui.rect();
+        gui.set_fixed_size(30.0, 20.0);
+        gui.set_margin_ex(4.0, 6.0, 0.0, 0.0); // left and top only
+
+        gui.rect();
+        gui.set_fixed_size(30.0, 20.0);
+        gui.set_margin_ex(0.0, 0.0, 4.0, 6.0); // right and bottom only
+
+        gui.rect();
+        gui.set_fixed_size(30.0, 20.0);
+        gui.set_margin_left(3.0);
+        gui.set_margin_top(5.0);
+        gui.set_margin_right(7.0);
+        gui.set_margin_bottom(9.0);
+        gui.set_border_width(2.0);
+
+        gui.end_container();
+
+        gui.end_gui(&mut r, &input);
+
+        let root_widget_rf = gui.root();
+        let root_widget = root_widget_rf.as_ref();
+
+        check_widget(
+            &root_widget,
+            &WidgetCheck(
+                "Root",
+                (0.0, 0.0),
+                (300.0, 200.0), // Root widget should always keep it's position and size
+                (300.0, 200.0),
+                Some(vec![WidgetCheck(
+                    "Vertical",
+                    (0.0, 0.0),
+                    (300.0, 200.0), // Vertical container expanded so has the same position and size as root one
+                    (300.0, 200.0),
+                    Some(vec![
+                        WidgetCheck("Rect1", (0.0, 0.0), (34.0, 26.0), (30.0, 20.0), None),
+                        WidgetCheck("Rect2", (0.0, 26.0), (34.0, 26.0), (30.0, 20.0), None),
+                        WidgetCheck("Rect3", (0.0, 52.0), (44.0, 38.0), (30.0, 20.0), None),
+                    ]),
+                )]),
+            ),
+        );
+
+        // check_widget compares outer positions; which side a margin is on shows in inner_pos.
+        let vertical_rf = root_widget.get_container_item().children[0].clone();
+        let vertical = vertical_rf.as_ref();
+        let inner_pos: Vec<Vec2> = vertical
+            .get_container_item()
+            .children
+            .iter()
+            .map(|child| child.as_ref().inner_pos)
+            .collect();
+
+        assert_eq!(
+            inner_pos,
+            vec![
+                Vec2::new(4.0, 6.0),  // Moved by its left/top margin
+                Vec2::new(0.0, 26.0), // A right/bottom margin doesn't move it
+                Vec2::new(5.0, 59.0), // Left/top margin plus border
+            ],
+            "Inner rects must be offset by the left/top margin"
+        );
+    }
+
     #[test]
     fn test_hmgui_stack_percentage_size() {
         let (mut gui, input, mut r) = init_test();
@@ -1259,5 +1340,383 @@ mod tests {
                 )]),
             ),
         );
+    }
+
+    #[test]
+    fn test_hmgui_shape_widgets() {
+        let (mut gui, input, mut r) = init_test();
+
+        gui.begin_gui(300.0, 200.0);
+        gui.begin_stack_container();
+        gui.set_alignment(AlignHorizontal::Center, AlignVertical::Center);
+        gui.set_children_alignment(AlignHorizontal::Center, AlignVertical::Center);
+
+        // Shapes lay out like rects: they take the size the layout gives them.
+        gui.annulus(&crate::render::Color::WHITE, 10.0, false);
+        gui.set_fixed_size(120.0, 80.0);
+
+        gui.wedge(&crate::render::Color::WHITE, 4.0, 270.0, 45.0, true);
+        gui.set_fixed_size(60.0, 60.0);
+
+        gui.end_container();
+        gui.end_gui(&mut r, &input);
+
+        let root_widget_rf = gui.root();
+        let root_widget = root_widget_rf.as_ref();
+
+        check_widget(
+            &root_widget,
+            &WidgetCheck(
+                "Root",
+                (0.0, 0.0),
+                (300.0, 200.0),
+                (300.0, 200.0),
+                Some(vec![WidgetCheck(
+                    "Stack",
+                    (90.0, 60.0),
+                    (120.0, 80.0),
+                    (120.0, 80.0),
+                    Some(vec![
+                        WidgetCheck("Annulus", (90.0, 60.0), (120.0, 80.0), (120.0, 80.0), None),
+                        WidgetCheck("Wedge", (120.0, 70.0), (60.0, 60.0), (60.0, 60.0), None),
+                    ]),
+                )]),
+            ),
+        );
+
+        // Each shape is centred in its widget, so both share the stack's
+        // centre (150, 100), whatever their widget sizes.
+        let stack_rf = root_widget.get_container_item().children[0].clone();
+        let stack = stack_rf.as_ref();
+        // Both are drawn as strokes on a circle: (centre, radius, thickness).
+        let looks = HmGuiLooks::new();
+        let circles: Vec<_> = stack
+            .get_container_item()
+            .children
+            .iter()
+            .map(|widget_rf| {
+                let widget = widget_rf.as_ref();
+                let WidgetItem::Shape(shape) = &widget.item else {
+                    panic!("Expected a shape widget");
+                };
+                match shape.geometry(widget.inner_pos, widget.inner_size, &looks) {
+                    Some((
+                        crate::render::Shape::Stroke,
+                        crate::render::UIShapeGeometry::Stroke { stroke, .. },
+                    )) => (
+                        stroke.start + stroke.normal() / stroke.curvature,
+                        1.0 / stroke.curvature.abs(),
+                        stroke.thickness,
+                    ),
+                    other => panic!("Expected a stroke, got {other:?}"),
+                }
+            })
+            .collect();
+
+        let close = |a: Vec2, b: Vec2| a.distance(b) < 1e-3;
+        // Radius 40 (half the widget's smaller side), 10 px thick: the
+        // stroke runs along its middle, 35.
+        assert!(close(circles[0].0, Vec2::new(150.0, 100.0)), "{circles:?}");
+        assert!((circles[0].1 - 35.0).abs() < 1e-3, "{circles:?}");
+        // Radius 30, 4 px deep.
+        assert!(close(circles[1].0, Vec2::new(150.0, 100.0)), "{circles:?}");
+        assert!((circles[1].1 - 28.0).abs() < 1e-3, "{circles:?}");
+        assert_eq!(circles[1].2, 4.0);
+    }
+
+    // A fixed or percent size is kept when a child is bigger: the child
+    // overflows (and is clipped), the container doesn't grow around it.
+    #[test]
+    fn test_hmgui_fixed_and_percent_size_containers_keep_their_size() {
+        let (mut gui, input, mut r) = init_test();
+
+        gui.begin_gui(300.0, 200.0);
+
+        gui.begin_stack_container();
+        gui.set_alignment(AlignHorizontal::Left, AlignVertical::Top);
+        gui.set_fixed_size(100.0, 50.0);
+        gui.rect();
+        gui.set_alignment(AlignHorizontal::Left, AlignVertical::Top);
+        gui.set_fixed_size(250.0, 20.0);
+        gui.end_container();
+
+        gui.begin_vertical_container();
+        gui.set_alignment(AlignHorizontal::Right, AlignVertical::Top);
+        gui.set_percent_size(20.0, 25.0); // 60 x 50
+        gui.rect();
+        gui.set_fixed_size(40.0, 80.0);
+        gui.end_container();
+
+        gui.end_gui(&mut r, &input);
+
+        let root_widget_rf = gui.root();
+        let root_widget = root_widget_rf.as_ref();
+
+        check_widget(
+            &root_widget,
+            &WidgetCheck(
+                "Root",
+                (0.0, 0.0),
+                (300.0, 200.0),
+                (300.0, 200.0),
+                Some(vec![
+                    WidgetCheck(
+                        "FixedStack",
+                        (0.0, 0.0),
+                        (100.0, 50.0), // not 250 wide
+                        (100.0, 50.0),
+                        Some(vec![WidgetCheck(
+                            "WideRect",
+                            (0.0, 0.0),
+                            (250.0, 20.0),
+                            (250.0, 20.0),
+                            None,
+                        )]),
+                    ),
+                    WidgetCheck(
+                        "PercentVertical",
+                        (240.0, 0.0),
+                        (60.0, 50.0), // not 80 high
+                        (60.0, 50.0),
+                        Some(vec![WidgetCheck(
+                            "TallRect",
+                            (240.0, 0.0),
+                            (40.0, 80.0),
+                            (40.0, 80.0),
+                            None,
+                        )]),
+                    ),
+                ]),
+            ),
+        );
+    }
+
+    // set_min_width/size work on containers: at least that big, bigger if
+    // the content needs it.
+    #[test]
+    fn test_hmgui_min_size_on_containers() {
+        let (mut gui, input, mut r) = init_test();
+
+        gui.begin_gui(300.0, 200.0);
+
+        gui.begin_vertical_container();
+        gui.set_alignment(AlignHorizontal::Left, AlignVertical::Top);
+        gui.set_min_width(120.0);
+        gui.rect();
+        gui.set_fixed_size(40.0, 10.0);
+        gui.end_container();
+
+        gui.begin_vertical_container();
+        gui.set_alignment(AlignHorizontal::Right, AlignVertical::Top);
+        gui.set_min_size(30.0, 5.0);
+        gui.rect();
+        gui.set_fixed_size(80.0, 10.0);
+        gui.end_container();
+
+        gui.end_gui(&mut r, &input);
+
+        let root_widget_rf = gui.root();
+        let root_widget = root_widget_rf.as_ref();
+
+        check_widget(
+            &root_widget,
+            &WidgetCheck(
+                "Root",
+                (0.0, 0.0),
+                (300.0, 200.0),
+                (300.0, 200.0),
+                Some(vec![
+                    WidgetCheck(
+                        "MinWidth",
+                        (0.0, 0.0),
+                        (120.0, 10.0), // wider than its content
+                        (120.0, 10.0),
+                        Some(vec![WidgetCheck(
+                            "Rect",
+                            (0.0, 0.0),
+                            (40.0, 10.0),
+                            (40.0, 10.0),
+                            None,
+                        )]),
+                    ),
+                    WidgetCheck(
+                        "ContentWins",
+                        (220.0, 0.0),
+                        (80.0, 10.0), // the content is bigger than the min size
+                        (80.0, 10.0),
+                        Some(vec![WidgetCheck(
+                            "Rect",
+                            (220.0, 0.0),
+                            (80.0, 10.0),
+                            (80.0, 10.0),
+                            None,
+                        )]),
+                    ),
+                ]),
+            ),
+        );
+    }
+
+    // set_position: placed from the parent's top left inside its border
+    // (padding doesn't apply), out of the layout.
+    #[test]
+    fn test_hmgui_positioned_widgets() {
+        let (mut gui, input, mut r) = init_test();
+
+        gui.begin_gui(300.0, 200.0);
+
+        gui.begin_vertical_container();
+        gui.set_alignment(AlignHorizontal::Left, AlignVertical::Top);
+        gui.set_padding(10.0, 10.0);
+        gui.set_border_width(2.0);
+
+        gui.rect();
+        gui.set_fixed_size(50.0, 20.0);
+
+        gui.rect();
+        gui.set_fixed_size(30.0, 30.0);
+        gui.set_position(100.0, 40.0);
+
+        gui.rect();
+        gui.set_fixed_size(50.0, 20.0);
+
+        gui.end_container();
+
+        gui.begin_stack_container();
+        gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
+        gui.rect();
+        gui.set_percent_size(50.0, 10.0); // of the area it's placed in
+        gui.set_position(150.0, 0.0);
+        gui.end_container();
+
+        gui.end_gui(&mut r, &input);
+
+        let root_widget_rf = gui.root();
+        let root_widget = root_widget_rf.as_ref();
+
+        check_widget(
+            &root_widget,
+            &WidgetCheck(
+                "Root",
+                (0.0, 0.0),
+                (300.0, 200.0),
+                (300.0, 200.0),
+                Some(vec![
+                    WidgetCheck(
+                        "Vertical",
+                        (0.0, 0.0),
+                        (74.0, 64.0), // sized by the two flowing rects only
+                        (70.0, 60.0),
+                        Some(vec![
+                            WidgetCheck("Flow1", (12.0, 12.0), (50.0, 20.0), (50.0, 20.0), None),
+                            WidgetCheck(
+                                "Positioned",
+                                (102.0, 42.0), // border (2) + position, no padding
+                                (30.0, 30.0),
+                                (30.0, 30.0),
+                                None,
+                            ),
+                            WidgetCheck("Flow2", (12.0, 32.0), (50.0, 20.0), (50.0, 20.0), None), // right after Flow1
+                        ]),
+                    ),
+                    WidgetCheck(
+                        "Stack",
+                        (0.0, 0.0),
+                        (300.0, 200.0),
+                        (300.0, 200.0),
+                        Some(vec![WidgetCheck(
+                            "PositionedPercent",
+                            (150.0, 0.0),
+                            (150.0, 20.0),
+                            (150.0, 20.0),
+                            None,
+                        )]),
+                    ),
+                ]),
+            ),
+        );
+    }
+
+    // set_max_size caps a stretched and a fixed size.
+    #[test]
+    fn test_hmgui_max_size() {
+        let (mut gui, input, mut r) = init_test();
+
+        gui.begin_gui(300.0, 200.0);
+
+        gui.rect();
+        gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
+        gui.set_max_size(100.0, 50.0);
+
+        gui.rect();
+        gui.set_alignment(AlignHorizontal::Left, AlignVertical::Top);
+        gui.set_fixed_size(200.0, 80.0);
+        gui.set_max_width(120.0);
+
+        // a capped container doesn't grow around a wider child either
+        gui.begin_stack_container();
+        gui.set_alignment(AlignHorizontal::Left, AlignVertical::Top);
+        gui.set_max_width(80.0);
+        gui.rect();
+        gui.set_alignment(AlignHorizontal::Left, AlignVertical::Top);
+        gui.set_fixed_size(200.0, 10.0);
+        gui.end_container();
+
+        gui.end_gui(&mut r, &input);
+
+        let root_widget_rf = gui.root();
+        let root_widget = root_widget_rf.as_ref();
+
+        check_widget(
+            &root_widget,
+            &WidgetCheck(
+                "Root",
+                (0.0, 0.0),
+                (300.0, 200.0),
+                (300.0, 200.0),
+                Some(vec![
+                    WidgetCheck("Stretched", (0.0, 0.0), (100.0, 50.0), (100.0, 50.0), None),
+                    WidgetCheck("Fixed", (0.0, 0.0), (120.0, 80.0), (120.0, 80.0), None),
+                    WidgetCheck(
+                        "CappedStack",
+                        (0.0, 0.0),
+                        (80.0, 10.0),
+                        (80.0, 10.0),
+                        Some(vec![WidgetCheck(
+                            "Wide",
+                            (0.0, 0.0),
+                            (200.0, 10.0),
+                            (200.0, 10.0),
+                            None,
+                        )]),
+                    ),
+                ]),
+            ),
+        );
+    }
+
+    // A layer below a widget starts under its border box: its margins don't count.
+    #[test]
+    fn test_hmgui_layer_below_starts_under_the_border_box() {
+        let (mut gui, input, mut r) = init_test();
+
+        gui.begin_gui(300.0, 200.0);
+
+        gui.rect();
+        gui.set_alignment(AlignHorizontal::Left, AlignVertical::Top);
+        gui.set_fixed_size(50.0, 30.0);
+        gui.set_margin_ex(10.0, 20.0, 5.0, 7.0);
+        gui.set_border_width(1.0);
+
+        gui.begin_layer_below();
+        gui.rect();
+        gui.set_fixed_size(40.0, 10.0);
+        gui.end_layer();
+
+        gui.end_gui(&mut r, &input);
+
+        // the rect's border box: (10, 20), 52 x 32
+        let layer_root_rf = gui.layer_root(1);
+        assert_eq!(layer_root_rf.as_ref().pos, Vec2::new(10.0, 52.0));
     }
 }
