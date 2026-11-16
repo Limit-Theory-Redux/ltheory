@@ -53,6 +53,7 @@ local SystemMap3D = require('Modules.CelestialObjects.Systems.SystemMap3D')
 local MemoryReporter = require('Modules.Profiling.MemoryReporter')
 local ConstructManager = require('Modules.Constructs.Managers.ConstructManager')
 local StationGenerator = require('Modules.Constructs.Managers.Generators.StationGenerator')
+local WeaponCombatSystem = require('Modules.Constructs.Systems.WeaponCombatSystem')
 
 -- Skybox. This state also draws from the light-transport nebula, which the
 -- Legacy namespace load used to register.
@@ -330,8 +331,13 @@ function LimitTheoryRedux:returnToMainMenu()
         EventBus:unsubscribe(self._simTunnel)
         self._simTunnel = nil
     end
+    if self._postSimTunnel then
+        EventBus:unsubscribe(self._postSimTunnel)
+        self._postSimTunnel = nil
+    end
 
     self:destroyScene()
+    self.weaponCombat = nil
     RenderCoreSystem:setDebugPhysics(nil)
     -- The menu makes a skybox of its own
     if self.skybox then
@@ -380,6 +386,8 @@ function LimitTheoryRedux:startGame(seed, scenario)
     self.hudHidden = not GameState.ui.drawHud
     self.world = Physics.Create()
     self.constructManager = ConstructManager(Registry, self.world)
+    -- Every armed ship's weapons (WeaponBattery) run through this
+    self.weaponCombat = WeaponCombatSystem(self.world)
     RenderCoreSystem:setDebugPhysics(self.world)
 
     self:createSkybox()
@@ -415,6 +423,7 @@ function LimitTheoryRedux:startGame(seed, scenario)
     self:collectSceneSystems()
 
     self._simTunnel = EventBus:subscribe(Event.Sim, self, self.onStateSim)
+    self._postSimTunnel = EventBus:subscribe(Event.PostSim, self, self.onStatePostSim)
 
     -- Swap the menu for the Gameplay page. Its In_Game view draws on top of
     -- the HUD and labels that the state's onRender draws.
@@ -586,6 +595,10 @@ end
 function LimitTheoryRedux:destroyScene(keepShip)
     if self.scenario and self.scenario.teardown then
         self.scenario.teardown(self)
+    end
+    -- Beams, projectiles and effect lights, before the ships they came from
+    if self.weaponCombat then
+        self.weaponCombat:clear()
     end
     -- Before the things it may follow go
     if self.player then
@@ -1056,8 +1069,19 @@ function LimitTheoryRedux:onStateSim(data)
 
     self.player:update(dt)
     if self.scenario.update then self.scenario.update(self, dt) end
+    -- Weapons: targets and turrets before the physics step, AI, aim and
+    -- firing right after it (shots in flight: onStatePostSim)
+    self.weaponCombat:preUpdate(dt)
     self.world:update(dt)
+    self.weaponCombat:update(dt)
     if self.scenario.postUpdate then self.scenario.postUpdate(self, dt) end
+end
+
+---@param data EventData
+function LimitTheoryRedux:onStatePostSim(data)
+    if not self.playerShip then return end
+    -- Projectiles, beams, expired effect lights
+    self.weaponCombat:postUpdate(data:deltaTime())
 end
 
 --- Regenerate (B): what the scenario does for it, or by default a new seed

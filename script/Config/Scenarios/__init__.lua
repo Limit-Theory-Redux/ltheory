@@ -33,7 +33,9 @@
 -- `game` is the game state. What a scenario uses of it:
 --   game.world, game.constructManager, game.seed, game.rng, game.universe,
 --   game.planets, game.starEntity, game.playerShip, game.player (the
---   PlayerController), game.scenarioData (a table of the scenario's own, new
+--   PlayerController), game.weaponCombat (runs armed ships: add a ship's
+--   WeaponBattery with game.weaponCombat:addBattery(battery); it is cleared
+--   with the scene), game.scenarioData (a table of the scenario's own, new
 --   for every start), game:addSceneEntity(entity, label),
 --   game:removeSceneEntity(entity), game:setOrbitFocus(entity, distances),
 --   game:regenerate().
