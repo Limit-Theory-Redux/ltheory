@@ -108,10 +108,17 @@ function OrbitCameraController:updateCameraPosition(dt)
     local zoomLerp = math.min(1.0, 4.0 * dt)
     self.currentDistance = self.currentDistance + (self.distance - self.currentDistance) * zoomLerp
 
+    -- The target's rigid body, or its Transform when it has no body (an
+    -- empty anchor, an effect)
     local targetPos = Position(0, 0, 0)
     local rbCmp = self.target:get(PhysicsComponents.RigidBody)
     if rbCmp and rbCmp:getRigidBody() then
         targetPos = rbCmp:getRigidBody():getPos()
+    else
+        local transform = self.target:get(PhysicsComponents.Transform)
+        if transform then
+            targetPos = transform:getPos()
+        end
     end
 
     local cx = targetPos.x + self.targetOffset.x
