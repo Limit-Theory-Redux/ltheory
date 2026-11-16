@@ -874,6 +874,13 @@ return {
         resetDrones(game)
     end,
 
+    controls = {
+        { keys = "F6", action = "Capital's AI on / off" },
+        { keys = "F7", action = "Fire mode: volley / sequence (AI off)" },
+        { keys = "F9 (held)", action = "Fire the capital's weapons (AI off)" },
+        { keys = "R or B", action = "Reset the drones" },
+    },
+
     drawOverlay = function(game)
         local data = game.scenarioData
         local battery = data.battery

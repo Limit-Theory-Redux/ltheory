@@ -134,6 +134,12 @@ function LimitTheoryRedux:onInit()
     Window:setCursorPosition(Vec2f(GameState.ui.cursorX, GameState.ui.cursorY))
     SoundManager:init()
     MusicPlayer:loadMusic()
+    -- Captures (LTHEORY_CAPTURE) are silent: nobody listens to them, and the
+    -- render validation runs a dozen in a row. (Not saved: captures never
+    -- write user.ini.)
+    if os.getenv('LTHEORY_CAPTURE') then
+        self:soundOff()
+    end
 
     self:initMainMenu(true)
 end
