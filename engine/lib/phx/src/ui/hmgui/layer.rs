@@ -7,13 +7,14 @@ use crate::system::Hash;
 pub const UNDEFINED_LAYER_INDEX: usize = 0xFFFFFFFF;
 
 /// Specify how layer will be positioned on the screen.
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub enum HmGuiLayerLocation {
     /// New layer will occupy predefined position and size on the screen.
     Fixed,
-    /// New layer position will be below the last element (defined by u64 hash) of the current layer.
+    /// New layer position will be below this widget of an earlier layer (under
+    /// its border box, margins excluded), at its left edge.
     /// Size of the layer will be up to the screen borders.
-    Below(u64),
+    Below(Rf<HmGuiWidget>),
 }
 
 /// Layer represents a separate hierarchy of elements with a separate layouting.
@@ -56,7 +57,7 @@ impl HmGuiLayer {
         }
     }
 
-    pub fn new_below(prev_index: usize, hash: u64) -> Self {
+    pub fn new_below(prev_index: usize, below: Rf<HmGuiWidget>) -> Self {
         let mut widget = HmGuiWidget::new(None, WidgetItem::Container(Default::default()));
 
         widget.hash = Hash::fnv64_init();
@@ -66,7 +67,7 @@ impl HmGuiLayer {
         let last = root.clone();
 
         Self {
-            location: HmGuiLayerLocation::Below(hash),
+            location: HmGuiLayerLocation::Below(below),
             prev_index,
             root,
             container,

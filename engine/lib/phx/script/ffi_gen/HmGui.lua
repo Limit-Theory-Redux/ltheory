@@ -67,6 +67,10 @@ function Loader.defineType()
             void  HmGui_SetMinWidth                    (HmGui const*, float width);
             void  HmGui_SetMinHeight                   (HmGui const*, float height);
             void  HmGui_SetMinSize                     (HmGui const*, float width, float height);
+            void  HmGui_SetMaxWidth                    (HmGui const*, float width);
+            void  HmGui_SetMaxHeight                   (HmGui const*, float height);
+            void  HmGui_SetMaxSize                     (HmGui const*, float width, float height);
+            void  HmGui_SetPosition                    (HmGui const*, float x, float y);
             void  HmGui_SetFixedWidth                  (HmGui const*, float width);
             void  HmGui_SetFixedHeight                 (HmGui const*, float height);
             void  HmGui_SetFixedSize                   (HmGui const*, float width, float height);
@@ -161,6 +165,10 @@ function Loader.defineType()
                 setMinWidth                    = libphx.HmGui_SetMinWidth,
                 setMinHeight                   = libphx.HmGui_SetMinHeight,
                 setMinSize                     = libphx.HmGui_SetMinSize,
+                setMaxWidth                    = libphx.HmGui_SetMaxWidth,
+                setMaxHeight                   = libphx.HmGui_SetMaxHeight,
+                setMaxSize                     = libphx.HmGui_SetMaxSize,
+                setPosition                    = libphx.HmGui_SetPosition,
                 setFixedWidth                  = libphx.HmGui_SetFixedWidth,
                 setFixedHeight                 = libphx.HmGui_SetFixedHeight,
                 setFixedSize                   = libphx.HmGui_SetFixedSize,

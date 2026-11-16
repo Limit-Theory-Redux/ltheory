@@ -1423,4 +1423,300 @@ mod tests {
         assert!((circles[1].1 - 28.0).abs() < 1e-3, "{circles:?}");
         assert_eq!(circles[1].2, 4.0);
     }
+
+    // A fixed or percent size is kept when a child is bigger: the child
+    // overflows (and is clipped), the container doesn't grow around it.
+    #[test]
+    fn test_hmgui_fixed_and_percent_size_containers_keep_their_size() {
+        let (mut gui, input, mut r) = init_test();
+
+        gui.begin_gui(300.0, 200.0);
+
+        gui.begin_stack_container();
+        gui.set_alignment(AlignHorizontal::Left, AlignVertical::Top);
+        gui.set_fixed_size(100.0, 50.0);
+        gui.rect();
+        gui.set_alignment(AlignHorizontal::Left, AlignVertical::Top);
+        gui.set_fixed_size(250.0, 20.0);
+        gui.end_container();
+
+        gui.begin_vertical_container();
+        gui.set_alignment(AlignHorizontal::Right, AlignVertical::Top);
+        gui.set_percent_size(20.0, 25.0); // 60 x 50
+        gui.rect();
+        gui.set_fixed_size(40.0, 80.0);
+        gui.end_container();
+
+        gui.end_gui(&mut r, &input);
+
+        let root_widget_rf = gui.root();
+        let root_widget = root_widget_rf.as_ref();
+
+        check_widget(
+            &root_widget,
+            &WidgetCheck(
+                "Root",
+                (0.0, 0.0),
+                (300.0, 200.0),
+                (300.0, 200.0),
+                Some(vec![
+                    WidgetCheck(
+                        "FixedStack",
+                        (0.0, 0.0),
+                        (100.0, 50.0), // not 250 wide
+                        (100.0, 50.0),
+                        Some(vec![WidgetCheck(
+                            "WideRect",
+                            (0.0, 0.0),
+                            (250.0, 20.0),
+                            (250.0, 20.0),
+                            None,
+                        )]),
+                    ),
+                    WidgetCheck(
+                        "PercentVertical",
+                        (240.0, 0.0),
+                        (60.0, 50.0), // not 80 high
+                        (60.0, 50.0),
+                        Some(vec![WidgetCheck(
+                            "TallRect",
+                            (240.0, 0.0),
+                            (40.0, 80.0),
+                            (40.0, 80.0),
+                            None,
+                        )]),
+                    ),
+                ]),
+            ),
+        );
+    }
+
+    // set_min_width/size work on containers: at least that big, bigger if
+    // the content needs it.
+    #[test]
+    fn test_hmgui_min_size_on_containers() {
+        let (mut gui, input, mut r) = init_test();
+
+        gui.begin_gui(300.0, 200.0);
+
+        gui.begin_vertical_container();
+        gui.set_alignment(AlignHorizontal::Left, AlignVertical::Top);
+        gui.set_min_width(120.0);
+        gui.rect();
+        gui.set_fixed_size(40.0, 10.0);
+        gui.end_container();
+
+        gui.begin_vertical_container();
+        gui.set_alignment(AlignHorizontal::Right, AlignVertical::Top);
+        gui.set_min_size(30.0, 5.0);
+        gui.rect();
+        gui.set_fixed_size(80.0, 10.0);
+        gui.end_container();
+
+        gui.end_gui(&mut r, &input);
+
+        let root_widget_rf = gui.root();
+        let root_widget = root_widget_rf.as_ref();
+
+        check_widget(
+            &root_widget,
+            &WidgetCheck(
+                "Root",
+                (0.0, 0.0),
+                (300.0, 200.0),
+                (300.0, 200.0),
+                Some(vec![
+                    WidgetCheck(
+                        "MinWidth",
+                        (0.0, 0.0),
+                        (120.0, 10.0), // wider than its content
+                        (120.0, 10.0),
+                        Some(vec![WidgetCheck(
+                            "Rect",
+                            (0.0, 0.0),
+                            (40.0, 10.0),
+                            (40.0, 10.0),
+                            None,
+                        )]),
+                    ),
+                    WidgetCheck(
+                        "ContentWins",
+                        (220.0, 0.0),
+                        (80.0, 10.0), // the content is bigger than the min size
+                        (80.0, 10.0),
+                        Some(vec![WidgetCheck(
+                            "Rect",
+                            (220.0, 0.0),
+                            (80.0, 10.0),
+                            (80.0, 10.0),
+                            None,
+                        )]),
+                    ),
+                ]),
+            ),
+        );
+    }
+
+    // set_position: placed from the parent's top left inside its border
+    // (padding doesn't apply), out of the layout.
+    #[test]
+    fn test_hmgui_positioned_widgets() {
+        let (mut gui, input, mut r) = init_test();
+
+        gui.begin_gui(300.0, 200.0);
+
+        gui.begin_vertical_container();
+        gui.set_alignment(AlignHorizontal::Left, AlignVertical::Top);
+        gui.set_padding(10.0, 10.0);
+        gui.set_border_width(2.0);
+
+        gui.rect();
+        gui.set_fixed_size(50.0, 20.0);
+
+        gui.rect();
+        gui.set_fixed_size(30.0, 30.0);
+        gui.set_position(100.0, 40.0);
+
+        gui.rect();
+        gui.set_fixed_size(50.0, 20.0);
+
+        gui.end_container();
+
+        gui.begin_stack_container();
+        gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
+        gui.rect();
+        gui.set_percent_size(50.0, 10.0); // of the area it's placed in
+        gui.set_position(150.0, 0.0);
+        gui.end_container();
+
+        gui.end_gui(&mut r, &input);
+
+        let root_widget_rf = gui.root();
+        let root_widget = root_widget_rf.as_ref();
+
+        check_widget(
+            &root_widget,
+            &WidgetCheck(
+                "Root",
+                (0.0, 0.0),
+                (300.0, 200.0),
+                (300.0, 200.0),
+                Some(vec![
+                    WidgetCheck(
+                        "Vertical",
+                        (0.0, 0.0),
+                        (74.0, 64.0), // sized by the two flowing rects only
+                        (70.0, 60.0),
+                        Some(vec![
+                            WidgetCheck("Flow1", (12.0, 12.0), (50.0, 20.0), (50.0, 20.0), None),
+                            WidgetCheck(
+                                "Positioned",
+                                (102.0, 42.0), // border (2) + position, no padding
+                                (30.0, 30.0),
+                                (30.0, 30.0),
+                                None,
+                            ),
+                            WidgetCheck("Flow2", (12.0, 32.0), (50.0, 20.0), (50.0, 20.0), None), // right after Flow1
+                        ]),
+                    ),
+                    WidgetCheck(
+                        "Stack",
+                        (0.0, 0.0),
+                        (300.0, 200.0),
+                        (300.0, 200.0),
+                        Some(vec![WidgetCheck(
+                            "PositionedPercent",
+                            (150.0, 0.0),
+                            (150.0, 20.0),
+                            (150.0, 20.0),
+                            None,
+                        )]),
+                    ),
+                ]),
+            ),
+        );
+    }
+
+    // set_max_size caps a stretched and a fixed size.
+    #[test]
+    fn test_hmgui_max_size() {
+        let (mut gui, input, mut r) = init_test();
+
+        gui.begin_gui(300.0, 200.0);
+
+        gui.rect();
+        gui.set_alignment(AlignHorizontal::Stretch, AlignVertical::Stretch);
+        gui.set_max_size(100.0, 50.0);
+
+        gui.rect();
+        gui.set_alignment(AlignHorizontal::Left, AlignVertical::Top);
+        gui.set_fixed_size(200.0, 80.0);
+        gui.set_max_width(120.0);
+
+        // a capped container doesn't grow around a wider child either
+        gui.begin_stack_container();
+        gui.set_alignment(AlignHorizontal::Left, AlignVertical::Top);
+        gui.set_max_width(80.0);
+        gui.rect();
+        gui.set_alignment(AlignHorizontal::Left, AlignVertical::Top);
+        gui.set_fixed_size(200.0, 10.0);
+        gui.end_container();
+
+        gui.end_gui(&mut r, &input);
+
+        let root_widget_rf = gui.root();
+        let root_widget = root_widget_rf.as_ref();
+
+        check_widget(
+            &root_widget,
+            &WidgetCheck(
+                "Root",
+                (0.0, 0.0),
+                (300.0, 200.0),
+                (300.0, 200.0),
+                Some(vec![
+                    WidgetCheck("Stretched", (0.0, 0.0), (100.0, 50.0), (100.0, 50.0), None),
+                    WidgetCheck("Fixed", (0.0, 0.0), (120.0, 80.0), (120.0, 80.0), None),
+                    WidgetCheck(
+                        "CappedStack",
+                        (0.0, 0.0),
+                        (80.0, 10.0),
+                        (80.0, 10.0),
+                        Some(vec![WidgetCheck(
+                            "Wide",
+                            (0.0, 0.0),
+                            (200.0, 10.0),
+                            (200.0, 10.0),
+                            None,
+                        )]),
+                    ),
+                ]),
+            ),
+        );
+    }
+
+    // A layer below a widget starts under its border box: its margins don't count.
+    #[test]
+    fn test_hmgui_layer_below_starts_under_the_border_box() {
+        let (mut gui, input, mut r) = init_test();
+
+        gui.begin_gui(300.0, 200.0);
+
+        gui.rect();
+        gui.set_alignment(AlignHorizontal::Left, AlignVertical::Top);
+        gui.set_fixed_size(50.0, 30.0);
+        gui.set_margin_ex(10.0, 20.0, 5.0, 7.0);
+        gui.set_border_width(1.0);
+
+        gui.begin_layer_below();
+        gui.rect();
+        gui.set_fixed_size(40.0, 10.0);
+        gui.end_layer();
+
+        gui.end_gui(&mut r, &input);
+
+        // the rect's border box: (10, 20), 52 x 32
+        let layer_root_rf = gui.layer_root(1);
+        assert_eq!(layer_root_rf.as_ref().pos, Vec2::new(10.0, 52.0));
+    }
 }
