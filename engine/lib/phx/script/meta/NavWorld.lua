@@ -13,12 +13,14 @@ function NavWorld.Create(physics) end
 ---@return integer
 function NavWorld.AxisCount() end
 
--- The number of agents.
+-- The number of slots: the agents and the free slots between them. It is the number of
+-- entries, per agent, in the buffers `copy_axes` and `copy_arrived` fill.
 ---@return integer
-function NavWorld:agentCount() end
+function NavWorld:slotCount() end
 
--- Adds an agent steered from `body` and returns its id: 0 for the first agent, then
--- consecutive. The drags are in 1/s; the thrusts (forward, right, up) and torques (pitch, yaw,
+-- Adds an agent steered from `body` and returns its id, its slot: the lowest one that no
+-- agent holds, so 0 for the first agent and then consecutive until an agent is removed.
+-- The drags are in 1/s; the thrusts (forward, right, up) and torques (pitch, yaw,
 -- roll) are the forces and torques the ship applies along and about its own axes at full
 -- input. Accelerations follow from the body's mass and inertia at each step, and the top
 -- speed is the forward acceleration over the linear drag.
@@ -36,6 +38,16 @@ function NavWorld:agentCount() end
 ---@param torqueRoll number
 ---@return integer
 function NavWorld:addAgent(body, linearDrag, angularDrag, thrustForward, thrustRight, thrustUp, torquePitch, torqueYaw, torqueRoll) end
+
+-- Removes the agent and frees its id, which the next [`add_agent`](NavWorld::add_agent) may
+-- hand out again, so the caller drops it. The agent's body is left alone in physics, where
+-- the other agents sense it as an obstacle from the next step on. An agent that follows or
+-- pursues the body keeps doing so, but no longer leaves the body out of its avoidance.
+--
+-- # Panics
+-- If `id` isn't an agent.
+---@param id integer
+function NavWorld:removeAgent(id) end
 
 -- Turns sensing on or off. With a non-zero `mask`, each step finds the bodies whose collision
 -- group shares a bit with it within each agent's sensing range and treats them as
@@ -179,20 +191,20 @@ function NavWorld:setAvoidanceTuning(horizonS, clearanceRadii, aimFactor) end
 -- If an agent's body or a tracked body has left the physics world.
 function NavWorld:step() end
 
--- Copies the control axes of the last step into `out`: one value per axis for each agent, in
--- agent order and in the order of `NavAxis`.
+-- Copies the control axes of the last step into `out`: one value per axis for each slot, in
+-- slot order and in the order of `NavAxis`. A free slot's are zero.
 --
 -- # Panics
--- If `out` isn't exactly the number of agents times the number of axes long.
+-- If `out` isn't exactly the number of slots times the number of axes long.
 ---@param out number[]
 ---@param out_size integer
 function NavWorld:copyAxes(out, out_size) end
 
--- Copies, for each agent in order, whether it was within its goal's arrival radius (at least
--- two of its own radii) at the last step.
+-- Copies, for each slot in order, whether its agent was within its goal's arrival radius (at
+-- least two of its own radii) at the last step. A free slot's is false.
 --
 -- # Panics
--- If `out` isn't exactly one value per agent long.
+-- If `out` isn't exactly one value per slot long.
 ---@param out boolean[]
 ---@param out_size integer
 function NavWorld:copyArrived(out, out_size) end

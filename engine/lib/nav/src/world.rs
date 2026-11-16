@@ -11,22 +11,30 @@ use crate::obstacle::{Obstacle, ObstacleKey};
 ///
 /// The caller snapshots bodies into it before a step ([`set_body`](World::set_body),
 /// [`set_obstacles`](World::set_obstacles)) and reads the axes after it.
+///
+/// An agent's id is its slot: [`remove_agent`](World::remove_agent) frees it and
+/// [`add_agent`](World::add_agent) reuses the lowest free one. The per-agent buffers have one
+/// entry per slot, and a free slot's entry is inert (zero axes, not arrived).
 #[derive(Debug, Default)]
 pub struct World {
-    agents: Vec<Agent>,
+    /// One entry per slot; `None` for a free one.
+    agents: Vec<Option<Agent>>,
     obstacles: Vec<Obstacle>,
-    /// The obstacles and the agents' own spheres of the step in progress, reused between steps.
+    /// The obstacles and the live agents' own spheres of the step in progress, reused between
+    /// steps.
     scene: Vec<Obstacle>,
     /// `scene` as seen from the frame of the agent being steered, reused between agents and steps.
     shifted: Vec<Obstacle>,
     /// The per-obstacle data of the agent being steered, reused between agents and steps.
     spheres: Vec<Sphere>,
-    /// What each agent is to the others, in agent order, reused between steps.
+    /// What each slot is to the others, in slot order (a free slot is neither steering nor
+    /// tracking), reused between steps.
     peers: Vec<Peer>,
-    /// The axes of each agent, in agent order.
+    /// The axes of each slot.
     axes: Vec<[f64; AXIS_COUNT]>,
     arrived: Vec<bool>,
-    /// `arrived` as it was before the step in progress, reused between steps.
+    /// `arrived` of the live agents as it was before the step in progress, in slot order with the
+    /// free slots left out, reused between steps.
     was_arrived: Vec<bool>,
     tuning: AvoidanceTuning,
 }
@@ -73,37 +81,69 @@ impl World {
         Self::default()
     }
 
-    /// Adds an agent that is at rest at the origin, facing along -z, with no behaviour.
+    /// Adds an agent that is at rest at the origin, facing along -z, with no behaviour. It takes
+    /// the lowest free slot, or a new one after the last.
     pub fn add_agent(&mut self, profile: Profile) -> AgentId {
-        let id = AgentId::new(self.agents.len());
-        self.agents.push(Agent {
+        let agent = Agent {
             body: Body::AT_REST,
             profile,
             frame_velocity: DVec3::ZERO,
             behaviour: None,
             tracked: None,
             commitment: None,
-        });
+        };
+        if let Some(index) = self.agents.iter().position(Option::is_none) {
+            self.agents[index] = Some(agent);
+            return AgentId::new(index);
+        }
+        self.agents.push(Some(agent));
         self.axes.push([0.0; AXIS_COUNT]);
         self.arrived.push(false);
-        self.was_arrived.push(false);
-        id
+        AgentId::new(self.agents.len() - 1)
     }
 
-    /// The number of agents.
-    pub fn agent_count(&self) -> usize {
+    /// Removes an agent and frees its slot, which a later [`add_agent`](World::add_agent) reuses.
+    /// The other agents forget the removed one: a tracked key or a remembered side that named it
+    /// is cleared, so the slot's next agent inherits nothing. The caller drops `id`: it names
+    /// whichever agent takes the slot next. Panics if `id` isn't an agent of this world.
+    pub fn remove_agent(&mut self, id: AgentId) {
+        self.agent_mut(id);
+        self.agents[id.index()] = None;
+        self.axes[id.index()] = [0.0; AXIS_COUNT];
+        self.arrived[id.index()] = false;
+        let removed = ObstacleKey::Agent(id);
+        for agent in self.agents.iter_mut().flatten() {
+            if agent.tracked == Some(removed) {
+                agent.tracked = None;
+            }
+            if agent.commitment.is_some_and(|side| side.is_about(removed)) {
+                agent.commitment = None;
+            }
+        }
+    }
+
+    /// The number of slots: the agents and the free slots between them. It is the length, in
+    /// agents, of what [`axes`](World::axes) holds.
+    pub fn slot_count(&self) -> usize {
         self.agents.len()
+    }
+
+    fn agent_mut(&mut self, id: AgentId) -> &mut Agent {
+        self.agents
+            .get_mut(id.index())
+            .and_then(Option::as_mut)
+            .unwrap_or_else(|| panic!("{id:?} isn't an agent of this world"))
     }
 
     /// Sets the body an agent is steered from. Panics if `id` isn't an agent of this world.
     pub fn set_body(&mut self, id: AgentId, body: Body) {
-        self.agents[id.index()].body = body;
+        self.agent_mut(id).body = body;
     }
 
     /// Sets what limits an agent's motion; the caller refreshes it when the body's mass changes.
     /// Panics if `id` isn't an agent of this world.
     pub fn set_profile(&mut self, id: AgentId, profile: Profile) {
-        self.agents[id.index()].profile = profile;
+        self.agent_mut(id).profile = profile;
     }
 
     /// Sets the largest speed the agent's behaviour and avoidance plan at, relative to its frame
@@ -116,7 +156,7 @@ impl World {
     /// If `id` isn't an agent of this world, or `cap` is negative or NaN.
     pub fn set_speed_cap(&mut self, id: AgentId, cap: Speed) {
         assert!(cap >= 0.0, "a speed cap must be zero or more, got {cap}");
-        self.agents[id.index()].profile.speed_cap = cap;
+        self.agent_mut(id).profile.speed_cap = cap;
     }
 
     /// Sets the velocity the agent's surroundings carry it at (zero by default), in length units
@@ -125,14 +165,14 @@ impl World {
     /// It is a translation only: the frame's acceleration and turning are ignored. Set it again
     /// each step it changes. Panics if `id` isn't an agent of this world.
     pub fn set_frame_velocity(&mut self, id: AgentId, velocity: DVec3) {
-        self.agents[id.index()].frame_velocity = velocity;
+        self.agent_mut(id).frame_velocity = velocity;
     }
 
     /// Sets what an agent does; `None` leaves it without input. Target bodies inside the
     /// behaviour are snapshots, so set it again each step for a target that moves. Panics if `id`
     /// isn't an agent of this world.
     pub fn set_behaviour(&mut self, id: AgentId, behaviour: Option<Behaviour>) {
-        self.agents[id.index()].behaviour = behaviour;
+        self.agent_mut(id).behaviour = behaviour;
     }
 
     /// Names the obstacle the agent's behaviour tracks (a pursued or followed body), or `None`.
@@ -142,7 +182,7 @@ impl World {
     /// the caller clears it when it sets a behaviour that tracks nothing. Panics if `id` isn't
     /// an agent of this world.
     pub fn set_tracked(&mut self, id: AgentId, target: Option<ObstacleKey>) {
-        self.agents[id.index()].tracked = target;
+        self.agent_mut(id).tracked = target;
     }
 
     /// Replaces the obstacles.
@@ -163,7 +203,7 @@ impl World {
 
     /// Computes every agent's control axes and arrival from the current bodies and obstacles.
     pub fn step(&mut self) {
-        // The set obstacles, then one sphere per agent, each keeping its velocity. An agent
+        // The set obstacles, then one sphere per live agent, each keeping its velocity. An agent
         // leaves its own sphere out by swapping it behind the end of the slice it avoids.
         self.scene.clear();
         self.scene.extend_from_slice(&self.obstacles);
@@ -171,6 +211,7 @@ impl World {
             .agents
             .iter()
             .enumerate()
+            .filter_map(|(index, agent)| Some((index, agent.as_ref()?)))
             .map(|(index, agent)| Obstacle {
                 key: ObstacleKey::Agent(AgentId::new(index)),
                 position: agent.body.position,
@@ -180,17 +221,34 @@ impl World {
         self.scene.extend(agent_spheres);
         let last = self.scene.len().saturating_sub(1);
         // Whether an agent holds its goal is judged on the arrivals of the step before, so the
-        // result doesn't depend on the order the agents are stepped in.
+        // result doesn't depend on the order the agents are stepped in. Like the agents' spheres,
+        // it has no entry for a free slot.
         self.was_arrived.clear();
-        self.was_arrived.extend_from_slice(&self.arrived);
+        self.was_arrived.extend(
+            self.agents
+                .iter()
+                .zip(&self.arrived)
+                .filter_map(|(agent, &arrived)| agent.as_ref().map(|_| arrived)),
+        );
         self.peers.clear();
-        self.peers.extend(self.agents.iter().map(|agent| Peer {
-            steering: agent.behaviour.is_some(),
-            tracks: agent.tracked,
+        self.peers.extend(self.agents.iter().map(|agent| {
+            agent.as_ref().map_or(Peer::ABSENT, |agent| Peer {
+                steering: agent.behaviour.is_some(),
+                tracks: agent.tracked,
+            })
         }));
         let slots = self.axes.iter_mut().zip(&mut self.arrived);
+        // The place of the agent being steered among the live ones: its sphere's place in the
+        // scene after the obstacles, and its entry in `was_arrived`.
+        let mut rank = 0;
         for (index, (agent, (axes, arrived))) in self.agents.iter_mut().zip(slots).enumerate() {
-            let own = self.obstacles.len() + index;
+            let Some(agent) = agent else {
+                *axes = [0.0; AXIS_COUNT];
+                *arrived = false;
+                continue;
+            };
+            let own = self.obstacles.len() + rank;
+            rank += 1;
             let Some(behaviour) = agent.behaviour else {
                 *axes = [0.0; AXIS_COUNT];
                 *arrived = false;
@@ -235,7 +293,7 @@ impl World {
                 goal,
                 &scene[self.obstacles.len()..],
                 &self.was_arrived,
-                index,
+                rank - 1,
             );
         }
     }
@@ -249,6 +307,10 @@ impl World {
     /// Whether the agent was within its goal's arrival radius at the last step. Panics if `id`
     /// isn't an agent of this world.
     pub fn arrived(&self, id: AgentId) -> bool {
+        assert!(
+            self.agents.get(id.index()).is_some_and(Option::is_some),
+            "{id:?} isn't an agent of this world"
+        );
         self.arrived[id.index()]
     }
 }
@@ -328,7 +390,7 @@ mod tests {
     #[test]
     fn new_world_has_no_agents() {
         let world = World::new();
-        assert_eq!(world.agent_count(), 0);
+        assert_eq!(world.slot_count(), 0);
         assert!(world.axes().is_empty());
     }
 
@@ -339,6 +401,159 @@ mod tests {
         let second = world.add_agent(PROFILE);
         assert_eq!((first.index(), second.index()), (0, 1));
         assert_eq!(world.axes().len(), 2 * AXIS_COUNT);
+    }
+
+    /// A flier heading for a goal 1000 ahead, and a resting agent of radius 30 on its course 200
+    /// ahead, in slots 0 and 1.
+    fn flier_and_blocker() -> (World, AgentId, AgentId) {
+        let mut world = World::new();
+        let flier = world.add_agent(PROFILE);
+        let blocker = world.add_agent(PROFILE);
+        world.set_behaviour(flier, Some(goal(DVec3::new(0.0, 0.0, -1000.0))));
+        world.set_body(
+            blocker,
+            Body {
+                position: DVec3::new(0.0, 0.0, -200.0),
+                radius: 30.0,
+                ..Body::AT_REST
+            },
+        );
+        (world, flier, blocker)
+    }
+
+    fn axes_of(world: &World, id: AgentId) -> Vec<f64> {
+        let start = id.index() * AXIS_COUNT;
+        world.axes()[start..start + AXIS_COUNT].to_vec()
+    }
+
+    #[test]
+    fn a_removed_agents_slot_is_the_lowest_free_one_and_is_reused() {
+        let mut world = World::new();
+        let ids: Vec<_> = (0..4).map(|_| world.add_agent(PROFILE)).collect();
+        world.remove_agent(ids[2]);
+        world.remove_agent(ids[1]);
+        assert_eq!(
+            world.slot_count(),
+            4,
+            "removal frees a slot, it doesn't shrink"
+        );
+        assert_eq!(world.add_agent(PROFILE), ids[1]);
+        assert_eq!(world.add_agent(PROFILE), ids[2]);
+        assert_eq!(
+            world.add_agent(PROFILE).index(),
+            4,
+            "no free slot left: a new one"
+        );
+        assert_eq!(world.axes().len(), 5 * AXIS_COUNT);
+    }
+
+    #[test]
+    fn a_free_slot_has_no_input_and_has_not_arrived() {
+        let mut world = World::new();
+        let id = world.add_agent(PROFILE);
+        world.set_behaviour(id, Some(goal(DVec3::new(0.0, 0.0, -1000.0))));
+        world.step();
+        assert_ne!(world.axes(), [0.0; AXIS_COUNT], "the agent steers");
+        world.remove_agent(id);
+        assert_eq!(world.axes(), [0.0; AXIS_COUNT]);
+        world.step();
+        assert_eq!(world.axes(), [0.0; AXIS_COUNT]);
+        let reused = world.add_agent(PROFILE);
+        world.step();
+        assert_eq!(
+            axes_of(&world, reused),
+            [0.0; AXIS_COUNT],
+            "the new agent has no goal"
+        );
+        assert!(!world.arrived(reused));
+    }
+
+    #[test]
+    #[should_panic(expected = "isn't an agent of this world")]
+    fn a_free_slot_is_not_an_agent() {
+        let mut world = World::new();
+        let id = world.add_agent(PROFILE);
+        world.remove_agent(id);
+        world.set_behaviour(id, None);
+    }
+
+    #[test]
+    #[should_panic(expected = "isn't an agent of this world")]
+    fn an_agent_can_not_be_removed_twice() {
+        let mut world = World::new();
+        let id = world.add_agent(PROFILE);
+        world.remove_agent(id);
+        world.remove_agent(id);
+    }
+
+    #[test]
+    fn a_removed_agent_is_no_longer_in_the_scene() {
+        let (mut world, flier, blocker) = flier_and_blocker();
+        world.step();
+        let blocked = axes_of(&world, flier);
+        world.remove_agent(blocker);
+        world.step();
+        let mut alone = World::new();
+        let only = alone.add_agent(PROFILE);
+        alone.set_behaviour(only, Some(goal(DVec3::new(0.0, 0.0, -1000.0))));
+        alone.step();
+        assert_ne!(axes_of(&world, flier), blocked);
+        assert_eq!(axes_of(&world, flier), axes_of(&alone, only));
+    }
+
+    #[test]
+    fn a_free_slot_before_an_agent_does_not_change_how_it_is_steered() {
+        let (mut compact, flier, _) = flier_and_blocker();
+        compact.step();
+
+        let mut holed = World::new();
+        let hole = holed.add_agent(PROFILE);
+        let moved = holed.add_agent(PROFILE);
+        let blocker = holed.add_agent(PROFILE);
+        holed.remove_agent(hole);
+        holed.set_behaviour(moved, Some(goal(DVec3::new(0.0, 0.0, -1000.0))));
+        holed.set_body(
+            blocker,
+            Body {
+                position: DVec3::new(0.0, 0.0, -200.0),
+                radius: 30.0,
+                ..Body::AT_REST
+            },
+        );
+        holed.step();
+        assert_eq!(axes_of(&holed, moved), axes_of(&compact, flier));
+    }
+
+    #[test]
+    fn an_agent_that_takes_a_freed_slot_inherits_no_tracked_target() {
+        let (mut world, flier, blocker) = flier_and_blocker();
+        world.set_tracked(flier, Some(ObstacleKey::Agent(blocker)));
+        world.step();
+        let tracked = axes_of(&world, flier);
+        world.remove_agent(blocker);
+        let newcomer = world.add_agent(PROFILE);
+        assert_eq!(newcomer, blocker);
+        world.set_body(
+            newcomer,
+            Body {
+                position: DVec3::new(0.0, 0.0, -200.0),
+                radius: 30.0,
+                ..Body::AT_REST
+            },
+        );
+        world.step();
+        assert_eq!(world.agents[flier.index()].as_ref().unwrap().tracked, None);
+        assert_ne!(axes_of(&world, flier), tracked, "the newcomer is avoided");
+    }
+
+    #[test]
+    fn the_side_remembered_about_a_removed_agent_is_forgotten() {
+        let (mut world, flier, blocker) = flier_and_blocker();
+        world.step();
+        let commitment = |world: &World| world.agents[flier.index()].as_ref().unwrap().commitment;
+        assert!(commitment(&world).is_some(), "the flier remembers its side");
+        world.remove_agent(blocker);
+        assert!(commitment(&world).is_none());
     }
 
     #[test]

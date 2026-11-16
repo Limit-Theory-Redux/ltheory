@@ -23,7 +23,8 @@ pub enum Axis {
     ThrustUp,
 }
 
-/// Position of an agent in a [`World`](crate::World), fixed for the life of the world.
+/// The slot of an agent in a [`World`](crate::World). It names the agent until the agent is
+/// removed, and then whichever agent takes the slot next.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct AgentId(usize);
 
@@ -32,7 +33,8 @@ impl AgentId {
         Self(index)
     }
 
-    /// The agent's index, from 0 in the order of [`World::add_agent`](crate::World::add_agent).
+    /// The agent's slot, from 0: the lowest free one when it was added
+    /// ([`World::add_agent`](crate::World::add_agent)).
     pub fn index(self) -> usize {
         self.0
     }

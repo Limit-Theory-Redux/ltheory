@@ -93,11 +93,15 @@ fn profile_of(limits: &FlightLimits, state: &BodyState) -> Profile {
 /// [`step`](NavWorld::step) reads their state from it. Agents (and the bodies that behaviours
 /// track) must stay in the physics world for as long as the `NavWorld` steps. Obstacles are
 /// found by sensing, never registered.
+///
+/// An agent's id is its slot: [`remove_agent`](NavWorld::remove_agent) frees it and
+/// [`add_agent`](NavWorld::add_agent) reuses the lowest free one, and the buffers the `copy_*`
+/// methods fill have one entry per slot.
 pub struct NavWorld {
     physics: Rf<PhysicsWorld>,
     world: ::nav::World,
-    /// The agents in `world`'s order.
-    agents: Vec<Agent>,
+    /// The agents by slot, which is `world`'s order too; `None` for a free slot.
+    agents: Vec<Option<Agent>>,
     /// The collision mask of the bodies agents sense; [`SENSING_OFF`] senses none.
     sensing: CollisionMask,
     /// The keys of the bodies sensing leaves out: the agents' (they are spheres to each other
@@ -173,6 +177,7 @@ impl NavWorld {
         usize::try_from(id)
             .ok()
             .and_then(|index| self.agents.get_mut(index))
+            .and_then(Option::as_mut)
             .unwrap_or_else(|| panic!("NavWorld has no agent {id}"))
     }
 
@@ -191,6 +196,7 @@ impl NavWorld {
         let key = handles.key();
         self.agents
             .iter()
+            .flatten()
             .find(|agent| agent.handles.key() == key)
             .map_or(ObstacleKey::Body(key), |agent| ObstacleKey::Agent(agent.id))
     }
@@ -229,6 +235,9 @@ impl NavWorld {
     /// gathers the bodies each one senses into `sensed`.
     fn read_agents(&mut self, physics: &PhysicsWorld) {
         for (index, agent) in self.agents.iter_mut().enumerate() {
+            let Some(agent) = agent else {
+                continue;
+            };
             let state = Self::state_of(physics, &agent.handles, &format!("agent {index}"));
             let body = nav_body(&state);
             // Read each step, so a change of mass reaches the controller.
@@ -327,13 +336,15 @@ impl NavWorld {
         u32::try_from(AXIS_COUNT).expect("the axis count fits u32")
     }
 
-    /// The number of agents.
-    pub fn agent_count(&self) -> u32 {
-        u32::try_from(self.agents.len()).expect("the agent count fits u32")
+    /// The number of slots: the agents and the free slots between them. It is the number of
+    /// entries, per agent, in the buffers `copy_axes` and `copy_arrived` fill.
+    pub fn slot_count(&self) -> u32 {
+        u32::try_from(self.agents.len()).expect("the slot count fits u32")
     }
 
-    /// Adds an agent steered from `body` and returns its id: 0 for the first agent, then
-    /// consecutive. The drags are in 1/s; the thrusts (forward, right, up) and torques (pitch, yaw,
+    /// Adds an agent steered from `body` and returns its id, its slot: the lowest one that no
+    /// agent holds, so 0 for the first agent and then consecutive until an agent is removed.
+    /// The drags are in 1/s; the thrusts (forward, right, up) and torques (pitch, yaw,
     /// roll) are the forces and torques the ship applies along and about its own axes at full
     /// input. Accelerations follow from the body's mass and inertia at each step, and the top
     /// speed is the forward acceleration over the linear drag.
@@ -365,14 +376,36 @@ impl NavWorld {
         let state = Self::state_of(&self.physics.as_ref(), &handles, "agent");
         let id = self.world.add_agent(profile_of(&limits, &state));
         self.excluded.insert(handles.key());
-        self.agents.push(Agent {
+        let agent = Some(Agent {
             id,
             handles,
             limits,
             frame_velocity: DVec3::ZERO,
             tracking: None,
         });
-        self.agent_count() - 1
+        // `nav` hands out the lowest free slot, so the slots stay in step with it.
+        let slot = id.index();
+        if slot == self.agents.len() {
+            self.agents.push(agent);
+        } else {
+            self.agents[slot] = agent;
+        }
+        u32::try_from(slot).expect("the slot count fits u32")
+    }
+
+    /// Removes the agent and frees its id, which the next [`add_agent`](NavWorld::add_agent) may
+    /// hand out again, so the caller drops it. The agent's body is left alone in physics, where
+    /// the other agents sense it as an obstacle from the next step on. An agent that follows or
+    /// pursues the body keeps doing so, but no longer leaves the body out of its avoidance.
+    ///
+    /// # Panics
+    /// If `id` isn't an agent.
+    pub fn remove_agent(&mut self, id: u32) {
+        let agent = self.agent_mut(id);
+        let (agent, key) = (agent.id, agent.handles.key());
+        self.world.remove_agent(agent);
+        self.excluded.remove(&key);
+        self.agents[agent.index()] = None;
     }
 
     /// Turns sensing on or off. With a non-zero `mask`, each step finds the bodies whose collision
@@ -588,34 +621,36 @@ impl NavWorld {
         self.world.step();
     }
 
-    /// Copies the control axes of the last step into `out`: one value per axis for each agent, in
-    /// agent order and in the order of `NavAxis`.
+    /// Copies the control axes of the last step into `out`: one value per axis for each slot, in
+    /// slot order and in the order of `NavAxis`. A free slot's are zero.
     ///
     /// # Panics
-    /// If `out` isn't exactly the number of agents times the number of axes long.
+    /// If `out` isn't exactly the number of slots times the number of axes long.
     pub fn copy_axes(&self, out: &mut [f64]) {
         let axes = self.world.axes();
         assert_eq!(
             out.len(),
             axes.len(),
-            "NavWorld::copy_axes needs agent_count · axis_count values"
+            "NavWorld::copy_axes needs slot_count · axis_count values"
         );
         out.copy_from_slice(axes);
     }
 
-    /// Copies, for each agent in order, whether it was within its goal's arrival radius (at least
-    /// two of its own radii) at the last step.
+    /// Copies, for each slot in order, whether its agent was within its goal's arrival radius (at
+    /// least two of its own radii) at the last step. A free slot's is false.
     ///
     /// # Panics
-    /// If `out` isn't exactly one value per agent long.
+    /// If `out` isn't exactly one value per slot long.
     pub fn copy_arrived(&self, out: &mut [bool]) {
         assert_eq!(
             out.len(),
             self.agents.len(),
-            "NavWorld::copy_arrived needs agent_count values"
+            "NavWorld::copy_arrived needs slot_count values"
         );
         for (flag, agent) in out.iter_mut().zip(&self.agents) {
-            *flag = self.world.arrived(agent.id);
+            *flag = agent
+                .as_ref()
+                .is_some_and(|agent| self.world.arrived(agent.id));
         }
     }
 }
@@ -759,7 +794,7 @@ mod tests {
         let mut nav = NavWorld::new(&physics);
         assert_eq!(add_ship(&mut nav, &first), 0);
         assert_eq!(add_ship(&mut nav, &second), 1);
-        assert_eq!(nav.agent_count(), 2);
+        assert_eq!(nav.slot_count(), 2);
         nav.set_arrive(0, &goal_at(GOAL_DISTANCE, 0.0), ARRIVAL_RADIUS);
         nav.set_arrive(1, &goal_at(-GOAL_DISTANCE, ROCK_DISTANCE), ARRIVAL_RADIUS);
         nav.step();
@@ -1102,7 +1137,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "needs agent_count · axis_count values")]
+    #[should_panic(expected = "needs slot_count · axis_count values")]
     fn a_wrong_axes_buffer_is_refused() {
         let mut physics = Physics::new();
         let ship = ship_in(&mut physics);
@@ -1112,7 +1147,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "needs agent_count values")]
+    #[should_panic(expected = "needs slot_count values")]
     fn a_wrong_arrived_buffer_is_refused() {
         let mut physics = Physics::new();
         let ship = ship_in(&mut physics);
@@ -1216,6 +1251,93 @@ mod tests {
         flight.nav.set_sensing(ALL_BITS);
         flight.nav.step();
         assert_eq!(flight.nav.obstacle_spheres.len(), 1, "the rock alone");
+    }
+
+    #[test]
+    fn a_removed_agents_body_is_sensed_as_an_obstacle_again() {
+        let mut flight = flight_past_a_rock();
+        let other = body_in(
+            &mut flight.physics,
+            SHIP_RADIUS,
+            goal_at(SLOT_DISTANCE, 0.0),
+        );
+        let other_id = add_ship(&mut flight.nav, &other);
+        flight.physics.update(ONE_STEP);
+        flight.nav.set_sensing(ALL_BITS);
+        flight.nav.step();
+        assert_eq!(flight.nav.obstacle_spheres.len(), 1, "the rock alone");
+
+        flight.nav.remove_agent(other_id);
+        flight.nav.step();
+        assert_eq!(
+            flight.nav.obstacle_spheres.len(),
+            2,
+            "the rock and the removed agent's body"
+        );
+    }
+
+    #[test]
+    fn a_removed_agents_id_goes_to_the_next_agent_and_the_buffers_keep_their_slots() {
+        let mut physics = Physics::new();
+        let bodies: Vec<_> = (0..3)
+            .map(|index| {
+                body_in(
+                    &mut physics,
+                    SHIP_RADIUS,
+                    goal_at(0.0, ROCK_DISTANCE * f64::from(index)),
+                )
+            })
+            .collect();
+        let mut nav = NavWorld::new(&physics);
+        let ids: Vec<_> = bodies.iter().map(|body| add_ship(&mut nav, body)).collect();
+        assert_eq!(ids, [0, 1, 2]);
+        for &id in &ids {
+            nav.set_arrive(id, &goal_at(GOAL_DISTANCE, ROCK_DISTANCE), ARRIVAL_RADIUS);
+        }
+        nav.step();
+        let before = axes_of(&nav);
+
+        nav.remove_agent(1);
+        assert_eq!(nav.slot_count(), 3, "the slot stays");
+        nav.step();
+        let after = axes_of(&nav);
+        assert_eq!(after.len(), before.len());
+        let slot = |axes: &[f64], id: usize| axes[id * AXIS_COUNT..(id + 1) * AXIS_COUNT].to_vec();
+        assert_eq!(slot(&after, 1), [0.0; AXIS_COUNT], "a free slot is inert");
+        let mut arrived = [true; 3];
+        nav.copy_arrived(&mut arrived);
+        assert!(!arrived[1]);
+
+        let newcomer = body_in(&mut physics, SHIP_RADIUS, goal_at(0.0, -ROCK_DISTANCE));
+        assert_eq!(add_ship(&mut nav, &newcomer), 1, "the freed slot is reused");
+        assert_eq!(nav.slot_count(), 3);
+        assert_eq!(
+            slot(&axes_of(&nav), 1),
+            [0.0; AXIS_COUNT],
+            "it starts with no goal"
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "NavWorld has no agent 0")]
+    fn a_removed_agent_is_not_an_agent() {
+        let mut physics = Physics::new();
+        let ship = ship_in(&mut physics);
+        let mut nav = NavWorld::new(&physics);
+        let id = add_ship(&mut nav, &ship);
+        nav.remove_agent(id);
+        nav.set_arrive(id, &Position::ZERO, ARRIVAL_RADIUS);
+    }
+
+    #[test]
+    fn a_removed_agents_body_may_leave_physics() {
+        let mut physics = Physics::new();
+        let mut ship = ship_in(&mut physics);
+        let mut nav = NavWorld::new(&physics);
+        let id = add_ship(&mut nav, &ship);
+        nav.remove_agent(id);
+        physics.remove_rigid_body(&mut ship);
+        nav.step();
     }
 
     const FIRST_AGENT: u32 = 0;
@@ -1323,7 +1445,7 @@ mod tests {
         nav.step();
         let tuning = *nav.world.tuning();
         let state = state_in(&physics, &ship);
-        let profile = profile_of(&nav.agents[0].limits, &state);
+        let profile = profile_of(&nav.agents[0].as_ref().unwrap().limits, &state);
         let range = sensing_range(&nav_body(&state), &profile, &tuning);
         let _beyond = body_in(
             &mut physics,
@@ -1453,7 +1575,7 @@ mod tests {
         nav.set_arrive(id, &goal_at(0.0, -LONG_GOAL_DISTANCE), ARRIVAL_RADIUS);
         nav.set_sensing(ALL_BITS);
         let state = state_in(&physics, &ship);
-        let profile = profile_of(&nav.agents[0].limits, &state);
+        let profile = profile_of(&nav.agents[0].as_ref().unwrap().limits, &state);
         let range = sensing_range(&nav_body(&state), &profile, nav.world.tuning());
         let beyond = goal_at(0.0, -(range + f64::from(ROCK_RADIUS) + 1.0));
         let _beyond = body_in(&mut physics, ROCK_RADIUS, beyond);

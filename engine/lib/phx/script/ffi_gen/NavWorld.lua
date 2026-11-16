@@ -20,8 +20,9 @@ function Loader.defineType()
             void      NavWorld_Free               (NavWorld*);
             NavWorld* NavWorld_Create             (Physics const* physics);
             uint32    NavWorld_AxisCount          ();
-            uint32    NavWorld_AgentCount         (NavWorld const*);
+            uint32    NavWorld_SlotCount          (NavWorld const*);
             uint32    NavWorld_AddAgent           (NavWorld*, RigidBody const* body, double linearDrag, double angularDrag, double thrustForward, double thrustRight, double thrustUp, double torquePitch, double torqueYaw, double torqueRoll);
+            void      NavWorld_RemoveAgent        (NavWorld*, uint32 id);
             void      NavWorld_SetSensing         (NavWorld*, uint32 mask);
             void      NavWorld_SetArrive          (NavWorld*, uint32 id, Position const* target, double arrivalRadius);
             void      NavWorld_SetArriveRelative  (NavWorld*, uint32 id, RigidBody const* body, Vec3d const* offset, double arrivalRadius);
@@ -57,8 +58,9 @@ function Loader.defineType()
         local t  = ffi.typeof('NavWorld')
         local mt = {
             __index = {
-                agentCount         = libphx.NavWorld_AgentCount,
+                slotCount          = libphx.NavWorld_SlotCount,
                 addAgent           = libphx.NavWorld_AddAgent,
+                removeAgent        = libphx.NavWorld_RemoveAgent,
                 setSensing         = libphx.NavWorld_SetSensing,
                 setArrive          = libphx.NavWorld_SetArrive,
                 setArriveRelative  = libphx.NavWorld_SetArriveRelative,

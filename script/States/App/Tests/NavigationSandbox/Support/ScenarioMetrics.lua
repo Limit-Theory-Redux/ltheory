@@ -29,13 +29,16 @@ local PROGRESS_STEP = ScaleConfig:toGameUnits(PROGRESS_STEP_M, "starSystem")
 ---@type SandboxJudgingRules
 local RULES = { range = ARRIVAL_RANGE, speed = ARRIVAL_SPEED }
 
----@alias SandboxShipState "flying"|"arrived"|"deadlocked"
+---`pending`: not an agent yet, its body already in physics. `removed`: no longer an agent, its
+---body left in physics.
+---@alias SandboxShipState "pending"|"flying"|"arrived"|"deadlocked"|"removed"
 
 ---@class SandboxShip
 ---@field entity Entity
 ---@field rb RigidBody
 ---@field input ControlInputComponent
----@field agent integer Id in the `NavWorld`
+---@field agent integer|nil Id in the `NavWorld`; nil while the ship is not an agent
+---@field freedSlot integer|nil The id the ship had when it was removed
 ---@field target Position The goal: the destination, or the current waypoint of a route; where a point that rides on an obstacle is now
 ---@field targetFrame integer|nil Index of the obstacle the target rides on: the spec's `target` is then an offset from it
 ---@field targetOffset Position|nil The offset from that obstacle, in game units
@@ -87,7 +90,7 @@ local ScenarioMetrics = Class("ScenarioMetrics", function(self, name, ships, obs
     self.avoidance = avoidance -- the scenario's tuning; nil for the navigation world's defaults
     self.byId = {} -- entity id -> the ship or obstacle, for labels and kinds
     for _, ship in ipairs(ships) do
-        ship.state = "flying"
+        ship.state = ship.spec.joinAtS and "pending" or "flying"
         ship.kind = "ship"
         ship.bestDistance = math.huge
         ship.progressTime = 0
@@ -99,6 +102,7 @@ local ScenarioMetrics = Class("ScenarioMetrics", function(self, name, ships, obs
     end
     self.touching = {} -- pair key -> true while the two bodies overlap
     self.arrivals, self.deadlocks, self.waypoints = 0, 0, 0
+    self.removals, self.wrongSlots = 0, 0 -- ships removed, and ships that joined into another slot than the one expected
     self.passes, self.badPasses = 0, 0 -- Seek points passed, and those passed at the wrong speed
     self.plansExpected, self.plansReceived, self.planFailures = 0, 0, 0
     for _, ship in ipairs(ships) do
@@ -378,16 +382,38 @@ function ScenarioMetrics:update(world, simTime)
     self:updateCollisions(world, simTime)
 end
 
----@return boolean done Every ship has arrived or is deadlocked
-function ScenarioMetrics:isDone()
-    return self.arrivals + self.deadlocks == #self.ships
+---A ship was removed from the navigation world: it is no longer judged.
+---@param ship SandboxShip
+---@param simTime number
+function ScenarioMetrics:shipRemoved(ship, simTime)
+    ship.state = "removed"
+    self.removals = self.removals + 1
+    self:log("%s removed at %.2f s, its slot was %d", ship.label, simTime, ship.freedSlot)
 end
 
----@return integer unfinished Ships still flying that were to arrive: route ships fly on
+---A ship became an agent. `expectedSlot` is the id the scenario expects it to get, or nil.
+---@param ship SandboxShip
+---@param simTime number
+---@param expectedSlot integer|nil
+function ScenarioMetrics:shipJoined(ship, simTime, expectedSlot)
+    ship.state = "flying"
+    self:log("%s joined at %.2f s as agent %d", ship.label, simTime, ship.agent)
+    if expectedSlot and ship.agent ~= expectedSlot then
+        self.wrongSlots = self.wrongSlots + 1
+        self:log("%s got slot %d, not the freed slot %d", ship.label, ship.agent, expectedSlot)
+    end
+end
+
+---@return boolean done Every ship has arrived, is deadlocked or was removed
+function ScenarioMetrics:isDone()
+    return self.arrivals + self.deadlocks + self.removals == #self.ships
+end
+
+---@return integer unfinished Ships still flying or yet to join that were to arrive: route ships fly on
 function ScenarioMetrics:unfinished()
     local count = 0
     for _, ship in ipairs(self.ships) do
-        if ship.state == "flying" and not ship.route then count = count + 1 end
+        if (ship.state == "flying" and not ship.route) or ship.state == "pending" then count = count + 1 end
     end
     return count
 end
@@ -429,6 +455,9 @@ function ScenarioMetrics:failures()
     end
     if self:unfinished() > 0 then
         table.insert(failures, string.format("%d ships still flying", self:unfinished()))
+    end
+    if self.wrongSlots > 0 then
+        table.insert(failures, string.format("%d ships joined into a slot other than the freed one", self.wrongSlots))
     end
     if self.badPasses > 0 then
         table.insert(failures, string.format("%d seek points passed at the wrong speed", self.badPasses))

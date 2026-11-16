@@ -147,6 +147,14 @@ pub(crate) struct Peer {
     pub tracks: Option<ObstacleKey>,
 }
 
+impl Peer {
+    /// What a free slot is to the others: it neither steers nor tracks.
+    pub const ABSENT: Self = Self {
+        steering: false,
+        tracks: None,
+    };
+}
+
 /// The agents around the agent being steered, for [`avoid`].
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct Peers<'a> {
@@ -154,7 +162,7 @@ pub(crate) struct Peers<'a> {
     pub own: AgentId,
     /// The obstacle its behaviour tracks; it is left out of the scene.
     pub tracked: Option<ObstacleKey>,
-    /// Every agent of the world, in agent order.
+    /// Every slot of the world, in agent order.
     pub all: &'a [Peer],
 }
 
@@ -461,6 +469,13 @@ pub(crate) struct Commitment {
     obstacle: ObstacleKey,
     /// Unit direction, across the line to the sphere's centre, the course leans to.
     side: DVec3,
+}
+
+impl Commitment {
+    /// Whether the remembered side is about the sphere `key`.
+    pub(crate) fn is_about(&self, key: ObstacleKey) -> bool {
+        self.obstacle == key
+    }
 }
 
 /// The side `course` passes the threatening sphere on; `None` when it runs straight at the centre.

@@ -47,6 +47,9 @@ local Metres                = require("States.App.Tests.NavigationSandbox.Suppor
 ---@field costProfile string|nil Name in `Enums.CostProfile`: how the ship weighs the scenario's zones; none by default, so the zones cost their `pathCost`
 ---@field costProfileChange SandboxCostProfileChange|nil Plan: the ship changes its cost profile
 ---@field expect SandboxShipExpectation|nil Plan: what the run is judged by besides arriving
+---@field joinAtS number|nil The ship becomes an agent this many simulated seconds in. Its body is in physics from the start, so the agents sense it as an obstacle until then
+---@field joinsSlotOf integer|nil With `joinAtS`: index of an earlier ship with `removeAtS`; the run fails unless the ship gets the agent id that one had
+---@field removeAtS number|nil The ship stops being an agent this many simulated seconds in, and its body, with its controls released, coasts on in physics
 
 ---@class SandboxCostProfileChange
 ---@field afterPlans integer The change is made once the ship has taken this many plans
@@ -93,7 +96,7 @@ local NavigationSandbox = Subclass("NavigationSandbox", Application)
 
 -- Every scenario, in the order `NavigationSandbox` runs them; each is an app of its own.
 local SCENARIO_NAMES   = { "SingleShip", "HeadOn", "CrossingStreams", "CircleSwap", "ObstacleField",
-    "SeekThrough", "HoldAfterCruise", "PursueRock", "FollowLeader", "OrbitRock", "SystemCrossing", "SpeedCap", "CostZoneReplan" }
+    "SeekThrough", "HoldAfterCruise", "PursueRock", "FollowLeader", "OrbitRock", "SystemCrossing", "SpeedCap", "CostZoneReplan", "AgentRemoval" }
 local SCENARIO_MODULES = "States.App.Tests.NavigationSandbox."
 local SEED             = 1
 local DEFAULT_HULL     = Enums.ShipHulls.Solo
@@ -120,6 +123,8 @@ local HUD_ALIGN_X, HUD_ALIGN_Y = 0.0, 0.5
 -- Marker colours (r, g, b, a) by ship state; the target and the course use the flying colour.
 local MARKER_COLORS    = {
     flying     = { 0.3, 0.7, 1.0, 1.0 },
+    pending    = { 0.3, 0.7, 1.0, 1.0 },
+    removed    = { 0.5, 0.5, 0.5, 1.0 },
     onStation  = { 0.8, 0.9, 0.3, 1.0 },
     arrived    = { 0.3, 1.0, 0.4, 1.0 },
     deadlocked = { 1.0, 0.3, 0.2, 1.0 },
@@ -421,24 +426,56 @@ function NavigationSandbox:createNavigation()
     self.nav = NavWorld.Create(self.world)
     for _, ship in ipairs(self.ships) do
         ship.input = ship.entity:get(ConstructComponents.ControlInput)
-        ship.agent = NavAgentHelper.addShip(self.nav, ship.entity, ship.rb)
+        if ship.state == "flying" then ship.agent = NavAgentHelper.addShip(self.nav, ship.entity, ship.rb) end
     end
     -- The obstacles are kinematic bodies in the physics world, so sensing finds them in every
     -- collision group; the ships are agents and are never sensed.
     self.nav:setSensing(SENSING_MASK)
     for _, ship in ipairs(self.ships) do
-        if ship.behaviour then
-            ShipBehaviour.start(self.nav, ship, self.ships, self.obstacles, ScenarioMetrics.RULES, self.planner)
-        else
-            self.nav:setArrive(ship.agent, ship.target, ScenarioMetrics.ARRIVAL_RANGE)
-        end
+        if ship.state == "flying" then self:startShip(ship) end
     end
     local avoidance = self.scenarios[self.scenarioIndex].avoidance
     if avoidance then
         self.nav:setAvoidanceTuning(avoidance.horizonS, avoidance.clearanceRadii, avoidance.aimFactor)
     end
+    -- Room for every ship at once: a slot is never past the number of ships.
     self.axes = ffi.new("double[?]", #self.ships * NavWorld.AxisCount())
     self.arrived = ffi.new("bool[?]", #self.ships)
+end
+
+---Gives an agent its goal: its behaviour, or to arrive at its target.
+---@param ship SandboxShip
+function NavigationSandbox:startShip(ship)
+    if ship.behaviour then
+        ShipBehaviour.start(self.nav, ship, self.ships, self.obstacles, ScenarioMetrics.RULES, self.planner)
+    else
+        self.nav:setArrive(ship.agent, ship.target, ScenarioMetrics.ARRIVAL_RANGE)
+    end
+end
+
+---Removes the agents of the ships whose time has come, and adds those that join. A removed ship
+---keeps its body in physics and its controls are released, so it coasts. Removals come first, so
+---that a ship joining at the same time takes the slot that was freed.
+function NavigationSandbox:applyLifecycle()
+    for _, ship in ipairs(self.ships) do
+        local removeAtS = ship.spec.removeAtS
+        if ship.state == "flying" and removeAtS and self.simTime >= removeAtS then
+            ship.freedSlot = ship.agent
+            self.nav:removeAgent(ship.agent)
+            ship.agent = nil
+            ship.input:clearAxes()
+            self.metrics:shipRemoved(ship, self.simTime)
+        end
+    end
+    for _, ship in ipairs(self.ships) do
+        if ship.state == "pending" and self.simTime >= ship.spec.joinAtS then
+            ship.agent = NavAgentHelper.addShip(self.nav, ship.entity, ship.rb)
+            self:startShip(ship)
+            -- Expecting a freed slot that doesn't exist (-1) fails the run too.
+            local expected = ship.spec.joinsSlotOf and (self.ships[ship.spec.joinsSlotOf].freedSlot or -1)
+            self.metrics:shipJoined(ship, self.simTime, expected)
+        end
+    end
 end
 
 ---@param index integer Index into `self.scenarios`
@@ -531,7 +568,8 @@ end
 ---finished ships (except those that keep tracking a body), then copy the step's axes into the
 ---control inputs.
 function NavigationSandbox:applyNavigation()
-    local count, stride = #self.ships, NavWorld.AxisCount()
+    self:applyLifecycle()
+    local count, stride = self.nav:slotCount(), NavWorld.AxisCount()
     self.nav:copyAxes(self.axes, count * stride)
     self.nav:copyArrived(self.arrived, count)
     if self.planner then
@@ -544,28 +582,36 @@ function NavigationSandbox:applyNavigation()
             end
         end
     end
+    -- A ship that is not an agent (yet to join, or removed) has no axes to write: a removed
+    -- ship's controls were released when it was removed.
     for _, ship in ipairs(self.ships) do
-        if ship.state ~= "flying" then
-            local keeps = ship.behaviour and ShipBehaviour.keepsBehaviour(ship)
-            if not ship.released and not keeps then
-                self.nav:clearBehaviour(ship.agent)
-                ship.released = true
-            end
-        elseif ship.behaviour then
-            self:applyProfileChange(ship)
-            if ShipBehaviour.planIsStale(ship) then
-                ShipBehaviour.replan(self.nav, ship, ScenarioMetrics.RULES, self.planner, self.simTime)
-                self.metrics:planRequestedAgain(ship, self.simTime)
-            else
-                ShipBehaviour.advance(self.nav, ship, self.arrived[ship.agent], self.simTime,
-                    ScenarioMetrics.RULES, self.metrics)
-            end
-        elseif ship.route and self.arrived[ship.agent] then
-            self.metrics:waypointReached(ship, self.simTime)
-            self.nav:setArrive(ship.agent, ship.target, ScenarioMetrics.ARRIVAL_RANGE)
-        end
-        NavAgentHelper.writeAxes(self.axes, ship.agent, ship.input)
+        if ship.agent then self:applyToAgent(ship) end
     end
+end
+
+---One agent's share of `applyNavigation`.
+---@param ship SandboxShip A ship with an agent
+function NavigationSandbox:applyToAgent(ship)
+    if ship.state ~= "flying" then
+        local keeps = ship.behaviour and ShipBehaviour.keepsBehaviour(ship)
+        if not ship.released and not keeps then
+            self.nav:clearBehaviour(ship.agent)
+            ship.released = true
+        end
+    elseif ship.behaviour then
+        self:applyProfileChange(ship)
+        if ShipBehaviour.planIsStale(ship) then
+            ShipBehaviour.replan(self.nav, ship, ScenarioMetrics.RULES, self.planner, self.simTime)
+            self.metrics:planRequestedAgain(ship, self.simTime)
+        else
+            ShipBehaviour.advance(self.nav, ship, self.arrived[ship.agent], self.simTime,
+                ScenarioMetrics.RULES, self.metrics)
+        end
+    elseif ship.route and self.arrived[ship.agent] then
+        self.metrics:waypointReached(ship, self.simTime)
+        self.nav:setArrive(ship.agent, ship.target, ScenarioMetrics.ARRIVAL_RANGE)
+    end
+    NavAgentHelper.writeAxes(self.axes, ship.agent, ship.input)
 end
 
 --- PreSim: the navigation step, then the control input writers; both are timed.
