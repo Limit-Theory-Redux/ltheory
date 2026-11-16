@@ -110,6 +110,49 @@ function Test:section(title, samples)
     Gui:endContainer()
 end
 
+--- One small panel built with the same design pixels at different UI scales:
+--- its size, padding, spacing, border, text and shape all follow the scale.
+function Test:scaledPanel(scale, label)
+    Gui:beginVerticalContainer()
+    Gui:setScale(scale)
+    Gui:setPadding(10, 8)
+    Gui:setSpacing(6)
+    Gui:setBackgroundColor(bandColor)
+    Gui:setBorderWidth(1)
+    Gui:setBorderColor(dim)
+    Gui:setChildrenHorizontalAlignment(AlignHorizontal.Center)
+
+    Gui:text(label or string.format('scale %g', scale), self.font, white)
+    Gui:annulus(boxColor2, 6, false)
+    Gui:setFixedSize(50, 50)
+    Gui:rect()
+    Gui:setFixedSize(80, 10)
+    Gui:setBackgroundColor(boxColor)
+
+    Gui:endContainer()
+end
+
+function Test:scaleSection()
+    Gui:beginVerticalContainer()
+    Gui:setSpacing(10)
+    Gui:text('Gui:setScale (UIComponent.Container scale)', self.titleFont, white)
+
+    Gui:beginHorizontalContainer()
+    Gui:setSpacing(20)
+    Gui:setChildrenVerticalAlignment(AlignVertical.Top)
+    for _, scale in ipairs({ 0.75, 1, 1.5, 2 }) do
+        self:scaledPanel(scale)
+    end
+    -- nested: a 1.5 panel inside a scale-2 container draws at 3
+    Gui:beginStackContainer()
+    Gui:setScale(2)
+    self:scaledPanel(1.5, '1.5 in 2 = 3')
+    Gui:endContainer()
+    Gui:endContainer()
+
+    Gui:endContainer()
+end
+
 function Test:buildGui()
     Gui:beginGui(self.resX, self.resY)
 
@@ -126,6 +169,7 @@ function Test:buildGui()
     Gui:beginVerticalContainer()
     Gui:setSpacing(24)
     self:section('Percent sizes in a parent that fits its content', self.percentShares)
+    self:scaleSection()
     Gui:endContainer()
 
     Gui:endContainer()

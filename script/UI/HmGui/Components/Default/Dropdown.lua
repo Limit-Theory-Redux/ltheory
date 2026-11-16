@@ -177,7 +177,8 @@ function Dropdown:new(args)
             Gui:beginLayerBelow()
 
             self.state.dropdownComponent():render()
-            Gui:setFixedWidth(mainContainerSize.x) -- make dropdown list the same width as a main area
+            -- make dropdown list the same width as a main area (measured in screen pixels)
+            Gui:setFixedWidth(mainContainerSize.x / Gui:containerScale())
 
             -- hide drop down list if user clicked outside list itself
             local clickedOutside = not isMouseOverText and not isMouseOverButton and not isMouseOverMainContainer

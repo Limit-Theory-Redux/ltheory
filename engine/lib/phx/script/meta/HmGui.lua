@@ -81,6 +81,14 @@ function HmGui:containerMinSize() end
 ---@return Vec2f
 function HmGui:containerPos() end
 
+-- The UI scale of the current container (`set_scale`: its own times the
+-- scales of the containers around it), screen pixels per design pixel.
+-- Known while the GUI is built, unlike the sizes above. Divide what HmGui
+-- reports in screen pixels (`container_size`, `element_size`, the mouse)
+-- by it to size a widget inside the container from it.
+---@return number
+function HmGui:containerScale() end
+
 -- Update current element minimum size.
 ---@param offset Vec2f
 function HmGui:updateElementOffset(offset) end
@@ -366,6 +374,19 @@ function HmGui:setMaxHeight(height) end
 ---@param width number
 ---@param height number
 function HmGui:setMaxSize(width, height) end
+
+-- Scale the widget and everything in it, on top of the scale of the
+-- containers around it (like CSS `zoom`): every size, position, margin,
+-- padding, spacing, border width, font size and shape length set from Lua
+-- for it and inside it is in design pixels, `scale` screen pixels each.
+-- Percentages need no scaling, and what HmGui reports back
+-- (`container_pos`, `container_size`, `element_size`) and the mouse stay
+-- in screen pixels. Layers begun inside it (dropdown lists, tooltips)
+-- take its scale, so set it right after beginning the container, before
+-- its children. A UI built for 1080p, scaled by the window height / 1080,
+-- looks the same at every resolution.
+---@param scale number
+function HmGui:setScale(scale) end
 
 -- Place the widget at (x, y) relative to its parent container's top left
 -- corner inside the border (the parent's padding doesn't apply; its scroll

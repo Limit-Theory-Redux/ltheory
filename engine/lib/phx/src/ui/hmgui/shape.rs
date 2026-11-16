@@ -1,7 +1,10 @@
 use glam::Vec2;
 
 use super::{HmGuiLookId, HmGuiLookOverrides, HmGuiLooks};
-use crate::render::{Color, Shape, Stroke, StrokeDash, StrokeFade, UIRenderer, UIShapeGeometry};
+use crate::render::{
+    Color, STROKE_LOOK, Shape, Stroke, StrokeDash, StrokeFade, StrokeLook, UIRenderer,
+    UIShapeGeometry,
+};
 
 /// What a shape widget draws.
 ///
@@ -145,6 +148,10 @@ pub struct HmGuiShape {
     pub fade: Option<HmGuiShapeFade>,
     /// Strokes only.
     pub stroke: HmGuiStrokeStyle,
+    /// Screen pixels per design pixel (`HmGui::set_scale`): the stroke's
+    /// lengths (thickness, length, corners, dashes, fade along it) and its
+    /// look's widths are multiplied by it when it is drawn.
+    pub scale: f32,
 }
 
 /// Room for the glow of `triangle.glsl` (as `DrawEx.Tri`).
@@ -167,6 +174,7 @@ impl HmGuiShape {
             glow,
             fade: None,
             stroke: HmGuiStrokeStyle::default(),
+            scale: 1.0,
         }
     }
 
@@ -198,7 +206,8 @@ impl HmGuiShape {
             _ => {
                 let (stroke, own_look) = self.to_stroke(pos, size)?;
                 let look = self.stroke.look.unwrap_or(own_look);
-                let look = looks.resolve(look, &self.stroke.overrides);
+                let mut look = looks.resolve(look, &self.stroke.overrides);
+                scale_look_widths(&mut look, self.scale);
                 Some((Shape::Stroke, UIShapeGeometry::Stroke { stroke, look }))
             }
         }
@@ -257,12 +266,14 @@ impl HmGuiShape {
         let radius = 0.5 * size.x.min(size.y);
         let at = |p: Vec2| pos + p * size;
         let pick = |alpha, glow| if self.glow { glow } else { alpha };
+        let px = |length: f32| length * self.scale; // design to screen pixels
 
         // The stroke, its own look, whether its caps are round, and for the
         // ones around the centre the arc (radius, start, sweep) a fade window
         // is measured on.
         let (mut stroke, look, round, arc) = match self.kind {
             HmGuiShapeKind::Annulus { thickness } => {
+                let thickness = px(thickness);
                 if thickness <= 0.0 || radius <= 0.0 {
                     return None;
                 }
@@ -286,6 +297,7 @@ impl HmGuiShape {
                 start,
                 sweep,
             } => {
+                let thickness = px(thickness);
                 if thickness <= 0.0 || sweep == 0.0 || radius <= 0.0 {
                     return None;
                 }
@@ -311,7 +323,7 @@ impl HmGuiShape {
                     bend,
                     thickness,
                 } => {
-                    let stroke = Stroke::between(at(from), at(to), bend, thickness);
+                    let stroke = Stroke::between(at(from), at(to), bend, px(thickness));
                     (stroke, HmGuiLookId::STROKE, false, None)
                 }
                 HmGuiStrokeForm::Bent {
@@ -321,7 +333,8 @@ impl HmGuiShape {
                     bend,
                     thickness,
                 } => {
-                    let stroke = Stroke::bent(at(start), direction, length, bend, thickness);
+                    let stroke =
+                        Stroke::bent(at(start), direction, px(length), bend, px(thickness));
                     (stroke, HmGuiLookId::STROKE, false, None)
                 }
                 HmGuiStrokeForm::Arc {
@@ -332,7 +345,7 @@ impl HmGuiShape {
                     if radius <= 0.0 {
                         return None;
                     }
-                    let stroke = Stroke::arc(centre, radius, start, sweep, thickness);
+                    let stroke = Stroke::arc(centre, radius, start, sweep, px(thickness));
                     (
                         stroke,
                         HmGuiLookId::STROKE,
@@ -355,10 +368,20 @@ impl HmGuiShape {
         } else {
             0.0
         };
-        stroke.corner = self.stroke.corner.unwrap_or(corner);
-        stroke.dash = self.stroke.dash;
+        stroke.corner = px(self.stroke.corner.unwrap_or(corner));
+        let dash = self.stroke.dash;
+        stroke.dash = StrokeDash {
+            dash: px(dash.dash),
+            gap: px(dash.gap),
+            phase: px(dash.phase),
+        };
         stroke.fade = match (self.stroke.fade, self.fade, arc) {
-            (Some(fade), ..) => fade,
+            (Some(fade), ..) => StrokeFade {
+                centre: px(fade.centre),
+                visible: px(fade.visible),
+                gone: px(fade.gone),
+                period: px(fade.period),
+            },
             (None, Some(window), Some((radius, start, sweep))) => {
                 arc_fade(&window, radius, start, sweep)
             }
@@ -384,6 +407,19 @@ impl HmGuiShape {
         println!("{ident_str}- fade:   {:?}", self.fade);
         if self.kind.is_stroke() {
             println!("{ident_str}- stroke: {:?}", self.stroke);
+        }
+    }
+}
+
+/// Multiply a look's widths (`coreWidth`, `glowWidth`, `haloWidth`, in
+/// pixels) by a widget's scale.
+fn scale_look_widths(look: &mut StrokeLook, scale: f32) {
+    if scale == 1.0 {
+        return;
+    }
+    for name in ["coreWidth", "glowWidth", "haloWidth"] {
+        if let Some(slot) = STROKE_LOOK.slot(name) {
+            look[slot] *= scale;
         }
     }
 }
@@ -447,6 +483,55 @@ mod tests {
 
     fn make(kind: HmGuiShapeKind, glow: bool) -> HmGuiShape {
         HmGuiShape::new(kind, Color::WHITE, glow)
+    }
+
+    #[test]
+    fn scaled_strokes_draw_their_lengths_bigger() {
+        let mut wedge = make(
+            HmGuiShapeKind::Wedge {
+                thickness: 10.0,
+                start: 0.0,
+                sweep: 90.0,
+            },
+            false,
+        );
+        wedge.stroke.dash = StrokeDash::new(4.0, 2.0, 1.0);
+        wedge.scale = 2.0;
+
+        let (stroke, _) = wedge.to_stroke(Vec2::ZERO, Vec2::splat(100.0)).unwrap();
+        assert_close(stroke.thickness, 20.0);
+        assert_close(stroke.corner, 2.0 * WEDGE_CORNER);
+        assert_close(stroke.dash.dash, 8.0);
+        assert_close(stroke.dash.gap, 4.0);
+        assert_close(stroke.dash.phase, 2.0);
+    }
+
+    #[test]
+    fn scaled_strokes_widen_their_look() {
+        let looks = HmGuiLooks::new();
+        let mut line = make(
+            HmGuiShapeKind::Line {
+                from: Vec2::ZERO,
+                to: Vec2::ONE,
+            },
+            false,
+        );
+        let look_of = |line: &HmGuiShape| match line.geometry(Vec2::ZERO, Vec2::splat(50.0), &looks)
+        {
+            Some((_, UIShapeGeometry::Stroke { look, .. })) => look,
+            _ => panic!("a line draws as a stroke"),
+        };
+
+        let plain = look_of(&line);
+        line.scale = 3.0;
+        let scaled = look_of(&line);
+
+        for (i, (plain, scaled)) in plain.iter().zip(scaled).enumerate() {
+            let is_width = ["coreWidth", "glowWidth", "haloWidth"]
+                .iter()
+                .any(|name| STROKE_LOOK.slot(name) == Some(i));
+            assert_close(scaled, if is_width { 3.0 * plain } else { *plain });
+        }
     }
 
     /// The circle or point quad: shape, pos, size, params, fade.

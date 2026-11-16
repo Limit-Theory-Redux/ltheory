@@ -29,6 +29,10 @@ pub struct HmGui {
     /// frames.
     pub(super) looks: HmGuiLooks,
 
+    /// Fonts at the sizes scaled texts are drawn at (`set_scale`), by name
+    /// and pixels per em; they outlive frames.
+    scaled_fonts: HashMap<(String, u32), Font>,
+
     /// `None` when no clipboard backend is available, e.g. on a headless Linux CI runner
     /// without an X11/Wayland connection.
     clipboard: Option<Clipboard>,
@@ -47,6 +51,7 @@ impl HmGui {
             focus_pos: Vec2::ZERO,
             active_widget: None,
             looks: HmGuiLooks::new(),
+            scaled_fonts: HashMap::new(),
             clipboard: Clipboard::new()
                 .inspect_err(|err| warn!("Cannot create clipboard. Error: {err}"))
                 .ok(),
@@ -80,6 +85,33 @@ impl HmGui {
         self.scale_factor = scale_factor;
     }
 
+    /// `font` at `scale` times its size, rounded to whole pixels per em:
+    /// loaded the first time, then kept.
+    pub(super) fn scaled_font(&mut self, r: &mut Renderer, font: &Font, scale: f32) -> Font {
+        let size = (font.size() * scale).round().max(1.0) as u32;
+        if size as f32 == font.size() {
+            return font.clone();
+        }
+
+        self.scaled_fonts
+            .entry((font.name(), size))
+            .or_insert_with(|| Font::load(r, &font.name(), size))
+            .clone()
+    }
+
+    /// The UI scale of a widget of the current layer: its own `set_scale`
+    /// times its parents' and the layer's.
+    fn scale_of(&self, widget_rf: &Rf<HmGuiWidget>) -> f32 {
+        let mut scale = self.layers[self.layer_index].scale;
+        let mut next = Some(widget_rf.clone());
+        while let Some(widget_rf) = next {
+            let widget = widget_rf.as_ref();
+            scale *= widget.own_scale;
+            next = widget.parent.clone();
+        }
+        scale
+    }
+
     /// The base layer's root widget. Usable both mid-construction (where it
     /// matches the current layer while no nested layer has been begun) and
     /// after `end_gui` (where `layer_index` has been reset to
@@ -105,6 +137,15 @@ impl HmGui {
     #[inline]
     pub fn container(&self) -> Rf<HmGuiWidget> {
         self.layers[self.layer_index].container.clone()
+    }
+
+    /// The UI scale of the current container (1 before the first layer).
+    fn current_scale(&self) -> f32 {
+        if self.layer_index == UNDEFINED_LAYER_INDEX {
+            1.0
+        } else {
+            self.scale_of(&self.container())
+        }
     }
 
     #[inline]
@@ -244,9 +285,9 @@ impl HmGui {
         let layers_root: Vec<_> = self
             .layers
             .iter()
-            .map(|layer| (layer.root.clone(), layer.location.clone()))
+            .map(|layer| (layer.root.clone(), layer.location.clone(), layer.scale))
             .collect();
-        for (root_rf, location) in &layers_root {
+        for (root_rf, location, scale) in &layers_root {
             let mut root = root_rf.as_mut();
 
             if let HmGuiLayerLocation::Below(widget_rf) = location {
@@ -262,6 +303,7 @@ impl HmGui {
                 root.inner_size = root.size;
             }
 
+            root.apply_scale(self, r, *scale);
             root.compute_size(self, r);
             root.layout(self, r, input);
         }
@@ -311,7 +353,8 @@ impl HmGui {
     /// Each layer has its own separate layout system.
     pub fn begin_layer(&mut self) {
         let layer_index = self.layers.len();
-        let layer = HmGuiLayer::new_fixed(self.layer_index, Vec2::ZERO, self.screen_size);
+        let scale = self.current_scale();
+        let layer = HmGuiLayer::new_fixed(self.layer_index, Vec2::ZERO, self.screen_size, scale);
 
         self.layers.push(layer);
         self.layer_index = layer_index;
@@ -324,7 +367,8 @@ impl HmGui {
     pub fn begin_layer_at_pos(&mut self, pos: Vec2) {
         let layer_index = self.layers.len();
         // TODO: process situation when position is outside of the screen.
-        let layer = HmGuiLayer::new_fixed(self.layer_index, pos, self.screen_size - pos);
+        let scale = self.current_scale();
+        let layer = HmGuiLayer::new_fixed(self.layer_index, pos, self.screen_size - pos, scale);
 
         self.layers.push(layer);
         self.layer_index = layer_index;
@@ -338,7 +382,8 @@ impl HmGui {
         let widget = self.last();
 
         let layer_index = self.layers.len();
-        let layer = HmGuiLayer::new_below(self.layer_index, widget);
+        let scale = self.scale_of(&widget);
+        let layer = HmGuiLayer::new_below(self.layer_index, widget, scale);
 
         self.layers.push(layer);
         self.layer_index = layer_index;
@@ -445,6 +490,15 @@ impl HmGui {
         let data = self.data_mut(widget.hash);
 
         data.pos
+    }
+
+    /// The UI scale of the current container (`set_scale`: its own times the
+    /// scales of the containers around it), screen pixels per design pixel.
+    /// Known while the GUI is built, unlike the sizes above. Divide what HmGui
+    /// reports in screen pixels (`container_size`, `element_size`, the mouse)
+    /// by it to size a widget inside the container from it.
+    pub fn container_scale(&self) -> f32 {
+        self.current_scale()
     }
 
     /// Update current element minimum size.
@@ -905,6 +959,28 @@ impl HmGui {
         let mut widget = last.as_mut();
 
         widget.max_size = Vec2::new(width, height);
+    }
+
+    /// Scale the widget and everything in it, on top of the scale of the
+    /// containers around it (like CSS `zoom`): every size, position, margin,
+    /// padding, spacing, border width, font size and shape length set from Lua
+    /// for it and inside it is in design pixels, `scale` screen pixels each.
+    /// Percentages need no scaling, and what HmGui reports back
+    /// (`container_pos`, `container_size`, `element_size`) and the mouse stay
+    /// in screen pixels. Layers begun inside it (dropdown lists, tooltips)
+    /// take its scale, so set it right after beginning the container, before
+    /// its children. A UI built for 1080p, scaled by the window height / 1080,
+    /// looks the same at every resolution.
+    pub fn set_scale(&self, scale: f32) {
+        if !(scale > 0.0 && scale.is_finite()) {
+            warn!("setScale: the scale must be a positive number, not {scale}");
+            return;
+        }
+
+        let last = self.last();
+        let mut widget = last.as_mut();
+
+        widget.own_scale = scale;
     }
 
     /// Place the widget at (x, y) relative to its parent container's top left

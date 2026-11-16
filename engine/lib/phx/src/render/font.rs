@@ -649,6 +649,11 @@ impl Font {
         self.0.as_ref().name.clone()
     }
 
+    /// Pixels per em: the size the font was loaded at.
+    pub fn size(&self) -> f32 {
+        self.0.as_ref().size
+    }
+
     /// Pixels the font's line box reaches above the baseline.
     pub fn ascent(&self) -> i32 {
         self.0.as_ref().ascent
