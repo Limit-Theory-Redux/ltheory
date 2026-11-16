@@ -5,7 +5,6 @@
 
 local Rulesets = require("Config.Gen.Rulesets")
 local PhysicsComponents = require("Modules.Physics.Components")
-local Overlay = require("Config.Scenarios.Overlay")
 
 return {
     name = "Planet Showcase",
@@ -25,10 +24,10 @@ return {
         { keys = "B", action = "New planet" },
     },
 
-    drawOverlay = function(game)
-        Overlay.draw({
+    overlayLines = function(game)
+        return {
             "Planet Showcase",
             "B: new planet    C: camera / fly    Right mouse: orbit    Wheel: zoom",
-        })
+        }
     end,
 }

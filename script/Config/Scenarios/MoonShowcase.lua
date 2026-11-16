@@ -6,7 +6,6 @@ local CelestialEntities = require("Modules.CelestialObjects.Entities")
 local SolarSystemVisualizer = require("Modules.CelestialObjects.Managers.SolarSystemVisualizer")
 local PhysicsComponents = require("Modules.Physics.Components")
 local Helpers = require("Config.Scenarios.Helpers")
-local Overlay = require("Config.Scenarios.Overlay")
 
 local function spawnMoon(game)
     -- About the Moon's size next to the planet (Earth-like in the default system)
@@ -40,10 +39,10 @@ return {
         { keys = "B", action = "New moon" },
     },
 
-    drawOverlay = function(game)
-        Overlay.draw({
+    overlayLines = function(game)
+        return {
             "Moon Showcase",
             "B: new moon    C: camera / fly    Right mouse: orbit    Wheel: zoom",
-        })
+        }
     end,
 }

@@ -9,7 +9,6 @@
 local CameraManager = require("Modules.Cameras.Managers.CameraManager")
 local CameraDataComponent = require("Modules.Cameras.Components.CameraDataComponent")
 local RenderCoreSystem = require("Modules.Rendering.Systems.RenderCoreSystem")
-local Overlay = require("Config.Scenarios.Overlay")
 
 local CAMERA_KEYS = {
     { key = Button.KeyboardF1, mode = Enums.CameraMode.Free },
@@ -47,7 +46,7 @@ return {
         { keys = "- / =", action = "Field of view" },
     },
 
-    drawOverlay = function(game)
+    overlayLines = function(game)
         local lines = { "Camera Test: " .. game.player:getModeName() .. " camera" }
         local camEntity = CameraManager:getActiveCameraEntity()
         local controller = camEntity and camEntity:get(CameraDataComponent):getController()
@@ -58,7 +57,7 @@ return {
         lines[#lines + 1] = string.format("Field of view: %.0f    %d fps, %.2f ms",
             Config.render.camera.fov, RenderCoreSystem:getSmoothFPS(), RenderCoreSystem:getSmoothFrameTime(true))
         lines[#lines + 1] = "F1 free    F2 orbit    F3 first person    F4 RTS    C cycle    - = field of view"
-        Overlay.draw(lines)
+        return lines
     end,
 
     teardown = function(game)

@@ -3,7 +3,6 @@
 -- as always, so the hull can be flown too. (Was the ShipTest state.)
 
 local Helpers = require("Config.Scenarios.Helpers")
-local Overlay = require("Config.Scenarios.Overlay")
 
 -- Ship type and its size (index into Config.game.shipHulls)
 local HULLS = {
@@ -37,10 +36,10 @@ return {
         { keys = "B", action = "Next hull (fighter, basic, capital)" },
     },
 
-    drawOverlay = function(game)
-        Overlay.draw({
+    overlayLines = function(game)
+        return {
             "Ship Showcase: " .. HULLS[game.scenarioData.hull].name .. " hull",
             "B: next hull    C: camera / fly    Right mouse: orbit    Wheel: zoom",
-        })
+        }
     end,
 }

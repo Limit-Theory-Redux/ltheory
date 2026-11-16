@@ -354,6 +354,7 @@ function LimitTheoryRedux:returnToMainMenu()
     self.scenario = nil
     self.rebuildInFrames = nil
     UIViewInGame:setPlayer(nil)
+    UIViewInGame:setOverlayLines(nil)
     self.mapMode = 0
 
     -- The menu needs a free cursor (closePauseMenu re-applied the gameplay
@@ -461,6 +462,9 @@ function LimitTheoryRedux:setupScenario()
     if self.scenario.setup then
         self.scenario.setup(self)
     end
+    -- The scenario's text, which the HUD shows under its zone line
+    local overlayLines = self.scenario.overlayLines
+    UIViewInGame:setOverlayLines(overlayLines and function() return overlayLines(self) end or nil)
 end
 
 --- Orbits, gravity wells and the maps' entity lists, after the scene changed.
@@ -891,10 +895,6 @@ function LimitTheoryRedux:onRender(data)
             local showLabels = showHud and GameState.ui.showIndicatorNames
             if showLabels then
                 WorldLabelRenderSystem:draw(self.labeledEntities)
-            end
-
-            if showHud and self.scenario.drawOverlay then
-                self.scenario.drawOverlay(self)
             end
 
             local spawned = AsteroidFieldSystem:getSpawnedEntities()

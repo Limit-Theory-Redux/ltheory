@@ -19,12 +19,18 @@ local UniverseScaleConfig = require("Config.Gen.UniverseScaleConfig")
 ---@type PlayerController|nil
 InGame.player = nil
 InGame.hudShown = false
+-- Set by LimitTheoryRedux: the running scenario's text (Scenario.overlayLines).
+---@type (fun(): string[]|nil)|nil
+InGame.overlayLines = nil
+
+local NO_LINES = {}
 
 --- What the HUD shows this frame; filled in by onUpdate, read by the components.
 local hud = {
     driveText = "", driveAlpha = 0,
     autopilotText = "",
     zoneText = "",
+    overlayLines = NO_LINES,
     cameraText = "", cameraAlpha = 0,
 }
 
@@ -183,6 +189,12 @@ function InGame:setHudShown(shown)
     self.hudShown = shown
 end
 
+---@param overlayLines (fun(): string[]|nil)|nil the scenario's text, a list of lines; nil = none
+function InGame:setOverlayLines(overlayLines)
+    self.overlayLines = overlayLines
+    hud.overlayLines = NO_LINES
+end
+
 function InGame:onInput() end
 
 -- Views get no frame time from the UI router, so the HUD keeps its own clock.
@@ -202,6 +214,7 @@ function InGame:onUpdate()
     updateDrive(ship, dt)
     updateAutopilot(ship)
     updateZone()
+    hud.overlayLines = self.overlayLines and self.overlayLines() or NO_LINES
     updateCamera(player, dt)
 end
 
@@ -269,6 +282,33 @@ local zoneLine = UIComponent.Container {
     },
 }
 
+-- The scenario's text (what it shows, its keys), under the zone line. A text
+-- per line: Gui:text doesn't break lines.
+local OVERLAY_COLOR = Color(0.85, 0.90, 1.00, 0.9)
+local MAX_OVERLAY_LINES = 12 -- the Physics Test shows up to 10
+
+local overlayTexts = {}
+for i = 1, MAX_OVERLAY_LINES do
+    overlayTexts[i] = UIComponent.Text {
+        visible = function() return hud.overlayLines[i] ~= nil end,
+        text = function() return hud.overlayLines[i] or "" end,
+        font = "Unageo-Medium",
+        size = function() return px(15) end,
+        height = function() return px(24) end,
+        color = OVERLAY_COLOR,
+        outline = true,
+    }
+end
+
+local scenarioText = UIComponent.Container {
+    visible = function() return hudVisible() and #hud.overlayLines > 0 end,
+    align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
+    layoutType = GuiLayoutType.Vertical,
+    childrenAlign = { AlignHorizontal.Left, AlignVertical.Top },
+    padding = function() return { px(40), px(80) } end,
+    contents = overlayTexts,
+}
+
 local cameraLabel = UIComponent.Container {
     visible = function() return hudVisible() and hud.cameraText ~= "" end,
     align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
@@ -305,6 +345,7 @@ local pausedText = UIComponent.Container {
 InGame:addContent(speedTape)
 InGame:addContent(travelBlock)
 InGame:addContent(zoneLine)
+InGame:addContent(scenarioText)
 InGame:addContent(cameraLabel)
 InGame:addContent(pausedText)
 

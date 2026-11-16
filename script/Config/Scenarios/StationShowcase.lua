@@ -5,7 +5,6 @@
 local StationGenerator = require("Modules.Constructs.Managers.Generators.StationGenerator")
 local PhysicsComponents = require("Modules.Physics.Components")
 local Helpers = require("Config.Scenarios.Helpers")
-local Overlay = require("Config.Scenarios.Overlay")
 
 local STATION_SCALE = 0.3 -- the game's stations (about 3 km)
 
@@ -39,10 +38,10 @@ return {
         { keys = "B", action = "New station" },
     },
 
-    drawOverlay = function(game)
-        Overlay.draw({
+    overlayLines = function(game)
+        return {
             "Station Showcase",
             "B: new station    C: camera / fly    Right mouse: orbit    Wheel: zoom",
-        })
+        }
     end,
 }

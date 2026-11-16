@@ -24,7 +24,9 @@
 --   onInput(game, dt)      the scenario's own keys (not while paused or in a map)
 --   regenerate(game)       what Regenerate (B) does (default: a new seed, and
 --                          everything is built again)
---   drawOverlay(game)      text over the game, with the HUD
+--   overlayLines(game)     the scenario's text (what it shows, its keys): a list
+--                          of lines, shown by the HUD under its zone line;
+--                          called every frame
 --   controls     the scenario's own keys for the Controls screen (pause menu):
 --                { { keys = "B", action = "New planet" }, ... }
 --   teardown(game)         undo what setup changed outside the scene (things
@@ -53,7 +55,7 @@
 ---@field postUpdate fun(game: table, dt: number)|nil
 ---@field onInput fun(game: table, dt: number)|nil
 ---@field regenerate fun(game: table)|nil
----@field drawOverlay fun(game: table)|nil
+---@field overlayLines fun(game: table): string[]|nil
 ---@field controls { keys: string, action: string }[]|nil
 ---@field teardown fun(game: table)|nil
 

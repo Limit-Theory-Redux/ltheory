@@ -22,7 +22,6 @@ local RenderComp = require("Modules.Rendering.Components").Render
 local AsteroidMeshPool = require("Modules.CelestialObjects.Systems.AsteroidMeshPool")
 local Materials = require("Shared.Registries.Materials")
 local ShipGenerator = require("Modules.Constructs.Managers.Generators.ShipGenerator")
-local Overlay = require("Config.Scenarios.Overlay")
 
 local ASTEROID_SEED = 1
 local TURN_STEP = math.pi / 10
@@ -213,7 +212,7 @@ return {
         { keys = "Numpad 5 (held)", action = "Turn it instead" },
     },
 
-    drawOverlay = function(game)
+    overlayLines = function(game)
         local data = game.scenarioData
         local lines = {
             string.format("Physics Test: %d collisions    world trigger: %d    ship trigger: %d",
@@ -222,7 +221,7 @@ return {
                 ")    Enter attach    + - scale    8 2 4 6 9 3 move    hold 5 to turn",
         }
         for _, line in ipairs(data.collisions or {}) do lines[#lines + 1] = line end
-        Overlay.draw(lines)
+        return lines
     end,
 
     -- Attachments and triggers go before the bodies do (the scene teardown

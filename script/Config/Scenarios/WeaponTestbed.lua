@@ -22,7 +22,6 @@ local CelestialComponents = require("Modules.CelestialObjects.Components")
 local ArmedShipBuilder = require("Modules.Constructs.Managers.ArmedShipBuilder")
 local WeaponBattery = require("Modules.Constructs.Systems.WeaponBattery")
 local WeaponActions = require("Input.ActionBindings.WeaponTestbedActions")
-local Overlay = require("Config.Scenarios.Overlay")
 
 local Weapon = Enums.Weapon
 local ShipType = Enums.ShipType
@@ -881,7 +880,7 @@ return {
         { keys = "R or B", action = "Reset the drones" },
     },
 
-    drawOverlay = function(game)
+    overlayLines = function(game)
         local data = game.scenarioData
         local battery = data.battery
         if not battery then return end
@@ -893,7 +892,7 @@ return {
         for slot = 1, #DRONES do
             drones[slot] = droneStatus(data, slot)
         end
-        Overlay.draw({
+        return {
             "WEAPON TESTBED",
             string.format("Capital AI: %s   Fire mode: %s%s",
                 battery:isAIActive() and "on" or "off",
@@ -913,7 +912,7 @@ return {
                 and string.format("%s on %s", impact.mountId or "?", nearestDroneLabel(data, impact.position))
                 or "-"),
             "F6 AI on/off   F7 fire mode   F9 hold trigger (AI off)   R reset drones   C fly your ship",
-        })
+        }
     end,
 
     teardown = function(game)
