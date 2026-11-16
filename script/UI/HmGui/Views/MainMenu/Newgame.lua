@@ -86,6 +86,13 @@ local function usingTestSeed()
     return testSeedIndex > 1
 end
 
+---The text in a TextView. `TextData:text()` gives a C string (`const char *`),
+---not a Lua string, so it is copied into one.
+---@return string
+local function textOf(textView)
+    return ffi.string(textView.state.textData():text())
+end
+
 local function fieldText()
     if usingTestSeed() then
         return seedToText(testSeeds[testSeedIndex - 1][2])
@@ -99,7 +106,7 @@ local function getSeedView(s)
     local key = size .. (usingTestSeed() and ":test" or ":own")
     if seedViewKey ~= key then
         if seedView and not usingTestSeed() and seedViewKey and seedViewKey:find(":own") then
-            ownSeedText = seedView.state.textData():text() -- keep what the player typed
+            ownSeedText = textOf(seedView) -- keep what the player typed
         end
         seedView = UIComponent.TextView {
             text = fieldText(),
@@ -107,10 +114,14 @@ local function getSeedView(s)
             multiline = false,
             style = {
                 font = { size = size, family = "Unageo" },
-                brush = usingTestSeed() and MenuStyle.color.disabled or MenuStyle.color.text
+                brush = usingTestSeed() and MenuStyle.color.disabled or MenuStyle.color.fieldText,
+                selectionBrush = MenuStyle.color.selection,
+                cursorBrush = MenuStyle.color.text,
             },
             width = function() return (FIELD_W - 20) * s end,
             align = { AlignHorizontal.Left, AlignVertical.Center },
+            -- with a callback, the TextView copies what is typed into its text data
+            callback = function() end,
         }
         seedViewKey = key
     end
@@ -120,7 +131,7 @@ end
 ---The player's own seed text (also while a test seed hides it).
 local function getOwnSeedText()
     if seedView and not usingTestSeed() then
-        return seedView.state.textData():text()
+        return textOf(seedView)
     end
     return ownSeedText
 end
