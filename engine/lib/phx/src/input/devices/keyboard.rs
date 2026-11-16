@@ -446,15 +446,12 @@ pub enum KeyboardButton {
     F35,
 }
 
-const TYPING_DELAY_SEC: f64 = 0.2;
-
 #[derive(Default)]
 pub struct KeyboardState {
     control_state: ControlState,
     button_state: ButtonState<{ KeyboardButton::SIZE }>,
-    /// Entered text. Usually a single character.
+    /// Text typed since the last frame, in order (empty after `reset`).
     text: String,
-    text_time: f64,
 }
 
 impl KeyboardState {
@@ -475,14 +472,12 @@ impl KeyboardState {
         self.button_state.update(button as usize, pressed) && self.control_state.update()
     }
 
-    pub fn set_text(&mut self, text: &str, time: f64) -> bool {
-        if time - self.text_time > TYPING_DELAY_SEC {
-            self.text = text.into();
-            self.text_time = time;
-            true
-        } else {
-            false
-        }
+    /// Add typed text (a key press or a key repeat). Everything typed between
+    /// two frames is kept, in order: fast typing doesn't lose characters.
+    /// Returns whether there was text to add.
+    pub fn add_text(&mut self, text: &str) -> bool {
+        self.text.push_str(text);
+        !text.is_empty()
     }
 }
 
@@ -521,8 +516,31 @@ impl KeyboardState {
         }
     }
 
-    /// Text entered in the current frame. Usually a single symbol.
+    /// Text typed since the last frame, in order: usually one character, more
+    /// when typing fast.
     pub fn text(&self) -> &str {
         &self.text
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn typed_text_is_kept_until_the_frame_ends() {
+        let mut state = KeyboardState::default();
+
+        // two keys between two frames, typed faster than a frame
+        assert!(state.add_text("1"));
+        assert!(state.add_text("2"));
+        assert_eq!(state.text(), "12");
+
+        state.reset();
+        assert_eq!(state.text(), "");
+
+        assert!(!state.add_text(""));
+        assert!(state.add_text("3"));
+        assert_eq!(state.text(), "3");
     }
 }
