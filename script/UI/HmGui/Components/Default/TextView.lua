@@ -50,8 +50,8 @@ local meta = {
 ---@field font UIComponentTextViewFont
 ---@field locale string|nil
 ---@field brush Color
----@field selectionBrush Color
----@field cursorBrush Color
+---@field selectionBrush Color the highlight behind selected text
+---@field cursorBrush Color the text cursor
 ---@field lineHeight number
 ---@field wordSpacing number
 ---@field letterSpacing number
@@ -229,8 +229,8 @@ local function buildTextData(args)
         multiline = args.multiline
     end
 
-    local cursorColor = args.style.selectionBrush or Color(1, 1, 1, 1)
-    local selectionColor = args.style.cursorBrush or Color(0.2, 0.2, 0.7, 0.8)
+    local cursorColor = args.style.cursorBrush or Color(1, 1, 1, 1)
+    local selectionColor = args.style.selectionBrush or Color(0.2, 0.2, 0.7, 0.8)
     local textData = TextData.Create(text, buildStyle(args.style, true), cursorColor, selectionColor,
         args.alignment or TextAlignment.Start, multiline)
 

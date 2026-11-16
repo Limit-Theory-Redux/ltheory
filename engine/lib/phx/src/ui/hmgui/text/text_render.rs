@@ -55,7 +55,7 @@ pub(super) fn render_glyph(
                         let alpha = color_u8_to_f32(glyph_image.data[i]);
                         let color = color.with_alpha(alpha);
 
-                        buffer[idx as usize].blend_with(&color);
+                        buffer[idx as usize].paint_over(&color);
                     }
 
                     i += 1;
@@ -81,7 +81,7 @@ pub(super) fn render_glyph(
                             color_u8_to_f32(pixel[3]),
                         );
 
-                        buffer[idx as usize].blend_with(&color);
+                        buffer[idx as usize].paint_over(&color);
                     }
                 }
             }

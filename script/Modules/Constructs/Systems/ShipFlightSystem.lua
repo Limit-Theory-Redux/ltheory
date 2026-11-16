@@ -1,6 +1,7 @@
 local PhysicsComponents   = require("Modules.Physics.Components")
 local ConstructComponents = require("Modules.Constructs.Components")
 local ShipActions         = require("Input.ActionBindings.ShipActions")
+local UserSettings        = require("Shared.UserSettings")
 
 --- Ship flight system — direct port of Legacy ThrustController into ECS.
 --- Raw input -> forces/torques each frame. Physics handles the rest.
@@ -47,7 +48,7 @@ function ShipFlightSystem:update(dt, shipEntity, mouseAim, useDelta)
                 local delta = Input:mouse():delta()
                 local sx = Window:width()
                 local sy = Window:height()
-                local sens = 1.0
+                local sens = UserSettings.mouseSensitivityFactor() -- Mouse Sensitivity setting
 
                 local tYaw = Math.Clamp(
                     flightCtrl:getTargetYaw() + delta.x / sx * sens, -0.8, 0.8)
@@ -70,9 +71,10 @@ function ShipFlightSystem:update(dt, shipEntity, mouseAim, useDelta)
         if math.abs(yaw)   < 0.004 then yaw   = 0 end
         if math.abs(pitch) < 0.008 then pitch = 0 end
 
-        -- Config inversion
+        -- Config inversion, and the Invert Vertical Look setting (read every frame,
+        -- so changing it applies straight away)
         if cfg.invertYaw   then yaw   = -yaw end
-        if cfg.invertPitch then pitch = -pitch end
+        if cfg.invertPitch or GameState.input.invertPitch then pitch = -pitch end
     end
 
     -- Boost (matches legacy: 1.0 + 2.0 * boost)

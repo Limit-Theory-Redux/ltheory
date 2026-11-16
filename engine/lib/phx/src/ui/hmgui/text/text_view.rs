@@ -36,6 +36,10 @@ impl TextView {
         self.editable
     }
 
+    pub fn set_editable(&mut self, editable: bool) {
+        self.editable = editable;
+    }
+
     /// In case of text changes, updates user text data with the view one.
     /// Removes `text_changed` flag.
     pub fn update_source(&mut self, text_data: &mut TextData) -> bool {
@@ -45,6 +49,8 @@ impl TextView {
             text_data.set_text(self.data.text());
             // TODO: update other text data fields
 
+            // the change came from this view: nothing to copy back
+            text_data.take_needs_sync();
             self.data.unset_text_changed();
 
             true

@@ -106,12 +106,12 @@ impl ApplicationHandler for MainLoop {
                         )
                     });
                 }
+                // `text` is only set when a key is pressed (or repeats), not
+                // when it is released, so every character comes once.
                 if let Some(text) = event.text {
-                    let time = engine.get_time();
-
                     engine
                         .input
-                        .update_keyboard(device_id, |state| state.set_text(text.as_str(), time));
+                        .update_keyboard(device_id, |state| state.add_text(text.as_str()));
                 }
             }
             WindowEvent::CursorMoved {

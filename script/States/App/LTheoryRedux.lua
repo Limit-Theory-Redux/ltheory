@@ -12,6 +12,7 @@ local SoundManager = require('Legacy.Systems.SFX.SoundManager')
 local Backdrop = require("Render.Backdrop")
 local MusicPlayer = require('Shared.Audio.MusicPlayer')
 local InitFiles = require('Legacy.Systems.Files.InitFiles')
+local UserSettings = require('Shared.UserSettings')
 
 -- UI pages (HmGui): the Main_Menu page before a game, the Gameplay page in
 -- game (In_Game view with the HUD text, Paused and Controls views for the pause
@@ -101,16 +102,18 @@ function LimitTheoryRedux:onInit()
     -- Expose the scene builder to the main menu (New Game button)
     GameState.startGame = function(seed) self:startGame(seed) end
 
+    -- Presentation: borderless fullscreen with VSync off, unless user.ini says
+    -- otherwise (exclusive mode forces a mode switch that lowers frame rates).
+    UserSettings.useGameDisplayDefaults()
+    -- Before user.ini: init lists the soundtracks that its menuTheme is matched
+    -- against. The tracks get the saved volumes in loadMusic below.
     MusicPlayer:init()
     InitFiles:readUserInits()
 
     Window:setSize(GameState.render.resX, GameState.render.resY)
     Window:setCenteredPosition()
-    Window:setPresentMode(PresentMode.NoVsync)
-    -- Presentation: borderless fullscreen keeps the desktop refresh rate
-    -- (exclusive mode forces a mode switch that lowers frame rates).
-    GameState.render.fullscreen = true
-    Window:setFullscreen(true, false)
+    -- Display mode, VSync, field of view, brightness, bloom, smoothing, texture quality
+    UserSettings.applyAll()
 
     Window:setCursorPosition(Vec2f(GameState.ui.cursorX, GameState.ui.cursorY))
     SoundManager:init()
@@ -357,6 +360,8 @@ function LimitTheoryRedux:startGame(seed)
     -- fixed default (the same universe on every New Game would be stale).
     self.seed = seed or rng:get64()
     self.rng = RNG.Create(self.seed)
+    -- The Draw HUD setting; V still toggles the HUD during the game.
+    self.hudHidden = not GameState.ui.drawHud
     self.world = Physics.Create()
     self.constructManager = ConstructManager(Registry, self.world)
     RenderCoreSystem:setDebugPhysics(self.world)
@@ -635,12 +640,15 @@ function LimitTheoryRedux:onRender(data)
             -- These draw after Gui:draw, so they'd sit on top of the pause menu
             -- and the Controls screen: hide them while those are open.
             local showHud = not self.hudHidden and not self.pauseMenuOpen
-            if showHud then
+            -- Name labels next to planets, stations and the nearest asteroids:
+            -- the Show HUD Indicator Names setting.
+            local showLabels = showHud and GameState.ui.showIndicatorNames
+            if showLabels then
                 WorldLabelRenderSystem:draw(self.labeledEntities)
             end
 
             local spawned = AsteroidFieldSystem:getSpawnedEntities()
-            if #spawned > 0 and showHud then
+            if #spawned > 0 and showLabels then
                 local eye = CameraManager:getEye()
                 if eye then
                     for _, aInfo in ipairs(spawned) do

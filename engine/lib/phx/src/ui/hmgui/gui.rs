@@ -767,9 +767,16 @@ impl HmGui {
 
         let data = self.data_mut(widget.hash);
 
+        // changes from Lua (or new text data) since the last frame
+        let changed = text_data.take_needs_sync();
+
         if let Some(text_view) = &mut data.text_view {
-            if !editable {
-                // apply changes from Lua side. Readonly text view only
+            text_view.set_editable(editable);
+
+            // a read-only view always shows the Lua data; an editable one takes
+            // it when Lua changed it (what the player types goes the other way,
+            // `get_text_view_changes`)
+            if changed || !editable {
                 text_view.set_data(text_data);
             }
         } else {

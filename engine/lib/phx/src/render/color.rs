@@ -136,6 +136,24 @@ impl Color {
         *self = self.blend(other);
     }
 
+    /// Paint `src` over this colour, as paint covers what is under it
+    /// (straight alpha, Porter-Duff "source over"): an opaque `src` replaces
+    /// it, a transparent one leaves it as it is.
+    pub fn paint_over(&mut self, src: &Color) {
+        let under = self.a * (1.0 - src.a);
+        let a = src.a + under;
+
+        if a <= 0.0 {
+            *self = Color::TRANSPARENT;
+            return;
+        }
+
+        self.r = (src.r * src.a + self.r * under) / a;
+        self.g = (src.g * src.a + self.g * under) / a;
+        self.b = (src.b * src.a + self.b * under) / a;
+        self.a = a;
+    }
+
     fn hue_to_rgb(p: f32, q: f32, t: f32) -> f32 {
         // Normalize
         let t = if t < 0.0 {
@@ -186,4 +204,41 @@ impl From<Color> for Vec4 {
 #[inline]
 fn check_range(v: f32) {
     assert!((0.0..=1.0).contains(&v));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn close(a: Color, b: Color) -> bool {
+        (a.r - b.r).abs() < 1e-5
+            && (a.g - b.g).abs() < 1e-5
+            && (a.b - b.b).abs() < 1e-5
+            && (a.a - b.a).abs() < 1e-5
+    }
+
+    #[test]
+    fn paint_over_covers_what_is_under_it() {
+        let blue = Color::new(0.2, 0.5, 0.95, 0.55);
+
+        // opaque paint replaces
+        let mut c = blue;
+        c.paint_over(&Color::WHITE);
+        assert!(close(c, Color::WHITE), "{c:?}");
+
+        // on nothing, paint stays as it is
+        let mut c = Color::TRANSPARENT;
+        c.paint_over(&Color::new(1.0, 1.0, 1.0, 0.5));
+        assert!(close(c, Color::new(1.0, 1.0, 1.0, 0.5)), "{c:?}");
+
+        // transparent paint leaves it
+        let mut c = blue;
+        c.paint_over(&Color::new(1.0, 0.0, 0.0, 0.0));
+        assert!(close(c, blue), "{c:?}");
+
+        // half white over opaque black: mid grey, opaque
+        let mut c = Color::new(0.0, 0.0, 0.0, 1.0);
+        c.paint_over(&Color::new(1.0, 1.0, 1.0, 0.5));
+        assert!(close(c, Color::new(0.5, 0.5, 0.5, 1.0)), "{c:?}");
+    }
 }

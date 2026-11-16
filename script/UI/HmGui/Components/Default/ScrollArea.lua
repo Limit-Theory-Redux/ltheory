@@ -85,7 +85,7 @@ function ScrollArea:new(args)
         scrollDirection = args.scrollDirection or Enums.UI.ScrollDirection.Both,
         showHScrollbar = args.showHScrollbar or true,
         showVScrollbar = args.showVScrollbar or true,
-        scrollbarFading = args.scrollbarFading or true,
+        scrollbarFading = args.scrollbarFading ~= false, -- `false` keeps the scrollbar shown
         scrollScale = args.scrollScale or 20,
         scrollbarVisibilityStableTimeMs = args.scrollbarVisibilityStableTimeMs or 400,
         scrollbarVisibilityFadeTimeMs = args.scrollbarVisibilityFadeTimeMs or 200,
