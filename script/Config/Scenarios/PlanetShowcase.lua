@@ -21,6 +21,10 @@ return {
         end
     end,
 
+    controls = {
+        { keys = "B", action = "New planet" },
+    },
+
     drawOverlay = function(game)
         Overlay.draw({
             "Planet Showcase",

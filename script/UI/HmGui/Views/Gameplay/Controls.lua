@@ -16,6 +16,15 @@ Controls.groups = {}
 
 function Controls:onViewOpen(isPageOpen)
     self.groups = ControlsHelp.groups()
+    -- The keys of the scenario being played, as a group of their own
+    local scenario = LimitTheoryRedux.scenario
+    if scenario and scenario.controls then
+        local rows = {}
+        for _, row in ipairs(scenario.controls) do
+            rows[#rows + 1] = { action = row.action, keys = row.keys, gamepad = "" }
+        end
+        table.insert(self.groups, { title = scenario.name, rows = rows })
+    end
     self.screen = nil -- rebuilt on the next render
 end
 

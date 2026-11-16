@@ -33,6 +33,10 @@ return {
         focus(game)
     end,
 
+    controls = {
+        { keys = "B", action = "Next hull (fighter, basic, capital)" },
+    },
+
     drawOverlay = function(game)
         Overlay.draw({
             "Ship Showcase: " .. HULLS[game.scenarioData.hull].name .. " hull",

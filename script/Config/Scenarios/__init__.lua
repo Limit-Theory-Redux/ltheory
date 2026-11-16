@@ -25,6 +25,8 @@
 --   regenerate(game)       what Regenerate (B) does (default: a new seed, and
 --                          everything is built again)
 --   drawOverlay(game)      text over the game, with the HUD
+--   controls     the scenario's own keys for the Controls screen (pause menu):
+--                { { keys = "B", action = "New planet" }, ... }
 --   teardown(game)         undo what setup changed outside the scene (things
 --                          added with `game:addSceneEntity` are removed anyway)
 --
@@ -50,6 +52,7 @@
 ---@field onInput fun(game: table, dt: number)|nil
 ---@field regenerate fun(game: table)|nil
 ---@field drawOverlay fun(game: table)|nil
+---@field controls { keys: string, action: string }[]|nil
 ---@field teardown fun(game: table)|nil
 
 local ids = {

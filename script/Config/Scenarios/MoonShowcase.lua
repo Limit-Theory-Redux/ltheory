@@ -36,6 +36,10 @@ return {
         spawnMoon(game)
     end,
 
+    controls = {
+        { keys = "B", action = "New moon" },
+    },
+
     drawOverlay = function(game)
         Overlay.draw({
             "Moon Showcase",

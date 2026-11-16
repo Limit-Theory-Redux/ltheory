@@ -205,6 +205,14 @@ return {
         data.collisionCount = collision.count
     end,
 
+    controls = {
+        { keys = "Numpad / or *", action = "Select asteroid 1 or 2 (again: none)" },
+        { keys = "Numpad Enter", action = "Attach or detach it" },
+        { keys = "Numpad + / -", action = "Scale it" },
+        { keys = "Numpad 8 2 4 6 9 3", action = "Move it" },
+        { keys = "Numpad 5 (held)", action = "Turn it instead" },
+    },
+
     drawOverlay = function(game)
         local data = game.scenarioData
         local lines = {

@@ -35,6 +35,10 @@ return {
         spawnStation(game)
     end,
 
+    controls = {
+        { keys = "B", action = "New station" },
+    },
+
     drawOverlay = function(game)
         Overlay.draw({
             "Station Showcase",

@@ -39,6 +39,14 @@ return {
         end
     end,
 
+    controls = {
+        { keys = "F1", action = "Free camera" },
+        { keys = "F2", action = "Orbit camera" },
+        { keys = "F3", action = "First person camera" },
+        { keys = "F4", action = "RTS camera" },
+        { keys = "- / =", action = "Field of view" },
+    },
+
     drawOverlay = function(game)
         local lines = { "Camera Test: " .. game.player:getModeName() .. " camera" }
         local camEntity = CameraManager:getActiveCameraEntity()
