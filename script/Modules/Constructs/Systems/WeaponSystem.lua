@@ -18,6 +18,7 @@ local PointLightEffectEntity = require("Modules.Constructs.Entities.PointLightEf
 local PhysicsComponents = require("Modules.Physics.Components")
 local RaycastHelper = require("Shared.Helpers.RaycastHelper")
 local BeamAimHelper = require("Shared.Helpers.BeamAimHelper")
+local MeshIndexData = require("Shared.Helpers.MeshIndexData")
 local WeaponMountSizing = require("Shared.Helpers.WeaponMountSizing")
 local NULL_RIGID_BODY = ffi.cast("RigidBody*", nil)
 local ROOT_EPSILON = 0.000001
@@ -112,7 +113,7 @@ function WeaponSystem:buildTargetSurface(mesh)
     local surface = {}
     local totalArea = 0
     local indexCount = mesh:getIndexCount()
-    mesh:lockIndexData(function(indices)
+    MeshIndexData.read(mesh, function(indices)
         for index = 0, indexCount - 3, 3 do
             local p0 = vertices[tonumber(indices[index])]
             local p1 = vertices[tonumber(indices[index + 1])]
