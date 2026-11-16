@@ -93,6 +93,10 @@ impl ImmLayout {
 /// `Stroke` (`Renderer::imm_stroke`), the bendable stroke whose look comes
 /// from the shape parameter block: one pipeline, premultiplied, for additive
 /// and alpha blended strokes alike.
+///
+/// `Text` and `TextOutlined` are the glyph quads of `Font::draw` and
+/// `Font::draw_outlined` (`TextOutlined`: `p` = outline colour, `q` = halo
+/// colour).
 #[luajit_ffi_gen::luajit_ffi(repr = "u32")]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Shape {
@@ -119,11 +123,12 @@ pub enum Shape {
     CircleAlpha,
     TriangleAlpha,
     Stroke,
+    TextOutlined,
 }
 
 impl Shape {
     /// The number of shapes: the last one plus one.
-    const COUNT: usize = Shape::Stroke as usize + 1;
+    const COUNT: usize = Shape::TextOutlined as usize + 1;
 
     /// Fragment shader, blend mode and whether it samples a texture.
     fn info(self) -> (&'static str, BlendMode, bool) {
@@ -153,6 +158,7 @@ impl Shape {
             // Light added, alpha covering what is behind: the look decides
             // how much (additive at 0, normal alpha at full coverage).
             Shape::Stroke => ("fragment/ui/stroke", PreMultAlpha, false),
+            Shape::TextOutlined => ("fragment/ui/text_outlined", Alpha, true),
         }
     }
 

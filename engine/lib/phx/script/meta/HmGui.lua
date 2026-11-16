@@ -292,6 +292,19 @@ function HmGui:setLookParam(look, param, value) end
 ---@param color Color
 function HmGui:text(text, font, color) end
 
+-- Add a text element like `text`, with a 1 px `outline` and a 3 px
+-- `halo` around the glyphs so it stays readable on any background (see
+-- `Font::draw_outlined`). An alpha of 0 leaves a part out: a transparent
+-- outline gives the halo alone. Takes the same room as `text`: outline
+-- and halo spill past the widget, so a clipping container cuts them off
+-- at its edge.
+---@param text string
+---@param font Font
+---@param color Color
+---@param outline Color
+---@param halo Color
+function HmGui:textOutlined(text, font, color, outline, halo) end
+
 -- Add multiline styled text element.
 ---@param textData TextData
 ---@param editable boolean

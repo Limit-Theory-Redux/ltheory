@@ -1,6 +1,6 @@
 use glam::Vec2;
 
-use crate::render::{Color, Font, Renderer, UIRenderer};
+use crate::render::{Color, Font, Renderer, TextOutline, UIRenderer};
 
 /// What a text widget that is narrower than its text ends with.
 pub const ELLIPSIS: &str = "…";
@@ -10,6 +10,8 @@ pub struct HmGuiText {
     pub font: Font,
     pub text: String,
     pub color: Color,
+    /// Drawn with an outline and halo (`Gui:textOutlined`).
+    pub outline: Option<TextOutline>,
     /// The text's own size (without the widget's min/fixed size), from compute_size().
     pub size: Vec2,
     /// The text cut to the widget's width and ended with [`ELLIPSIS`], when the
@@ -22,6 +24,7 @@ impl PartialEq for HmGuiText {
         self.font.name() == other.font.name()
             && self.text == other.text
             && self.color == other.color
+            && self.outline == other.outline
     }
 }
 
@@ -31,6 +34,7 @@ impl HmGuiText {
             font: font.clone(),
             text: text.into(),
             color: *color,
+            outline: None,
             size: Vec2::ZERO,
             shown: None,
         }
@@ -61,7 +65,7 @@ impl HmGuiText {
     }
 
     pub fn draw(&self, renderer: &mut UIRenderer, pos: Vec2) {
-        renderer.text(&self.font, self.shown_text(), pos, self.color);
+        renderer.text(&self.font, self.shown_text(), pos, self.color, self.outline);
     }
 
     // For testing.
@@ -72,6 +76,9 @@ impl HmGuiText {
         println!("{ident_str}- text:  {}", self.text);
         println!("{ident_str}- shown: {:?}", self.shown);
         println!("{ident_str}- color: {:?}", self.color);
+        if let Some(outline) = &self.outline {
+            println!("{ident_str}- outline: {outline:?}");
+        }
         println!("{ident_str}- font:  {:?}", self.font.name());
     }
 }

@@ -149,8 +149,11 @@ impl UIRendererLayer {
 
     fn draw_text(r: &mut Renderer, text: &UIRendererText) {
         #[allow(unsafe_code)] // TODO: remove
-        unsafe {
-            (*text.font).draw(r, &text.text, text.pos.x, text.pos.y, &text.color);
+        let font = unsafe { &*text.font };
+        let (x, y) = (text.pos.x, text.pos.y);
+        match &text.outline {
+            Some(o) => font.draw_outlined(r, &text.text, x, y, &text.color, &o.outline, &o.halo),
+            None => font.draw(r, &text.text, x, y, &text.color),
         }
     }
 }

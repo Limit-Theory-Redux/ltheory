@@ -7,7 +7,7 @@ use super::panel::UIRendererPanel;
 use super::rect::UIRendererRect;
 use super::shape::{UIRendererShape, UIShapeGeometry};
 use super::text::UIRendererText;
-use crate::render::{Color, Font, Renderer, Shape, Tex2D};
+use crate::render::{Color, Font, Renderer, Shape, Tex2D, TextOutline};
 
 /// Collects what the UI draws in a frame and draws it in the order it was
 /// added: each layer draws its items in that order, and a nested layer is
@@ -151,13 +151,21 @@ impl UIRenderer {
         self.push(UIRendererItem::Shape(id));
     }
 
-    pub fn text(&mut self, font: &Font, text: &str, pos: Vec2, color: Color) {
+    pub fn text(
+        &mut self,
+        font: &Font,
+        text: &str,
+        pos: Vec2,
+        color: Color,
+        outline: Option<TextOutline>,
+    ) {
         let id = self.texts.len().into();
         self.texts.push(UIRendererText {
             pos,
             font: font as _,
             text: text.into(),
             color,
+            outline,
         });
         self.push(UIRendererItem::Text(id));
     }

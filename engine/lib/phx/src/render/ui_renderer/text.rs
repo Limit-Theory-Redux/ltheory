@@ -1,6 +1,6 @@
 use glam::Vec2;
 
-use crate::render::{Color, Font};
+use crate::render::{Color, Font, TextOutline};
 
 #[derive(Clone)]
 pub struct UIRendererText {
@@ -8,4 +8,5 @@ pub struct UIRendererText {
     pub font: *const Font,
     pub text: String,
     pub color: Color,
+    pub outline: Option<TextOutline>,
 }

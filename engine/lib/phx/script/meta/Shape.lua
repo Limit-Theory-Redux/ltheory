@@ -22,6 +22,10 @@
 -- `Stroke` (`Renderer::imm_stroke`), the bendable stroke whose look comes
 -- from the shape parameter block: one pipeline, premultiplied, for additive
 -- and alpha blended strokes alike.
+--
+-- `Text` and `TextOutlined` are the glyph quads of `Font::draw` and
+-- `Font::draw_outlined` (`TextOutlined`: `p` = outline colour, `q` = halo
+-- colour).
 ---@class Shape
 ---@field Solid integer
 ---@field Image integer
@@ -45,6 +49,7 @@
 ---@field CircleAlpha integer
 ---@field TriangleAlpha integer
 ---@field Stroke integer
+---@field TextOutlined integer
 Shape = {
     Solid = 0,
     Image = 1,
@@ -68,4 +73,5 @@ Shape = {
     CircleAlpha = 19,
     TriangleAlpha = 20,
     Stroke = 21,
+    TextOutlined = 22,
 }

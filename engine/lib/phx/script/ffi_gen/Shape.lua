@@ -45,6 +45,7 @@ function Loader.defineType()
             CircleAlpha   = 19,
             TriangleAlpha = 20,
             Stroke        = 21,
+            TextOutlined  = 22,
 
             ToString      = libphx.Shape_ToString,
         }
