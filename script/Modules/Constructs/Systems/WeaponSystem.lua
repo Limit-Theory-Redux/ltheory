@@ -1616,6 +1616,17 @@ function WeaponSystem:updateFromTracking(state)
         return
     end
 
+    -- Trigger released with bursts still going: those bursts finish, nothing
+    -- new starts (otherwise every new burst shot keeps the battery firing).
+    local fireable = readyByMount
+    if not control.triggerHeld then
+        fireable = {}
+        for mountId, ready in pairs(readyByMount) do
+            local mount = state.turretsById[mountId]
+            fireable[mountId] = ready and mount ~= nil and (mount.component.burstRemaining or 0) > 0
+        end
+    end
+
     -- Point-defense mounts bypass the shared battery cadence: each fires on
     -- its own cooldown as long as it holds a solution, so PD coverage is a
     -- continuous stream instead of one round-robin slot among all mounts.
@@ -1623,7 +1634,7 @@ function WeaponSystem:updateFromTracking(state)
     for _, mount in ipairs(state.turrets or {}) do
         local weapon = weaponByMount[mount.mountId]
         if weapon and weapon.combatRole == Enums.Weapon.CombatRole.PointDefense
-            and readyByMount[mount.mountId]
+            and fireable[mount.mountId]
             and (mount.component.cooldown or 0) <= 0
             and mount.component.fireSolution
         then
@@ -1643,7 +1654,7 @@ function WeaponSystem:updateFromTracking(state)
                     state:spawnProjectile(mount, mount.component.fireSolution, weapon, control.shotSerial)
                     -- Exclude this mount from the shared battery plan so it cannot
                     -- be fired twice in one update.
-                    readyByMount[mountId] = nil
+                    fireable[mountId] = nil
                 end
             end
         end
@@ -1654,7 +1665,7 @@ function WeaponSystem:updateFromTracking(state)
     end
 
     local order = control.mode == Enums.Weapon.FireMode.Sequence and control.sequence or state.mountIds
-    local plan = self:planFire(control.mode, order, readyByMount, control.sequenceIndex)
+    local plan = self:planFire(control.mode, order, fireable, control.sequenceIndex)
     if not self:fundStateFirePlan(state, control.mode, plan, weaponByMount) then
         return
     end
