@@ -298,7 +298,14 @@ impl HmGuiWidget {
                 data.min_size = self.min_size;
             }
             WidgetItem::Text(text_item) => {
-                self.inner_min_size = text_item.measure(r).max(self.min_size_request);
+                // a wrapped text breaks at its max or fixed width
+                let width = match self.default_size[0] {
+                    Length::Fixed(width) => width.min(self.max_size.x),
+                    _ => self.max_size.x,
+                };
+                let wrap_width = width.is_finite().then_some(width);
+
+                self.inner_min_size = text_item.measure(r, wrap_width).max(self.min_size_request);
 
                 self.min_size = self.calculate_min_size();
             }
@@ -431,19 +438,10 @@ impl HmGuiWidget {
                     container.draw(hmgui, pos, size);
                 }
                 WidgetItem::Text(text) => {
-                    // centred in the widget; a cut text fills it from the left
-                    let x = if text.shown.is_some() {
-                        pos.x
-                    } else {
-                        pos.x + (size.x - text.size.x) / 2.0
-                    };
-                    // The text's box is the font's line box (ascent + descent),
-                    // so the baseline sits `descent` above its bottom.
-                    let y = pos.y + self.min_size.y
-                        - (self.border_width * 2.0 + self.margin_upper.y + self.margin_lower.y)
-                        - text.font.descent() as f32;
+                    let bottom = pos.y + self.min_size.y
+                        - (self.border_width * 2.0 + self.margin_upper.y + self.margin_lower.y);
 
-                    text.draw(&mut hmgui.renderer, Vec2::new(x, y));
+                    text.draw(&mut hmgui.renderer, pos.x, size.x, bottom);
                 }
                 WidgetItem::Rect => {}
                 WidgetItem::Shape(shape) => {

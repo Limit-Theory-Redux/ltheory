@@ -2104,4 +2104,54 @@ mod tests {
             .collect();
         assert_eq!(borders, vec![1.0, 1.0, 3.0]);
     }
+
+    // A text breaks into lines at "\n", and with set_text_wrap where it is
+    // wider than its max width: as wide as its widest line, as high as its
+    // lines a line height apart.
+    #[test]
+    fn test_hmgui_text_lines() {
+        let (mut gui, input, mut r) = init_test();
+        let font = crate::render::Font::load(&mut r, "Unageo-Medium", 14);
+        let color = crate::render::Color::WHITE;
+        let width_of = |r: &mut Renderer, text: &str| font.get_size2(r, text).x as f32;
+        let line_box = (font.ascent() + font.descent()) as f32;
+        let between = font.get_line_height() as f32;
+
+        let one = width_of(&mut r, "one");
+        let three = width_of(&mut r, "three");
+        let one_two = width_of(&mut r, "one two");
+
+        gui.begin_gui(300.0, 200.0);
+
+        gui.begin_vertical_container();
+        gui.set_alignment(AlignHorizontal::Left, AlignVertical::Top);
+        gui.set_spacing(0.0);
+
+        gui.text("one\nthree", &font, &color);
+
+        gui.text("one two three", &font, &color);
+        gui.set_max_width(one_two + 1.0);
+        gui.set_text_wrap(true);
+
+        // without wrap a max width cuts it instead
+        gui.text("one two three", &font, &color);
+        gui.set_max_width(one_two + 1.0);
+
+        gui.end_container();
+        gui.end_gui(&mut r, &input);
+
+        let root_widget_rf = gui.root();
+        let root_widget = root_widget_rf.as_ref();
+        let column = root_widget.get_container_item().children[0].as_ref();
+        let sizes: Vec<Vec2> = column
+            .get_container_item()
+            .children
+            .iter()
+            .map(|widget_rf| widget_rf.as_ref().size)
+            .collect();
+
+        assert_eq!(sizes[0], Vec2::new(one.max(three), line_box + between));
+        assert_eq!(sizes[1], Vec2::new(one_two.max(three), line_box + between));
+        assert_eq!(sizes[2], Vec2::new(one_two + 1.0, line_box));
+    }
 }

@@ -101,6 +101,9 @@ struct FontData {
     /// The text context's font generation the lines were shaped with: a font
     /// registered later can change which fallback font a character gets.
     lines_generation: u64,
+    /// Texts broken into lines ([`Font::wrap`]) by text and width, kept and
+    /// dropped like `lines`.
+    wraps: HashMap<(String, u32), CachedWrap>,
     scale_ctx: ScaleContext,
     /// The glyphs [`Font::draw`] draws.
     plain: Atlas,
@@ -509,6 +512,13 @@ struct CachedLine {
     frame: u64,
 }
 
+/// A text broken into lines in a font's cache, with the last frame it was
+/// asked for.
+struct CachedWrap {
+    lines: Rc<Vec<String>>,
+    frame: u64,
+}
+
 /// Splits a pen x position into the whole pixel the glyph's bitmap is placed
 /// from and the subpixel step it is rasterized at.
 fn snap_x(x: f32) -> (f32, u8) {
@@ -533,15 +543,7 @@ impl FontData {
     /// are dropped first (once per frame), and all lines when the generation
     /// changed.
     fn shape_at(&mut self, text: &str, frame: u64, generation: u64) -> Rc<ShapedLine> {
-        if generation != self.lines_generation {
-            self.lines.clear();
-            self.lines_generation = generation;
-        }
-        if frame != self.lines_frame {
-            self.lines
-                .retain(|_, cached| cached.frame.saturating_add(1) >= frame);
-            self.lines_frame = frame;
-        }
+        self.sweep(frame, generation);
 
         if let Some(cached) = self.lines.get_mut(text) {
             cached.frame = frame;
@@ -562,6 +564,74 @@ impl FontData {
         line
     }
 
+    /// Drop the cached lines and wraps last asked for before the previous frame
+    /// (once per frame), and all of them when the font generation changed.
+    fn sweep(&mut self, frame: u64, generation: u64) {
+        if generation != self.lines_generation {
+            self.lines.clear();
+            self.wraps.clear();
+            self.lines_generation = generation;
+        }
+        if frame != self.lines_frame {
+            self.lines
+                .retain(|_, cached| cached.frame.saturating_add(1) >= frame);
+            self.wraps
+                .retain(|_, cached| cached.frame.saturating_add(1) >= frame);
+            self.lines_frame = frame;
+        }
+    }
+
+    /// `text` broken into lines: at its line breaks, and where a line would be
+    /// wider than `max_width`, at the places Unicode allows (between words; a
+    /// word wider than that stays whole). Each line without its trailing white
+    /// space. From the cache, or laid out with parley.
+    fn wrap(&mut self, text: &str, max_width: Option<f32>) -> Rc<Vec<String>> {
+        let frame = FRAME.load(Ordering::Relaxed);
+        self.sweep(frame, font_generation());
+
+        let key = (text.to_owned(), max_width.map_or(u32::MAX, f32::to_bits));
+        if let Some(cached) = self.wraps.get_mut(&key) {
+            cached.frame = frame;
+            return cached.lines.clone();
+        }
+
+        let mut lines: Vec<String> = {
+            let mut text_ctx = TEXT_CTX.lock().expect("Cannot use text context");
+            self.build_layout(&mut text_ctx, text, max_width);
+            self.layout
+                .lines()
+                .map(|line| text[line.text_range()].trim_end().to_owned())
+                .collect()
+        };
+        if lines.is_empty() {
+            lines.push(String::new());
+        }
+
+        let lines = Rc::new(lines);
+        self.wraps.insert(
+            key,
+            CachedWrap {
+                lines: lines.clone(),
+                frame,
+            },
+        );
+        lines
+    }
+
+    /// Lay `text` out in this font with parley, into `self.layout`, its lines
+    /// broken at line breaks and where they would be wider than `max_width`.
+    fn build_layout(&mut self, text_ctx: &mut TextContext, text: &str, max_width: Option<f32>) {
+        let TextContext { font, layout, .. } = text_ctx;
+        let mut builder = layout.ranged_builder(font, text, 1.0, false);
+        builder.push_default(FontFamily::named(&self.family));
+        builder.push_default(StyleProperty::FontSize(self.size));
+        builder.push_default(StyleProperty::FontWidth(self.width));
+        builder.push_default(StyleProperty::FontStyle(self.style));
+        builder.push_default(StyleProperty::FontWeight(self.weight));
+        builder.build_into(&mut self.layout, text);
+        self.layout.break_all_lines(max_width);
+    }
+
     /// Lay out `text` as one line with parley: glyph ids and positions, with
     /// the font's kerning (GPOS) and other default OpenType features applied.
     /// A character this font lacks comes from the fallback font (DejaVu Sans);
@@ -574,15 +644,7 @@ impl FontData {
             text.into()
         };
 
-        let TextContext { font, layout, .. } = text_ctx;
-        let mut builder = layout.ranged_builder(font, &text, 1.0, false);
-        builder.push_default(FontFamily::named(&self.family));
-        builder.push_default(StyleProperty::FontSize(self.size));
-        builder.push_default(StyleProperty::FontWidth(self.width));
-        builder.push_default(StyleProperty::FontStyle(self.style));
-        builder.push_default(StyleProperty::FontWeight(self.weight));
-        builder.build_into(&mut self.layout, &text);
-        self.layout.break_all_lines(None);
+        self.build_layout(text_ctx, &text, None);
 
         let mut glyphs = Vec::with_capacity(text.len());
         if let Some(line) = self.layout.lines().next() {
@@ -654,6 +716,14 @@ impl Font {
         self.0.as_ref().size
     }
 
+    /// `text` broken into lines: at its line breaks (`\n`), and where a line
+    /// would be wider than `max_width` pixels, at the places Unicode allows
+    /// (between words; a word wider than that stays whole). Each line without
+    /// its trailing white space; at least one line.
+    pub fn wrap(&self, text: &str, max_width: Option<f32>) -> Rc<Vec<String>> {
+        self.0.as_mut().wrap(text, max_width)
+    }
+
     /// Pixels the font's line box reaches above the baseline.
     pub fn ascent(&self) -> i32 {
         self.0.as_ref().ascent
@@ -712,6 +782,7 @@ impl Font {
                 lines: HashMap::new(),
                 lines_frame: FRAME.load(Ordering::Relaxed),
                 lines_generation: font_generation(),
+                wraps: HashMap::new(),
                 scale_ctx: ScaleContext::new(),
                 plain: Atlas::new(AtlasKind::Plain),
                 outlined: Atlas::new(AtlasKind::Outlined),
@@ -923,6 +994,23 @@ mod tests {
             .join("../../../res/font")
             .join(format!("{name}.ttf"));
         Font::from_file(name, &path, size)
+    }
+
+    #[test]
+    fn wrap_breaks_at_line_breaks_and_between_words() {
+        let font = font("Exo2", 14);
+        let mut r = Renderer::new_headless();
+
+        assert_eq!(*font.wrap("one\ntwo", None), vec!["one", "two"]);
+        assert_eq!(*font.wrap("no break", None), vec!["no break"]);
+
+        let width = font.get_size2(&mut r, "one two").x as f32;
+        assert_eq!(
+            *font.wrap("one two three", Some(width + 1.0)),
+            vec!["one two", "three"]
+        );
+        // a word wider than the width stays whole
+        assert_eq!(*font.wrap("unbreakable", Some(5.0)), vec!["unbreakable"]);
     }
 
     #[test]

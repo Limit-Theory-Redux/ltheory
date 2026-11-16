@@ -313,6 +313,20 @@ function HmGui:text(text, font, color) end
 ---@param halo Color
 function HmGui:textOutlined(text, font, color, outline, halo) end
 
+-- Break the last text into lines where it is wider than its max width
+-- (`set_max_width`) or fixed width, between words, instead of cutting it
+-- with "…" (like CSS `white-space: normal`). A line break ("\n") in a
+-- text always starts a new line, wrapped or not. A percentage or
+-- stretched width doesn't wrap it: give it a max width.
+---@param wrap boolean
+function HmGui:setTextWrap(wrap) end
+
+-- Where the lines of the last text sit in its widget: `Left`, `Right`, or
+-- centred (the default, as a single line is centred when its widget is
+-- wider than it), like CSS `text-align`.
+---@param align AlignHorizontal
+function HmGui:setTextAlign(align) end
+
 -- Add multiline styled text element.
 ---@param textData TextData
 ---@param editable boolean

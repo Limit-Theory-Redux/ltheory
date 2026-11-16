@@ -37,6 +37,8 @@ local NO_OUTLINE = Color(0, 0, 0, 0)
 ---@field outline boolean|"halo"|"outline"|nil keeps the text readable on any background (Gui:textOutlined): `true` = a 3 px halo, plus a 1 px outline from `Text.OutlineMinSize`; `"halo"` = the halo alone; `"outline"` = outline and halo at any size; nil/false = plain text
 ---@field outlineColor Color|nil the outline's colour, black by default
 ---@field haloColor Color|nil the halo's colour, black by default (alpha 1 = full strength)
+---@field wrap number|nil break the text into lines no wider than this (pixels), between words; a "\n" in the text always starts a new line
+---@field textAlign AlignHorizontal|nil where each line sits: Left, Right or centred (the default)
 
 ---returns a text object
 ---@param args UIComponentTextConstructor
@@ -62,7 +64,9 @@ function Text:new(args)
         align = args.align or { AlignHorizontal.Default, AlignVertical.Default },
         outline = args.outline or false,
         outlineColor = args.outlineColor or Color(0, 0, 0, 1),
-        haloColor = args.haloColor or Color(0, 0, 0, 1)
+        haloColor = args.haloColor or Color(0, 0, 0, 1),
+        wrap = args.wrap,
+        textAlign = args.textAlign
     }
 
     newText.render = function(self)
@@ -91,6 +95,13 @@ function Text:new(args)
             Gui:text(text, font, self.state.color())
         end
         Gui:setAlignment(self.state.align()[1], self.state.align()[2])
+        if self.state.wrap then
+            Gui:setMaxWidth(self.state.wrap())
+            Gui:setTextWrap(true)
+        end
+        if self.state.textAlign then
+            Gui:setTextAlign(self.state.textAlign())
+        end
 
         Gui:endContainer()
     end

@@ -77,6 +77,21 @@ function Test:onInit()
                 share("Shield generator", 14, boxColor2, "50%", "fill"),
             } } },
     }
+
+    -- Gui:text: line breaks and wrapping at a max width, lines placed by textAlign.
+    local paragraph = "A text that is too long for one line breaks between its words, "
+        .. "at the width it is given. A short line."
+    local function wrapped(align)
+        return UIComponent.Text { text = paragraph, font = "Unageo-Medium", size = 14, color = white,
+            wrap = 300, textAlign = align }
+    end
+    self.textWrap = {
+        { 'text with "\\n"', UIComponent.Text { text = "First line\nThe second, longer line\nThird",
+            font = "Unageo-Medium", size = 14, color = white, textAlign = AlignHorizontal.Left }, 80 },
+        { 'wrap = 300, textAlign = Left', wrapped(AlignHorizontal.Left), 84 },
+        { 'wrap = 300 (centred)', wrapped(nil), 84 },
+        { 'wrap = 300, textAlign = Right', wrapped(AlignHorizontal.Right), 84 },
+    }
 end
 
 function Test:onInput() end
@@ -170,6 +185,7 @@ function Test:buildGui()
     Gui:setSpacing(24)
     self:section('Percent sizes in a parent that fits its content', self.percentShares)
     self:scaleSection()
+    self:section('Gui:text line breaks and wrapping', self.textWrap)
     Gui:endContainer()
 
     Gui:endContainer()

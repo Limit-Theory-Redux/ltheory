@@ -212,6 +212,18 @@ impl HmGui {
         }
     }
 
+    /// Change the last widget if it is a text (`what` names the caller in the
+    /// warning when it is not).
+    fn with_last_text(&self, what: &str, f: impl FnOnce(&mut HmGuiText)) {
+        let last = self.last();
+        let mut widget = last.as_mut();
+
+        match &mut widget.item {
+            WidgetItem::Text(text) => f(text),
+            _ => warn!("{what}: the last widget is not a text"),
+        }
+    }
+
     /// Get persistent readonly data of the widget by its hash if exists.
     pub fn data(&self, widget_hash: u64) -> Option<&HmGuiData> {
         self.data.get(&widget_hash)
@@ -812,6 +824,22 @@ impl HmGui {
         });
         let widget_rf = self.init_widget(WidgetItem::Text(item));
         let _ = widget_rf.as_mut();
+    }
+
+    /// Break the last text into lines where it is wider than its max width
+    /// (`set_max_width`) or fixed width, between words, instead of cutting it
+    /// with "…" (like CSS `white-space: normal`). A line break ("\n") in a
+    /// text always starts a new line, wrapped or not. A percentage or
+    /// stretched width doesn't wrap it: give it a max width.
+    pub fn set_text_wrap(&self, wrap: bool) {
+        self.with_last_text("setTextWrap", |text| text.wrap = wrap);
+    }
+
+    /// Where the lines of the last text sit in its widget: `Left`, `Right`, or
+    /// centred (the default, as a single line is centred when its widget is
+    /// wider than it), like CSS `text-align`.
+    pub fn set_text_align(&self, align: AlignHorizontal) {
+        self.with_last_text("setTextAlign", |text| text.align = align.into());
     }
 
     /// Add multiline styled text element.
