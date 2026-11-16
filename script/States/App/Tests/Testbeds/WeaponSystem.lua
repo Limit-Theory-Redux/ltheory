@@ -13,5 +13,6 @@
 local Game = require('States.App.LTheoryRedux')
 
 Game.autostartScenario = require('Config.Scenarios').find('WeaponTestbed')
+Game.autostartSeed = 1 -- the same scene every run (B for another)
 
 return Game
