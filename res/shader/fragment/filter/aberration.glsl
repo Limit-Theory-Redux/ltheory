@@ -6,6 +6,7 @@
 #group 2
 layout(std140) uniform Params {
     float strength;
+    float split;  // a plain colour split on top (speed): share of the distance from the centre
 };
 
 const float k = 1.00;
@@ -29,5 +30,12 @@ void main() {
   c /= tw;
   c *= lum(cc) / max(lum(c), 1e-8);
   c = mix(cc, c, strength);
+
+  // Red pushed outwards and blue inwards, more towards the edges
+  if (split > 0.0) {
+    vec2 off = (uv - 0.5) * split;
+    c.r = texture(src, uv + off).r;
+    c.b = texture(src, uv - off).b;
+  }
   outColor = vec4(c, 1.0);
 }

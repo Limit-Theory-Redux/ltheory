@@ -36,6 +36,13 @@ local MAX_TEXTURE_DIMENSION = 8192
 -- reused across entities and frames to avoid per-entity allocation.
 local scratchPos = Position()
 
+-- What the speed effects (`motionFx`) do to the post filters, per 1.0 of
+-- extra: the filters' own looks are subtle constants (radial blur ~24 px at
+-- the edges, aberration a 3 px colour smear), so extra strength alone barely
+-- shows.
+local MOTION_BLUR_REACH = 4           -- radial blur streak length, x the setting's
+local MOTION_ABERRATION_SPLIT = 0.016 -- red/blue split, share of the distance from the centre
+
 ---@class RenderCoreSystem
 ---@overload fun(self): RenderCoreSystem
 ---@overload fun(): RenderCoreSystem
@@ -84,9 +91,9 @@ function RenderCoreSystem:registerVars()
     -- whoever wants them (SpeedFeelSystem); all 0 means the settings alone.
     -- Kept apart from Config so nothing here ends up in the saved settings.
     self.motionFx        = {
-        aberration  = 0,   -- added to the aberration strength
-        vignette    = 0,   -- added to the vignette strength
-        radialBlur  = 0,   -- added to the radial blur strength (0..1)
+        aberration  = 0,   -- added to the aberration strength, plus a colour split
+        vignette    = 0,   -- a round vignette on top (0..1, 1 = black edges)
+        radialBlur  = 0,   -- added to the radial blur strength, also lengthens it
         blurCenterX = 0.5, -- where the radial blur streaks from (0..1, the
         blurCenterY = 0.5, -- point on screen the ship is moving towards)
         travelDrive = 0,   -- travel drive overlay intensity (0..1, 0 = off)
@@ -855,6 +862,7 @@ function RenderCoreSystem:radialBlur()
     self:applyFilter('radialblur', function(p)
         p.strength = strength
         p.center.x, p.center.y = cx, cy
+        p.reach = 1 + MOTION_BLUR_REACH * fx.radialBlur
     end, self.buffers[Enums.BufferName.zBufferL]:mipView(0))
 end
 
@@ -1070,20 +1078,26 @@ end
 
 function RenderCoreSystem:vignette()
     local settings = self.postSettings.vignette
-    local strength = (settings.enable and settings.strength or 0) + self.motionFx.vignette
-    if strength <= 0 then return end
+    local strength = settings.enable and settings.strength or 0
+    -- The speed part is round (the setting's darkens per axis: squarish)
+    local round = math.min(1, self.motionFx.vignette)
+    if strength <= 0 and round <= 0 then return end
     self:applyFilter('vignette', function(p)
         p.strength = strength
         p.hardness = settings.hardness
+        p.roundStrength = round
+        p.aspect = self.resX / self.resY
     end)
 end
 
 function RenderCoreSystem:aberration()
     local settings = self.postSettings.aberration
-    local strength = (settings.enable and settings.strength or 0) + self.motionFx.aberration
+    local fx = self.motionFx
+    local strength = math.min(1, (settings.enable and settings.strength or 0) + fx.aberration)
     if strength <= 0 then return end
     self:applyFilter('aberration', function(p)
         p.strength = strength
+        p.split = MOTION_ABERRATION_SPLIT * fx.aberration
     end)
 end
 
