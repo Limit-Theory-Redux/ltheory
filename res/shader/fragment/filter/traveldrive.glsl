@@ -1,19 +1,25 @@
-#include fragment
+#include filter
 #include math
 
-uniform float intensity;     // 0-1: overall effect strength (ramps up/down)
-uniform float driveSpeed;    // current speed multiplier (1-100)
-uniform float time;
-uniform vec2 screenSize;
-uniform vec2 shipScreenPos;  // ship position on screen [0,1]
+// Travel drive overlay: a pulsing ring around the ship and star streaks,
+// added on top of the picture (RenderCoreSystem:travelDrive).
+#group 2
+layout(std140) uniform Params {
+    float intensity;    // 0-1: overall effect strength (ramps up/down)
+    float driveSpeed;   // current travel drive multiplier
+    float time;         // seconds
+    float aspect;       // screen width / height
+    vec2 shipScreenPos; // the ship on screen, in uv (0..1)
+};
 
 void main() {
-  vec2 uv = vec2(gl_FragCoord.x / screenSize.x, 1.0 - gl_FragCoord.y / screenSize.y);
+  vec3 scene = texture(src, uv).xyz;
+
   vec2 center = shipScreenPos;
   vec2 dir = uv - center;
 
-  float aspect = screenSize.x / screenSize.y;
-  vec2 dirA = vec2(dir.x, dir.y * aspect);
+  // In screen heights, so the ring is round on any screen shape
+  vec2 dirA = vec2(dir.x * aspect, dir.y);
   float dist = length(dirA);
 
   // --- Energy bubble / shield effect ---
@@ -29,7 +35,7 @@ void main() {
   float streaks = 0.0;
   if (driveSpeed > 2.0) {
     // Radial lines emanating from center (motion blur effect)
-    float angle = atan(dir.y, dir.x);
+    float angle = atan(dirA.y, dirA.x);
     float speedFactor = min(1.0, (driveSpeed - 2.0) / 50.0);
 
     // Multiple streak frequencies for variety
@@ -51,8 +57,7 @@ void main() {
   float speedT = min(1.0, driveSpeed / 50.0);
   vec3 bubbleColor = mix(chargeColor, activeColor, speedT);
 
-  // Chromatic aberration on the ring
-  float chromaShift = ring * 0.003 * intensity;
+  // Slight colour split on the ring
   vec3 ringColorShifted = vec3(
     ring * 1.1,
     ring * 0.95,
@@ -71,5 +76,5 @@ void main() {
   float tunnel = smoothstep(0.7, 0.3, dist) * tunnelFactor * 0.3;
   finalColor += vec3(0.02, 0.03, 0.06) * tunnel;
 
-  outColor = vec4(finalColor, 1.0);
+  outColor = vec4(scene + finalColor, 1.0);
 }

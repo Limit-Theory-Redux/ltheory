@@ -80,6 +80,21 @@ function RenderCoreSystem:registerVars()
         colorgrade = Config.render.postFx.colorgrade,
     }
 
+    -- Extra strengths on top of the post settings, set every frame by
+    -- whoever wants them (SpeedFeelSystem); all 0 means the settings alone.
+    -- Kept apart from Config so nothing here ends up in the saved settings.
+    self.motionFx        = {
+        aberration  = 0,   -- added to the aberration strength
+        vignette    = 0,   -- added to the vignette strength
+        radialBlur  = 0,   -- added to the radial blur strength (0..1)
+        blurCenterX = 0.5, -- where the radial blur streaks from (0..1, the
+        blurCenterY = 0.5, -- point on screen the ship is moving towards)
+        travelDrive = 0,   -- travel drive overlay intensity (0..1, 0 = off)
+        driveSpeed  = 1,   -- the travel drive multiplier, for the overlay
+        shipScreenX = 0.5, -- the ship on screen, for the overlay (0..1)
+        shipScreenY = 0.5,
+    }
+
     self.autoExposure    = {
         current = 1.0, -- current adapted exposure
         target  = 1.0, -- what we're adapting toward this frame
@@ -349,6 +364,10 @@ function RenderCoreSystem:render(data)
 
     Profiler.Begin('Render.Post.Tonemap')
     self:tonemap(dt)
+    Profiler.End()
+
+    Profiler.Begin('Render.Post.TravelDrive')
+    self:travelDrive()
     Profiler.End()
 
     Profiler.Begin('Render.Post.Dither')
@@ -821,15 +840,38 @@ function RenderCoreSystem:sharpen()
 end
 
 function RenderCoreSystem:radialBlur()
-    if not self.postSettings.radialblur.enable or self.postSettings.radialblur.strength <= 0 then return end
-
     local rb = self.postSettings.radialblur
+    local fx = self.motionFx
+    local base = rb.enable and rb.strength or 0
+    local strength = math.min(1, base + fx.radialBlur)
+    if strength <= 0 then return end
+
+    -- The streaks come from the settings' centre, or, when only the motion
+    -- blur runs, from where the ship is heading
+    local cx, cy = rb.center[1], rb.center[2]
+    if base <= 0 then cx, cy = fx.blurCenterX, fx.blurCenterY end
 
     -- Slot 1 is the linear depth the filter weighs its taps with
     self:applyFilter('radialblur', function(p)
-        p.strength = rb.strength
-        p.center.x, p.center.y = rb.center[1], rb.center[2]
+        p.strength = strength
+        p.center.x, p.center.y = cx, cy
     end, self.buffers[Enums.BufferName.zBufferL]:mipView(0))
+end
+
+--- The travel drive overlay (filter/traveldrive.glsl): a pulsing ring around
+--- the ship and star streaks, added after tone mapping (its colours are
+--- display colours; before bloom it blew out to white). Runs only while
+--- `motionFx.travelDrive` is above 0.
+function RenderCoreSystem:travelDrive()
+    local fx = self.motionFx
+    if fx.travelDrive <= 0 then return end
+    self:applyFilter('traveldrive', function(p)
+        p.intensity = fx.travelDrive
+        p.driveSpeed = fx.driveSpeed
+        p.time = Engine:getTime() % 1000 -- keeps the float's precision
+        p.aspect = self.resX / self.resY
+        p.shipScreenPos.x, p.shipScreenPos.y = fx.shipScreenX, fx.shipScreenY
+    end)
 end
 
 --- Auto-exposure measurement (render API v2, S8). Resolves the readback that
@@ -1027,17 +1069,21 @@ function RenderCoreSystem:tonemap(dt)
 end
 
 function RenderCoreSystem:vignette()
-    if not self.postSettings.vignette.enable then return end
+    local settings = self.postSettings.vignette
+    local strength = (settings.enable and settings.strength or 0) + self.motionFx.vignette
+    if strength <= 0 then return end
     self:applyFilter('vignette', function(p)
-        p.strength = self.postSettings.vignette.strength
-        p.hardness = self.postSettings.vignette.hardness
+        p.strength = strength
+        p.hardness = settings.hardness
     end)
 end
 
 function RenderCoreSystem:aberration()
-    if not self.postSettings.aberration.enable then return end
+    local settings = self.postSettings.aberration
+    local strength = (settings.enable and settings.strength or 0) + self.motionFx.aberration
+    if strength <= 0 then return end
     self:applyFilter('aberration', function(p)
-        p.strength = self.postSettings.aberration.strength
+        p.strength = strength
     end)
 end
 
