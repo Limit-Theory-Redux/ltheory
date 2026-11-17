@@ -97,7 +97,12 @@ void main() {
   float near = smoothstep(0.0, 0.05 * cell, length(rel));
   float lengthPx = distance(onScreen(c0, halfVp), onScreen(mix(c0, c1, tMax), halfVp));
   float spread = pow(widthPx / (widthPx + lengthPx), 0.5);
-  fade = opacity * brightness * faces * near * spread;
+  // Specks nearly straight ahead (or behind) bunch up around the point the
+  // ship heads for: dim them, so the middle of the view stays calm
+  float streakLength = length(streak);
+  float axial = streakLength > 1e-9 ? abs(dot(rel, streak)) / (length(rel) * streakLength + 1e-9) : 0.0;
+  float centre = 1.0 - 0.85 * smoothstep(0.9, 0.995, axial);
+  fade = opacity * brightness * faces * near * spread * centre;
 
   pos = rel;
   VS_END

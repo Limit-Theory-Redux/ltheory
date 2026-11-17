@@ -32,12 +32,12 @@ Config.render.speedFeel = {
     -- Camera shake (CameraShake): steady rumble 0..1, kicks add trauma 0..1.
     -- The shake moves with the square of these.
     shake = {
-        boostRumble  = 0.6, -- while boosting
-        chargeRumble = 0.7, -- at the end of the charge (grows with it)
-        travelRumble = 0.4, -- while the travel drive is active
-        boostKick    = 0.5,
-        travelKick   = 1.0, -- when the drive engages
-        dropKick     = 0.7, -- when it drops out
+        boostRumble  = 0.4,  -- while boosting
+        chargeRumble = 0.45, -- at the end of the charge (grows with it)
+        travelRumble = 0.25, -- while the travel drive is active
+        boostKick    = 0.35,
+        travelKick   = 0.7,  -- when the drive engages
+        dropKick     = 0.45, -- when it drops out
     },
     -- Radial blur from where the ship is heading on screen: added to the post
     -- setting's strength (capped at 1), and it lengthens the streaks
@@ -93,10 +93,10 @@ Config.render.speedFeel = {
         layers = {
             -- Close specks, from rest through boost and into travel mode
             -- (cube 3 km wide); they move at up to 5x max speed
-            { cell = 0.3, count = 2000, widthPx = 1.6, color = { 0.75, 0.8, 0.9 },
+            { cell = 0.3, count = 1100, widthPx = 1.6, color = { 0.3, 0.32, 0.38 },
               maxSpeed = 5 },
             -- Far specks that join when the travel drive takes off (30 km)
-            { cell = 3.0, count = 1500, widthPx = 1.8, color = { 0.8, 0.85, 0.95 },
+            { cell = 3.0, count = 800, widthPx = 1.8, color = { 0.34, 0.36, 0.42 },
               maxSpeed = 25, fadeIn = { 3.5, 6 } },
         },
         -- Travel mode: long, bright streaks, pushed aside around the ship by
