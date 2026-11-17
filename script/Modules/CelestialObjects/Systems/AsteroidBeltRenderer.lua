@@ -330,7 +330,7 @@ function AsteroidBeltRenderer.createRenderFn(asteroidData, lodMesh)
         -- the sub-pixel cull. This keeps GPU vertex load ~constant across
         -- resolutions (same technique as GPU-driven LOD selection, done
         -- on CPU since we're GL 3.3). Squared: no sqrt/div in the loop.
-        local fovRad = (Config.render.camera.fov or 70) * 0.5 * (math.pi / 180)
+        local fovRad = CameraManager:getFov() * 0.5 * (math.pi / 180)
         local REF_H = 720
         local pxPerUnitSq = (REF_H / (2 * math.tan(fovRad))) ^ 2
 
