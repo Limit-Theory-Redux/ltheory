@@ -10,8 +10,7 @@ Config.ui.general = {
     cursorX                          = 1,
     cursorY                          = 1,
 
-    scaleFactor                      = 0.75, -- the Legacy UI's ResponsiveSize
-    hudScale                         = 1.0,  -- the in-game HUD's size (Settings > Interface > UI Scale)
+    hudScale                         = 1.0,  -- the in-game UI's size (Settings > Interface > UI Scale)
 
     drawHud                          = true, -- HUD shown when a game starts (V toggles it in game)
     showIndicatorNames               = true, -- name labels next to planets, stations and asteroids

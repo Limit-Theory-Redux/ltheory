@@ -69,7 +69,6 @@ GameState.ui = {
     cursorY                          = Config.ui.general.cursorY,
     sensorsDisplayed                 = Config.ui.general.sensorsDisplayed,
 
-    scaleFactor                      = Config.ui.general.scaleFactor,
     hudScale                         = Config.ui.general.hudScale,
 
     drawHud                          = Config.ui.general.drawHud,
