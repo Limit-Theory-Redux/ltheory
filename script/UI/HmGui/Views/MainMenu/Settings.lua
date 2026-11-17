@@ -151,10 +151,10 @@ local interfaceTab = flatten {
     },
     UIComponent.MenuSlider {
         x = 790, y = 192, label = "UI Scale",
-        toolTip = "Scales the in-game UI components.\nThe menus fit themselves to the window.",
-        min = 0.4, max = 1.0, increment = 0.05, format = percent,
-        get = function() return GameState.ui.scaleFactor end,
-        set = function(v) GameState.ui.scaleFactor = v end
+        toolTip = "The size of the in-game HUD. At 100% it fits the window's height.\nThe menus fit themselves to the window.",
+        min = 0.5, max = 1.5, increment = 0.05, format = percent,
+        get = function() return GameState.ui.hudScale end,
+        set = function(v) GameState.ui.hudScale = v end
     },
     dropdownRow(886, 380, 260, "HUD Style", {
         toolTip = "Switches between HUD display styles.\nNOTE: not used by the current HUD yet.",

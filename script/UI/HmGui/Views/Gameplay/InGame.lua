@@ -45,7 +45,11 @@ end
 -- top speed scales with the thrust, so boosting triples it.
 local BOOST_SPEED_FACTOR = 3
 
-local speedTape = UIComponent.SpeedTape { visible = hudVisible }
+-- Sized like the rest of the HUD: to the window height, times the UI Scale setting.
+local speedTape = UIComponent.SpeedTape {
+    visible = hudVisible,
+    scale = function() return Window:height() / 1080 * GameState.ui.hudScale end,
+}
 
 local function updateSpeedTape(ship, dt)
     local drive = ship:get(ConstructComponents.TravelDrive)
@@ -229,10 +233,11 @@ end
 -- so it stays readable in front of a sun or a bright nebula. (The speed tape
 -- draws its own text, its tag on a dark ground.)
 
---- The HUD's UI scale: its sizes are for a 1080p window and grow and shrink
---- with the window height, within 0.7 and 1.3 (each container's `scale`).
+--- The HUD's UI scale (each container's `scale`): its sizes are for a 1080p
+--- window and grow and shrink with the window height, within 0.7 and 1.3,
+--- times the player's UI Scale setting (Settings > Interface, 100 % by default).
 local function hudScale()
-    return math.max(0.7, math.min(1.3, Window:height() / 1080))
+    return math.max(0.7, math.min(1.3, Window:height() / 1080)) * GameState.ui.hudScale
 end
 
 local AUTOPILOT_COLOR = Color(0.51, 0.92, 1.00, 1.0)

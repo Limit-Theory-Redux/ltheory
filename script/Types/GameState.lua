@@ -70,6 +70,7 @@ GameState.ui = {
     sensorsDisplayed                 = Config.ui.general.sensorsDisplayed,
 
     scaleFactor                      = Config.ui.general.scaleFactor,
+    hudScale                         = Config.ui.general.hudScale,
 
     drawHud                          = Config.ui.general.drawHud,
     showIndicatorNames               = Config.ui.general.showIndicatorNames,
