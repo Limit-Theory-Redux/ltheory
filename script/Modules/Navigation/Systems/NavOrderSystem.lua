@@ -356,12 +356,12 @@ local function firstWorld()
     return nil
 end
 
---- Order System: flies the head order of every ship that has orders. A ship with an order is an
+--- Navigation order system: flies the head order of every ship that has orders. A ship with an order is an
 --- agent of the navigation world, and the system writes its control input from the world's axes
 --- every update; a ship with no order left leaves the world and drifts. Design: doc/script/nav/navigation.md
----@class OrderSystem
----@overload fun(): OrderSystem
-local OrderSystem = Class("OrderSystem", function(self)
+---@class NavOrderSystem
+---@overload fun(): NavOrderSystem
+local NavOrderSystem = Class("NavOrderSystem", function(self)
     Event.AddEvents({ "NavOrderDone", "NavOrderFailed", "NavOrderCancelled" })
     for _, name in pairs(END_EVENTS) do
         EventBus:register(Event[name], name, FrameStage.PostSim)
@@ -370,7 +370,7 @@ local OrderSystem = Class("OrderSystem", function(self)
 end)
 
 ---@param data EventData
-function OrderSystem:onPreSim(data)
+function NavOrderSystem:onPreSim(data)
     self:update(data:deltaTime())
 end
 
@@ -401,7 +401,7 @@ local function stepWorld(world)
 end
 
 ---@param dt number Seconds
-function OrderSystem:update(dt)
+function NavOrderSystem:update(dt)
     local world = firstWorld()
     if not world then return end
     dropLostAgents(world)
@@ -424,7 +424,7 @@ end
 
 ---Cancels every order that has not ended; used when the world goes.
 ---@param world NavWorldComponent
-function OrderSystem:cancelAll(world)
+function NavOrderSystem:cancelAll(world)
     for order, navOrder in Registry:view(Components.NavOrder) do
         if not order:get(Components.OrderStatus):hasEnded() then
             endOrder(world, order, Registry:getEntityById(navOrder:getShipId()), Status.Cancelled)
@@ -432,4 +432,4 @@ function OrderSystem:cancelAll(world)
     end
 end
 
-return OrderSystem
+return NavOrderSystem
