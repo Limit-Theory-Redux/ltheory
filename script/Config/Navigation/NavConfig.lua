@@ -7,6 +7,8 @@ local ScaleConfig = require("Config.Gen.UniverseScaleConfig")
 local NavConfig = {
     -- m: a ship has arrived at a point (a position target, a patrol point) within this distance of it.
     pointArrivalM = 100,
+    -- The distance from a target's centre at which a ship stops, in target radii, when nothing says otherwise.
+    standOffRadii = 1.5,
 }
 
 ---How close to a point a ship counts as arrived.

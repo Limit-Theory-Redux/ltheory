@@ -380,6 +380,21 @@ pub(crate) fn rest_facing(behaviour: &Behaviour, body: &Body, goal: &Goal) -> Op
     }
 }
 
+/// How far from the body a facing point must be, in the body's radii, for the direction to it to
+/// mean something: nearer, the direction swings with every small move of either.
+const FACING_MIN_RADII: f64 = 1.0;
+
+/// The unit direction from `body` to `point`, or `None` when the point is within
+/// `FACING_MIN_RADII` of the body's centre (or on it).
+pub(crate) fn facing_toward(body: &Body, point: DVec3) -> Option<DVec3> {
+    let offset = point - body.position;
+    let reach = body.radius * FACING_MIN_RADII;
+    if offset.length_squared() < TINY_SQ || offset.length_squared() <= reach * reach {
+        return None;
+    }
+    Some(offset.normalize())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

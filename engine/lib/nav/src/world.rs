@@ -2,7 +2,7 @@ use glam::DVec3;
 
 use crate::agent::{AT_REST_RADII_PER_S, AXIS_COUNT, Agent, AgentId, Body, Goal, Profile, Speed};
 use crate::avoidance::{AvoidanceTuning, Peer, Peers, Sphere, avoid};
-use crate::behaviour::{Behaviour, rest_facing, steer};
+use crate::behaviour::{Behaviour, facing_toward, rest_facing, steer};
 use crate::controller::control;
 use crate::obstacle::{Obstacle, ObstacleKey};
 
@@ -91,6 +91,7 @@ impl World {
             behaviour: None,
             tracked: None,
             commitment: None,
+            facing: None,
         };
         if let Some(index) = self.agents.iter().position(Option::is_none) {
             self.agents[index] = Some(agent);
@@ -183,6 +184,16 @@ impl World {
     /// an agent of this world.
     pub fn set_tracked(&mut self, id: AgentId, target: Option<ObstacleKey>) {
         self.agent_mut(id).tracked = target;
+    }
+
+    /// Sets a world point the agent's nose holds toward, or `None` to leave the facing to its
+    /// behaviour. It replaces the behaviour's own facing, and keeps until it is set again, so the
+    /// caller sets it each step for a point that moves. The nose follows the course only while
+    /// the agent speeds up toward it harder than its side thrusters can, as with any facing; a
+    /// point within the agent's own radius gives no facing. Panics if `id` isn't an agent of this
+    /// world.
+    pub fn set_facing(&mut self, id: AgentId, point: Option<DVec3>) {
+        self.agent_mut(id).facing = point;
     }
 
     /// Replaces the obstacles.
@@ -286,7 +297,10 @@ impl World {
                 &mut self.spheres,
             );
             scene.swap(own, last);
-            let facing = rest_facing(&behaviour, &body, &goal);
+            let facing = agent
+                .facing
+                .and_then(|point| facing_toward(&body, point))
+                .or_else(|| rest_facing(&behaviour, &body, &goal));
             *axes = control(&body, &agent.profile, &wanted, facing);
             *arrived = has_reached(
                 &body,
@@ -996,5 +1010,105 @@ mod tests {
         assert!(world.arrived(id));
         let thrust = &world.axes()[Axis::ThrustForward as usize..AXIS_COUNT];
         assert_eq!(thrust, [0.0; 3]);
+    }
+
+    /// A point to the right of an agent that faces -z.
+    const RIGHT_POINT: DVec3 = DVec3::new(500.0, 0.0, 0.0);
+
+    /// The yaw axis after one step of an agent at the origin, at rest, that holds its place (its
+    /// goal is on it) or flies to a goal 1000 ahead, with `facing` set.
+    fn yaw_with_facing(on_station: bool, facing: Option<DVec3>) -> f64 {
+        let mut world = World::new();
+        let id = world.add_agent(PROFILE);
+        let target = if on_station {
+            DVec3::ZERO
+        } else {
+            DVec3::new(0.0, 0.0, -1000.0)
+        };
+        world.set_behaviour(id, Some(goal(target)));
+        world.set_facing(id, facing);
+        world.step();
+        world.axes()[Axis::Yaw as usize]
+    }
+
+    #[test]
+    fn an_agent_on_station_turns_its_nose_to_a_facing_point() {
+        assert_eq!(yaw_with_facing(true, None), 0.0);
+        assert!(
+            yaw_with_facing(true, Some(RIGHT_POINT)) > 0.0,
+            "turns right"
+        );
+        assert!(
+            yaw_with_facing(true, Some(-RIGHT_POINT)) < 0.0,
+            "turns left"
+        );
+    }
+
+    #[test]
+    fn a_facing_point_replaces_the_behaviours_rest_facing() {
+        // A follower on station would face where its leader faces (+x here); the point wins.
+        let mut world = World::new();
+        let id = world.add_agent(PROFILE);
+        let leader = Body {
+            position: DVec3::ZERO,
+            frame: crate::agent::Frame {
+                forward: DVec3::X,
+                right: DVec3::Z,
+                up: DVec3::Y,
+            },
+            ..Body::AT_REST
+        };
+        world.set_behaviour(
+            id,
+            Some(Behaviour::Follow {
+                leader,
+                offset: FrameOffset {
+                    right: 0.0,
+                    up: 0.0,
+                    forward: 0.0,
+                },
+                arrival_radius: 5.0,
+            }),
+        );
+        world.step();
+        assert!(
+            world.axes()[Axis::Yaw as usize] > 0.0,
+            "faces the leader's heading"
+        );
+        world.set_facing(id, Some(-RIGHT_POINT));
+        world.step();
+        assert!(world.axes()[Axis::Yaw as usize] < 0.0, "faces the point");
+    }
+
+    #[test]
+    fn an_agent_speeding_up_hard_keeps_the_main_thruster_aimed_along_its_course() {
+        assert_eq!(yaw_with_facing(false, Some(RIGHT_POINT)), 0.0);
+    }
+
+    #[test]
+    fn a_facing_point_on_the_agent_gives_no_facing() {
+        assert_eq!(yaw_with_facing(true, Some(DVec3::ZERO)), 0.0);
+    }
+
+    #[test]
+    fn a_removed_agents_facing_is_not_inherited_by_the_next_agent_in_its_slot() {
+        let mut world = World::new();
+        let id = world.add_agent(PROFILE);
+        world.set_facing(id, Some(RIGHT_POINT));
+        world.remove_agent(id);
+        let next = world.add_agent(PROFILE);
+        assert_eq!(next.index(), id.index());
+        world.set_behaviour(next, Some(goal(DVec3::ZERO)));
+        world.step();
+        assert_eq!(world.axes()[Axis::Yaw as usize], 0.0);
+    }
+
+    #[test]
+    #[should_panic(expected = "isn't an agent")]
+    fn a_facing_for_a_free_slot_is_refused() {
+        let mut world = World::new();
+        let id = world.add_agent(PROFILE);
+        world.remove_agent(id);
+        world.set_facing(id, None);
     }
 }

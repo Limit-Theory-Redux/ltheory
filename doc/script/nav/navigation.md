@@ -8,7 +8,7 @@ An order is an entity of its own, linked to its ship by the ship's id. Orders ar
 
 ```lua
 Nav.attach(physics)                          -- once, with the physics world the ships are in
-local order = Nav.order(ship, Nav.Orders.MoveTo { target = planet, standOffM = 20000 })
+local order = Nav.order(ship, Nav.Orders.MoveTo { target = planet, facing = { target = enemy } })
 -- later
 if Nav.status(order) == Enums.NavOrderStatus.Done then Nav.release(order) end
 ```
@@ -28,13 +28,34 @@ if Nav.status(order) == Enums.NavOrderStatus.Done then Nav.release(order) end
 
 | Spec | The ship |
 |---|---|
-| `Nav.Orders.MoveTo { target, standOffM }` | Flies to `target`, an entity or a `Position`. For an entity it stops at a stand-off distance from the target's hull; `standOffM` is that gap in metres, and without it the stand-off is 1.5 target radii, at least 50 game units from the centre. For a point it stops within `NavConfig.pointArrivalM` of it. It ends `Done` there. |
-| `Nav.Orders.Patrol { points, loop }` | Flies to each point in turn, as a MoveTo to a point. Without `loop` it ends `Done` at the last point; with it, it goes back to the first and never ends. `progress.waypointIndex` is the point it flies to. |
-| `Nav.Orders.Hold()` | Stays where it was when the order began, and brings the ship back if it drifts. It never ends by itself: cancel it. |
+| `Nav.Orders.MoveTo { target, approach, facing }` | Flies to `target`, an entity or a `Position`. For an entity it stops where its [approach](#approach-specs) says: `approach` names a spec, and without it the target's kind decides. For a point it stops within `NavConfig.pointArrivalM` of it, and an `approach` for a point is an error. It ends `Done` there. |
+| `Nav.Orders.Patrol { points, loop, facing }` | Flies to each point in turn, as a MoveTo to a point. Without `loop` it ends `Done` at the last point; with it, it goes back to the first and never ends. `progress.waypointIndex` is the point it flies to. |
+| `Nav.Orders.Hold { facing }` | Stays where it was when the order began, and brings the ship back if it drifts. It never ends by itself: cancel it. `Nav.Orders.Hold()` has no facing. |
 
-A MoveTo flies the path of the [system planner](system-planner.md#consumers): in normal flight while the plan is out, then the plan's corners with the travel drive on its drive legs, then the stand-off approach, exactly as the autopilot does (`PlanFlight` is the code they share). A change of the order's target, or of the ship's cost profile (`CostProfileComponent`), makes the system drop the plan and plan again from where the ship is.
+A MoveTo flies the path of the [system planner](system-planner.md#consumers): in normal flight while the plan is out, then the plan's corners with the travel drive on its drive legs, then the approach, as the autopilot does (`PlanFlight` is the code they share). A change of the order's target, or of the ship's cost profile (`CostProfileComponent`), makes the system drop the plan and plan again from where the ship is.
 
 A MoveTo to an entity doesn't lead a moving target; the autopilot does.
+
+### Approach specs
+
+An `ApproachSpec` says where a ship stops at an entity. It is data, like a cost profile: the ids are in `Enums.ApproachSpec`, the defaults in `Shared/Definitions/ApproachSpecDefs.lua`, and a spec is checked when it is made (a bad one is an error, not a default). `approach` takes an id, a table of fields for an inline spec (without an `id`), or a spec.
+
+![A StandOff approach stops on a circle around the target; a Point approach stops at a point fixed to the target's axes](../../images/navigation/approach-specs.svg)
+
+| Kind | Fields | The ship stops |
+|---|---|---|
+| `StandOff` | `radii` or `gapM`, exactly one | `radii` target radii from the target's centre, at least 50 game units; or `gapM` metres from its hull. On the side it comes from, within half the distance between the hull and that circle. |
+| `Point` | `offsetRadii = { right, up, forward }` | At the offset from the target's centre, in target radii along the target's own axes, within `NavConfig.pointArrivalM`. The point is worked out from the target's position and rotation at every update, so it travels with the target. |
+
+The default of a target is chosen by its kind (a marker component): a planet, a moon and an asteroid have a `StandOff` of `NavConfig.standOffRadii` radii; a space station has a `Point` one and a half radii ahead of it (`forward`). Any other entity has the generic `StandOff` of `NavConfig.standOffRadii`.
+
+A turn of the target does not make the order plan again: the point moves with it, and the ship follows it in the final approach.
+
+### Facing
+
+`facing = { target }`, with an entity or a `Position`, makes the ship hold its nose toward the target while the order runs, whatever the order flies to. The entity is followed as it moves, and when it is destroyed the order ends `Failed` with `TargetLost`. The facing is a separate goal: with none, the nose follows the course.
+
+The nose goes to the facing whenever the ship is not accelerating harder than its side thrusters can steer: then the main thruster has to point along the acceleration, and the facing waits until the ship cruises or brakes. A ship with a facing flies without the travel drive, since the drive thrusts along the nose; the plan for it has no drive leg. A facing point closer than the ship's own radius gives no facing (the nose keeps the course).
 
 ## Queue and status
 
@@ -75,4 +96,4 @@ The issuer releases an order. The system never destroys one, so a finished order
 
 ## Values
 
-`Config/Navigation/NavConfig.lua` holds what orders fly by, authored in metres and converted to game units on use: `pointArrivalM`, the distance from a point at which a ship has arrived.
+`Config/Navigation/NavConfig.lua` holds what orders fly by, authored in metres and converted to game units on use: `pointArrivalM`, the distance from a point at which a ship has arrived, and `standOffRadii`, the stand-off in target radii of the default approach of a planet, a moon, an asteroid and any other entity.

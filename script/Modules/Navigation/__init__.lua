@@ -8,7 +8,6 @@ local PhysicsComponents   = require("Modules.Physics.Components")
 local Components          = require("Modules.Navigation.Components")
 local Entities            = require("Modules.Navigation.Entities")
 local Systems             = require("Modules.Navigation.Systems")
-local ScaleConfig         = require("Config.Gen.UniverseScaleConfig")
 
 local Kind = Enums.NavOrderKind
 
@@ -43,25 +42,31 @@ function Nav.detach()
     worldEntity = nil
 end
 
----Flies to a target: an entity, which the ship stops at a stand-off distance from, or a point.
----@param spec { target: NavTarget, standOffM: number|nil } `standOffM`: metres between the hulls at the stop
+---What the nose is to face while an order runs, apart from where the ship flies. While an order has
+---one, the ship flies without the travel drive.
+---@class NavFacing
+---@field target NavTarget An entity, which the nose follows, or a point
+
+---Flies to a target: an entity, which the ship stops at the approach of (its kind's own when none
+---is named), or a point.
+---@param spec { target: NavTarget, approach: ApproachSpecId|ApproachSpecConstructor|ApproachSpec|nil, facing: NavFacing|nil } `approach`: for an entity target only
 ---@return table
 function Nav.Orders.MoveTo(spec)
-    local gap = spec.standOffM and ScaleConfig:toGameUnits(spec.standOffM, "starSystem") or nil
-    return { kind = Kind.MoveTo, target = spec.target, gap = gap }
+    return { kind = Kind.MoveTo, target = spec.target, approach = spec.approach, facing = spec.facing }
 end
 
 ---Flies through points in turn.
----@param spec { points: Position[], loop: boolean|nil } `loop`: start over after the last point
+---@param spec { points: Position[], loop: boolean|nil, facing: NavFacing|nil } `loop`: start over after the last point
 ---@return table
 function Nav.Orders.Patrol(spec)
-    return { kind = Kind.Patrol, points = spec.points, loop = spec.loop }
+    return { kind = Kind.Patrol, points = spec.points, loop = spec.loop, facing = spec.facing }
 end
 
 ---Keeps the ship where it is, and never ends: cancel it.
+---@param spec { facing: NavFacing|nil }|nil
 ---@return table
-function Nav.Orders.Hold()
-    return { kind = Kind.Hold }
+function Nav.Orders.Hold(spec)
+    return { kind = Kind.Hold, facing = spec and spec.facing }
 end
 
 ---Gives a ship an order, behind the orders it has.

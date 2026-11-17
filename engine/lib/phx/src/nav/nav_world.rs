@@ -462,6 +462,29 @@ impl NavWorld {
         self.world.set_frame_velocity(agent, *velocity);
     }
 
+    /// Makes the agent's nose hold toward `point`, in world coordinates, instead of the facing its
+    /// behaviour gives, until it is set again or cleared ([`clear_facing`](NavWorld::clear_facing)).
+    /// It is a point and not a body, so the caller sets it each step for a target that moves. The
+    /// nose still follows the course while the agent speeds up toward it harder than its side
+    /// thrusters can, and a point within the agent's own radius gives no facing. A new behaviour
+    /// leaves the facing as it is.
+    ///
+    /// # Panics
+    /// If `id` isn't an agent.
+    pub fn set_facing(&mut self, id: u32, point: &Position) {
+        let agent = self.agent_mut(id).id;
+        self.world.set_facing(agent, Some(point.v));
+    }
+
+    /// Gives the agent's facing back to its behaviour.
+    ///
+    /// # Panics
+    /// If `id` isn't an agent.
+    pub fn clear_facing(&mut self, id: u32) {
+        let agent = self.agent_mut(id).id;
+        self.world.set_facing(agent, None);
+    }
+
     /// Sends the agent through `target` at top speed and does not stop it there. It slows so as to
     /// pass `target` at `pass_speed` (game units per second, relative to the agent's frame), on
     /// the braking curve Arrive uses; an infinite `pass_speed`, or one at or above the agent's top
@@ -926,6 +949,46 @@ mod tests {
         let mut nav = NavWorld::new(&physics);
         let id = add_ship(&mut nav, &ship);
         nav.set_speed_cap(id, f64::NAN);
+    }
+
+    #[test]
+    fn a_facing_turns_a_held_ship_to_a_point_until_it_is_cleared() {
+        let mut physics = Physics::new();
+        let ship = ship_in(&mut physics);
+        let mut nav = NavWorld::new(&physics);
+        let id = add_ship(&mut nav, &ship);
+        nav.set_hold(id, ARRIVAL_RADIUS);
+        nav.step();
+        assert_eq!(yaw_of(&nav), 0.0, "a held ship keeps its own heading");
+
+        nav.set_facing(id, &goal_at(GOAL_DISTANCE, 0.0));
+        nav.step();
+        assert_eq!(yaw_of(&nav), 1.0, "turns to a point on its right");
+
+        // A new behaviour leaves the facing as it is.
+        nav.set_hold(id, ARRIVAL_RADIUS);
+        nav.step();
+        assert_eq!(yaw_of(&nav), 1.0);
+
+        nav.clear_facing(id);
+        nav.step();
+        assert_eq!(yaw_of(&nav), 0.0);
+    }
+
+    #[test]
+    #[should_panic(expected = "NavWorld has no agent")]
+    fn a_facing_for_an_unknown_agent_is_refused() {
+        let physics = Physics::new();
+        let mut nav = NavWorld::new(&physics);
+        nav.set_facing(0, &goal_at(GOAL_DISTANCE, 0.0));
+    }
+
+    #[test]
+    #[should_panic(expected = "NavWorld has no agent")]
+    fn clearing_the_facing_of_an_unknown_agent_is_refused() {
+        let physics = Physics::new();
+        let mut nav = NavWorld::new(&physics);
+        nav.clear_facing(0);
     }
 
     #[test]

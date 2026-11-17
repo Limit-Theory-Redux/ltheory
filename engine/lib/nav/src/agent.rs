@@ -210,6 +210,8 @@ pub(crate) struct Agent {
     pub tracked: Option<ObstacleKey>,
     /// The side the agent passes the sphere it is avoiding on, kept between steps.
     pub commitment: Option<Commitment>,
+    /// A world point the nose is to hold toward, instead of the behaviour's own facing.
+    pub facing: Option<DVec3>,
 }
 
 #[cfg(test)]

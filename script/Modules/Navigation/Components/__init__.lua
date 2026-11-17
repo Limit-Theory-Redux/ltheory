@@ -6,6 +6,7 @@ return {
     MoveToOrder   = require("Modules.Navigation.Components.MoveToOrderComponent"),
     PatrolOrder   = require("Modules.Navigation.Components.PatrolOrderComponent"),
     HoldOrder     = require("Modules.Navigation.Components.HoldOrderComponent"),
+    FacingGoal    = require("Modules.Navigation.Components.FacingGoalComponent"),
     OrderStatus   = require("Modules.Navigation.Components.OrderStatusComponent"),
     OrderProgress = require("Modules.Navigation.Components.OrderProgressComponent"),
     OrderFlight   = require("Modules.Navigation.Components.OrderFlightComponent"),

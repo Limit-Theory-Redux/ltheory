@@ -93,6 +93,26 @@ function NavWorld:setArriveRelative(id, body, offset, arrivalRadius) end
 ---@param velocity Vec3d
 function NavWorld:setFrameVelocity(id, velocity) end
 
+-- Makes the agent's nose hold toward `point`, in world coordinates, instead of the facing its
+-- behaviour gives, until it is set again or cleared ([`clear_facing`](NavWorld::clear_facing)).
+-- It is a point and not a body, so the caller sets it each step for a target that moves. The
+-- nose still follows the course while the agent speeds up toward it harder than its side
+-- thrusters can, and a point within the agent's own radius gives no facing. A new behaviour
+-- leaves the facing as it is.
+--
+-- # Panics
+-- If `id` isn't an agent.
+---@param id integer
+---@param point Position
+function NavWorld:setFacing(id, point) end
+
+-- Gives the agent's facing back to its behaviour.
+--
+-- # Panics
+-- If `id` isn't an agent.
+---@param id integer
+function NavWorld:clearFacing(id) end
+
 -- Sends the agent through `target` at top speed and does not stop it there. It slows so as to
 -- pass `target` at `pass_speed` (game units per second, relative to the agent's frame), on
 -- the braking curve Arrive uses; an infinite `pass_speed`, or one at or above the agent's top

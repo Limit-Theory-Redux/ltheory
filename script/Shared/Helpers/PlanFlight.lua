@@ -12,6 +12,7 @@ local PlanFollower         = require("Shared.Helpers.PlanFollower")
 local PlannerSnapshot      = require("Shared.Helpers.PlannerSnapshot")
 local SystemPlanner        = require("Shared.Helpers.SystemPlanner")
 local TravelDriveMath      = require("Shared.Helpers.TravelDriveMath")
+local NavConfig            = require("Config.Navigation.NavConfig")
 
 -- How many times a leg may be split; the plan holds at most one waypoint per leg, and the goal.
 local DEPTH_LIMIT = 5
@@ -28,8 +29,7 @@ local HANDOVER_MULT = TravelDriveMath.HANDOVER_MULT
 -- The ship has arrived when it is within this share of the gap between the target's hull and the
 -- stand-off distance from the stand-off point, so a ship that coasts in afterwards stops outside the hull.
 local ARRIVAL_SHARE = 0.5
--- The default stand-off distance is this many times the target's radius, and at least `MIN_STAND_OFF`.
-local STAND_OFF_RADII = 1.5
+-- A stand-off given in radii is at least this far from the target's centre.
 local MIN_STAND_OFF = 50
 -- The drive engages only beyond this many stand-off distances from the target.
 local DRIVE_ENGAGE_STAND_OFFS = 100
@@ -63,19 +63,21 @@ local PlanFlight = { Phase = Phase }
 
 ---The distance from a target's centre at which a ship stops.
 ---@param targetRadius gameunit 0 for a point
----@param gap gameunit|nil The wanted distance from the target's hull; the default stand-off when nil
+---@param gap gameunit|nil The wanted distance from the target's hull; `radii` decide when nil
+---@param radii number|nil The wanted distance in target radii, at least `MIN_STAND_OFF`; `NavConfig.standOffRadii` when nil
 ---@return gameunit
-function PlanFlight.standOff(targetRadius, gap)
+function PlanFlight.standOff(targetRadius, gap, radii)
     if gap then return targetRadius + gap end
-    return math.max(MIN_STAND_OFF, targetRadius * STAND_OFF_RADII)
+    return math.max(MIN_STAND_OFF, targetRadius * (radii or NavConfig.standOffRadii))
 end
 
 ---How far from its stand-off point a ship counts as arrived.
 ---@param targetRadius gameunit 0 for a point
 ---@param gap gameunit|nil As in `standOff`
+---@param radii number|nil As in `standOff`
 ---@return gameunit
-function PlanFlight.arrivalRadius(targetRadius, gap)
-    return ARRIVAL_SHARE * (PlanFlight.standOff(targetRadius, gap) - targetRadius)
+function PlanFlight.arrivalRadius(targetRadius, gap, radii)
+    return ARRIVAL_SHARE * (PlanFlight.standOff(targetRadius, gap, radii) - targetRadius)
 end
 
 ---The shortest leg the travel drive is used on: beyond this many stand-off distances, and a goal
@@ -242,7 +244,7 @@ end
 ---@param profile FlightProfile
 ---@param goal Position The stand-off point, in the world
 ---@param frameEntity Entity|nil The entity the goal rides on, when it is a body of the system
----@param driveMinLength gameunit Legs shorter than this are not flown under the drive
+---@param driveMinLength gameunit|nil Legs shorter than this are not flown under the drive; nil asks for no drive
 ---@param arrivalRadius gameunit How close to the goal the ship counts as arrived
 ---@return PlanFlightState
 local function request(shipEntity, rb, profile, goal, frameEntity, driveMinLength, arrivalRadius)
@@ -265,7 +267,7 @@ local function request(shipEntity, rb, profile, goal, frameEntity, driveMinLengt
         drag = profile.linearDrag,
         depth = DEPTH_LIMIT,
         capacity = CAPACITY,
-        drive = driveBlock(shipEntity, driveMinLength),
+        drive = driveMinLength and driveBlock(shipEntity, driveMinLength) or nil,
         arrivalRadius = arrivalRadius,
         zones = snapshot.zones,
         zoneCount = snapshot.zoneCount,
@@ -281,8 +283,9 @@ end
 ---@param safeRange gameunit The stand-off distance from the target's centre; 0 stops at the target
 ---@param arrivalRadius gameunit
 ---@param frameEntity Entity|nil The entity the goal rides on
+---@param withoutDrive boolean|nil Plan the path with no leg under the travel drive
 ---@return PlanFlightState
-function PlanFlight.begin(shipEntity, rb, targetPos, safeRange, arrivalRadius, frameEntity)
+function PlanFlight.begin(shipEntity, rb, targetPos, safeRange, arrivalRadius, frameEntity, withoutDrive)
     local shipPos = rb:getPos()
     local dist = targetPos and shipPos:distance(targetPos) or 0
     -- Within the stand-off distance, or within arrival of a goal that has none, there is nothing to plan.
@@ -292,7 +295,7 @@ function PlanFlight.begin(shipEntity, rb, targetPos, safeRange, arrivalRadius, f
     end
     local profile = ConstructComponents.FlightProfile.ProfileOf(shipEntity)
     return request(shipEntity, rb, profile, PlanFlight.standOffGoal(shipPos, targetPos, dist, dist, safeRange),
-        frameEntity, PlanFlight.driveMinLength(safeRange), arrivalRadius)
+        frameEntity, not withoutDrive and PlanFlight.driveMinLength(safeRange) or nil, arrivalRadius)
 end
 
 ---Makes the plan's follower for the corners of a plan.

@@ -27,6 +27,8 @@ function Loader.defineType()
             void      NavWorld_SetArrive          (NavWorld*, uint32 id, Position const* target, double arrivalRadius);
             void      NavWorld_SetArriveRelative  (NavWorld*, uint32 id, RigidBody const* body, Vec3d const* offset, double arrivalRadius);
             void      NavWorld_SetFrameVelocity   (NavWorld*, uint32 id, Vec3d const* velocity);
+            void      NavWorld_SetFacing          (NavWorld*, uint32 id, Position const* point);
+            void      NavWorld_ClearFacing        (NavWorld*, uint32 id);
             void      NavWorld_SetSeek            (NavWorld*, uint32 id, Position const* target, double arrivalRadius, double passSpeed);
             void      NavWorld_SetSpeedCap        (NavWorld*, uint32 id, double cap);
             void      NavWorld_SetHold            (NavWorld*, uint32 id, double arrivalRadius);
@@ -65,6 +67,8 @@ function Loader.defineType()
                 setArrive          = libphx.NavWorld_SetArrive,
                 setArriveRelative  = libphx.NavWorld_SetArriveRelative,
                 setFrameVelocity   = libphx.NavWorld_SetFrameVelocity,
+                setFacing          = libphx.NavWorld_SetFacing,
+                clearFacing        = libphx.NavWorld_ClearFacing,
                 setSeek            = libphx.NavWorld_SetSeek,
                 setSpeedCap        = libphx.NavWorld_SetSpeedCap,
                 setHold            = libphx.NavWorld_SetHold,

@@ -1,5 +1,5 @@
 -- Checks the navigation orders: MoveTo to a point past a planet (a plan with a corner, the drive) and
--- to a body, a queue, Patrol with and without a loop, Hold, cancel (a queued order and a running
+-- to a body, the approach specs (stand-off, point, refused), the facing goal, a queue, Patrol with and without a loop, Hold, cancel (a queued order and a running
 -- one), a change of target and of cost profile in flight (the path is planned again), a target and
 -- a ship that are destroyed, release, and the world's detach. The end events are checked in frames
 -- after the flights, since the event bus delivers them there. Logs each failed check and ends
@@ -16,6 +16,8 @@ local Nav                 = require("Modules.Navigation")
 local NavConfig           = require("Config.Navigation.NavConfig")
 local CostProfileDefs     = require("Shared.Registries.CostProfileRegistry")
 local PlanFlight          = require("Shared.Helpers.PlanFlight")
+local ApproachSpec        = require("Shared.Types.ApproachSpec")
+local ApproachSpecs       = require("Shared.Helpers.ApproachSpecs")
 local FlightScene         = require("States.App.Tests.Support.FlightScene")
 
 ---@class NavigationOrdersTest: Application
@@ -52,6 +54,16 @@ local PLANET_ALONG  = 0.5
 local PLANET_RADIUS = 500
 local PLANET_ORBIT_SPEEDUP = 0.01
 local PLANET_COURSE_S = 140
+-- A body far enough that the default stand-off is a flight (its distance in legs and its radius), and
+-- the radii an inline spec asks for, which stop the ship farther out than the default.
+local FAR_BODY_LEGS   = 3.5
+local FAR_BODY_RADIUS = 25
+local WIDE_RADII      = 3
+-- A station: its radius, so that its approach point is clear of the hull.
+local STATION_RADIUS = 10
+-- A facing holds within this angle of the point, in radians; the flight a facing is checked on, in game units.
+local FACING_TOLERANCE = 0.2
+local FACING_FLIGHT    = LEG
 
 function OrdersTest:check(ok, what, detail)
     if ok then
@@ -217,8 +229,9 @@ function OrdersTest:caseMoveToBody()
     local body = FlightScene.spawnBody(self.world, bodyPos, BODY_RADIUS)
     self.world:update(STEP)
 
-    local order = Nav.order(ship.entity, Nav.Orders.MoveTo { target = body.entity, standOffM = GAP_M })
-    local gap = Nav.Orders.MoveTo { target = body.entity, standOffM = GAP_M }.gap
+    local approach = ApproachSpec.Of { kind = Enums.ApproachKind.StandOff, gapM = GAP_M }
+    local order = Nav.order(ship.entity, Nav.Orders.MoveTo { target = body.entity, approach = approach })
+    local gap = approach:getGap()
     local reached = self:flyUntil(function() return Nav.status(order) == Status.Done end, MAX_FLIGHT_S)
     self:check(reached, name .. "the order is done")
     local dist = ship.rb:getPos():distance(bodyPos)
@@ -229,6 +242,197 @@ function OrdersTest:caseMoveToBody()
         name .. "the ship stops at the stand-off", string.format("%.3f of %.3f", dist,
             PlanFlight.standOff(BODY_RADIUS, gap)))
     self:finish({ order }, { ship, body })
+end
+
+---Flies a MoveTo to a large body 640 game units away, and returns how far from its centre the ship stops.
+---@param approach ApproachSpecId|ApproachSpecConstructor|nil
+---@param markers Component[]|nil Added to the body, to make it a kind of target
+---@return number dist
+---@return gameunit arrival The arrival radius of the stand-off
+function OrdersTest:standOffTo(approach, markers)
+    local ship = self:ship(Position(0, 0, 0))
+    local body = FlightScene.spawnBody(self.world, Position(LEG * FAR_BODY_LEGS, 0, 0), FAR_BODY_RADIUS)
+    for _, marker in ipairs(markers or {}) do body.entity:add(marker) end
+    self.world:update(STEP)
+    local order = Nav.order(ship.entity, Nav.Orders.MoveTo { target = body.entity, approach = approach })
+    local reached = self:flyUntil(function() return Nav.status(order) == Status.Done end, MAX_FLIGHT_S)
+    local dist = ship.rb:getPos():distance(body.rb:getPos())
+    self:check(reached, "an approach to a body: the order is done",
+        string.format("status %s, %.1f from the body", tostring(Nav.status(order)), dist))
+    if not reached then Nav.cancel(order); self:step() end
+    self:finish({ order }, { ship, body })
+    local radii = approach and ApproachSpec.Of(approach):getRadii() or NavConfig.standOffRadii
+    return dist, PlanFlight.arrivalRadius(FAR_BODY_RADIUS, nil, radii)
+end
+
+function OrdersTest:caseApproachStandOff()
+    local name = "a stand-off approach: "
+    local default = ApproachSpecs.For(Registry:createEntity(), nil)
+    self:check(not default:isPoint() and default:getRadii() == NavConfig.standOffRadii,
+        name .. "a target of no kind gets the generic stand-off")
+
+    local dist, arrival = self:standOffTo(nil)
+    local want = PlanFlight.standOff(FAR_BODY_RADIUS, nil, NavConfig.standOffRadii)
+    self:check(math.abs(dist - want) <= arrival * ARRIVED_SLACK, name .. "without an approach, the default stand-off",
+        string.format("%.1f of %.1f", dist, want))
+
+    dist, arrival = self:standOffTo(Enums.ApproachSpec.PlanetStandOff)
+    self:check(math.abs(dist - want) <= arrival * ARRIVED_SLACK, name .. "a named spec stops at its stand-off",
+        string.format("%.1f of %.1f", dist, want))
+
+    local wide = { kind = Enums.ApproachKind.StandOff, radii = WIDE_RADII }
+    local defaultStop = dist
+    dist, arrival = self:standOffTo(wide)
+    want = PlanFlight.standOff(FAR_BODY_RADIUS, nil, WIDE_RADII)
+    self:check(math.abs(dist - want) <= arrival * ARRIVED_SLACK, name .. "an inline spec stops at its stand-off",
+        string.format("%.1f of %.1f", dist, want))
+    self:check(dist > defaultStop, name .. "wider radii stop the ship farther out",
+        string.format("%.1f against %.1f", dist, defaultStop))
+end
+
+function OrdersTest:caseApproachPoint()
+    local name = "a point approach: "
+    local ship = self:ship(Position(0, 0, 0))
+    local at = Position(LEG, 0, 0)
+    local station = FlightScene.spawnBody(self.world, at, STATION_RADIUS)
+    station.entity:add(ConstructComponents.SpaceStation())
+    self.world:update(STEP)
+    local spec = ApproachSpecs.For(station.entity, nil)
+    self:check(spec:isPoint(), name .. "a station has a point approach by default")
+    local point = spec:pointOf(at, STATION_RADIUS, station.rb:getRot())
+
+    local order = Nav.order(ship.entity, Nav.Orders.MoveTo { target = station.entity })
+    local reached = self:flyUntil(function() return Nav.status(order) == Status.Done end, MAX_FLIGHT_S)
+    self:check(reached, name .. "the order is done")
+    self:check(within(ship, point, NavConfig.pointArrival() * ARRIVED_SLACK), name .. "the ship is at the point",
+        string.format("%.2f from it", ship.rb:getPos():distance(point)))
+    self:finish({ order }, { ship, station })
+end
+
+function OrdersTest:caseApproachRefused()
+    local name = "a refused approach: "
+    local ship = self:ship(Position(0, 0, 0))
+    local body = FlightScene.spawnBody(self.world, Position(LEG, 0, 0), BODY_RADIUS)
+    local StandOff, Point = Enums.ApproachKind.StandOff, Enums.ApproachKind.Point
+    local refused = {
+        ["an approach to a point"] = { target = Position(LEG, 0, 0), approach = Enums.ApproachSpec.PlanetStandOff },
+        ["radii and a gap together"] = { target = body.entity, approach = { kind = StandOff, radii = 2, gapM = 10 } },
+        ["a stand-off with neither"] = { target = body.entity, approach = { kind = StandOff } },
+        ["radii of zero"] = { target = body.entity, approach = { kind = StandOff, radii = 0 } },
+        ["a point with no offset"] = { target = body.entity, approach = { kind = Point } },
+        ["an unknown kind"] = { target = body.entity, approach = { kind = 99, radii = 2 } },
+        ["an unknown id"] = { target = body.entity, approach = 9999 },
+        ["a facing with no target"] = { target = body.entity, facing = {} },
+    }
+    for what, spec in pairs(refused) do
+        self:check(not pcall(Nav.order, ship.entity, Nav.Orders.MoveTo(spec)), name .. what .. " is refused")
+    end
+    self:check(ship.entity:get(Components.OrderQueue) == nil or ship.entity:get(Components.OrderQueue):count() == 0,
+        name .. "no order is left queued")
+    self:finish({}, { ship, body })
+end
+
+---The angle between a ship's nose and the direction from the ship to a point, in radians.
+---@param ship { rb: RigidBody }
+---@param point Position
+---@return number
+local function noseOff(ship, point)
+    local nose = ship.rb:getRot():getForward()
+    local from = ship.rb:getPos()
+    local dx, dy, dz = point.x - from.x, point.y - from.y, point.z - from.z
+    local length = math.sqrt(dx * dx + dy * dy + dz * dz)
+    local cosine = (nose.x * dx + nose.y * dy + nose.z * dz) / length
+    return math.acos(math.max(-1, math.min(1, cosine)))
+end
+
+function OrdersTest:caseFacingHold()
+    local name = "a hold with a facing: "
+    local ship = self:ship(Position(0, 0, 0))
+    -- To the side of the ship's initial nose, so the ship has to turn.
+    local look = Position(LEG, 0, 0)
+    local hold = Nav.order(ship.entity, Nav.Orders.Hold { facing = { target = look } })
+    self:step()
+    local before = noseOff(ship, look)
+    self:check(before > FACING_TOLERANCE, name .. "the nose starts away from the point", string.format("%.2f rad", before))
+    local turned = self:flyUntil(function() return noseOff(ship, look) <= FACING_TOLERANCE end, MAX_FLIGHT_S)
+    self:check(turned, name .. "the nose turns to the point", string.format("%.2f rad", noseOff(ship, look)))
+    self:check(Nav.status(hold) == Status.Active and within(ship, Position(0, 0, 0), NavConfig.pointArrival()),
+        name .. "the ship stays on its point")
+
+    -- A facing entity is followed as it moves.
+    local body = FlightScene.spawnBody(self.world, Position(0, LEG, 0), BODY_RADIUS)
+    Nav.cancel(hold)
+    local second = Nav.order(ship.entity, Nav.Orders.Hold { facing = { target = body.entity } })
+    self:step()
+    local followed = self:flyUntil(function() return noseOff(ship, body.rb:getPos()) <= FACING_TOLERANCE end,
+        MAX_FLIGHT_S)
+    self:check(followed, name .. "the nose turns to an entity", string.format("%.2f rad", noseOff(ship, body.rb:getPos())))
+
+    FlightScene.despawn(self.world, { body })
+    self:step()
+    self:check(Nav.status(second) == Status.Failed and Nav.failure(second) == Failure.TargetLost,
+        name .. "an entity that is destroyed fails the order, TargetLost")
+    self:check(not hasAgent(ship), name .. "the agent is gone")
+    self:finish({ hold, second }, { ship })
+end
+
+function OrdersTest:caseFacingMoveTo()
+    local name = "a move with a facing: "
+    local ship = self:ship(Position(0, 0, 0))
+    local goal = Position(FACING_FLIGHT, 0, 0)
+    local look = Position(0, 0, -FACING_FLIGHT)
+    local order = Nav.order(ship.entity, Nav.Orders.MoveTo { target = goal, facing = { target = look } })
+
+    local drive = ship.entity:get(ConstructComponents.TravelDrive)
+    local driveSeen, noseAtEnd = false, math.huge
+    local reached = self:flyUntil(function()
+        if drive:getState() ~= "idle" then driveSeen = true end
+        noseAtEnd = noseOff(ship, look)
+        return Nav.status(order) == Status.Done
+    end, MAX_FLIGHT_S)
+    self:check(reached, name .. "the order is done")
+    self:check(not driveSeen, name .. "the travel drive never runs")
+    self:check(within(ship, goal, NavConfig.pointArrival() * ARRIVED_SLACK), name .. "the ship is at the point")
+    self:check(noseAtEnd <= FACING_TOLERANCE, name .. "the nose is toward the facing point at the end",
+        string.format("%.2f rad", noseAtEnd))
+    self:finish({ order }, { ship })
+end
+
+---A flight long enough for a drive leg, past a planet: with a facing the plan has none, and the drive stays idle;
+---without one the plan has a drive leg (the control that makes the first check mean something).
+function OrdersTest:caseFacingNoDrive()
+    local name = "a long flight with a facing: "
+    local course = Position(PLANET_COURSE.x, PLANET_COURSE.y, PLANET_COURSE.z)
+    local planet = FlightScene.buildWell(self.world,
+        Position(course.x * PLANET_ALONG, course.y * PLANET_ALONG, course.z * PLANET_ALONG),
+        PLANET_RADIUS, PLANET_ORBIT_SPEEDUP)
+    for _, facing in ipairs({ false, true }) do
+        local ship = self:ship(Position(0, 0, 0))
+        local look = Position(0, 0, -FACING_FLIGHT)
+        local order = Nav.order(ship.entity, Nav.Orders.MoveTo { target = course,
+            facing = facing and { target = look } or nil })
+        Nav.update(0)
+        self:awaitPlan(order)
+        local plan = planOf(order)
+        self:check(plan and plan.phase == Phase.Plan, name .. "the plan has corners")
+        local drives = plan and plan.follower and plan.follower:drives()
+        local drive = ship.entity:get(ConstructComponents.TravelDrive)
+        local driveSeen = false
+        self:flyUntil(function()
+            if drive:getState() ~= "idle" then driveSeen = true end
+            return driveSeen
+        end, SECONDS_BEFORE_CHANGE, planet)
+        if facing then
+            self:check(not drives and not driveSeen, name .. "with a facing, no drive leg and the drive stays idle")
+        else
+            self:check(drives, name .. "without a facing the plan has a drive leg")
+        end
+        Nav.cancel(order)
+        self:step(planet)
+        self:finish({ order }, { ship })
+    end
+    FlightScene.despawnWell(self.world, planet)
+    FlightScene.despawn(self.world, { planet.planetBody })
 end
 
 function OrdersTest:caseQueue()
@@ -388,7 +592,8 @@ function OrdersTest:caseTargetDestroyed()
     local ship = self:ship(Position(0, 0, 0))
     local body = FlightScene.spawnBody(self.world, Position(LEG, 0, LEG / 2), BODY_RADIUS)
     self.world:update(STEP)
-    local order = Nav.order(ship.entity, Nav.Orders.MoveTo { target = body.entity, standOffM = GAP_M })
+    local order = Nav.order(ship.entity, Nav.Orders.MoveTo { target = body.entity,
+        approach = { kind = Enums.ApproachKind.StandOff, gapM = GAP_M } })
     self:flyUntil(function() return false end, SECONDS_BEFORE_CHANGE / 2)
     self:check(Nav.status(order) == Status.Planning or Nav.status(order) == Status.Active, name .. "the order runs")
 
@@ -493,6 +698,12 @@ function OrdersTest:onInit()
 
     self:caseMoveToPastPlanet()
     self:caseMoveToBody()
+    self:caseApproachStandOff()
+    self:caseApproachPoint()
+    self:caseApproachRefused()
+    self:caseFacingHold()
+    self:caseFacingMoveTo()
+    self:caseFacingNoDrive()
     self:caseQueue()
     self:casePatrol(false)
     self:casePatrol(true)

@@ -8,6 +8,7 @@ local NavConfig           = require("Config.Navigation.NavConfig")
 local EntityPosition      = require("Shared.Helpers.EntityPosition")
 local NavAgentHelper      = require("Shared.Helpers.NavAgentHelper")
 local PlanFlight          = require("Shared.Helpers.PlanFlight")
+local ApproachSpecs       = require("Shared.Helpers.ApproachSpecs")
 
 local Phase   = PlanFlight.Phase
 local Status  = Enums.NavOrderStatus
@@ -35,6 +36,7 @@ local END_EVENTS = {
 ---@field slot integer The ship's agent
 ---@field handler OrderHandler|nil Nil for a Hold
 ---@field goal OrderGoal|nil
+---@field facing FacingGoalComponent|nil What the nose is to face, when the order says
 
 ---What differs between the kinds of order that fly to a goal.
 ---@class OrderHandler
@@ -71,6 +73,23 @@ local function pointGoal(point)
     return makeGoal(point, 0, NavConfig.pointArrival(), nil)
 end
 
+---The goal of an approach to an entity: a stand-off from its centre, or a point fixed to its body.
+---@param target Entity
+---@param approach ApproachSpec
+---@return OrderGoal
+local function approachGoal(target, approach)
+    local radius = PlanFlight.targetRadius(target)
+    local targetPos = EntityPosition.Get(target)
+    if approach:isPoint() then
+        local body = bodyOf(target)
+        local rotation = body and body:getRot() or Quat.Identity()
+        return makeGoal(approach:pointOf(targetPos, radius, rotation), 0, NavConfig.pointArrival(), target)
+    end
+    local gap, radii = approach:getGap(), approach:getRadii()
+    return makeGoal(targetPos, PlanFlight.standOff(radius, gap, radii),
+        PlanFlight.arrivalRadius(radius, gap, radii), target)
+end
+
 ---@type table<NavOrderKindId, OrderHandler>
 local HANDLERS = {
     [Kind.MoveTo] = {
@@ -80,10 +99,7 @@ local HANDLERS = {
             if not targetId then return pointGoal(spec:getTargetPos()) end
             local target = Registry:getEntityById(targetId)
             if not target then return nil end
-            local radius = PlanFlight.targetRadius(target)
-            local gap = spec:getGap()
-            return makeGoal(EntityPosition.Get(target), PlanFlight.standOff(radius, gap),
-                PlanFlight.arrivalRadius(radius, gap), target)
+            return approachGoal(target, ApproachSpecs.For(target, spec:getApproach()))
         end,
         key = function(spec) return spec:getRevision() end,
         arrive = function() return true end,
@@ -208,10 +224,30 @@ local function beginOrder(world, head)
     head.slot = head.ship:get(Components.NavAgent):getSlot()
     if flight.begun then return end
     flight.begun = true
+    -- The agent outlasts an order, so a facing left by the order before is not this order's.
+    world:getNav():clearFacing(head.slot)
     if not head.handler then
         world:getNav():setHold(head.slot, NavConfig.pointArrival())
         head.order:get(Components.OrderStatus):setStatus(Status.Active)
     end
+end
+
+---Points the nose of the order's ship at its facing goal, as of now. A facing entity that is gone
+---ends the order as failed.
+---@param world NavWorldComponent
+---@param head OrderHead
+local function aimFacing(world, head)
+    local entityId = head.facing:getTargetEntityId()
+    local point = head.facing:getTargetPos()
+    if entityId then
+        local target = Registry:getEntityById(entityId)
+        if not target then
+            endOrder(world, head.order, head.ship, Status.Failed, Failure.TargetLost)
+            return
+        end
+        point = EntityPosition.Get(target)
+    end
+    world:getNav():setFacing(head.slot, point)
 end
 
 ---Gives the order's plan: a new one when there is none or what it was made under has changed.
@@ -226,8 +262,9 @@ local function ensurePlan(head, spec)
     end
     PlanFlight.drop(flight.plan)
     local goal = head.goal
+    -- The travel drive thrusts along the nose, which a facing holds elsewhere: the path has no drive leg.
     flight.plan = PlanFlight.begin(head.ship, bodyOf(head.ship), goal.targetPos, goal.safeRange,
-        goal.arrivalRadius, goal.frameEntity)
+        goal.arrivalRadius, goal.frameEntity, head.facing ~= nil)
     flight.plannedGoalKey = key
     flight.plannedProfileRevision = profileRevision
 end
@@ -275,7 +312,7 @@ local function flyCorners(head, plan, flight, arrived, zoneMax)
         NavAgentHelper.isCarried(ship))
     local drive = ship:get(ConstructComponents.TravelDrive)
     local input = ship:get(ConstructComponents.ControlInput)
-    if drive and input and plan.phase == Phase.Plan then
+    if drive and input and plan.phase == Phase.Plan and not head.facing then
         PlanFlight.driveLeg(plan, drive, input, ConstructComponents.FlightProfile.ProfileOf(ship), zoneMax)
     end
     return math.max(0, plan.goal.time - plan.snapshot.age)
@@ -292,12 +329,14 @@ local function flyApproach(head, plan, dist, zoneMax)
     local profile = ConstructComponents.FlightProfile.ProfileOf(ship)
     local drive = ship:get(ConstructComponents.TravelDrive)
     local input = ship:get(ConstructComponents.ControlInput)
-    -- The drive runs on the final approach and a flight with no usable plan, never while the plan is out.
-    if drive and input and plan.phase ~= Phase.Planning then
+    -- The drive runs on the final approach and a flight with no usable plan, never while the plan is out
+    -- or while the order has a facing.
+    local driven = drive and input and plan.phase ~= Phase.Planning and not head.facing
+    if driven then
         PlanFlight.updateDrive(drive, input, profile, zoneMax, dist, goal.safeRange)
     end
     return PlanFlight.travelTime(math.max(0, dist - goal.safeRange), goal.arrivalRadius, profile, zoneMax,
-        PlanFlight.driveWillRun(drive, dist, goal.safeRange))
+        not head.facing and PlanFlight.driveWillRun(drive, dist, goal.safeRange))
 end
 
 ---After the step of a goal order: arrival, the corners or the approach, the axes, and the progress.
@@ -384,7 +423,8 @@ local function collectHeads(world)
         if not order:get(Components.OrderStatus):hasEnded() then
             local ship = checkOrder(world, order, navOrder)
             if ship and ship:get(Components.OrderQueue):head() == order.id then
-                heads[#heads + 1] = { order = order, ship = ship, handler = HANDLERS[navOrder:getKind()] }
+                heads[#heads + 1] = { order = order, ship = ship, handler = HANDLERS[navOrder:getKind()],
+                    facing = order:get(Components.FacingGoal) }
             end
         end
     end
@@ -410,7 +450,8 @@ function NavOrderSystem:update(dt)
     for _, head in ipairs(heads) do
         beginOrder(world, head)
         NavAgentHelper.setFrameFromWell(world:getNav(), head.slot, head.ship)
-        if head.handler then aimGoal(world, head, dt) end
+        if head.facing then aimFacing(world, head) end
+        if head.handler and not head.order:get(Components.OrderStatus):hasEnded() then aimGoal(world, head, dt) end
     end
     if not world:hasAgents() then return end
     stepWorld(world)
