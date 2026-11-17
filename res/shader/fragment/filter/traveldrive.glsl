@@ -11,6 +11,7 @@ layout(std140) uniform Params {
     float aspect;       // screen width / height
     vec2 ringCenter;    // the ring on screen, in uv (0..1)
     float ringRadius;   // share of the screen height
+    float flash;        // a blink: white light over the screen, brightest at the ring
 };
 
 void main() {
@@ -44,8 +45,8 @@ void main() {
     float streak2 = pow(abs(sin(angle * 35.0 - time * 1.5)), 50.0);
     float streak3 = pow(abs(sin(angle * 12.0 + time * 3.0)), 30.0);
 
-    // Streaks radiate outward, stronger at edges
-    float radialFade = smoothstep(0.05, 0.3, dist) * smoothstep(0.8, 0.4, dist);
+    // Streaks radiate outward from the ring (none inside it), stronger at edges
+    float radialFade = smoothstep(pulsedRadius, pulsedRadius + 0.25, dist) * smoothstep(0.8, 0.4, dist);
     streaks = (streak1 * 0.5 + streak2 * 0.3 + streak3 * 0.2) * radialFade * speedFactor * intensity;
   }
 
@@ -76,6 +77,9 @@ void main() {
   float tunnelFactor = clamp((driveSpeed - 10.0) / 80.0, 0.0, 1.0);
   float tunnel = smoothstep(0.7, 0.3, dist) * tunnelFactor * 0.3;
   finalColor += vec3(0.02, 0.03, 0.06) * tunnel;
+
+  // Blink (leaving travel mode)
+  finalColor += vec3(0.8, 0.9, 1.0) * flash * (0.35 + 0.65 * exp(-3.0 * dist));
 
   outColor = vec4(scene + finalColor, 1.0);
 }

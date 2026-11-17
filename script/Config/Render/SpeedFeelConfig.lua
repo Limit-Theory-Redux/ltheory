@@ -57,13 +57,23 @@ Config.render.speedFeel = {
         minRadius = 0.07, -- never smaller on screen (share of its height): a
                           -- chase camera far behind still shows a ring
     },
+    -- Leaving travel mode: "expand" = the ring and the bubble grow and fade,
+    -- with a blink as the drive drops; "collapse" = they shrink to a point,
+    -- then a blink (the scenario's Numpad 8 switches)
+    travelExit = {
+        style     = "expand",
+        duration  = 0.6,  -- seconds the expand or collapse takes
+        expandTo  = 3.0,  -- x the ring's size at the end of an expand
+        blink     = 0.6,  -- the blink's brightness (0: none)
+        blinkTime = 0.12, -- seconds for the blink to fade
+    },
     -- First person: the camera is in the ship and the middle of the view is
     -- where you look; these multiply the travel overlay, the radial blur and
     -- the ring's size on screen (and with it the dust's bubble)
     firstPerson = {
         travelDrive = 0.4,
         radialBlur  = 0.6,
-        ring        = 0.6,
+        ring        = 0.8,
     },
     -- Space dust (SpaceDustEntity). Speeds in multiples of the ship's max
     -- speed; a layer with `fadeIn` fades in between those two speeds.
@@ -75,10 +85,10 @@ Config.render.speedFeel = {
         layers = {
             -- Close specks, from rest through boost and into travel mode
             -- (cube 3 km wide); they move at up to 5x max speed
-            { cell = 0.3, count = 2000, widthPx = 2.0, color = { 0.75, 0.8, 0.9 },
+            { cell = 0.3, count = 2000, widthPx = 1.6, color = { 0.75, 0.8, 0.9 },
               maxSpeed = 5 },
             -- Far specks that join when the travel drive takes off (30 km)
-            { cell = 3.0, count = 1500, widthPx = 2.2, color = { 0.8, 0.85, 0.95 },
+            { cell = 3.0, count = 1500, widthPx = 1.8, color = { 0.8, 0.85, 0.95 },
               maxSpeed = 25, fadeIn = { 3.5, 6 } },
         },
         -- Travel mode: long, bright streaks, pushed aside around the ship by
@@ -88,7 +98,7 @@ Config.render.speedFeel = {
             curl         = 40,  -- degrees the bubble turns the dust around the ship (0: straight out)
             streakCells  = 0.6, -- streak length, in cubes
             brightness   = 1.8, -- x the colour
-            width        = 1.4, -- x the width
+            width        = 1.25, -- x the width
         },
     },
 }

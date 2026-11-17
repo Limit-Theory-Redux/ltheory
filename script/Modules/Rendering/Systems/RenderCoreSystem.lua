@@ -97,11 +97,15 @@ function RenderCoreSystem:registerVars()
         radialBlur  = 0,   -- added to the radial blur strength, also lengthens it
         blurCenterX = 0.5, -- where the radial blur streaks from (0..1: the ship
         blurCenterY = 0.5, -- on screen, or where it's heading in first person)
+        blurClearX  = 0.5, -- a disc the radial blur leaves sharp (the travel
+        blurClearY  = 0.5, -- drive's bubble); radius as a share of the screen
+        blurClearRadius = 0, -- height, 0 = none
         travelDrive = 0,   -- travel drive overlay intensity (0..1, 0 = off)
         driveSpeed  = 1,   -- the travel drive multiplier, for the overlay
         ringX       = 0.5, -- the overlay's ring on screen (0..1, y down)
         ringY       = 0.5,
         ringRadius  = 0.15, -- its radius, share of the screen height
+        travelFlash = 0,   -- a blink over the overlay (leaving travel mode)
     }
 
     self.autoExposure    = {
@@ -865,16 +869,19 @@ function RenderCoreSystem:radialBlur()
         p.strength = strength
         p.center.x, p.center.y = cx, cy
         p.reach = 1 + MOTION_BLUR_REACH * fx.radialBlur
+        p.clearCenter.x, p.clearCenter.y = fx.blurClearX, 1 - fx.blurClearY
+        p.clearRadius = fx.blurClearRadius
+        p.aspect = self.resX / self.resY
     end, self.buffers[Enums.BufferName.zBufferL]:mipView(0))
 end
 
 --- The travel drive overlay (filter/traveldrive.glsl): a pulsing ring in
 --- front of the ship and star streaks, added after tone mapping (its colours are
 --- display colours; before bloom it blew out to white). Runs only while
---- `motionFx.travelDrive` is above 0.
+--- `motionFx.travelDrive` or its blink is above 0.
 function RenderCoreSystem:travelDrive()
     local fx = self.motionFx
-    if fx.travelDrive <= 0 then return end
+    if fx.travelDrive <= 0 and fx.travelFlash <= 0 then return end
     self:applyFilter('traveldrive', function(p)
         p.intensity = fx.travelDrive
         p.driveSpeed = fx.driveSpeed
@@ -882,6 +889,7 @@ function RenderCoreSystem:travelDrive()
         p.aspect = self.resX / self.resY
         p.ringCenter.x, p.ringCenter.y = fx.ringX, 1 - fx.ringY
         p.ringRadius = fx.ringRadius
+        p.flash = fx.travelFlash
     end)
 end
 

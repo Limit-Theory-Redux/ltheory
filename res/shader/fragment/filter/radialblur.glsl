@@ -9,6 +9,9 @@ layout(std140) uniform Params {
     float scanlines;
     vec2 center;
     float reach;  // streak length: 1 = the setting's look; more for speed (motion blur)
+    vec2 clearCenter;   // a disc left sharp (the travel drive's bubble), in uv
+    float clearRadius;  // share of the screen height; 0 = none
+    float aspect;       // screen width / height, for the disc
 };
 #group 3
 uniform sampler2D depthBuffer;  // linear depth (slot 1; `src` is slot 0)
@@ -63,6 +66,14 @@ void main() {
     c * (1.0 + f2 * vec3(0.5, 0.2, 0.1) * sin(radians(180.0) * gl_FragCoord.y)),
     scanlines);
 
-  c = mix(cc, c, strength);
+  // Inside the clear disc the picture stays sharp, so the blur doesn't
+  // smear what's around it into the bubble
+  float keep = 1.0;
+  if (clearRadius > 0.0) {
+    float clearDist = length((uv - clearCenter) * vec2(aspect, 1.0));
+    keep = smoothstep(clearRadius, clearRadius * 1.25 + 0.01, clearDist);
+  }
+
+  c = mix(cc, c, strength * keep);
   outColor = vec4(c, 1.0);
 }

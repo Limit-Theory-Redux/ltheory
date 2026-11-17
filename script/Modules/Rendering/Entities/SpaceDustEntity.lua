@@ -51,7 +51,7 @@ local CameraManager = require("Modules.Cameras.Managers.CameraManager")
 ---@field layers SpaceDustLayer[]
 ---@field bubble SpaceDustBubble
 
-local SEGMENTS = 8 -- pieces per streak
+local SEGMENTS = 12 -- pieces per streak (fewer let bent streaks cut into the bubble)
 
 local dustShader
 local DrawBlock

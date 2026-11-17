@@ -28,6 +28,8 @@ local SpeedFeelSystem = Class("SpeedFeelSystem", function(self)
     self.cues = {}
     for _, name in ipairs(self.cueNames) do self.cues[name] = false end
     self.intensity = 1.0
+    self.dustWidth = 1.0   -- scales the dust's streak width (the scenario's keys)
+    self.exitStyle = nil   -- leaving travel mode: "expand" / "collapse" (nil: the config's)
     self.game = nil
     self.subscription = nil
     self:resetState()
@@ -39,6 +41,8 @@ function SpeedFeelSystem:resetState()
     self.fovKick = 0
     self.lastBoosting = 0
     self.lastDriveState = "idle"
+    self.exitT = nil       -- seconds since the travel drive dropped out (its exit effect), nil when none
+    self.exitOverlay = 0   -- the overlay's strength when it dropped out
     -- What drives the cues, for the scenario's text
     self.drive = { speed = 0, maxSpeed = 1, flight = 0, boost = 0, boosting = 0, charge = 0,
         travel = 0, state = "idle", multiplier = 1 }
@@ -90,6 +94,28 @@ function SpeedFeelSystem:getIntensity()
     return self.intensity
 end
 
+---@param scale number the dust's streak width, x the configured
+function SpeedFeelSystem:setDustWidth(scale)
+    self.dustWidth = math.max(0.1, scale)
+end
+
+---@return number
+function SpeedFeelSystem:getDustWidth()
+    return self.dustWidth
+end
+
+---@param style string|nil leaving travel mode: "expand" (the ring and bubble
+---grow and fade, a blink as it drops) or "collapse" (they shrink to a point,
+---then a blink); nil = Config.render.speedFeel.travelExit.style
+function SpeedFeelSystem:setExitStyle(style)
+    self.exitStyle = style
+end
+
+---@return string
+function SpeedFeelSystem:getExitStyle()
+    return self.exitStyle or Config.render.speedFeel.travelExit.style
+end
+
 ---What drives the cues this frame (see Config.render.speedFeel).
 ---@return table { speed, maxSpeed, flight, boost, boosting, charge, travel, state, multiplier }
 function SpeedFeelSystem:getDrive()
@@ -122,6 +148,7 @@ function SpeedFeelSystem:clearOutputs()
     CameraManager:getShake():reset()
     local fx = RenderCoreSystem.motionFx
     fx.aberration, fx.vignette, fx.radialBlur, fx.travelDrive = 0, 0, 0, 0
+    fx.travelFlash, fx.blurClearRadius = 0, 0
 end
 
 -- A point on screen (0..1, y down) from a camera-relative direction or
@@ -203,6 +230,39 @@ function SpeedFeelSystem:onPreRender(e)
     local dropped = d.state == "decelerating" and self.lastDriveState == "active"
     self.lastBoosting, self.lastDriveState = d.boosting, d.state
 
+    -- Leaving travel mode (Config.render.speedFeel.travelExit): the ring and
+    -- the bubble expand and fade with a blink as the drive drops, or collapse
+    -- to a point and then blink. exitScale sizes them, exitFade (1 -> 0)
+    -- holds what travel mode showed, flash is the blink.
+    if dropped then
+        self.exitT = 0
+        self.exitOverlay = 0.7 + 0.3 * math.min(1, d.multiplier / 50)
+        self.exitTravel = d.travel
+    elseif d.state == "charging" or d.state == "active" then
+        self.exitT = nil
+    end
+    local exitScale, exitFade, flash = 1, 0, 0
+    if self.exitT then
+        local e = cfg.travelExit
+        local t = self.exitT
+        local k = clamp01(t / e.duration)
+        local done
+        if self:getExitStyle() == "collapse" then
+            exitScale = (1 - k) ^ 2
+            exitFade = t < e.duration and 1 or 0
+            flash = t >= e.duration and e.blink * math.exp(-(t - e.duration) / e.blinkTime) or 0
+            done = t > e.duration + 4 * e.blinkTime
+        else
+            exitScale = 1 + (e.expandTo - 1) * (1 - (1 - k) ^ 2)
+            exitFade = (1 - k) ^ 2
+            flash = e.blink * math.exp(-t / e.blinkTime)
+            done = t > e.duration
+        end
+        self.exitT = (not done) and (t + (paused and 0 or dt)) or nil
+    end
+    -- What the dust and the bubble show of travel mode: fading out on exit
+    local travelShown = math.max(d.travel, exitFade * (self.exitTravel or 0))
+
     -- Field of view: follows the speed smoothly, plus short kicks
     if self.cues.fov then
         local c = cfg.fov
@@ -257,18 +317,22 @@ function SpeedFeelSystem:onPreRender(e)
     fx.blurCenterX, fx.blurCenterY = srcU, srcV
 
     -- The travel drive's ring: a ring `size` ship radii wide, `ahead` ship
-    -- radii in front of the nose, projected: where it is on screen (0..1, y
+    -- radii in front of the nose (in first person: of the camera, which sits
+    -- above the ship's centre), projected: where it is on screen (0..1, y
     -- down) and its radius as a share of the screen height
     local ringU, ringV, ringR = srcU, srcV, 0.15
     do
         local rc = cfg.travelDrive
         local shipRadius = game.playerShip:get(PhysicsComponents.RigidBody):getRadius()
         local fwd = rb:getRot():getForward()
-        local eye = CameraManager:getEye()
-        local p = rb:getPos()
         local ahead = rc.ahead * shipRadius
-        local u, w, depth = project(p.x - eye.x + fwd.x * ahead, p.y - eye.y + fwd.y * ahead,
-            p.z - eye.z + fwd.z * ahead)
+        local x, y, z = fwd.x * ahead, fwd.y * ahead, fwd.z * ahead
+        if not firstPerson then
+            local eye = CameraManager:getEye()
+            local p = rb:getPos()
+            x, y, z = x + p.x - eye.x, y + p.y - eye.y, z + p.z - eye.z
+        end
+        local u, w, depth = project(x, y, z)
         if u then
             local tanHalf = math.tan(math.rad(CameraManager:getFov()) / 2)
             ringU, ringV = u, w
@@ -280,6 +344,9 @@ function SpeedFeelSystem:onPreRender(e)
     fx.radialBlur = self.cues.radialBlur
         and I * (cfg.radialBlur.boost * d.boost + cfg.radialBlur.travel * d.travel)
         * (fp and fp.radialBlur or 1) or 0
+    -- The blur leaves the bubble sharp, so it doesn't smear streaks into it
+    fx.blurClearX, fx.blurClearY = ringU, ringV
+    fx.blurClearRadius = travelShown > 0 and cfg.dust.travel.bubbleRadius * ringR * exitScale or 0
     fx.aberration = self.cues.aberration
         and I * (cfg.aberration.boosting * d.boosting + cfg.aberration.travel * d.travel) or 0
     fx.vignette = self.cues.vignette
@@ -296,15 +363,17 @@ function SpeedFeelSystem:onPreRender(e)
         elseif d.state == "decelerating" then
             overlay = clamp01((d.multiplier - 1) / 50)
         end
+        overlay = math.max(overlay, exitFade * self.exitOverlay)
         if fp then overlay = overlay * fp.travelDrive end
-        fx.ringX, fx.ringY, fx.ringRadius = ringU, ringV, ringR
+        fx.ringX, fx.ringY, fx.ringRadius = ringU, ringV, ringR * exitScale
     end
     fx.travelDrive = I * cfg.travelDrive.gain * overlay
+    fx.travelFlash = self.cues.travelDrive and I * flash or 0
     fx.driveSpeed = d.multiplier
 
     if self.dust then
-        self:updateDust(cfg.dust, d, v, headU, headV, srcU, srcV, ringU, ringV, ringR,
-            paused and 0 or dt)
+        self:updateDust(cfg.dust, d, travelShown, v, headU, headV, srcU, srcV, ringU, ringV,
+            ringR * exitScale, paused and 0 or dt)
     end
 end
 
@@ -320,6 +389,7 @@ end
 ---ship (slower, it stays true to the world).
 ---@param dc table Config.render.speedFeel.dust
 ---@param d table what drives the cues (`self.drive`)
+---@param travel number what to show of travel mode, 0..1 (d.travel, fading out on exit)
 ---@param v Vec3f the ship's velocity
 ---@param headU number where the ship is heading on screen (0..1, y down)
 ---@param headV number
@@ -329,14 +399,14 @@ end
 ---@param ringV number
 ---@param ringR number the ring's radius, share of the screen height
 ---@param dt number seconds since the last frame (0 while paused)
-function SpeedFeelSystem:updateDust(dc, d, v, headU, headV, srcU, srcV, ringU, ringV, ringR, dt)
+function SpeedFeelSystem:updateDust(dc, d, travel, v, headU, headV, srcU, srcV, ringU, ringV, ringR, dt)
     local tc = dc.travel
     local speed = d.speed
     local dirX, dirY, dirZ = 0, 0, 0
     if speed > 1e-9 then dirX, dirY, dirZ = v.x / speed, v.y / speed, v.z / speed end
     local rel = speed / d.maxSpeed
-    local brightness = self.intensity * (1 + (tc.brightness - 1) * d.travel)
-    local widthScale = 1 + (tc.width - 1) * d.travel
+    local brightness = self.intensity * (1 + (tc.brightness - 1) * travel)
+    local widthScale = (1 + (tc.width - 1) * travel) * self.dustWidth
 
     for i, layer in ipairs(self.dust.layers) do
         local lc = dc.layers[i]
@@ -348,7 +418,7 @@ function SpeedFeelSystem:updateDust(dc, d, v, headU, headV, srcU, srcV, ringU, r
 
         -- A streak shows `streakTime` of the dust's motion; travel mode
         -- stretches it towards `streakCells` of the cube
-        local length = math.max(dustSpeed * dc.streakTime, d.travel * tc.streakCells * lc.cell)
+        local length = math.max(dustSpeed * dc.streakTime, travel * tc.streakCells * lc.cell)
         length = math.min(length, 0.8 * lc.cell)
         layer.streakX, layer.streakY, layer.streakZ = dirX * length, dirY * length, dirZ * length
 
@@ -360,7 +430,7 @@ function SpeedFeelSystem:updateDust(dc, d, v, headU, headV, srcU, srcV, ringU, r
     local bubble = self.dust.bubble
     bubble.radius = tc.bubbleRadius * ringR
     bubble.curl = math.rad(tc.curl)
-    bubble.strength = clamp01(1.5 * d.travel)
+    bubble.strength = clamp01(1.5 * travel)
     bubble.x, bubble.y = 2 * ringU - 1, 1 - 2 * ringV
     -- In NDC (y up): from where they converge to where they should
     local k = band(rel, dc.fromShip[1], dc.fromShip[2])
