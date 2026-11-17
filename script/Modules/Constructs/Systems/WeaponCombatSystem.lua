@@ -11,12 +11,16 @@
 ---  postUpdate(dt)  in the post-sim step, per battery:
 ---                  ProjectileSystem -> BeamSystem -> expired effect lights
 ---  clear()         when the scene goes: every battery's beams, projectiles
----                  and lights, and the projectile render entity
+---                  and lights, the death explosions, and the projectile
+---                  render entity
 ---
 ---A battery engages the Targetable contacts within its engagement range,
 ---except its own ship and contacts of its own team. Ships without a
 ---Targetable component (the player's ship, for now) are never shot at.
 ---Batteries whose ship was destroyed are dropped on the next preUpdate.
+---A contact that dies explodes where it was (Config.weapons.deathExplosion,
+---by its size class); ExplosionEffectSystem ages the explosions and removes
+---them when they are done, so the game loop must run it.
 ---Nothing runs while the game is paused (dt = 0).
 local Registry = require("Core.ECS.Registry")
 local Entity = require("Core.ECS.Entity")
@@ -30,6 +34,7 @@ local WeaponTrackingSystem = require("Modules.Constructs.Systems.WeaponTrackingS
 local WeaponSystem = require("Modules.Constructs.Systems.WeaponSystem")
 local ProjectileSystem = require("Modules.Constructs.Systems.ProjectileSystem")
 local BeamSystem = require("Modules.Constructs.Systems.BeamSystem")
+local ExplosionEffectEntity = require("Modules.Constructs.Entities.ExplosionEffectEntity")
 local Pulse = require("Legacy.GameObjects.Entities.Effects.Pulse")
 
 ---@class WeaponCombatSystem
@@ -48,6 +53,9 @@ local WeaponCombatSystem = Class("WeaponCombatSystem", function(self, world)
     self.frame = 0
     self.renderEntity = nil
     self.projectileScratch = {}
+    -- Death explosions still burning (ExplosionEffectSystem removes them)
+    self.explosions = {}
+    self.explosionCount = 0 -- for each explosion's seed
 end)
 
 ---Run a battery from now on. Gives it the physics world and a capacitor
@@ -161,6 +169,7 @@ function WeaponCombatSystem:refreshTargets(dt)
             -- Weakened contacts are attractive finishes (WeaponSystem:chooseBestTarget)
             record.healthFraction = maxHealth > 0 and health:getCurrentHealth() / maxHealth or 1.0
             record.frame = frame
+            record.exploded = nil -- alive (again): it explodes when it dies
             live[#live + 1] = record
         end
     end
@@ -230,6 +239,7 @@ function WeaponCombatSystem:update(dt)
         WeaponTrackingSystem:update(battery, dt)
         WeaponSystem:update(battery, dt)
     end
+    self:explodeDestroyedTargets()
 end
 
 ---Post-sim step: shots in flight, beams, expired effect lights.
@@ -243,15 +253,65 @@ function WeaponCombatSystem:postUpdate(dt)
         BeamSystem:update(battery, dt)
         battery:pruneLightEffects()
     end
+    self:explodeDestroyedTargets()
+    for index = #self.explosions, 1, -1 do
+        if not self.explosions[index]:isValid() then
+            table.remove(self.explosions, index)
+        end
+    end
 end
 
----Remove every battery (with its beams, projectiles and lights, not its ship)
----and the projectile render entity. The system can be used again afterwards.
+---A death explosion for every contact that died since the last check, where
+---it is now (its body is still there: whoever owns the contact removes it
+---later). Each contact explodes once.
+function WeaponCombatSystem:explodeDestroyedTargets()
+    local dead
+    for _, record in pairs(self.targets) do
+        if not record.exploded and record.entity:isValid() then
+            local health = record.entity:get(CoreComponents.Health)
+            if health and health:isDestroyed() then
+                record.exploded = true
+                dead = dead or {}
+                dead[#dead + 1] = record
+            end
+        end
+    end
+    if not dead then
+        return
+    end
+    -- Same seeds in the same order on every run (pairs has no fixed order)
+    table.sort(dead, function(a, b) return a.id < b.id end)
+    local presets = Config.weapons.deathExplosion
+    for _, record in ipairs(dead) do
+        local preset = presets[record.sizeClass]
+        if preset then
+            local pos = record.body:getPos()
+            self.explosionCount = self.explosionCount + 1
+            self.explosions[#self.explosions + 1] = ExplosionEffectEntity(self.explosionCount * 7919, {
+                position = Position(pos.x, pos.y, pos.z),
+                size = preset.size,
+                duration = preset.duration,
+                lightIntensity = preset.lightIntensity,
+                lightRadius = preset.lightRadius,
+            })
+        end
+    end
+end
+
+---Remove every battery (with its beams, projectiles and lights, not its ship),
+---the death explosions and the projectile render entity. The system can be
+---used again afterwards.
 function WeaponCombatSystem:clear()
     for index = #self.batteries, 1, -1 do
         self.batteries[index]:destroy()
         self.batteries[index] = nil
     end
+    for _, explosion in ipairs(self.explosions) do
+        if explosion:isValid() then
+            Registry:destroyEntity(explosion, Registry.DESTROY_MODE.DESTROY_CHILDREN)
+        end
+    end
+    self.explosions = {}
     self.targets = {}
     self.projectileScratch = {}
     if self.renderEntity and self.renderEntity:isValid() then

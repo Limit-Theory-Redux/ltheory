@@ -112,6 +112,19 @@ function Registry:destroyEntity(entity, mode)
         return false
     end
 
+    -- Collect lifecycle callbacks up front: components owning unique native
+    -- resources (Mesh/Tex2D cdata - which the Lua GC can NEVER finalize,
+    -- see CReference docs) declare `onDestroy(self, entityId)` for
+    -- deterministic release. Fired after full teardown below.
+    local destroyHooks = {}
+    for componentArchetype in pairs(entityComponentIndex) do
+        local store = self.components[componentArchetype]
+        local comp = store and store.sparse[entityId]
+        if comp and type(comp.onDestroy) == "function" then
+            destroyHooks[#destroyHooks + 1] = comp
+        end
+    end
+
     local childrenComp = self:get(entity, ChildrenComponent)
     if childrenComp then
         local kids = { table.unpack(childrenComp.children) } -- copy list
@@ -149,6 +162,13 @@ function Registry:destroyEntity(entity, mode)
     end
 
     self.entities[entityId] = nil
+
+    -- Fire lifecycle hooks last: entity is already unreachable through the
+    -- registry, so hooks may freely create/destroy other entities.
+    for i = 1, #destroyHooks do
+        destroyHooks[i]:onDestroy(entityId)
+    end
+
     return true
 end
 

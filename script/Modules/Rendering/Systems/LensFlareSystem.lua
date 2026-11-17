@@ -2,28 +2,36 @@ local PhysicsComponents = require("Modules.Physics.Components")
 local CameraManager     = require("Modules.Cameras.Managers.CameraManager")
 local Pipelines         = require("Render.Pipelines")
 
--- The flare adds onto the scene pass it is drawn in.
+-- The flare adds onto the pass it is drawn in.
 ---@type PipelineState
 local flareState = { vertex = VertexLayout.Fullscreen, blend = BlendMode.Additive }
 local paramsType
 
+local DEFAULT_COLOR = { 1.0, 0.9, 0.7 }
+
 --- LensFlareSystem — renders screen-space lens flare for a bright light source.
 --- Handles projection, geometric occlusion, distance falloff, and rendering.
+--- General entry point: drawAt(worldPos, opts) works for any bright source
+--- (explosion flash, sun, muzzle flash); draw(entity, ...) is a thin
+--- entity-bound wrapper over it.
 ---@class LensFlareSystem
 local LensFlareSystem = {}
 
---- Draw lens flare for a light source entity, occluded by a list of occluder entities
----@param lightEntity Entity The bright object (star)
----@param occluders table Array of { entity = Entity } entries that can occlude the light
----@param maxDist number|nil Maximum distance for flare visibility (default 5000000)
-function LensFlareSystem:draw(lightEntity, occluders, maxDist)
-    if not lightEntity then return end
-    maxDist = maxDist or 5000000
+---@class LensFlareOptions
+---@field color number[]|nil { r, g, b } tint (default 1.0, 0.9, 0.7)
+---@field intensity number|nil multiplier on the computed intensity (default 1)
+---@field maxDist number|nil no flare beyond this distance (default 5000000)
+---@field occluders table|nil array of { entity = Entity } that can hide the light
+---@field ghosts number|nil 0-1, the ghost chain's strength (default 1)
+---@field halo number|nil 0-1, the iris halo's strength (default 1)
+---@field xStreak number|nil 0-1, the diagonal streaks (default: from the intensity)
 
-    -- Get light position
-    local lightTransform = lightEntity:get(PhysicsComponents.Transform)
-    if not lightTransform then return end
-    local lightPos = lightTransform:getPos()
+--- Draw lens flare for a world-space position (general API).
+---@param worldPos Position world position of the bright source
+---@param opts LensFlareOptions|nil
+function LensFlareSystem:drawAt(worldPos, opts)
+    opts = opts or {}
+    if not worldPos then return end
 
     -- Get camera
     local camEntity = CameraManager:getActiveCameraEntity()
@@ -34,7 +42,7 @@ function LensFlareSystem:draw(lightEntity, occluders, maxDist)
     local camRot = camTransform:getRot()
 
     -- Check if light is in front of camera
-    local rel = lightPos:relativeTo(camPos)
+    local rel = worldPos:relativeTo(camPos)
     local camFwd = camRot:getForward()
     local dot = rel.x * camFwd.x + rel.y * camFwd.y + rel.z * camFwd.z
     if dot <= 0 then return end
@@ -56,12 +64,13 @@ function LensFlareSystem:draw(lightEntity, occluders, maxDist)
     -- Only draw if reasonably on screen
     if screenU < -0.5 or screenU > 1.5 or screenV < -0.5 or screenV > 1.5 then return end
 
+    local maxDist = opts.maxDist or 5000000
     local dist = rel:length()
     if dist > maxDist then return end
 
     -- Geometric occlusion: check if any occluder disc covers the light's screen position
     local lightDir = rel:normalize()
-    for _, entry in ipairs(occluders or {}) do
+    for _, entry in ipairs(opts.occluders or {}) do
         local entTransform = entry.entity:get(PhysicsComponents.Transform)
         if entTransform then
             local entPos = entTransform:getPos()
@@ -104,19 +113,37 @@ function LensFlareSystem:draw(lightEntity, occluders, maxDist)
 
     if intensity < 0.01 then return end
 
-    -- Draw lens flare: one additive fullscreen quad in the open scene pass
+    -- Draw lens flare: one additive fullscreen quad in the open pass
     local resX, resY = Window:width(), Window:height()
+    local tint = opts.color or DEFAULT_COLOR
     local shader = Cache.Shader('fullscreen_ndc', 'filter/lensflare')
     paramsType = paramsType or shader:blockType('Params')
     local pass = Renderer:currentPass()
     pass:setPipeline(Pipelines.get(shader, flareState))
     local p = pass:alloc(paramsType)
     p.lightPos.x, p.lightPos.y = screenU, screenV
-    p.lightColor.x, p.lightColor.y, p.lightColor.z = 1.0, 0.9, 0.7
-    p.intensity = intensity
+    p.lightColor.x, p.lightColor.y, p.lightColor.z = tint[1], tint[2], tint[3]
+    p.intensity = intensity * (opts.intensity or 1.0)
     p.screenSize.x, p.screenSize.y = resX, resY
-    p.xStreak = Math.Clamp((intensity - 0.4) * 3.0, 0, 1)
+    p.xStreak = opts.xStreak or Math.Clamp((intensity - 0.4) * 3.0, 0, 1)
+    p.ghosts = opts.ghosts or 1.0
+    p.halo = opts.halo or 1.0
     pass:drawFullscreen()
+end
+
+--- Entity-bound wrapper: project the entity's transform position.
+---@param lightEntity Entity The bright object (star)
+---@param occluders table|nil Array of { entity = Entity } entries that can occlude the light
+---@param maxDist number|nil Maximum distance for flare visibility
+---@param opts LensFlareOptions|nil extra drawAt options (color, intensity, ghosts, halo)
+function LensFlareSystem:draw(lightEntity, occluders, maxDist, opts)
+    if not lightEntity then return end
+    local lightTransform = lightEntity:get(PhysicsComponents.Transform)
+    if not lightTransform then return end
+    opts = opts or {}
+    opts.occluders = occluders
+    if maxDist then opts.maxDist = maxDist end
+    self:drawAt(lightTransform:getPos(), opts)
 end
 
 return LensFlareSystem
