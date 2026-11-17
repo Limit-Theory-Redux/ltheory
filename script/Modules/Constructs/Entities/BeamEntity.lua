@@ -12,6 +12,9 @@ local beamMesh
 local beamShader
 local DrawBlock
 
+-- World positions stay in double precision (a Vec3f is kilometres off this far
+-- from the origin); only the eye-relative values below are single precision.
+---@return Position|nil
 local function getPosition(entity)
     if not entity or not entity:isValid() then
         return nil
@@ -19,17 +22,11 @@ local function getPosition(entity)
 
     local rigidBody = entity:get(Physics.RigidBody)
     if rigidBody and rigidBody:getRigidBody() then
-        local position = rigidBody:getRigidBody():getPos()
-        return Vec3f(position.x, position.y, position.z)
+        return rigidBody:getRigidBody():getPos()
     end
 
     local transform = entity:get(Physics.Transform)
-    local position = transform and transform:getPos() or nil
-    if not position then
-        return nil
-    end
-
-    return Vec3f(position.x, position.y, position.z)
+    return transform and transform:getPos() or nil
 end
 
 local function render(entity, blendMode)
@@ -39,15 +36,15 @@ local function render(entity, blendMode)
 
     local beam = entity:get(Constructs.Beam)
     local startPosition = getPosition(beam:getSource())
-    local targetPoint = beam:getTargetPoint()
-    local endPosition = targetPoint
-        and Vec3f(targetPoint.x, targetPoint.y, targetPoint.z)
-        or getPosition(beam:getTarget())
+    local endPosition = beam:getTargetPoint() or getPosition(beam:getTarget())
     if not startPosition or not endPosition then
         return
     end
 
-    local axis = endPosition - startPosition
+    local axis = Vec3f(
+        endPosition.x - startPosition.x,
+        endPosition.y - startPosition.y,
+        endPosition.z - startPosition.z)
     local length = axis:length()
     if length <= 1e-6 then
         return

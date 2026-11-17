@@ -1,16 +1,14 @@
 ---Weapon AI: target selection and trigger control.
 ---
----Tick order (owned by the host state's Sim handler; the testbed is the
----reference implementation):
----  1. contact/target lifecycle (spawn, orbit motion, respawn)
----  2. turret transform sync (parent body -> world)
+---Tick order (WeaponCombatSystem runs it for every WeaponBattery, from the
+---game state's Sim and PostSim handlers):
+---  1. contact/target lifecycle (spawn, orbit motion, respawn: scenarios)
+---  2. target candidates, per-mount targets, turret transform sync
 ---  3. physics world update
 ---  4. AIWeaponSystem:update   <- selects targets, holds/releases trigger
 ---  5. WeaponTrackingSystem:update <- aim solutions per mount
 ---  6. WeaponSystem:update     <- fire planning, capacitor, spawning
----  7. ProjectileSystem/BeamSystem updates <- effect simulation
----Main-game states must preserve this relative order; EventBus migration
----is deferred until main-state integration settles subscription order.
+---  7. ProjectileSystem/BeamSystem updates <- effect simulation (post-sim)
 local PhysicsComponents = require("Modules.Physics.Components")
 local ConstructComponents = require("Modules.Constructs.Components")
 local CoreComponents = require("Modules.Core.Components")

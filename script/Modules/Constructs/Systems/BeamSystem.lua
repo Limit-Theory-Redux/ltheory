@@ -68,7 +68,7 @@ local function updateBeamLightTransform(beam, component, sourcePosition, targetP
     local length = math.sqrt(dx * dx + dy * dy + dz * dz)
     local endpointPosition = endpoint
     if length > 1e-6 then
-        endpointPosition = Vec3f(
+        endpointPosition = Position(
             endpoint.x + dx / length * standoff,
             endpoint.y + dy / length * standoff,
             endpoint.z + dz / length * standoff)
@@ -119,7 +119,7 @@ local function updateTargetPoint(component)
     local rotation = targetBody.getRot and targetBody:getRot() or nil
     local rotated = rotation and rotation:mulV(localPosition) or localPosition
     local center = targetBody:getPos()
-    local targetPoint = Vec3f(
+    local targetPoint = Position(
         center.x + rotated.x,
         center.y + rotated.y,
         center.z + rotated.z)

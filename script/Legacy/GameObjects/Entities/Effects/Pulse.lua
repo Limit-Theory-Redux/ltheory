@@ -1,6 +1,9 @@
 local Pipelines = require('Render.Pipelines')
 local ffi = require('ffi')
 local Entity = require('Legacy.GameObjects.Entity')
+-- Required here, not the Gen global: that is only there once the game state
+-- has loaded the Legacy namespace, and the menu loads this file for every app.
+local Primitive = require('Legacy.Systems.Gen.Primitive')
 
 local Pulse = CType.Struct('Pulse')
 Pulse:add(CType.Int32, 'source')
@@ -24,8 +27,8 @@ local shaderLaserBoltTail
 local DrawBlock
 
 Preload.Add(function()
-    meshHead = Gen.Primitive.Billboard(-1, -1, 1, 1)
-    meshTail = Gen.Primitive.Billboard(-1, -1, 1, 0)
+    meshHead = Primitive.Billboard(-1, -1, 1, 1)
+    meshTail = Primitive.Billboard(-1, -1, 1, 0)
     shaderHead = Cache.Shader('billboard/quad_draw', 'effect/pulsehead_draw')
     shaderTail = Cache.Shader('billboard/axis_draw', 'effect/pulsetail_draw')
     shaderMissileHead = Cache.Shader('billboard/quad_draw', 'effect/missilehead_draw')

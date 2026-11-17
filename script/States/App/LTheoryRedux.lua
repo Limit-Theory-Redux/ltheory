@@ -9,7 +9,6 @@ LimitTheoryRedux = require('States.Application')
 
 -- Sound / persistence
 local SoundManager = require('Legacy.Systems.SFX.SoundManager')
-local Backdrop = require("Render.Backdrop")
 local MusicPlayer = require('Shared.Audio.MusicPlayer')
 local InitFiles = require('Legacy.Systems.Files.InitFiles')
 local UserSettings = require('Shared.UserSettings')
@@ -54,13 +53,15 @@ local SystemMap3D = require('Modules.CelestialObjects.Systems.SystemMap3D')
 local MemoryReporter = require('Modules.Profiling.MemoryReporter')
 local ConstructManager = require('Modules.Constructs.Managers.ConstructManager')
 local StationGenerator = require('Modules.Constructs.Managers.Generators.StationGenerator')
+local WeaponCombatSystem = require('Modules.Constructs.Systems.WeaponCombatSystem')
 
--- Skybox generation (the nebula generators register themselves with `Generator`;
--- this state also draws from the light-transport nebula, which the Legacy
--- namespace load used to register)
-local Generator = require('Shared.Generation.Generator')
-local Starfield = require('Shared.Generation.Starfield')
+-- Skybox. This state also draws from the light-transport nebula, which the
+-- Legacy namespace load used to register.
+local Skybox = require('Shared.Generation.Skybox')
 require('Shared.Generation.Nebula2')
+
+-- How a game starts (New Game's Scenario list)
+local Scenarios = require('Config.Scenarios')
 
 local rng = RNG.FromTime()
 
@@ -71,13 +72,28 @@ local SceneConfig = {
     defaultSeed        = 12345,
 
     -- Ship spawn
-    shipSpawnOffset    = 1.3,     -- Multiplier of planet radius (just outside the surface)
+    shipSpawnOffset    = 1.3,     -- Multiplier of planet radius (just outside the surface), without belt rocks
+    starSpawnOffset    = 3.0,     -- Multiplier of star radius, without planets
 
     -- Station spawn
     maxStations        = 2,       -- Max stations to spawn (limited by planet count)
     stationScale       = 0.3,     -- ~3km station
     stationOrbitMult   = 2.5,     -- Multiplier of planet radius for station orbit distance
 }
+
+--- Free the GPU memory of a scene that was just destroyed. Its textures and
+--- meshes are freed by the finalizers of their Lua objects, and the frame GC is
+--- paced by Lua memory, which barely sees them (a planet's surface texture is
+--- tens of MB on the GPU and a few bytes in Lua): without a full collection,
+--- building a few star systems in a row runs out of GPU memory.
+-- Frames between tearing a scene down and building it again (Regenerate): the
+-- renderer keeps up to three frames in flight.
+local REBUILD_DELAY_FRAMES = 4
+
+local function releaseGpuMemory()
+    collectgarbage('collect')
+    collectgarbage('collect') -- the second pass runs the finalizers queued by the first
+end
 
 local function setMenuScale()
     -- sizes for background star system
@@ -100,7 +116,7 @@ end
 ---@diagnostic disable-next-line: duplicate-set-field
 function LimitTheoryRedux:onInit()
     -- Expose the scene builder to the main menu (New Game button)
-    GameState.startGame = function(seed) self:startGame(seed) end
+    GameState.startGame = function(seed, scenario) self:startGame(seed, scenario) end
 
     -- Presentation: borderless fullscreen with VSync off, unless user.ini says
     -- otherwise (exclusive mode forces a mode switch that lowers frame rates).
@@ -118,6 +134,12 @@ function LimitTheoryRedux:onInit()
     Window:setCursorPosition(Vec2f(GameState.ui.cursorX, GameState.ui.cursorY))
     SoundManager:init()
     MusicPlayer:loadMusic()
+    -- Captures (LTHEORY_CAPTURE) are silent: nobody listens to them, and the
+    -- render validation runs a dozen in a row. (Not saved: captures never
+    -- write user.ini.)
+    if os.getenv('LTHEORY_CAPTURE') then
+        self:soundOff()
+    end
 
     self:initMainMenu(true)
 end
@@ -136,10 +158,22 @@ function LimitTheoryRedux:initMainMenu(isAppInit)
     -- Capture variant (render validation): LTHEORY_CAPTURE_VIEW picks the menu view, only under LTHEORY_CAPTURE.
     UIPageMainMenu:setView(os.getenv('LTHEORY_CAPTURE') and os.getenv('LTHEORY_CAPTURE_VIEW') or "Title")
 
-    -- Autonomous test hook: LTR_AUTOSTART=1 skips the main menu and jumps
-    -- straight into gameplay (same flow as clicking "New Game").
-    if os.getenv("LTR_AUTOSTART") == "1" then
-        self:startGame(rng:get64())
+    -- Straight into a game, skipping the main menu: LTR_AUTOSTART=1 (with
+    -- LTR_SCENARIO=<scenario id>, else the default scenario), or a test state
+    -- that set `autostartScenario` (Testbeds/WeaponSystem, PlanetTest...).
+    -- Under LTHEORY_CAPTURE, LTHEORY_CAPTURE_SEED fixes the seed.
+    local autostart = isAppInit and self.autostartScenario
+    if isAppInit and not autostart and os.getenv("LTR_AUTOSTART") == "1" then
+        local id = os.getenv("LTR_SCENARIO")
+        autostart = Scenarios.find(id)
+        if not autostart then
+            if id then Log.Warn("LTR_SCENARIO: there is no scenario '%s', starting the default one", id) end
+            autostart = Scenarios.default
+        end
+    end
+    if autostart then
+        local seed = os.getenv('LTHEORY_CAPTURE') and tonumber(os.getenv('LTHEORY_CAPTURE_SEED'))
+        self:startGame(seed or self.autostartSeed or rng:get64(), autostart)
     else
         -- Menu phase: spawn a star system behind the menu (the legacy
         -- GameView background path is gone; the modern pipeline renders it).
@@ -163,7 +197,7 @@ function LimitTheoryRedux:createMenuBackground()
     self.menuSeed = os.getenv('LTHEORY_CAPTURE') and tonumber(os.getenv('LTHEORY_CAPTURE_SEED')) or rng:get64()
     self.seed = self.menuSeed
     self:createSkybox()
-    self:generateUniverse()
+    self:generateUniverse(Scenarios.default.ruleset)
 
     -- Orbit camera around the first planet (same registration pattern as
     -- PlanetTest: no controller, transform driven by updateMenuCamera).
@@ -245,6 +279,8 @@ function LimitTheoryRedux:cleanupMenuBackground()
     self.starEntity = nil
     self.menuWorld = nil
     self.world = nil
+
+    releaseGpuMemory()
 end
 
 --- Open the in-game pause menu (Escape). The Gameplay page's Paused view
@@ -301,34 +337,24 @@ function LimitTheoryRedux:returnToMainMenu()
         EventBus:unsubscribe(self._simTunnel)
         self._simTunnel = nil
     end
-
-    -- Same teardown as regenerate: bodies leave the world first.
-    if self.universe then
-        Registry:destroyEntity(self.universe, Enums.Registry.EntityDestroyMode.DestroyChildren)
-    end
-    if self.playerShip then
-        local rbCmp = self.playerShip:get(PhysicsComponents.RigidBody)
-        if rbCmp and rbCmp:getRigidBody() then
-            self.world:removeRigidBody(rbCmp:getRigidBody())
-        end
-        Registry:destroyEntity(self.playerShip, Enums.Registry.EntityDestroyMode.DestroyChildren)
-    end
-    for _, station in ipairs(self.stations or {}) do
-        local rbCmp = station:get(PhysicsComponents.RigidBody)
-        if rbCmp and rbCmp:getRigidBody() then
-            self.world:removeRigidBody(rbCmp:getRigidBody())
-        end
-        Registry:destroyEntity(station, Enums.Registry.EntityDestroyMode.DestroyChildren)
+    if self._postSimTunnel then
+        EventBus:unsubscribe(self._postSimTunnel)
+        self._postSimTunnel = nil
     end
 
-    self.starEntity = nil
-    self.beltEntities = {}
-    AsteroidFieldSystem:cleanup(self.world)
+    self:destroyScene()
+    self.weaponCombat = nil
     RenderCoreSystem:setDebugPhysics(nil)
+    -- The menu makes a skybox of its own
+    if self.skybox then
+        Registry:destroyEntity(self.skybox, Enums.Registry.EntityDestroyMode.DestroyChildren)
+        self.skybox = nil
+    end
 
-    self.playerShip = nil
+    self.scenario = nil
+    self.rebuildInFrames = nil
     UIViewInGame:setPlayer(nil)
-    self.stations = {}
+    UIViewInGame:setOverlayLines(nil)
     self.mapMode = 0
 
     -- The menu needs a free cursor (closePauseMenu re-applied the gameplay
@@ -338,11 +364,12 @@ function LimitTheoryRedux:returnToMainMenu()
     self:initMainMenu()
 end
 
---- Build the scene: universe generation (ruleset-driven), materialization
---- (planets/rings/belts via the texture-fetch renderer), player ship +
---- stations, and all systems.
----@param seed integer
-function LimitTheoryRedux:startGame(seed)
+--- Start a game: the scenario's star system (ruleset-driven generation, then
+--- materialization of planets/rings/belts), the player's ship, the stations
+--- and the scenario's own things; then the systems that run it.
+---@param seed integer|nil nil = a random seed
+---@param scenario Scenario|nil nil = the default scenario
+function LimitTheoryRedux:startGame(seed, scenario)
     setGameScale()
     GameState:SetState(Enums.GameStates.InGame)
 
@@ -354,8 +381,10 @@ function LimitTheoryRedux:startGame(seed)
     self:cleanupMenuBackground()
 
     self.cfg = SceneConfig
-    -- Static scene: bodies stay at generated positions (see onStateSim)
-    self.staticStarSystem = true
+    self.scenario = scenario or Scenarios.default
+    -- Bodies stay at their generated positions unless the scenario has
+    -- orbits (see onStateSim)
+    self.staticStarSystem = not self.scenario.orbits
     -- Random universe each game: a nil seed means "surprise me", never a
     -- fixed default (the same universe on every New Game would be stale).
     self.seed = seed or rng:get64()
@@ -364,35 +393,24 @@ function LimitTheoryRedux:startGame(seed)
     self.hudHidden = not GameState.ui.drawHud
     self.world = Physics.Create()
     self.constructManager = ConstructManager(Registry, self.world)
+    -- Every armed ship's weapons (WeaponBattery) run through this
+    self.weaponCombat = WeaponCombatSystem(self.world)
     RenderCoreSystem:setDebugPhysics(self.world)
 
     self:createSkybox()
-    self:generateUniverse()
-    self:spawnPlayerShip()
-    self:spawnStations()
-
-    -- Orbital simulation + gravity wells
-    self.orbiters, self.followers = OrbitalSystem:collectOrbiters(self.universe)
-    GravityWellSystem:collectZones(self.universe)
-
-    -- System maps
-    self.mapState = SystemMap:create()
-    SystemMap:collectEntities(self.mapState, self.universe, self.playerShip)
-    self.map3DState = SystemMap3D:create()
-    SystemMap3D:collectEntities(self.map3DState, self.universe, self.playerShip)
-    SystemMap3D:setSkybox(self.map3DState, self.skybox)
-    self.mapMode = 0  -- 0=off, 1=2D, 2=3D
+    self:buildScene()
 
     -- Player controller owns camera modes, input routing, and ship reference
-    local cam = Config.game.orbitCamera
+    local orbit = Config.game.orbitCamera
     local free = Config.game.freeCamera
     self.player = PlayerController(self.playerShip, {
-        chase = {
-            distance     = cam.distance,
-            minDistance   = cam.minDistance,
-            maxDistance   = cam.maxDistance,
-            zoomSpeed    = cam.zoomSpeed,
-            smoothing    = cam.smoothing,
+        orbit = {
+            distance    = orbit.distance,
+            minDistance = orbit.minDistance,
+            maxDistance = orbit.maxDistance,
+            zoomSpeed   = orbit.zoomSpeed,
+            zoomRatio   = orbit.zoomRatio,
+            smoothing   = orbit.smoothing,
         },
         free = {
             moveSpeed      = free.moveSpeed,
@@ -402,7 +420,17 @@ function LimitTheoryRedux:startGame(seed)
     })
     UIViewInGame:setPlayer(self.player)
 
+    -- System maps
+    self.mapState = SystemMap:create()
+    self.map3DState = SystemMap3D:create()
+    SystemMap3D:setSkybox(self.map3DState, self.skybox)
+    self.mapMode = 0  -- 0=off, 1=2D, 2=3D
+
+    self:setupScenario()
+    self:collectSceneSystems()
+
     self._simTunnel = EventBus:subscribe(Event.Sim, self, self.onStateSim)
+    self._postSimTunnel = EventBus:subscribe(Event.PostSim, self, self.onStatePostSim)
 
     -- Swap the menu for the Gameplay page. Its In_Game view draws on top of
     -- the HUD and labels that the state's onRender draws.
@@ -410,39 +438,49 @@ function LimitTheoryRedux:startGame(seed)
     UIPageGameplay:setView("In_Game")
 end
 
----@param seed integer
+--- The skybox for `self.seed`: nebula, stars, light direction.
 function LimitTheoryRedux:createSkybox()
-    local SkyboxEntity = require('Modules.CelestialObjects.Entities.SkyboxEntity')
-    -- The skybox closure also builds the nebula maps, which renders to textures,
-    -- so run it once now (blendMode nil draws nothing): a render pass cannot be
-    -- open while another begins.
-    local skyboxFn = function(entity, blendMode)
-        local placeholder = entity:get(CoreComponents.Empty)
-        if not placeholder then
-            placeholder = entity:add(CoreComponents.Empty)
-        end
+    self.skybox = Skybox.Create(self.seed)
+end
 
-        if not placeholder.envMap then
-            require("Shared.Generation.Nebula1")
-            local nebulaRNG     = RNG.Create(entity:get(CoreComponents.Seed):getSeed() + 0xC0104FULL)
-            local starAngle     = nebulaRNG:getDir2()
-            placeholder.starDir = Vec3f(starAngle.x, 0, starAngle.y)
-            placeholder.envMap  = Generator.Get('Nebula', nebulaRNG)(nebulaRNG, Config.gen.nebulaRes, placeholder.starDir)
-            placeholder.irMap   = placeholder.envMap:genIRMap(256)
-            placeholder.stars   = Starfield(nebulaRNG, Config.gen.nStars(nebulaRNG))
-            CameraManager:setStarDir(placeholder.starDir)
-            Renderer:setEnvironment(placeholder.envMap, placeholder.irMap)
-        end
-
-        Backdrop.draw(placeholder, blendMode)
+--- The star system, the player's ship and the stations, from the scenario.
+function LimitTheoryRedux:buildScene()
+    self.sceneEntities = {}
+    self.sceneConstructs = {}
+    self:generateUniverse(self.scenario.ruleset or Scenarios.default.ruleset)
+    self:spawnPlayerShip()
+    if self.scenario.stations ~= false then
+        self:spawnStations()
+    else
+        self.stations = {}
     end
-    self.skybox = SkyboxEntity(self.seed, skyboxFn)
-    skyboxFn(self.skybox, nil)
+end
+
+--- Run the scenario's setup (after the scene and the player controller exist).
+function LimitTheoryRedux:setupScenario()
+    self.scenarioData = {}
+    if self.scenario.setup then
+        self.scenario.setup(self)
+    end
+    -- The scenario's text, which the HUD shows under its zone line
+    local overlayLines = self.scenario.overlayLines
+    UIViewInGame:setOverlayLines(overlayLines and function() return overlayLines(self) end or nil)
+end
+
+--- Orbits, gravity wells and the maps' entity lists, after the scene changed.
+function LimitTheoryRedux:collectSceneSystems()
+    self.orbiters, self.followers = OrbitalSystem:collectOrbiters(self.universe)
+    GravityWellSystem:collectZones(self.universe)
+    self.mapState._entityListBuilt = false
+    self.mapState._dotCache = nil
+    SystemMap:collectEntities(self.mapState, self.universe, self.playerShip)
+    SystemMap3D:collectEntities(self.map3DState, self.universe, self.playerShip)
 end
 
 --- Generate the universe through UniverseManager + SolarSystemVisualizer.
-function LimitTheoryRedux:generateUniverse()
-    self.universe = UniverseManager:createUniverse(Rulesets.SinglePlanetWithBelt, self.seed)
+---@param ruleset Ruleset
+function LimitTheoryRedux:generateUniverse(ruleset)
+    self.universe = UniverseManager:createUniverse(ruleset, self.seed)
 
     if not self.universe then
         Log.Error("Failed to generate universe!")
@@ -459,6 +497,162 @@ function LimitTheoryRedux:generateUniverse()
     self.beltEntities = {}
     self.starEntity = nil
     self:collectEntities(self.universe)
+end
+
+--- Something a scenario added to the scene: it is removed with the scene
+--- (Back to Main Menu, Regenerate), and labelled if it has a label.
+---@param entity Entity
+---@param options { label: string|nil, addBody: boolean|nil, bodyAdded: boolean|nil }|nil addBody: put its rigid body into the physics world (and take it out again on removal); bodyAdded: it is in the world already (take it out on removal)
+function LimitTheoryRedux:addSceneEntity(entity, options)
+    options = options or {}
+    local ownsBody = options.bodyAdded == true
+    if options.addBody then
+        local rbCmp = entity:get(PhysicsComponents.RigidBody)
+        if rbCmp and rbCmp:getRigidBody() then
+            self.world:addRigidBody(rbCmp:getRigidBody())
+            ownsBody = true
+        end
+    end
+    table.insert(self.sceneEntities, { entity = entity, ownsBody = ownsBody })
+    if options.label then
+        table.insert(self.labeledEntities, { entity = entity, label = options.label })
+    end
+end
+
+--- A construct (ConstructManager handle) a scenario added: destroyed with the
+--- scene, and labelled if it has a label.
+---@param handle table
+---@param label string|nil
+function LimitTheoryRedux:addSceneConstruct(handle, label)
+    table.insert(self.sceneConstructs, handle)
+    if label then
+        table.insert(self.labeledEntities, { entity = handle.root, label = label })
+    end
+end
+
+local function forgetLabel(labels, entity)
+    for i = #labels, 1, -1 do
+        if labels[i].entity == entity then
+            table.remove(labels, i)
+        end
+    end
+end
+
+--- Remove something `addSceneEntity` added, now.
+---@param entity Entity
+function LimitTheoryRedux:removeSceneEntity(entity)
+    for i, item in ipairs(self.sceneEntities) do
+        if item.entity == entity then
+            if item.ownsBody then
+                local rbCmp = entity:get(PhysicsComponents.RigidBody)
+                if rbCmp and rbCmp:getRigidBody() then
+                    self.world:removeRigidBody(rbCmp:getRigidBody())
+                end
+            end
+            table.remove(self.sceneEntities, i)
+            break
+        end
+    end
+    forgetLabel(self.labeledEntities, entity)
+    if self.player and self.player:getOrbitTarget() == entity then
+        self.player:setOrbitTarget(nil)
+    end
+    Registry:destroyEntity(entity, Enums.Registry.EntityDestroyMode.DestroyChildren)
+end
+
+--- Destroy a construct `addSceneConstruct` added, now.
+---@param handle table
+function LimitTheoryRedux:removeSceneConstruct(handle)
+    for i, h in ipairs(self.sceneConstructs) do
+        if h == handle then
+            table.remove(self.sceneConstructs, i)
+            break
+        end
+    end
+    forgetLabel(self.labeledEntities, handle.root)
+    if self.player and self.player:getOrbitTarget() == handle.root then
+        self.player:setOrbitTarget(nil)
+    end
+    self.constructManager:destroy(handle)
+end
+
+--- Start the orbit camera around an entity (a scenario's planet, station...).
+---@param entity Entity
+---@param distances table|nil zoom range, see `orbitDistances`
+function LimitTheoryRedux:setOrbitFocus(entity, distances)
+    self.player:setOrbitTarget(entity, distances)
+    -- From the lit side: a little off the sun's direction, from slightly above
+    local sun = CameraManager:getStarDir()
+    self.player:setOrbitAngles(math.atan2(sun.x, sun.z) + 0.5, 0.25)
+    self.player:setMode(Enums.CameraMode.Orbit)
+end
+
+--- A zoom range for orbiting something of this radius.
+---@param radius number
+---@return table
+function LimitTheoryRedux:orbitDistances(radius)
+    return {
+        distance    = radius * 3.0,
+        minDistance = radius * 1.2,
+        maxDistance = radius * 40.0,
+        zoomRatio   = 0.15,
+    }
+end
+
+--- Remove what a game built: the scenario's things, the stations, the star
+--- system and (unless kept) the player's ship.
+---@param keepShip boolean|nil
+function LimitTheoryRedux:destroyScene(keepShip)
+    if self.scenario and self.scenario.teardown then
+        self.scenario.teardown(self)
+    end
+    -- Beams, projectiles and effect lights, before the ships they came from
+    if self.weaponCombat then
+        self.weaponCombat:clear()
+    end
+    -- Before the things it may follow go
+    if self.player then
+        self.player:setOrbitTarget(nil)
+    end
+
+    for i = #(self.sceneEntities or {}), 1, -1 do
+        self:removeSceneEntity(self.sceneEntities[i].entity)
+    end
+    for i = #(self.sceneConstructs or {}), 1, -1 do
+        self:removeSceneConstruct(self.sceneConstructs[i])
+    end
+
+    for _, station in ipairs(self.stations or {}) do
+        local rbCmp = station:get(PhysicsComponents.RigidBody)
+        if rbCmp and rbCmp:getRigidBody() then
+            self.world:removeRigidBody(rbCmp:getRigidBody())
+        end
+        Registry:destroyEntity(station, Enums.Registry.EntityDestroyMode.DestroyChildren)
+    end
+    self.stations = {}
+
+    if self.universe then
+        Registry:destroyEntity(self.universe, Enums.Registry.EntityDestroyMode.DestroyChildren)
+        self.universe = nil
+    end
+
+    if not keepShip then
+        if self.playerShipHandle then
+            self.constructManager:destroy(self.playerShipHandle)
+        elseif self.playerShip then
+            Registry:destroyEntity(self.playerShip, Enums.Registry.EntityDestroyMode.DestroyChildren)
+        end
+        self.playerShipHandle = nil
+        self.playerShip = nil
+    end
+
+    self.planets = {}
+    self.labeledEntities = {}
+    self.starEntity = nil
+    self.beltEntities = {}
+    AsteroidFieldSystem:cleanup(self.world)
+
+    releaseGpuMemory()
 end
 
 --- Walk the generated universe and collect planets/labels/star/belts.
@@ -485,15 +679,16 @@ function LimitTheoryRedux:collectEntities(entity)
     end
 end
 
---- Spawn the player ship next to the nearest belt asteroid (so the first
---- thing the player sees is a rock up close, with the ring/planet nearby).
-function LimitTheoryRedux:spawnPlayerShip()
+--- Where the player's ship starts when the scenario doesn't say: next to the
+--- belt rock nearest the first planet (so the first thing the player sees is
+--- a rock up close, with the ring/planet nearby); without rocks, just outside
+--- the first planet; without planets, well clear of the star.
+---@return Position
+function LimitTheoryRedux:defaultShipSpawn()
     local cfg = self.cfg
-    local flightCfg = Config.game.shipFlight
+    local planet = self.planets and self.planets[1]
 
-    local spawnPos = Position(0, 0, 0)
-    if #self.planets > 0 then
-        local planet = self.planets[1]
+    if planet then
         local planetPos = planet:get(PhysicsComponents.Transform):getPos()
 
         -- Nearest belt asteroid to the planet: belt data is baked
@@ -534,17 +729,57 @@ function LimitTheoryRedux:spawnPlayerShip()
             local nx, ny, nz = ax - px, ay - py, az - pz
             local len = math.sqrt(nx * nx + ny * ny + nz * nz)
             if len > 1e-9 then nx, ny, nz = nx / len, ny / len, nz / len end
-            spawnPos = Position(ax + nx * clearDist, ay + ny * clearDist, az + nz * clearDist)
+            return Position(ax + nx * clearDist, ay + ny * clearDist, az + nz * clearDist)
         end
+
+        -- No rocks: just outside the planet, on its side away from the star
+        local radius = planet:get(PhysicsComponents.Transform):getScale()
+        local sx, sy, sz = 0, 0, 0
+        if self.starEntity then
+            local p = self.starEntity:get(PhysicsComponents.Transform):getPos()
+            sx, sy, sz = p.x, p.y, p.z
+        end
+        local nx, ny, nz = planetPos.x - sx, planetPos.y - sy, planetPos.z - sz
+        local len = math.sqrt(nx * nx + ny * ny + nz * nz)
+        if len > 1e-9 then nx, ny, nz = nx / len, ny / len, nz / len else nx, ny, nz = 1, 0, 0 end
+        local d = radius * cfg.shipSpawnOffset
+        return Position(planetPos.x + nx * d, planetPos.y + ny * d, planetPos.z + nz * d)
     end
 
+    -- No planets: well clear of the star (it sits at the origin otherwise)
+    if self.starEntity then
+        local t = self.starEntity:get(PhysicsComponents.Transform)
+        local p = t:getPos()
+        return Position(p.x + t:getScale() * cfg.starSpawnOffset, p.y, p.z)
+    end
+    return Position(0, 0, 0)
+end
+
+--- Spawn the player's ship where the scenario says, or at the default spot.
+function LimitTheoryRedux:spawnPlayerShip()
+    local spawnPos = self.scenario.spawnShip and self.scenario.spawnShip(self) or self:defaultShipSpawn()
+    self:createPlayerShip(spawnPos, Enums.ShipType.Fighter, 1, self.rng:get31())
+end
+
+--- Build a flyable ship for the player.
+---@param position Position
+---@param shipType integer Enums.ShipType
+---@param hullIdx integer index into Config.game.shipHulls (size and mass)
+---@param seed integer
+function LimitTheoryRedux:createPlayerShip(position, shipType, hullIdx, seed)
+    local flightCfg = Config.game.shipFlight
+    local hullCfg = Config.game.shipHulls
+
     self.playerShipHandle = self.constructManager:createShip({
-        seed = self.rng:get31(),
-        shipType = Enums.ShipType.Fighter,
+        seed = seed,
+        shipType = shipType,
         config = {
-            position = spawnPos,
-            scale = Config.game.shipHulls.scale[1],
+            position = position,
+            scale = hullCfg.scale[hullIdx],
             isKinematic = false,
+            -- The Legacy basic and capital generators size the hull by its
+            -- index; the fighter's has its own size
+            hull = shipType ~= Enums.ShipType.Fighter and hullIdx or nil,
         },
     })
     self.playerShip = self.playerShipHandle.root
@@ -553,8 +788,6 @@ function LimitTheoryRedux:spawnPlayerShip()
     self.playerShip:add(ConstructComponents.AutoPilot())
     self.playerShip:add(ConstructComponents.ShipFlightControl())
 
-    local hullIdx = 1
-    local hullCfg = Config.game.shipHulls
     local rbCmp = self.playerShip:get(PhysicsComponents.RigidBody)
     local rb = rbCmp:getRigidBody()
     rb:setMass(hullCfg.mass[hullIdx])
@@ -562,7 +795,24 @@ function LimitTheoryRedux:spawnPlayerShip()
     rb:setFriction(0)
     rb:setSleepThreshold(0, 0)
 
-    Log.Info("Player ship spawned at (%.1f, %.1f, %.1f)", spawnPos.x, spawnPos.y, spawnPos.z)
+    Log.Info("Player ship spawned at (%.1f, %.1f, %.1f)", position.x, position.y, position.z)
+end
+
+--- Swap the player's ship for a new one in the same place (a scenario's
+--- showcase of hulls, say).
+---@param shipType integer Enums.ShipType
+---@param hullIdx integer index into Config.game.shipHulls
+---@param seed integer
+function LimitTheoryRedux:replacePlayerShip(shipType, hullIdx, seed)
+    local oldBody = self.playerShip:get(PhysicsComponents.RigidBody):getRigidBody()
+    local position = oldBody:getPos()
+    -- The orbit camera goes back to following the ship (the new one)
+    if self.player:getOrbitTarget() == self.playerShip then
+        self.player:setOrbitTarget(nil)
+    end
+    self.constructManager:destroy(self.playerShipHandle)
+    self:createPlayerShip(Position(position.x, position.y, position.z), shipType, hullIdx, seed)
+    self.player:setShip(self.playerShip)
 end
 
 --- Spawn stations near planets.
@@ -691,6 +941,16 @@ end
 ---@param data EventData
 function LimitTheoryRedux:onInput(data)
     if self:handleAppInput() then return end
+
+    -- Regenerate waits a few frames between tearing down and building
+    if self.rebuildInFrames then
+        self.rebuildInFrames = self.rebuildInFrames - 1
+        if self.rebuildInFrames <= 0 then
+            self.rebuildInFrames = nil
+            self:finishRegenerate()
+        end
+    end
+
     if not self.playerShip then return end
     local dt = data:deltaTime()
 
@@ -780,9 +1040,12 @@ function LimitTheoryRedux:onInput(data)
         end
     end
 
+    if self.scenario.onInput then
+        self.scenario.onInput(self, dt)
+    end
+
     if GeneralActions.Regenerate:isPressed() then
-        self.seed = self.rng:get31()
-        self:regenerate()
+        self:regenerateScenario()
     end
 
     if GeneralActions.ReloadShaders:isPressed() then
@@ -811,43 +1074,54 @@ function LimitTheoryRedux:onStateSim(data)
     MemoryReporter:update(dt)
 
     self.player:update(dt)
+    if self.scenario.update then self.scenario.update(self, dt) end
+    -- Weapons: targets and turrets before the physics step, AI, aim and
+    -- firing right after it (shots in flight: onStatePostSim)
+    self.weaponCombat:preUpdate(dt)
     self.world:update(dt)
+    self.weaponCombat:update(dt)
+    if self.scenario.postUpdate then self.scenario.postUpdate(self, dt) end
 end
 
---- Rebuild the scene with a new seed.
+---@param data EventData
+function LimitTheoryRedux:onStatePostSim(data)
+    if not self.playerShip then return end
+    -- Projectiles, beams, expired effect lights
+    self.weaponCombat:postUpdate(data:deltaTime())
+end
+
+--- Regenerate (B): what the scenario does for it, or by default a new seed
+--- and everything built again.
+function LimitTheoryRedux:regenerateScenario()
+    if self.scenario.regenerate then
+        self.scenario.regenerate(self)
+    else
+        self.seed = self.rng:get31()
+        self:regenerate()
+    end
+end
+
+--- Build the star system, the player's ship, the stations and the scenario's
+--- things again from `self.seed` (Regenerate picks a new seed first).
+---
+--- The old scene goes now and the new one comes a few frames later: the GPU
+--- frees the old scene's textures only once the frames that drew them are
+--- done, and building at once would need room for both (a Standard Solar
+--- System alone takes about 4 GB).
 function LimitTheoryRedux:regenerate()
-    if self.universe then
-        Registry:destroyEntity(self.universe, Enums.Registry.EntityDestroyMode.DestroyChildren)
-    end
-    if self.playerShipHandle then
-        self.constructManager:destroy(self.playerShipHandle)
-        self.playerShipHandle = nil
-    elseif self.playerShip then
-        Registry:destroyEntity(self.playerShip, Enums.Registry.EntityDestroyMode.DestroyChildren)
-    end
-    for _, station in ipairs(self.stations or {}) do
-        local rbCmp = station:get(PhysicsComponents.RigidBody)
-        if rbCmp and rbCmp:getRigidBody() then
-            self.world:removeRigidBody(rbCmp:getRigidBody())
-        end
-        Registry:destroyEntity(station, Enums.Registry.EntityDestroyMode.DestroyChildren)
-    end
+    self:destroyScene()
+    UIViewInGame:setPlayer(nil) -- no ship for the HUD meanwhile
+    self.rebuildInFrames = REBUILD_DELAY_FRAMES
+end
 
-    self.starEntity = nil
-    self.beltEntities = {}
-    AsteroidFieldSystem:cleanup(self.world)
+--- The second half of `regenerate`: build the scene again.
+function LimitTheoryRedux:finishRegenerate()
     self.rng = RNG.Create(self.seed)
-    self:generateUniverse()
-    self:spawnPlayerShip()
-    self:spawnStations()
+    self:buildScene()
     self.player:setShip(self.playerShip)
-
-    self.orbiters, self.followers = OrbitalSystem:collectOrbiters(self.universe)
-    GravityWellSystem:collectZones(self.universe)
-    self.mapState._entityListBuilt = false
-    self.mapState._dotCache = nil
-    SystemMap:collectEntities(self.mapState, self.universe, self.playerShip)
-    SystemMap3D:collectEntities(self.map3DState, self.universe, self.playerShip)
+    UIViewInGame:setPlayer(self.player)
+    self:setupScenario()
+    self:collectSceneSystems()
 end
 
 function LimitTheoryRedux:soundOn()

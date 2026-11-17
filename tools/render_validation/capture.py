@@ -26,8 +26,9 @@ SCENES = ["PlanetTest", "Benchmark", "SolarSystemPlayable", "MoonTest", "PlanetT
           "BenchmarkPhases", "Benchmark1080"]
 # Capture name -> (state to launch, extra env). The scenes read these variables only under LTHEORY_CAPTURE.
 VARIANTS = {
-    # PlanetTest with a fixed seed that rolls a planet ring (seed 27: ring chance is 20%).
-    "PlanetTestRing": ("PlanetTest", {"LTHEORY_CAPTURE_SEED": "27"}),
+    # PlanetTest (the Planet Showcase scenario, seed 27 by default: no ring) with a seed
+    # that rolls a planet ring (seed 1; a ring for about a third of the seeds).
+    "PlanetTestRing": ("PlanetTest", {"LTHEORY_CAPTURE_SEED": "1"}),
     "WeaponSystem": ("Testbeds/WeaponSystem", {}),
     # Benchmark's camera phases in one run (fixed 60 Hz dt): ring fly-through
     # (600), asteroid zoom (1000), asteroid close-up (1300), return (1600),

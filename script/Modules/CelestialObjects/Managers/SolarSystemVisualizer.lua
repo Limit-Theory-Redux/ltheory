@@ -28,6 +28,15 @@ end
 
 ---@param entity Entity
 ---@param physicsWorld Physics
+--- Materialize one celestial body made outside a universe (a scenario's moon,
+--- say) and its children: meshes, materials, and a rigid body added to the
+--- physics world. Its Transform must hold its position and scale (radius).
+---@param entity Entity
+---@param physicsWorld Physics
+function SolarSystemVisualizer:materializeEntity(entity, physicsWorld)
+    self:_walkEntity(entity, physicsWorld)
+end
+
 function SolarSystemVisualizer:_walkEntity(entity, physicsWorld)
     local name = tostring(entity)
 

@@ -7,6 +7,7 @@ return {
     StandardBinarySolarSystem = require("Config.Gen.Rulesets.StandardBinarySolarSystem"),
     StandardTrinarySolarSystem = require("Config.Gen.Rulesets.StandardTrinarySolarSystem"),
     SinglePlanetWithBelt = require("Config.Gen.Rulesets.SinglePlanetWithBelt"),
+    PlanetShowcase = require("Config.Gen.Rulesets.PlanetShowcase"),
     Tests = {
         TwoAsteroidsOnePlayerShip = require("Config.Gen.Rulesets.Tests.TwoAsteroidsOnePlayerShip")
     }
