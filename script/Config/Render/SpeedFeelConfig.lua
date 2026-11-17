@@ -13,55 +13,67 @@
 Config.render.speedFeel = {
     -- Field of view, degrees added to the setting
     fov = {
-        flight     = 3,
-        boost      = 8,
-        travel     = 14,
-        boostKick  = 4,   -- a short push when boost starts
-        travelKick = 10,  -- ... when the travel drive engages
+        flight     = 6,
+        boost      = 16,
+        travel     = 28,
+        boostKick  = 8,   -- a short push when boost starts
+        travelKick = 20,  -- ... when the travel drive engages
         kickDecay  = 3.0, -- 1/s, how fast a kick dies away
         smoothing  = 4.0, -- 1/s, how fast the offset follows the speed
     },
-    -- Camera shake (CameraShake): steady rumble 0..1, kicks add trauma 0..1
+    -- Camera shake (CameraShake): steady rumble 0..1, kicks add trauma 0..1.
+    -- The shake moves with the square of these.
     shake = {
-        boostRumble  = 0.45, -- while boosting
-        chargeRumble = 0.5,  -- at the end of the charge (grows with it)
-        travelRumble = 0.3,  -- while the travel drive is active
-        boostKick    = 0.35,
-        travelKick   = 0.8,  -- when the drive engages
-        dropKick     = 0.5,  -- when it drops out
+        boostRumble  = 0.6, -- while boosting
+        chargeRumble = 0.7, -- at the end of the charge (grows with it)
+        travelRumble = 0.4, -- while the travel drive is active
+        boostKick    = 0.5,
+        travelKick   = 1.0, -- when the drive engages
+        dropKick     = 0.7, -- when it drops out
     },
-    -- Radial blur, added to the post setting (0..1); streaks from where the
-    -- ship is heading on screen
+    -- Radial blur from where the ship is heading on screen: added to the post
+    -- setting's strength (capped at 1), and it lengthens the streaks
+    -- (RenderCoreSystem, MOTION_BLUR_REACH)
     radialBlur = {
-        boost  = 0.25,
-        travel = 0.7,
+        boost  = 0.5,
+        travel = 1.4,
     },
-    -- Chromatic aberration, added to the post setting
+    -- Chromatic aberration: added to the post setting's strength (capped at
+    -- 1), and it widens the colour split towards the edges
     aberration = {
-        boosting = 0.4,
-        travel   = 0.6,
+        boosting = 0.8,
+        travel   = 1.2,
     },
-    -- Vignette, added to the post setting
+    -- A round vignette on top of the post setting's (0..1, 1 = black edges)
     vignette = {
-        boost  = 0.1,
-        travel = 0.25,
+        boost  = 0.25,
+        travel = 0.6,
     },
     -- The travel drive overlay (filter/traveldrive.glsl): ring + star streaks
     travelDrive = {
-        gain = 0.5,
+        gain = 1.0,
     },
-    -- Space dust (SpaceDustEntity). Speeds are in multiples of the ship's max
-    -- speed: a layer fades in between fadeIn[1] and fadeIn[2] and out between
-    -- fadeOut[1] and fadeOut[2] (fadeIn nil: always in from rest).
+    -- Space dust (SpaceDustEntity). Speeds in multiples of the ship's max
+    -- speed; a layer with `fadeIn` fades in between those two speeds.
     dust = {
         streakTime = 0.05, -- seconds of motion a streak shows
         layers = {
-            -- Close specks for normal flight (cube 3 km wide)
-            { cell = 0.3, count = 1500, widthPx = 1.5, color = { 0.45, 0.5, 0.6 },
-              fadeOut = { 1.5, 3.0 } },
-            -- Far specks for boost and the start of travel mode (30 km)
-            { cell = 3.0, count = 1500, widthPx = 1.8, color = { 0.5, 0.55, 0.65 },
-              fadeIn = { 1.0, 2.0 }, fadeOut = { 10, 40 } },
+            -- Close specks, from rest through boost and into travel mode
+            -- (cube 3 km wide); they move at up to 5x max speed
+            { cell = 0.3, count = 2000, widthPx = 2.0, color = { 0.75, 0.8, 0.9 },
+              maxSpeed = 5 },
+            -- Far specks that join when the travel drive takes off (30 km)
+            { cell = 3.0, count = 1500, widthPx = 2.2, color = { 0.8, 0.85, 0.95 },
+              maxSpeed = 25, fadeIn = { 3.5, 6 } },
+        },
+        -- Travel mode: long, bright streaks, pushed aside around the ship by
+        -- the drive (all grow with `travel`)
+        travel = {
+            bubbleRadius = 0.2, -- on screen, fraction of its height (the overlay's ring: 0.15)
+            curl         = 40,  -- degrees the bubble turns the dust around the ship (0: straight out)
+            streakCells  = 0.6, -- streak length, in cubes
+            brightness   = 2.5, -- x the colour
+            width        = 1.4, -- x the width
         },
     },
 }

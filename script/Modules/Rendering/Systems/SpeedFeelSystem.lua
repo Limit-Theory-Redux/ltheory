@@ -110,7 +110,6 @@ function SpeedFeelSystem:setDust(on)
             }
         end
         self.dustEntity, self.dust = SpaceDustEntity(1234, layers)
-        self.dust.streakTime = cfg.streakTime
     elseif not on and self.dustEntity then
         if self.dustEntity:isValid() then Registry:destroyEntity(self.dustEntity) end
         self.dustEntity, self.dust = nil, nil
@@ -245,6 +244,12 @@ function SpeedFeelSystem:onPreRender(e)
     fx.vignette = self.cues.vignette
         and I * (cfg.vignette.boost * d.boost + cfg.vignette.travel * d.travel) or 0
 
+    -- The ship on screen (0..1, y down): the overlay's ring and the dust's
+    -- bubble sit around it
+    local eye = CameraManager:getEye()
+    local shipPos = rb:getPos()
+    local shipU, shipV = project(shipPos.x - eye.x, shipPos.y - eye.y, shipPos.z - eye.z)
+
     -- Travel drive overlay: the strength its material was written with
     -- (Shared/Definitions/MaterialDefs.lua, TravelDrive)
     local overlay = 0
@@ -256,25 +261,60 @@ function SpeedFeelSystem:onPreRender(e)
         elseif d.state == "decelerating" then
             overlay = clamp01((d.multiplier - 1) / 50)
         end
-        local eye = CameraManager:getEye()
-        local p = rb:getPos()
-        local u, w = project(p.x - eye.x, p.y - eye.y, p.z - eye.z)
-        fx.shipScreenX, fx.shipScreenY = u or 0.5, w or 0.5
+        fx.shipScreenX, fx.shipScreenY = shipU or 0.5, shipV or 0.5
     end
     fx.travelDrive = I * cfg.travelDrive.gain * overlay
     fx.driveSpeed = d.multiplier
 
-    -- Dust: the camera's motion is the ship's; each layer has its speed band
     if self.dust then
-        self.dust.vx, self.dust.vy, self.dust.vz = v.x, v.y, v.z
-        local rel = d.speed / d.maxSpeed
-        for i, layer in ipairs(self.dust.layers) do
-            local lc = cfg.dust.layers[i]
-            local fadeIn = lc.fadeIn and band(rel, lc.fadeIn[1], lc.fadeIn[2]) or 1
-            local fadeOut = lc.fadeOut and (1 - band(rel, lc.fadeOut[1], lc.fadeOut[2])) or 1
-            layer.opacity = math.min(1, I) * fadeIn * fadeOut
-        end
+        self:updateDust(cfg.dust, d, v, shipU, shipV, paused and 0 or dt)
     end
+end
+
+---@private
+---The dust follows the ship's motion at up to each layer's `maxSpeed`; above
+---that (travel mode) it falls behind (the layer's offset grows), so specks
+---stay visible, and travel mode draws long, bright streaks that the drive's
+---bubble pushes aside around the ship.
+---@param dc table Config.render.speedFeel.dust
+---@param d table what drives the cues (`self.drive`)
+---@param v Vec3f the ship's velocity
+---@param shipU number|nil the ship on screen (0..1, y down)
+---@param shipV number|nil
+---@param dt number seconds since the last frame (0 while paused)
+function SpeedFeelSystem:updateDust(dc, d, v, shipU, shipV, dt)
+    local tc = dc.travel
+    local speed = d.speed
+    local dirX, dirY, dirZ = 0, 0, 0
+    if speed > 1e-9 then dirX, dirY, dirZ = v.x / speed, v.y / speed, v.z / speed end
+    local rel = speed / d.maxSpeed
+    local brightness = self.intensity * (1 + (tc.brightness - 1) * d.travel)
+    local widthScale = 1 + (tc.width - 1) * d.travel
+
+    for i, layer in ipairs(self.dust.layers) do
+        local lc = dc.layers[i]
+        local dustSpeed = math.min(speed, lc.maxSpeed * d.maxSpeed)
+        local lag = (speed - dustSpeed) * dt
+        layer.offsetX = layer.offsetX + dirX * lag
+        layer.offsetY = layer.offsetY + dirY * lag
+        layer.offsetZ = layer.offsetZ + dirZ * lag
+
+        -- A streak shows `streakTime` of the dust's motion; travel mode
+        -- stretches it towards `streakCells` of the cube
+        local length = math.max(dustSpeed * dc.streakTime, d.travel * tc.streakCells * lc.cell)
+        length = math.min(length, 0.8 * lc.cell)
+        layer.streakX, layer.streakY, layer.streakZ = dirX * length, dirY * length, dirZ * length
+
+        layer.opacity = lc.fadeIn and band(rel, lc.fadeIn[1], lc.fadeIn[2]) or 1
+        layer.brightness = brightness
+        layer.widthPx = lc.widthPx * widthScale
+    end
+
+    local bubble = self.dust.bubble
+    bubble.radius = tc.bubbleRadius
+    bubble.curl = math.rad(tc.curl)
+    bubble.strength = shipU and clamp01(1.5 * d.travel) or 0
+    if shipU then bubble.x, bubble.y = 2 * shipU - 1, 1 - 2 * shipV end
 end
 
 return SpeedFeelSystem()
