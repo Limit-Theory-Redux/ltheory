@@ -15,9 +15,9 @@ Config.render.speedFeel = {
     fov = {
         flight     = 6,
         boost      = 16,
-        travel     = 28,
+        travel     = 20,
         boostKick  = 8,   -- a short push when boost starts
-        travelKick = 20,  -- ... when the travel drive engages
+        travelKick = 14,  -- ... when the travel drive engages
         kickDecay  = 3.0, -- 1/s, how fast a kick dies away
         smoothing  = 4.0, -- 1/s, how fast the offset follows the speed
     },
@@ -36,22 +36,28 @@ Config.render.speedFeel = {
     -- (RenderCoreSystem, MOTION_BLUR_REACH)
     radialBlur = {
         boost  = 0.5,
-        travel = 1.4,
+        travel = 0.9,
     },
     -- Chromatic aberration: added to the post setting's strength (capped at
     -- 1), and it widens the colour split towards the edges
     aberration = {
         boosting = 0.8,
-        travel   = 1.2,
+        travel   = 0.8,
     },
     -- A round vignette on top of the post setting's (0..1, 1 = black edges)
     vignette = {
         boost  = 0.25,
-        travel = 0.6,
+        travel = 0.45,
     },
     -- The travel drive overlay (filter/traveldrive.glsl): ring + star streaks
     travelDrive = {
-        gain = 1.0,
+        gain = 0.7,
+    },
+    -- First person: the camera is in the ship and the middle of the view is
+    -- where you look; these multiply the travel overlay and the radial blur
+    firstPerson = {
+        travelDrive = 0.4,
+        radialBlur  = 0.6,
     },
     -- Space dust (SpaceDustEntity). Speeds in multiples of the ship's max
     -- speed; a layer with `fadeIn` fades in between those two speeds.
@@ -72,7 +78,7 @@ Config.render.speedFeel = {
             bubbleRadius = 0.2, -- on screen, fraction of its height (the overlay's ring: 0.15)
             curl         = 40,  -- degrees the bubble turns the dust around the ship (0: straight out)
             streakCells  = 0.6, -- streak length, in cubes
-            brightness   = 2.5, -- x the colour
+            brightness   = 1.8, -- x the colour
             width        = 1.4, -- x the width
         },
     },

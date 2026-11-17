@@ -237,18 +237,29 @@ function SpeedFeelSystem:onPreRender(e)
         if u then fx.blurCenterX, fx.blurCenterY = clamp01(u), clamp01(w) end
     end
 
+    -- First person: the camera is in the ship, and the middle of the view is
+    -- where you look, so the overlay and the blur ease off there
+    local firstPerson = game.player ~= nil and game.player:getMode() == Enums.CameraMode.FirstPerson
+    local fp = firstPerson and cfg.firstPerson or nil
+
     fx.radialBlur = self.cues.radialBlur
-        and I * (cfg.radialBlur.boost * d.boost + cfg.radialBlur.travel * d.travel) or 0
+        and I * (cfg.radialBlur.boost * d.boost + cfg.radialBlur.travel * d.travel)
+        * (fp and fp.radialBlur or 1) or 0
     fx.aberration = self.cues.aberration
         and I * (cfg.aberration.boosting * d.boosting + cfg.aberration.travel * d.travel) or 0
     fx.vignette = self.cues.vignette
         and I * (cfg.vignette.boost * d.boost + cfg.vignette.travel * d.travel) or 0
 
     -- The ship on screen (0..1, y down): the overlay's ring and the dust's
-    -- bubble sit around it
-    local eye = CameraManager:getEye()
-    local shipPos = rb:getPos()
-    local shipU, shipV = project(shipPos.x - eye.x, shipPos.y - eye.y, shipPos.z - eye.z)
+    -- bubble sit around it. In first person, or with the ship behind the
+    -- camera, they sit around where the ship is heading instead.
+    local shipU, shipV
+    if not firstPerson then
+        local eye = CameraManager:getEye()
+        local shipPos = rb:getPos()
+        shipU, shipV = project(shipPos.x - eye.x, shipPos.y - eye.y, shipPos.z - eye.z)
+    end
+    if not shipU then shipU, shipV = fx.blurCenterX, fx.blurCenterY end
 
     -- Travel drive overlay: the strength its material was written with
     -- (Shared/Definitions/MaterialDefs.lua, TravelDrive)
@@ -261,7 +272,8 @@ function SpeedFeelSystem:onPreRender(e)
         elseif d.state == "decelerating" then
             overlay = clamp01((d.multiplier - 1) / 50)
         end
-        fx.shipScreenX, fx.shipScreenY = shipU or 0.5, shipV or 0.5
+        if fp then overlay = overlay * fp.travelDrive end
+        fx.shipScreenX, fx.shipScreenY = shipU, shipV
     end
     fx.travelDrive = I * cfg.travelDrive.gain * overlay
     fx.driveSpeed = d.multiplier
@@ -279,8 +291,8 @@ end
 ---@param dc table Config.render.speedFeel.dust
 ---@param d table what drives the cues (`self.drive`)
 ---@param v Vec3f the ship's velocity
----@param shipU number|nil the ship on screen (0..1, y down)
----@param shipV number|nil
+---@param shipU number where the bubble goes: the ship on screen (0..1, y down)
+---@param shipV number
 ---@param dt number seconds since the last frame (0 while paused)
 function SpeedFeelSystem:updateDust(dc, d, v, shipU, shipV, dt)
     local tc = dc.travel
@@ -313,8 +325,8 @@ function SpeedFeelSystem:updateDust(dc, d, v, shipU, shipV, dt)
     local bubble = self.dust.bubble
     bubble.radius = tc.bubbleRadius
     bubble.curl = math.rad(tc.curl)
-    bubble.strength = shipU and clamp01(1.5 * d.travel) or 0
-    if shipU then bubble.x, bubble.y = 2 * shipU - 1, 1 - 2 * shipV end
+    bubble.strength = clamp01(1.5 * d.travel)
+    bubble.x, bubble.y = 2 * shipU - 1, 1 - 2 * shipV
 end
 
 return SpeedFeelSystem()
