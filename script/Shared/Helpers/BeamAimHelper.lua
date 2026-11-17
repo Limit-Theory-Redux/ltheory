@@ -87,7 +87,7 @@ end
 ---@param phase number
 ---@param aimAngles Vec3f|nil angular right/up offsets in radians
 ---@param previousBasis table|nil
----@return Vec3f
+---@return Position the endpoint (double precision, like the world positions)
 function BeamAimHelper.computeEndpoint(
     sourcePosition,
     targetPosition,
@@ -99,7 +99,7 @@ function BeamAimHelper.computeEndpoint(
     assert(sourcePosition and targetPosition)
     local basis = getBasis(sourcePosition, targetPosition, previousBasis)
     if not basis then
-        return Vec3f(targetPosition.x, targetPosition.y, targetPosition.z)
+        return Position(targetPosition.x, targetPosition.y, targetPosition.z)
     end
 
     aimAngles = aimAngles or Vec3f()
@@ -125,7 +125,7 @@ function BeamAimHelper.computeEndpoint(
 
     local rightOffset = math.tan(angleRight) * basis.distance
     local upOffset = math.tan(angleUp) * basis.distance
-    return Vec3f(
+    return Position(
         targetPosition.x + basis.rightX * rightOffset + basis.upX * upOffset,
         targetPosition.y + basis.rightY * rightOffset + basis.upY * upOffset,
         targetPosition.z + basis.rightZ * rightOffset + basis.upZ * upOffset)

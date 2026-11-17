@@ -2,6 +2,7 @@ return {
     ConstructManager = require("Modules.Constructs.Managers.ConstructManager"),
     ConstructionScope = require("Modules.Constructs.Managers.ConstructionScope"),
     ShipArmamentManager = require("Modules.Constructs.Managers.ShipArmamentManager"),
+    ArmedShipBuilder = require("Modules.Constructs.Managers.ArmedShipBuilder"),
     Generators = {
         ShipGenerator = require("Modules.Constructs.Managers.Generators.ShipGenerator"),
         CapitalHullGenerator = require("Modules.Constructs.Managers.Generators.CapitalHullGenerator"),

@@ -86,9 +86,11 @@ fn repository_script_directory_is_on_the_module_path() {
         .unwrap()
         .require("Shared.Helpers.DoesNotExist")
         .unwrap_err();
+    // The module search joins the name's parts with the platform's separator (`\` on Windows).
     assert!(
         error
             .to_string()
+            .replace('\\', "/")
             .contains("script/Shared/Helpers/DoesNotExist.lua"),
         "the search should have covered script/: {error}"
     );

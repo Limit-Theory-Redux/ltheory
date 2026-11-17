@@ -20,7 +20,7 @@ A run that times out is killed together with its process group
 
 ## Capture baseline / regression diff
 
-Real scenes (PlanetTest, Benchmark, BenchmarkPhases, Benchmark1080, SolarSystemPlayable, MoonTest, plus the variants PlanetTestRing = PlanetTest with seed 27, which rolls a planet ring, and the WeaponSystem testbed with deferred point lights) are captured
+Real scenes (PlanetTest, Benchmark, BenchmarkPhases, Benchmark1080, SolarSystemPlayable, MoonTest, plus the variants PlanetTestRing = PlanetTest with seed 1, which rolls a planet ring, and the WeaponSystem testbed with deferred point lights) are captured
 deterministically via `LTHEORY_CAPTURE=<out.png>` (+ `LTHEORY_CAPTURE_FRAME=<n>`,
 default 120): the engine uses a fixed 60 Hz delta time, a 1280x720 window, saves
 the backbuffer after frame n and exits, logging a `CAPTURE ...` stats line.
@@ -44,7 +44,13 @@ python tools/render_validation/run_all.py wgpu              # supervisors + capt
 ```
 
 The committed `baseline/` was recorded with the former OpenGL backend on
-Windows. Captures differ per driver and platform, so for a change that must
+Windows, except PlanetTest, PlanetTestRing, MoonTest, SolarSystemPlayable and
+WeaponSystem: those states became shortcuts into scenarios of the game (the
+Planet Showcase, Moon Showcase, Standard Solar System and Weapon Testbed, with
+the player's ship, the HUD and the game's lighting), and their baselines were
+recorded again with wgpu on Windows (RTX 3070) when they did. Benchmark keeps
+its own planet scene (`Tests/PlanetScene.lua`, the former PlanetTest), so its
+baselines stay valid. Captures differ per driver and platform, so for a change that must
 not alter pixels, compare against captures of a reference build instead:
 check out the earlier commit in a separate worktree, build it there, run
 `capture.py` from that worktree with its own `LTHEORY_VALIDATION_ARTIFACT_DIR`,
@@ -55,7 +61,7 @@ python tools/render_validation/compare.py wgpu --reference <ref-artifacts>/captu
 ```
 
 Hot reload is covered by a separate probe (about two minutes): `python tools/render_validation/hot_reload_probe.py [wgpu]`
-edits `material/planet.glsl` while `PlanetTest` runs (a tint, a revert, and a new first `MaterialParams` member) and
+edits `material/planet.glsl` while `PlanetScene` (the former PlanetTest scene) runs (a tint, a revert, and a new first `MaterialParams` member) and
 checks the pictures against an unedited run and the logs for errors.
 
 `compare.py` needs Pillow. Baseline `.json` stats (fps, draw calls) are informational.

@@ -9,6 +9,8 @@
 ---@overload fun(): HullMountDiscovery
 local HullMountDiscovery = Class("HullMountDiscovery", function() end)
 
+local MeshIndexData = require("Shared.Helpers.MeshIndexData")
+
 local DEFAULT_NORMAL = Vec3f(0, 1, 0)
 local DEFAULT_FACING = Vec3f(0, 0, 1)
 local MountSide = Enums.Weapon.MountSide
@@ -194,7 +196,7 @@ local function collectSurfaceCandidates(mesh, desiredNormal, minNormalDot)
 
     local candidates = {}
     local indexCount = mesh:getIndexCount()
-    mesh:lockIndexData(function(indices)
+    MeshIndexData.read(mesh, function(indices)
         for index = 0, indexCount - 3, 3 do
             local p0 = vertices[tonumber(indices[index])]
             local p1 = vertices[tonumber(indices[index + 1])]

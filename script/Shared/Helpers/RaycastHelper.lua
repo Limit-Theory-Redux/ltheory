@@ -35,7 +35,7 @@ local function readHitPosition(result)
         return result.posx, result.posy, result.posz
     end)
     if hasCoordinates and px ~= nil and py ~= nil and pz ~= nil then
-        return Vec3f(px, py, pz)
+        return Position(px, py, pz)
     end
     return nil
 end
@@ -124,7 +124,8 @@ function RaycastHelper:castSegment(world, origin, target, options)
     local originEpsilon = options.originEpsilon or 0
     local advanceEpsilon = options.advanceEpsilon or DEFAULT_ADVANCE_EPSILON
     local maxIgnoredHits = options.maxIgnoredHits or DEFAULT_MAX_IGNORED_HITS
-    local rayOrigin = Vec3f(
+    -- Double precision: far from the origin a Vec3f ray start is kilometres off
+    local rayOrigin = Position(
         origin.x + nx * originEpsilon,
         origin.y + ny * originEpsilon,
         origin.z + nz * originEpsilon)
@@ -154,7 +155,7 @@ function RaycastHelper:castSegment(world, origin, target, options)
             return hit
         end
 
-        local nextOrigin = Vec3f(
+        local nextOrigin = Position(
             hit.position.x + nx * advanceEpsilon,
             hit.position.y + ny * advanceEpsilon,
             hit.position.z + nz * advanceEpsilon)
