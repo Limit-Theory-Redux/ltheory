@@ -127,6 +127,13 @@ local function names(list)
     return result
 end
 
+---A speed effect's checkbox (GameState.render[key], read by SpeedFeelSystem).
+local function speedRow(y, label, key, toolTip)
+    return checkRow(972, y, label, toolTip,
+        function() return GameState.render[key] end,
+        function(v) GameState.render[key] = v end)
+end
+
 -- TABS
 
 local interfaceTab = flatten {
@@ -258,6 +265,29 @@ local graphicsTab = flatten {
         getIndex = getSuperSampleStep,
         setIndex = function(step) GameState.render.superSampleRate = superSampleRates[step] end
     }),
+    -- Speed effects (SpeedFeelSystem reads these every frame)
+    UIComponent.MenuLabel { x = 972, y = 236, h = 40, align = "right", size = 25, text = "SPEED EFFECTS" },
+    speedRow(290, "Field of View", "speedFov",
+        "The view widens as you speed up, with a short push when boost\nstarts and when the travel drive engages."),
+    speedRow(344, "Camera Shake", "speedShake",
+        "A rumble while boosting, charging the travel drive and in travel mode,\nand a jolt when boost starts and when the travel drive engages or drops."),
+    speedRow(398, "Motion Blur", "speedBlur",
+        "Blur streaking out from your ship when boosting and in travel mode."),
+    speedRow(452, "Chromatic Aberration", "speedAberration",
+        "A red and blue colour split towards the edges when boosting and in travel mode."),
+    speedRow(506, "Speed Vignette", "speedVignette",
+        "Darker, round screen edges when boosting and in travel mode."),
+    speedRow(560, "Travel Drive Effect", "speedTravelDrive",
+        "The travel drive's ring in front of the ship, its streaks,\nand the blink when you leave travel mode."),
+    speedRow(614, "Space Dust", "speedDust",
+        "Specks of dust streaking past, so you can see how fast you fly.\nIn travel mode the drive pushes them aside."),
+    UIComponent.MenuSlider {
+        x = 700, y = 676, label = "Speed Effects Strength",
+        toolTip = "Scales all the speed effects above together.\n100% is the default.",
+        min = 0, max = 2, increment = 0.05, format = percent,
+        get = function() return GameState.render.speedIntensity end,
+        set = function(v) GameState.render.speedIntensity = v end
+    },
     resetButton("graphics"),
 }
 

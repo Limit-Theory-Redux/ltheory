@@ -1,6 +1,7 @@
 -- Speed Feel Test: fly, boost and use the travel drive with the speed cues of
 -- SpeedFeelSystem switched on and off, to feel what each one adds. Starts
--- next to the belt (rocks to fly past) with every cue on.
+-- next to the belt (rocks to fly past) with every cue on, whatever Settings
+-- says; the keys never change the settings (SpeedFeelSystem's test override).
 --
 -- Numpad 1-7 switch one cue each (field of view, shake, radial blur,
 -- aberration, vignette, travel drive overlay, space dust), 0 switches all on
@@ -40,17 +41,13 @@ return {
     name = "Speed Feel Test",
     description = "Fly, boost (Shift) and travel (T) with the speed effects on numpad keys.",
 
+    -- The game runs SpeedFeelSystem; the scenario only overrides its settings
     setup = function(game)
-        SpeedFeelSystem:enable(game)
-        SpeedFeelSystem:setIntensity(1.0)
-        setAll(true)
-        SpeedFeelSystem:setExitStyle(nil)
-        SpeedFeelSystem:setDustWidth(1.0)
+        SpeedFeelSystem:beginTest()
     end,
 
     teardown = function(game)
-        setAll(false)
-        SpeedFeelSystem:disable()
+        SpeedFeelSystem:endTest()
     end,
 
     onInput = function(game, dt)

@@ -18,16 +18,19 @@ local ShipActions        = require("Input.ActionBindings.ShipActions")
 ---   travelDrive the travel drive overlay (ring + star streaks)
 ---   dust        space dust streaking past (SpaceDustEntity)
 ---
---- Off unless enabled (`enable(game)`): the Speed Feel Test scenario enables
---- it and switches cues; the game itself doesn't use it yet. It writes only
---- to the camera manager (field of view offset, shake) and to
+--- The game enables it for every game (LTheoryRedux:setupScenario) and
+--- disables it when the game ends (destroyScene). Which cues run and how
+--- strong comes from Settings > Graphics > Speed Effects (GameState.render,
+--- see SETTING_KEYS), read every frame; the Speed Feel Test scenario puts a
+--- test override on top (`beginTest` / `endTest`) that its numpad keys
+--- switch, so trying things never changes the player's settings. It writes
+--- only to the camera manager (field of view offset, shake) and to
 --- RenderCoreSystem.motionFx, and puts everything back on `disable()`.
 ---@class SpeedFeelSystem
 local SpeedFeelSystem = Class("SpeedFeelSystem", function(self)
     self.cueNames = { "fov", "shake", "radialBlur", "aberration", "vignette", "travelDrive", "dust" }
-    self.cues = {}
-    for _, name in ipairs(self.cueNames) do self.cues[name] = false end
-    self.intensity = 1.0
+    self.test = nil        -- the Speed Feel Test's override: { cues = { name = bool }, intensity }
+    self.settingsCues = {} -- reused: the cues as Settings has them this frame
     self.dustWidth = 1.0   -- scales the dust's streak width (the scenario's keys)
     self.exitStyle = nil   -- leaving travel mode: "expand" / "collapse" (nil: the config's)
     self.game = nil
@@ -70,28 +73,65 @@ function SpeedFeelSystem:disable()
     self:resetState()
 end
 
+-- The Settings value (GameState.render) of each cue
+local SETTING_KEYS = {
+    fov = "speedFov", shake = "speedShake", radialBlur = "speedBlur",
+    aberration = "speedAberration", vignette = "speedVignette",
+    travelDrive = "speedTravelDrive", dust = "speedDust",
+}
+
+---Start trying cues without touching the settings: every cue on, strength
+---1, until `endTest` (the Speed Feel Test scenario).
+function SpeedFeelSystem:beginTest()
+    local cues = {}
+    for _, name in ipairs(self.cueNames) do cues[name] = true end
+    self.test = { cues = cues, intensity = 1.0 }
+    self.exitStyle = nil
+    self.dustWidth = 1.0
+end
+
+---Back to the settings.
+function SpeedFeelSystem:endTest()
+    self.test = nil
+    self.exitStyle = nil
+    self.dustWidth = 1.0
+end
+
+---Switch a cue for the test (starts one if none is running).
 ---@param name string one of `cueNames`
 ---@param on boolean
 function SpeedFeelSystem:setCue(name, on)
-    assert(self.cues[name] ~= nil, "SpeedFeelSystem: no cue " .. tostring(name))
-    self.cues[name] = on
-    if name == "dust" then self:setDust(on) end
+    assert(SETTING_KEYS[name], "SpeedFeelSystem: no cue " .. tostring(name))
+    if not self.test then self:beginTest() end
+    self.test.cues[name] = on
 end
 
 ---@param name string
----@return boolean
+---@return boolean on in the test, or else in the settings
 function SpeedFeelSystem:isCueOn(name)
-    return self.cues[name] == true
+    if self.test then return self.test.cues[name] == true end
+    return GameState.render[SETTING_KEYS[name]] == true
 end
 
----@param intensity number scales every cue (1 = as configured)
+---@param intensity number scales every cue for the test (1 = as configured)
 function SpeedFeelSystem:setIntensity(intensity)
-    self.intensity = math.max(0, intensity)
+    if not self.test then self:beginTest() end
+    self.test.intensity = math.max(0, intensity)
 end
 
----@return number
+---@return number the test's strength, or else the settings'
 function SpeedFeelSystem:getIntensity()
-    return self.intensity
+    if self.test then return self.test.intensity end
+    return GameState.render.speedIntensity or 1.0
+end
+
+---@private
+---@return table<string, boolean> the cues on this frame
+function SpeedFeelSystem:currentCues()
+    if self.test then return self.test.cues end
+    local cues = self.settingsCues
+    for name, key in pairs(SETTING_KEYS) do cues[name] = GameState.render[key] == true end
+    return cues
 end
 
 ---@param scale number the dust's streak width, x the configured
@@ -182,8 +222,11 @@ end
 function SpeedFeelSystem:readShip(ship)
     if not ship or not ship:isValid() then return false end
     local d = self.drive
-    -- The ship's max speed: the same source as the HUD's speed tape
-    d.maxSpeed = Config.game.shipFlight.maxSpeedGame
+    -- The ship's max speed, as the HUD's speed tape has it: the ship's flight
+    -- profile where there is one (the navigation work replaces
+    -- Config.game.shipFlight with per-ship profiles), else the config
+    local profile = ConstructComponents.FlightProfile
+    d.maxSpeed = profile and profile.ProfileOf(ship).maxSpeed or Config.game.shipFlight.maxSpeedGame
     d.speed = ShipFlightSystem:getSpeed(ship)
 
     local driveCmp = ship:get(ConstructComponents.TravelDrive)
@@ -209,7 +252,9 @@ function SpeedFeelSystem:onPreRender(e)
     if not game then return end -- disabled: `disable()` put everything back
     local dt = e:deltaTime()
     local cfg = Config.render.speedFeel
-    local I = self.intensity
+    local I = self:getIntensity()
+    local cues = self:currentCues()
+    self:setDust(cues.dust)
     local fx = RenderCoreSystem.motionFx
     local shake = CameraManager:getShake()
     local d = self.drive
@@ -264,7 +309,7 @@ function SpeedFeelSystem:onPreRender(e)
     local travelShown = math.max(d.travel, exitFade * (self.exitTravel or 0))
 
     -- Field of view: follows the speed smoothly, plus short kicks
-    if self.cues.fov then
+    if cues.fov then
         local c = cfg.fov
         local target = I * (c.flight * d.flight + c.boost * d.boost + c.travel * d.travel)
         self.fovSmooth = self.fovSmooth + (target - self.fovSmooth) * (1 - math.exp(-c.smoothing * dt))
@@ -278,7 +323,7 @@ function SpeedFeelSystem:onPreRender(e)
     end
 
     -- Shake: no rumble while paused (the clock it wobbles on keeps running)
-    if self.cues.shake and not paused then
+    if cues.shake and not paused then
         local c = cfg.shake
         local drivingRumble = d.state == "active" and c.travelRumble or 0
         shake:setRumble(I * (c.boostRumble * d.boosting + c.chargeRumble * d.charge + drivingRumble))
@@ -333,6 +378,7 @@ function SpeedFeelSystem:onPreRender(e)
             x, y, z = x + p.x - eye.x, y + p.y - eye.y, z + p.z - eye.z
         end
         local u, w, depth = project(x, y, z)
+        fx.ringDistance = math.sqrt(x * x + y * y + z * z)
         if u then
             local tanHalf = math.tan(math.rad(CameraManager:getFov()) / 2)
             ringU, ringV = u, w
@@ -341,21 +387,21 @@ function SpeedFeelSystem:onPreRender(e)
         end
     end
 
-    fx.radialBlur = self.cues.radialBlur
+    fx.radialBlur = cues.radialBlur
         and I * (cfg.radialBlur.boost * d.boost + cfg.radialBlur.travel * d.travel)
         * (fp and fp.radialBlur or 1) or 0
     -- The blur leaves the bubble sharp, so it doesn't smear streaks into it
     fx.blurClearX, fx.blurClearY = ringU, ringV
     fx.blurClearRadius = travelShown > 0 and cfg.dust.travel.bubbleRadius * ringR * exitScale or 0
-    fx.aberration = self.cues.aberration
+    fx.aberration = cues.aberration
         and I * (cfg.aberration.boosting * d.boosting + cfg.aberration.travel * d.travel) or 0
-    fx.vignette = self.cues.vignette
+    fx.vignette = cues.vignette
         and I * (cfg.vignette.boost * d.boost + cfg.vignette.travel * d.travel) or 0
 
     -- Travel drive overlay: the strength its material was written with
     -- (Shared/Definitions/MaterialDefs.lua, TravelDrive)
     local overlay = 0
-    if self.cues.travelDrive then
+    if cues.travelDrive then
         if d.state == "charging" then
             overlay = d.charge
         elseif d.state == "active" then
@@ -368,7 +414,7 @@ function SpeedFeelSystem:onPreRender(e)
         fx.ringX, fx.ringY, fx.ringRadius = ringU, ringV, ringR * exitScale
     end
     fx.travelDrive = I * cfg.travelDrive.gain * overlay
-    fx.travelFlash = self.cues.travelDrive and I * flash or 0
+    fx.travelFlash = cues.travelDrive and I * flash or 0
     fx.driveSpeed = d.multiplier
 
     if self.dust then
@@ -405,7 +451,7 @@ function SpeedFeelSystem:updateDust(dc, d, travel, v, headU, headV, srcU, srcV, 
     local dirX, dirY, dirZ = 0, 0, 0
     if speed > 1e-9 then dirX, dirY, dirZ = v.x / speed, v.y / speed, v.z / speed end
     local rel = speed / d.maxSpeed
-    local brightness = self.intensity * (1 + (tc.brightness - 1) * travel)
+    local brightness = self:getIntensity() * (1 + (tc.brightness - 1) * travel)
     local widthScale = (1 + (tc.width - 1) * travel) * self.dustWidth
 
     for i, layer in ipairs(self.dust.layers) do

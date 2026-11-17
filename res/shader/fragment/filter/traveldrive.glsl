@@ -12,7 +12,10 @@ layout(std140) uniform Params {
     vec2 ringCenter;    // the ring on screen, in uv (0..1)
     float ringRadius;   // share of the screen height
     float flash;        // a blink: white light over the screen, brightest at the ring
+    float ringDistance; // game units from the camera to the ring
 };
+#group 3
+uniform sampler2D depthBuffer;  // distance from the camera (slot 1; `src` is slot 0)
 
 void main() {
   vec3 scene = texture(src, uv).xyz;
@@ -72,6 +75,13 @@ void main() {
 
   vec3 finalColor = bubbleColor * (ringColorShifted + innerGlow + shimmer)
                   + streakColor * streaks;
+
+  // The ring is in the world, in front of the ship: whatever is closer (the
+  // ship, a rock) hides it. 0 = nothing drawn there (cleared), so far away.
+  float sceneDistance = texture(depthBuffer, uv).r;
+  if (sceneDistance > 0.0) {
+    finalColor *= smoothstep(0.97 * ringDistance, ringDistance, sceneDistance);
+  }
 
   // Vignette darkening at edges when at high speed (tunnel vision)
   float tunnelFactor = clamp((driveSpeed - 10.0) / 80.0, 0.0, 1.0);

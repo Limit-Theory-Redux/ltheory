@@ -106,6 +106,7 @@ function RenderCoreSystem:registerVars()
         ringY       = 0.5,
         ringRadius  = 0.15, -- its radius, share of the screen height
         travelFlash = 0,   -- a blink over the overlay (leaving travel mode)
+        ringDistance = 1e30, -- game units from the camera to the ring: what's closer hides it
     }
 
     self.autoExposure    = {
@@ -890,7 +891,8 @@ function RenderCoreSystem:travelDrive()
         p.ringCenter.x, p.ringCenter.y = fx.ringX, 1 - fx.ringY
         p.ringRadius = fx.ringRadius
         p.flash = fx.travelFlash
-    end)
+        p.ringDistance = fx.ringDistance
+    end, self.buffers[Enums.BufferName.zBufferL]:mipView(0))
 end
 
 --- Auto-exposure measurement (render API v2, S8). Resolves the readback that

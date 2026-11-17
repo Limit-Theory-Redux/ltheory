@@ -1,7 +1,9 @@
 -- Speed feel: what flying, boosting and travel mode do to the view
--- (SpeedFeelSystem). Every cue is off in the game; the Speed Feel Test
--- scenario turns them on one by one to try them. All values are at intensity
--- 1 (the scenario's + and - scale them together).
+-- (SpeedFeelSystem), in every game. The player switches each cue and sets the
+-- strength in Settings > Graphics > Speed Effects (GameState.render.speed*,
+-- saved in user.ini; `settings` below are their defaults). The Speed Feel
+-- Test scenario switches them with numpad keys for a try, without touching
+-- the settings. All values below are at strength 1.
 --
 -- What drives the cues (see SpeedFeelSystem):
 --   flight  0..1  speed from 0 to the ship's max speed
@@ -11,6 +13,12 @@
 --   travel  0..1  the travel drive's multiplier on a log scale, 1 at the
 --                 open-space cap (Config.game.travelDrive.maxSpeedByZone)
 Config.render.speedFeel = {
+    -- The Settings' defaults: every cue on, strength 100%
+    settings = {
+        fov = true, shake = true, radialBlur = true, aberration = true,
+        vignette = true, travelDrive = true, dust = true,
+        intensity = 1.0,
+    },
     -- Field of view, degrees added to the setting
     fov = {
         flight     = 6,
