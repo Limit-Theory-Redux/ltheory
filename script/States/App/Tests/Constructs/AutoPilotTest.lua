@@ -6,28 +6,20 @@
 -- A drive flight among rocks logs the time the autopilot's update takes with and without sensing.
 -- Logs each failed check and ends with a failure exit code.
 local Application           = require("States.Application")
-local Registry              = require("Core.ECS.Registry")
-local Entity                = require("Core.ECS.Entity")
 local PhysicsComponents     = require("Modules.Physics.Components")
-local SpatialComponents     = require("Modules.Spatial.Components")
-local SpatialEntities       = require("Modules.Spatial.Entities")
-local CelestialComponents   = require("Modules.CelestialObjects.Components")
 local ConstructComponents   = require("Modules.Constructs.Components")
 local OrbitalSystem         = require("Modules.CelestialObjects.Systems.OrbitalSystem")
 local GravityWellSystem     = require("Modules.Physics.Systems.GravityWellSystem")
 local AutoPilotSystem       = require("Modules.Constructs.Systems.AutoPilotSystem")
 local ShipFlightSystem      = require("Modules.Constructs.Systems.ShipFlightSystem")
 local TravelDriveSystem     = require("Modules.Constructs.Systems.TravelDriveSystem")
-local FlightProfileRegistry = require("Shared.Registries.FlightProfileRegistry")
-local FlightProfileHelper   = require("Shared.Helpers.FlightProfileHelper")
-local AutoPilotPlan         = require("Modules.Constructs.Systems.AutoPilotPlan")
+local PlanFlight            = require("Shared.Helpers.PlanFlight")
+local FlightScene           = require("States.App.Tests.Support.FlightScene")
 
 ---@class ConstructsAutoPilotTest: Application
 local AutoPilotTest = Subclass("ConstructsAutoPilotTest", Application)
 
 local STEP         = 1 / 60
-local HULL         = Enums.ShipHulls.Solo
-local SOLO         = Enums.FlightProfile.Solo
 -- Bound on the time a ship takes to stop once the autopilot has let go: it turns a ship that never
 -- stops into a failure.
 local MAX_SETTLE_S = 120
@@ -56,8 +48,7 @@ local FIELD_TURN = math.pi * (3 - math.sqrt(5))
 -- The moving well: a planet on a circular orbit around a star, with a gravity well, in game units.
 -- The planet's speed on its orbit is this many times the ship's top speed, so a ship that steers
 -- against the carry can't keep up with it.
-local WELL_ORBIT_RADIUS  = 10000
-local WELL_RADIUS        = 1000
+local WELL_ORBIT_RADIUS  = FlightScene.WELL_ORBIT_RADIUS
 local WELL_ORBIT_SPEEDUP = 2
 -- The planet of a drive flight into a well, as fast as the game's: a generated planet moves at
 -- `0.5 · √(orbit radius)` game units per second (1,000 to 10,000), and the drive brings a ship to the
@@ -158,32 +149,7 @@ end
 ---@param start Position
 ---@param inWell boolean|nil
 function AutoPilotTest:spawnShip(start, inWell)
-    local profile = FlightProfileRegistry:get(SOLO)
-    local entity = Registry:createEntity()
-    local rbCmp = entity:add(PhysicsComponents.RigidBody())
-    local rb = RigidBody.CreateSphere()
-    rb:setScale(Config.game.shipHulls.scale[HULL])
-    FlightProfileHelper.applyToRigidBody(profile, rb)
-    entity:add(ConstructComponents.FlightProfile(profile))
-    rbCmp:setRigidBody(rb)
-    self.world:addRigidBody(rb)
-    rb:setPos(start)
-    if inWell then entity:add(PhysicsComponents.GravityWell(profile.linearDrag)) end
-    entity:add(ConstructComponents.TravelDrive())
-    entity:add(ConstructComponents.ControlInput())
-    entity:add(ConstructComponents.AutoPilot())
-    return { entity = entity, rb = rb }
-end
-
----A kinematic sphere of `radius` at `pos`, owned by `entity` and in the world.
-local function giveKinematicBody(world, entity, pos, radius)
-    local rb = RigidBody.CreateSphere()
-    rb:setKinematic(true)
-    rb:setScale(radius)
-    entity:add(PhysicsComponents.RigidBody()):setRigidBody(rb)
-    world:addRigidBody(rb)
-    rb:setPos(pos)
-    return rb
+    return FlightScene.spawnShip(self.world, start, { inWell = inWell, autoPilot = true })
 end
 
 ---A planet of `radius` at `planetPos` on a circular orbit around a star, with a gravity well, whose
@@ -193,49 +159,17 @@ end
 ---@param speedup number
 ---@return table well `planetBody` is the planet as a target: its entity and rigid body
 function AutoPilotTest:buildWell(planetPos, radius, speedup)
-    local star = Entity.Create("StarEntity", CelestialComponents.Star())
-    local starRb = giveKinematicBody(self.world, star,
-        Position(planetPos.x - WELL_ORBIT_RADIUS, planetPos.y, planetPos.z), 1)
-
-    local planet = Entity.Create("PlanetEntity", CelestialComponents.Planet())
-    local planetRb = giveKinematicBody(self.world, planet, planetPos, radius)
-    planet:add(PhysicsComponents.Transform()):setPos(planetPos)
-    planet:add(SpatialComponents.Orbit(WELL_ORBIT_RADIUS))
-    Registry:attachEntity(star, planet)
-
-    local zone = SpatialEntities.Zone()
-    zone:get(SpatialComponents.Shape):setRadius(WELL_RADIUS)
-    Registry:attachEntity(planet, zone)
-
-    local orbiters, followers = OrbitalSystem:collectOrbiters(star)
-    local topSpeed = FlightProfileRegistry:get(SOLO).maxSpeed
-    for _, orbiter in ipairs(orbiters) do
-        orbiter.orbit:setAngularSpeed(speedup * topSpeed / WELL_ORBIT_RADIUS)
-    end
-    GravityWellSystem:collectZones()
-    return {
-        star = star, starRb = starRb, zone = zone, orbiters = orbiters, followers = followers,
-        planetPos = planetPos, planetBody = { entity = planet, rb = planetRb },
-    }
+    return FlightScene.buildWell(self.world, planetPos, radius, speedup)
 end
 
 ---Remove a moving well's bodies from physics and destroy its entities.
 function AutoPilotTest:despawnWell(well)
-    self.world:removeRigidBody(well.starRb)
-    Registry:destroyEntity(well.zone)
-    Registry:destroyEntity(well.star)
-    GravityWellSystem:collectZones()
+    FlightScene.despawnWell(self.world, well)
 end
 
 ---A fixed sphere of `radius`, the target of a body scenario.
 function AutoPilotTest:spawnBody(position, radius)
-    local rb = RigidBody.CreateSphere()
-    rb:setKinematic(true)
-    rb:setPos(position)
-    rb:setScale(radius)
-    local entity = Entity.Create("AutoPilotTestBody", PhysicsComponents.RigidBody(rb))
-    self.world:addRigidBody(rb)
-    return { entity = entity, rb = rb }
+    return FlightScene.spawnBody(self.world, position, radius)
 end
 
 ---The smallest gap between the ship's hull and a rock's surface, or infinity without rocks.
@@ -281,16 +215,12 @@ end
 ---Remove a scenario's bodies from physics and destroy their entities, so the actuation systems
 ---no longer see them.
 function AutoPilotTest:despawn(ship, body, rocks)
-    local things = { ship, body or false }
+    local things = { ship }
+    if body then things[#things + 1] = body end
     for _, rock in ipairs(rocks) do
         things[#things + 1] = rock
     end
-    for _, thing in ipairs(things) do
-        if thing then
-            self.world:removeRigidBody(thing.rb)
-            Registry:destroyEntity(thing.entity)
-        end
-    end
+    FlightScene.despawn(self.world, things)
 end
 
 ---One simulation step in the order the apps use: the autopilot at PreSim, then the drive, the orbits
@@ -439,8 +369,8 @@ function AutoPilotTest:run(scenario)
         local plan = ap:getPlan()
         local follower = plan and plan.follower
         if plan then
-            directSeen = directSeen or plan.phase == AutoPilotPlan.Phase.Direct
-            planSeen = planSeen or plan.phase == AutoPilotPlan.Phase.Plan
+            directSeen = directSeen or plan.phase == PlanFlight.Phase.Direct
+            planSeen = planSeen or plan.phase == PlanFlight.Phase.Plan
         end
         if scenario.outside and not wellEntry and shipWell:getBodyEntity() == well.planetBody.entity then
             wellEntry = {
@@ -523,8 +453,8 @@ function AutoPilotTest:run(scenario)
                 driveAt, tostring(arcStart), tostring(finalAt), arrivedAt))
     end
 
-    local standOff = AutoPilotSystem.standOff(targetRadius)
-    local arrivalRadius = AutoPilotSystem.arrivalRadius(targetRadius)
+    local standOff = PlanFlight.standOff(targetRadius)
+    local arrivalRadius = PlanFlight.arrivalRadius(targetRadius)
     local distance = ship.rb:getPos():distance(aim())
     self:check(math.abs(distance - standOff) <= arrivalRadius + hull, name .. "it arrives at the stand-off distance",
         string.format("%.1f against %.1f ± %.1f", distance, standOff, arrivalRadius))

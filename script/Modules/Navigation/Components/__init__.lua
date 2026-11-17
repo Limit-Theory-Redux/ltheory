@@ -1,5 +1,15 @@
 return {
-    CostProfile = require("Modules.Navigation.Components.CostProfileComponent"),
-    PathCost    = require("Modules.Navigation.Components.PathCostComponent"),
-    SpeedLimit  = require("Modules.Navigation.Components.SpeedLimitComponent"),
+    CostProfile   = require("Modules.Navigation.Components.CostProfileComponent"),
+    PathCost      = require("Modules.Navigation.Components.PathCostComponent"),
+    SpeedLimit    = require("Modules.Navigation.Components.SpeedLimitComponent"),
+    NavOrder      = require("Modules.Navigation.Components.NavOrderComponent"),
+    MoveToOrder   = require("Modules.Navigation.Components.MoveToOrderComponent"),
+    PatrolOrder   = require("Modules.Navigation.Components.PatrolOrderComponent"),
+    HoldOrder     = require("Modules.Navigation.Components.HoldOrderComponent"),
+    OrderStatus   = require("Modules.Navigation.Components.OrderStatusComponent"),
+    OrderProgress = require("Modules.Navigation.Components.OrderProgressComponent"),
+    OrderFlight   = require("Modules.Navigation.Components.OrderFlightComponent"),
+    OrderQueue    = require("Modules.Navigation.Components.OrderQueueComponent"),
+    NavAgent      = require("Modules.Navigation.Components.NavAgentComponent"),
+    NavWorld      = require("Modules.Navigation.Components.NavWorldComponent"),
 }

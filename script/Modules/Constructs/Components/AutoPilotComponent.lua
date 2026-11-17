@@ -22,7 +22,7 @@ local AutoPilotComponent = Subclass("AutoPilotComponent", Component, function(se
     self._arrived      = nil     -- bool[1]
 
     -- The engagement's path plan: its phase, the snapshot it was made from, the follower of its
-    -- corners (see `AutoPilotPlan`). Nil while the autopilot is off.
+    -- corners (see `PlanFlight`). Nil while the autopilot is off.
     self._plan         = nil
 
     -- Computed nav data (written by AutoPilotSystem, read by map/HUD)

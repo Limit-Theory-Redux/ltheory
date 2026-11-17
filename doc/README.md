@@ -16,6 +16,7 @@
    - [Cameras](script/cameras.md)
    - [Navigation sandbox](script/navigation-sandbox.md)
    - [System planner](script/system-planner.md)
+   - [Navigation orders](script/navigation.md)
    - [HmGui](../script/UI/HmGui/README.md)
 1. [Full structure](LTheory%20Full%20Restructure.md)
 1. [Control keys](GameControlKeys.txt)
