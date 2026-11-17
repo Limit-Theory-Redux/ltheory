@@ -30,8 +30,8 @@ local meta = {
 ---@field size ResponsiveSize -- if size is defined it will overwrite width, height
 ---@field padding { paddingX: number, paddingY: number }|nil
 ---@field margin { marginX: number, marginY: number }|nil
----@field align { h: AlignHorizontal, v: AlignVertical }|{ h: AlignHorizontal.Default, v: AlignVertical.Default}
----@field textAlign { h: AlignHorizontal, v: AlignVertical }|{ h: AlignHorizontal.Center, v: AlignVertical.Center}
+---@field align { h: AlignHorizontal, v: AlignVertical }|{ h: AlignHorizontal.Default, v: AlignVertical.Default} where the switch sits in its parent
+---@field textAlign { h: AlignHorizontal, v: AlignVertical }|{ h: AlignHorizontal.Center, v: AlignVertical.Center} the title's alignment
 ---@field color UIComponentSwitchColors
 ---@field font UIComponentFont
 ---@field toolTip string
@@ -88,7 +88,7 @@ function Switch:new(args)
         end
 
         Gui:beginHorizontalContainer()
-        Gui:setAlignment(self.state.textAlign()[1], self.state.textAlign()[2])
+        Gui:setAlignment(self.state.align()[1], self.state.align()[2])
 
         if self.state.title and self.state.title() then
             Gui:text(self.state.title(), Cache.Font(self.state.font().name, self.state.font().size),
@@ -97,7 +97,6 @@ function Switch:new(args)
         end
 
         Gui:beginStackContainer()
-        Gui:setAlignment(self.state.align()[1], self.state.align()[2])
 
         local isMouseOver = Gui:isMouseOver(FocusType.Mouse)
 

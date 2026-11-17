@@ -10,7 +10,7 @@ local meta = {
 ---@class ResponsiveSize
 ---@field x number
 ---@field y number
----@field ignoreUIScaling boolean -- if true, will not scale with GameState.ui.scaleFactor
+---@field ignoreUIScaling boolean -- if true, will not scale with the UI Scale setting (GameState.ui.hudScale)
 
 ---returns a ResponsiveSize object
 ---@param baseX number
@@ -31,13 +31,13 @@ function ResponsiveSize:new(baseX, baseY, ignoreUIScaling)
         __index = function(self, key)
             if key == "x" then
                 if self.useUIScale then
-                    return GameState.render.resX / 1600 * self.baseX * GameState.ui.scaleFactor
+                    return GameState.render.resX / 1600 * self.baseX * GameState.ui.hudScale
                 else
                     return GameState.render.resX / 1600 * self.baseX
                 end
             elseif key == "y" then
                 if self.useUIScale then
-                    return GameState.render.resY / 900 * self.baseY * GameState.ui.scaleFactor
+                    return GameState.render.resY / 900 * self.baseY * GameState.ui.hudScale
                 else
                     return GameState.render.resY / 900 * self.baseY
                 end

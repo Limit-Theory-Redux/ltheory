@@ -8,19 +8,18 @@ local renderChildren, widget = Common.renderChildren, Common.widget
 ---@param args { x: number, y: number, w: number, h: number, band: number|nil, contents: table|function }
 local function Panel(args)
     return widget(function(self, ctx)
-        local s = ctx.s
         MenuStyle.beginAt(ctx, args.x, args.y, args.w, args.h)
         Gui:setBackgroundColor(C.panel)
-        Gui:setBorderWidth(MenuStyle.border(2, s))
+        Gui:setBorderWidth(2)
         Gui:setBorderColor(C.panelBorder)
         if args.band then
             Gui:rect()
             Gui:setPosition(0, 0)
-            Gui:setFixedSize(args.w * s, args.band * s)
+            Gui:setFixedSize(args.w, args.band)
             Gui:setBackgroundColor(C.band)
             Gui:rect()
-            Gui:setPosition(0, args.band * s)
-            Gui:setFixedSize(args.w * s, MenuStyle.border(1, s))
+            Gui:setPosition(0, args.band)
+            Gui:setFixedSize(args.w, MenuStyle.line(1, ctx.s))
             Gui:setBackgroundColor(C.bandRule)
         end
         renderChildren(args.contents, MenuStyle.inside(ctx))

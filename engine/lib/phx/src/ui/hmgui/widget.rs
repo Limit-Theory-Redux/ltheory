@@ -92,6 +92,14 @@ pub struct HmGuiWidget {
     pub margin_lower: Vec2,
     pub border_width: f32,
 
+    /// The scale asked for with `set_scale` (1 = none): this widget and
+    /// everything in it is drawn that much bigger.
+    pub own_scale: f32,
+    /// The UI scale the widget is laid out with: its own times its parents'
+    /// (and its layer's), from `apply_scale`. Its lengths from Lua are design
+    /// pixels times this.
+    pub scale: f32,
+
     // Style
     pub border_color: Color,
     pub background_color: Color,
@@ -126,6 +134,8 @@ impl HmGuiWidget {
             margin_upper: Default::default(),
             margin_lower: Default::default(),
             border_width: Default::default(),
+            own_scale: 1.0,
+            scale: 1.0,
 
             border_color: Color::TRANSPARENT,
             background_color: Color::TRANSPARENT,
@@ -183,7 +193,7 @@ impl HmGuiWidget {
     }
 
     /// Border and margins in a dimension: what the outer size adds to the inner one.
-    fn outer_extra_dim<const DIM: usize>(&self) -> f32 {
+    pub(super) fn outer_extra_dim<const DIM: usize>(&self) -> f32 {
         self.border_width * 2.0 + self.margin_upper[DIM] + self.margin_lower[DIM]
     }
 
@@ -224,6 +234,59 @@ impl HmGuiWidget {
         self.calculate_inner_pos_size_dim::<1>();
     }
 
+    /// Turn the lengths this widget and its children got from Lua (design
+    /// pixels) into screen pixels: times the widget's scale, its own
+    /// (`set_scale`) times `parent_scale`. Fixed, min and max sizes, position,
+    /// margins, border, padding, spacing and fonts are scaled here, shapes when
+    /// they are drawn; percentages need nothing. A border stays at least a
+    /// pixel wide and lands on whole pixels, and a text gets its font at the
+    /// scaled size (whole pixels per em). Called once per frame, top-down,
+    /// before `compute_size`.
+    pub fn apply_scale(&mut self, hmgui: &mut HmGui, r: &mut Renderer, parent_scale: f32) {
+        let scale = parent_scale * self.own_scale;
+        self.scale = scale;
+
+        if scale != 1.0 {
+            for length in &mut self.default_size {
+                if let Length::Fixed(size) = length {
+                    *size *= scale;
+                }
+            }
+            self.min_size_request *= scale;
+            self.inner_min_size *= scale;
+            self.max_size *= scale;
+            if let Some(position) = &mut self.position {
+                *position *= scale;
+            }
+            self.margin_upper *= scale;
+            self.margin_lower *= scale;
+            if self.border_width > 0.0 {
+                self.border_width = (self.border_width * scale).round().max(1.0);
+            }
+
+            match &mut self.item {
+                WidgetItem::Container(container) => {
+                    container.padding_lower *= scale;
+                    container.padding_upper *= scale;
+                    container.spacing *= scale;
+                }
+                WidgetItem::Text(text) => {
+                    text.font = hmgui.scaled_font(r, &text.font, scale);
+                }
+                WidgetItem::Shape(shape) => {
+                    shape.scale = scale;
+                }
+                _ => {}
+            }
+        }
+
+        if let WidgetItem::Container(container) = &self.item {
+            for widget_rf in &container.children {
+                widget_rf.as_mut().apply_scale(hmgui, r, scale);
+            }
+        }
+    }
+
     pub fn compute_size(&mut self, hmgui: &mut HmGui, r: &mut Renderer) {
         match &mut self.item {
             WidgetItem::Container(container) => {
@@ -235,7 +298,14 @@ impl HmGuiWidget {
                 data.min_size = self.min_size;
             }
             WidgetItem::Text(text_item) => {
-                self.inner_min_size = text_item.measure(r).max(self.min_size_request);
+                // a wrapped text breaks at its max or fixed width
+                let width = match self.default_size[0] {
+                    Length::Fixed(width) => width.min(self.max_size.x),
+                    _ => self.max_size.x,
+                };
+                let wrap_width = width.is_finite().then_some(width);
+
+                self.inner_min_size = text_item.measure(r, wrap_width).max(self.min_size_request);
 
                 self.min_size = self.calculate_min_size();
             }
@@ -243,7 +313,7 @@ impl HmGuiWidget {
                 if image.is_some() {
                     self.inner_min_size = image.as_ref().unwrap().image.get_size().as_vec2();
                 } else {
-                    let scale_factor = hmgui.scale_factor() as f32;
+                    let scale_factor = hmgui.scale_factor() as f32 * self.scale;
                     let data = hmgui.data_mut(self.hash);
                     let text_view = data.text_view.as_mut().expect("Cannot get a text view");
 
@@ -295,7 +365,6 @@ impl HmGuiWidget {
                     constrained_y,
                     self.inner_pos,
                     self.inner_size,
-                    self.inner_size - self.inner_min_size,
                 );
 
                 self.size = self.inner_size
@@ -309,7 +378,7 @@ impl HmGuiWidget {
             }
             WidgetItem::TextView(image) => {
                 let mut clipboard = hmgui.clipboard_get_text();
-                let scale_factor = hmgui.scale_factor() as f32;
+                let scale_factor = hmgui.scale_factor() as f32 * self.scale;
                 let data = hmgui.data_mut(self.hash);
                 let text_view = data.text_view.as_mut().expect("Text view data was not set");
 
@@ -369,19 +438,10 @@ impl HmGuiWidget {
                     container.draw(hmgui, pos, size);
                 }
                 WidgetItem::Text(text) => {
-                    // centred in the widget; a cut text fills it from the left
-                    let x = if text.shown.is_some() {
-                        pos.x
-                    } else {
-                        pos.x + (size.x - text.size.x) / 2.0
-                    };
-                    // The text's box is the font's line box (ascent + descent),
-                    // so the baseline sits `descent` above its bottom.
-                    let y = pos.y + self.min_size.y
-                        - (self.border_width * 2.0 + self.margin_upper.y + self.margin_lower.y)
-                        - text.font.descent() as f32;
+                    let bottom = pos.y + self.min_size.y
+                        - (self.border_width * 2.0 + self.margin_upper.y + self.margin_lower.y);
 
-                    text.draw(&mut hmgui.renderer, Vec2::new(x, y));
+                    text.draw(&mut hmgui.renderer, pos.x, size.x, bottom);
                 }
                 WidgetItem::Rect => {}
                 WidgetItem::Shape(shape) => {
@@ -443,6 +503,7 @@ impl HmGuiWidget {
         println!("{ident_str}{IDENT}- margin_upper:     {:?}", self.margin_upper);
         println!("{ident_str}{IDENT}- margin_lower:     {:?}", self.margin_lower);
         println!("{ident_str}{IDENT}- border_width:     {}",   self.border_width);
+        println!("{ident_str}{IDENT}- scale:            {} (own {})", self.scale, self.own_scale);
         println!("{ident_str}{IDENT}- background_color: {:?}", self.background_color);
         println!("{ident_str}{IDENT}- opacity:          {}", self.opacity);
         println!("{ident_str}{IDENT}- min_size:         {:?}", self.min_size);

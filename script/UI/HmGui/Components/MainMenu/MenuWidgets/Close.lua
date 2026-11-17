@@ -9,7 +9,7 @@ local function Close(args)
     return widget(function(self, ctx)
         MenuStyle.beginAt(ctx, args.x, args.y, 36, 36)
         local hover = Gui:isMouseOver(FocusType.Mouse)
-        Gui:text("×", MenuStyle.fontOf("regular", 30, ctx.s), hover and C.textHover or C.dim)
+        Gui:text("×", MenuStyle.fontOf("regular", 30), hover and C.textHover or C.dim)
         Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
         Gui:endContainer()
         if hover and MenuStyle.clicked() then

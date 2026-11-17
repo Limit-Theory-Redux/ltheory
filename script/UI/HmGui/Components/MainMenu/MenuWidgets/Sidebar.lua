@@ -8,12 +8,12 @@ local renderChildren, widget = Common.renderChildren, Common.widget
 ---@param args { contents: table|function }
 local function Sidebar(args)
     return widget(function(self, ctx)
-        local s = ctx.s
         Gui:beginStackContainer()
-        Gui:setPosition(MenuStyle.SIDEBAR_X * s, 0)
-        Gui:setFixedSize(MenuStyle.SIDEBAR_WIDTH * s, Window:height())
+        Gui:setPosition(MenuStyle.SIDEBAR_X, 0)
+        Gui:setFixedWidth(MenuStyle.SIDEBAR_WIDTH)
+        Gui:setPercentHeight(100)
         Gui:setBackgroundColor(C.sidebar)
-        renderChildren(args.contents, { s = s, ox = 0, oy = ctx.oy })
+        renderChildren(args.contents, { s = ctx.s, ox = 0, oy = ctx.oy })
         Gui:endContainer()
     end)
 end

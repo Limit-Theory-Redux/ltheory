@@ -8,7 +8,6 @@ local value, makeToolTip, widget = Common.value, Common.makeToolTip, Common.widg
 local function Button(args)
     local toolTip = makeToolTip(args.toolTip)
     return widget(function(self, ctx)
-        local s = ctx.s
         local enabled = not args.enabled or args.enabled()
         MenuStyle.beginAt(ctx, args.x, args.y, args.w, args.h)
         local hover = enabled and Gui:isMouseOver(FocusType.Mouse)
@@ -20,12 +19,12 @@ local function Button(args)
             Gui:setBackgroundColor(hover and C.buttonHover or C.button)
             Gui:setBorderColor(C.buttonBorder)
         end
-        Gui:setBorderWidth(MenuStyle.border(1, s))
+        Gui:setBorderWidth(1)
         local title = value(args.title)
         if args.uppercase ~= false then
             title = string.upper(title)
         end
-        Gui:text(title, MenuStyle.fontOf("light", args.size or 23, s), enabled and C.text or C.disabled)
+        Gui:text(title, MenuStyle.fontOf("light", args.size or 23), enabled and C.text or C.disabled)
         Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
         Gui:endContainer()
         if toolTip then toolTip:render() end

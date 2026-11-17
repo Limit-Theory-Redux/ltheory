@@ -179,6 +179,9 @@ function ScrollArea:new(args)
 
         Gui:endContainer() -- internal container
 
+        -- the sizes above are screen pixels; sizes set inside are design pixels
+        local scale = Gui:containerScale()
+
         local hScroll = self.state.showHScrollbar and (self.state.scrollDirection ~= Enums.UI.ScrollDirection.Vertical)
         local vScroll = self.state.showVScrollbar and (self.state.scrollDirection ~= Enums.UI.ScrollDirection.Horizontal)
 
@@ -230,8 +233,8 @@ function ScrollArea:new(args)
                     Gui:beginHorizontalContainer()
                     Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Bottom)
 
-                    local knobSize = innerSize.x * (innerSize.x / innerMinSize.x);
-                    local knobPos = lerp(0, (innerSize.x - knobSize), (innerOffset.x / maxScroll.x));
+                    local knobSize = innerSize.x * (innerSize.x / innerMinSize.x) / scale;
+                    local knobPos = lerp(0, (innerSize.x / scale - knobSize), (innerOffset.x / maxScroll.x));
 
                     Gui:rect();
                     Gui:setFixedSize(knobPos, sbSize);
@@ -253,8 +256,8 @@ function ScrollArea:new(args)
                     Gui:beginVerticalContainer()
                     Gui:setAlignment(AlignHorizontal.Right, AlignVertical.Stretch)
 
-                    local knobSize = innerSize.y * (innerSize.y / innerMinSize.y);
-                    local knobPos = lerp(0, (innerSize.y - knobSize), (innerOffset.y / maxScroll.y));
+                    local knobSize = innerSize.y * (innerSize.y / innerMinSize.y) / scale;
+                    local knobPos = lerp(0, (innerSize.y / scale - knobSize), (innerOffset.y / maxScroll.y));
 
                     Gui:rect();
                     Gui:setFixedSize(sbSize, knobPos);

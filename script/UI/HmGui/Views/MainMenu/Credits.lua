@@ -61,24 +61,23 @@ local MODAL_W = 590
 local creditsList = UIComponent.MenuRaw {
     x = 0, y = 180, w = MODAL_W, h = 730,
     fn = function(ctx)
-        local s = ctx.s
         local C = MenuStyle.color
         Gui:beginVerticalContainer()
         Gui:setAlignment(AlignHorizontal.Stretch, AlignVertical.Top)
         Gui:setChildrenAlignment(AlignHorizontal.Center, AlignVertical.Top)
         for _, line in ipairs(lines) do
             if line.kind == "heading" then
-                Gui:text(line.text, MenuStyle.fontOf("light", 37, s), C.heading)
+                Gui:text(line.text, MenuStyle.fontOf("light", 37), C.heading)
                 Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Top)
-                Gui:setMarginEx(0, 16 * s, 0, 4 * s)
+                Gui:setMarginEx(0, 16, 0, 4)
             elseif line.kind == "role" then
-                Gui:text(line.text, MenuStyle.fontOf("light", 27, s), C.subheading)
+                Gui:text(line.text, MenuStyle.fontOf("light", 27), C.subheading)
                 Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Top)
-                Gui:setMarginEx(0, 8 * s, 0, 2 * s)
+                Gui:setMarginEx(0, 8, 0, 2)
             else
-                Gui:text(line.text, MenuStyle.fontOf("light", 25, s), C.text)
+                Gui:text(line.text, MenuStyle.fontOf("light", 25), C.text)
                 Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Top)
-                Gui:setMarginEx(0, 3 * s, 0, 3 * s)
+                Gui:setMarginEx(0, 3, 0, 3)
             end
         end
         Gui:endContainer()
