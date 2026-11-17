@@ -45,7 +45,11 @@ end
 -- top speed scales with the thrust, so boosting triples it.
 local BOOST_SPEED_FACTOR = 3
 
-local speedTape = UIComponent.SpeedTape { visible = hudVisible }
+-- Sized like the rest of the HUD: to the window height, times the UI Scale setting.
+local speedTape = UIComponent.SpeedTape {
+    visible = hudVisible,
+    scale = function() return Window:height() / 1080 * GameState.ui.hudScale end,
+}
 
 local function updateSpeedTape(ship, dt)
     local drive = ship:get(ConstructComponents.TravelDrive)
@@ -223,15 +227,17 @@ function InGame:onViewOpen(isPageOpen)
 end
 
 ------------------------------------------------------------------------------
--- Components. Each is a screen-filling container (UIComponent.Container always
--- fills its parent) that places its text with alignment and padding. Every
--- text here is outlined (a halo, plus a 1 px outline from 24 px), so it stays
--- readable in front of a sun or a bright nebula. (The speed tape draws its own
--- text, its tag on a dark ground.)
+-- Components. Each is a screen-filling container (a UIComponent.Container
+-- fills its parent by default) that places its text with alignment and
+-- padding. Every text here is outlined (a halo, plus a 1 px outline from 24 px),
+-- so it stays readable in front of a sun or a bright nebula. (The speed tape
+-- draws its own text, its tag on a dark ground.)
 
---- Sizes scale with the window height (1080 p = 1).
-local function px(n)
-    return math.floor(n * math.max(0.7, math.min(1.3, Window:height() / 1080)))
+--- The HUD's UI scale (each container's `scale`): its sizes are for a 1080p
+--- window and grow and shrink with the window height, within 0.7 and 1.3,
+--- times the player's UI Scale setting (Settings > Interface, 100 % by default).
+local function hudScale()
+    return math.max(0.7, math.min(1.3, Window:height() / 1080)) * GameState.ui.hudScale
 end
 
 local AUTOPILOT_COLOR = Color(0.51, 0.92, 1.00, 1.0)
@@ -244,13 +250,15 @@ local travelBlock = UIComponent.Container {
     align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
     layoutType = GuiLayoutType.Vertical,
     childrenAlign = { AlignHorizontal.Center, AlignVertical.Top },
-    padding = function() return { 0, math.floor(Window:height() * 0.30) - px(34) - px(28) } end,
+    scale = hudScale,
+    -- 30 % of the window height down to the drive text (padding is in HUD pixels)
+    padding = function() return { 0, Window:height() * 0.30 / hudScale() - 34 - 28 } end,
     contents = {
         UIComponent.Text {
             text = function() return hud.autopilotText end,
             font = "Unageo-Medium",
-            size = function() return px(24) end,
-            height = function() return px(34) end,
+            size = 24,
+            height = 34,
             color = AUTOPILOT_COLOR,
             outline = true,
         },
@@ -258,7 +266,7 @@ local travelBlock = UIComponent.Container {
             visible = function() return hud.driveText ~= "" end,
             text = function() return hud.driveText end,
             font = "Unageo-Semibold",
-            size = function() return px(46) end,
+            size = 46,
             color = function() return Color(1.0, 1.0, 1.0, hud.driveAlpha) end,
             outline = true,
         },
@@ -270,12 +278,13 @@ local zoneLine = UIComponent.Container {
     align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
     layoutType = GuiLayoutType.Vertical,
     childrenAlign = { AlignHorizontal.Left, AlignVertical.Top },
-    padding = function() return { px(40), px(30) } end,
+    scale = hudScale,
+    padding = { 40, 30 },
     contents = {
         UIComponent.Text {
             text = function() return hud.zoneText end,
             font = "UbuntuBold",
-            size = function() return px(18) end,
+            size = 18,
             color = ZONE_COLOR,
             outline = true,
         },
@@ -293,8 +302,8 @@ for i = 1, MAX_OVERLAY_LINES do
         visible = function() return hud.overlayLines[i] ~= nil end,
         text = function() return hud.overlayLines[i] or "" end,
         font = "Unageo-Medium",
-        size = function() return px(15) end,
-        height = function() return px(24) end,
+        size = 15,
+        height = 24,
         color = OVERLAY_COLOR,
         outline = true,
     }
@@ -305,7 +314,8 @@ local scenarioText = UIComponent.Container {
     align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
     layoutType = GuiLayoutType.Vertical,
     childrenAlign = { AlignHorizontal.Left, AlignVertical.Top },
-    padding = function() return { px(40), px(80) } end,
+    scale = hudScale,
+    padding = { 40, 80 },
     contents = overlayTexts,
 }
 
@@ -313,12 +323,13 @@ local cameraLabel = UIComponent.Container {
     visible = function() return hudVisible() and hud.cameraText ~= "" end,
     align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
     childrenAlign = { AlignHorizontal.Center, AlignVertical.Top },
-    padding = function() return { 0, px(30) } end,
+    scale = hudScale,
+    padding = { 0, 30 },
     contents = {
         UIComponent.Text {
             text = function() return hud.cameraText end,
             font = "Unageo-Medium",
-            size = function() return px(20) end,
+            size = 20,
             color = function() return Color(0.80, 0.88, 0.97, hud.cameraAlpha) end,
             outline = true,
         },
@@ -329,13 +340,14 @@ local cameraLabel = UIComponent.Container {
 -- replaces this view, so it never shows there.)
 local pausedText = UIComponent.Container {
     visible = function() return hudVisible() and GameState.paused end,
+    scale = hudScale,
     align = { AlignHorizontal.Stretch, AlignVertical.Stretch },
     childrenAlign = { AlignHorizontal.Center, AlignVertical.Center },
     contents = {
         UIComponent.Text {
             text = "PAUSED",
             font = "Unageo-Semibold",
-            size = function() return px(46) end,
+            size = 46,
             color = Color(1.0, 1.0, 1.0, 1.0),
             outline = true,
         },

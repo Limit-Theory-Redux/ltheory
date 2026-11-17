@@ -1942,4 +1942,216 @@ mod tests {
             ),
         );
     }
+
+    // set_scale: what is set inside a scaled container is in design pixels.
+    // Scales nest; sizes, padding, margins and borders all scale.
+    #[test]
+    fn test_hmgui_scale() {
+        let (mut gui, input, mut r) = init_test();
+
+        gui.begin_gui(300.0, 200.0);
+
+        gui.begin_stack_container();
+        gui.set_alignment(AlignHorizontal::Left, AlignVertical::Top);
+        gui.set_scale(2.0);
+        gui.set_padding(5.0, 5.0);
+
+        gui.rect();
+        gui.set_alignment(AlignHorizontal::Left, AlignVertical::Top);
+        gui.set_fixed_size(30.0, 10.0);
+        gui.set_margin(2.0, 2.0);
+        gui.set_border_width(1.0);
+
+        gui.begin_stack_container();
+        gui.set_alignment(AlignHorizontal::Right, AlignVertical::Bottom);
+        gui.set_scale(1.5); // 2 x 1.5 = 3
+        assert_eq!(gui.container_scale(), 3.0); // known while building
+        gui.rect();
+        gui.set_fixed_size(10.0, 10.0);
+        gui.end_container();
+
+        gui.end_container();
+
+        gui.end_gui(&mut r, &input);
+
+        let root_widget_rf = gui.root();
+        let root_widget = root_widget_rf.as_ref();
+
+        check_widget(
+            &root_widget,
+            &WidgetCheck(
+                "Root",
+                (0.0, 0.0),
+                (300.0, 200.0),
+                (300.0, 200.0),
+                Some(vec![WidgetCheck(
+                    "Scaled",
+                    (0.0, 0.0),
+                    (92.0, 52.0), // padding 10 around a 72 x 32 rect
+                    (92.0, 52.0),
+                    Some(vec![
+                        // 60 x 20, margins 4, border 2
+                        WidgetCheck("Rect", (10.0, 10.0), (72.0, 32.0), (60.0, 20.0), None),
+                        WidgetCheck(
+                            "Nested",
+                            (52.0, 12.0),
+                            (30.0, 30.0),
+                            (30.0, 30.0),
+                            Some(vec![WidgetCheck(
+                                "NestedRect",
+                                (52.0, 12.0),
+                                (30.0, 30.0),
+                                (30.0, 30.0),
+                                None,
+                            )]),
+                        ),
+                    ]),
+                )]),
+            ),
+        );
+    }
+
+    // Percentages need no scaling, a text gets its font at the scaled size,
+    // and a layer begun in a scaled container is scaled like it.
+    #[test]
+    fn test_hmgui_scale_percent_text_and_layers() {
+        let (mut gui, input, mut r) = init_test();
+        let font = crate::render::Font::load(&mut r, "Unageo-Medium", 14);
+        let font_x2 = crate::render::Font::load(&mut r, "Unageo-Medium", 28);
+        let text_size = font_x2.get_size2(&mut r, "Scale").as_vec2();
+
+        gui.begin_gui(300.0, 200.0);
+
+        gui.begin_vertical_container();
+        gui.set_alignment(AlignHorizontal::Left, AlignVertical::Top);
+        gui.set_scale(2.0);
+        gui.set_fixed_width(100.0); // 200
+        gui.set_spacing(0.0);
+
+        gui.rect();
+        gui.set_percent_width(50.0); // of 200
+        gui.set_fixed_height(10.0); // 20
+
+        gui.text("Scale", &font, &crate::render::Color::WHITE);
+
+        gui.end_container();
+
+        gui.begin_layer_below();
+        gui.rect();
+        gui.set_alignment(AlignHorizontal::Left, AlignVertical::Top);
+        gui.set_fixed_size(10.0, 5.0); // 20 x 10
+        gui.end_layer();
+
+        gui.end_gui(&mut r, &input);
+
+        let root_widget_rf = gui.root();
+        let root_widget = root_widget_rf.as_ref();
+
+        check_widget(
+            &root_widget,
+            &WidgetCheck(
+                "Root",
+                (0.0, 0.0),
+                (300.0, 200.0),
+                (300.0, 200.0),
+                Some(vec![WidgetCheck(
+                    "Scaled",
+                    (0.0, 0.0),
+                    (200.0, 20.0 + text_size.y),
+                    (200.0, 20.0 + text_size.y),
+                    Some(vec![
+                        WidgetCheck("Half", (0.0, 0.0), (100.0, 20.0), (100.0, 20.0), None),
+                        WidgetCheck(
+                            "Text",
+                            (0.0, 20.0),
+                            (text_size.x, text_size.y),
+                            (text_size.x, text_size.y),
+                            None,
+                        ),
+                    ]),
+                )]),
+            ),
+        );
+
+        let layer_root_rf = gui.layer_root(1);
+        let layer_root = layer_root_rf.as_ref();
+        let layer_rect = layer_root.get_container_item().children[0].as_ref();
+        assert_eq!(layer_rect.size, Vec2::new(20.0, 10.0));
+    }
+
+    // A scaled border lands on whole pixels and stays at least one wide.
+    #[test]
+    fn test_hmgui_scaled_borders() {
+        let (mut gui, input, mut r) = init_test();
+
+        gui.begin_gui(300.0, 200.0);
+
+        for scale in [0.4, 1.4, 2.6] {
+            gui.rect();
+            gui.set_scale(scale);
+            gui.set_border_width(1.0);
+        }
+
+        gui.end_gui(&mut r, &input);
+
+        let root_widget_rf = gui.root();
+        let root_widget = root_widget_rf.as_ref();
+        let borders: Vec<f32> = root_widget
+            .get_container_item()
+            .children
+            .iter()
+            .map(|widget_rf| widget_rf.as_ref().border_width)
+            .collect();
+        assert_eq!(borders, vec![1.0, 1.0, 3.0]);
+    }
+
+    // A text breaks into lines at "\n", and with set_text_wrap where it is
+    // wider than its max width: as wide as its widest line, as high as its
+    // lines a line height apart.
+    #[test]
+    fn test_hmgui_text_lines() {
+        let (mut gui, input, mut r) = init_test();
+        let font = crate::render::Font::load(&mut r, "Unageo-Medium", 14);
+        let color = crate::render::Color::WHITE;
+        let width_of = |r: &mut Renderer, text: &str| font.get_size2(r, text).x as f32;
+        let line_box = (font.ascent() + font.descent()) as f32;
+        let between = font.get_line_height() as f32;
+
+        let one = width_of(&mut r, "one");
+        let three = width_of(&mut r, "three");
+        let one_two = width_of(&mut r, "one two");
+
+        gui.begin_gui(300.0, 200.0);
+
+        gui.begin_vertical_container();
+        gui.set_alignment(AlignHorizontal::Left, AlignVertical::Top);
+        gui.set_spacing(0.0);
+
+        gui.text("one\nthree", &font, &color);
+
+        gui.text("one two three", &font, &color);
+        gui.set_max_width(one_two + 1.0);
+        gui.set_text_wrap(true);
+
+        // without wrap a max width cuts it instead
+        gui.text("one two three", &font, &color);
+        gui.set_max_width(one_two + 1.0);
+
+        gui.end_container();
+        gui.end_gui(&mut r, &input);
+
+        let root_widget_rf = gui.root();
+        let root_widget = root_widget_rf.as_ref();
+        let column = root_widget.get_container_item().children[0].as_ref();
+        let sizes: Vec<Vec2> = column
+            .get_container_item()
+            .children
+            .iter()
+            .map(|widget_rf| widget_rf.as_ref().size)
+            .collect();
+
+        assert_eq!(sizes[0], Vec2::new(one.max(three), line_box + between));
+        assert_eq!(sizes[1], Vec2::new(one_two.max(three), line_box + between));
+        assert_eq!(sizes[2], Vec2::new(one_two + 1.0, line_box));
+    }
 }

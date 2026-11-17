@@ -10,7 +10,7 @@ local function Image(args)
     return widget(function(self, ctx)
         MenuStyle.beginAt(ctx, args.x, args.y, args.w, h)
         Gui:image(args.image)
-        Gui:setFixedSize(args.w * ctx.s, h * ctx.s)
+        Gui:setFixedSize(args.w, h)
         Gui:endContainer()
     end)
 end

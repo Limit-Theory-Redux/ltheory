@@ -16,7 +16,6 @@ local function Label(args)
         if args.visible and not args.visible() then
             return
         end
-        local s = ctx.s
         local size = args.size or 27
         local h = args.h or size * 1.5
         local w = args.w
@@ -27,12 +26,12 @@ local function Label(args)
             MenuStyle.beginAt(ctx, args.x, args.y, w, h)
         else
             MenuStyle.beginAt(ctx, args.x, args.y)
-            Gui:setFixedHeight(h * s)
+            Gui:setFixedHeight(h)
         end
-        Gui:text(tostring(value(args.text)), MenuStyle.fontOf(args.font or "light", size, s), value(args.color) or C.label)
+        Gui:text(tostring(value(args.text)), MenuStyle.fontOf(args.font or "light", size), value(args.color) or C.label)
         Gui:setAlignment(hAlign, AlignVertical.Center)
         if w then
-            Gui:setMaxWidth(w * s)
+            Gui:setMaxWidth(w)
         end
         Gui:endContainer()
     end)

@@ -29,12 +29,16 @@ pub struct HmGuiLayer {
     pub container: Rf<HmGuiWidget>,
     /// Either last created/initialized widget (container, image, text, rect) or the last widget of the ended container
     pub last: Rf<HmGuiWidget>,
+    /// The UI scale the layer starts with: that of the widget it was begun in
+    /// (`HmGui::set_scale`), so a dropdown list or tooltip is scaled like the
+    /// widget it belongs to.
+    pub scale: f32,
 }
 
 // TODO: root widget of the layer has a fixed size. Check if it would be possible to make it flexible (via alignment)
 // so there is no need to add internal container to have properly sized visualization
 impl HmGuiLayer {
-    pub fn new_fixed(prev_index: usize, pos: Vec2, size: Vec2) -> Self {
+    pub fn new_fixed(prev_index: usize, pos: Vec2, size: Vec2, scale: f32) -> Self {
         let mut widget = HmGuiWidget::new(None, WidgetItem::Container(Default::default()));
 
         widget.hash = Hash::fnv64_init();
@@ -54,10 +58,11 @@ impl HmGuiLayer {
             root,
             container,
             last,
+            scale,
         }
     }
 
-    pub fn new_below(prev_index: usize, below: Rf<HmGuiWidget>) -> Self {
+    pub fn new_below(prev_index: usize, below: Rf<HmGuiWidget>, scale: f32) -> Self {
         let mut widget = HmGuiWidget::new(None, WidgetItem::Container(Default::default()));
 
         widget.hash = Hash::fnv64_init();
@@ -72,6 +77,7 @@ impl HmGuiLayer {
             root,
             container,
             last,
+            scale,
         }
     }
 

@@ -16,6 +16,7 @@ local meta = {
 ---@field childrenAlign table<AlignHorizontal, AlignVertical>
 ---@field width number|string|nil `"fill"` (the default: the parent's width), `"fit"` (as wide as the contents), a number of pixels (fixed), or a percentage of the parent's width such as `"50%"`
 ---@field height number|string|nil the same for the height
+---@field scale number|nil a UI scale for the container and everything in it (Gui:setScale): their sizes, paddings, margins and font sizes are design pixels, this many screen pixels each
 ---@field widthInLayout number
 ---@field heightInLayout number
 ---@field padding { paddingX: number, paddingY: number }|nil
@@ -33,6 +34,7 @@ local meta = {
 ---@field childrenAlign table<AlignHorizontal, AlignVertical>
 ---@field width number|string|nil `"fill"` (the default: the parent's width), `"fit"` (as wide as the contents), a number of pixels (fixed), or a percentage of the parent's width such as `"50%"`
 ---@field height number|string|nil the same for the height
+---@field scale number|nil a UI scale for the container and everything in it (Gui:setScale): their sizes, paddings, margins and font sizes are design pixels, this many screen pixels each
 ---@field widthInLayout number
 ---@field heightInLayout number
 ---@field padding { paddingX: number, paddingY: number }|nil
@@ -91,6 +93,7 @@ function Container:new(args)
         widthInLayout = args.widthInLayout,
         heightInLayout = args.heightInLayout,
         layoutType = args.layoutType or GuiLayoutType.Horizontal,
+        scale = args.scale,
         contents = args.contents,
         color = {
             background = args.color and args.color.background
@@ -105,6 +108,10 @@ function Container:new(args)
         end
 
         Gui:beginContainer(self.state.layoutType())
+
+        if self.state.scale then
+            Gui:setScale(self.state.scale()) -- before the children: layers begun in it take it too
+        end
 
         if self.state.color().background then
             Gui:setBackgroundColor(self.state.color().background)

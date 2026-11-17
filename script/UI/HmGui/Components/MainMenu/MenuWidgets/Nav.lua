@@ -11,7 +11,6 @@ local function Nav(args)
     local size = args.size or 30
     local indent = args.indent or 86
     return widget(function(self, ctx)
-        local s = ctx.s
         local width = MenuStyle.SIDEBAR_WIDTH
         local selected = value(args.selected)
         for index, item in ipairs(args.items) do
@@ -21,14 +20,14 @@ local function Nav(args)
                 for _, edge in ipairs({ AlignVertical.Top, AlignVertical.Bottom }) do
                     Gui:rect()
                     Gui:setAlignment(AlignHorizontal.Right, edge)
-                    Gui:setFixedSize((width - 14) * s, MenuStyle.border(1, s))
+                    Gui:setFixedSize(width - 14, MenuStyle.line(1, ctx.s))
                     Gui:setBackgroundColor(C.rule)
                 end
             end
-            Gui:text(string.upper(item.title), MenuStyle.fontOf("light", size, s), hover and C.textHover or C.text)
+            Gui:text(string.upper(item.title), MenuStyle.fontOf("light", size), hover and C.textHover or C.text)
             if args.align == "left" then
                 Gui:setAlignment(AlignHorizontal.Left, AlignVertical.Center)
-                Gui:setMarginEx(indent * s, 0, 0, 0)
+                Gui:setMarginEx(indent, 0, 0, 0)
             else
                 Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
             end
