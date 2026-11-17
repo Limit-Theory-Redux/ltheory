@@ -5,7 +5,7 @@
 --- cost zone is gone around where that is cheaper than crossing it.
 --- Pure numbers in and out (no entities, no globals), so it runs on a worker or in a test state.
 --- Not reentrant: it keeps module scratch state.
---- Design: doc/script/system-planner.md.
+--- Design: doc/script/nav/system-planner.md.
 local OrbitMath       = require("Shared.Helpers.OrbitMath")
 local TravelDriveMath = require("Shared.Helpers.TravelDriveMath")
 

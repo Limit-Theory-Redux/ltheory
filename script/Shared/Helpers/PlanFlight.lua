@@ -2,7 +2,7 @@
 -- contract, the request for the path and the plan state that comes of it, the phase of the flight,
 -- and the travel drive on the plan's legs and on the final approach. The caller owns the NavWorld,
 -- steps it, and writes the axes; this module decides the goals and the drive.
--- Design: doc/script/system-planner.md
+-- Design: doc/script/nav/system-planner.md
 
 local ConstructComponents  = require("Modules.Constructs.Components")
 local NavigationComponents = require("Modules.Navigation.Components")

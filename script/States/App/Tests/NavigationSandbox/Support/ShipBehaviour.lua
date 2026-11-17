@@ -2,7 +2,7 @@
 -- Follow, Orbit): issuing each one to the `NavWorld`, the point the ship is to be at, and the
 -- verdict on whether it has done what the behaviour asks. The geometry here is the sandbox's own,
 -- written from the behaviour's definition, so it checks the engine's maths instead of repeating it.
--- Design: doc/script/navigation-sandbox.md
+-- Design: doc/script/nav/navigation-sandbox.md
 
 local Metres               = require("States.App.Tests.NavigationSandbox.Support.Metres")
 local ConstructComponents  = require("Modules.Constructs.Components")

@@ -358,7 +358,7 @@ end
 
 --- Order System: flies the head order of every ship that has orders. A ship with an order is an
 --- agent of the navigation world, and the system writes its control input from the world's axes
---- every update; a ship with no order left leaves the world and drifts. Design: doc/script/navigation.md
+--- every update; a ship with no order left leaves the world and drifts. Design: doc/script/nav/navigation.md
 ---@class OrderSystem
 ---@overload fun(): OrderSystem
 local OrderSystem = Class("OrderSystem", function(self)

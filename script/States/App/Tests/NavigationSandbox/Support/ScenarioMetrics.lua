@@ -1,7 +1,7 @@
 -- Records one sandbox scenario run: arrivals, waypoints, collisions, deadlocks and the times
 -- of the navigation step, the glue and the actuation, with events logged as they happen and a
 -- summary at the end. Thresholds are authored in metres.
--- Design: doc/script/navigation-sandbox.md
+-- Design: doc/script/nav/navigation-sandbox.md
 local ScaleConfig   = require("Config.Gen.UniverseScaleConfig")
 local ShipBehaviour = require("States.App.Tests.NavigationSandbox.Support.ShipBehaviour")
 local Metres        = require("States.App.Tests.NavigationSandbox.Support.Metres")

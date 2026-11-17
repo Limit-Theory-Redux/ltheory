@@ -1,7 +1,7 @@
 -- The client of the system planner's worker: sends a request (bodies, endpoints, ship, optional
 -- travel-drive block) and hands back the plan when it has come. One worker serves the whole Lua
 -- state; it starts with the first request.
--- Design: doc/script/system-planner.md
+-- Design: doc/script/nav/system-planner.md
 local SystemPlanner = require("Shared.Helpers.SystemPlanner")
 
 local WORKER_NAME   = "SystemPlanner"

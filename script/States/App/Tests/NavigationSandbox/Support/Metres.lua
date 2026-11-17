@@ -1,5 +1,5 @@
 -- Converts the metres a scenario is authored in to game units.
--- Design: doc/script/navigation-sandbox.md
+-- Design: doc/script/nav/navigation-sandbox.md
 local ScaleConfig = require("Config.Gen.UniverseScaleConfig")
 
 ---@class Metres

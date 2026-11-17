@@ -1,6 +1,6 @@
 -- The cost zones of the system as the planner's zone buffer: every zone that carries a path cost,
 -- with its cost multiplied by the weight a cost profile gives its tags.
--- Design: doc/script/system-planner.md
+-- Design: doc/script/nav/system-planner.md
 
 local Registry            = require("Core.ECS.Registry")
 local CoreComponents      = require("Modules.Core.Components")

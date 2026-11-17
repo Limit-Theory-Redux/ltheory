@@ -1302,7 +1302,7 @@ fn a_goal_on_a_body_that_can_outrun_the_ship_is_an_error() {
 // ---- The goal body's gravity well ----
 
 /// The radius of the well the planet in these tests carries ships in, and the share of it that the
-/// entry waypoint lies at (the rule of `doc/script/system-planner.md`).
+/// entry waypoint lies at (the rule of `doc/script/nav/system-planner.md`).
 const WELL_RADIUS: f64 = 10000.0;
 const WELL_ENTRY_SHARE: f64 = 0.95;
 const WELL_ORBIT_RADIUS: f64 = 100000.0;

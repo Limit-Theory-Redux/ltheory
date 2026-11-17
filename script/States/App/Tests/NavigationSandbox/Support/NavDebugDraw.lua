@@ -1,7 +1,7 @@
 -- Debug drawing of lines and spheres at world `Position`s. The render pipeline draws with the
 -- eye at the origin, so each point is made camera-relative in double precision first.
 -- Call between `begin` and `finish`, inside a render function (an open scene pass).
--- Design: doc/script/navigation-sandbox.md
+-- Design: doc/script/nav/navigation-sandbox.md
 local CameraManager = require("Modules.Cameras.Managers.CameraManager")
 local Cache         = require("Render.Cache")
 local Pipelines     = require("Render.Pipelines")

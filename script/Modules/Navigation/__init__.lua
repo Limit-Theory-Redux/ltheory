@@ -1,6 +1,6 @@
 -- Navigation orders: what a ship is told to do, as an order entity linked to the ship. The issuer
 -- gets the order's entity, reads its status and progress, and releases it when it has ended.
--- Design: doc/script/navigation.md
+-- Design: doc/script/nav/navigation.md
 
 local Registry            = require("Core.ECS.Registry")
 local Entity              = require("Core.ECS.Entity")

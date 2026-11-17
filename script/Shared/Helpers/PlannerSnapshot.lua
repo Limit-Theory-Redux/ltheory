@@ -2,7 +2,7 @@
 -- body of the planner's body buffer (orbits at the moment of the snapshot, hull and safe radii,
 -- travel-drive zones), the cost zones weighted by a cost profile, and the frames that place a
 -- plan's waypoints as the bodies move on.
--- Design: doc/script/system-planner.md
+-- Design: doc/script/nav/system-planner.md
 
 local Registry            = require("Core.ECS.Registry")
 local CoreComponents      = require("Modules.Core.Components")

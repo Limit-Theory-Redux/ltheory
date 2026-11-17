@@ -2,7 +2,7 @@
 -- A task is a table of numbers (see `Run`); the result carries the kernel's status, its waypoints
 -- and the time the kernel took. Payload arrays arrive as Lua tables, so they are copied into the
 -- `double[?]` buffers the kernel takes; the buffers are kept between tasks of this worker.
--- Design: doc/script/system-planner.md
+-- Design: doc/script/nav/system-planner.md
 package.path = package.path .. ';./engine/lib/phx/script/?.lua'
 package.path = package.path .. ';./script/?.lua'
 

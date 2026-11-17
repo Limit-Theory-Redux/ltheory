@@ -1,7 +1,7 @@
 --- Travel-drive maths: the speed cap a zone puts on the drive, and the braking law that brings a
 --- ship in on a goal. Pure numbers in and out (no entities, no config, no globals), so the game's
 --- systems and the system planner kernel, which runs on a worker, share one implementation.
---- Design: doc/script/zones.md, doc/script/system-planner.md.
+--- Design: doc/script/zones.md, doc/script/nav/system-planner.md.
 local log, min, max = math.log, math.min, math.max
 
 local TravelDriveMath = {}

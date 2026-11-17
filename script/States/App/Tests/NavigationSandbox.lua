@@ -2,7 +2,7 @@
 -- them to their targets through a `NavWorld`, logs the metrics and ends with an exit code.
 -- `NavigationSandbox` runs every scenario in turn; `NavigationSandbox/<Name>` runs one. A run
 -- fails on a collision, a deadlock, or a ship that doesn't finish in time.
--- Design: doc/script/navigation-sandbox.md
+-- Design: doc/script/nav/navigation-sandbox.md
 local Application           = require("States.Application")
 local Registry              = require("Core.ECS.Registry")
 local DrawEx                = require("UI.DrawEx")

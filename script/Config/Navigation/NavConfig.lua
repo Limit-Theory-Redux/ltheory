@@ -1,5 +1,5 @@
 -- Values the navigation orders fly by. Authored in metres, converted to game units on use.
--- Design: doc/script/navigation.md
+-- Design: doc/script/nav/navigation.md
 
 local ScaleConfig = require("Config.Gen.UniverseScaleConfig")
 

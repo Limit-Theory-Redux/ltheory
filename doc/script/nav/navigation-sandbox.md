@@ -1,6 +1,6 @@
 # Navigation sandbox
 
-`Tests/NavigationSandbox` runs navigation scenarios with nobody at the window. It spawns each scenario's ships in an empty scene, steers them through a `NavWorld` (see [navigation maths](../engine/nav.md)), logs what happens and ends with an exit code, so a script or CI can run it and judge the result.
+`Tests/NavigationSandbox` runs navigation scenarios with nobody at the window. It spawns each scenario's ships in an empty scene, steers them through a `NavWorld` (see [navigation maths](../../engine/nav.md)), logs what happens and ends with an exit code, so a script or CI can run it and judge the result.
 
 Code: `script/States/App/Tests/NavigationSandbox.lua` and `script/States/App/Tests/NavigationSandbox/`.
 
@@ -74,15 +74,15 @@ The sandbox draws, in the additive pass, for each ship:
 | Line from the ship to its target | The straight course, while the ship is flying |
 | Grey filled sphere at an obstacle | Its radius |
 
-![A CircleSwap run seen from above: filled blue spheres mark the eight flying ships, wireframe spheres their targets on the opposite side of the circle, and thin lines the straight courses](../images/navigation-sandbox/circle-swap.png)
+![A CircleSwap run seen from above: filled blue spheres mark the eight flying ships, wireframe spheres their targets on the opposite side of the circle, and thin lines the straight courses](../../images/navigation-sandbox/circle-swap.png)
 
 Filled spheres are drawn at a small fraction of their colour: the additive pass is exposed for dim content, and a full-strength fill saturates to white.
 
 ## Steering
 
-The sandbox creates a `NavWorld` over the scenario's physics world. Each ship is an agent (its flight profile's drags, thrusts and torques; the mass and inertia come from its body), sensing is turned on with `setSensing` so each ship finds the obstacles (kinematic bodies in the physics world) with a ball query, and each ship's behaviour is set once every agent is registered: `setArrive` to its target with the arrival range as radius, or the behaviour its spec asks for. The maths is in [navigation maths](../engine/nav.md); the sandbox only runs the frame:
+The sandbox creates a `NavWorld` over the scenario's physics world. Each ship is an agent (its flight profile's drags, thrusts and torques; the mass and inertia come from its body), sensing is turned on with `setSensing` so each ship finds the obstacles (kinematic bodies in the physics world) with a ball query, and each ship's behaviour is set once every agent is registered: `setArrive` to its target with the arrival range as radius, or the behaviour its spec asks for. The maths is in [navigation maths](../../engine/nav.md); the sandbox only runs the frame:
 
-- **PreSim.** `NavWorld:step()`, then the glue: the agents of ships whose `removeAtS` has come are removed and the ships whose `joinAtS` has come are added (removals first, so a ship that joins at once takes the freed slot); `copyAxes` and `copyArrived` over `slotCount()` agents into two preallocated buffers with room for every ship; a route ship that has arrived gets its next waypoint (`setArrive`), a Seek ship that has passed a point gets the next one and then `setArrive`, a Hold ship is switched with `setHold`, a finished ship's behaviour is cleared once (`clearBehaviour`; not for ships that track a moving point, which keep it), and each ship's six axes are written into its `ControlInputComponent`, like any other writer (see [flight control](flight.md)).
+- **PreSim.** `NavWorld:step()`, then the glue: the agents of ships whose `removeAtS` has come are removed and the ships whose `joinAtS` has come are added (removals first, so a ship that joins at once takes the freed slot); `copyAxes` and `copyArrived` over `slotCount()` agents into two preallocated buffers with room for every ship; a route ship that has arrived gets its next waypoint (`setArrive`), a Seek ship that has passed a point gets the next one and then `setArrive`, a Hold ship is switched with `setHold`, a finished ship's behaviour is cleared once (`clearBehaviour`; not for ships that track a moving point, which keep it), and each ship's six axes are written into its `ControlInputComponent`, like any other writer (see [flight control](../flight.md)).
 - **Sim.** `ShipFlightSystem` turns the control inputs into forces, the circling obstacles get their kinematic targets, and the physics world steps.
 
 A ship that has finished has no behaviour, so it gets zero axes and drag brings it to rest. A ship that is not an agent (yet to join, or removed) is not written to: a removed ship's control input is cleared when it is removed. The `NavWorld` is dropped before a scenario's bodies are removed, because the registered agents' bodies must stay in physics while it exists.
@@ -120,4 +120,4 @@ Collisions are counted from bounding-sphere overlap instead of from the physics 
 A scenario fails on a ship–obstacle or a ship–ship collision (a removed ship's body counts as a ship), on a deadlock, on a ship that joins into another slot than the one it was to take, on a Seek point passed at the wrong speed, on a ship flying over its cap, when a ship that was to arrive (reach its station, finish its turn) is still flying at its time limit (route ships fly on by design), or when a Plan ship's plan never arrives or its status is not `Ok`, or when a ship does not do what its `expect` says (it enters a zone it was to avoid, keeps out of one it was to cross, or asks for another number of plans). A run fails on a failed scenario or on a Lua error. The failure is a warning line, so the remaining scenarios still run, and the app quits with `Core.ExitCode.Failure` after the last one.
 Collisions are found after each physics step, so a ship that crosses a small obstacle between two checks is missed: the count is a lower bound.
 
-`Slice` (100 ships at cruise speed among rocks and a moving planet) is the hardest scenario and does not pass the rule yet: a few ship–planet contacts and deadlocks in narrow gaps remain (see Limits in [navigation maths](../engine/nav.md)). The failure is real, so it stays out of the CI smoke runs, and its debug run takes most of the app run limit.
+`Slice` (100 ships at cruise speed among rocks and a moving planet) is the hardest scenario and does not pass the rule yet: a few ship–planet contacts and deadlocks in narrow gaps remain (see Limits in [navigation maths](../../engine/nav.md)). The failure is real, so it stays out of the CI smoke runs, and its debug run takes most of the app run limit.

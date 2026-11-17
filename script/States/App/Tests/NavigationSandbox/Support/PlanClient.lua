@@ -1,7 +1,7 @@
 -- The sandbox's side of the system planner: sends the shared planner client a snapshot of the
 -- scenario's obstacles as bodies on analytic orbits and of its cost zones weighted by the ship's
 -- profile, and collects the plans that come back, with the time each took from send to receipt.
--- Design: doc/script/system-planner.md
+-- Design: doc/script/nav/system-planner.md
 
 local SystemPlanner        = require("Shared.Helpers.SystemPlanner")
 local PlannerClient        = require("Shared.Helpers.PlanClient")

@@ -1,6 +1,6 @@
 # System planner
 
-`Shared/Helpers/SystemPlanner.lua` plans a path through a system of orbiting bodies as a list of waypoints. It is a pure Lua kernel: numbers in buffers go in, numbers come out, and it touches no entities and no globals, so it runs on a worker (see [Lua workers](workers.md)) or in a Lua test state. Its tests run it through the Lua kernel harness of the `nav` crate (`engine/lib/nav/tests/system_planner.rs`).
+`Shared/Helpers/SystemPlanner.lua` plans a path through a system of orbiting bodies as a list of waypoints. It is a pure Lua kernel: numbers in buffers go in, numbers come out, and it touches no entities and no globals, so it runs on a worker (see [Lua workers](../workers.md)) or in a Lua test state. Its tests run it through the Lua kernel harness of the `nav` crate (`engine/lib/nav/tests/system_planner.rs`).
 
 It plans in the frame of the system: bodies on analytic orbits are placed where they will be when the ship gets there, not where they are now.
 
@@ -17,7 +17,7 @@ It plans in the frame of the system: bodies on analytic orbits are placed where 
 | `Parent` | Index of the parent body, `-1` for none. A parent comes before its children |
 | `X`, `Y`, `Z` | The position of a body that does not orbit; for a body that orbits, the position it circles when it has no parent |
 | `OrbitRadius` | Orbit radius; zero or less means the body stays where it is |
-| `Phase`, `AngularSpeed`, `Inclination` | The orbit at the snapshot, as in [orbits](orbits.md) |
+| `Phase`, `AngularSpeed`, `Inclination` | The orbit at the snapshot, as in [orbits](../orbits.md) |
 | `Radius` | The hull's radius, above zero |
 | `SafeRadius` | The radius the path keeps out of, at least `Radius` |
 | `ZoneRadius` | The radius of the body's travel-drive zone (see [Drive](#drive)); zero for no zone |
@@ -69,9 +69,9 @@ A status other than `Ok` is never hidden: the caller decides whether a plan with
 3. **Detour.** The waypoint is placed in the plane of the leg and the body's centre, half way through the overlap, on the side of the leg away from the centre. It is where the tangents from both ends to a sphere a little larger than the safe sphere (`DETOUR_MARGIN`) meet. When they meet farther than `MAX_DETOUR_RADII` radii from the centre, or not at all, the waypoint is put on the perpendicular at that cap. A body that crosses the leg faster than a fraction of the planning speed (`CROSSING_SPEED_FRACTION`) is passed on the side it is moving away from, so the waypoint is not where the body is heading.
 4. **Recursion.** Both new legs are tested again, with their new times, down to `depthLimit`. A detour that fails further down (its waypoint lies inside another body, or a leg cannot be cleared) is redone on the other side of the body; if both sides fail, the first side's result stands and the status says why.
 
-![A straight leg crosses a safe sphere; the detour waypoint is where the tangents from both ends to a slightly larger sphere meet, half way through the overlap](../images/system-planner/detour.svg)
+![A straight leg crosses a safe sphere; the detour waypoint is where the tangents from both ends to a slightly larger sphere meet, half way through the overlap](../../images/system-planner/detour.svg)
 
-![A body is placed where it will be when the ship passes, so a leg that is clear of its position now can still need a detour](../images/system-planner/predicted-bodies.svg)
+![A body is placed where it will be when the ship passes, so a leg that is clear of its position now can still need a detour](../../images/system-planner/predicted-bodies.svg)
 
 ## Cost zones
 
@@ -84,7 +84,7 @@ A zone is an obstacle that has no hull. The hit test, the overlap walk and the d
 
 The leg goes around the zone when `detourExtra < crossExtra`. Otherwise the zone is waived for that leg, and the leg's next hit is taken. The two legs of a detour are judged again, with every zone back in play.
 
-![A leg crosses a zone for a length L inside it; the detour through w is longer than the leg by detourExtra, and the leg goes around only when that is less than the zone's cost times L](../images/system-planner/cost-zone.svg)
+![A leg crosses a zone for a length L inside it; the detour through w is longer than the leg by detourExtra, and the leg goes around only when that is less than the zone's cost times L](../../images/system-planner/cost-zone.svg)
 
 - **Soft.** A zone never fails a plan. It is crossed at the depth limit, and when the detour on neither side can be planned (the retry on the other side works as for a body). It never gives `EndpointInsideBody`.
 - **Endpoints.** A zone that holds the start (at time zero) or the goal (at the time the ship gets there) is ignored in that plan: entering it cannot be avoided, and a zone's cost is the cost of crossing it. A zone that costs nothing is ignored too.
@@ -118,7 +118,7 @@ flowchart LR
 
 Once the plan has settled, every corner but the goal is rounded into an arc that is tangent to both legs and has a speed the ship can hold it at. This runs for every status that keeps a plan, on the world points of the waypoints at their times.
 
-![A corner is rounded by an arc tangent to both legs: the entry and exit are the tangent length from the corner, and the centre is across the first leg, toward the second](../images/system-planner/corner-arc.svg)
+![A corner is rounded by an arc tangent to both legs: the entry and exit are the tangent length from the corner, and the centre is across the first leg, toward the second](../../images/system-planner/corner-arc.svg)
 
 1. **Radius.** The radius is the smaller of two limits.
    - The leg fit: the tangent length `R · tan(turn / 2)` is at most `ARC_LEG_SHARE` of each adjacent leg, so the arcs of neighbouring corners never overlap.
@@ -143,10 +143,10 @@ With a drive block, a leg is timed as the travel drive flies it, because the dri
 | `RampDown` | The rate of the exponential with which the multiplier falls to a lower target |
 | `MinLength` | The shortest leg flown under the drive, in game units; zero or more |
 
-![The speed along a drive leg: charge, ramp up to the zone cap, a dip in a zone, braking to the release, then the planning speed to the corner; the goal's time is read the arrival radius before the end](../images/system-planner/drive-leg.svg)
+![The speed along a drive leg: charge, ramp up to the zone cap, a dip in a zone, braking to the release, then the planning speed to the corner; the goal's time is read the arrival radius before the end](../../images/system-planner/drive-leg.svg)
 
 1. **Model.** A leg is a chain of time samples from the start of the leg. The ship flies at `speed` while the drive charges. After that the drive's target multiplier is the lowest of the zones' cap at the ship's point and time, `OpenCap`, and the braking law's multiplier for the distance left (`TravelDriveMath.brakingMultiplier`), and at least 1. The multiplier rises and falls toward it as in the table, and the ship's speed follows `speed ·` the multiplier with its drag, the lag of the real ship.
-2. **Zones.** A body's zone caps the drive with `TravelDriveMath.zoneCap`, the formula `GravityWellSystem:getMaxDriveSpeedAt` uses too (see [zones](zones.md)); the zone is where its body is at the time. The braking law, the release distance and the ETA come from the same module, which the autopilot uses (`TravelDriveMath.travelTime`).
+2. **Zones.** A body's zone caps the drive with `TravelDriveMath.zoneCap`, the formula `GravityWellSystem:getMaxDriveSpeedAt` uses too (see [zones](../zones.md)); the zone is where its body is at the time. The braking law, the release distance and the ETA come from the same module, which the autopilot uses (`TravelDriveMath.travelTime`).
 3. **Release.** The drive is released `HANDOVER_MULT · braking time · speed` before the leg's end, and the rest of the leg is flown at `speed`. So a drive leg ends below the multiplier at which the autopilot hands over, and never carries speed into a corner or the goal.
 4. **Policy.** A leg is flown under the drive when its drive timeline ends sooner than flight at `speed`; a leg too short to charge and release is not, and neither is a leg shorter than `MinLength` (such a leg raises no `DriveNotTimed`). Every leg is judged on its own, so a detour splits a drive leg into two, each with its own charge, and the drive is released before every corner. The one exception is the leg that continues a drive run through a well's entry (see below). Arcs are flown at the planning speed, at their turn speed, as without the drive.
 5. **Steps.** A sample step is at most `DRIVE_FEATURE_STEP` of the distance to the nearest zone's edge (counted with the body's speed bound) and of the distance left, and, while the multiplier or the speed is off its target by more than `DRIVE_TRANSIENT_TOLERANCE`, at most `DRIVE_TRANSIENT_STEP` of the shortest time constant. A long cruise therefore costs few steps. A leg that needs more than `MAX_DRIVE_STEPS` is planned at `speed`, with the status `DriveNotTimed`. 6. **Hit tests.** The hit search and the overlap walk read the ship's distance along the leg from the timeline: each step is bounded by the greatest speed of its interval of samples, so no crossing is skipped, and an overlap that the ship leaves and re-enters is followed to its last time.
@@ -170,7 +170,7 @@ A waypoint is a body and an offset from its centre, in world axes, not a fixed p
 
 - **A detour waypoint** is in the frame of the body it goes around. Its offset is the planned point minus the body's position at the time `T` the ship reaches the waypoint, so a ship on schedule flies the path that was tested, and a late ship that resolves the offset against the body where it is then still keeps its distance from it.
 - **The goal** keeps the caller's offset exactly. Where it is depends on when the ship gets there, and when the ship gets there depends on where it is, so the planner plans for the time the last plan arrives and repeats, until two arrival times differ by at most `GOAL_TIME_TOLERANCE` or `MAX_GOAL_ITERATIONS` passes are made. Each pass changes the arrival time by at most the ratio of the frame body's greatest speed (its own orbit and its parents') to the planning speed, so the repetition settles when that ratio is below one. Where a detour appears or disappears as the goal's time changes, the arrival time jumps and has no fixed point: the status is `GoalNotSettled` and the last plan is kept, with waypoints that are valid in their frames and times that are off.
-- **The goal body's well** carries the ship. A ship inside a body's gravity well moves with the body (see [zones](zones.md)), so inside that well the body's own speed does not matter. The planner takes the well to be the body's `ZoneRadius`, and applies it when the goal's offset is inside the *entry radius*, `(1 − WELL_ENTRY_MARGIN)` of that radius (which must be larger than the body's safe radius; a goal farther out, or on a body without a zone, is planned as above). There are three modes:
+- **The goal body's well** carries the ship. A ship inside a body's gravity well moves with the body (see [zones](../zones.md)), so inside that well the body's own speed does not matter. The planner takes the well to be the body's `ZoneRadius`, and applies it when the goal's offset is inside the *entry radius*, `(1 − WELL_ENTRY_MARGIN)` of that radius (which must be larger than the body's safe radius; a goal farther out, or on a body without a zone, is planned as above). There are three modes:
   - *No well:* the plan is one system-frame plan, as above.
   - *Start inside the well:* the whole plan is flown in the body's frame. A leg is a straight line in offsets from the body, tested against the other bodies as they move relative to it, and a detour inside it is a waypoint in the frame of the body it goes around, as always. The body's speed is not used.
   - *Start outside the well:* the plan has a system part up to an **entry waypoint** on the entry sphere, and a part in the body's frame from there to the goal. The entry waypoint is in the goal body's frame, at the point where the straight line from the start to the goal first crosses the entry sphere at the *entry time*. The repetition above settles on the entry time (and the arrival time) together.
@@ -179,9 +179,9 @@ A waypoint is a body and an offset from its centre, in world axes, not a fixed p
 - **Outrun.** Only the part before the well counts. `GoalOutrun` is returned at once when the body's greatest speed is at least the top speed of that part: `speed` times the drive's `OpenCap` with a drive and a well to enter, else `speed`. A goal in a well that the ship starts in is never outrun. If the repetition has not settled and the chord from the start to the entry is no more than the body's greatest speed times the entry time, the ship cannot close on the entry and the status is `GoalOutrun`; otherwise it is `GoalNotSettled`. The drive's top speed is the bound because the planner can still time the part before the well under the drive; a leg shorter than `MinLength` is not.
 - **The system frame** (`SYSTEM_FRAME`) writes the point itself as the offset, the same output as a plan of fixed points.
 
-![A plan to a goal in a moving body's well: the system leg runs to the entry waypoint on the entry sphere, then the framed leg to the goal in the body's frame, as one drive run; a speed-over-time chart shows the speed used on each part: charge and ramp up, the lower of the zone cap and the braking law across the entry, then the planning speed after the release](../images/system-planner/well-entry.svg)
+![A plan to a goal in a moving body's well: the system leg runs to the entry waypoint on the entry sphere, then the framed leg to the goal in the body's frame, as one drive run; a speed-over-time chart shows the speed used on each part: charge and ramp up, the lower of the zone cap and the braking law across the entry, then the planning speed after the release](../../images/system-planner/well-entry.svg)
 
-![A detour waypoint is stored as an offset from the centre of the body at the time the ship gets there, not as a point in the system](../images/system-planner/frames.svg)
+![A detour waypoint is stored as an offset from the centre of the body at the time the ship gets there, not as a point in the system](../../images/system-planner/frames.svg)
 
 The planner does not move the ship: whoever flies the plan resolves each waypoint with the frame body's position now, every frame, and a goal that rides on a body is flown with the body's velocity (see [navigation sandbox](navigation-sandbox.md)).
 

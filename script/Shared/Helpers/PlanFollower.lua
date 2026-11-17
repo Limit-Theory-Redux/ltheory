@@ -4,7 +4,7 @@
 -- frame bodies are now, except a well's entry, which is sought where it is planned to be on arrival;
 -- the arcs are the ones the planner cleared, kept at their planned offsets.
 -- The follower stops after the last corner; the owner flies the leg to the goal.
--- Design: doc/script/system-planner.md
+-- Design: doc/script/nav/system-planner.md
 local SystemPlanner = require("Shared.Helpers.SystemPlanner")
 
 -- A ship on an arc is steered at the point of the arc it would reach in this many seconds at the
