@@ -56,10 +56,12 @@ function InitSystem()
             end
 
             for _, fpath in ipairs(configDir) do
-                -- Skip App.lua, __init__.lua, and Rulesets directory
+                -- Skip App.lua, __init__.lua, and the Rulesets and Scenarios
+                -- directories (loaded through their lists when needed)
                 if fpath ~= "./script/Config/App.lua" and
                     not string.find(fpath, "__init__") and
-                    not string.find(fpath, "Rulesets") then
+                    not string.find(fpath, "Rulesets") and
+                    not string.find(fpath, "Scenarios") then
                     Log.Debug("Loading config file: %s", fpath)
                     local success, res = pcall(dofile, fpath)
                     if not success then

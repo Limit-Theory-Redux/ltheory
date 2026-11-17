@@ -51,6 +51,40 @@ function SolarSystemVisualizer:materialize(physicsWorld)
     self:_hideEmptyRenders()
 end
 
+--- Materialize one celestial body made outside a universe (a scenario's moon,
+--- say) and its children: meshes, materials, and a rigid body added to the
+--- physics world. Its Transform must hold its position and scale (radius).
+---@param entity Entity
+---@param physicsWorld Physics
+function SolarSystemVisualizer:materializeEntity(entity, physicsWorld)
+    -- Parent before children: a planet before its moons and its ring, which read the planet.
+    local existingRender = entity:get(RenderComp)
+    if existingRender and existingRender:getRenderFn() then
+        existingRender:setVisible(true)
+    else
+        local materialized = false
+        for _, kind in ipairs(MATERIALIZED_KINDS) do
+            if entity:get(kind.marker) then
+                self[kind.materialize](self, entity, physicsWorld)
+                materialized = true
+                break
+            end
+        end
+        -- Without meshes or a render fn the renderer would iterate nil meshes
+        if not materialized and existingRender
+            and not existingRender:getMeshes() and not existingRender:getRenderFn() then
+            existingRender:setVisible(false)
+        end
+    end
+
+    local childrenCmp = entity:get(CoreComponents.Children)
+    if childrenCmp then
+        for child in childrenCmp:iterChildren() do
+            self:materializeEntity(child, physicsWorld)
+        end
+    end
+end
+
 --- Hide render components that have neither meshes nor a render fn, to prevent the renderer from
 --- iterating nil meshes.
 function SolarSystemVisualizer:_hideEmptyRenders()

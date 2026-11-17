@@ -134,6 +134,7 @@ Config.game = {
         maxDistance  = 5.0,
         smoothing    = 0.1,
         zoomSpeed    = 0.01,
+        zoomRatio    = 0.15,     -- Each zoom step changes the distance by this fraction (overrides zoomSpeed)
     },
 
     -- Free camera (unattached fly-around view)

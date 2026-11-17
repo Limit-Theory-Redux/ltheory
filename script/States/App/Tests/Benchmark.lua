@@ -1,6 +1,6 @@
 -- Benchmark: scripted, reproducible performance test state.
 --
--- Reuses PlanetTest's proven scene (planet + ring + moons + skybox) via
+-- Reuses PlanetScene's proven scene (planet + ring + moons + skybox) via
 -- subclassing, then overrides the interactive bits:
 --   - onStateInput: disabled (no human input -> deterministic)
 --   - updateOrbitCamera: fixed-rate orbit (no drag/zoom)
@@ -13,7 +13,7 @@
 -- Launch: cargo run -p ltr --features stats-server -- --stats-server 8777 Benchmark
 -- Stats:   curl http://127.0.0.1:8777/stats.json  +  /profile.json
 -- Log:     grep BENCH <logfile>
-local PlanetTest = require('States.App.Tests.PlanetTest')
+local PlanetScene = require('States.App.Tests.PlanetScene')
 
 local CameraManager       = require("Modules.Cameras.Managers.CameraManager")
 local PhysicsComponents   = require("Modules.Physics.Components")
@@ -27,7 +27,7 @@ local RenderComp          = require("Modules.Rendering.Components").Render
 local Registry            = require("Core.ECS.Registry")
 local UniverseScaleConfig = require("Config.Gen.UniverseScaleConfig")
 
-local Benchmark = Subclass("Benchmark", PlanetTest)
+local Benchmark = Subclass("Benchmark", PlanetScene)
 
 -- Deterministic path. Tune to stress the render path.
 local BENCH_ORBIT_RADIUS  = 800       -- camera orbit radius (planet radius * factor)
@@ -57,7 +57,7 @@ local BENCH_SPAWN_TOTAL   = 100       -- max concurrent spawned asteroid entitie
 local BENCH_SPAWN_PER_UPDATE = 5     -- max new entities per spawn check (game default)
 local BENCH_BELT_DRAWN    = 100000    -- max belt-rendered asteroids per frame (render them ALL - no cap)
 
---- Realistic sizes: PlanetTest's planet is a tiny 100-200-unit ball, which
+--- Realistic sizes: PlanetScene's planet is a tiny 100-200-unit ball, which
 --- makes realistic asteroid sizes (0.1-5.0 game units = 1-50 km rocks) look
 --- oversized against it. Rescale the planet to an Earth-sized body via the
 --- scale config (1 Earth radius = 637.1 game units at globalScale 0.0001)
@@ -65,7 +65,7 @@ local BENCH_BELT_DRAWN    = 100000    -- max belt-rendered asteroids per frame (
 --- rebuilds them at the realistic radius (their geometry derives from the
 --- planet radius at creation).
 function Benchmark:createPlanet(seed)
-    PlanetTest.createPlanet(self, seed)
+    PlanetScene.createPlanet(self, seed)
 
     local planetRb = self.planet:get(PhysicsComponents.RigidBody)
     local earthRadius = UniverseScaleConfig:earthRadiiToGameUnits(1)
@@ -97,7 +97,7 @@ function Benchmark:createPlanet(seed)
 end
 
 function Benchmark:onInit()
-    PlanetTest.onInit(self)
+    PlanetScene.onInit(self)
 
     -- Benchmark owns the presentation: force a known resolution + real
     -- fullscreen so results are reproducible without manual window setup
@@ -127,7 +127,7 @@ function Benchmark:onInit()
     AsteroidFieldSystem.setSpawnCaps(BENCH_SPAWN_TOTAL, BENCH_SPAWN_PER_UPDATE)
     AsteroidBeltRenderer.setMaxDrawnPerFrame(BENCH_BELT_DRAWN)
 
-    -- PlanetTest.onInit uses RNG.FromTime() and creates the ring with only
+    -- PlanetScene.onInit uses RNG.FromTime() and creates the ring with only
     -- 20% probability; force a fixed seed and ALWAYS create the ring so the
     -- benchmark scene is deterministic and includes the ring (the visual
     -- anchor for judging render quality).
@@ -197,7 +197,7 @@ function Benchmark:onInit()
     renderCmp:setVisible(true)
     table.insert(self.beltEntities, beltEntity)
 
-    -- Deterministic orbit camera around the planet (override PlanetTest's
+    -- Deterministic orbit camera around the planet (override PlanetScene's
     -- interactive orbit defaults: no drag, no zoom, fixed radius).
     -- Scale the orbit radius to the scene: sit just outside the belt so
     -- asteroids are big in frame (a fixed 800 would leave them tiny dots).
@@ -221,9 +221,9 @@ function Benchmark:onInit()
     self.frameCount = 0
 end
 
--- Wrap PlanetTest's ring creation so the belt can match its geometry.
+-- Wrap PlanetScene's ring creation so the belt can match its geometry.
 function Benchmark:createPlanetRing(seed)
-    PlanetTest.createPlanetRing(self, seed)
+    PlanetScene.createPlanetRing(self, seed)
 
     -- Ring band geometry + tilt (for the asteroid belt to sit inside)
     local planetRadius = self.planet:get(PhysicsComponents.RigidBody):getRadius()
@@ -234,7 +234,7 @@ end
 
 -- Input is a benchmark: no human interaction, no camera drag.
 function Benchmark:onStateInput(data)
-    -- intentionally empty (PlanetTest's input handler is not called)
+    -- intentionally empty (PlanetScene's input handler is not called)
 end
 
 -- Camera rig helpers -------------------------------------------------------
@@ -527,7 +527,7 @@ function Benchmark:onStatePreRender(data)
 end
 
 function Benchmark:onStateSim(data)
-    PlanetTest.onStateSim(self, data)
+    PlanetScene.onStateSim(self, data)
 
     -- Asteroid field: rate-limited spawn/despawn near the camera
     AsteroidFieldSystem:update(data:deltaTime(), self.beltEntities, self.world)

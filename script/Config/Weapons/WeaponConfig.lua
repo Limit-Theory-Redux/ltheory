@@ -36,3 +36,13 @@ Config.weapons.targetPriorityByRole = {
         capital = 3.0,
     },
 }
+
+-- Volumetric death explosions, by the destroyed contact's size class (game
+-- units; the impact effects are about 0.2-0.4). WeaponCombatSystem spawns
+-- one where a Targetable contact dies.
+Config.weapons.deathExplosion = {
+    small   = { size = 0.30, duration = 1.6, lightIntensity = 5.0,  lightRadius = 0.35 },
+    medium  = { size = 0.55, duration = 2.0, lightIntensity = 8.0,  lightRadius = 0.55 },
+    large   = { size = 0.95, duration = 2.4, lightIntensity = 12.0, lightRadius = 0.80 },
+    capital = { size = 1.60, duration = 3.0, lightIntensity = 18.0, lightRadius = 1.20 },
+}
