@@ -21,18 +21,21 @@
 #define bubbleRadius (drawUser[4].z) // fraction of the screen height
 #define bubbleStrength (drawUser[4].w)
 #define bubbleCurl (drawUser[5].x)   // radians the bubble turns points at its centre
+#define dustShift (drawUser[5].yz)   // NDC the whole dust moves on screen (third person)
 
 out float fade;
 
 const float NEAR_W = 1e-4;
 
-// A point on screen (pixels from the centre), pushed out of the bubble: at
-// distance d from the ship it moves to sqrt(d^2 + B^2), so nothing stays
-// inside radius B and points far away hardly move. It is also turned around
-// the ship, by the curl times B^2 / (d^2 + B^2) (all of it at the centre,
-// half at the rim, hardly any far away), so streaks bend around the bubble.
+// A point on screen (pixels from the centre), moved by the dust's shift (so
+// the streaks converge on the ship in third person) and pushed out of the
+// bubble: at distance d from the ship it moves to sqrt(d^2 + B^2), so
+// nothing stays inside radius B and points far away hardly move. It is also
+// turned around the ship, by the curl times B^2 / (d^2 + B^2) (all of it at
+// the centre, half at the rim, hardly any far away), so streaks bend around
+// the bubble.
 vec2 onScreen(vec4 c, vec2 halfVp) {
-  vec2 p = c.xy / c.w * halfVp;
+  vec2 p = (c.xy / c.w + dustShift) * halfVp;
   float B = bubbleRadius * ubo_viewport.w * bubbleStrength;
   if (B <= 0.0) return p;
   vec2 ship = bubbleNdc * halfVp;

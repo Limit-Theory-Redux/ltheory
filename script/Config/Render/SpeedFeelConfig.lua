@@ -51,18 +51,27 @@ Config.render.speedFeel = {
     },
     -- The travel drive overlay (filter/traveldrive.glsl): ring + star streaks
     travelDrive = {
-        gain = 0.7,
+        gain  = 0.7,
+        ahead = 4,   -- the ring sits this many ship radii in front of the nose
+        size  = 1.2, -- and is this many ship radii wide (its radius)
+        minRadius = 0.07, -- never smaller on screen (share of its height): a
+                          -- chase camera far behind still shows a ring
     },
     -- First person: the camera is in the ship and the middle of the view is
-    -- where you look; these multiply the travel overlay and the radial blur
+    -- where you look; these multiply the travel overlay, the radial blur and
+    -- the ring's size on screen (and with it the dust's bubble)
     firstPerson = {
         travelDrive = 0.4,
         radialBlur  = 0.6,
+        ring        = 0.6,
     },
     -- Space dust (SpaceDustEntity). Speeds in multiples of the ship's max
     -- speed; a layer with `fadeIn` fades in between those two speeds.
     dust = {
         streakTime = 0.05, -- seconds of motion a streak shows
+        -- Third person: streaks converge on where the ship is heading; between
+        -- these speeds the dust moves on screen until they come from the ship
+        fromShip = { 0.25, 1.0 },
         layers = {
             -- Close specks, from rest through boost and into travel mode
             -- (cube 3 km wide); they move at up to 5x max speed
@@ -75,7 +84,7 @@ Config.render.speedFeel = {
         -- Travel mode: long, bright streaks, pushed aside around the ship by
         -- the drive (all grow with `travel`)
         travel = {
-            bubbleRadius = 0.2, -- on screen, fraction of its height (the overlay's ring: 0.15)
+            bubbleRadius = 1.3, -- around the drive's ring: x its radius on screen
             curl         = 40,  -- degrees the bubble turns the dust around the ship (0: straight out)
             streakCells  = 0.6, -- streak length, in cubes
             brightness   = 1.8, -- x the colour

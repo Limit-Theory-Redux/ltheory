@@ -125,7 +125,8 @@ function SpeedFeelSystem:clearOutputs()
 end
 
 -- A point on screen (0..1, y down) from a camera-relative direction or
--- position, the way the drawn view projects it; nil when behind the camera.
+-- position, the way the drawn view projects it, and its depth along the view;
+-- nil when behind the camera.
 local function project(x, y, z)
     local rot = CameraManager:getViewRot()
     local fwd, right, up = rot:getForward(), rot:getRight(), rot:getUp()
@@ -135,7 +136,7 @@ local function project(x, y, z)
     local aspect = Window:width() / Window:height()
     local sx = (x * right.x + y * right.y + z * right.z) / (depth * tanHalf * aspect)
     local sy = (x * up.x + y * up.y + z * up.z) / (depth * tanHalf)
-    return (sx + 1) * 0.5, (1 - sy) * 0.5
+    return (sx + 1) * 0.5, (1 - sy) * 0.5, depth
 end
 
 local function clamp01(x)
@@ -228,19 +229,53 @@ function SpeedFeelSystem:onPreRender(e)
         shake:reset()
     end
 
-    -- Where the ship is heading, on screen: the radial blur streaks from there
+    -- Where the ship is heading, on screen (0..1, y down)
     local rb = game.playerShip:get(PhysicsComponents.RigidBody):getRigidBody()
     local v = rb:getVelocity()
-    fx.blurCenterX, fx.blurCenterY = 0.5, 0.5
+    local headU, headV = 0.5, 0.5
     if d.speed > 1e-9 then
         local u, w = project(v.x, v.y, v.z)
-        if u then fx.blurCenterX, fx.blurCenterY = clamp01(u), clamp01(w) end
+        if u then headU, headV = clamp01(u), clamp01(w) end
     end
 
     -- First person: the camera is in the ship, and the middle of the view is
     -- where you look, so the overlay and the blur ease off there
     local firstPerson = game.player ~= nil and game.player:getMode() == Enums.CameraMode.FirstPerson
     local fp = firstPerson and cfg.firstPerson or nil
+
+    -- Where the effects come from: in third person the ship on screen; in
+    -- first person (the camera is in it), or with the ship behind the camera,
+    -- where it is heading. The radial blur, the overlay's ring and streaks
+    -- and the dust (see updateDust) all come from there.
+    local srcU, srcV = headU, headV
+    if not firstPerson then
+        local eye = CameraManager:getEye()
+        local shipPos = rb:getPos()
+        local u, w = project(shipPos.x - eye.x, shipPos.y - eye.y, shipPos.z - eye.z)
+        if u then srcU, srcV = clamp01(u), clamp01(w) end
+    end
+    fx.blurCenterX, fx.blurCenterY = srcU, srcV
+
+    -- The travel drive's ring: a ring `size` ship radii wide, `ahead` ship
+    -- radii in front of the nose, projected: where it is on screen (0..1, y
+    -- down) and its radius as a share of the screen height
+    local ringU, ringV, ringR = srcU, srcV, 0.15
+    do
+        local rc = cfg.travelDrive
+        local shipRadius = game.playerShip:get(PhysicsComponents.RigidBody):getRadius()
+        local fwd = rb:getRot():getForward()
+        local eye = CameraManager:getEye()
+        local p = rb:getPos()
+        local ahead = rc.ahead * shipRadius
+        local u, w, depth = project(p.x - eye.x + fwd.x * ahead, p.y - eye.y + fwd.y * ahead,
+            p.z - eye.z + fwd.z * ahead)
+        if u then
+            local tanHalf = math.tan(math.rad(CameraManager:getFov()) / 2)
+            ringU, ringV = u, w
+            ringR = Math.Clamp(rc.size * shipRadius / (2 * depth * tanHalf), rc.minRadius, 0.4)
+            if fp then ringR = ringR * fp.ring end
+        end
+    end
 
     fx.radialBlur = self.cues.radialBlur
         and I * (cfg.radialBlur.boost * d.boost + cfg.radialBlur.travel * d.travel)
@@ -249,17 +284,6 @@ function SpeedFeelSystem:onPreRender(e)
         and I * (cfg.aberration.boosting * d.boosting + cfg.aberration.travel * d.travel) or 0
     fx.vignette = self.cues.vignette
         and I * (cfg.vignette.boost * d.boost + cfg.vignette.travel * d.travel) or 0
-
-    -- The ship on screen (0..1, y down): the overlay's ring and the dust's
-    -- bubble sit around it. In first person, or with the ship behind the
-    -- camera, they sit around where the ship is heading instead.
-    local shipU, shipV
-    if not firstPerson then
-        local eye = CameraManager:getEye()
-        local shipPos = rb:getPos()
-        shipU, shipV = project(shipPos.x - eye.x, shipPos.y - eye.y, shipPos.z - eye.z)
-    end
-    if not shipU then shipU, shipV = fx.blurCenterX, fx.blurCenterY end
 
     -- Travel drive overlay: the strength its material was written with
     -- (Shared/Definitions/MaterialDefs.lua, TravelDrive)
@@ -273,13 +297,14 @@ function SpeedFeelSystem:onPreRender(e)
             overlay = clamp01((d.multiplier - 1) / 50)
         end
         if fp then overlay = overlay * fp.travelDrive end
-        fx.shipScreenX, fx.shipScreenY = shipU, shipV
+        fx.ringX, fx.ringY, fx.ringRadius = ringU, ringV, ringR
     end
     fx.travelDrive = I * cfg.travelDrive.gain * overlay
     fx.driveSpeed = d.multiplier
 
     if self.dust then
-        self:updateDust(cfg.dust, d, v, shipU, shipV, paused and 0 or dt)
+        self:updateDust(cfg.dust, d, v, headU, headV, srcU, srcV, ringU, ringV, ringR,
+            paused and 0 or dt)
     end
 end
 
@@ -288,13 +313,23 @@ end
 ---that (travel mode) it falls behind (the layer's offset grows), so specks
 ---stay visible, and travel mode draws long, bright streaks that the drive's
 ---bubble pushes aside around the ship.
+---
+---By perspective, streaks converge on where the ship is heading. In third
+---person that isn't where the ship is, so from `fromShip[1]` to `fromShip[2]`
+---times max speed the dust is moved on screen until they converge on the
+---ship (slower, it stays true to the world).
 ---@param dc table Config.render.speedFeel.dust
 ---@param d table what drives the cues (`self.drive`)
 ---@param v Vec3f the ship's velocity
----@param shipU number where the bubble goes: the ship on screen (0..1, y down)
----@param shipV number
+---@param headU number where the ship is heading on screen (0..1, y down)
+---@param headV number
+---@param srcU number where the effects come from: the ship, or where it heads
+---@param srcV number
+---@param ringU number the travel drive's ring on screen: the bubble wraps it
+---@param ringV number
+---@param ringR number the ring's radius, share of the screen height
 ---@param dt number seconds since the last frame (0 while paused)
-function SpeedFeelSystem:updateDust(dc, d, v, shipU, shipV, dt)
+function SpeedFeelSystem:updateDust(dc, d, v, headU, headV, srcU, srcV, ringU, ringV, ringR, dt)
     local tc = dc.travel
     local speed = d.speed
     local dirX, dirY, dirZ = 0, 0, 0
@@ -323,10 +358,13 @@ function SpeedFeelSystem:updateDust(dc, d, v, shipU, shipV, dt)
     end
 
     local bubble = self.dust.bubble
-    bubble.radius = tc.bubbleRadius
+    bubble.radius = tc.bubbleRadius * ringR
     bubble.curl = math.rad(tc.curl)
     bubble.strength = clamp01(1.5 * d.travel)
-    bubble.x, bubble.y = 2 * shipU - 1, 1 - 2 * shipV
+    bubble.x, bubble.y = 2 * ringU - 1, 1 - 2 * ringV
+    -- In NDC (y up): from where they converge to where they should
+    local k = band(rel, dc.fromShip[1], dc.fromShip[2])
+    bubble.shiftX, bubble.shiftY = 2 * (srcU - headU) * k, -2 * (srcV - headV) * k
 end
 
 return SpeedFeelSystem()

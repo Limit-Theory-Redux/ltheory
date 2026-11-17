@@ -1,21 +1,22 @@
 #include filter
 #include math
 
-// Travel drive overlay: a pulsing ring around the ship and star streaks,
-// added on top of the picture (RenderCoreSystem:travelDrive).
+// Travel drive overlay: a pulsing ring in front of the ship and star streaks
+// from it, added on top of the picture (RenderCoreSystem:travelDrive).
 #group 2
 layout(std140) uniform Params {
     float intensity;    // 0-1: overall effect strength (ramps up/down)
     float driveSpeed;   // current travel drive multiplier
     float time;         // seconds
     float aspect;       // screen width / height
-    vec2 shipScreenPos; // the ship on screen, in uv (0..1)
+    vec2 ringCenter;    // the ring on screen, in uv (0..1)
+    float ringRadius;   // share of the screen height
 };
 
 void main() {
   vec3 scene = texture(src, uv).xyz;
 
-  vec2 center = shipScreenPos;
+  vec2 center = ringCenter;
   vec2 dir = uv - center;
 
   // In screen heights, so the ring is round on any screen shape
@@ -24,8 +25,8 @@ void main() {
 
   // --- Energy bubble / shield effect ---
   // Ring that pulses outward from ship
-  float ringRadius = 0.15 + 0.02 * sin(time * 3.0);
-  float ring = exp(-pow((dist - ringRadius) * 30.0, 2.0));
+  float pulsedRadius = ringRadius * (1.0 + 0.13 * sin(time * 3.0));
+  float ring = exp(-pow((dist - pulsedRadius) * 30.0, 2.0));
   ring *= intensity;
 
   // Inner glow (stronger when charging)

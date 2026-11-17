@@ -43,6 +43,9 @@ local CameraManager = require("Modules.Cameras.Managers.CameraManager")
 ---@field radius number fraction of the screen height
 ---@field strength number 0..1 (0 = no bubble)
 ---@field curl number radians the bubble turns the dust around the ship, at its centre
+---@field shiftX number NDC the whole dust moves on screen (third person: so the
+---streaks converge on the ship instead of where it's heading)
+---@field shiftY number
 
 ---@class SpaceDustState
 ---@field layers SpaceDustLayer[]
@@ -120,7 +123,7 @@ local function render(state, blendMode)
             user[8], user[9], user[10] = layer.widthPx, layer.brightness, SEGMENTS
             user[12], user[13], user[14] = layer.color.r, layer.color.g, layer.color.b
             user[16], user[17], user[18], user[19] = bubble.x, bubble.y, bubble.radius, bubble.strength
-            user[20] = bubble.curl
+            user[20], user[21], user[22] = bubble.curl, bubble.shiftX, bubble.shiftY
             pass:drawMesh(layer.mesh)
         end
     end
@@ -133,7 +136,7 @@ end
 return function(seed, layers)
     local state = {
         layers = {},
-        bubble = { x = 0, y = 0, radius = 0, strength = 0, curl = 0 },
+        bubble = { x = 0, y = 0, radius = 0, strength = 0, curl = 0, shiftX = 0, shiftY = 0 },
     }
     for i, cfg in ipairs(layers) do
         state.layers[i] = {

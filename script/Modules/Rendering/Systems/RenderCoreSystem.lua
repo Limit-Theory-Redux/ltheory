@@ -90,16 +90,18 @@ function RenderCoreSystem:registerVars()
     -- Extra strengths on top of the post settings, set every frame by
     -- whoever wants them (SpeedFeelSystem); all 0 means the settings alone.
     -- Kept apart from Config so nothing here ends up in the saved settings.
+    -- Points are on screen: 0..1, y down (the filters' uv has y up).
     self.motionFx        = {
         aberration  = 0,   -- added to the aberration strength, plus a colour split
         vignette    = 0,   -- a round vignette on top (0..1, 1 = black edges)
         radialBlur  = 0,   -- added to the radial blur strength, also lengthens it
-        blurCenterX = 0.5, -- where the radial blur streaks from (0..1, the
-        blurCenterY = 0.5, -- point on screen the ship is moving towards)
+        blurCenterX = 0.5, -- where the radial blur streaks from (0..1: the ship
+        blurCenterY = 0.5, -- on screen, or where it's heading in first person)
         travelDrive = 0,   -- travel drive overlay intensity (0..1, 0 = off)
         driveSpeed  = 1,   -- the travel drive multiplier, for the overlay
-        shipScreenX = 0.5, -- the ship on screen, for the overlay (0..1)
-        shipScreenY = 0.5,
+        ringX       = 0.5, -- the overlay's ring on screen (0..1, y down)
+        ringY       = 0.5,
+        ringRadius  = 0.15, -- its radius, share of the screen height
     }
 
     self.autoExposure    = {
@@ -854,9 +856,9 @@ function RenderCoreSystem:radialBlur()
     if strength <= 0 then return end
 
     -- The streaks come from the settings' centre, or, when only the motion
-    -- blur runs, from where the ship is heading
+    -- blur runs, from motionFx's (the ship, or where it's heading)
     local cx, cy = rb.center[1], rb.center[2]
-    if base <= 0 then cx, cy = fx.blurCenterX, fx.blurCenterY end
+    if base <= 0 then cx, cy = fx.blurCenterX, 1 - fx.blurCenterY end
 
     -- Slot 1 is the linear depth the filter weighs its taps with
     self:applyFilter('radialblur', function(p)
@@ -866,8 +868,8 @@ function RenderCoreSystem:radialBlur()
     end, self.buffers[Enums.BufferName.zBufferL]:mipView(0))
 end
 
---- The travel drive overlay (filter/traveldrive.glsl): a pulsing ring around
---- the ship and star streaks, added after tone mapping (its colours are
+--- The travel drive overlay (filter/traveldrive.glsl): a pulsing ring in
+--- front of the ship and star streaks, added after tone mapping (its colours are
 --- display colours; before bloom it blew out to white). Runs only while
 --- `motionFx.travelDrive` is above 0.
 function RenderCoreSystem:travelDrive()
@@ -878,7 +880,8 @@ function RenderCoreSystem:travelDrive()
         p.driveSpeed = fx.driveSpeed
         p.time = Engine:getTime() % 1000 -- keeps the float's precision
         p.aspect = self.resX / self.resY
-        p.shipScreenPos.x, p.shipScreenPos.y = fx.shipScreenX, fx.shipScreenY
+        p.ringCenter.x, p.ringCenter.y = fx.ringX, 1 - fx.ringY
+        p.ringRadius = fx.ringRadius
     end)
 end
 
