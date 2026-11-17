@@ -20,7 +20,7 @@ local Nav = { Components = Components, Orders = {} }
 
 ---@type Entity|nil The entity that holds the navigation world
 local worldEntity = nil
----@type OrderSystem|nil Created with the first world, and kept for the life of the game
+---@type NavOrderSystem|nil Created with the first world, and kept for the life of the game
 local system = nil
 
 ---Creates the navigation world over `physics`, which steers the ships that have orders. The ship
@@ -31,7 +31,7 @@ function Nav.attach(physics)
     local component = Components.NavWorld(physics)
     component:getNav():setSensing(SENSING_MASK)
     worldEntity = Entity.Create("NavWorldEntity", component)
-    system = system or Systems.Order()
+    system = system or Systems.NavOrder()
 end
 
 ---Cancels the orders that have not ended and destroys the navigation world. Call it before the

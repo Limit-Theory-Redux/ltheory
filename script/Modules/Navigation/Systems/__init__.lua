@@ -1,3 +1,3 @@
 return {
-    Order = require("Modules.Navigation.Systems.OrderSystem"),
+    NavOrder = require("Modules.Navigation.Systems.NavOrderSystem"),
 }
