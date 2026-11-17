@@ -14,8 +14,8 @@ local meta = {
 ---@field visible boolean
 ---@field align table<AlignHorizontal, AlignVertical>
 ---@field childrenAlign table<AlignHorizontal, AlignVertical>
----@field width number
----@field height number
+---@field width number|string|nil `"fill"` (the default: the parent's width), `"fit"` (as wide as the contents), a number of pixels (fixed), or a percentage of the parent's width such as `"50%"`
+---@field height number|string|nil the same for the height
 ---@field widthInLayout number
 ---@field heightInLayout number
 ---@field padding { paddingX: number, paddingY: number }|nil
@@ -31,8 +31,8 @@ local meta = {
 ---@field visible boolean|nil
 ---@field align table<AlignHorizontal, AlignVertical>
 ---@field childrenAlign table<AlignHorizontal, AlignVertical>
----@field width number
----@field height number
+---@field width number|string|nil `"fill"` (the default: the parent's width), `"fit"` (as wide as the contents), a number of pixels (fixed), or a percentage of the parent's width such as `"50%"`
+---@field height number|string|nil the same for the height
 ---@field widthInLayout number
 ---@field heightInLayout number
 ---@field padding { paddingX: number, paddingY: number }|nil
@@ -45,6 +45,30 @@ local meta = {
 
 ---@class UIComponentContainerColors
 ---@field background Color|nil
+
+---What a `width` or `height` asks for: "fit" (no size set: as big as the
+---contents), "fixed" with pixels, or "percent" with a percentage of the parent
+---("fill" and nil are 100 %).
+---@param size number|string|nil
+---@param name string "width" or "height", for the error message
+---@return string kind
+---@return number|nil value
+local function sizeOf(size, name)
+    if size == nil or size == "fill" then
+        return "percent", 100
+    elseif size == "fit" then
+        return "fit", nil
+    elseif type(size) == "number" then
+        return "fixed", size
+    end
+
+    local percent = type(size) == "string" and tonumber(size:match("^%s*([%d%.]+)%s*%%%s*$"))
+    if not percent then
+        error(string.format('UIComponent.Container: %s must be "fill", "fit", a number of pixels or a percentage such as "50%%", not %s',
+            name, tostring(size)))
+    end
+    return "percent", percent
+end
 
 ---returns a container object
 ---@param args UIComponentContainerConstructor
@@ -100,12 +124,18 @@ function Container:new(args)
             Gui:setSpacing(self.state.spacing())
         end
 
-        if self.state.width then
-            Gui:setPercentWidth(self.state.width() * 100)
+        local widthKind, width = sizeOf(self.state.width and self.state.width(), "width")
+        if widthKind == "fixed" then
+            Gui:setFixedWidth(width)
+        elseif widthKind == "percent" then
+            Gui:setPercentWidth(width)
         end
 
-        if self.state.height then
-            Gui:setPercentHeight(self.state.height() * 100)
+        local heightKind, height = sizeOf(self.state.height and self.state.height(), "height")
+        if heightKind == "fixed" then
+            Gui:setFixedHeight(height)
+        elseif heightKind == "percent" then
+            Gui:setPercentHeight(height)
         end
 
         if #self.state.contents() > 1 then
@@ -129,8 +159,6 @@ function Container:new(args)
         end -- this allows containers without any content
 
         Gui:endContainer()
-        Gui:setPercentWidth(100)
-        Gui:setPercentHeight(100)
     end
 
     return newContainer

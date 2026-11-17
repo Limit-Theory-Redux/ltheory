@@ -183,7 +183,7 @@ impl HmGuiWidget {
     }
 
     /// Border and margins in a dimension: what the outer size adds to the inner one.
-    fn outer_extra_dim<const DIM: usize>(&self) -> f32 {
+    pub(super) fn outer_extra_dim<const DIM: usize>(&self) -> f32 {
         self.border_width * 2.0 + self.margin_upper[DIM] + self.margin_lower[DIM]
     }
 
@@ -295,7 +295,6 @@ impl HmGuiWidget {
                     constrained_y,
                     self.inner_pos,
                     self.inner_size,
-                    self.inner_size - self.inner_min_size,
                 );
 
                 self.size = self.inner_size
