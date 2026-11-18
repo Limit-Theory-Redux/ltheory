@@ -2,6 +2,7 @@ local Registry = require("Core.ECS.Registry")
 local QuickProfiler = require("Shared.Tools.QuickProfiler")
 local Physics = require("Modules.Physics.Components")
 local Cameras = require("Modules.Cameras.Components")
+local CameraShake = require("Modules.Cameras.Managers.CameraShake")
 
 ---@class CameraManager
 ---@field profiler QuickProfiler
@@ -34,6 +35,49 @@ function CameraManager:registerVars()
 
     ---@type Vec3f Primary light direction, given to the renderer in beginDraw
     self.starDir = Vec3f(0, 1, 0)
+
+    -- View effects on top of the active camera (speed feel): a field of view
+    -- offset and a shake. They change what is drawn, not the camera's
+    -- transform, so steering and aiming don't see them.
+    ---@type number degrees added to Config.render.camera.fov
+    self.fovOffset = 0
+    ---@type CameraShake
+    self.shake = CameraShake()
+    ---@type Quat|nil the active camera's rotation with the shake, as last drawn
+    self.viewRot = nil
+end
+
+---The field of view the scene is drawn with: the setting plus the offset.
+---Whatever projects onto the screen by hand (labels, lens flares) uses this.
+---@return number fov degrees
+function CameraManager:getFov()
+    return Math.Clamp(Config.render.camera.fov + self.fovOffset, 10, 150)
+end
+
+---@param degrees number added to the field of view setting (0: none)
+function CameraManager:setFovOffset(degrees)
+    self.fovOffset = degrees
+end
+
+---@return number degrees
+function CameraManager:getFovOffset()
+    return self.fovOffset
+end
+
+---The shake drawn on top of the active camera (see CameraShake).
+---@return CameraShake
+function CameraManager:getShake()
+    return self.shake
+end
+
+---The rotation the scene is drawn with: the active camera's, plus the shake.
+---Whatever projects onto the screen by hand uses this; steering and aiming
+---use the camera's own (`getForward`, the transform).
+---@return Quat
+function CameraManager:getViewRot()
+    if self.viewRot then return self.viewRot end
+    if not self.activeCameraTransform then return Quat.Identity() end
+    return self.activeCameraTransform:getRot()
 end
 
 ---Set the star (primary light) direction given to the renderer in beginDraw
@@ -268,6 +312,18 @@ function CameraManager:updateViewMatrix()
     local pos = self.activeCameraTransform:getPos()
     local rot = self.activeCameraTransform:getRot()
 
+    -- The shake turns the view about the camera's own axes, the way the free
+    -- camera turns itself: yaw about its up, pitch about its right, roll about
+    -- its forward.
+    local yaw, pitch, roll = self.shake:sample(Engine:getTime())
+    if yaw ~= 0 or pitch ~= 0 or roll ~= 0 then
+        local up, right, forward = rot:getUp(), rot:getRight(), rot:getForward()
+        rot = Quat.FromAxisAngle(up, yaw):mul(rot)
+        rot = Quat.FromAxisAngle(right, pitch):mul(rot)
+        rot = Quat.FromAxisAngle(forward, roll):mul(rot)
+    end
+    self.viewRot = rot
+
     -- View inverse: world transform of camera
     local viewInv = Matrix.FromPosRot(Vec3f(pos.x, pos.y, pos.z), rot)
 
@@ -284,7 +340,7 @@ end
 ---Update the projection matrix for the active camera
 ---@param resX number Screen width in pixels
 ---@param resY number Screen height in pixels
----@param fov? number Field of view in degrees (optional, uses config default)
+---@param fov? number Field of view in degrees (optional, default `getFov()`)
 ---@param zNear? number Near clip plane (optional, uses config default)
 ---@param zFar? number Far clip plane (optional, uses config default)
 function CameraManager:updateProjectionMatrix(resX, resY, fov, zNear, zFar)
@@ -298,7 +354,7 @@ function CameraManager:updateProjectionMatrix(resX, resY, fov, zNear, zFar)
         return
     end
 
-    fov = fov or Config.render.camera.fov
+    fov = fov or self:getFov()
     zNear = zNear or Config.render.camera.zNear
     zFar = zFar or Config.render.camera.zFar
 

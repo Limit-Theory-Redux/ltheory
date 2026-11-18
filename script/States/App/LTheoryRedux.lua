@@ -460,6 +460,8 @@ end
 --- Run the scenario's setup (after the scene and the player controller exist).
 function LimitTheoryRedux:setupScenario()
     self.scenarioData = {}
+    -- The speed effects, as Settings has them (a scenario may try others)
+    require('Modules.Rendering.Systems.SpeedFeelSystem'):enable(self)
     if self.scenario.setup then
         self.scenario.setup(self)
     end
@@ -604,6 +606,7 @@ end
 --- system and (unless kept) the player's ship.
 ---@param keepShip boolean|nil
 function LimitTheoryRedux:destroyScene(keepShip)
+    require('Modules.Rendering.Systems.SpeedFeelSystem'):disable()
     if self.scenario and self.scenario.teardown then
         self.scenario.teardown(self)
     end
