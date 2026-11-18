@@ -5,6 +5,7 @@
 local Registry            = require("Core.ECS.Registry")
 local Entity              = require("Core.ECS.Entity")
 local PhysicsComponents   = require("Modules.Physics.Components")
+local ControlOwnerSystem  = require("Modules.Constructs.Systems.ControlOwnerSystem")
 local Components          = require("Modules.Navigation.Components")
 local Entities            = require("Modules.Navigation.Entities")
 local Systems             = require("Modules.Navigation.Systems")
@@ -105,7 +106,29 @@ function Nav.order(ship, spec)
         ship:add(queue)
     end
     queue:push(order.id, order:get(Components.NavOrder):getPriority())
+    ControlOwnerSystem:setOrders(ship, true)
     return order
+end
+
+---Takes the ship's controls for the caller, who writes its `ControlInputComponent` directly. The
+---ship's running order is suspended, and the ship's orders wait, until `Nav.unclaim`. The input is
+---reset when the claim begins. Manual input (the player's ship) still overrides a claim.
+---@param ship Entity
+function Nav.claim(ship)
+    ControlOwnerSystem:claim(ship)
+end
+
+---Gives back the controls taken with `Nav.claim`: the ship's orders resume, from where it is.
+---@param ship Entity
+function Nav.unclaim(ship)
+    ControlOwnerSystem:release(ship)
+end
+
+---Who owns the ship's control input now.
+---@param ship Entity
+---@return ControlOwnerId
+function Nav.controlOwner(ship)
+    return ControlOwnerSystem:ownerOf(ship)
 end
 
 ---Runs one update of the order system, for an app that steps the simulation itself; a game

@@ -16,6 +16,26 @@ Every ship flies from one data path: whoever steers it writes a `ControlInputCom
 
 Axes are levels: the writer sets them every frame (`clearAxes()` zeroes them). The drive request is an edge: `TravelDriveSystem` clears it once it has applied it. A writer that has no manual input this frame clears the axes, so a ship never keeps flying on stale input.
 
+## Control ownership
+
+Whoever writes a ship's input must own it. `ControlOwnerSystem` decides, per ship, from what the writers want: manual input (the player's controller pilots the ship) over a claim (`Nav.claim`: an AI writes the input itself) over navigation orders. The owner is kept in a `ControlOwnerComponent` and recomputed when a writer starts or stops wanting the ship, not once per frame, because event subscribers have no order inside a stage and a per-frame decider could run after the new owner had written. When the owner changes, the input is reset once: axes zeroed, the drive's speed cap lifted, the travel drive told to disengage.
+
+```mermaid
+flowchart TD
+    W["A writer starts or stops wanting the ship"] --> O{"Strongest that wants it"}
+    O -->|"the player pilots it"| M["Manual"]
+    O -->|"claimed"| C["Claim"]
+    O -->|"has orders"| R["Orders"]
+    O -->|"nobody"| N["None: the ship drifts"]
+    M --> X{"Owner changed?"}
+    C --> X
+    R --> X
+    N --> X
+    X -->|"yes"| Z["Reset the input once"]
+```
+
+The order system writes only while it is the owner: a ship with another owner leaves the navigation world, and its begun orders are suspended ([navigation orders](nav/navigation.md#control-ownership)). The autopilot is not part of this yet: it writes the player's ship, which manual input owns.
+
 ## Flight profiles
 
 A ship's flight limits are data, not configuration: a `FlightProfile` (`Shared/Types/FlightProfile.lua`) per ship class, registered in `FlightProfileRegistry` by an `Enums.FlightProfile` id from `Shared/Definitions/FlightProfileDefs.lua`. The ship holds its profile in a `FlightProfileComponent`; the flight systems read the limits from it and fail loudly on a ship that flies without one.
@@ -36,7 +56,7 @@ A ship gets its profile by passing `flightProfile` in the config of `ShipGenerat
 
 - `PlayerController:update(dt)` reads `ShipActions` and writes the player ship's component. Chase mode steers by the cursor's position on screen, first person by cursor movement (an aim target accumulates and decays back to centre), and an active drive by cursor movement in either mode. Axes are cleared while input is blocked, the camera is not a piloting one, or the autopilot is flying. The travel-drive key engages an idle drive and stops a running one; firing stops it.
 - `AutoPilotSystem` flies the ship through a `NavWorld` with one agent and sensing on for every collision group, so it steers around the collidable bodies near it (the target body too: the stand-off point lies outside its hull). While the travel drive runs the ship has no lateral thrust and turns at a tenth of its torque, so avoidance acts only in normal flight; a body in the way of a drive flight is avoided by the plan instead. On engaging, the autopilot requests a path plan from the system planner (see [system planner](nav/system-planner.md#consumers)): in normal flight while it is out, then the plan's corners (the drive on its drive legs, off on arcs), then the stand-off approach below. Without a usable plan (a target that moves faster than the ship can fly before it reaches the target's gravity well has none; the well carries the ship, so a planet whose stand-off point is inside its well is planned) it flies the stand-off approach from the start, drive included, with no detours. It tracks the target (with a lead for a moving one), sets a goal on the line from the ship to the target at a stand-off distance from the target's centre, steps the `NavWorld`, and copies the six axes into the ship's component. It arrives, and disengages, when the `NavWorld` reports the goal reached; the arrival radius is a share of the gap between the stand-off distance and the target's radius, so a ship that coasts in after disengaging stays outside the hull. In the final approach it requests the drive when the target is more than 100 stand-off distances away (there is no engage delay), and sets `driveSpeedCap` from a braking law: the wanted speed is the distance to the stand-off point divided by a braking time, so the cap is `distance / (brakingTime · maxSpeed)`, limited by the zone's cap. The braking time is 4 times the sum of the drive multiplier's lag (`1 / rampDownSpeed`) and the velocity's lag (`1 / linearDrag`); at that margin the loop from distance to speed has real roots, so the ship decays onto the stand-off point without overshooting, and a margin of 2 oscillates. Below a drive multiplier of 2 the drive is released and the `NavWorld` flies the rest at normal speed. The ETA comes from the same law: a cruise at the zone's cap while the law wants more, then an exponential decay, then the flight at `maxSpeed`. Because the drive multiplier and the velocity lag the falling cap, the distance decays faster than `1 / brakingTime`; the ETA uses the rate that solves `r = 1 / (T · (1 - r·τ₁) · (1 - r·τ₂))`. The ETA uses the zone cap at the ship's position and leaves out the drive's charging and ramp-up time, so it runs short. While the corners of a plan are flown, the ETA is the plan's goal time minus the plan's age: the time the planner gives the ship to come within the arrival radius, with the charge and the ramp-up in it. The goal rides on the target's body (`setArriveRelative`), so it has the body's velocity and the ship comes to rest relative to the body, and before each step the autopilot gives the `NavWorld` the velocity the ship's gravity well carries it at (`NavAgentHelper.setFrameFromWell`). The ship is then steered relative to the well, so it can arrive at a planet whose orbital speed is above its top speed; the speed the autopilot reads for its lead and braking is the speed relative to the well too. While the autopilot is engaged the ship's body must stay in the physics world.
-- `NavOrderSystem` (Navigation module) flies the ships that have orders, at `PreSim` too: every ship with an order is an agent of one shared `NavWorld`, and the system writes each one's control input from the world's axes, with the drive requests of the same flight code as the autopilot (`PlanFlight`). It writes the input of ships no player pilots ([navigation orders](nav/navigation.md)).
+- `NavOrderSystem` (Navigation module) flies the ships that have orders, at `PreSim` too: every ship with an order is an agent of one shared `NavWorld`, and the system writes each one's control input from the world's axes, with the drive requests of the same flight code as the autopilot (`PlanFlight`). It writes the input only of ships that orders own, that is, no ship the player pilots and none an AI has claimed ([navigation orders](nav/navigation.md)).
 
 ## Actuation
 

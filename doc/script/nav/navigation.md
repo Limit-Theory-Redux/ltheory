@@ -2,7 +2,7 @@
 
 An order tells a ship where to go. The issuer (a script, an AI, a designer's tool) gives a ship an order with `Nav.order`, reads the order's status and progress while it runs, and releases it when it has ended. The module is `Modules/Navigation`; `local Nav = require("Modules.Navigation")`.
 
-An order is an entity of its own, linked to its ship by the ship's id. Orders are for ships that no player pilots: the order system writes the ship's `ControlInputComponent` every frame, as the player controller does for the player's ship, so the two must not steer one ship.
+An order is an entity of its own, linked to its ship by the ship's id. The order system writes a ship's `ControlInputComponent` only while orders own the ship's controls; the ship the player pilots, or one an AI has claimed, is owned by someone else and its orders wait ([control ownership](#control-ownership)).
 
 ## Using orders
 
@@ -18,6 +18,8 @@ if Nav.status(order) == Enums.NavOrderStatus.Done then Nav.release(order) end
 | `Nav.attach(physics)` | Creates the navigation world over `physics`, which steers the ships that have orders. The bodies of those ships must stay in `physics` while their orders run. There is one world at a time. |
 | `Nav.detach()` | Cancels the orders that have not ended and destroys the world. Call it before the ships' bodies leave `physics`. |
 | `Nav.order(ship, spec)` | Gives the ship an order behind the orders it has, and returns the order entity. The ship needs a rigid body. |
+| `Nav.claim(ship)`, `Nav.unclaim(ship)` | Takes the ship's controls for the caller, who then writes the input directly, and gives them back ([control ownership](#control-ownership)). Claiming a claimed ship, or unclaiming one that is not claimed, is an error. |
+| `Nav.controlOwner(ship)` | Who owns the ship's control input: an `Enums.ControlOwner` value. |
 | `Nav.cancel(order)` | Asks for the order to end as `Cancelled`; the system ends it at its next update. |
 | `Nav.retarget(order, target)` | Changes the target of a MoveTo; the path is planned again. |
 | `Nav.status(order)`, `Nav.failure(order)`, `Nav.progress(order)` | The order's status, the reason it failed (`nil` until it has), and its progress. |
@@ -90,7 +92,7 @@ The nose goes to the facing whenever the ship is not accelerating harder than it
 
 ## Queue and status
 
-A ship's orders are in its `OrderQueue`, ordered by priority: an order goes behind the orders of its priority or a higher one, and before the lower ones, so within a level they are in the order they were given. Only the first one, the head, runs; the others are `Queued` and wait. When the head ends, the next one begins. An order that is given with a higher priority than the head becomes the head, and displaces the one that was running (see below). A ship with an order is an agent of the navigation world; when its queue empties, the agent is removed, the control input is cleared, the travel drive is told to disengage and the ship drifts.
+A ship's orders are in its `OrderQueue`, ordered by priority: an order goes behind the orders of its priority or a higher one, and before the lower ones, so within a level they are in the order they were given. Only the first one, the head, runs; the others are `Queued` and wait. When the head ends, the next one begins. An order that is given with a higher priority than the head becomes the head, and displaces the one that was running (see below). A ship with an order is an agent of the navigation world; when its queue empties, the agent is removed, nobody owns the controls any more, so the control input is cleared and the travel drive is told to disengage, and the ship drifts.
 
 ```mermaid
 stateDiagram-v2
@@ -114,6 +116,22 @@ stateDiagram-v2
 A `Suspended` order is one that had begun and was displaced. The system drops its plan, stops tracking and tells the travel drive to disengage; what the order itself holds stays (a Patrol's point, an Orbit's chosen plane, the target, the facing). When it is the head again it resumes: it begins as new, from where the ship is, so a goal order plans again and a Hold holds where the ship is then, not where it began. Cancelling a suspended order ends it `Cancelled` and it never resumes. Because a Hold is displaced by a higher priority, it no longer blocks the orders behind it.
 
 `Nav.progress(order)` has `distanceLeft` (game units to the stand-off point or point), `eta` (seconds) and, for a Patrol, `waypointIndex`. The system writes them while the order is the head, and they are `nil` before that.
+
+An order is also suspended when the ship's controls go to someone other than orders (below), whether or not it is the head: a begun order becomes `Suspended` with the same event, and leaves the world with the ship's agent. An order that had not begun stays `Queued`. When orders own the controls again, the head resumes as above.
+
+## Control ownership
+
+One of three owners writes a ship's control input; the strongest that wants it wins:
+
+| Owner | `Enums.ControlOwner` | Takes the controls when |
+|---|---|---|
+| Manual input | `Manual` | the player's controller pilots the ship (always, while it is the player's ship) |
+| A claim | `Claim` | the caller has done `Nav.claim(ship)` |
+| Orders | `Orders` | the ship has an order |
+
+The owner is kept in a `ControlOwnerComponent` on the ship and is decided when what a writer wants changes, not every frame. When the owner changes, the input is reset once: the axes are zeroed, the drive's speed cap is lifted and the travel drive is told to disengage. A new owner that wants the drive requests it again. A writer that is not the owner must not write the ship's input; the order system never does, and it takes the ship's agent out of the world while another owner has the ship. A claimer writes the six axes (and the drive requests) itself each frame, as the player controller does. See [ship flight control](../flight.md#control-ownership).
+
+`Nav.order` on a claimed or piloted ship queues the order and waits; the order begins when orders own the ship. The player's autopilot is a separate writer until it moves onto orders.
 
 ## Events
 

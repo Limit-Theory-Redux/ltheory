@@ -1,20 +1,21 @@
-local CameraEntity            = require("Modules.Cameras.Entities").Camera
-local CameraManager           = require("Modules.Cameras.Managers.CameraManager")
-local _                       = require("Modules.Cameras.Systems.CameraSystem") -- subscribes to Input + PreRender
-local CameraDataComponent     = require("Modules.Cameras.Components.CameraDataComponent")
-local ChaseCameraController   = require("Modules.Cameras.Managers.CameraControllers.ChaseCameraController")
-local OrbitCameraController   = require("Modules.Cameras.Managers.CameraControllers.OrbitCameraController")
+local CameraEntity                = require("Modules.Cameras.Entities").Camera
+local CameraManager               = require("Modules.Cameras.Managers.CameraManager")
+local _                           = require("Modules.Cameras.Systems.CameraSystem") -- subscribes to Input + PreRender
+local CameraDataComponent         = require("Modules.Cameras.Components.CameraDataComponent")
+local ChaseCameraController       = require("Modules.Cameras.Managers.CameraControllers.ChaseCameraController")
+local OrbitCameraController       = require("Modules.Cameras.Managers.CameraControllers.OrbitCameraController")
 local FirstPersonCameraController = require("Modules.Cameras.Managers.CameraControllers.FirstPersonCameraController")
-local FreeCameraController    = require("Modules.Cameras.Managers.CameraControllers.FreeCameraController")
-local RTSCameraController     = require("Modules.Cameras.Managers.CameraControllers.RTSCameraController")
-local PhysicsComponents       = require("Modules.Physics.Components")
-local ConstructComponents     = require("Modules.Constructs.Components")
-local RenderComp              = require("Modules.Rendering.Components").Render
-local AutoPilotSystem         = require("Modules.Constructs.Systems.AutoPilotSystem")
-local CursorManager           = require("Input.CursorManager")
-local GeneralActions          = require("Input.ActionBindings.GeneralActions")
-local ShipActions             = require("Input.ActionBindings.ShipActions")
-local UserSettings            = require("Shared.UserSettings")
+local FreeCameraController        = require("Modules.Cameras.Managers.CameraControllers.FreeCameraController")
+local RTSCameraController         = require("Modules.Cameras.Managers.CameraControllers.RTSCameraController")
+local PhysicsComponents           = require("Modules.Physics.Components")
+local ConstructComponents         = require("Modules.Constructs.Components")
+local RenderComp                  = require("Modules.Rendering.Components").Render
+local AutoPilotSystem             = require("Modules.Constructs.Systems.AutoPilotSystem")
+local ControlOwnerSystem          = require("Modules.Constructs.Systems.ControlOwnerSystem")
+local CursorManager               = require("Input.CursorManager")
+local GeneralActions              = require("Input.ActionBindings.GeneralActions")
+local ShipActions                 = require("Input.ActionBindings.ShipActions")
+local UserSettings                = require("Shared.UserSettings")
 
 -- Fire input above this stops the travel drive.
 local FIRE_THRESHOLD           = 0.5
@@ -52,6 +53,9 @@ local PlayerController = Class("PlayerController", function(self, shipEntity, co
         Enums.CameraMode.Orbit,
         Enums.CameraMode.Free,
     }
+
+    -- The piloted ship is the player's: orders given to it wait.
+    ControlOwnerSystem:setManual(shipEntity, true)
 
     self:_createCameras(config)
     self:setMode(self.mode)
@@ -369,11 +373,11 @@ end
 --- Set a new ship for the player to control
 ---@param shipEntity Entity
 function PlayerController:setShip(shipEntity)
-    -- The old ship must not keep flying on its last input.
-    local oldInput = self.ship and self.ship:get(ConstructComponents.ControlInput)
-    if oldInput then oldInput:clearAxes() end
+    -- The old ship must not keep flying on its last input: giving up its controls resets them.
+    if self.ship then ControlOwnerSystem:setManual(self.ship, false) end
 
     self.ship = shipEntity
+    ControlOwnerSystem:setManual(shipEntity, true)
 
     local chase = self.controllers[Enums.CameraMode.Chase]
     if chase then chase:setTarget(shipEntity) end

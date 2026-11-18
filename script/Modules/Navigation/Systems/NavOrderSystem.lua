@@ -4,6 +4,7 @@ local PhysicsComponents   = require("Modules.Physics.Components")
 local Components          = require("Modules.Navigation.Components")
 local GravityWellSystem   = require("Modules.Physics.Systems.GravityWellSystem")
 local ShipFlightSystem    = require("Modules.Constructs.Systems.ShipFlightSystem")
+local ControlOwnerSystem  = require("Modules.Constructs.Systems.ControlOwnerSystem")
 local NavConfig           = require("Config.Navigation.NavConfig")
 local EntityPosition      = require("Shared.Helpers.EntityPosition")
 local NavAgentHelper      = require("Shared.Helpers.NavAgentHelper")
@@ -271,8 +272,16 @@ local function costProfileRevision(ship)
     return profile and profile:getRevision() or 0
 end
 
----Takes a ship's agent out of the world and gives the controls back: no axes left over, the
----travel drive stopped and its cap lifted.
+---Whether orders own the ship's control input, so that the system may write it. A ship that the player
+---pilots or that an AI has claimed is not flown by orders.
+---@param ship Entity
+---@return boolean
+local function flownByOrders(ship)
+    return ControlOwnerSystem:ownerOf(ship) == Enums.ControlOwner.Orders
+end
+
+---Takes a ship's agent out of the world. The control input is not touched: whoever owns it now
+---(or, when the last order ends, the ownership system) resets it.
 ---@param world NavWorldComponent
 ---@param ship Entity
 local function detachAgent(world, ship)
@@ -281,12 +290,13 @@ local function detachAgent(world, ship)
     world:getNav():removeAgent(agent:getSlot())
     world:unassign(agent:getSlot())
     ship:remove(Components.NavAgent)
+end
+
+---Tells the travel drive to stop, if orders own the ship's input.
+---@param ship Entity
+local function disengageDrive(ship)
     local input = ship:get(ConstructComponents.ControlInput)
-    if input then
-        input:clearAxes()
-        input:setDriveRequest(Enums.TravelDriveRequest.Disengage)
-        input:setDriveSpeedCap(nil)
-    end
+    if input and flownByOrders(ship) then input:setDriveRequest(Enums.TravelDriveRequest.Disengage) end
 end
 
 ---Gives a ship an agent in the world, if it has none.
@@ -320,9 +330,12 @@ local function endOrder(world, order, ship, status, failure)
     if ship then
         local queue = ship:get(Components.OrderQueue)
         queue:remove(order.id)
-        local input = ship:get(ConstructComponents.ControlInput)
-        if input then input:setDriveRequest(Enums.TravelDriveRequest.Disengage) end
-        if queue:count() == 0 then detachAgent(world, ship) end
+        disengageDrive(ship)
+        if queue:count() == 0 then
+            detachAgent(world, ship)
+            -- With no order left, the ship's controls are reset if orders were the ones to own them.
+            ControlOwnerSystem:setOrders(ship, false)
+        end
     end
     EventBus:dispatch(Event[END_EVENTS[status]], order.id)
 end
@@ -356,9 +369,10 @@ local function checkOrder(world, order, navOrder)
     return ship
 end
 
----Takes a running order off its ship, because an order of higher priority is the head now: its plan is
----dropped and it will begin again from where the ship is. What the order itself holds (a Patrol's
----point, an Orbit's plane, its target and facing) stays.
+---Takes a running order off its ship, because an order of higher priority is the head now, or
+---because the ship's controls belong to someone else: its plan is dropped and it will begin again
+---from where the ship is. What the order itself holds (a Patrol's point, an Orbit's plane, its
+---target and facing) stays.
 ---@param order Entity
 ---@param ship Entity
 local function suspendOrder(order, ship)
@@ -368,8 +382,7 @@ local function suspendOrder(order, ship)
     flight.begun = false
     flight.tracking = false
     order:get(Components.OrderStatus):setStatus(Status.Suspended)
-    local input = ship:get(ConstructComponents.ControlInput)
-    if input then input:setDriveRequest(Enums.TravelDriveRequest.Disengage) end
+    disengageDrive(ship)
     EventBus:dispatch(Event[TRANSITION_EVENTS.suspended], order.id)
 end
 
@@ -640,7 +653,9 @@ local function collectHeads(world)
     for order, navOrder in Registry:view(Components.NavOrder) do
         if not order:get(Components.OrderStatus):hasEnded() then
             local ship = checkOrder(world, order, navOrder)
-            if ship and ship:get(Components.OrderQueue):head() == order.id then
+            -- A ship the player pilots or an AI has claimed flies no order: it leaves the world.
+            if ship and not flownByOrders(ship) then detachAgent(world, ship) end
+            if ship and flownByOrders(ship) and ship:get(Components.OrderQueue):head() == order.id then
                 resumeOrder(order)
                 heads[#heads + 1] = { order = order, ship = ship, handler = HANDLERS[navOrder:getKind()],
                     facing = order:get(Components.FacingGoal) }

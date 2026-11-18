@@ -1,5 +1,5 @@
 -- Checks the navigation orders: MoveTo to a point past a planet (a plan with a corner, the drive) and
--- to a body, the approach specs (stand-off, point, refused), the facing goal, a queue, Patrol with and without a loop, Hold, cancel (a queued order and a running
+-- to a body, the approach specs (stand-off, point, refused), the facing goal, a queue, priorities, control ownership (a claim, a piloted ship), Patrol with and without a loop, Hold, cancel (a queued order and a running
 -- one), a change of target and of cost profile in flight (the path is planned again), a target and
 -- a ship that are destroyed, Orbit (a named plane, the ship's plane, a planet in a moving well), Follow
 -- (in and out of the join range, a leader that leaves it), the refused specs, release, and the world's detach. The end events are checked in frames
@@ -13,6 +13,7 @@ local OrbitalSystem         = require("Modules.CelestialObjects.Systems.OrbitalS
 local GravityWellSystem     = require("Modules.Physics.Systems.GravityWellSystem")
 local ShipFlightSystem      = require("Modules.Constructs.Systems.ShipFlightSystem")
 local TravelDriveSystem     = require("Modules.Constructs.Systems.TravelDriveSystem")
+local ControlOwnerSystem    = require("Modules.Constructs.Systems.ControlOwnerSystem")
 local Nav                   = require("Modules.Navigation")
 local NavConfig             = require("Config.Navigation.NavConfig")
 local CostProfileDefs       = require("Shared.Registries.CostProfileRegistry")
@@ -26,9 +27,10 @@ local FlightProfileRegistry = require("Shared.Registries.FlightProfileRegistry")
 ---@class NavigationOrdersTest: Application
 local OrdersTest = Subclass("NavigationOrdersTest", Application)
 
-local Status  = Enums.NavOrderStatus
-local Failure = Enums.NavOrderFailure
-local Phase   = PlanFlight.Phase
+local Status     = Enums.NavOrderStatus
+local Failure    = Enums.NavOrderFailure
+local Owner      = Enums.ControlOwner
+local Phase      = PlanFlight.Phase
 local Components = Nav.Components
 
 local STEP = 1 / 60
@@ -603,6 +605,109 @@ function OrdersTest:casePriorityRefused()
     local queue = ship.entity:get(Components.OrderQueue)
     self:check(queue == nil or queue:count() == 0, name .. "no order is left behind")
     self:finish({}, { ship })
+end
+
+function OrdersTest:caseClaim()
+    local name = "a claimed ship: "
+    local ship = self:ship(Position(0, 0, 0))
+    local input = ship.entity:get(ConstructComponents.ControlInput)
+    local goal = Position(LEG, 0, 0)
+    local order = Nav.order(ship.entity, Nav.Orders.MoveTo { target = goal })
+    self:check(Nav.controlOwner(ship.entity) == Owner.Orders, name .. "orders own a ship that has an order")
+    self:flyUntilMoving(ship, order, name)
+
+    Nav.claim(ship.entity)
+    self:check(Nav.controlOwner(ship.entity) == Owner.Claim, name .. "the claimer owns it")
+    self:check(axesAreZero(input) and input:getDriveSpeedCap() == nil
+        and input:getDriveRequest() == Enums.TravelDriveRequest.Disengage, name .. "the input is reset at the handover")
+    input:setThrustForward(1)
+    self:step()
+    self:check(Nav.status(order) == Status.Suspended, name .. "the running order is suspended")
+    self:expectTransition(order, "suspended")
+    self:check(planOf(order) == nil and not hasAgent(ship), name .. "its plan is dropped and the ship has left the world")
+    self:flyUntil(function() return false end, 1)
+    self:check(input:getThrustForward() == 1 and input:getYaw() == 0, name .. "the orders leave the input to the claimer")
+    self:check(Nav.status(order) == Status.Suspended and not hasAgent(ship), name .. "the order waits")
+
+    input:clearAxes()
+    Nav.unclaim(ship.entity)
+    self:check(Nav.controlOwner(ship.entity) == Owner.Orders, name .. "orders own the ship again")
+    self:step()
+    self:check(Nav.status(order) ~= Status.Suspended and hasAgent(ship), name .. "the order resumes")
+    self:expectTransition(order, "resumed")
+    local reached = self:flyUntil(function() return Nav.status(order) == Status.Done end, MAX_FLIGHT_S)
+    self:check(reached and within(ship, goal, NavConfig.pointArrival() * ARRIVED_SLACK), name .. "it flies on from where the ship is, and is done")
+    self:finish({ order }, { ship })
+end
+
+function OrdersTest:caseManualShip()
+    local name = "a ship the player pilots: "
+    local ship = self:ship(Position(0, 0, 0))
+    ControlOwnerSystem:setManual(ship.entity, true)
+    local goal = Position(LEG, 0, 0)
+    local order = Nav.order(ship.entity, Nav.Orders.MoveTo { target = goal })
+    self:check(Nav.controlOwner(ship.entity) == Owner.Manual, name .. "manual input owns it")
+    self:flyUntil(function() return false end, 1)
+    self:check(Nav.status(order) == Status.Queued and not hasAgent(ship), name .. "its order waits, with no agent")
+    self:check(ship.rb:getSpeed() < STOPPED, name .. "the ship is not flown")
+
+    ControlOwnerSystem:setManual(ship.entity, false)
+    self:check(Nav.controlOwner(ship.entity) == Owner.Orders, name .. "orders own it when the player leaves it")
+    local reached = self:flyUntil(function() return Nav.status(order) == Status.Done end, MAX_FLIGHT_S)
+    self:check(reached and within(ship, goal, NavConfig.pointArrival() * ARRIVED_SLACK), name .. "the order is flown then")
+    self:finish({ order }, { ship })
+end
+
+function OrdersTest:caseOwnerPrecedence()
+    local name = "who owns the controls: "
+    local ship = self:ship(Position(0, 0, 0))
+    local input = ship.entity:get(ConstructComponents.ControlInput)
+    local function owner() return Nav.controlOwner(ship.entity) end
+    self:check(owner() == Owner.None, name .. "nobody, for a ship nothing asks for")
+    Nav.claim(ship.entity)
+    input:setYaw(0.5)
+    local order = Nav.order(ship.entity, Nav.Orders.MoveTo { target = Position(LEG, 0, 0) })
+    self:check(owner() == Owner.Claim and input:getYaw() == 0.5, name .. "a claim holds against an order given later")
+    ControlOwnerSystem:setManual(ship.entity, true)
+    self:check(owner() == Owner.Manual, name .. "manual input over a claim")
+    ControlOwnerSystem:setManual(ship.entity, false)
+    self:check(owner() == Owner.Claim, name .. "the claim again when the player leaves")
+    self:check(not pcall(Nav.claim, ship.entity), name .. "a ship claimed twice is refused")
+    Nav.unclaim(ship.entity)
+    self:check(owner() == Owner.Orders, name .. "orders when nothing stronger is left")
+    self:check(not pcall(Nav.unclaim, ship.entity), name .. "an unclaim of a ship that is not claimed is refused")
+
+    self:step()
+    input:setYaw(0.5)
+    Nav.cancel(order)
+    self:step()
+    self:check(Nav.status(order) == Status.Cancelled and owner() == Owner.None, name .. "nobody when the last order has ended")
+    self:check(axesAreZero(input), name .. "the input is reset then")
+    Nav.claim(ship.entity)
+    input:setYaw(0.5)
+    Nav.unclaim(ship.entity)
+    self:check(owner() == Owner.None and axesAreZero(input), name .. "a claim on a ship with no orders gives it back reset")
+    self:finish({ order }, { ship })
+end
+
+function OrdersTest:caseClaimedPriority()
+    local name = "orders given to a claimed ship: "
+    local ship = self:ship(Position(0, 0, 0))
+    Nav.claim(ship.entity)
+    local routine = Nav.order(ship.entity, Nav.Orders.MoveTo { target = Position(LEG, 0, 0) })
+    local detour = Position(0, LEG / 2, 0)
+    local combat = Nav.order(ship.entity, Nav.Orders.MoveTo { target = detour, priority = Nav.Priority.Combat })
+    self:flyUntil(function() return false end, 1)
+    self:check(Nav.status(routine) == Status.Queued and Nav.status(combat) == Status.Queued and not hasAgent(ship),
+        name .. "they wait, both queued")
+    Nav.unclaim(ship.entity)
+    self:step()
+    self:check(Nav.status(combat) ~= Status.Queued and Nav.status(routine) == Status.Queued, name .. "the one of higher priority flies first")
+    local reached = self:flyUntil(function() return Nav.status(combat) == Status.Done end, MAX_FLIGHT_S)
+    self:check(reached and within(ship, detour, NavConfig.pointArrival() * ARRIVED_SLACK), name .. "it is done at its point")
+    reached = self:flyUntil(function() return Nav.status(routine) == Status.Done end, MAX_FLIGHT_S)
+    self:check(reached, name .. "the other follows")
+    self:finish({ routine, combat }, { ship })
 end
 
 function OrdersTest:casePatrol(loop)
@@ -1191,6 +1296,10 @@ function OrdersTest:onInit()
     self:casePriorityPatrol()
     self:casePriorityQueueOrder()
     self:casePriorityRefused()
+    self:caseClaim()
+    self:caseManualShip()
+    self:caseOwnerPrecedence()
+    self:caseClaimedPriority()
     self:casePatrol(false)
     self:casePatrol(true)
     self:caseHold()
