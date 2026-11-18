@@ -1,8 +1,9 @@
 --- The look of the main menu screens, after BFett's start menu mockups: a fixed
 --- sidebar on the left, content in one dark bordered panel or a centred modal.
 ---
---- Sizes are design pixels on a 2000 x 1125 screen and are scaled to the window
---- (`MenuStyle.context`). The widgets that use this live in
+--- Sizes are design pixels on a 2000 x 1125 screen, scaled to the window by HmGui
+--- (`MenuScreen` sets `Gui:setScale`, see `MenuStyle.context`). The widgets that use
+--- this live in
 --- `UI/HmGui/Components/MainMenu/MenuWidgets/` (one file per widget).
 local MenuStyle = {}
 
@@ -61,20 +62,21 @@ MenuStyle.color = {
 }
 
 ---@class MenuContext
----@field s number design pixels to window pixels
----@field ox number x of the current parent's design origin, in window pixels
----@field oy number y of the current parent's design origin, in window pixels
+---@field s number the UI scale: window pixels per design pixel (for what HmGui reports in window pixels, like the mouse)
+---@field ox number x of the current parent's design origin, in design pixels
+---@field oy number y of the current parent's design origin, in design pixels
 
 ---The context of a full screen: the design area is scaled to fit the window and
----centred in it (on a 16:9 window it fills it).
+---centred in it (on a 16:9 window it fills it). `MenuScreen` scales everything in
+---it by `s` (`Gui:setScale`), so the widgets place and size in design pixels.
 ---@return MenuContext
 function MenuStyle.context()
     local width, height = Window:width(), Window:height()
     local s = math.min(width / MenuStyle.DESIGN_WIDTH, height / MenuStyle.DESIGN_HEIGHT)
     return {
         s = s,
-        ox = math.floor((width - MenuStyle.DESIGN_WIDTH * s) / 2),
-        oy = math.floor((height - MenuStyle.DESIGN_HEIGHT * s) / 2),
+        ox = (width / s - MenuStyle.DESIGN_WIDTH) / 2,
+        oy = (height / s - MenuStyle.DESIGN_HEIGHT) / 2,
     }
 end
 
@@ -86,12 +88,11 @@ function MenuStyle.inside(ctx)
     return { s = ctx.s, ox = 0, oy = 0 }
 end
 
----A font at a design size.
+---A font at a design size (HmGui draws it at the UI scale).
 ---@param kind "light"|"regular"|"medium"
 ---@param size number design pixels
----@param s number scale
-function MenuStyle.fontOf(kind, size, s)
-    return Cache.Font(MenuStyle.font[kind] or MenuStyle.font.light, math.max(6, math.floor(size * s + 0.5)))
+function MenuStyle.fontOf(kind, size)
+    return Cache.Font(MenuStyle.font[kind] or MenuStyle.font.light, math.floor(size + 0.5))
 end
 
 ---Begin a stack container at a design position in its parent (`Gui:setPosition`:
@@ -104,18 +105,20 @@ end
 ---@param h number|nil
 function MenuStyle.beginAt(ctx, x, y, w, h)
     Gui:beginStackContainer()
-    Gui:setPosition(ctx.ox + x * ctx.s, ctx.oy + y * ctx.s)
+    Gui:setPosition(ctx.ox + x, ctx.oy + y)
     if w and h then
-        Gui:setFixedSize(w * ctx.s, h * ctx.s)
+        Gui:setFixedSize(w, h)
     end
 end
 
----A border width that stays visible on small windows.
+---The thickness of a rect drawn as a line, in design pixels, so that it lands on
+---whole window pixels and stays at least one wide at the UI scale `s`. (Border
+---widths do this by themselves.)
 ---@param width number design pixels
 ---@param s number scale
 ---@return number
-function MenuStyle.border(width, s)
-    return math.max(1, math.floor(width * s + 0.5))
+function MenuStyle.line(width, s)
+    return math.max(1, math.floor(width * s + 0.5)) / s
 end
 
 ---Whether the left mouse button went down this frame: test it right after

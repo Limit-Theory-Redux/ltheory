@@ -35,6 +35,7 @@ function Loader.defineType()
             Vec2f HmGui_ContainerSize                  (HmGui*);
             Vec2f HmGui_ContainerMinSize               (HmGui*);
             Vec2f HmGui_ContainerPos                   (HmGui*);
+            float HmGui_ContainerScale                 (HmGui const*);
             void  HmGui_UpdateElementOffset            (HmGui*, Vec2f offset);
             void  HmGui_Image                          (HmGui*, Tex2D* image);
             void  HmGui_Rect                           (HmGui*);
@@ -59,6 +60,8 @@ function Loader.defineType()
             void  HmGui_SetLookParam                   (HmGui*, cstr look, cstr param, float value);
             void  HmGui_Text                           (HmGui*, cstr text, Font const* font, Color const* color);
             void  HmGui_TextOutlined                   (HmGui*, cstr text, Font const* font, Color const* color, Color const* outline, Color const* halo);
+            void  HmGui_SetTextWrap                    (HmGui const*, bool wrap);
+            void  HmGui_SetTextAlign                   (HmGui const*, AlignHorizontal align);
             void  HmGui_TextView                       (HmGui*, TextData* textData, bool editable);
             bool  HmGui_GetTextViewChanges             (HmGui*, TextData* textData);
             bool  HmGui_IsMouseOver                    (HmGui const*, FocusType ty);
@@ -71,6 +74,7 @@ function Loader.defineType()
             void  HmGui_SetMaxWidth                    (HmGui const*, float width);
             void  HmGui_SetMaxHeight                   (HmGui const*, float height);
             void  HmGui_SetMaxSize                     (HmGui const*, float width, float height);
+            void  HmGui_SetScale                       (HmGui const*, float scale);
             void  HmGui_SetPosition                    (HmGui const*, float x, float y);
             void  HmGui_SetFixedWidth                  (HmGui const*, float width);
             void  HmGui_SetFixedHeight                 (HmGui const*, float height);
@@ -134,6 +138,7 @@ function Loader.defineType()
                 containerSize                  = libphx.HmGui_ContainerSize,
                 containerMinSize               = libphx.HmGui_ContainerMinSize,
                 containerPos                   = libphx.HmGui_ContainerPos,
+                containerScale                 = libphx.HmGui_ContainerScale,
                 updateElementOffset            = libphx.HmGui_UpdateElementOffset,
                 image                          = libphx.HmGui_Image,
                 rect                           = libphx.HmGui_Rect,
@@ -158,6 +163,8 @@ function Loader.defineType()
                 setLookParam                   = libphx.HmGui_SetLookParam,
                 text                           = libphx.HmGui_Text,
                 textOutlined                   = libphx.HmGui_TextOutlined,
+                setTextWrap                    = libphx.HmGui_SetTextWrap,
+                setTextAlign                   = libphx.HmGui_SetTextAlign,
                 textView                       = libphx.HmGui_TextView,
                 getTextViewChanges             = libphx.HmGui_GetTextViewChanges,
                 isMouseOver                    = libphx.HmGui_IsMouseOver,
@@ -170,6 +177,7 @@ function Loader.defineType()
                 setMaxWidth                    = libphx.HmGui_SetMaxWidth,
                 setMaxHeight                   = libphx.HmGui_SetMaxHeight,
                 setMaxSize                     = libphx.HmGui_SetMaxSize,
+                setScale                       = libphx.HmGui_SetScale,
                 setPosition                    = libphx.HmGui_SetPosition,
                 setFixedWidth                  = libphx.HmGui_SetFixedWidth,
                 setFixedHeight                 = libphx.HmGui_SetFixedHeight,

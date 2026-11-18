@@ -84,7 +84,7 @@ local scenarioIndex = 1 -- in Scenarios (Config/Scenarios); 1 = the default
 local ownSeedText = ""
 
 local FIELD_W, FIELD_H = 340, 40
-local seedView -- rebuilt when the window size changes the font size, or the field's state changes
+local seedView -- rebuilt when the field's state changes
 local seedViewKey
 
 local function usingTestSeed()
@@ -105,12 +105,11 @@ local function fieldText()
     return ownSeedText
 end
 
----The TextView for the field at this scale (font size), made again when needed.
-local function getSeedView(s)
-    local size = math.max(8, math.floor(24 * s + 0.5))
+---The TextView for the field, made again when needed.
+local function getSeedView()
     -- a new TextView (new text data) for every choice: the engine copies new
     -- text data into the field, also into an editable one
-    local key = size .. (usingTestSeed() and (":test" .. testSeedIndex) or ":own")
+    local key = usingTestSeed() and (":test" .. testSeedIndex) or ":own"
     if seedViewKey ~= key then
         if seedView and not usingTestSeed() and seedViewKey and seedViewKey:find(":own") then
             ownSeedText = textOf(seedView) -- keep what the player typed
@@ -120,12 +119,12 @@ local function getSeedView(s)
             editable = not usingTestSeed(),
             multiline = false,
             style = {
-                font = { size = size, family = "Unageo" },
+                font = { size = 24, family = "Unageo" },
                 brush = usingTestSeed() and MenuStyle.color.disabled or MenuStyle.color.fieldText,
                 selectionBrush = MenuStyle.color.selection,
                 cursorBrush = MenuStyle.color.text,
             },
-            width = function() return (FIELD_W - 20) * s end,
+            width = FIELD_W - 20,
             align = { AlignHorizontal.Left, AlignVertical.Center },
             -- with a callback, the TextView copies what is typed into its text data
             callback = function() end,
@@ -192,15 +191,14 @@ end
 local seedField = UIComponent.MenuRaw {
     x = 305, y = 236, w = FIELD_W, h = FIELD_H,
     fn = function(ctx)
-        local s = ctx.s
         local C = MenuStyle.color
         Gui:setBackgroundColor(usingTestSeed() and C.box or C.field)
-        Gui:setBorderWidth(MenuStyle.border(2, s))
+        Gui:setBorderWidth(2)
         Gui:setBorderColor(C.fieldBorder)
         Gui:beginStackContainer()
         Gui:setAlignment(AlignHorizontal.Left, AlignVertical.Center)
-        Gui:setMarginEx(10 * s, 0, 0, 0)
-        getSeedView(s):render()
+        Gui:setMarginEx(10, 0, 0, 0)
+        getSeedView():render()
         Gui:endContainer()
     end
 }

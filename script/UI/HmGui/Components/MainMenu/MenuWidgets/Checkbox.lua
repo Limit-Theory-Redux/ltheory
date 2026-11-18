@@ -8,16 +8,15 @@ local makeToolTip, widget = Common.makeToolTip, Common.widget
 local function Checkbox(args)
     local toolTip = makeToolTip(args.toolTip)
     return widget(function(self, ctx)
-        local s = ctx.s
         MenuStyle.beginAt(ctx, args.x, args.y, 40, 40)
         local hover = Gui:isMouseOver(FocusType.Mouse)
         Gui:setBackgroundColor(hover and C.boxHover or C.box)
-        Gui:setBorderWidth(MenuStyle.border(2, s))
+        Gui:setBorderWidth(2)
         Gui:setBorderColor(C.fieldBorder)
         if args.get() then
             Gui:rect()
             Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
-            Gui:setFixedSize(22 * s, 22 * s)
+            Gui:setFixedSize(22, 22)
             Gui:setBackgroundColor(C.check)
         end
         Gui:endContainer()

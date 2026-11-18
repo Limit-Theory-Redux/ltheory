@@ -1,5 +1,6 @@
 use glam::Vec2;
 
+use super::Alignment;
 use crate::render::{Color, Font, Renderer, TextOutline, UIRenderer};
 
 /// What a text widget that is narrower than its text ends with.
@@ -17,6 +18,15 @@ pub struct HmGuiText {
     /// The text cut to the widget's width and ended with [`ELLIPSIS`], when the
     /// widget is narrower than its text (from layout()).
     pub shown: Option<String>,
+    /// Break the text into lines where it is wider than the widget's max or
+    /// fixed width (`Gui:setTextWrap`).
+    pub wrap: bool,
+    /// Where each line sits in the widget (`Gui:setTextAlign`): begin = left,
+    /// end = right, anything else centred.
+    pub align: Alignment,
+    /// The text's lines and their widths, when it has more than one (line
+    /// breaks, or `wrap`), from measure(). Empty for a single line.
+    pub lines: Vec<(String, f32)>,
 }
 
 impl PartialEq for HmGuiText {
@@ -25,6 +35,8 @@ impl PartialEq for HmGuiText {
             && self.text == other.text
             && self.color == other.color
             && self.outline == other.outline
+            && self.wrap == other.wrap
+            && self.align == other.align
     }
 }
 
@@ -37,11 +49,36 @@ impl HmGuiText {
             outline: None,
             size: Vec2::ZERO,
             shown: None,
+            wrap: false,
+            align: Alignment::Default,
+            lines: vec![],
         }
     }
 
-    /// Measure the text (its own size, for the widget's min size).
-    pub fn measure(&mut self, r: &mut Renderer) -> Vec2 {
+    /// Measure the text (its own size, for the widget's min size). It breaks
+    /// into lines at its line breaks, and with `wrap` where it is wider than
+    /// `wrap_width` (the widget's max or fixed width): then it is as wide as
+    /// its widest line and as high as its lines, a line height apart.
+    pub fn measure(&mut self, r: &mut Renderer, wrap_width: Option<f32>) -> Vec2 {
+        let wrap_width = if self.wrap { wrap_width } else { None };
+        self.lines.clear();
+
+        if wrap_width.is_some() || self.text.contains('\n') {
+            let lines = self.font.wrap(&self.text, wrap_width);
+            if lines.len() > 1 {
+                let mut width: f32 = 0.0;
+                for line in lines.iter() {
+                    let line_width = self.font.get_size2(r, line).x as f32;
+                    width = width.max(line_width);
+                    self.lines.push((line.clone(), line_width));
+                }
+                let line_box = (self.font.ascent() + self.font.descent()) as f32;
+                let between = self.font.get_line_height() as f32;
+                self.size = Vec2::new(width, line_box + (lines.len() - 1) as f32 * between);
+                return self.size;
+            }
+        }
+
         self.size = self.font.get_size2(r, &self.text).as_vec2();
         self.size
     }
@@ -50,7 +87,7 @@ impl HmGuiText {
     /// rounding in the layout doesn't cut a text that fits), keep as much of its
     /// start as fits together with [`ELLIPSIS`].
     pub fn fit(&mut self, r: &mut Renderer, width: f32) {
-        self.shown = if self.size.x - width > 0.5 {
+        self.shown = if self.lines.is_empty() && self.size.x - width > 0.5 {
             Some(fit_text(&self.text, width, |s| {
                 self.font.get_size2(r, s).x as f32
             }))
@@ -64,8 +101,46 @@ impl HmGuiText {
         self.shown.as_deref().unwrap_or(&self.text)
     }
 
-    pub fn draw(&self, renderer: &mut UIRenderer, pos: Vec2) {
-        renderer.text(&self.font, self.shown_text(), pos, self.color, self.outline);
+    /// Draw the text in a widget box starting at `x`, `width` wide, whose
+    /// bottom is at `bottom`. The box is the font's line box (ascent +
+    /// descent) per line, so the last line's baseline sits `descent` above the
+    /// bottom and every line above it a line height higher. Each line is
+    /// placed by `align` (centred by default); a cut text fills the box from
+    /// the left.
+    pub fn draw(&self, renderer: &mut UIRenderer, x: f32, width: f32, bottom: f32) {
+        let baseline = bottom - self.font.descent() as f32;
+
+        if self.lines.is_empty() {
+            let x = if self.shown.is_some() {
+                x
+            } else {
+                self.line_x(x, width, self.size.x)
+            };
+            let pos = Vec2::new(x, baseline);
+            renderer.text(&self.font, self.shown_text(), pos, self.color, self.outline);
+            return;
+        }
+
+        let between = self.font.get_line_height() as f32;
+        let last = self.lines.len() - 1;
+        for (i, (line, line_width)) in self.lines.iter().enumerate() {
+            let pos = Vec2::new(
+                self.line_x(x, width, *line_width),
+                baseline - (last - i) as f32 * between,
+            );
+            renderer.text(&self.font, line, pos, self.color, self.outline);
+        }
+    }
+
+    /// Where a line `line_width` wide starts in a box at `x`, `width` wide.
+    fn line_x(&self, x: f32, width: f32, line_width: f32) -> f32 {
+        if self.align.is_begin() && !self.align.is_default() {
+            x
+        } else if self.align.is_end() {
+            x + width - line_width
+        } else {
+            x + (width - line_width) / 2.0
+        }
     }
 
     // For testing.
@@ -75,6 +150,9 @@ impl HmGuiText {
 
         println!("{ident_str}- text:  {}", self.text);
         println!("{ident_str}- shown: {:?}", self.shown);
+        if !self.lines.is_empty() {
+            println!("{ident_str}- lines: {:?}", self.lines);
+        }
         println!("{ident_str}- color: {:?}", self.color);
         if let Some(outline) = &self.outline {
             println!("{ident_str}- outline: {outline:?}");

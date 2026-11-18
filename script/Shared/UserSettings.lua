@@ -80,7 +80,7 @@ local defaults = {
     ui = {
         drawHud            = Config.ui.general.drawHud,
         showIndicatorNames = Config.ui.general.showIndicatorNames,
-        scaleFactor        = Config.ui.general.scaleFactor,
+        hudScale           = Config.ui.general.hudScale,
         cursorStyle        = Config.ui.general.cursorStyle,
         hudStyle           = Config.ui.general.hudStyle,
     },
@@ -232,7 +232,7 @@ local groups = {
     interface = {
         { "input", "invertPitch" }, { "input", "mouseSensitivity" },
         { "ui", "drawHud" }, { "ui", "showIndicatorNames" },
-        { "ui", "scaleFactor" }, { "ui", "cursorStyle" }, { "ui", "hudStyle" },
+        { "ui", "hudScale" }, { "ui", "cursorStyle" }, { "ui", "hudStyle" },
     },
     graphics = {
         -- not resX/resY: they are the window's current size (see applyResolution)
