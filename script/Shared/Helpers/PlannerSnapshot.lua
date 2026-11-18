@@ -161,6 +161,20 @@ function PlannerSnapshot:advance(dt)
     self.age = self.age + dt
 end
 
+---Whether an entity is a body of the planner's snapshots: a plan to it rides on it, so the plan's
+---waypoints follow it as it moves.
+---@param entity Entity
+---@return boolean
+function PlannerSnapshot.isBody(entity)
+    for _, spec in ipairs(BODY_KINDS) do
+        if entity:get(spec.marker) then
+            local rbCmp = entity:get(PhysicsComponents.RigidBody)
+            return rbCmp ~= nil and rbCmp:getRigidBody() ~= nil
+        end
+    end
+    return false
+end
+
 ---The 1-based body index of an entity, nil when it isn't a body of the snapshot.
 ---@param entity Entity
 ---@return integer|nil

@@ -1,6 +1,7 @@
 -- Checks the navigation orders: MoveTo to a point past a planet (a plan with a corner, the drive) and
 -- to a body, the approach specs (stand-off, point, refused), the facing goal, a queue, priorities, control ownership (a claim, a piloted ship), Patrol with and without a loop, Hold, cancel (a queued order and a running
--- one), a change of target and of cost profile in flight (the path is planned again), a target and
+-- one), a change of target in flight (the path is planned again), of cost profile (a new plan replaces the
+-- old one while the ship flies on), a target and
 -- a ship that are destroyed, Orbit (a named plane, the ship's plane, a planet in a moving well), Follow
 -- (in and out of the join range, a leader that leaves it), the refused specs, release, and the world's detach. The end events are checked in frames
 -- after the flights, since the event bus delivers them there. Logs each failed check and ends
@@ -828,8 +829,14 @@ function OrdersTest:caseCostProfileChange()
     self:check(planOf(order) == before, name .. "the plan stands while nothing changes")
     profile:setProfile(CostProfileDefs:get(Enums.CostProfile.Cautious))
     self:step()
+    local flight = order:get(Components.OrderFlight)
+    self:check(planOf(order) == before and flight.pending ~= nil, name .. "the ship flies its plan while the new one is asked for")
+    -- The planner answers in its own time: wait for the work, for at most the plan wait.
+    local start = InstantTime.Now()
+    while planOf(order) == before and InstantTime.Now():durationSince(start) < PLAN_WAIT_S * MS_PER_S do
+        Nav.update(0)
+    end
     self:check(planOf(order) ~= before, name .. "the path is planned again")
-    self:awaitPlan(order)
     local reached = self:flyUntil(function() return Nav.status(order) == Status.Done end, MAX_FLIGHT_S)
     self:check(reached, name .. "the order is done")
     self:finish({ order }, { ship })

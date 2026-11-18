@@ -1,6 +1,7 @@
 local Component    = require("Core.ECS.Component")
 local ApproachSpec = require("Shared.Types.ApproachSpec")
 local NavTarget    = require("Shared.Helpers.NavTarget")
+local GoalDrift    = require("Shared.Helpers.GoalDrift")
 
 ---@class MoveToOrderComponent: Component
 ---@overload fun(self: MoveToOrderComponent, target: NavTarget, approach: ApproachSpecId|ApproachSpecConstructor|ApproachSpec|nil): MoveToOrderComponent subclass internal
@@ -11,6 +12,7 @@ local NavTarget    = require("Shared.Helpers.NavTarget")
 local MoveToOrderComponent = Subclass("MoveToOrderComponent", Component, function(self, target, approach)
     self:setComponentName("MoveToOrder")
     self._revision = 0
+    self._drift = GoalDrift.new()
     self:setTarget(target)
     assert(approach == nil or self._targetEntityId, "MoveToOrder: an approach is for an entity target, not a point")
     self._approach = approach ~= nil and ApproachSpec.Of(approach) or nil
@@ -20,6 +22,18 @@ end)
 function MoveToOrderComponent:setTarget(target)
     self._targetEntityId, self._targetPos = NavTarget.Split(target, "MoveToOrder")
     self._revision = self._revision + 1
+    -- The drift of the old target says nothing about the new one; the counter keeps rising, so the
+    -- key of the new target is never one an earlier plan was made under.
+    self._drift.point = nil
+end
+
+---The key of the plan for the goal: it changes with the target (`setTarget`) and when a goal that
+---moves has gone farther than `range` from the point the current key was made for.
+---@param goal Position The goal now
+---@param range gameunit
+---@return integer
+function MoveToOrderComponent:goalKey(goal, range)
+    return self._revision + GoalDrift.key(self._drift, goal, range)
 end
 
 ---@return EntityId|nil The target entity's id; nil for a point

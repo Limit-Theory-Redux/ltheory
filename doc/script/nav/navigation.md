@@ -41,9 +41,9 @@ if Nav.status(order) == Enums.NavOrderStatus.Done then Nav.release(order) end
 
 Every spec also takes `priority`, a level of `Nav.Priority` (`Routine`, `Urgent`, `Combat`; `Routine` when `nil`). See [Queue and status](#queue-and-status).
 
-A MoveTo flies the path of the [system planner](system-planner.md#consumers): in normal flight while the plan is out, then the plan's corners with the travel drive on its drive legs, then the approach, as the autopilot does (`PlanFlight` is the code they share). A change of the order's target, or of the ship's cost profile (`CostProfileComponent`), makes the system drop the plan and plan again from where the ship is.
+A MoveTo flies the path of the [system planner](system-planner.md#consumers): in normal flight while the plan is out, then the plan's corners with the travel drive on its drive legs, then the approach, as the autopilot does (`PlanFlight` is the code they share). The plan is made again when something it was made under changes: see [Replanning](#replanning).
 
-A MoveTo to an entity doesn't lead a moving target; the autopilot does.
+A MoveTo to an entity doesn't lead a moving target; the autopilot does. A target the plan doesn't ride (a ship) that moves far makes the plan again.
 
 ### Approach specs
 
@@ -172,6 +172,38 @@ local estimates = Nav.takeEstimates(request)     -- one result per candidate, in
 - `filter(entity, distance)` is optional; the rows it returns `false` for are left out.
 - The query runs on the calling thread, once per call. A caller that asks for many ships in a frame keeps within its own budget.
 
+## Replanning
+
+A plan is made for a goal, a cost profile and a set of cost zones, with the ship at rest where it was asked for. A flight plans again when one of them changes, and also on a timer, because the world moves under a plan. There are two ways to swap the plan:
+
+- **Drop.** The goal moved: a `Nav.retarget`, a Patrol's next point, a Follow's slot that moved more than `joinRange` ([Orbit and Follow](#orbit-and-follow)), or a MoveTo's target that is not a body the plan rides (a ship) and has moved more than `NavConfig.goalDriftShare` of the ship's distance to it, and at least the goal's arrival radius, from where the plan ends. The old plan ends at a place nobody wants, so it is dropped; the ship flies toward the goal in normal flight while the new plan is made.
+- **Refresh.** The ship keeps flying the old plan while a new one is made on the worker, and the new one replaces it when it arrives. The reasons are the ship's cost profile, the cost zones, a stall, a corner and the timer.
+
+```mermaid
+flowchart TD
+    G{{"goal moved"}} --> Drop["drop the plan, fly toward the goal, plan again"]
+    P{{"cost profile changed"}} --> Ask
+    Z{{"cost zones changed"}} --> Ask
+    S{{"stalled"}} --> Ask
+    C{{"corner passed"}} --> Quiet
+    T{{"timer: replanPeriodS"}} --> Quiet
+    Ask["announce the swap"] --> Due
+    Quiet["no announcement"] --> Due
+    Due{"on an arc, or the drive running?"} -->|yes| Wait["wait: the reason stays due"]
+    Due -->|no| Req["ask the worker; keep flying the old plan"]
+    Req --> Reply{"reply"}
+    Reply -->|"a corner was passed meanwhile"| Stale["drop the reply; ask again when due"]
+    Reply -->|"no usable plan"| Keep["drop the reply; keep the old plan"]
+    Reply -->|"usable, and the ship is not on an arc"| Swap["fly the new plan"]
+```
+
+- **When a refresh is asked for.** Not while the ship is on an arc, and not while the travel drive is running or charging: the planner times a path from a ship at rest, so a plan asked for under a drive run would place the bodies late and cut the run short. The reasons stay due and the request goes out when the ship is clear. A request is also not sent when the ship is already within range of the goal.
+- **When it is taken.** A reply replaces the plan once the ship is off an arc. A reply is dropped as stale if the ship passed a corner since it was asked for, because the new plan's first corner would then be behind the ship; the reason stays due. A reply with no usable plan is dropped with a warning, and the old plan is flown on. A goal change or the end of the order drops a request that is out, and so does a change of profile or zones, which asks again.
+- **A refresh after each corner.** After a sharp corner is passed or an arc is flown, never in the middle of an arc.
+- **The timer.** `NavConfig.replanPeriodS`, and the first refresh is offset by a share of it taken from the order's id, so the requests of many orders spread over frames. A plan that flies straight (no plan was usable) is not refreshed by the timer.
+- **Zones.** `CostZones.signature` folds the zones' ids, path costs, radii and tags into one number. An order compares it with the one its plan was made under, so a change to any zone asks every flying order for a refresh, near the zone or not.
+- **Announcement.** The swap sends `NavOrderReplanned` for a goal change, a drift, a stall, a profile change or a zone change, and not for the timer or a corner. The stall also sends `NavOrderBlocked` ([Events](#events)). A swap while the first plan is still out is a drop, since there is no plan to keep flying.
+
 ## Events
 
 The events an AI listens to are announced on the event bus, unscoped. An order's events carry the order's entity id as the payload:
@@ -184,7 +216,7 @@ The events an AI listens to are announced on the event bus, unscoped. An order's
 | `Event.NavOrderSuspended` | was displaced by an order of a higher priority |
 | `Event.NavOrderResumed` | is the head again and runs once more |
 | `Event.NavOrderArrived` | has reached its goal: each point of a Patrol, the end of a MoveTo (just before `NavOrderDone`), and the ship joining the circle of an Orbit or the slot of a Follow |
-| `Event.NavOrderReplanned` | is flown on a new path because its goal or its cost profile changed in flight (a `Nav.retarget`, a Follow's slot that moved, a new profile). Not the first plan, nor the plan after a resume, nor the path to a Patrol's next point |
+| `Event.NavOrderReplanned` | is flown on a new path because what the old one was made under changed in flight: its goal (a `Nav.retarget`, a target that drifted, a Follow's slot that moved), the ship's cost profile, the cost zones, or the ship stalled. Not the first plan, nor the plan after a resume, nor the path to a Patrol's next point, nor a refresh the [timer or a corner](#replanning) asked for |
 | `Event.NavOrderBlocked` | is stalled: the ship is no closer to what it flies to, see below |
 
 A zone's events carry a table `{ ship = id, zone = id }`:
@@ -206,4 +238,4 @@ The issuer releases an order. The system never destroys one, so a finished order
 
 ## Values
 
-`Config/Navigation/NavConfig.lua` holds what orders fly by, authored in metres and converted to game units on use: `pointArrivalM`, the distance from a point at which a ship has arrived, and `standOffRadii`, the stand-off in target radii of the default approach of a planet, a moon, an asteroid and any other entity. `estimateDetourFactor` is how much longer than the straight line an [estimate](#estimates) takes a flight to be. `blockedProgressM` and `blockedWindowS` are the [stall](#events) rule.
+`Config/Navigation/NavConfig.lua` holds what orders fly by, authored in metres and converted to game units on use: `pointArrivalM`, the distance from a point at which a ship has arrived, and `standOffRadii`, the stand-off in target radii of the default approach of a planet, a moon, an asteroid and any other entity. `estimateDetourFactor` is how much longer than the straight line an [estimate](#estimates) takes a flight to be. `blockedProgressM` and `blockedWindowS` are the [stall](#events) rule. `replanPeriodS` and `goalDriftShare` are the timer and the drift of a target in [replanning](#replanning).

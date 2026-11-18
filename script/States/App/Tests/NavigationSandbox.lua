@@ -59,6 +59,7 @@ local Metres                = require("States.App.Tests.NavigationSandbox.Suppor
 ---@class SandboxShipExpectation
 ---@field zone "avoid"|"cross"|nil The ship keeps out of every cost zone, or goes through one
 ---@field replans integer|nil How many times the ship asks for a new plan, because its profile changed
+---@field replanned integer|nil Orders: the judged order is announced replanned at least this many times
 ---@field chosen integer|nil Orders: the candidate (index in the order's `choose.points`) the ship's estimates choose
 
 ---@class SandboxZoneSpec
@@ -66,6 +67,11 @@ local Metres                = require("States.App.Tests.NavigationSandbox.Suppor
 ---@field radius number In metres
 ---@field pathCost number Extra cost per metre crossed, before a profile weighs it
 ---@field tags string[]|nil Names of `ZoneKind` tags
+---@field costChange SandboxZoneCostChange|nil The zone's path cost changes while the scenario runs
+
+---@class SandboxZoneCostChange
+---@field afterS number The change is made when the scenario has run this many simulated seconds
+---@field pathCost number The new path cost per metre crossed, before a profile weighs it
 
 ---@class SandboxObstacleCircleSpec
 ---@field centre number[]|nil { x, y, z } in metres; not used with `around`
@@ -100,7 +106,8 @@ local NavigationSandbox = Subclass("NavigationSandbox", Application)
 -- Every scenario, in the order `NavigationSandbox` runs them; each is an app of its own.
 local SCENARIO_NAMES   = { "SingleShip", "HeadOn", "CrossingStreams", "CircleSwap", "ObstacleField",
     "SeekThrough", "HoldAfterCruise", "PursueRock", "FollowLeader", "OrbitRock", "SystemCrossing", "SpeedCap", "CostZoneReplan", "AgentRemoval",
-    "OrdersMoveTo", "OrdersOrbit", "OrdersFollow", "OrdersPriority", "OrdersEstimate" }
+    "OrdersMoveTo", "OrdersOrbit", "OrdersFollow", "OrdersPriority", "OrdersEstimate",
+    "OrdersReplan" }
 local SCENARIO_MODULES = "States.App.Tests.NavigationSandbox."
 local SEED             = 1
 local DEFAULT_HULL     = Enums.ShipHulls.Solo
@@ -417,7 +424,18 @@ function NavigationSandbox:spawnZone(spec, index)
     entity:get(PhysicsComponents.Transform):setPos(centre)
     entity:add(NavigationComponents.PathCost(spec.pathCost))
     if spec.tags then entity:add(CoreComponents.Tag(table.unpack(spec.tags))) end
-    return { entity = entity, centre = centre, radius = radius, label = string.format("zone %d", index) }
+    return { entity = entity, spec = spec, centre = centre, radius = radius, label = string.format("zone %d", index) }
+end
+
+---Gives each zone the path cost its spec changes to, once the scenario has run for the time the spec waits for.
+function NavigationSandbox:applyZoneChanges()
+    for _, zone in ipairs(self.zones) do
+        local change = zone.spec.costChange
+        if change and not zone.changed and self.simTime >= change.afterS then
+            zone.changed = true
+            zone.entity:get(NavigationComponents.PathCost):setCost(change.pathCost)
+        end
+    end
 end
 
 ---Set the kinematic targets of the circling obstacles to where they are at `t`, so physics sees
@@ -602,6 +620,7 @@ end
 ---control inputs.
 function NavigationSandbox:applyNavigation()
     self:applyLifecycle()
+    self:applyZoneChanges()
     local count, stride = self.nav:slotCount(), NavWorld.AxisCount()
     self.nav:copyAxes(self.axes, count * stride)
     self.nav:copyArrived(self.arrived, count)

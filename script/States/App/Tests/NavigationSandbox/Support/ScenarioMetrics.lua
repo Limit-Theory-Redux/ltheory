@@ -64,6 +64,7 @@ local RULES = { range = ARRIVAL_RANGE, speed = ARRIVAL_SPEED }
 ---@field entity Entity
 ---@field centre Position
 ---@field radius number Game units
+---@field spec table|nil The scenario's entry for the zone, which holds its `costChange`
 ---@field label string
 
 ---@class SandboxObstacleCircle
@@ -472,6 +473,10 @@ function ScenarioMetrics:expectationFailures(ship)
         table.insert(failures, string.format("%s chose candidate %s, not %d", ship.label, tostring(b.chosen),
             expect.chosen))
     end
+    if expect.replanned and (b.replanned or 0) < expect.replanned then
+        table.insert(failures, string.format("%s's order was announced replanned %d times, fewer than %d", ship.label,
+            b.replanned or 0, expect.replanned))
+    end
     if expect.replans and b.replans ~= expect.replans then
         table.insert(failures, string.format("%s asked for a new plan %d times, not %d", ship.label, b.replans,
             expect.replans))
@@ -533,9 +538,12 @@ function ScenarioMetrics:logClearance(ship)
     end
     for i, zone in ipairs(self.zones) do
         local zoneClearance = ship.behaviour.zoneClearance[i]
-        if zoneClearance then
+        if zoneClearance and ship.behaviour.plansTaken then
             self:log("%s: smallest clearance to the sphere of %s: %.0f m, %d plans taken, %d requested again",
                 ship.label, zone.label, metres(zoneClearance), ship.behaviour.plansTaken, ship.behaviour.replans)
+        elseif zoneClearance then
+            self:log("%s: smallest clearance to the sphere of %s: %.0f m", ship.label, zone.label,
+                metres(zoneClearance))
         end
     end
 end
@@ -559,6 +567,9 @@ function ScenarioMetrics:summarize(simTime)
             self:log("%s: largest turn rate while held on station: %.3f rad/s", ship.label, turnRate)
         end
         self:logClearance(ship)
+        if ship.behaviour and ship.behaviour.replanned then
+            self:log("%s: its order was announced replanned %d times", ship.label, ship.behaviour.replanned)
+        end
         local cap, peak = ShipBehaviour.capReport(ship)
         if cap then
             self:log("%s: largest speed %.0f m/s against its cap of %.0f m/s", ship.label, metres(peak), metres(cap))

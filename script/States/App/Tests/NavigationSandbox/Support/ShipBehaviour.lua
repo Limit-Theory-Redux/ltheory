@@ -41,16 +41,17 @@ local MIN_RELATIVE_LENGTH = 1e-6
 ---@class SandboxOrderSpec
 ---@field kind "MoveTo"|"Patrol"|"Hold"|"Orbit"|"Follow"
 ---@field obstacle integer|nil MoveTo, Orbit: index of the scenario's obstacle that is flown to or circled
----@field point number[]|nil MoveTo: { x, y, z } in metres, when there is no obstacle
+---@field point number[]|nil MoveTo: { x, y, z } in metres, when there is no obstacle nor ship
+---@field gapM number|nil MoveTo to a ship or obstacle: the gap between the hulls the ship stops at, in metres, instead of the target kind's own approach
 ---@field points number[][]|nil Patrol: points { x, y, z } in metres
 ---@field loop boolean|nil Patrol
 ---@field altitude number|nil Orbit: target radii from the obstacle's centre
 ---@field radiusM number|nil Orbit: the radius of the circle the ship is judged on, in metres; written from the scenario, not from the order's maths
 ---@field turnRad number|nil Orbit: the ship has orbited after it has turned this far, in radians; a full turn when nil
 ---@field normal number[]|nil Orbit: { x, y, z } normal of the order's plane, and the plane the ship is judged on; the plane the order chooses when nil
----@field ship integer|nil Follow: index of the scenario's ship that is followed
+---@field ship integer|nil MoveTo, Follow: index of the scenario's ship that is flown to or followed
 ---@field offsetM number[]|nil Follow: the slot { right, up, forward } in the leader's axes, in metres
----@field priority "Routine"|"Urgent"|"Combat"|nil Any order: its `Nav.Priority` level
+---@field priority"Routine"|"Urgent"|"Combat"|nil Any order: its `Nav.Priority` level
 ---@field afterS number|nil Any order: it is given when the scenario has run this many seconds, not at the start
 ---@field judged boolean|nil The ship is judged by this order, not the last one
 ---@field suspends boolean|nil The judged order is displaced by a later one: the ship has arrived when the order has been suspended, then done
@@ -101,8 +102,10 @@ local MIN_RELATIVE_LENGTH = 1e-6
 ---@field listener table|nil Plan: what the follower reports to
 ---@field goal PlanWaypoint|nil Plan: where the ship stops; with a frame, a point that rides on that obstacle
 ---@field obstacles SandboxObstacle[]|nil Plan: the scenario's obstacles, which waypoint frames index
----@field clearance table<integer, number>|nil Plan: per obstacle index, the smallest distance from the ship's centre to the obstacle's safe sphere since the start, in game units
----@field zoneClearance table<integer, number>|nil Plan: per cost zone index, the smallest distance from the ship's centre to the zone's sphere since the start (negative: inside it), in game units
+---@field clearance table<integer, number>|nil Plan, Orders with `expect.zone`: per obstacle index, the smallest distance from the ship's centre to the obstacle's safe sphere since the start, in game units
+---@field zoneClearance table<integer, number>|nil Plan, Orders with `expect.zone`: per cost zone index, the smallest distance from the ship's centre to the zone's sphere since the start (negative: inside it), in game units
+---@field replanned integer|nil Orders: how many times the judged order announced `NavOrderReplanned`
+---@field replannedTunnel integer|nil Orders: the subscription that counts `replanned`
 ---@field planTime number|nil Plan: simulated seconds when the plan being made or flown was requested; the plan's times are from then
 ---@field revision integer|nil Plan: the revision of the ship's cost profile the plan was requested under; nil for a ship with none
 ---@field plansTaken integer|nil Plan: plans received and taken
@@ -281,7 +284,7 @@ local function orderPoint(b, ship)
     end
     if b.chosenPoint then return Metres.position(b.chosenPoint) end
     if spec.choose then return ship.rb:getPos() end
-    if spec.obstacle then return b.tracked.rb:getPos() end
+    if spec.obstacle or spec.ship then return b.tracked.rb:getPos() end
     return Metres.position(spec.point or spec.points[#spec.points])
 end
 
@@ -345,7 +348,12 @@ end
 ---Releases the ship's orders once the navigation world is detached, which ends them all.
 ---@param ship SandboxShip
 function ShipBehaviour.releaseOrders(ship)
-    for _, order in ipairs(ship.behaviour and ship.behaviour.orders or {}) do Nav.release(order) end
+    local b = ship.behaviour
+    for _, order in ipairs(b and b.orders or {}) do Nav.release(order) end
+    if b and b.replannedTunnel then
+        EventBus:unsubscribe(b.replannedTunnel)
+        b.replannedTunnel = nil
+    end
 end
 
 ---The revision of the ship's cost profile, nil when it has none.
@@ -380,7 +388,10 @@ local function navOrder(order, ships, obstacles)
     local priority = order.priority and assert(Nav.Priority[order.priority], "ShipBehaviour: unknown priority " .. order.priority)
     if kind == "MoveTo" then
         return Nav.Orders.MoveTo {
-            target = order.obstacle and obstacles[order.obstacle].entity or Metres.position(order.point),
+            target = order.ship and ships[order.ship].entity
+                or order.obstacle and obstacles[order.obstacle].entity
+                or Metres.position(order.point),
+            approach = order.gapM and { kind = Enums.ApproachKind.StandOff, gapM = order.gapM },
             priority = priority,
         }
     elseif kind == "Patrol" then
@@ -410,7 +421,12 @@ local function giveOrder(ship, index, ships, obstacles, spec)
     local b = ship.behaviour
     local order = Nav.order(ship.entity, navOrder(spec or b.spec.orders[index], ships, obstacles))
     table.insert(b.orders, order)
-    if index == b.spec.judgedIndex then b.judgedOrder = order end
+    if index == b.spec.judgedIndex then
+        b.judgedOrder, b.replanned = order, 0
+        b.replannedTunnel = EventBus:subscribe(Event.NavOrderReplanned, nil, function(_, _, id)
+            if id == order.id then b.replanned = b.replanned + 1 end
+        end)
+    end
 end
 
 ---Asks for the estimates of the candidates of the order at `index`, which is given once they have come.
@@ -517,6 +533,7 @@ end
 local function startOrders(ship, ships, obstacles)
     local b, spec = ship.behaviour, ship.behaviour.spec
     b.orders, b.pending = {}, {}
+    if ship.spec.expect and ship.spec.expect.zone then b.clearance, b.zoneClearance = {}, {} end
     for index, order in ipairs(spec.orders) do
         if order.afterS then
             table.insert(b.pending, index)
@@ -778,14 +795,15 @@ function ShipBehaviour.planReceived(nav, ship, plan, simTime)
     ProgressWatch.reset(ship.watch, simTime)
 end
 
----Notes how close a Plan ship is to each obstacle's safe sphere and to each cost zone's sphere.
+---Notes how close a ship that keeps clearances (a Plan ship, or an Orders ship that expects a zone) is to each
+---obstacle's safe sphere and to each cost zone's sphere.
 ---Called after a physics step.
 ---@param ship SandboxShip
 ---@param obstacles SandboxObstacle[]
 ---@param zones SandboxZone[]
 function ShipBehaviour.trackClearance(ship, obstacles, zones)
     local b = ship.behaviour
-    if not b or b.kind ~= "Plan" then return end
+    if not b or not b.zoneClearance then return end
     local at = ship.rb:getPos()
     for i, obstacle in ipairs(obstacles) do
         local clearance = at:distance(obstacle.rb:getPos()) - obstacle.safeRadius
@@ -883,8 +901,7 @@ function ShipBehaviour.judge(ship, simTime, rules)
         local order = b.judgedOrder
         if not order then return false end
         local status = Nav.status(order)
-        if status == Enums.NavOrderStatus.Suspended then b.wasSuspended = true end
-        return status == Enums.NavOrderStatus.Done and (not b.spec.suspends or b.wasSuspended == true)
+        if status == Enums.NavOrderStatus.Suspended then b.wasSuspended = true end        return status == Enums.NavOrderStatus.Done and (not b.spec.suspends or b.wasSuspended == true)
     elseif b.kind == "OrderHold" then
         return judgeOrderHold(b, ship, distance, simTime, rules)
     elseif b.kind == "Seek" or b.kind == "Plan" then

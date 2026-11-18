@@ -16,6 +16,12 @@ local NavConfig = {
     blockedProgressM = 10,
     -- s
     blockedWindowS = 10,
+    -- s: how often an order asks for a fresh plan while it flies one (an event may ask sooner). Each
+    -- order's timer is offset by a share of it, so the requests of many orders spread over frames.
+    replanPeriodS = 1,
+    -- A goal that no plan rides on (a ship) has drifted when it has moved more than this share of the
+    -- distance from the ship to it, from where the plan ends.
+    goalDriftShare = 0.1,
 }
 
 ---How close to a point a ship counts as arrived.

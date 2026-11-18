@@ -52,6 +52,7 @@ local FLYABLE = { [Status.Ok] = true, [Status.GoalNotSettled] = true, [Status.Dr
 ---@field phase string A `PlanFlight.Phase`
 ---@field snapshot PlannerSnapshot|nil
 ---@field taskId integer|nil The request that is out
+---@field result Plan|nil The reply that has come and is not yet flown (`receive`, `fly`)
 ---@field start table|nil { x, y, z } where the ship was when the plan was asked for
 ---@field goal PlanWaypoint|nil The plan's last waypoint
 ---@field follower PlanFollower|nil
@@ -329,15 +330,28 @@ local function follow(plan, result, spec)
     plan.phase = Phase.Plan
 end
 
----Takes the plan if it has come: the ship goes on to fly its corners, or, when there is no usable
----plan, straight to the goal. Call while the phase is `Planning`.
+---Takes the reply to the plan's request if it has come, and keeps it on the plan for `fly`. The
+---follower is made by `fly`, so that a plan that is asked for while another is flown can wait
+---for the moment it takes over.
 ---@param plan PlanFlightState
----@param spec { nav: NavWorld, agent: integer, rb: RigidBody, profile: FlightProfile }
-function PlanFlight.poll(plan, spec)
+---@return boolean come Whether the plan holds its reply
+function PlanFlight.receive(plan)
+    if plan.result then return true end
     PlanClient.poll()
     local result = PlanClient.take(plan.taskId)
-    if not result then return end
+    if not result then return false end
     plan.taskId = nil
+    plan.result = result
+    return true
+end
+
+---Goes on with the reply `receive` took: the ship flies the plan's corners, or, when there is no
+---usable plan, straight to the goal (`Direct`).
+---@param plan PlanFlightState
+---@param spec { nav: NavWorld, agent: integer, rb: RigidBody, profile: FlightProfile }
+function PlanFlight.fly(plan, spec)
+    local result = plan.result
+    plan.result = nil
     if not FLYABLE[result.status] then
         Log.Warn("PlanFlight: no usable plan (status %s%s), flying straight to the goal with no detours",
             tostring(result.status), result.error and (", " .. result.error) or "")
@@ -347,10 +361,25 @@ function PlanFlight.poll(plan, spec)
     follow(plan, result, spec)
 end
 
+---Takes the plan if it has come: the ship goes on to fly its corners, or, when there is no usable
+---plan, straight to the goal. Call while the phase is `Planning`.
+---@param plan PlanFlightState
+---@param spec { nav: NavWorld, agent: integer, rb: RigidBody, profile: FlightProfile }
+function PlanFlight.poll(plan, spec)
+    if PlanFlight.receive(plan) then PlanFlight.fly(plan, spec) end
+end
+
 ---Drops a flight's plan; a request still out has its reply thrown away.
 ---@param plan PlanFlightState|nil
 function PlanFlight.drop(plan)
     if plan and plan.taskId then PlanClient.discard(plan.taskId) end
+end
+
+---Whether the plan's follower is on an arc, where the speed cap of the corner is set.
+---@param plan PlanFlightState|nil
+---@return boolean
+function PlanFlight.onArc(plan)
+    return plan ~= nil and plan.follower ~= nil and plan.follower.arc ~= nil
 end
 
 return PlanFlight

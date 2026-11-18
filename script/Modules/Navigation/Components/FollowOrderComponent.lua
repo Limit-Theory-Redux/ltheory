@@ -2,6 +2,7 @@ local Component         = require("Core.ECS.Component")
 local PhysicsComponents = require("Modules.Physics.Components")
 local ScaleConfig       = require("Config.Gen.UniverseScaleConfig")
 local NavTarget         = require("Shared.Helpers.NavTarget")
+local GoalDrift         = require("Shared.Helpers.GoalDrift")
 
 ---@class FollowOrderComponent: Component
 ---@overload fun(self: FollowOrderComponent, target: Entity, offsetM: Vec3d): FollowOrderComponent subclass internal
@@ -25,9 +26,7 @@ local FollowOrderComponent = Subclass("FollowOrderComponent", Component, functio
         y = ScaleConfig:toGameUnits(offsetM.y, "starSystem"),
         z = ScaleConfig:toGameUnits(offsetM.z, "starSystem"),
     }
-    self._slotKey = 0
-    ---@type Position|nil
-    self._keySlot = nil
+    self._drift = GoalDrift.new()
 end)
 
 ---@return EntityId
@@ -42,11 +41,7 @@ function FollowOrderComponent:getOffset() return self._offset end
 ---@param range gameunit
 ---@return integer
 function FollowOrderComponent:slotKey(slot, range)
-    if not self._keySlot or slot:distance(self._keySlot) > range then
-        self._keySlot = slot
-        self._slotKey = self._slotKey + 1
-    end
-    return self._slotKey
+    return GoalDrift.key(self._drift, slot, range)
 end
 
 return FollowOrderComponent

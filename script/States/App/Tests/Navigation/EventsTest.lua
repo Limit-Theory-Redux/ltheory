@@ -1,8 +1,10 @@
 -- Checks the navigation queries and events an AI listens to: the neighbours of a ship (order, radius,
 -- the ship itself, a filter, a compound body, a body with no entity), the stall rule, and the events of
 -- orders and zones: arrived (a point of a patrol, the end of a move, the join of an orbit), replanned (a
--- change of target or of cost profile, and not a first plan or a resume), blocked (a ship that
--- can't move, and not one that flies), and a ship entering and leaving a zone. The events are checked in
+-- change of target or of cost profile, a target that drifts, a zone whose cost changes, and not a first
+-- plan, a resume, or a refresh by timer or after a corner, which are checked to happen quietly and to
+-- leave the flight in its phase), blocked (a ship that can't move, and not one that flies), and a ship
+-- entering and leaving a zone. The events are checked in
 -- frames after the flights, since the event bus delivers them there. Logs each failed check and ends
 -- with a failure exit code.
 
@@ -17,6 +19,7 @@ local Nav                 = require("Modules.Navigation")
 local NavConfig           = require("Config.Navigation.NavConfig")
 local CostProfileDefs     = require("Shared.Registries.CostProfileRegistry")
 local ProgressWatch       = require("Shared.Helpers.ProgressWatch")
+local PlanFlight          = require("Shared.Helpers.PlanFlight")
 local FlightScene         = require("States.App.Tests.Support.FlightScene")
 
 ---@class NavigationEventsTest: Application
@@ -24,6 +27,7 @@ local EventsTest = Subclass("NavigationEventsTest", Application)
 
 local Status     = Enums.NavOrderStatus
 local Components = Nav.Components
+local Phase      = PlanFlight.Phase
 
 local STEP = 1 / 60
 -- Bounds that turn a flight or a wait that never ends into a failure.
@@ -41,6 +45,14 @@ local SECONDS_BEFORE_CHANGE = 10
 local LONG_LEG       = 100
 -- A stalled ship is watched this many windows, to show that a stall is reported once.
 local STALL_WINDOWS  = 2.5
+-- A target ship, farther than its stand-off and arrival distances, moves by less than the drift rule's
+-- share of its distance, then by more.
+local DRIFT_DISTANCE = LONG_LEG
+local DRIFT_SMALL = DRIFT_DISTANCE * NavConfig.goalDriftShare / 4
+local DRIFT_LARGE = DRIFT_DISTANCE / 2
+-- The zone of the cost change is flown for this long before it is made dear, and is dear by this cost.
+local SECONDS_BEFORE_ZONE_CHANGE = 2
+local DEAR_COST = 50
 
 -- The neighbours scene: the radius asked, and the bodies by their distance from the ship along an axis.
 local NEIGHBOUR_RADIUS = 40
@@ -104,14 +116,30 @@ function EventsTest:flyUntil(done, seconds, noThrust)
     return done()
 end
 
+---Updates with no time passing until `done()` holds; the ships don't move. The planner answers in its
+---own time, so this waits on the work, for at most `PLAN_WAIT_S` of real time.
+---@param done fun(): boolean
+---@return boolean reached
+function EventsTest:awaitWork(done)
+    local start = InstantTime.Now()
+    while not done() and InstantTime.Now():durationSince(start) < PLAN_WAIT_S * MS_PER_S do
+        Nav.update(0)
+    end
+    return done()
+end
+
 ---Updates with no time passing until the order's plan has come back; the ship doesn't move.
 ---@param order Entity
 function EventsTest:awaitPlan(order)
-    local start = InstantTime.Now()
-    while Nav.status(order) == Status.Planning
-        and InstantTime.Now():durationSince(start) < PLAN_WAIT_S * MS_PER_S do
-        Nav.update(0)
-    end
+    self:awaitWork(function() return Nav.status(order) ~= Status.Planning end)
+end
+
+---Updates with no time passing until the order has taken `count` refreshed plans.
+---@param flight OrderFlightComponent
+---@param count integer
+---@param name string
+function EventsTest:awaitAdopted(flight, count, name)
+    self:check(self:awaitWork(function() return flight.adopted >= count end), name .. "the new plan takes over")
 end
 
 ---@param at Position
@@ -292,9 +320,90 @@ function EventsTest:caseCostProfileChange()
     self:flyUntil(function() return false end, SECONDS_BEFORE_CHANGE)
     profile:setProfile(CostProfileDefs:get(Enums.CostProfile.Cautious))
     self:step()
+    self:awaitAdopted(order:get(Components.OrderFlight), 1, name)
     self:fly(order, name)
     self:expect("NavOrderArrived", order, 1)
     self:expect("NavOrderReplanned", order, 1)
+    self:finish({ order }, { ship })
+end
+
+---@param at Position
+---@param radius gameunit
+---@return Entity
+local function sphereZone(at, radius)
+    local zone = SpatialEntities.Zone()
+    zone:get(SpatialComponents.Shape):setShape(Enums.ZoneShape.Sphere)
+    zone:get(SpatialComponents.Shape):setRadius(radius)
+    zone:get(PhysicsComponents.Transform):setPos(at)
+    return zone
+end
+
+---A target that no plan rides on (a ship) has drifted when it has moved more than a share of the ship's
+---distance to it: a smaller move keeps the plan, a larger one makes a new plan at once, announced.
+function EventsTest:caseTargetDrift()
+    local name = "a drifting target: "
+    local ship = self:ship(Position(0, 0, 0))
+    local target = self:ship(Position(DRIFT_DISTANCE, 0, 0))
+    local order = Nav.order(ship.entity, Nav.Orders.MoveTo { target = target.entity })
+    Nav.update(0)
+    self:awaitPlan(order)
+    local flight = order:get(Components.OrderFlight)
+    local plan = flight.plan
+    target.rb:setPos(Position(DRIFT_DISTANCE, DRIFT_SMALL, 0))
+    self:step()
+    self:check(flight.plan == plan, name .. "a small move keeps the plan")
+    target.rb:setPos(Position(DRIFT_DISTANCE, DRIFT_LARGE, 0))
+    self:step()
+    self:check(flight.plan ~= plan, name .. "a large move makes a new plan")
+    self:expect("NavOrderReplanned", order, 1)
+    self:fly(order, name)
+    self:expect("NavOrderArrived", order, 1)
+    self:finish({ order }, { ship, target })
+end
+
+---A zone whose cost changes is a change of what the plan was made under: the ship keeps flying its plan
+---while a new one is asked for, and the new one's taking over is announced.
+function EventsTest:caseZoneCostChange()
+    local name = "a zone made dear: "
+    local ship = self:ship(Position(0, 0, 0))
+    local zone = sphereZone(Position(ZONE_AT, 0, 0), ZONE_RADIUS)
+    local cost = zone:add(Components.PathCost(1))
+    local order = Nav.order(ship.entity, Nav.Orders.MoveTo { target = Position(LEG, 0, 0) })
+    Nav.update(0)
+    self:awaitPlan(order)
+    local flight = order:get(Components.OrderFlight)
+    self:flyUntil(function() return false end, SECONDS_BEFORE_ZONE_CHANGE)
+    cost:setCost(DEAR_COST)
+    self:step()
+    self:check(flight.plan.phase ~= Phase.Planning, name .. "the ship flies its plan while the new one is made")
+    self:awaitAdopted(flight, 1, name)
+    self:expect("NavOrderReplanned", order, 1)
+    self:fly(order, name)
+    self:expect("NavOrderArrived", order, 1)
+    Registry:destroyEntity(zone)
+    self:finish({ order }, { ship })
+end
+
+---The timer asks for a fresh plan while a ship flies one: the ship is never left with no plan, and the
+---plans that take over are not announced.
+function EventsTest:caseQuietRefresh()
+    local name = "refreshes of a plan: "
+    local ship = self:ship(Position(0, 0, 0))
+    local order = Nav.order(ship.entity, Nav.Orders.MoveTo { target = Position(LONG_LEG, 0, 0) })
+    Nav.update(0)
+    self:awaitPlan(order)
+    local flight = order:get(Components.OrderFlight)
+    local interrupted = false
+    local reached = self:flyUntil(function()
+        if flight.plan and flight.plan.phase == Phase.Planning then interrupted = true end
+        -- A refresh is asked of the worker, which answers in its own time: the flight waits for it.
+        if flight.pending then self:awaitWork(function() return flight.pending == nil end) end
+        return Nav.status(order) == Status.Done
+    end, MAX_FLIGHT_S)
+    self:check(reached, name .. "the order is done")
+    self:check(not interrupted, name .. "the flight never goes back to planning")
+    self:check(flight.adopted >= 1, name .. "a refreshed plan took over", tostring(flight.adopted))
+    self:expect("NavOrderArrived", order, 1)
     self:finish({ order }, { ship })
 end
 
@@ -327,6 +436,11 @@ function EventsTest:caseBlocked()
     self:flyUntil(function() return false end, NavConfig.blockedWindowS * STALL_WINDOWS, true)
     self:check(Nav.status(order) == Status.Active, name .. "the order goes on")
     self:expect("NavOrderBlocked", order, 1)
+    -- The stall asks for a new plan, and its replacement is announced once it takes over.
+    local flight = order:get(Components.OrderFlight)
+    self:check(self:awaitWork(function() return flight.pending == nil and not flight.replanDue end),
+        name .. "the refresh the stall asked for has come")
+    self:expect("NavOrderReplanned", order, 1)
     Nav.cancel(order)
     self:step()
     self:finish({ order }, { ship })
@@ -343,17 +457,6 @@ function EventsTest:caseLongFlight()
         string.format("%.1f s", self.simTime - start))
     self:expect("NavOrderArrived", order, 1)
     self:finish({ order }, { ship })
-end
-
----@param at Position
----@param radius gameunit
----@return Entity
-local function sphereZone(at, radius)
-    local zone = SpatialEntities.Zone()
-    zone:get(SpatialComponents.Shape):setShape(Enums.ZoneShape.Sphere)
-    zone:get(SpatialComponents.Shape):setRadius(radius)
-    zone:get(PhysicsComponents.Transform):setPos(at)
-    return zone
 end
 
 ---Remembers the zone events a ship is to be announced with, in order, for one zone.
@@ -518,6 +621,9 @@ function EventsTest:onInit()
     self:caseOrbit()
     self:caseRetarget()
     self:caseCostProfileChange()
+    self:caseTargetDrift()
+    self:caseZoneCostChange()
+    self:caseQuietRefresh()
     self:caseResume()
     self:caseBlocked()
     self:caseLongFlight()

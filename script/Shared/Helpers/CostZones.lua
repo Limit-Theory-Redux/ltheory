@@ -74,4 +74,31 @@ function CostZones.collect(profile, indexOf)
     return values, count
 end
 
+-- Folds the numbers of `signature` into a value that stays within the exact integers of a double.
+local SIGNATURE_MODULUS = 2 ^ 31 - 1
+local SIGNATURE_MULTIPLIER = 31
+
+---A number that changes when what a plan holder needs to plan again changes in the cost zones: a
+---zone that comes or goes, or a zone's path cost, radius or tags. Zone positions are not in it (a
+---zone on a body moves with it, and the plan's frames place it). A cost profile's weights are not
+---either: the profile has a revision of its own.
+---@return integer
+function CostZones.signature()
+    local value = 0
+    local function fold(number)
+        -- Fractions are kept to a thousandth: a change smaller than that is not a change worth a plan.
+        value = (value * SIGNATURE_MULTIPLIER + math.floor(number * 1000 + 0.5)) % SIGNATURE_MODULUS
+    end
+    for _, zone in ipairs(costZones()) do
+        fold(zone.id)
+        fold(zone:get(NavigationComponents.PathCost):getCost())
+        fold(radiusOf(zone))
+        local tag = zone:get(CoreComponents.Tag)
+        if tag then
+            for word = 0, tag.tagWords - 1 do fold(tonumber(tag.tags[word]) % SIGNATURE_MODULUS) end
+        end
+    end
+    return value
+end
+
 return CostZones

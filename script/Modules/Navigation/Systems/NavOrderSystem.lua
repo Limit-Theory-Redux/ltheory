@@ -11,6 +11,8 @@ local PlanFlight          = require("Shared.Helpers.PlanFlight")
 local ApproachSpecs       = require("Shared.Helpers.ApproachSpecs")
 local OrderGoals          = require("Shared.Helpers.OrderGoals")
 local ProgressWatch       = require("Shared.Helpers.ProgressWatch")
+local PlannerSnapshot     = require("Shared.Helpers.PlannerSnapshot")
+local CostZones           = require("Shared.Helpers.CostZones")
 local NavZoneSystem       = require("Modules.Navigation.Systems.NavZoneSystem")
 
 local Phase   = PlanFlight.Phase
@@ -49,6 +51,7 @@ local FLIGHT_EVENTS = {
 ---@field handler OrderHandler|nil Nil for a Hold
 ---@field goal OrderGoal|nil
 ---@field facing FacingGoalComponent|nil What the nose is to face, when the order says
+---@field zoneSignature integer `CostZones.signature` of this frame
 
 ---How an order that keeps a behaviour of the world on reaching its goal (Orbit, Follow) switches to it.
 ---@class OrderTrack
@@ -60,7 +63,7 @@ local FLIGHT_EVENTS = {
 ---@class OrderHandler
 ---@field spec table The component type that holds what the order flies to
 ---@field goal fun(spec: Component): OrderGoal|nil The goal now; nil when the target is gone
----@field key fun(spec: Component, goal: OrderGoal): integer A number that changes when the goal's place does
+---@field key fun(spec: Component, goal: OrderGoal, shipPos: Position): integer A number that changes when the goal's place does, enough for a plan to be made again
 ---@field arrive fun(spec: Component): boolean|nil Takes the order on from an arrival; true when it is done. Nil for an order with a `track`
 ---@field track OrderTrack|nil Set for an order that never ends and keeps a behaviour once it has reached its goal
 
@@ -76,6 +79,10 @@ local FOLLOW_LEAVE_FACTOR = 2
 -- from the line to the centre; otherwise from the ship's own up axis.
 local PLANE_SPEED_SHARE = 0.05
 local PLANE_MIN_SINE = 0.1
+
+-- Each order's refresh timer is offset by `(id × STAGGER_STEP) mod 1` of the period. The golden ratio
+-- conjugate spreads consecutive ids evenly over the period, however many there are.
+local STAGGER_STEP = 0.6180339887498949
 
 ---@return gameunit
 local function followJoinRange()
@@ -173,7 +180,14 @@ local HANDLERS = {
             if not target then return nil end
             return approachGoal(target, ApproachSpecs.For(target, spec:getApproach()))
         end,
-        key = function(spec) return spec:getRevision() end,
+        key = function(spec, goal, shipPos)
+            -- A body the plan rides on moves with it. Any other entity (a ship) that has moved farther than
+            -- a share of its distance has left the place the plan ends at.
+            local entity = goal.frameEntity
+            if not entity or PlannerSnapshot.isBody(entity) then return spec:getRevision() end
+            local range = math.max(NavConfig.goalDriftShare * shipPos:distance(goal.targetPos), goal.arrivalRadius)
+            return spec:goalKey(goal.targetPos, range)
+        end,
         arrive = function() return true end,
     },
     [Kind.Patrol] = {
@@ -274,6 +288,17 @@ local function attachAgent(world, ship, rb)
     ship:add(Components.NavAgent(slot))
 end
 
+---Drops the flight's plan and the refresh of it that is out; a reply still to come is thrown away.
+---@param flight OrderFlightComponent
+local function dropPlans(flight)
+    PlanFlight.drop(flight.plan)
+    flight.plan = nil
+    if flight.pending then PlanFlight.drop(flight.pending.plan) end
+    flight.pending = nil
+    flight.replanDue = false
+    flight.legsBefore = 0
+end
+
 ---Ends an order: its status, its plan, its place in the ship's queue, the ship's agent if the queue
 ---is empty, and the event that announces it.
 ---@param world NavWorldComponent
@@ -285,9 +310,7 @@ local function endOrder(world, order, ship, status, failure)
     local orderStatus = order:get(Components.OrderStatus)
     orderStatus:setStatus(status)
     if failure then orderStatus:setFailure(failure) end
-    local flight = order:get(Components.OrderFlight)
-    PlanFlight.drop(flight.plan)
-    flight.plan = nil
+    dropPlans(order:get(Components.OrderFlight))
 
     if ship then
         local queue = ship:get(Components.OrderQueue)
@@ -339,8 +362,7 @@ end
 ---@param ship Entity
 local function suspendOrder(order, ship)
     local flight = order:get(Components.OrderFlight)
-    PlanFlight.drop(flight.plan)
-    flight.plan = nil
+    dropPlans(flight)
     flight.begun = false
     flight.tracking = false
     order:get(Components.OrderStatus):setStatus(Status.Suspended)
@@ -396,30 +418,150 @@ local function aimFacing(world, head)
     world:getNav():setFacing(head.slot, point)
 end
 
----Gives the order's plan: a new one when there is none or what it was made under has changed. A plan
----that was being flown and is made again is announced, unless the order went on to its next goal.
+---@param ship Entity
+---@return boolean Whether the ship has no travel drive, or its drive is neither charging nor engaged
+local function driveIdle(ship)
+    local drive = ship:get(ConstructComponents.TravelDrive)
+    return not drive or drive:getState() == "idle"
+end
+
+---Asks the planner for the path to the order's goal from where the ship is.
 ---@param head OrderHead
----@param spec Component
-local function ensurePlan(head, spec)
-    local flight = head.order:get(Components.OrderFlight)
-    local key = head.handler.key(spec, head.goal)
-    local profileRevision = costProfileRevision(head.ship)
-    local advanced = flight.advanced
-    flight.advanced = false
-    if flight.plan and flight.plannedGoalKey == key and flight.plannedProfileRevision == profileRevision then
-        return
-    end
-    local replanned = flight.plan ~= nil and not advanced
-    PlanFlight.drop(flight.plan)
+---@return PlanFlightState
+local function beginPlan(head)
     local goal = head.goal
     -- The travel drive thrusts along the nose, which a facing holds elsewhere: the path has no drive leg.
-    flight.plan = PlanFlight.begin(head.ship, bodyOf(head.ship), goal.targetPos, goal.safeRange,
+    return PlanFlight.begin(head.ship, bodyOf(head.ship), goal.targetPos, goal.safeRange,
         goal.arrivalRadius, goal.frameEntity, head.facing ~= nil)
+end
+
+---Notes what the plan being asked for is made under, and when the timer asks next. `delay` is the
+---seconds until then.
+---@param head OrderHead
+---@param flight OrderFlightComponent
+---@param delay number
+local function notePlanned(head, flight, delay)
+    flight.plannedProfileRevision = costProfileRevision(head.ship)
+    flight.plannedZoneSignature = head.zoneSignature
+    flight.nextRefresh = flight.elapsed + delay
+    flight.replanDue = false
+end
+
+---The share of the period an order's first refresh is put off by, from its id.
+---@param orderId integer
+---@return number In [0, 1)
+local function staggerOf(orderId)
+    return (orderId * STAGGER_STEP) % 1
+end
+
+---Makes a new plan for the goal, dropping the one that was flown: the ship flies straight to the goal
+---until it comes. A plan that was being flown and is made again is announced when `announce`.
+---@param world NavWorldComponent
+---@param head OrderHead
+---@param key integer The goal's key
+---@param announce boolean
+local function startPlan(world, head, key, announce)
+    local flight = head.order:get(Components.OrderFlight)
+    -- An arc holds the agent to the corner's speed, which only the follower of that plan lifts.
+    if PlanFlight.onArc(flight.plan) then world:getNav():setSpeedCap(head.slot, math.huge) end
+    dropPlans(flight)
+    flight.plan = beginPlan(head)
     flight.plannedGoalKey = key
-    flight.plannedProfileRevision = profileRevision
+    flight.refreshedLegs = 0
+    -- The first refresh waits one period and a share of another, which keeps orders begun together apart.
+    notePlanned(head, flight, NavConfig.replanPeriodS * (1 + staggerOf(head.order.id)))
     -- The stall check measures a new plan from the start.
     flight.watchedLeg = nil
-    if replanned then EventBus:dispatch(Event[FLIGHT_EVENTS.replanned], head.order.id) end
+    if announce then EventBus:dispatch(Event[FLIGHT_EVENTS.replanned], head.order.id) end
+end
+
+---Asks for a new plan while the ship flies the old one, which the reply replaces (`adoptPending`).
+---@param head OrderHead
+---@param flight OrderFlightComponent
+---@param announce boolean Whether the replacement is announced
+local function requestRefresh(head, flight, announce)
+    notePlanned(head, flight, NavConfig.replanPeriodS)
+    flight.refreshedLegs = flight.plan.legs
+    local fresh = beginPlan(head)
+    -- With the ship in range of the goal there is nothing to plan.
+    if not fresh.taskId then return end
+    flight.pending = { plan = fresh, announce = announce, legs = flight.plan.legs }
+end
+
+---Gives the order its plan: a new one when there is none or the goal has moved (the old is dropped), a
+---refresh asked for in the background when what the plan was made under has changed, the ship has stalled,
+---a corner has been passed, or the period has run out. Replacing a plan that was being flown is announced
+---for a goal change or what it was made under, but not for a corner or the period, unless the order
+---went on to its next goal.
+---@param world NavWorldComponent
+---@param head OrderHead
+---@param spec Component
+local function ensurePlan(world, head, spec)
+    local flight = head.order:get(Components.OrderFlight)
+    local key = head.handler.key(spec, head.goal, bodyOf(head.ship):getPos())
+    local advanced = flight.advanced
+    flight.advanced = false
+    local plan = flight.plan
+    if not plan or flight.plannedGoalKey ~= key then
+        startPlan(world, head, key, plan ~= nil and not advanced)
+        return
+    end
+    local changed = flight.plannedProfileRevision ~= costProfileRevision(head.ship)
+        or flight.plannedZoneSignature ~= head.zoneSignature
+    -- The first plan is still out: it has nothing to fly meanwhile, so it is asked for again.
+    if plan.phase == Phase.Planning then
+        if changed then startPlan(world, head, key, true) end
+        return
+    end
+    local pending = flight.pending
+    if pending and changed then
+        -- The request that is out was made under what has changed since.
+        flight.replanDue = flight.replanDue or pending.announce
+        PlanFlight.drop(pending.plan)
+        flight.pending = nil
+        pending = nil
+    end
+    if pending then
+        if flight.replanDue then pending.announce, flight.replanDue = true, false end
+        return
+    end
+    -- The planner times a path from a ship at rest, with the drive still to charge: a plan asked for under
+    -- a drive run would place the corners' bodies late and cut the run short. Whatever is due waits.
+    if PlanFlight.onArc(plan) or not driveIdle(head.ship) then return end
+    local announce = changed or flight.replanDue
+    local corner = plan.phase == Phase.Plan and plan.legs > flight.refreshedLegs
+    local period = plan.phase ~= Phase.Direct and flight.elapsed >= flight.nextRefresh
+    if announce or corner or period then requestRefresh(head, flight, announce) end
+end
+
+---Takes the refresh that is out once it has come: it replaces the plan that is flown, if the ship is not
+---on an arc and has passed no corner since it was asked for, which would leave the new plan's first
+---corner behind. A reply with no usable plan is dropped, and the old plan is flown on.
+---@param world NavWorldComponent
+---@param head OrderHead
+---@param flight OrderFlightComponent
+local function adoptPending(world, head, flight)
+    local pending = flight.pending
+    if not pending then return end
+    local fresh, old = pending.plan, flight.plan
+    if not PlanFlight.receive(fresh) then return end
+    if old.legs ~= pending.legs then
+        flight.replanDue = flight.replanDue or pending.announce
+        flight.pending = nil
+        return
+    end
+    if PlanFlight.onArc(old) then return end
+    flight.pending = nil
+    PlanFlight.fly(fresh, {
+        nav = world:getNav(), agent = head.slot, rb = bodyOf(head.ship),
+        profile = ConstructComponents.FlightProfile.ProfileOf(head.ship),
+    })
+    if fresh.phase == Phase.Direct then return end
+    flight.legsBefore = flight.legsBefore + old.legs
+    flight.plan = fresh
+    flight.refreshedLegs = 0
+    flight.adopted = flight.adopted + 1
+    if pending.announce then EventBus:dispatch(Event[FLIGHT_EVENTS.replanned], head.order.id) end
 end
 
 ---Moves an order from flying its plan to keeping the world's behaviour: the plan is dropped, and the
@@ -429,8 +571,7 @@ end
 ---@param spec Component
 local function beginTracking(world, head, spec)
     local flight = head.order:get(Components.OrderFlight)
-    PlanFlight.drop(flight.plan)
-    flight.plan = nil
+    dropPlans(flight)
     flight.tracking = true
     head.handler.track.start(world, head, spec)
     EventBus:dispatch(Event[FLIGHT_EVENTS.arrived], head.order.id)
@@ -465,7 +606,10 @@ local function aimGoal(world, head, dt)
     end
     local flight = head.order:get(Components.OrderFlight)
     if head.handler.track and switchTracking(world, head, spec, flight) then return end
-    ensurePlan(head, spec)
+    ensurePlan(world, head, spec)
+    adoptPending(world, head, flight)
+    -- A plan that is still to come keeps its snapshot's clock; one taken now is advanced below.
+    if flight.pending then flight.pending.plan.snapshot:advance(dt) end
     local plan, goal = flight.plan, head.goal
     local rb = bodyOf(head.ship)
     if plan.phase == Phase.Planning then
@@ -532,13 +676,16 @@ end
 ---@param goalDist gameunit Distance to the goal, which is the measure when no corner is flown
 local function checkBlocked(order, flight, plan, shipPos, goalDist)
     local atCorners = plan.phase == Phase.Plan
-    local leg = atCorners and plan.legs or -1
+    -- The legs of the plans a refresh replaced count too: the check restarts at a corner, not at a refresh.
+    local leg = atCorners and flight.legsBefore + plan.legs or -1
     if flight.watchedLeg ~= leg then
         flight.watchedLeg = leg
         ProgressWatch.reset(flight.watch, flight.elapsed)
     end
     local dist = atCorners and shipPos:distance(plan.follower.target) or goalDist
     if ProgressWatch.update(flight.watch, dist, flight.elapsed) then
+        -- A stalled ship asks for a new plan, which may find the way round what holds it.
+        flight.replanDue = true
         EventBus:dispatch(Event[FLIGHT_EVENTS.blocked], order.id)
     end
 end
@@ -684,7 +831,9 @@ function NavOrderSystem:update(dt)
     dropLostAgents(world)
 
     local heads = collectHeads(world)
+    local zoneSignature = CostZones.signature()
     for _, head in ipairs(heads) do
+        head.zoneSignature = zoneSignature
         beginOrder(world, head)
         NavAgentHelper.setFrameFromWell(world:getNav(), head.slot, head.ship)
         if head.facing then aimFacing(world, head) end
