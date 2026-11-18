@@ -9,6 +9,9 @@ local ControlOwnerSystem  = require("Modules.Constructs.Systems.ControlOwnerSyst
 local Components          = require("Modules.Navigation.Components")
 local Entities            = require("Modules.Navigation.Entities")
 local Systems             = require("Modules.Navigation.Systems")
+local EstimateRequest     = require("Shared.Helpers.EstimateRequest")
+local NavEstimate         = require("Shared.Helpers.NavEstimate")
+local NavEstimateClient   = require("Shared.Helpers.NavEstimateClient")
 
 local Kind = Enums.NavOrderKind
 
@@ -129,6 +132,46 @@ end
 ---@return ControlOwnerId
 function Nav.controlOwner(ship)
     return ControlOwnerSystem:ownerOf(ship)
+end
+
+---Estimates the flight from `from` to `to` without moving anything or planning waypoints: whether
+---the destination is reachable, and the time, the path's length and the risk (the cost zones'
+---cost along the straight line, under the cost profile). It uses the positions of this moment,
+---and, for an entity `to`, the stand-off of the entity's kind. Runs on the calling thread: score
+---many destinations with `Nav.estimateMany`.
+---@param from NavTarget The ship, or a point
+---@param to NavTarget An entity or a point
+---@param flightProfile FlightProfile|nil The ship's own when `from` is a ship
+---@param costProfile CostProfile|nil The ship's own when `from` is a ship and has one
+---@return NavEstimateResult
+function Nav.estimate(from, to, flightProfile, costProfile)
+    local request = EstimateRequest.build(from, { to }, flightProfile, costProfile)
+    return NavEstimate.many(request, request.ship, request.start, request.goals, request.goalCount)[1]
+end
+
+---Starts the estimates of the flights from `from` to each of `targets` on a worker; the calling
+---thread only builds the input. Collect them with `Nav.takeEstimates`.
+---@param from NavTarget
+---@param targets NavTarget[]
+---@param flightProfile FlightProfile|nil
+---@param costProfile CostProfile|nil
+---@return integer request
+function Nav.estimateMany(from, targets, flightProfile, costProfile)
+    return NavEstimateClient.request(EstimateRequest.build(from, targets, flightProfile, costProfile))
+end
+
+---The estimates of `Nav.estimateMany`, in the targets' order, once they have come.
+---@param request integer
+---@return NavEstimateResult[]|nil estimates Nil while they have not come; they are given once
+function Nav.takeEstimates(request)
+    NavEstimateClient.poll()
+    return NavEstimateClient.take(request)
+end
+
+---Drops the estimates of a request nobody waits for any more.
+---@param request integer
+function Nav.discardEstimates(request)
+    NavEstimateClient.discard(request)
 end
 
 ---Runs one update of the order system, for an app that steps the simulation itself; a game

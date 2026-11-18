@@ -47,7 +47,7 @@ local Metres                = require("States.App.Tests.NavigationSandbox.Suppor
 ---@field hull integer|nil An `Enums.ShipHulls` value, which sets the ship's size; Solo by default
 ---@field costProfile string|nil Name in `Enums.CostProfile`: how the ship weighs the scenario's zones; none by default, so the zones cost their `pathCost`
 ---@field costProfileChange SandboxCostProfileChange|nil Plan: the ship changes its cost profile
----@field expect SandboxShipExpectation|nil Plan: what the run is judged by besides arriving
+---@field expect SandboxShipExpectation|nil Plan, Orders: what the run is judged by besides arriving
 ---@field joinAtS number|nil The ship becomes an agent this many simulated seconds in. Its body is in physics from the start, so the agents sense it as an obstacle until then
 ---@field joinsSlotOf integer|nil With `joinAtS`: index of an earlier ship with `removeAtS`; the run fails unless the ship gets the agent id that one had
 ---@field removeAtS number|nil The ship stops being an agent this many simulated seconds in, and its body, with its controls released, coasts on in physics
@@ -59,6 +59,7 @@ local Metres                = require("States.App.Tests.NavigationSandbox.Suppor
 ---@class SandboxShipExpectation
 ---@field zone "avoid"|"cross"|nil The ship keeps out of every cost zone, or goes through one
 ---@field replans integer|nil How many times the ship asks for a new plan, because its profile changed
+---@field chosen integer|nil Orders: the candidate (index in the order's `choose.points`) the ship's estimates choose
 
 ---@class SandboxZoneSpec
 ---@field position number[] { x, y, z } in metres
@@ -76,6 +77,7 @@ local Metres                = require("States.App.Tests.NavigationSandbox.Suppor
 ---@field position number[]|nil { x, y, z } in metres; not used with a circle
 ---@field radius number In metres
 ---@field circle SandboxObstacleCircleSpec|nil Moves the sphere on a circle in the xz plane
+---@field station boolean|nil The sphere is a space station: a body of the system, whose hull estimates and plans keep clear of
 
 ---@class SandboxScenario
 ---@field name string
@@ -98,7 +100,7 @@ local NavigationSandbox = Subclass("NavigationSandbox", Application)
 -- Every scenario, in the order `NavigationSandbox` runs them; each is an app of its own.
 local SCENARIO_NAMES   = { "SingleShip", "HeadOn", "CrossingStreams", "CircleSwap", "ObstacleField",
     "SeekThrough", "HoldAfterCruise", "PursueRock", "FollowLeader", "OrbitRock", "SystemCrossing", "SpeedCap", "CostZoneReplan", "AgentRemoval",
-    "OrdersMoveTo", "OrdersOrbit", "OrdersFollow", "OrdersPriority" }
+    "OrdersMoveTo", "OrdersOrbit", "OrdersFollow", "OrdersPriority", "OrdersEstimate" }
 local SCENARIO_MODULES = "States.App.Tests.NavigationSandbox."
 local SEED             = 1
 local DEFAULT_HULL     = Enums.ShipHulls.Solo
@@ -395,6 +397,7 @@ function NavigationSandbox:spawnObstacle(spec, index, safeRadiusFactor)
     rb:setScale(radius)
     obstacle.rb = rb
     obstacle.entity = Entity.Create("NavigationSandboxObstacle", PhysicsComponents.RigidBody(rb))
+    if spec.station then obstacle.entity:add(ConstructComponents.SpaceStation()) end
     self.world:addRigidBody(rb)
     return obstacle
 end
@@ -479,7 +482,7 @@ end
 function NavigationSandbox:applyLifecycle()
     for _, ship in ipairs(self.ships) do
         if ship.state == "flying" and ShipBehaviour.isOrdered(ship) then
-            ShipBehaviour.issueDueOrders(ship, self.ships, self.obstacles, self.simTime)
+            ShipBehaviour.issueDueOrders(ship, self.ships, self.obstacles, self.simTime, self.metrics)
         end
     end
     for _, ship in ipairs(self.ships) do

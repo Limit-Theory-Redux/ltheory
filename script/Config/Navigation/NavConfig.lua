@@ -9,6 +9,9 @@ local NavConfig = {
     pointArrivalM = 100,
     -- The distance from a target's centre at which a ship stops, in target radii, when nothing says otherwise.
     standOffRadii = 1.5,
+    -- How much longer a planned path is than the straight line, for estimates, which plan nothing.
+    -- Taken from the planned paths of sparse systems; a crowded system detours more.
+    estimateDetourFactor = 1.02,
 }
 
 ---How close to a point a ship counts as arrived.

@@ -217,6 +217,31 @@ function ScenarioMetrics:planRequestedAgain(ship, simTime)
         simTime, metres(ship.rb:getPos().x), metres(ship.rb:getPos().y), metres(ship.rb:getPos().z))
 end
 
+---The length of a plan's path from where the ship asked for it through its waypoints, over the
+---straight distance to the goal. A waypoint on an obstacle is taken where the obstacle is now.
+---@param ship SandboxShip
+---@param plan Plan
+---@return number|nil pathLength Game units
+---@return number|nil straight Game units
+local function pathAndStraight(ship, plan)
+    local b = ship.behaviour
+    if not (b and b.startPoint) or #plan.waypoints == 0 then return nil end
+    local previous = Position(b.startPoint.x, b.startPoint.y, b.startPoint.z)
+    local first, path = previous, 0
+    for _, waypoint in ipairs(plan.waypoints) do
+        local offset, at = waypoint.offset, nil
+        if waypoint.frame then
+            local centre = b.obstacles[waypoint.frame].rb:getPos()
+            at = Position(centre.x + offset.x, centre.y + offset.y, centre.z + offset.z)
+        else
+            at = Position(offset.x, offset.y, offset.z)
+        end
+        path = path + previous:distance(at)
+        previous = at
+    end
+    return path, first:distance(previous)
+end
+
 ---Record a plan that came back from the worker.
 ---@param reply SandboxPlanReply
 ---@param simTime number Simulated seconds when it was received
@@ -232,9 +257,14 @@ function ScenarioMetrics:planReceived(reply, simTime)
     local name = STATUS_NAMES[plan.status] or tostring(plan.status)
     self:log("%s planned: %s, %d waypoints, kernel %.3f ms, send to receipt %.2f ms, %.2f s simulated until it arrived",
         reply.ship.label, name, #plan.waypoints, plan.kernelMs, reply.latencyMs, simTime - reply.simTime)
+    local path, straight = pathAndStraight(reply.ship, plan)
+    if path and straight and straight > 0 then
+        self:log("%s: plan path %.0f m over a straight %.0f m: detour ratio %.4f", reply.ship.label, metres(path),
+            metres(straight), path / straight)
+    end
     for i, waypoint in ipairs(plan.waypoints) do
         local offset = waypoint.offset
-        local from = waypoint.frame and string.format("from obstacle %d", waypoint.frame) or "in the world"
+        local from =waypoint.frame and string.format("from obstacle %d", waypoint.frame) or "in the world"
         self:log("%s: plan waypoint %d at (%.0f, %.0f, %.0f) m %s, %.2f s from the start, arc radius %.0f m, "
             .. "passed at %.0f m/s", reply.ship.label, i, metres(offset.x), metres(offset.y), metres(offset.z), from,
             plan.times[i], metres(waypoint.radius), metres(waypoint.speed))
@@ -316,6 +346,11 @@ function ScenarioMetrics:updateProgress(ship, simTime)
         ship.state = "arrived"
         self.arrivals = self.arrivals + 1
         self:log("%s arrived at %.2f s", ship.label, simTime)
+        local estimate, suspended = ShipBehaviour.choiceReport(ship)
+        if estimate then
+            self:log("%s: estimated %.1f s for its flight, flown %.1f s%s", ship.label, estimate.time,
+                simTime - estimate.givenAt, suspended and " (interrupted on the way: not comparable)" or "")
+        end
     elseif behaviour and ShipBehaviour.orderFailed(ship) then
         -- A ship whose order has failed will not arrive: it counts with the deadlocked.
         ship.state = "deadlocked"
@@ -432,12 +467,17 @@ function ScenarioMetrics:expectationFailures(ship)
     local expect, b = ship.spec.expect, ship.behaviour
     if not (expect and b) then return failures end
     local smallest = math.huge
-    for i in ipairs(self.zones) do smallest = math.min(smallest, b.zoneClearance[i] or math.huge) end
+    local clearance = b.zoneClearance or {}
+    for i in ipairs(self.zones) do smallest = math.min(smallest, clearance[i] or math.huge) end
     if expect.zone == "avoid" and smallest < 0 then
         table.insert(failures, string.format("%s went %.0f m into a cost zone it should avoid", ship.label,
             metres(-smallest)))
     elseif expect.zone == "cross" and smallest >= 0 then
         table.insert(failures, string.format("%s kept out of the cost zone it should cross", ship.label))
+    end
+    if expect.chosen and b.chosen ~= expect.chosen then
+        table.insert(failures, string.format("%s chose candidate %s, not %d", ship.label, tostring(b.chosen),
+            expect.chosen))
     end
     if expect.replans and b.replans ~= expect.replans then
         table.insert(failures, string.format("%s asked for a new plan %d times, not %d", ship.label, b.replans,

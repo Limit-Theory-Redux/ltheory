@@ -53,6 +53,13 @@ local MIN_RELATIVE_LENGTH = 1e-6
 ---@field afterS number|nil Any order: it is given when the scenario has run this many seconds, not at the start
 ---@field judged boolean|nil The ship is judged by this order, not the last one
 ---@field suspends boolean|nil The judged order is displaced by a later one: the ship has arrived when the order has been suspended, then done
+---@field choose SandboxChoiceSpec|nil MoveTo, instead of `point`: the point is chosen from candidates by their estimates when the order is due
+
+---Candidates for a MoveTo point, scored with `Nav.estimateMany` as time plus `riskWeightSPerM` times the risk
+---(the cost zones' cost times the length crossed, in metres); the lowest score among the reachable ones wins.
+---@class SandboxChoiceSpec
+---@field points number[][] Candidate points { x, y, z } in metres
+---@field riskWeightSPerM number Seconds a metre of weighted risk is worth
 
 ---@class SandboxBehaviourSpec
 ---@field kind "Seek"|"Hold"|"Pursue"|"Follow"|"Orbit"|"Plan"|"Orders"
@@ -271,6 +278,8 @@ local function orderPoint(b, ship)
         end
         return b.holdPoint and toPosition(b.holdPoint) or ship.rb:getPos()
     end
+    if b.chosenPoint then return Metres.position(b.chosenPoint) end
+    if spec.choose then return ship.rb:getPos() end
     if spec.obstacle then return b.tracked.rb:getPos() end
     return Metres.position(spec.point or spec.points[#spec.points])
 end
@@ -390,34 +399,114 @@ local function navOrder(order, ships, obstacles)
     return Nav.Orders.Follow { target = ships[order.ship].entity, offset = Vec3d(o[1], o[2], o[3]), priority = priority }
 end
 
----Gives the ship the order at `index` of its spec, and keeps the one it is judged by.
+---Gives the ship the order at `index` of its spec (or `spec` in its place), and keeps the one it is judged by.
 ---@param ship SandboxShip
 ---@param index integer
 ---@param ships SandboxShip[]
 ---@param obstacles SandboxObstacle[]
-local function giveOrder(ship, index, ships, obstacles)
+---@param spec SandboxOrderSpec|nil
+local function giveOrder(ship, index, ships, obstacles, spec)
     local b = ship.behaviour
-    local order = Nav.order(ship.entity, navOrder(b.spec.orders[index], ships, obstacles))
+    local order = Nav.order(ship.entity, navOrder(spec or b.spec.orders[index], ships, obstacles))
     table.insert(b.orders, order)
     if index == b.spec.judgedIndex then b.judgedOrder = order end
 end
 
+---Asks for the estimates of the candidates of the order at `index`, which is given once they have come.
+---@param ship SandboxShip
+---@param index integer
+local function startChoice(ship, index)
+    local b = ship.behaviour
+    local candidates = {}
+    for i, point in ipairs(b.spec.orders[index].choose.points) do candidates[i] = Metres.position(point) end
+    b.choosing = { index = index, request = Nav.estimateMany(ship.entity, candidates) }
+end
+
+---The score of a candidate: its time plus its risk in metres at `weight` seconds a metre.
+---@param estimate NavEstimateResult Reachable
+---@param weight number
+---@return number
+local function scoreOf(estimate, weight)
+    return estimate.time + weight * Metres.toMetres(estimate.risk)
+end
+
+---Once the estimates of a choice have come, logs them, keeps the best reachable candidate and gives the
+---MoveTo to it. A choice with no reachable candidate gives no order.
+---@param ship SandboxShip
+---@param ships SandboxShip[]
+---@param obstacles SandboxObstacle[]
+---@param simTime number
+---@param metrics ScenarioMetrics
+local function finishChoice(ship, ships, obstacles, simTime, metrics)
+    local b = ship.behaviour
+    local estimates = Nav.takeEstimates(b.choosing.request)
+    if not estimates then return end
+    local index = b.choosing.index
+    b.choosing = nil
+    local order = b.spec.orders[index]
+    local weight, best = order.choose.riskWeightSPerM, nil
+    for i, estimate in ipairs(estimates) do
+        if estimate.reachable then
+            local score = scoreOf(estimate, weight)
+            metrics:log("%s: candidate %d: time %.1f s, path %.0f m, risk %.0f m, score %.1f", ship.label, i,
+                estimate.time, Metres.toMetres(estimate.distance), Metres.toMetres(estimate.risk), score)
+            if not best or score < best.score then best = { index = i, score = score, time = estimate.time } end
+        else
+            metrics:log("%s: candidate %d: not reachable", ship.label, i)
+        end
+    end
+    if not best then
+        metrics:log("%s: no candidate is reachable", ship.label)
+        return
+    end
+    metrics:log("%s: chose candidate %d", ship.label, best.index)
+    b.chosen, b.chosenPoint = best.index, order.choose.points[best.index]
+    b.chosenEstimate = { time = best.time, givenAt = simTime }
+    giveOrder(ship, index, ships, obstacles, { kind = "MoveTo", point = b.chosenPoint, priority = order.priority })
+end
+
+---Gives the order at `index` of the ship's spec, or, for an order that chooses, asks for the estimates.
+---@param ship SandboxShip
+---@param index integer
+---@param ships SandboxShip[]
+---@param obstacles SandboxObstacle[]
+local function dispatchOrder(ship, index, ships, obstacles)
+    if ship.behaviour.spec.orders[index].choose then
+        startChoice(ship, index)
+    else
+        giveOrder(ship, index, ships, obstacles)
+    end
+end
+
 ---Gives a ship the orders of its spec that are due: those with no `afterS`, then those whose time has come.
+---Orders wait for a choice that is not made yet.
 ---@param ship SandboxShip
 ---@param ships SandboxShip[]
 ---@param obstacles SandboxObstacle[]
 ---@param simTime number Seconds of simulated time since the scenario started
-function ShipBehaviour.issueDueOrders(ship, ships, obstacles, simTime)
+---@param metrics ScenarioMetrics
+function ShipBehaviour.issueDueOrders(ship, ships, obstacles, simTime, metrics)
     local b = ship.behaviour
+    if b.choosing then finishChoice(ship, ships, obstacles, simTime, metrics) end
+    if b.choosing then return end
     local later = {}
     for _, index in ipairs(b.pending) do
-        if b.spec.orders[index].afterS <= simTime then
-            giveOrder(ship, index, ships, obstacles)
+        if b.spec.orders[index].afterS <= simTime and not b.choosing then
+            dispatchOrder(ship, index, ships, obstacles)
         else
             table.insert(later, index)
         end
     end
     b.pending = later
+end
+
+---What a ship that chose its point estimated for it and when it was given the order, for a line in the log.
+---@param ship SandboxShip
+---@return { time: number, givenAt: number }|nil
+---@return boolean|nil suspended Whether the order was suspended on the way, which the flown time includes
+function ShipBehaviour.choiceReport(ship)
+    local b = ship.behaviour
+    return b and b.chosenEstimate, b and b.wasSuspended
 end
 
 ---Gives a ship its orders, and the rule it is judged by what that rule needs of the last one.
@@ -431,7 +520,7 @@ local function startOrders(ship, ships, obstacles)
         if order.afterS then
             table.insert(b.pending, index)
         else
-            giveOrder(ship, index, ships, obstacles)
+            dispatchOrder(ship, index, ships, obstacles)
         end
     end
     if b.kind == "Orbit" then

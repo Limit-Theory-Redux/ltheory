@@ -24,6 +24,8 @@ if Nav.status(order) == Enums.NavOrderStatus.Done then Nav.release(order) end
 | `Nav.retarget(order, target)` | Changes the target of a MoveTo; the path is planned again. |
 | `Nav.status(order)`, `Nav.failure(order)`, `Nav.progress(order)` | The order's status, the reason it failed (`nil` until it has), and its progress. |
 | `Nav.release(order)` | Destroys an order that has ended. It is an error to release one that has not. |
+| `Nav.estimate(from, to, flightProfile, costProfile)` | What a flight would cost, without moving anything ([estimates](#estimates)). Runs on the calling thread. |
+| `Nav.estimateMany(from, targets, flightProfile, costProfile)`, `Nav.takeEstimates(request)`, `Nav.discardEstimates(request)` | The same for many targets on a worker: the first returns a request id, the second the results in the targets' order, `nil` until they have come (and once only), the third drops a request nobody waits for. |
 | `Nav.update(dt)` | One update of the order system, for an app that steps the simulation itself. A game that runs frames gets the update at `PreSim`, and must not call this too. |
 
 ### Kinds of order
@@ -133,6 +135,34 @@ The owner is kept in a `ControlOwnerComponent` on the ship and is decided when w
 
 `Nav.order` on a claimed or piloted ship queues the order and waits; the order begins when orders own the ship. The player's autopilot is a separate writer until it moves onto orders.
 
+## Estimates
+
+`Nav.estimate` answers "what would it cost to fly there" for AI that chooses between destinations. It plans no waypoints and moves nothing:
+
+```lua
+local e = Nav.estimate(ship, planet)             -- { reachable, time, distance, risk }
+local request = Nav.estimateMany(ship, candidates)
+-- later, once per frame until it is not nil
+local estimates = Nav.takeEstimates(request)     -- one result per candidate, in order
+```
+
+`from` is a ship or a `Position` (a point needs `flightProfile`), `to` an entity or a `Position`. `flightProfile` and `costProfile` default to the ship's own. An entity `to` is flown to its stand-off, as a MoveTo does (`OrderGoals` is the maths both use), and a point `to` to within `pointArrivalM`.
+
+| Result | Meaning |
+|---|---|
+| `reachable` | `false` when the start or the goal is inside a body's hull (a star, planet, moon or station) or the target entity is gone. `time`, `distance` and `risk` are then `nil`. |
+| `time` | Seconds until the ship is within the arrival radius of the goal. |
+| `distance` | The path's length in game units: the straight line times `NavConfig.estimateDetourFactor`. |
+| `risk` | The cost zones' weighted cost times the length of the straight line inside each, summed (game-unit lengths): the planner's cost of crossing, which a caller weighs against `time`. 0 with no zones. A zone that holds an endpoint counts. |
+
+**Model.** `time` is `TravelDriveMath.travelTime` of the lengthened distance, with the drive when the `from` ship has a travel drive, autopilot drive is enabled and the flight is longer than the shortest drive leg (`PlanFlight.driveMinLength`, as a MoveTo decides), and at top speed otherwise. Where the line passes through a body's drive zone with the drive on, the zone's cap (`TravelDriveMath.zoneCap`) slows the drive: the delay is integrated over the stretches inside the zones' influence (`NavEstimate`'s `zoneDelay`) and added to `time`. It is not the plan's time: the plan's route and timeline are not computed, so a flight with a long detour, or one the drive can't take, is estimated short.
+
+**Inputs are positions now.** The scene (bodies, cost zones) and the targets are taken where they are when the estimate is asked for. A target that moves, or a body that orbits across the line, is not led: the estimate is for the flight as if everything stood still. The line is straight, so `risk` ignores the detour a plan would make around a zone.
+
+**Cost.** The calling thread builds the input from a [planner snapshot](system-planner.md#consumers) and the targets, which is plain numbers (`EstimateRequest`). `Nav.estimate` runs the kernel (`NavEstimate`, pure numbers) there; `Nav.estimateMany` sends it to the `NavEstimate` worker (`NavEstimateClient`, one worker, started on first use), so scoring many destinations doesn't block the frame. The batch gives the same numbers as the single form.
+
+**Accuracy.** The detour factor is the planned path's length over the straight distance, measured in the planner sandbox scenarios (`ScenarioMetrics` logs the ratio of each plan). Those systems are sparse; a crowded one plans longer detours, and the factor then needs raising. The `OrdersEstimate` scenario logs a flight's estimated time against the time flown.
+
 ## Events
 
 An order's end, and its suspension and resumption, are announced on the event bus, unscoped, with the order's entity id as the payload:
@@ -153,4 +183,4 @@ The issuer releases an order. The system never destroys one, so a finished order
 
 ## Values
 
-`Config/Navigation/NavConfig.lua` holds what orders fly by, authored in metres and converted to game units on use: `pointArrivalM`, the distance from a point at which a ship has arrived, and `standOffRadii`, the stand-off in target radii of the default approach of a planet, a moon, an asteroid and any other entity.
+`Config/Navigation/NavConfig.lua` holds what orders fly by, authored in metres and converted to game units on use: `pointArrivalM`, the distance from a point at which a ship has arrived, and `standOffRadii`, the stand-off in target radii of the default approach of a planet, a moon, an asteroid and any other entity. `estimateDetourFactor` is how much longer than the straight line an [estimate](#estimates) takes a flight to be.

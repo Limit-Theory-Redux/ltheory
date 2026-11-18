@@ -1,6 +1,5 @@
 local Registry            = require("Core.ECS.Registry")
 local ConstructComponents = require("Modules.Constructs.Components")
-local PhysicsComponents   = require("Modules.Physics.Components")
 local Components          = require("Modules.Navigation.Components")
 local GravityWellSystem   = require("Modules.Physics.Systems.GravityWellSystem")
 local ShipFlightSystem    = require("Modules.Constructs.Systems.ShipFlightSystem")
@@ -10,6 +9,7 @@ local EntityPosition      = require("Shared.Helpers.EntityPosition")
 local NavAgentHelper      = require("Shared.Helpers.NavAgentHelper")
 local PlanFlight          = require("Shared.Helpers.PlanFlight")
 local ApproachSpecs       = require("Shared.Helpers.ApproachSpecs")
+local OrderGoals          = require("Shared.Helpers.OrderGoals")
 
 local Phase   = PlanFlight.Phase
 local Status  = Enums.NavOrderStatus
@@ -29,14 +29,6 @@ local TRANSITION_EVENTS = {
     suspended = "NavOrderSuspended",
     resumed   = "NavOrderResumed",
 }
-
----Where a goal order flies to, and how it counts as arrived.
----@class OrderGoal
----@field targetPos Position The goal now
----@field frameBody RigidBody|nil The body the goal rides on
----@field frameEntity Entity|nil The entity that body belongs to
----@field safeRange gameunit The stand-off distance from the target's centre; 0 for a point
----@field arrivalRadius gameunit
 
 ---@class OrderHead A ship's head order, with what the frame needs of it
 ---@field order Entity
@@ -60,50 +52,8 @@ local TRANSITION_EVENTS = {
 ---@field arrive fun(spec: Component): boolean|nil Takes the order on from an arrival; true when it is done. Nil for an order with a `track`
 ---@field track OrderTrack|nil Set for an order that never ends and keeps a behaviour once it has reached its goal
 
----@param entity Entity
----@return RigidBody|nil
-local function bodyOf(entity)
-    local component = entity:get(PhysicsComponents.RigidBody)
-    return component and component:getRigidBody() or nil
-end
-
----@param targetPos Position
----@param safeRange gameunit
----@param arrivalRadius gameunit
----@param frame Entity|nil
----@return OrderGoal
-local function makeGoal(targetPos, safeRange, arrivalRadius, frame)
-    return {
-        targetPos = targetPos,
-        frameEntity = frame,
-        frameBody = frame and bodyOf(frame) or nil,
-        safeRange = safeRange,
-        arrivalRadius = arrivalRadius,
-    }
-end
-
----@param point Position
----@return OrderGoal
-local function pointGoal(point)
-    return makeGoal(point, 0, NavConfig.pointArrival(), nil)
-end
-
----The goal of an approach to an entity: a stand-off from its centre, or a point fixed to its body.
----@param target Entity
----@param approach ApproachSpec
----@return OrderGoal
-local function approachGoal(target, approach)
-    local radius = PlanFlight.targetRadius(target)
-    local targetPos = EntityPosition.Get(target)
-    if approach:isPoint() then
-        local body = bodyOf(target)
-        local rotation = body and body:getRot() or Quat.Identity()
-        return makeGoal(approach:pointOf(targetPos, radius, rotation), 0, NavConfig.pointArrival(), target)
-    end
-    local gap, radii = approach:getGap(), approach:getRadii()
-    return makeGoal(targetPos, PlanFlight.standOff(radius, gap, radii),
-        PlanFlight.arrivalRadius(radius, gap, radii), target)
-end
+local bodyOf, makeGoal, pointGoal, approachGoal =
+    OrderGoals.bodyOf, OrderGoals.make, OrderGoals.point, OrderGoals.approach
 
 -- A follower within this many of the shortest leg the travel drive is used on keeps its slot with no plan,
 -- and goes back to planning when it is farther than the leave factor times that.

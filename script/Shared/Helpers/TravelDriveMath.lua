@@ -52,6 +52,15 @@ function TravelDriveMath.brakingMultiplier(goalDist, maxSpeed, brakingTime)
     return goalDist / (brakingTime * maxSpeed)
 end
 
+--- The drive multiplier the drive is held to: what the braking law wants, at least 1 (the drive
+--- never slows a ship below its normal top speed) and at most what the zone allows.
+---@param wanted number From `brakingMultiplier`
+---@param zoneMax number The multiplier the zone allows
+---@return number
+function TravelDriveMath.cappedMultiplier(wanted, zoneMax)
+    return min(zoneMax, max(1, wanted))
+end
+
 --- The rate (1/s) at which the distance to the goal decays under the braking law. The drive
 --- multiplier and the velocity lag the falling cap, so a ship sits ahead of the wanted speed
 --- and closes faster than `1 / brakingTime`. For a decay `e^(-r·t)` a first-order lag `τ`

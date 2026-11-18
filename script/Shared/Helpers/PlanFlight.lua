@@ -182,7 +182,7 @@ end
 function PlanFlight.updateDrive(drive, input, profile, zoneMax, dist, safeRange)
     local wanted = brakingMultiplier(math.max(0, dist - safeRange), profile)
     -- The drive system ramps its multiplier toward this cap over time.
-    input:setDriveSpeedCap(math.min(zoneMax, math.max(1, wanted)))
+    input:setDriveSpeedCap(TravelDriveMath.cappedMultiplier(wanted, zoneMax))
     if drive:getState() ~= "idle" and wanted < HANDOVER_MULT then
         input:setDriveRequest(Enums.TravelDriveRequest.Disengage)
     end
@@ -212,7 +212,7 @@ function PlanFlight.driveLeg(plan, drive, input, profile, zoneMax)
         return
     end
     local wanted = brakingMultiplier(follower:runRemaining(), profile)
-    input:setDriveSpeedCap(math.min(zoneMax, math.max(1, wanted)))
+    input:setDriveSpeedCap(TravelDriveMath.cappedMultiplier(wanted, zoneMax))
     if state ~= "idle" and wanted < HANDOVER_MULT then
         input:setDriveRequest(Enums.TravelDriveRequest.Disengage)
         plan.released = follower.index
