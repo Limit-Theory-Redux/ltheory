@@ -38,12 +38,19 @@ local END_EVENTS = {
 ---@field goal OrderGoal|nil
 ---@field facing FacingGoalComponent|nil What the nose is to face, when the order says
 
+---How an order that keeps a behaviour of the world on reaching its goal (Orbit, Follow) switches to it.
+---@class OrderTrack
+---@field start fun(world: NavWorldComponent, head: OrderHead, spec: Component) Gives the ship's agent the behaviour
+---@field joins fun(spec: Component, goal: OrderGoal, shipPos: Position): boolean Whether the ship is near enough to take the behaviour with no plan
+---@field leaves fun(spec: Component, goal: OrderGoal, shipPos: Position): boolean Whether the ship is too far to keep it, and plans again
+
 ---What differs between the kinds of order that fly to a goal.
 ---@class OrderHandler
 ---@field spec table The component type that holds what the order flies to
 ---@field goal fun(spec: Component): OrderGoal|nil The goal now; nil when the target is gone
----@field key fun(spec: Component): integer A number that changes when the goal's place does
----@field arrive fun(spec: Component): boolean Takes the order on from an arrival; true when it is done
+---@field key fun(spec: Component, goal: OrderGoal): integer A number that changes when the goal's place does
+---@field arrive fun(spec: Component): boolean|nil Takes the order on from an arrival; true when it is done. Nil for an order with a `track`
+---@field track OrderTrack|nil Set for an order that never ends and keeps a behaviour once it has reached its goal
 
 ---@param entity Entity
 ---@return RigidBody|nil
@@ -90,6 +97,101 @@ local function approachGoal(target, approach)
         PlanFlight.arrivalRadius(radius, gap, radii), target)
 end
 
+-- A follower within this many of the shortest leg the travel drive is used on keeps its slot with no plan,
+-- and goes back to planning when it is farther than the leave factor times that.
+local FOLLOW_LEAVE_FACTOR = 2
+
+-- The plane of an orbit with no named normal comes from the ship's velocity about the centre when the
+-- ship moves at more than this share of its top speed, and its direction is more than this sine away
+-- from the line to the centre; otherwise from the ship's own up axis.
+local PLANE_SPEED_SHARE = 0.05
+local PLANE_MIN_SINE = 0.1
+
+---@return gameunit
+local function followJoinRange()
+    return PlanFlight.driveMinLength(0)
+end
+
+---Where a follower's slot is now: its offset from the leader's centre, in the leader's axes.
+---@param leader Entity
+---@param offset { x: number, y: number, z: number } Game units: right, up, forward
+---@return Position
+local function slotPoint(leader, offset)
+    local body = bodyOf(leader)
+    local centre = EntityPosition.Get(leader)
+    if not body then return centre end
+    local rotation = body:getRot()
+    local right, up, forward = rotation:getRight(), rotation:getUp(), rotation:getForward()
+    return Position(
+        centre.x + right.x * offset.x + up.x * offset.y + forward.x * offset.z,
+        centre.y + right.y * offset.x + up.y * offset.y + forward.y * offset.z,
+        centre.z + right.z * offset.x + up.z * offset.y + forward.z * offset.z)
+end
+
+local function dot(a, b) return a.x * b.x + a.y * b.y + a.z * b.z end
+local function length(a) return math.sqrt(dot(a, a)) end
+local function cross(a, b)
+    return { x = a.y * b.z - a.z * b.y, y = a.z * b.x - a.x * b.z, z = a.x * b.y - a.y * b.x }
+end
+local function unit(a)
+    local len = length(a)
+    return { x = a.x / len, y = a.y / len, z = a.z / len }
+end
+
+---The plane a ship circles `target` in, as the unit normal it goes anticlockwise about: the plane of its
+---position and velocity relative to the target when it moves enough across the line to it; else the
+---plane that holds its up axis (or, when that lies along the line, its right axis) and the line.
+---@param ship Entity
+---@param target Entity
+---@return { x: number, y: number, z: number }
+local function orbitPlane(ship, target)
+    local rb, targetBody = bodyOf(ship), bodyOf(target)
+    local at, centre = rb:getPos(), targetBody:getPos()
+    local ship_v, target_v = rb:getVelocity(), targetBody:getVelocity()
+    local line = { x = at.x - centre.x, y = at.y - centre.y, z = at.z - centre.z }
+    local velocity = { x = ship_v.x - target_v.x, y = ship_v.y - target_v.y, z = ship_v.z - target_v.z }
+    local lineLength, speed = length(line), length(velocity)
+    local normal = cross(line, velocity)
+    local top = ConstructComponents.FlightProfile.ProfileOf(ship).maxSpeed
+    if speed > PLANE_SPEED_SHARE * top and length(normal) > PLANE_MIN_SINE * lineLength * speed then
+        return unit(normal)
+    end
+    local rotation = rb:getRot()
+    for _, axis in ipairs({ rotation:getUp(), rotation:getRight() }) do
+        -- The axis with its part along the line taken away.
+        local along = lineLength > 0 and dot(axis, line) / (lineLength * lineLength) or 0
+        local across = { x = axis.x - line.x * along, y = axis.y - line.y * along, z = axis.z - line.z * along }
+        if length(across) > PLANE_MIN_SINE then return unit(across) end
+    end
+    return unit(rotation:getUp())
+end
+
+---Gives the agent the Orbit behaviour about the order's target, in the order's plane: the named one, or
+---the ship's own at this moment, which the order keeps from then on.
+---@param world NavWorldComponent
+---@param head OrderHead
+---@param spec OrbitOrderComponent
+local function startOrbit(world, head, spec)
+    local target = Registry:getEntityById(spec:getTargetEntityId())
+    local normal = spec:getChosenNormal()
+    if not normal then
+        normal = orbitPlane(head.ship, target)
+        spec:setChosenNormal(normal)
+    end
+    world:getNav():setOrbit(head.slot, bodyOf(target), head.goal.safeRange,
+        Vec3d(normal.x, normal.y, normal.z), head.goal.arrivalRadius)
+end
+
+---Gives the agent the Follow behaviour on the order's leader, at its slot.
+---@param world NavWorldComponent
+---@param head OrderHead
+---@param spec FollowOrderComponent
+local function startFollow(world, head, spec)
+    local leader = Registry:getEntityById(spec:getLeaderEntityId())
+    local offset = spec:getOffset()
+    world:getNav():setFollow(head.slot, bodyOf(leader), offset.x, offset.y, offset.z, head.goal.arrivalRadius)
+end
+
 ---@type table<NavOrderKindId, OrderHandler>
 local HANDLERS = {
     [Kind.MoveTo] = {
@@ -120,6 +222,38 @@ local HANDLERS = {
             end
             return true
         end,
+    },
+    [Kind.Orbit] = {
+        spec = Components.OrbitOrder,
+        goal = function(spec)
+            local target = Registry:getEntityById(spec:getTargetEntityId())
+            if not target or not bodyOf(target) then return nil end
+            local radius, radii = PlanFlight.targetRadius(target), spec:getAltitude()
+            return makeGoal(EntityPosition.Get(target), PlanFlight.standOff(radius, nil, radii),
+                PlanFlight.arrivalRadius(radius, nil, radii), target)
+        end,
+        key = function() return 1 end,
+        track = {
+            start = startOrbit,
+            joins = function() return false end,
+            leaves = function() return false end,
+        },
+    },
+    [Kind.Follow] = {
+        spec = Components.FollowOrder,
+        goal = function(spec)
+            local leader = Registry:getEntityById(spec:getLeaderEntityId())
+            if not leader or not bodyOf(leader) then return nil end
+            return makeGoal(slotPoint(leader, spec:getOffset()), 0, NavConfig.pointArrival(), leader)
+        end,
+        key = function(spec, goal) return spec:slotKey(goal.targetPos, followJoinRange()) end,
+        track = {
+            start = startFollow,
+            joins = function(_, goal, shipPos) return shipPos:distance(goal.targetPos) <= followJoinRange() end,
+            leaves = function(_, goal, shipPos)
+                return shipPos:distance(goal.targetPos) > FOLLOW_LEAVE_FACTOR * followJoinRange()
+            end,
+        },
     },
 }
 
@@ -255,7 +389,7 @@ end
 ---@param spec Component
 local function ensurePlan(head, spec)
     local flight = head.order:get(Components.OrderFlight)
-    local key = head.handler.key(spec)
+    local key = head.handler.key(spec, head.goal)
     local profileRevision = costProfileRevision(head.ship)
     if flight.plan and flight.plannedGoalKey == key and flight.plannedProfileRevision == profileRevision then
         return
@@ -269,7 +403,36 @@ local function ensurePlan(head, spec)
     flight.plannedProfileRevision = profileRevision
 end
 
+---Moves an order from flying its plan to keeping the world's behaviour: the plan is dropped, and the
+---agent takes the behaviour, which the world flies from the next step on.
+---@param world NavWorldComponent
+---@param head OrderHead
+---@param spec Component
+local function beginTracking(world, head, spec)
+    local flight = head.order:get(Components.OrderFlight)
+    PlanFlight.drop(flight.plan)
+    flight.plan = nil
+    flight.tracking = true
+    head.handler.track.start(world, head, spec)
+end
+
+---Switches a tracking order's flight: a follower far from its slot goes back to planning, and one near
+---it (or a ship that has arrived) takes the behaviour. Returns whether the order is tracking now.
+---@param world NavWorldComponent
+---@param head OrderHead
+---@param spec Component
+---@param flight OrderFlightComponent
+---@return boolean
+local function switchTracking(world, head, spec, flight)
+    local track, goal = head.handler.track, head.goal
+    local shipPos = bodyOf(head.ship):getPos()
+    if flight.tracking and track.leaves(spec, goal, shipPos) then flight.tracking = false end
+    if not flight.tracking and track.joins(spec, goal, shipPos) then beginTracking(world, head, spec) end
+    return flight.tracking
+end
+
 ---Before the step of a goal order: its plan, and its goal on the world unless the plan's corners are flown.
+---A tracking order has neither: the world holds its behaviour.
 ---@param world NavWorldComponent
 ---@param head OrderHead
 ---@param dt number
@@ -280,8 +443,9 @@ local function aimGoal(world, head, dt)
         endOrder(world, head.order, head.ship, Status.Failed, Failure.TargetLost)
         return
     end
-    ensurePlan(head, spec)
     local flight = head.order:get(Components.OrderFlight)
+    if head.handler.track and switchTracking(world, head, spec, flight) then return end
+    ensurePlan(head, spec)
     local plan, goal = flight.plan, head.goal
     local rb = bodyOf(head.ship)
     if plan.phase == Phase.Planning then
@@ -353,7 +517,10 @@ local function finishGoal(world, head)
     local atCorners = plan.phase == Phase.Plan
 
     if not atCorners and arrived then
-        if head.handler.arrive(order:get(head.handler.spec)) then
+        local spec = order:get(head.handler.spec)
+        if head.handler.track then
+            beginTracking(world, head, spec)
+        elseif head.handler.arrive(spec) then
             endOrder(world, order, ship, Status.Done)
         end
         return
@@ -386,6 +553,19 @@ local function finishHold(world, head)
     if drive and drive:getState() ~= "idle" then
         input:setDriveRequest(Enums.TravelDriveRequest.Disengage)
     end
+end
+
+---After the step of a tracking order: the axes of the world's behaviour, with the drive released, and
+---the distance from the circle or the slot as the progress.
+---@param world NavWorldComponent
+---@param head OrderHead
+local function finishTrack(world, head)
+    finishHold(world, head)
+    local goal = head.goal
+    local progress = head.order:get(Components.OrderProgress)
+    progress.distanceLeft = math.abs(bodyOf(head.ship):getPos():distance(goal.targetPos) - goal.safeRange)
+    progress.eta = 0
+    head.order:get(Components.OrderStatus):setStatus(Status.Active)
 end
 
 ---The first world of the game: the orders are flown in it.
@@ -458,7 +638,13 @@ function NavOrderSystem:update(dt)
 
     for _, head in ipairs(heads) do
         if not head.order:get(Components.OrderStatus):hasEnded() then
-            if head.handler then finishGoal(world, head) else finishHold(world, head) end
+            if not head.handler then
+                finishHold(world, head)
+            elseif head.order:get(Components.OrderFlight).tracking then
+                finishTrack(world, head)
+            else
+                finishGoal(world, head)
+            end
         end
     end
 end

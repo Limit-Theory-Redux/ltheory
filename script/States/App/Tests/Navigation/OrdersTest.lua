@@ -1,24 +1,27 @@
 -- Checks the navigation orders: MoveTo to a point past a planet (a plan with a corner, the drive) and
 -- to a body, the approach specs (stand-off, point, refused), the facing goal, a queue, Patrol with and without a loop, Hold, cancel (a queued order and a running
 -- one), a change of target and of cost profile in flight (the path is planned again), a target and
--- a ship that are destroyed, release, and the world's detach. The end events are checked in frames
+-- a ship that are destroyed, Orbit (a named plane, the ship's plane, a planet in a moving well), Follow
+-- (in and out of the join range, a leader that leaves it), the refused specs, release, and the world's detach. The end events are checked in frames
 -- after the flights, since the event bus delivers them there. Logs each failed check and ends
 -- with a failure exit code.
 
-local Application         = require("States.Application")
-local Registry            = require("Core.ECS.Registry")
-local ConstructComponents = require("Modules.Constructs.Components")
-local OrbitalSystem       = require("Modules.CelestialObjects.Systems.OrbitalSystem")
-local GravityWellSystem   = require("Modules.Physics.Systems.GravityWellSystem")
-local ShipFlightSystem    = require("Modules.Constructs.Systems.ShipFlightSystem")
-local TravelDriveSystem   = require("Modules.Constructs.Systems.TravelDriveSystem")
-local Nav                 = require("Modules.Navigation")
-local NavConfig           = require("Config.Navigation.NavConfig")
-local CostProfileDefs     = require("Shared.Registries.CostProfileRegistry")
-local PlanFlight          = require("Shared.Helpers.PlanFlight")
-local ApproachSpec        = require("Shared.Types.ApproachSpec")
-local ApproachSpecs       = require("Shared.Helpers.ApproachSpecs")
-local FlightScene         = require("States.App.Tests.Support.FlightScene")
+local Application           = require("States.Application")
+local Registry              = require("Core.ECS.Registry")
+local ConstructComponents   = require("Modules.Constructs.Components")
+local OrbitalSystem         = require("Modules.CelestialObjects.Systems.OrbitalSystem")
+local GravityWellSystem     = require("Modules.Physics.Systems.GravityWellSystem")
+local ShipFlightSystem      = require("Modules.Constructs.Systems.ShipFlightSystem")
+local TravelDriveSystem     = require("Modules.Constructs.Systems.TravelDriveSystem")
+local Nav                   = require("Modules.Navigation")
+local NavConfig             = require("Config.Navigation.NavConfig")
+local CostProfileDefs       = require("Shared.Registries.CostProfileRegistry")
+local PlanFlight            = require("Shared.Helpers.PlanFlight")
+local ApproachSpec          = require("Shared.Types.ApproachSpec")
+local ApproachSpecs         = require("Shared.Helpers.ApproachSpecs")
+local FlightScene           = require("States.App.Tests.Support.FlightScene")
+local ScaleConfig           = require("Config.Gen.UniverseScaleConfig")
+local FlightProfileRegistry = require("Shared.Registries.FlightProfileRegistry")
 
 ---@class NavigationOrdersTest: Application
 local OrdersTest = Subclass("NavigationOrdersTest", Application)
@@ -652,6 +655,329 @@ function OrdersTest:caseDetach()
     self:finish({ run, hold }, { ship })
 end
 
+---The ship's place about a centre, in the plane of a circle: along `first`, and along the way round.
+---@param ship { rb: RigidBody }
+---@param centre Position
+---@param normal { x: number, y: number, z: number }
+---@param first { x: number, y: number, z: number }|nil The direction the angle is counted from; the ship's own when nil
+---@return number angle Radians, anticlockwise about the normal
+---@return number radius Distance within the plane
+---@return number height Distance from the plane
+---@return { x: number, y: number, z: number } first
+local function circlePlace(ship, centre, normal, first)
+    local at = ship.rb:getPos()
+    local rel = { x = at.x - centre.x, y = at.y - centre.y, z = at.z - centre.z }
+    local height = rel.x * normal.x + rel.y * normal.y + rel.z * normal.z
+    local flat = { x = rel.x - normal.x * height, y = rel.y - normal.y * height, z = rel.z - normal.z * height }
+    local flatLength = math.sqrt(flat.x ^ 2 + flat.y ^ 2 + flat.z ^ 2)
+    first = first or { x = flat.x / flatLength, y = flat.y / flatLength, z = flat.z / flatLength }
+    local second = {
+        x = normal.y * first.z - normal.z * first.y,
+        y = normal.z * first.x - normal.x * first.z,
+        z = normal.x * first.y - normal.y * first.x,
+    }
+    local angle = math.atan2(flat.x * second.x + flat.y * second.y + flat.z * second.z,
+        flat.x * first.x + flat.y * first.y + flat.z * first.z)
+    return angle, flatLength, math.abs(height), first
+end
+
+-- An orbit: the altitude asked for, the share of the radius the ship may stray from the circle and from its plane
+-- once on it, and the turn it is to make (a circle takes minutes: its speed is set by the thrust).
+local ORBIT_ALTITUDE   = 2
+local ORBIT_STRAY      = 0.25
+local ORBIT_TURN       = math.pi / 2
+local ORBIT_TURN_S     = 600
+local ORBIT_BODY_LEGS  = 3.5
+local WELL_PLANET_RADIUS = 100
+local WELL_SPEEDUP     = 0.1
+local WELL_START       = 300
+-- The planet's share of the orbit radius it has moved once the ship has been round a quarter turn.
+local WELL_MOVED       = 0.1
+-- The leader of a follower (the size of a ship) and where the slot is in its axes, in metres.
+local LEADER_RADIUS = 0.005
+local LEADER_SPEED_SHARE = 0.3
+local SLOT_M = { x = 2000, y = 0, z = 3000 }
+-- A leader moved this share of the join range stays near the slot the plan was made for; the far one doesn't.
+local SLOT_NEAR_SHARE = 0.2
+local SLOT_FAR_SHARE  = 1.2
+local LEADER_BEYOND   = 1.2
+local LEADER_FAR      = 2.4
+local HOLD_S          = 5
+local SETTLE_S        = 5
+local SPEED_MATCH     = 0.25
+
+---Flies an Orbit order to its circle and round it for a turn, and checks the ship holds the circle and
+---its plane, anticlockwise about the normal.
+---@param name string
+---@param order Entity
+---@param ship { entity: Entity, rb: RigidBody }
+---@param centreOf fun(): Position Where the centre is now
+---@param radius gameunit
+---@param move fun()|nil Called before each step, to move the world
+---@param well table|nil
+function OrdersTest:flyOrbit(name, order, ship, centreOf, radius, move, well)
+    local flight = order:get(Components.OrderFlight)
+    local planSeen = false
+    Nav.update(0)
+    self:awaitPlan(order)
+    local reached = self:flyUntil(function()
+        if move then move() end
+        planSeen = planSeen or planOf(order) ~= nil
+        return flight.tracking
+    end, MAX_FLIGHT_S, well)
+    self:check(reached, name .. "the ship reaches the circle and the order tracks", string.format("status %s, plan %s, %.1f from the centre, speed %.2f",
+        tostring(Nav.status(order)), tostring(planOf(order) and planOf(order).phase), ship.rb:getPos():distance(centreOf()), ship.rb:getSpeed()))
+    self:check(planSeen, name .. "the ship flew a plan to the circle")
+    self:check(planOf(order) == nil, name .. "the plan is dropped for the orbit")
+    self:check(Nav.status(order) == Status.Active, name .. "the order is active")
+    local normal = order:get(Components.OrbitOrder):getChosenNormal()
+    self:check(normal ~= nil, name .. "the order has its plane")
+    if not normal then return end
+
+    -- The ship comes onto the circle with the velocity of its approach, and settles into its plane.
+    local _, _, _, first = circlePlace(ship, centreOf(), normal, nil)
+    local function straying()
+        local _, flat, height = circlePlace(ship, centreOf(), normal, first)
+        return math.max(math.abs(flat - radius), height)
+    end
+    local settled = self:flyUntil(function()
+        if move then move() end
+        return straying() <= ORBIT_STRAY * radius
+    end, ORBIT_TURN_S, well)
+    self:check(settled, name .. "the ship settles on the circle and its plane", string.format("off by %.1f of %.1f", straying(), radius))
+
+    local previous, swept, worst = nil, 0, 0
+    local turned = self:flyUntil(function()
+        if move then move() end
+        local angle = circlePlace(ship, centreOf(), normal, first)
+        if previous then
+            local delta = angle - previous
+            if delta > math.pi then delta = delta - 2 * math.pi elseif delta < -math.pi then delta = delta + 2 * math.pi end
+            swept = swept + delta
+        end
+        previous = angle
+        worst = math.max(worst, straying())
+        return swept >= ORBIT_TURN
+    end, ORBIT_TURN_S, well)
+    self:check(turned, name .. "the ship goes round anticlockwise about the normal", string.format("swept %.2f", swept))
+    self:check(worst <= ORBIT_STRAY * radius, name .. "the ship holds the circle and its plane",
+        string.format("off by %.1f of %.1f", worst, radius))
+    local progress = Nav.progress(order)
+    self:check(progress.eta == 0 and progress.distanceLeft ~= nil, name .. "the progress is the distance from the circle")
+end
+
+---Cancels a tracking order and checks that the ship is let go.
+---@param name string
+---@param order Entity
+---@param ship { entity: Entity }
+function OrdersTest:cancelTracking(name, order, ship)
+    Nav.cancel(order)
+    self:step()
+    self:check(Nav.status(order) == Status.Cancelled, name .. "cancelled")
+    self:check(not hasAgent(ship), name .. "the agent is gone")
+    self:check(axesAreZero(ship.entity:get(ConstructComponents.ControlInput)), name .. "no axes are left")
+end
+
+function OrdersTest:caseOrbit(named)
+    local name = named and "an orbit about a named normal: " or "an orbit in the ship's plane: "
+    local ship = self:ship(Position(0, 0, 0))
+    local centre = Position(LEG * ORBIT_BODY_LEGS, LEG / 4, 0)
+    local body = FlightScene.spawnBody(self.world, centre, FAR_BODY_RADIUS)
+    self.world:update(STEP)
+    local normal = Vec3d(0.3, 0.2, 0.9)
+    local order = Nav.order(ship.entity, Nav.Orders.Orbit {
+        target = body.entity, altitude = ORBIT_ALTITUDE, normal = named and normal or nil })
+    local radius = PlanFlight.standOff(FAR_BODY_RADIUS, nil, ORBIT_ALTITUDE)
+    self:flyOrbit(name, order, ship, function() return centre end, radius)
+    if named then
+        local chosen = order:get(Components.OrbitOrder):getChosenNormal()
+        local length = math.sqrt(normal.x ^ 2 + normal.y ^ 2 + normal.z ^ 2)
+        self:check(chosen and math.abs(chosen.x - normal.x / length) < 1e-9 and math.abs(chosen.z - normal.z / length) < 1e-9,
+            name .. "the plane is the named one")
+    end
+    self:cancelTracking(name, order, ship)
+    self:finish({ order }, { ship, body })
+end
+
+---An orbit about a planet that moves in its gravity well: the ship rides the well, and the circle follows the planet.
+function OrdersTest:caseOrbitInWell()
+    local name = "an orbit about a planet in a well: "
+    local planetPos = Position(LEG * ORBIT_BODY_LEGS, 0, 0)
+    local planet = FlightScene.buildWell(self.world, planetPos, WELL_PLANET_RADIUS, WELL_SPEEDUP)
+    local ship = FlightScene.spawnShip(self.world, Position(planetPos.x + WELL_START, planetPos.y, planetPos.z),
+        { inWell = true })
+    self.world:update(STEP)
+    local order = Nav.order(ship.entity, Nav.Orders.Orbit {
+        target = planet.planetBody.entity, normal = Vec3d(0, 1, 0) })
+    local radius = PlanFlight.standOff(WELL_PLANET_RADIUS, nil, NavConfig.standOffRadii)
+    local start = planet.planetBody.rb:getPos()
+    self:flyOrbit(name, order, ship, function() return planet.planetBody.rb:getPos() end, radius, nil, planet)
+    self:check(planet.planetBody.rb:getPos():distance(start) > WELL_MOVED * radius, name .. "the planet has moved",
+        string.format("%.1f", planet.planetBody.rb:getPos():distance(start)))
+    self:cancelTracking(name, order, ship)
+    FlightScene.despawnWell(self.world, planet)
+    FlightScene.despawn(self.world, { planet.planetBody })
+    self:finish({ order }, { ship })
+end
+
+---A kinematic leader, moved by hand: `to` sets its place for the next step.
+---@param leader { rb: RigidBody }
+---@param position Position
+local function placeLeader(leader, position)
+    leader.rb:setKinematicTarget(position, leader.rb:getRot())
+end
+
+---The slot in the leader's axes, in game units.
+---@param leader { rb: RigidBody }
+---@return Position
+local function slotOf(leader)
+    local rotation = leader.rb:getRot()
+    local right, up, forward = rotation:getRight(), rotation:getUp(), rotation:getForward()
+    local x, y, z = ScaleConfig:toGameUnits(SLOT_M.x, "starSystem"), ScaleConfig:toGameUnits(SLOT_M.y, "starSystem"),
+        ScaleConfig:toGameUnits(SLOT_M.z, "starSystem")
+    local at = leader.rb:getPos()
+    return Position(at.x + right.x * x + up.x * y + forward.x * z, at.y + right.y * x + up.y * y + forward.y * z,
+        at.z + right.z * x + up.z * y + forward.z * z)
+end
+
+function OrdersTest:caseFollowInRange()
+    local name = "a follower in range: "
+    local top = FlightProfileRegistry:get(Enums.FlightProfile.Solo).maxSpeed
+    local ship = self:ship(Position(0, 0, 0))
+    local leader = FlightScene.spawnBody(self.world, Position(LEG, 0, 0), LEADER_RADIUS)
+    self.world:update(STEP)
+    local velocity = { x = 0, y = 0, z = -LEADER_SPEED_SHARE * top }
+    local function moveLeader()
+        local at = leader.rb:getPos()
+        placeLeader(leader, Position(at.x + velocity.x * STEP, at.y + velocity.y * STEP, at.z + velocity.z * STEP))
+    end
+    local order = Nav.order(ship.entity, Nav.Orders.Follow {
+        target = leader.entity, offset = Vec3d(SLOT_M.x, SLOT_M.y, SLOT_M.z) })
+    Nav.update(0)
+    local flight = order:get(Components.OrderFlight)
+    self:check(flight.tracking and planOf(order) == nil, name .. "within the join range there is no plan")
+    self:check(Nav.status(order) == Status.Active, name .. "the order is active")
+
+    local arrival = NavConfig.pointArrival() * ARRIVED_SLACK
+    local onSlot = self:flyUntil(function()
+        moveLeader()
+        return within(ship, slotOf(leader), arrival)
+    end, MAX_FLIGHT_S)
+    self:check(onSlot, name .. "the ship reaches its slot")
+    -- The ship reaches the slot with the speed of its approach, and settles onto the leader's velocity.
+    local worst, speedOff, frames = 0, 0, 0
+    self:flyUntil(function()
+        moveLeader()
+        frames = frames + 1
+        worst = math.max(worst, ship.rb:getPos():distance(slotOf(leader)))
+        if frames * STEP > SETTLE_S then
+            speedOff = math.max(speedOff, (ship.rb:getVelocity() - leader.rb:getVelocity()):length())
+        end
+        return false
+    end, SETTLE_S + HOLD_S)
+    self:check(worst <= arrival, name .. "the ship keeps its slot as the leader moves", string.format("off by %.1f", worst))
+    self:check(speedOff <= SPEED_MATCH * LEADER_SPEED_SHARE * top, name .. "the ship matches the leader's velocity",
+        string.format("off by %.2f of %.2f", speedOff, LEADER_SPEED_SHARE * top))
+    self:check(planOf(order) == nil and flight.tracking and Nav.status(order) == Status.Active,
+        name .. "it never planned")
+    self:check(Nav.progress(order).eta == 0, name .. "the progress is the distance from the slot")
+    self:cancelTracking(name, order, ship)
+    self:finish({ order }, { ship, leader })
+end
+
+function OrdersTest:caseFollowOutOfRange()
+    local name = "a follower out of range: "
+    local join = PlanFlight.driveMinLength(0)
+    local ship = self:ship(Position(0, 0, 0))
+    local leader = FlightScene.spawnBody(self.world, Position(join * LEADER_BEYOND, 0, 0), LEADER_RADIUS)
+    self.world:update(STEP)
+    local order = Nav.order(ship.entity, Nav.Orders.Follow {
+        target = leader.entity, offset = Vec3d(SLOT_M.x, SLOT_M.y, SLOT_M.z) })
+    local flight = order:get(Components.OrderFlight)
+    Nav.update(0)
+    self:check(not flight.tracking and planOf(order) ~= nil, name .. "beyond the join range the ship plans")
+
+    local before = planOf(order)
+    leader.rb:setPos(Position(join * (LEADER_BEYOND + SLOT_NEAR_SHARE), 0, 0))
+    self:step()
+    self:check(planOf(order) == before, name .. "a slot that moved a little keeps the plan")
+    leader.rb:setPos(Position(join * LEADER_BEYOND, join * SLOT_FAR_SHARE, 0))
+    self:step()
+    self:check(planOf(order) ~= before and planOf(order) ~= nil, name .. "a slot that moved far makes a new plan")
+
+    self:awaitPlan(order)
+    local joined = self:flyUntil(function() return flight.tracking end, MAX_FLIGHT_S)
+    self:check(joined, name .. "the ship joins the formation")
+    self:check(planOf(order) == nil, name .. "the plan is dropped at the join")
+    -- Within the join range the travel drive would not run either, so the rest is a flight at the ship's own speed.
+    local gap = ship.rb:getPos():distance(slotOf(leader))
+    self:check(gap <= join, name .. "the ship joins within the join range", string.format("%.1f of %.1f", gap, join))
+    self:flyUntil(function() return false end, SETTLE_S)
+    self:check(ship.rb:getPos():distance(slotOf(leader)) < gap, name .. "the ship closes on its slot")
+    local drive = ship.entity:get(ConstructComponents.TravelDrive)
+    self:check(Nav.status(order) == Status.Active and drive:getState() == "idle", name .. "the order is active, the drive is off")
+
+    local at = ship.rb:getPos()
+    leader.rb:setPos(Position(at.x + join * LEADER_FAR, at.y, at.z))
+    self:step()
+    self:check(not flight.tracking and planOf(order) ~= nil, name .. "a leader that leaves too far for the join is planned to")
+    self:check(Nav.status(order) == Status.Planning or Nav.status(order) == Status.Active, name .. "the order goes on")
+    Nav.cancel(order)
+    self:step()
+    self:check(Nav.status(order) == Status.Cancelled and not hasAgent(ship), name .. "cancelled, the agent is gone")
+    self:finish({ order }, { ship, leader })
+end
+
+---A lost target ends an Orbit or Follow order that is tracking, and one that has not reached its goal.
+function OrdersTest:caseTrackTargetLost()
+    local name = "a destroyed target of orbit and follow: "
+    local orbiter = self:ship(Position(0, 0, 0))
+    local follower = self:ship(Position(0, LEG, 0))
+    local body = FlightScene.spawnBody(self.world, Position(LEG * ORBIT_BODY_LEGS, 0, 0), FAR_BODY_RADIUS)
+    local leader = FlightScene.spawnBody(self.world, Position(LEG, LEG, 0), LEADER_RADIUS)
+    self.world:update(STEP)
+    local orbit = Nav.order(orbiter.entity, Nav.Orders.Orbit { target = body.entity })
+    local follow = Nav.order(follower.entity, Nav.Orders.Follow { target = leader.entity, offset = Vec3d(0, 0, SLOT_M.z) })
+    self:step()
+    self:check(follow:get(Components.OrderFlight).tracking, name .. "the follower tracks")
+    self:check(not orbit:get(Components.OrderFlight).tracking, name .. "the orbiter is still on its way")
+
+    FlightScene.despawn(self.world, { body, leader })
+    self:step()
+    for label, order in pairs({ orbit = orbit, follow = follow }) do
+        self:check(Nav.status(order) == Status.Failed and Nav.failure(order) == Failure.TargetLost,
+            name .. label .. " fails, TargetLost")
+    end
+    self:check(not hasAgent(orbiter) and not hasAgent(follower), name .. "the agents are gone")
+    self:finish({ orbit, follow }, { orbiter, follower })
+end
+
+---Specs that are refused leave nothing behind.
+function OrdersTest:caseTrackRefused()
+    local name = "refused orbit and follow specs: "
+    local ship = self:ship(Position(0, 0, 0))
+    local body = FlightScene.spawnBody(self.world, Position(LEG, 0, 0), FAR_BODY_RADIUS)
+    local bare = Registry:createEntity()
+    self.world:update(STEP)
+    local refused = {
+        ["an altitude of 1"] = Nav.Orders.Orbit { target = body.entity, altitude = 1 },
+        ["an altitude below 1"] = Nav.Orders.Orbit { target = body.entity, altitude = 0.5 },
+        ["a zero normal"] = Nav.Orders.Orbit { target = body.entity, normal = Vec3d(0, 0, 0) },
+        ["an orbit of an entity with no body"] = Nav.Orders.Orbit { target = bare },
+        ["an orbit of a point"] = Nav.Orders.Orbit { target = Position(0, 0, 0) },
+        ["a follow with no offset"] = Nav.Orders.Follow { target = body.entity },
+        ["a follow of an entity with no body"] = Nav.Orders.Follow { target = bare, offset = Vec3d(0, 0, 1) },
+        ["a follow of a point"] = Nav.Orders.Follow { target = Position(0, 0, 0), offset = Vec3d(0, 0, 1) },
+    }
+    for what, spec in pairs(refused) do
+        self:check(not pcall(Nav.order, ship.entity, spec), name .. what)
+    end
+    local queue = ship.entity:get(Components.OrderQueue)
+    self:check(queue == nil or queue:count() == 0, name .. "no order is left behind")
+    Registry:destroyEntity(bare)
+    self:finish({}, { ship, body })
+end
+
 ---Checks the events once they have been delivered: one per ended order, of the kind of its end.
 function OrdersTest:checkEvents()
     local expectedCount, receivedCount = 0, 0
@@ -708,6 +1034,13 @@ function OrdersTest:onInit()
     self:casePatrol(false)
     self:casePatrol(true)
     self:caseHold()
+    self:caseOrbit(true)
+    self:caseOrbit(false)
+    self:caseOrbitInWell()
+    self:caseFollowInRange()
+    self:caseFollowOutOfRange()
+    self:caseTrackTargetLost()
+    self:caseTrackRefused()
     self:caseCancelQueued()
     self:caseRetarget()
     self:caseCostProfileChange()

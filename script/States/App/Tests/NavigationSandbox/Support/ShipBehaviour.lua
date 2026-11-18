@@ -1,11 +1,14 @@
 -- The behaviours a sandbox ship can be given besides flying to a target (Seek, Hold, Pursue,
 -- Follow, Orbit): issuing each one to the `NavWorld`, the point the ship is to be at, and the
--- verdict on whether it has done what the behaviour asks. The geometry here is the sandbox's own,
--- written from the behaviour's definition, so it checks the engine's maths instead of repeating it.
+-- verdict on whether it has done what the behaviour asks. A ship can also be flown by orders
+-- (`Nav.order`); it is then judged by what its last order asks, with the same rules. The geometry
+-- here is the sandbox's own, written from the behaviour's definition, so it checks the engine's
+-- maths instead of repeating it.
 -- Design: doc/script/nav/navigation-sandbox.md
 
 local Metres               = require("States.App.Tests.NavigationSandbox.Support.Metres")
 local ConstructComponents  = require("Modules.Constructs.Components")
+local Nav                  = require("Modules.Navigation")
 local NavigationComponents = require("Modules.Navigation.Components")
 local SystemPlanner        = require("Shared.Helpers.SystemPlanner")
 local PlanFollower         = require("Shared.Helpers.PlanFollower")
@@ -31,8 +34,25 @@ local ORBIT_TOLERANCE     = 0.1
 -- A direction is taken from a vector at least this long, relative to the radius it is compared with.
 local MIN_RELATIVE_LENGTH = 1e-6
 
+---One order a ship is given, in the order of `SandboxBehaviourSpec.orders`. The ship is judged by the last one:
+---MoveTo and Patrol by the order being done, Hold by the ship holding its place, Orbit and Follow as the
+---behaviours of that name are, with the fields they have here.
+---@class SandboxOrderSpec
+---@field kind "MoveTo"|"Patrol"|"Hold"|"Orbit"|"Follow"
+---@field obstacle integer|nil MoveTo, Orbit: index of the scenario's obstacle that is flown to or circled
+---@field point number[]|nil MoveTo: { x, y, z } in metres, when there is no obstacle
+---@field points number[][]|nil Patrol: points { x, y, z } in metres
+---@field loop boolean|nil Patrol
+---@field altitude number|nil Orbit: target radii from the obstacle's centre
+---@field radiusM number|nil Orbit: the radius of the circle the ship is judged on, in metres; written from the scenario, not from the order's maths
+---@field turnRad number|nil Orbit: the ship has orbited after it has turned this far, in radians; a full turn when nil
+---@field normal number[]|nil Orbit: { x, y, z } normal of the order's plane, and the plane the ship is judged on; the plane the order chooses when nil
+---@field ship integer|nil Follow: index of the scenario's ship that is followed
+---@field offsetM number[]|nil Follow: the slot { right, up, forward } in the leader's axes, in metres
+
 ---@class SandboxBehaviourSpec
----@field kind "Seek"|"Hold"|"Pursue"|"Follow"|"Orbit"|"Plan"
+---@field kind "Seek"|"Hold"|"Pursue"|"Follow"|"Orbit"|"Plan"|"Orders"
+---@field orders SandboxOrderSpec[]|nil Orders: given to the ship in this order. The ship is not an agent of the sandbox's `NavWorld`; `Nav` flies it
 ---@field through number[][]|nil Seek: points { x, y, z } in metres, passed at speed in this order; the ship then stops at the ship's `target`
 ---@field passRadiusM number|nil Seek, Plan: a point is passed within this distance, in metres; longer than the distance covered in one frame
 ---@field speedCapShare number|nil Seek: the ship's speed cap, as a fraction of top speed; no cap when nil. Flying faster than it fails the run
@@ -47,8 +67,11 @@ local MIN_RELATIVE_LENGTH = 1e-6
 ---@field normal number[]|nil Orbit: { x, y, z } normal of the circle's plane; the ship goes anticlockwise about it
 
 ---@class SandboxBehaviour
----@field kind string
----@field spec SandboxBehaviourSpec
+---@field kind string The rule the ship is judged by; for a ship flown by orders, that of its last order: "OrderDone", "OrderHold", "Orbit" or "Follow"
+---@field spec SandboxBehaviourSpec For a ship flown by orders, the last order's fields, with `kind` as above and `orders` the whole list
+---@field orders Entity[]|nil Ships flown by orders: the order entities, in the order they were given
+---@field holdPoint table|nil OrderHold: { x, y, z } where the ship was when its Hold order began
+---@field turnLimit number|nil Orbit: radians turned about the centre after which the ship has orbited
 ---@field tracked table|nil The sandbox ship or obstacle the behaviour is about
 ---@field topSpeed number Game units per second
 ---@field engaged boolean Whether the ship has been on station; deadlocks are judged only before
@@ -127,13 +150,31 @@ local function radiusOf(item)
     return item.radius or item.rb:getBoundingRadius()
 end
 
+-- The rule a ship flown by orders is judged by, from the kind of its last order.
+local ORDER_RULES = { MoveTo = "OrderDone", Patrol = "OrderDone", Hold = "OrderHold", Orbit = "Orbit", Follow = "Follow" }
+
 ---@param spec SandboxBehaviourSpec
 ---@return SandboxBehaviour
 function ShipBehaviour.create(spec)
+    if spec.kind == "Orders" then
+        local last = spec.orders[#spec.orders]
+        local judged = {}
+        for key, value in pairs(last) do judged[key] = value end
+        judged.kind = assert(ORDER_RULES[last.kind], "ShipBehaviour: unknown order kind " .. tostring(last.kind))
+        judged.orders = spec.orders
+        spec = judged
+    end
     return {
         kind = spec.kind, spec = spec, engaged = false, maxError = 0, turned = 0, topSpeed = 0,
-        passSpeed = math.huge, peakSpeed = 0,
+        passSpeed = math.huge, peakSpeed = 0, turnLimit = spec.turnRad or FULL_TURN,
     }
+end
+
+---Whether the ship is flown by orders, not as an agent of the sandbox's `NavWorld`.
+---@param ship SandboxShip
+---@return boolean
+function ShipBehaviour.isOrdered(ship)
+    return ship.behaviour ~= nil and ship.behaviour.spec.orders ~= nil
 end
 
 ---Sends a Seek or Plan ship through its current point.
@@ -162,10 +203,10 @@ local function stationPoint(b, ship)
         return add(trackedPos, add(add(scale(right, b.offset.x), scale(up, b.offset.y)),
             scale(forward, b.offset.z)))
     end
-    -- Orbit: the nearest point of the circle.
+    -- Orbit: the nearest point of the circle, or of the sphere while the plane is not known yet.
     local offset = sub(shipPos, trackedPos)
-    local planar = sub(offset, scale(b.normal, dot(offset, b.normal)))
-    local direction = unitOr(planar, b.radius * MIN_RELATIVE_LENGTH, anyAcross(b.normal))
+    local planar = b.normal and sub(offset, scale(b.normal, dot(offset, b.normal))) or offset
+    local direction = unitOr(planar, b.radius * MIN_RELATIVE_LENGTH, anyAcross(b.normal or { x = 0, y = 1, z = 0 }))
     return add(trackedPos, scale(direction, b.radius))
 end
 
@@ -206,16 +247,45 @@ local function arriveAtGoal(nav, ship, radius)
     end
 end
 
+---The point a ship flown by orders is shown to fly to: where its MoveTo goes, the last point of its
+---Patrol, or, for a Hold, where the ship was when the Hold began (the ship itself before).
+---@param b SandboxBehaviour
+---@param ship SandboxShip
+---@return Position
+local function orderPoint(b, ship)
+    local spec = b.spec
+    if b.kind == "OrderHold" then
+        if not b.holdPoint and Nav.status(b.orders[#b.orders]) == Enums.NavOrderStatus.Active then
+            local at = ship.rb:getPos()
+            b.holdPoint = { x = at.x, y = at.y, z = at.z }
+        end
+        return b.holdPoint and toPosition(b.holdPoint) or ship.rb:getPos()
+    end
+    if spec.obstacle then return b.tracked.rb:getPos() end
+    return Metres.position(spec.point or spec.points[#spec.points])
+end
+
+---Takes the plane an Orbit order chose, once it has chosen one, as the plane the ship is judged on.
+---@param b SandboxBehaviour
+local function takeChosenNormal(b)
+    if b.normal then return end
+    local chosen = b.orders[#b.orders]:get(NavigationComponents.OrbitOrder):getChosenNormal()
+    b.normal = chosen
+end
+
 ---Sets `ship.target` to the point a tracking or Plan ship is to be at, which moves with its body;
 ---other ships keep theirs.
 ---@param ship SandboxShip
 function ShipBehaviour.refreshTarget(ship)
     local b = ship.behaviour
     if not b then return end
+    if b.orders and b.kind == "Orbit" then takeChosenNormal(b) end
     if TRACKING[b.kind] then
         ship.target = toPosition(stationPoint(b, ship))
     elseif b.kind == "Plan" then
         ship.target = planPoint(b)
+    elseif b.orders then
+        ship.target = orderPoint(b, ship)
     end
 end
 
@@ -234,7 +304,28 @@ end
 ---@return boolean
 function ShipBehaviour.exemptFromDeadlock(ship)
     local b = ship.behaviour
-    return (TRACKING[b.kind] and b.engaged) or (b.kind == "Hold" and b.phase ~= "cruise")
+    -- An order ship's end is its order's: a failed order is reported, and one that never ends is caught
+    -- by the time limit.
+    return b.spec.orders ~= nil or (TRACKING[b.kind] and b.engaged) or (b.kind == "Hold" and b.phase ~= "cruise")
+end
+
+---Whether an order of the ship has ended without being done: failed, or cancelled.
+---@param ship SandboxShip
+---@return boolean
+function ShipBehaviour.orderFailed(ship)
+    local orders = ship.behaviour.orders
+    if not orders then return false end
+    for _, order in ipairs(orders) do
+        local status = Nav.status(order)
+        if status == Enums.NavOrderStatus.Failed or status == Enums.NavOrderStatus.Cancelled then return true end
+    end
+    return false
+end
+
+---Releases the ship's orders once the navigation world is detached, which ends them all.
+---@param ship SandboxShip
+function ShipBehaviour.releaseOrders(ship)
+    for _, order in ipairs(ship.behaviour and ship.behaviour.orders or {}) do Nav.release(order) end
 end
 
 ---The revision of the ship's cost profile, nil when it has none.
@@ -260,7 +351,50 @@ local function requestPlan(nav, ship, rules, planner, simTime)
     planner:request(ship, b.goal.offset, b.goal.frame, b.topSpeed, b.obstacles, simTime, rules.range)
 end
 
----Looks up the bodies the behaviour is about, and gives the ship its first order.
+---@param order SandboxOrderSpec
+---@param ships SandboxShip[]
+---@param obstacles SandboxObstacle[]
+---@return table An order from `Nav.Orders`
+local function navOrder(order, ships, obstacles)
+    local kind = order.kind
+    if kind == "MoveTo" then
+        return Nav.Orders.MoveTo { target = order.obstacle and obstacles[order.obstacle].entity or Metres.position(order.point) }
+    elseif kind == "Patrol" then
+        local points = {}
+        for _, point in ipairs(order.points) do table.insert(points, Metres.position(point)) end
+        return Nav.Orders.Patrol { points = points, loop = order.loop }
+    elseif kind == "Hold" then
+        return Nav.Orders.Hold()
+    elseif kind == "Orbit" then
+        local n = order.normal
+        return Nav.Orders.Orbit {
+            target = obstacles[order.obstacle].entity, altitude = order.altitude, normal = n and Vec3d(n[1], n[2], n[3]),
+        }
+    end
+    local o = order.offsetM
+    return Nav.Orders.Follow { target = ships[order.ship].entity, offset = Vec3d(o[1], o[2], o[3]) }
+end
+
+---Gives a ship its orders, and the rule it is judged by what that rule needs of the last one.
+---@param ship SandboxShip
+---@param ships SandboxShip[]
+---@param obstacles SandboxObstacle[]
+local function startOrders(ship, ships, obstacles)
+    local b, spec = ship.behaviour, ship.behaviour.spec
+    b.orders = {}
+    for _, order in ipairs(spec.orders) do
+        table.insert(b.orders, Nav.order(ship.entity, navOrder(order, ships, obstacles)))
+    end
+    if b.kind == "Orbit" then
+        b.radius = Metres.length(spec.radiusM)
+        b.normal = spec.normal and unitOr({ x = spec.normal[1], y = spec.normal[2], z = spec.normal[3] }, 0, nil)
+    elseif b.kind == "Follow" then
+        b.offset = { x = Metres.length(spec.offsetM[1]), y = Metres.length(spec.offsetM[2]),
+            z = Metres.length(spec.offsetM[3]) }
+    end
+end
+
+---Looks up the bodies the behaviour is about, and gives the ship its first order, or all its orders.
 ---@param nav NavWorld
 ---@param ship SandboxShip
 ---@param ships SandboxShip[]
@@ -271,7 +405,9 @@ function ShipBehaviour.start(nav, ship, ships, obstacles, rules, planner)
     local b, spec = ship.behaviour, ship.behaviour.spec
     b.topSpeed = ConstructComponents.FlightProfile.ProfileOf(ship.entity).maxSpeed
     b.tracked = spec.obstacle and obstacles[spec.obstacle] or spec.ship and ships[spec.ship]
-    if b.kind == "Plan" then
+    if spec.orders then
+        startOrders(ship, ships, obstacles)
+    elseif b.kind == "Plan" then
         -- Flies at the goal while the plan is made; the plan then replaces the course.
         assert(planner, "ShipBehaviour: a Plan ship needs a planner")
         b.clearance, b.zoneClearance, b.obstacles = {}, {}, obstacles
@@ -566,6 +702,8 @@ end
 ---Orbit: one full turn about the centre, anticlockwise about the normal, kept within the orbit
 ---tolerance of the circle. Leaving the circle starts the turn again.
 local function judgeOrbit(b, ship, distance, rules)
+    -- The plane an order chooses is not known until the ship is on the circle.
+    if not b.normal then return false end
     if distance > math.max(rules.range, ORBIT_TOLERANCE * b.radius) then
         b.turned, b.previous = 0, nil
         if b.engaged then b.maxError = math.max(b.maxError, distance) end
@@ -579,7 +717,14 @@ local function judgeOrbit(b, ship, distance, rules)
         b.turned = b.turned + math.atan2(dot(b.normal, cross(b.previous, planar)), dot(b.previous, planar))
     end
     b.previous = planar
-    return b.turned >= FULL_TURN
+    return b.turned >= b.turnLimit
+end
+
+---A ship flown by orders whose last order is a Hold: held in place, at rest, for `STATION_HOLD_S`
+---from where it was when the Hold began.
+local function judgeOrderHold(b, ship, distance, simTime, rules)
+    if not b.holdPoint then return false end
+    return heldOnStation(b, isThere(ship, distance, rules), simTime)
 end
 
 ---Whether the ship has done what its behaviour asks, judged after a physics step. Also moves a Hold
@@ -595,6 +740,10 @@ function ShipBehaviour.judge(ship, simTime, rules)
         return judgeStation(b, ship, distance, simTime, rules)
     elseif b.kind == "Orbit" then
         return judgeOrbit(b, ship, distance, rules)
+    elseif b.kind == "OrderDone" then
+        return Nav.status(b.orders[#b.orders]) == Enums.NavOrderStatus.Done
+    elseif b.kind == "OrderHold" then
+        return judgeOrderHold(b, ship, distance, simTime, rules)
     elseif b.kind == "Seek" or b.kind == "Plan" then
         local frame = b.goal and b.goal.frame and b.obstacles[b.goal.frame]
         return b.phase == "arrive" and isThere(ship, distance, rules, frame)

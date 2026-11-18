@@ -62,6 +62,22 @@ function Nav.Orders.Patrol(spec)
     return { kind = Kind.Patrol, points = spec.points, loop = spec.loop, facing = spec.facing }
 end
 
+---Circles an entity, anticlockwise about a normal, and never ends: cancel it. The ship flies the system
+---plan to the circle first, then holds it as the entity moves.
+---@param spec { target: Entity, altitude: number|nil, normal: Vec3d|nil, facing: NavFacing|nil } `altitude`: target radii from its centre, more than 1 (`NavConfig.standOffRadii` when nil); `normal`: the circle's plane (the plane the ship is in when it reaches the circle when nil)
+---@return table
+function Nav.Orders.Orbit(spec)
+    return { kind = Kind.Orbit, target = spec.target, altitude = spec.altitude, normal = spec.normal, facing = spec.facing }
+end
+
+---Keeps a slot at `offset` from a leader, in the leader's axes, matching its velocity, and never ends:
+---cancel it. The ship flies the system plan to the slot while it is far from it.
+---@param spec { target: Entity, offset: Vec3d, facing: NavFacing|nil } `offset`: metres, right, up, forward
+---@return table
+function Nav.Orders.Follow(spec)
+    return { kind = Kind.Follow, target = spec.target, offset = spec.offset, facing = spec.facing }
+end
+
 ---Keeps the ship where it is, and never ends: cancel it.
 ---@param spec { facing: NavFacing|nil }|nil
 ---@return table

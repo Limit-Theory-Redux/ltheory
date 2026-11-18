@@ -27,6 +27,7 @@ local SpatialComponents     = require("Modules.Spatial.Components")
 local SpatialEntities       = require("Modules.Spatial.Entities")
 local CostProfileRegistry   = require("Shared.Registries.CostProfileRegistry")
 local Entity                = require("Core.ECS.Entity")
+local Nav                   = require("Modules.Navigation")
 local NavAgentHelper        = require("Shared.Helpers.NavAgentHelper")
 local OrbitMath             = require("Shared.Helpers.OrbitMath")
 
@@ -96,7 +97,8 @@ local NavigationSandbox = Subclass("NavigationSandbox", Application)
 
 -- Every scenario, in the order `NavigationSandbox` runs them; each is an app of its own.
 local SCENARIO_NAMES   = { "SingleShip", "HeadOn", "CrossingStreams", "CircleSwap", "ObstacleField",
-    "SeekThrough", "HoldAfterCruise", "PursueRock", "FollowLeader", "OrbitRock", "SystemCrossing", "SpeedCap", "CostZoneReplan", "AgentRemoval" }
+    "SeekThrough", "HoldAfterCruise", "PursueRock", "FollowLeader", "OrbitRock", "SystemCrossing", "SpeedCap", "CostZoneReplan", "AgentRemoval",
+    "OrdersMoveTo", "OrdersOrbit", "OrdersFollow" }
 local SCENARIO_MODULES = "States.App.Tests.NavigationSandbox."
 local SEED             = 1
 local DEFAULT_HULL     = Enums.ShipHulls.Solo
@@ -424,15 +426,26 @@ end
 ---results are copied into.
 function NavigationSandbox:createNavigation()
     self.nav = NavWorld.Create(self.world)
+    local ordered = {}
     for _, ship in ipairs(self.ships) do
         ship.input = ship.entity:get(ConstructComponents.ControlInput)
-        if ship.state == "flying" then ship.agent = NavAgentHelper.addShip(self.nav, ship.entity, ship.rb) end
+        if ShipBehaviour.isOrdered(ship) then
+            table.insert(ordered, ship)
+        elseif ship.state == "flying" then
+            ship.agent = NavAgentHelper.addShip(self.nav, ship.entity, ship.rb)
+        end
     end
     -- The obstacles are kinematic bodies in the physics world, so sensing finds them in every
     -- collision group; the ships are agents and are never sensed.
     self.nav:setSensing(SENSING_MASK)
     for _, ship in ipairs(self.ships) do
-        if ship.state == "flying" then self:startShip(ship) end
+        if ship.state == "flying" and not ShipBehaviour.isOrdered(ship) then self:startShip(ship) end
+    end
+    -- The ships with orders are flown by `Nav`, in a navigation world of its own over the same bodies.
+    if #ordered > 0 then
+        Nav.attach(self.world)
+        self.ordersAttached = true
+        for _, ship in ipairs(ordered) do self:startShip(ship) end
     end
     local avoidance = self.scenarios[self.scenarioIndex].avoidance
     if avoidance then
@@ -522,7 +535,12 @@ function NavigationSandbox:endScenario()
     end
 
     if self.planner then self.planner:reset() end
-    -- Registered bodies must stay in physics while the navigation world exists.
+    -- Registered bodies must stay in physics while the navigation worlds exist.
+    if self.ordersAttached then
+        Nav.detach()
+        self.ordersAttached = false
+        for _, ship in ipairs(self.ships) do ShipBehaviour.releaseOrders(ship) end
+    end
     self.nav = nil
     for _, ship in ipairs(self.ships) do
         self.world:removeRigidBody(ship.rb)

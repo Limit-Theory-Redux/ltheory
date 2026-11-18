@@ -7,6 +7,8 @@ local SPEC_COMPONENTS = {
     [Enums.NavOrderKind.MoveTo] = function(spec) return Components.MoveToOrder(spec.target, spec.approach) end,
     [Enums.NavOrderKind.Patrol] = function(spec) return Components.PatrolOrder(spec.points, spec.loop) end,
     [Enums.NavOrderKind.Hold]   = function() return Components.HoldOrder() end,
+    [Enums.NavOrderKind.Orbit]  = function(spec) return Components.OrbitOrder(spec.target, spec.altitude, spec.normal) end,
+    [Enums.NavOrderKind.Follow] = function(spec) return Components.FollowOrder(spec.target, spec.offset) end,
 }
 
 ---@param shipId EntityId The ship the order is for

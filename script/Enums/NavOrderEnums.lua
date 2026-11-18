@@ -24,4 +24,6 @@ Enums.NavOrderKind = {
     MoveTo = 1,
     Patrol = 2,
     Hold = 3,
+    Orbit = 4,
+    Follow = 5,
 }

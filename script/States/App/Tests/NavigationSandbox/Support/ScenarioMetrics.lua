@@ -37,7 +37,7 @@ local RULES = { range = ARRIVAL_RANGE, speed = ARRIVAL_SPEED }
 ---@field entity Entity
 ---@field rb RigidBody
 ---@field input ControlInputComponent
----@field agent integer|nil Id in the `NavWorld`; nil while the ship is not an agent
+---@field agent integer|nil Id in the `NavWorld`; nil while the ship is not an agent, and for a ship flown by orders
 ---@field freedSlot integer|nil The id the ship had when it was removed
 ---@field target Position The goal: the destination, or the current waypoint of a route; where a point that rides on an obstacle is now
 ---@field targetFrame integer|nil Index of the obstacle the target rides on: the spec's `target` is then an offset from it
@@ -316,6 +316,11 @@ function ScenarioMetrics:updateProgress(ship, simTime)
         ship.state = "arrived"
         self.arrivals = self.arrivals + 1
         self:log("%s arrived at %.2f s", ship.label, simTime)
+    elseif behaviour and ShipBehaviour.orderFailed(ship) then
+        -- A ship whose order has failed will not arrive: it counts with the deadlocked.
+        ship.state = "deadlocked"
+        self.deadlocks = self.deadlocks + 1
+        self:log("%s: an order failed or was cancelled at %.2f s", ship.label, simTime)
     elseif behaviour and ShipBehaviour.exemptFromDeadlock(ship) then
         return
     elseif distance <= ship.bestDistance - PROGRESS_STEP then
