@@ -1,4 +1,4 @@
--- Three ships fly the same way, 160 km through a belt (a cost zone tagged AsteroidField), each
+-- Three ships fly the same way, 80 km through a belt (a cost zone tagged AsteroidField), each
 -- under another cost profile. The planner goes around the belt when that is cheaper than crossing
 -- it, which depends on how the ship's profile weighs the belt's tag:
 --   ship 1, Cautious: the belt costs ten times its path cost, so the plan goes round it;
@@ -18,22 +18,22 @@ return NavigationSandbox.ScenarioApp {
     },
     ships = {
         {
-            start = { -6000, 0, -80000 },
-            target = { -6000, 0, 80000 },
+            start = { -6000, 0, -40000 },
+            target = { -6000, 0, 40000 },
             costProfile = "Cautious",
             behaviour = { kind = "Plan", passRadiusM = 600 },
             expect = { zone = "avoid", replans = 0 },
         },
         {
-            start = { 0, 0, -80000 },
-            target = { 0, 0, 80000 },
+            start = { 0, 0, -40000 },
+            target = { 0, 0, 40000 },
             costProfile = "Bold",
             behaviour = { kind = "Plan", passRadiusM = 600 },
             expect = { zone = "cross", replans = 0 },
         },
         {
-            start = { 6000, 0, -80000 },
-            target = { 6000, 0, 80000 },
+            start = { 6000, 0, -40000 },
+            target = { 6000, 0, 40000 },
             costProfile = "Bold",
             costProfileChange = { afterPlans = 1, to = "Cautious" },
             behaviour = { kind = "Plan", passRadiusM = 600 },

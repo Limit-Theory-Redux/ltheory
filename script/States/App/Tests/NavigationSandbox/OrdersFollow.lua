@@ -12,7 +12,7 @@ return NavigationSandbox.ScenarioApp {
         {
             start = { 0, 0, 0 },
             facing = { 0, 0, -1 },
-            behaviour = { kind = "Orders", orders = { { kind = "MoveTo", point = { 0, 0, -60000 } } } },
+            behaviour = { kind = "Orders", orders = { { kind = "MoveTo", point = { 0, 0, -30000 } } } },
         },
         {
             start = { 1500, 0, 0 },

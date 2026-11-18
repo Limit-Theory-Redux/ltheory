@@ -10,11 +10,11 @@ return NavigationSandbox.ScenarioApp {
     ships = {
         {
             start = { 0, 0, 0 },
-            target = { 0, 0, -60000 },
+            target = { 0, 0, -30000 },
             facing = { 0, 0, -1 },
             behaviour = {
                 kind = "Seek",
-                through = { { 0, 0, -30000 } },
+                through = { { 0, 0, -15000 } },
                 passRadiusM = 600,
                 speedCapShare = 0.5,
             },

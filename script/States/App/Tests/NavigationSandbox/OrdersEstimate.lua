@@ -7,7 +7,6 @@
 --   Its MoveTo to the winner is interrupted by a Combat MoveTo, so it is suspended; it resumes and is done.
 --   ship 2, far from the rest, chooses among one candidate and flies it undisturbed: its estimated time is
 --   logged against the time it took (not judged).
--- The distances are hundreds of kilometres, as those of the other orders' scenarios.
 local NavigationSandbox = require("States.App.Tests.NavigationSandbox")
 
 local INTERRUPT_AFTER_S = 3
@@ -19,11 +18,11 @@ return NavigationSandbox.ScenarioApp {
     timeLimit = 90,
     obstacles = {
         -- 1: the station
-        { position = { -30000, 0, 40000 }, radius = 3000, station = true },
+        { position = { -15000, 0, 20000 }, radius = 3000, station = true },
     },
     zones = {
         -- 1: the belt
-        { position = { 0, 0, 60000 }, radius = 20000, pathCost = 1, tags = { "AsteroidField" } },
+        { position = { 0, 0, 30000 }, radius = 10000, pathCost = 1, tags = { "AsteroidField" } },
     },
     ships = {
         {
@@ -37,11 +36,11 @@ return NavigationSandbox.ScenarioApp {
                     {
                         kind = "MoveTo", judged = true, suspends = true,
                         choose = {
-                            points = { { -30000, 0, 40000 }, { 0, 0, 100000 }, { 60000, 0, 130000 } },
+                            points = { { -15000, 0, 20000 }, { 0, 0, 50000 }, { 40000, 0, 65000 } },
                             riskWeightSPerM = RISK_WEIGHT_S_PER_M,
                         },
                     },
-                    { kind = "MoveTo", point = { 60000, 0, 10000 }, priority = "Combat", afterS = INTERRUPT_AFTER_S },
+                    { kind = "MoveTo", point = { 30000, 0, 5000 }, priority = "Combat", afterS = INTERRUPT_AFTER_S },
                 },
             },
         },
@@ -52,7 +51,7 @@ return NavigationSandbox.ScenarioApp {
             behaviour = {
                 kind = "Orders",
                 orders = {
-                    { kind = "MoveTo", choose = { points = { { 400000, 0, 150000 } }, riskWeightSPerM = 0 } },
+                    { kind = "MoveTo", choose = { points = { { 400000, 0, 75000 } }, riskWeightSPerM = 0 } },
                 },
             },
         },

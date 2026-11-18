@@ -4,7 +4,7 @@
 --   ship 2: Patrol through three points without looping, past a body that sits on its second leg;
 --   ship 3: MoveTo a point and then Hold, which keeps the ship where it is and never ends: the ship is
 --     judged by holding its place at rest.
--- The distances are those of the orders' own stand-off, hundreds of kilometres from a body.
+-- Ship 1 starts at the orders' own stand-off from a body, hundreds of kilometres; the points are tens.
 local NavigationSandbox = require("States.App.Tests.NavigationSandbox")
 
 return NavigationSandbox.ScenarioApp {
@@ -14,7 +14,7 @@ return NavigationSandbox.ScenarioApp {
         -- 1: circles the origin
         { radius = 100000, circle = { centre = { 0, 0, 0 }, radius = 300000, periodS = 1500 } },
         -- 2: on the second leg of ship 2's patrol
-        { radius = 5000, position = { 2225000, 0, 0 } },
+        { radius = 5000, position = { 2060000, 0, 0 } },
     },
     ships = {
         {
@@ -27,7 +27,7 @@ return NavigationSandbox.ScenarioApp {
             facing = { 1, 0, 0 },
             behaviour = {
                 kind = "Orders",
-                orders = { { kind = "Patrol", points = { { 2150000, 0, 0 }, { 2300000, 0, 0 }, { 2300000, 0, 150000 } } } },
+                orders = { { kind = "Patrol", points = { { 2040000, 0, 0 }, { 2080000, 0, 0 }, { 2080000, 0, 40000 } } } },
             },
         },
         {

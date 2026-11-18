@@ -21,7 +21,7 @@ return NavigationSandbox.ScenarioApp {
     },
     ships = {
         {
-            start = { 2000000, 0, -710000 },
+            start = { 2000000, 0, -680000 },
             facing = { 0, 0, 1 },
             behaviour = {
                 kind = "Orders",
@@ -34,7 +34,7 @@ return NavigationSandbox.ScenarioApp {
             },
         },
         {
-            start = { 2000000, 0, 5290000 },
+            start = { 2000000, 0, 5320000 },
             facing = { 0, 0, 1 },
             behaviour = {
                 kind = "Orders",
