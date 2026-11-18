@@ -22,6 +22,13 @@ local END_EVENTS = {
     [Status.Cancelled] = "NavOrderCancelled",
 }
 
+-- The events announced when a running order gives way to one of higher priority, and when it takes
+-- the ship back; the payload is the order's entity id.
+local TRANSITION_EVENTS = {
+    suspended = "NavOrderSuspended",
+    resumed   = "NavOrderResumed",
+}
+
 ---Where a goal order flies to, and how it counts as arrived.
 ---@class OrderGoal
 ---@field targetPos Position The goal now
@@ -349,6 +356,32 @@ local function checkOrder(world, order, navOrder)
     return ship
 end
 
+---Takes a running order off its ship, because an order of higher priority is the head now: its plan is
+---dropped and it will begin again from where the ship is. What the order itself holds (a Patrol's
+---point, an Orbit's plane, its target and facing) stays.
+---@param order Entity
+---@param ship Entity
+local function suspendOrder(order, ship)
+    local flight = order:get(Components.OrderFlight)
+    PlanFlight.drop(flight.plan)
+    flight.plan = nil
+    flight.begun = false
+    flight.tracking = false
+    order:get(Components.OrderStatus):setStatus(Status.Suspended)
+    local input = ship:get(ConstructComponents.ControlInput)
+    if input then input:setDriveRequest(Enums.TravelDriveRequest.Disengage) end
+    EventBus:dispatch(Event[TRANSITION_EVENTS.suspended], order.id)
+end
+
+---Gives a suspended order the ship back, now that it is the head again.
+---@param order Entity
+local function resumeOrder(order)
+    local status = order:get(Components.OrderStatus)
+    if status:getStatus() ~= Status.Suspended then return end
+    status:setStatus(Status.Planning)
+    EventBus:dispatch(Event[TRANSITION_EVENTS.resumed], order.id)
+end
+
 ---Starts a head order that has not begun: the ship gets its agent, and a Hold its goal.
 ---@param world NavWorldComponent
 ---@param head OrderHead
@@ -358,6 +391,7 @@ local function beginOrder(world, head)
     head.slot = head.ship:get(Components.NavAgent):getSlot()
     if flight.begun then return end
     flight.begun = true
+    flight.elapsed = 0
     -- The agent outlasts an order, so a facing left by the order before is not this order's.
     world:getNav():clearFacing(head.slot)
     if not head.handler then
@@ -581,8 +615,11 @@ end
 ---@class NavOrderSystem
 ---@overload fun(): NavOrderSystem
 local NavOrderSystem = Class("NavOrderSystem", function(self)
-    Event.AddEvents({ "NavOrderDone", "NavOrderFailed", "NavOrderCancelled" })
-    for _, name in pairs(END_EVENTS) do
+    local names = {}
+    for _, name in pairs(END_EVENTS) do names[#names + 1] = name end
+    for _, name in pairs(TRANSITION_EVENTS) do names[#names + 1] = name end
+    Event.AddEvents(names)
+    for _, name in ipairs(names) do
         EventBus:register(Event[name], name, FrameStage.PostSim)
     end
     EventBus:subscribe(Event.PreSim, self, self.onPreSim)
@@ -594,7 +631,8 @@ function NavOrderSystem:onPreSim(data)
 end
 
 ---Ends the orders that are cancelled or whose ship is lost, and returns those that are the head of
----their ship's queue. An order behind the head waits.
+---their ship's queue (resuming one that was suspended). An order behind the head waits; one that
+---had begun is suspended.
 ---@param world NavWorldComponent
 ---@return OrderHead[]
 local function collectHeads(world)
@@ -603,8 +641,11 @@ local function collectHeads(world)
         if not order:get(Components.OrderStatus):hasEnded() then
             local ship = checkOrder(world, order, navOrder)
             if ship and ship:get(Components.OrderQueue):head() == order.id then
+                resumeOrder(order)
                 heads[#heads + 1] = { order = order, ship = ship, handler = HANDLERS[navOrder:getKind()],
                     facing = order:get(Components.FacingGoal) }
+            elseif ship and order:get(Components.OrderFlight).begun then
+                suspendOrder(order, ship)
             end
         end
     end

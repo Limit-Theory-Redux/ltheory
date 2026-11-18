@@ -19,7 +19,7 @@ return function(shipId, spec)
     assert(specComponent, "Nav.order: not an order spec (build one with Nav.Orders)")
     -- Every component is made before the entity: a spec that is refused leaves no order behind.
     local components = {
-        Components.NavOrder(shipId, spec.kind),
+        Components.NavOrder(shipId, spec.kind, spec.priority),
         specComponent(spec),
         Components.OrderStatus(),
         Components.OrderProgress(),

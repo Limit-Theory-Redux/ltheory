@@ -98,7 +98,7 @@ local NavigationSandbox = Subclass("NavigationSandbox", Application)
 -- Every scenario, in the order `NavigationSandbox` runs them; each is an app of its own.
 local SCENARIO_NAMES   = { "SingleShip", "HeadOn", "CrossingStreams", "CircleSwap", "ObstacleField",
     "SeekThrough", "HoldAfterCruise", "PursueRock", "FollowLeader", "OrbitRock", "SystemCrossing", "SpeedCap", "CostZoneReplan", "AgentRemoval",
-    "OrdersMoveTo", "OrdersOrbit", "OrdersFollow" }
+    "OrdersMoveTo", "OrdersOrbit", "OrdersFollow", "OrdersPriority" }
 local SCENARIO_MODULES = "States.App.Tests.NavigationSandbox."
 local SEED             = 1
 local DEFAULT_HULL     = Enums.ShipHulls.Solo
@@ -260,6 +260,13 @@ function NavigationSandbox:frameCamera(scenario)
         for _, point in ipairs(spec.behaviour and spec.behaviour.through or {}) do
             table.insert(points, toPosition(point))
             table.insert(padding, 0)
+        end
+        -- The points the orders fly to; an order on an obstacle is in the obstacle's frame.
+        for _, order in ipairs(spec.behaviour and spec.behaviour.orders or {}) do
+            for _, point in ipairs(order.points or { order.point }) do
+                table.insert(points, toPosition(point))
+                table.insert(padding, 0)
+            end
         end
     end
     -- A moving obstacle is framed by its whole circle, and a moon by its parent's frame.
@@ -470,6 +477,11 @@ end
 ---keeps its body in physics and its controls are released, so it coasts. Removals come first, so
 ---that a ship joining at the same time takes the slot that was freed.
 function NavigationSandbox:applyLifecycle()
+    for _, ship in ipairs(self.ships) do
+        if ship.state == "flying" and ShipBehaviour.isOrdered(ship) then
+            ShipBehaviour.issueDueOrders(ship, self.ships, self.obstacles, self.simTime)
+        end
+    end
     for _, ship in ipairs(self.ships) do
         local removeAtS = ship.spec.removeAtS
         if ship.state == "flying" and removeAtS and self.simTime >= removeAtS then

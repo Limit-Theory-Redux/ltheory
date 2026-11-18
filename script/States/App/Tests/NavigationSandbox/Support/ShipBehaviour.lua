@@ -49,6 +49,10 @@ local MIN_RELATIVE_LENGTH = 1e-6
 ---@field normal number[]|nil Orbit: { x, y, z } normal of the order's plane, and the plane the ship is judged on; the plane the order chooses when nil
 ---@field ship integer|nil Follow: index of the scenario's ship that is followed
 ---@field offsetM number[]|nil Follow: the slot { right, up, forward } in the leader's axes, in metres
+---@field priority "Routine"|"Urgent"|"Combat"|nil Any order: its `Nav.Priority` level
+---@field afterS number|nil Any order: it is given when the scenario has run this many seconds, not at the start
+---@field judged boolean|nil The ship is judged by this order, not the last one
+---@field suspends boolean|nil The judged order is displaced by a later one: the ship has arrived when the order has been suspended, then done
 
 ---@class SandboxBehaviourSpec
 ---@field kind "Seek"|"Hold"|"Pursue"|"Follow"|"Orbit"|"Plan"|"Orders"
@@ -150,18 +154,24 @@ local function radiusOf(item)
     return item.radius or item.rb:getBoundingRadius()
 end
 
--- The rule a ship flown by orders is judged by, from the kind of its last order.
+-- The rule a ship flown by orders is judged by, from the kind of the order it is judged by.
 local ORDER_RULES = { MoveTo = "OrderDone", Patrol = "OrderDone", Hold = "OrderHold", Orbit = "Orbit", Follow = "Follow" }
 
 ---@param spec SandboxBehaviourSpec
 ---@return SandboxBehaviour
 function ShipBehaviour.create(spec)
     if spec.kind == "Orders" then
-        local last = spec.orders[#spec.orders]
+        -- The order the ship is judged by: the one marked, else the last.
+        local judgedIndex = #spec.orders
+        for i, order in ipairs(spec.orders) do
+            if order.judged then judgedIndex = i end
+        end
+        local last = spec.orders[judgedIndex]
         local judged = {}
         for key, value in pairs(last) do judged[key] = value end
         judged.kind = assert(ORDER_RULES[last.kind], "ShipBehaviour: unknown order kind " .. tostring(last.kind))
         judged.orders = spec.orders
+        judged.judgedIndex = judgedIndex
         spec = judged
     end
     return {
@@ -255,7 +265,7 @@ end
 local function orderPoint(b, ship)
     local spec = b.spec
     if b.kind == "OrderHold" then
-        if not b.holdPoint and Nav.status(b.orders[#b.orders]) == Enums.NavOrderStatus.Active then
+        if not b.holdPoint and b.judgedOrder and Nav.status(b.judgedOrder) == Enums.NavOrderStatus.Active then
             local at = ship.rb:getPos()
             b.holdPoint = { x = at.x, y = at.y, z = at.z }
         end
@@ -268,8 +278,8 @@ end
 ---Takes the plane an Orbit order chose, once it has chosen one, as the plane the ship is judged on.
 ---@param b SandboxBehaviour
 local function takeChosenNormal(b)
-    if b.normal then return end
-    local chosen = b.orders[#b.orders]:get(NavigationComponents.OrbitOrder):getChosenNormal()
+    if b.normal or not b.judgedOrder then return end
+    local chosen = b.judgedOrder:get(NavigationComponents.OrbitOrder):getChosenNormal()
     b.normal = chosen
 end
 
@@ -357,22 +367,57 @@ end
 ---@return table An order from `Nav.Orders`
 local function navOrder(order, ships, obstacles)
     local kind = order.kind
+    local priority = order.priority and assert(Nav.Priority[order.priority], "ShipBehaviour: unknown priority " .. order.priority)
     if kind == "MoveTo" then
-        return Nav.Orders.MoveTo { target = order.obstacle and obstacles[order.obstacle].entity or Metres.position(order.point) }
+        return Nav.Orders.MoveTo {
+            target = order.obstacle and obstacles[order.obstacle].entity or Metres.position(order.point),
+            priority = priority,
+        }
     elseif kind == "Patrol" then
         local points = {}
         for _, point in ipairs(order.points) do table.insert(points, Metres.position(point)) end
-        return Nav.Orders.Patrol { points = points, loop = order.loop }
+        return Nav.Orders.Patrol { points = points, loop = order.loop, priority = priority }
     elseif kind == "Hold" then
-        return Nav.Orders.Hold()
+        return Nav.Orders.Hold { priority = priority }
     elseif kind == "Orbit" then
         local n = order.normal
         return Nav.Orders.Orbit {
             target = obstacles[order.obstacle].entity, altitude = order.altitude, normal = n and Vec3d(n[1], n[2], n[3]),
+            priority = priority,
         }
     end
     local o = order.offsetM
-    return Nav.Orders.Follow { target = ships[order.ship].entity, offset = Vec3d(o[1], o[2], o[3]) }
+    return Nav.Orders.Follow { target = ships[order.ship].entity, offset = Vec3d(o[1], o[2], o[3]), priority = priority }
+end
+
+---Gives the ship the order at `index` of its spec, and keeps the one it is judged by.
+---@param ship SandboxShip
+---@param index integer
+---@param ships SandboxShip[]
+---@param obstacles SandboxObstacle[]
+local function giveOrder(ship, index, ships, obstacles)
+    local b = ship.behaviour
+    local order = Nav.order(ship.entity, navOrder(b.spec.orders[index], ships, obstacles))
+    table.insert(b.orders, order)
+    if index == b.spec.judgedIndex then b.judgedOrder = order end
+end
+
+---Gives a ship the orders of its spec that are due: those with no `afterS`, then those whose time has come.
+---@param ship SandboxShip
+---@param ships SandboxShip[]
+---@param obstacles SandboxObstacle[]
+---@param simTime number Seconds of simulated time since the scenario started
+function ShipBehaviour.issueDueOrders(ship, ships, obstacles, simTime)
+    local b = ship.behaviour
+    local later = {}
+    for _, index in ipairs(b.pending) do
+        if b.spec.orders[index].afterS <= simTime then
+            giveOrder(ship, index, ships, obstacles)
+        else
+            table.insert(later, index)
+        end
+    end
+    b.pending = later
 end
 
 ---Gives a ship its orders, and the rule it is judged by what that rule needs of the last one.
@@ -381,9 +426,13 @@ end
 ---@param obstacles SandboxObstacle[]
 local function startOrders(ship, ships, obstacles)
     local b, spec = ship.behaviour, ship.behaviour.spec
-    b.orders = {}
-    for _, order in ipairs(spec.orders) do
-        table.insert(b.orders, Nav.order(ship.entity, navOrder(order, ships, obstacles)))
+    b.orders, b.pending = {}, {}
+    for index, order in ipairs(spec.orders) do
+        if order.afterS then
+            table.insert(b.pending, index)
+        else
+            giveOrder(ship, index, ships, obstacles)
+        end
     end
     if b.kind == "Orbit" then
         b.radius = Metres.length(spec.radiusM)
@@ -741,7 +790,11 @@ function ShipBehaviour.judge(ship, simTime, rules)
     elseif b.kind == "Orbit" then
         return judgeOrbit(b, ship, distance, rules)
     elseif b.kind == "OrderDone" then
-        return Nav.status(b.orders[#b.orders]) == Enums.NavOrderStatus.Done
+        local order = b.judgedOrder
+        if not order then return false end
+        local status = Nav.status(order)
+        if status == Enums.NavOrderStatus.Suspended then b.wasSuspended = true end
+        return status == Enums.NavOrderStatus.Done and (not b.spec.suspends or b.wasSuspended == true)
     elseif b.kind == "OrderHold" then
         return judgeOrderHold(b, ship, distance, simTime, rules)
     elseif b.kind == "Seek" or b.kind == "Plan" then

@@ -15,7 +15,7 @@ local Kind = Enums.NavOrderKind
 local SENSING_MASK = 0xFFFFFFFF
 
 ---@class Nav
-local Nav = { Components = Components, Orders = {} }
+local Nav = { Components = Components, Orders = {}, Priority = Enums.NavOrderPriority }
 
 ---@type Entity|nil The entity that holds the navigation world
 local worldEntity = nil
@@ -49,43 +49,49 @@ end
 
 ---Flies to a target: an entity, which the ship stops at the approach of (its kind's own when none
 ---is named), or a point.
----@param spec { target: NavTarget, approach: ApproachSpecId|ApproachSpecConstructor|ApproachSpec|nil, facing: NavFacing|nil } `approach`: for an entity target only
+---@param spec { target: NavTarget, approach: ApproachSpecId|ApproachSpecConstructor|ApproachSpec|nil, facing: NavFacing|nil, priority: NavOrderPriorityId|nil } `approach`: for an entity target only; `priority`: an `Nav.Priority` level, `Routine` when nil. Every order takes `priority`
 ---@return table
 function Nav.Orders.MoveTo(spec)
-    return { kind = Kind.MoveTo, target = spec.target, approach = spec.approach, facing = spec.facing }
+    return { kind = Kind.MoveTo, target = spec.target, approach = spec.approach, facing = spec.facing,
+        priority = spec.priority }
 end
 
 ---Flies through points in turn.
----@param spec { points: Position[], loop: boolean|nil, facing: NavFacing|nil } `loop`: start over after the last point
+---@param spec { points: Position[], loop: boolean|nil, facing: NavFacing|nil, priority: NavOrderPriorityId|nil } `loop`: start over after the last point
 ---@return table
 function Nav.Orders.Patrol(spec)
-    return { kind = Kind.Patrol, points = spec.points, loop = spec.loop, facing = spec.facing }
+    return { kind = Kind.Patrol, points = spec.points, loop = spec.loop, facing = spec.facing,
+        priority = spec.priority }
 end
 
 ---Circles an entity, anticlockwise about a normal, and never ends: cancel it. The ship flies the system
 ---plan to the circle first, then holds it as the entity moves.
----@param spec { target: Entity, altitude: number|nil, normal: Vec3d|nil, facing: NavFacing|nil } `altitude`: target radii from its centre, more than 1 (`NavConfig.standOffRadii` when nil); `normal`: the circle's plane (the plane the ship is in when it reaches the circle when nil)
+---@param spec { target: Entity, altitude: number|nil, normal: Vec3d|nil, facing: NavFacing|nil, priority: NavOrderPriorityId|nil } `altitude`: target radii from its centre, more than 1 (`NavConfig.standOffRadii` when nil); `normal`: the circle's plane (the plane the ship is in when it reaches the circle when nil)
 ---@return table
 function Nav.Orders.Orbit(spec)
-    return { kind = Kind.Orbit, target = spec.target, altitude = spec.altitude, normal = spec.normal, facing = spec.facing }
+    return { kind = Kind.Orbit, target = spec.target, altitude = spec.altitude, normal = spec.normal,
+        facing = spec.facing, priority = spec.priority }
 end
 
 ---Keeps a slot at `offset` from a leader, in the leader's axes, matching its velocity, and never ends:
 ---cancel it. The ship flies the system plan to the slot while it is far from it.
----@param spec { target: Entity, offset: Vec3d, facing: NavFacing|nil } `offset`: metres, right, up, forward
+---@param spec { target: Entity, offset: Vec3d, facing: NavFacing|nil, priority: NavOrderPriorityId|nil } `offset`: metres, right, up, forward
 ---@return table
 function Nav.Orders.Follow(spec)
-    return { kind = Kind.Follow, target = spec.target, offset = spec.offset, facing = spec.facing }
+    return { kind = Kind.Follow, target = spec.target, offset = spec.offset, facing = spec.facing,
+        priority = spec.priority }
 end
 
 ---Keeps the ship where it is, and never ends: cancel it.
----@param spec { facing: NavFacing|nil }|nil
+---@param spec { facing: NavFacing|nil, priority: NavOrderPriorityId|nil }|nil
 ---@return table
 function Nav.Orders.Hold(spec)
-    return { kind = Kind.Hold, facing = spec and spec.facing }
+    return { kind = Kind.Hold, facing = spec and spec.facing, priority = spec and spec.priority }
 end
 
----Gives a ship an order, behind the orders it has.
+---Gives a ship an order: behind the orders of its priority or a higher one, and before the lower
+---ones. An order of a higher priority than the one the ship is flying displaces it, which resumes
+---when the order that displaced it has ended.
 ---@param ship Entity
 ---@param spec table From `Nav.Orders`
 ---@return Entity order
@@ -98,7 +104,7 @@ function Nav.order(ship, spec)
         queue = Components.OrderQueue()
         ship:add(queue)
     end
-    queue:push(order.id)
+    queue:push(order.id, order:get(Components.NavOrder):getPriority())
     return order
 end
 

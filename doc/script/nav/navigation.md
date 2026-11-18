@@ -34,6 +34,8 @@ if Nav.status(order) == Enums.NavOrderStatus.Done then Nav.release(order) end
 | `Nav.Orders.Orbit { target, altitude, normal, facing }` | Circles `target`, an entity with a rigid body, anticlockwise about `normal`, at a radius of `altitude` target radii from its centre (at least 50 game units, as a stand-off; `NavConfig.standOffRadii` when `altitude` is `nil`). `altitude` must be more than 1. It never ends by itself: cancel it. See [Orbit and Follow](#orbit-and-follow). |
 | `Nav.Orders.Follow { target, offset, facing }` | Keeps a slot at `offset`, a `Vec3d` of metres (right, up, forward) in the leader's own axes, and matches the leader's velocity. `target` is an entity with a rigid body. It never ends by itself: cancel it. See [Orbit and Follow](#orbit-and-follow). |
 
+Every spec also takes `priority`, a level of `Nav.Priority` (`Routine`, `Urgent`, `Combat`; `Routine` when `nil`). See [Queue and status](#queue-and-status).
+
 A MoveTo flies the path of the [system planner](system-planner.md#consumers): in normal flight while the plan is out, then the plan's corners with the travel drive on its drive legs, then the approach, as the autopilot does (`PlanFlight` is the code they share). A change of the order's target, or of the ship's cost profile (`CostProfileComponent`), makes the system drop the plan and plan again from where the ship is.
 
 A MoveTo to an entity doesn't lead a moving target; the autopilot does.
@@ -88,7 +90,7 @@ The nose goes to the facing whenever the ship is not accelerating harder than it
 
 ## Queue and status
 
-A ship's orders are in its `OrderQueue`, in the order they were given. Only the first one, the head, runs; the others are `Queued` and wait. When the head ends, the next one begins. A ship with an order is an agent of the navigation world; when its queue empties, the agent is removed, the control input is cleared, the travel drive is told to disengage and the ship drifts.
+A ship's orders are in its `OrderQueue`, ordered by priority: an order goes behind the orders of its priority or a higher one, and before the lower ones, so within a level they are in the order they were given. Only the first one, the head, runs; the others are `Queued` and wait. When the head ends, the next one begins. An order that is given with a higher priority than the head becomes the head, and displaces the one that was running (see below). A ship with an order is an agent of the navigation world; when its queue empties, the agent is removed, the control input is cleared, the travel drive is told to disengage and the ship drifts.
 
 ```mermaid
 stateDiagram-v2
@@ -96,6 +98,10 @@ stateDiagram-v2
     Queued --> Planning: head of the queue, plan requested
     Planning --> Active: plan arrived
     Active --> Planning: target or cost profile changed
+    Planning --> Suspended: displaced by a higher priority
+    Active --> Suspended: displaced by a higher priority
+    Suspended --> Planning: head of the queue again
+    Suspended --> Ended: cancelled
     Queued --> Active: Hold begins
     Queued --> Ended: cancelled
     Planning --> Ended: arrived, cancelled or failed
@@ -105,19 +111,23 @@ stateDiagram-v2
 
 `Ended` stands for one of three statuses: `Done` (arrived), `Failed` and `Cancelled`. Of the two reasons an order fails (`Nav.failure`), `TargetLost` is a MoveTo whose target entity has been destroyed, and `ShipLost` an order whose ship entity or body is gone. Cancelling a queued order ends it without it ever having begun.
 
+A `Suspended` order is one that had begun and was displaced. The system drops its plan, stops tracking and tells the travel drive to disengage; what the order itself holds stays (a Patrol's point, an Orbit's chosen plane, the target, the facing). When it is the head again it resumes: it begins as new, from where the ship is, so a goal order plans again and a Hold holds where the ship is then, not where it began. Cancelling a suspended order ends it `Cancelled` and it never resumes. Because a Hold is displaced by a higher priority, it no longer blocks the orders behind it.
+
 `Nav.progress(order)` has `distanceLeft` (game units to the stand-off point or point), `eta` (seconds) and, for a Patrol, `waypointIndex`. The system writes them while the order is the head, and they are `nil` before that.
 
 ## Events
 
-An order's end is announced on the event bus, unscoped, with the order's entity id as the payload:
+An order's end, and its suspension and resumption, are announced on the event bus, unscoped, with the order's entity id as the payload:
 
 | Event | The order |
 |---|---|
 | `Event.NavOrderDone` | has arrived |
 | `Event.NavOrderFailed` | has failed; ask `Nav.failure` why |
 | `Event.NavOrderCancelled` | was cancelled |
+| `Event.NavOrderSuspended` | was displaced by an order of a higher priority |
+| `Event.NavOrderResumed` | is the head again and runs once more |
 
-The events are delivered at `FrameStage.PostSim`, so they arrive in the frame loop, not inside the call that ended the order. The order's components stay readable until it is released. A subscriber compares the payload with the ids of the orders it issued.
+The events are delivered at `FrameStage.PostSim`, so they arrive in the frame loop, not inside the call that changed the order. The order's components stay readable until it is released. A subscriber compares the payload with the ids of the orders it issued.
 
 ## Lifetime
 

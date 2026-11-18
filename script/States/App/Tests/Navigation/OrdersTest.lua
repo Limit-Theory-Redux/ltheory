@@ -465,6 +465,146 @@ function OrdersTest:caseQueue()
     self:finish({ a, b }, { ship })
 end
 
+---Remembers a suspend or a resume that an order is to be announced with, once.
+---@param order Entity
+---@param kind "suspended"|"resumed"
+function OrdersTest:expectTransition(order, kind)
+    self.expectedTransitions[kind][order.id] = true
+end
+
+---Gives a ship a flight that has begun and is under way, to be interrupted.
+---@param ship { entity: Entity, rb: RigidBody }
+---@param order Entity
+---@param name string
+function OrdersTest:flyUntilMoving(ship, order, name)
+    self:flyUntil(function() return ship.rb:getSpeed() > MOVING end, MAX_FLIGHT_S)
+    self:check(ship.rb:getSpeed() > MOVING and order:get(Components.OrderFlight).begun, name .. "the order is under way")
+end
+
+function OrdersTest:casePriorityInterrupt()
+    local name = "an order of higher priority: "
+    local ship = self:ship(Position(0, 0, 0))
+    local goal, detour = Position(LEG, 0, 0), Position(0, LEG / 2, 0)
+    local routine = Nav.order(ship.entity, Nav.Orders.MoveTo { target = goal })
+    self:flyUntilMoving(ship, routine, name)
+    local urgent = Nav.order(ship.entity, Nav.Orders.MoveTo { target = detour, priority = Nav.Priority.Urgent })
+    self:check(ship.entity:get(Components.OrderQueue):head() == urgent.id, name .. "it goes to the head of the queue")
+    self:step()
+    self:check(Nav.status(routine) == Status.Suspended, name .. "the order that was flying is suspended")
+    self:check(planOf(routine) == nil and not routine:get(Components.OrderFlight).begun, name .. "its plan is dropped")
+    self:check(Nav.status(urgent) ~= Status.Suspended and Nav.status(urgent) ~= Status.Queued, name .. "the new order flies")
+    self:expectTransition(routine, "suspended")
+
+    local early = false
+    local reached = self:flyUntil(function()
+        if Nav.status(urgent) ~= Status.Done and Nav.status(routine) ~= Status.Suspended then early = true end
+        return Nav.status(urgent) == Status.Done
+    end, MAX_FLIGHT_S)
+    self:check(reached and within(ship, detour, NavConfig.pointArrival() * ARRIVED_SLACK), name .. "it is done at its point")
+    self:check(not early, name .. "the first order stays suspended while it flies")
+    self:step()
+    self:check(Nav.status(routine) ~= Status.Suspended and Nav.status(routine) ~= Status.Queued,
+        name .. "the first order resumes when it has ended")
+    self:expectTransition(routine, "resumed")
+    reached = self:flyUntil(function() return Nav.status(routine) == Status.Done end, MAX_FLIGHT_S)
+    self:check(reached and within(ship, goal, NavConfig.pointArrival() * ARRIVED_SLACK), name .. "it flies on from where the ship is, and is done")
+    self:finish({ routine, urgent }, { ship })
+end
+
+function OrdersTest:casePriorityHold()
+    local name = "a hold that is displaced: "
+    local ship = self:ship(Position(0, 0, 0))
+    local hold = Nav.order(ship.entity, Nav.Orders.Hold())
+    self:step()
+    self:check(Nav.status(hold) == Status.Active, name .. "the hold is active")
+    local point = Position(LEG / 2, 0, 0)
+    local urgent = Nav.order(ship.entity, Nav.Orders.MoveTo { target = point, priority = Nav.Priority.Urgent })
+    self:step()
+    self:check(Nav.status(hold) == Status.Suspended, name .. "an order of higher priority suspends it")
+    self:expectTransition(hold, "suspended")
+    local reached = self:flyUntil(function() return Nav.status(urgent) == Status.Done end, MAX_FLIGHT_S)
+    self:check(reached, name .. "the order that displaced it is done")
+    self:step()
+    self:check(Nav.status(hold) == Status.Active, name .. "the hold resumes")
+    self:expectTransition(hold, "resumed")
+    local at = ship.rb:getPos()
+    local stopped = self:flyUntil(function() return ship.rb:getSpeed() < STOPPED
+        and within(ship, at, NavConfig.pointArrival() * ARRIVED_SLACK) end, MAX_FLIGHT_S)
+    self:check(stopped, name .. "the ship holds where it is, not where the hold began")
+    self:check(not within(ship, Position(0, 0, 0), NavConfig.pointArrival() * ARRIVED_SLACK), name .. "it does not go back")
+    Nav.cancel(hold)
+    self:step()
+    self:finish({ hold, urgent }, { ship })
+end
+
+function OrdersTest:casePriorityPatrol()
+    local name = "a patrol that is displaced: "
+    local ship = self:ship(Position(0, 0, 0))
+    local half = LEG / 2
+    local points = { Position(half, 0, 0), Position(half, half, 0), Position(0, half, 0) }
+    local patrol = Nav.order(ship.entity, Nav.Orders.Patrol { points = points })
+    local spec = patrol:get(Components.PatrolOrder)
+    self:flyUntil(function() return spec:getIndex() == 2 end, MAX_FLIGHT_S)
+    self:check(spec:getIndex() == 2, name .. "the patrol is on its second point")
+    local urgent = Nav.order(ship.entity, Nav.Orders.MoveTo { target = Position(half, -half, 0), priority = Nav.Priority.Combat })
+    self:step()
+    self:check(Nav.status(patrol) == Status.Suspended and spec:getIndex() == 2, name .. "it is suspended and keeps its point")
+    self:expectTransition(patrol, "suspended")
+    self:flyUntil(function() return Nav.status(urgent) == Status.Done end, MAX_FLIGHT_S)
+    self:step()
+    self:expectTransition(patrol, "resumed")
+    self:check(Nav.status(patrol) ~= Status.Suspended and spec:getIndex() == 2, name .. "it resumes at the same point")
+    local reached = self:flyUntil(function() return Nav.status(patrol) == Status.Done end, MAX_FLIGHT_S)
+    self:check(reached and within(ship, points[3], NavConfig.pointArrival() * ARRIVED_SLACK), name .. "it goes on to the last point")
+    self:finish({ patrol, urgent }, { ship })
+end
+
+function OrdersTest:casePriorityQueueOrder()
+    local name = "the order of a queue by priority: "
+    local ship = self:ship(Position(0, 0, 0))
+    local function moveTo(y, priority)
+        return Nav.order(ship.entity, Nav.Orders.MoveTo { target = Position(LEG, y, 0), priority = priority })
+    end
+    local a = moveTo(0, Nav.Priority.Routine)
+    local queue = ship.entity:get(Components.OrderQueue)
+    self:flyUntilMoving(ship, a, name)
+    local c = moveTo(1, Nav.Priority.Routine)
+    local b = moveTo(2, Nav.Priority.Combat)
+    local d = moveTo(3, Nav.Priority.Combat)
+    local e = moveTo(4, Nav.Priority.Urgent)
+    local ids = queue:ids()
+    local wanted = { b.id, d.id, e.id, a.id, c.id }
+    local ok = #ids == #wanted
+    for i, id in ipairs(wanted) do ok = ok and ids[i] == id end
+    self:check(ok, name .. "higher first, and in the order they were given within a level", table.concat(ids, ","))
+    self:step()
+    self:expectTransition(a, "suspended")
+    self:check(Nav.status(a) == Status.Suspended, name .. "the running order is suspended")
+    self:check(Nav.status(d) == Status.Queued and Nav.status(c) == Status.Queued, name .. "an order of the same priority waits behind the head")
+
+    -- A suspended order that is cancelled ends, and doesn't resume.
+    Nav.cancel(a)
+    self:step()
+    self:check(Nav.status(a) == Status.Cancelled, name .. "a suspended order can be cancelled")
+    self:check(queue:count() == 4, name .. "it has left the queue")
+    for _, order in ipairs({ b, d, e, c }) do Nav.cancel(order) end
+    self:step()
+    self:check(queue:count() == 0 and not hasAgent(ship), name .. "the rest are cancelled")
+    self:finish({ a, b, c, d, e }, { ship })
+end
+
+function OrdersTest:casePriorityRefused()
+    local name = "a priority that is not a level: "
+    local ship = self:ship(Position(0, 0, 0))
+    for what, priority in pairs({ zero = 0, high = 99, text = "Urgent" }) do
+        self:check(not pcall(Nav.order, ship.entity, Nav.Orders.MoveTo { target = Position(LEG, 0, 0), priority = priority }),
+            name .. what .. " is refused")
+    end
+    local queue = ship.entity:get(Components.OrderQueue)
+    self:check(queue == nil or queue:count() == 0, name .. "no order is left behind")
+    self:finish({}, { ship })
+end
+
 function OrdersTest:casePatrol(loop)
     local name = loop and "a patrol with a loop: " or "a patrol without a loop: "
     local ship = self:ship(Position(0, 0, 0))
@@ -991,6 +1131,14 @@ function OrdersTest:checkEvents()
     self:check(receivedCount == expectedCount, "one event per ended order",
         string.format("%d of %d", receivedCount, expectedCount))
     self:check(self.duplicates == 0, "no event arrives twice", tostring(self.duplicates))
+    for kind, received in pairs(self.transitions) do
+        for id in pairs(self.expectedTransitions[kind]) do
+            self:check(received[id] == 1, "order " .. id .. " is announced " .. kind .. " once", tostring(received[id]))
+        end
+        for id in pairs(received) do
+            self:check(self.expectedTransitions[kind][id] == true, "order " .. id .. " is " .. kind .. " only when it should be")
+        end
+    end
     self:check(expectedCount > 0, "orders ended")
 end
 
@@ -998,6 +1146,13 @@ end
 function OrdersTest:listen()
     self.received = { [Status.Done] = {}, [Status.Failed] = {}, [Status.Cancelled] = {} }
     self.duplicates = 0
+    self.transitions = { suspended = {}, resumed = {} }
+    self.expectedTransitions = { suspended = {}, resumed = {} }
+    for kind, name in pairs({ suspended = "NavOrderSuspended", resumed = "NavOrderResumed" }) do
+        EventBus:subscribe(Event[name], nil, function(_, _, id)
+            self.transitions[kind][id] = (self.transitions[kind][id] or 0) + 1
+        end)
+    end
     local names = {
         [Status.Done] = "NavOrderDone", [Status.Failed] = "NavOrderFailed", [Status.Cancelled] = "NavOrderCancelled",
     }
@@ -1031,6 +1186,11 @@ function OrdersTest:onInit()
     self:caseFacingMoveTo()
     self:caseFacingNoDrive()
     self:caseQueue()
+    self:casePriorityInterrupt()
+    self:casePriorityHold()
+    self:casePriorityPatrol()
+    self:casePriorityQueueOrder()
+    self:casePriorityRefused()
     self:casePatrol(false)
     self:casePatrol(true)
     self:caseHold()
