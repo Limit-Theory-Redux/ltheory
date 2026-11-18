@@ -26,6 +26,7 @@ if Nav.status(order) == Enums.NavOrderStatus.Done then Nav.release(order) end
 | `Nav.release(order)` | Destroys an order that has ended. It is an error to release one that has not. |
 | `Nav.estimate(from, to, flightProfile, costProfile)` | What a flight would cost, without moving anything ([estimates](#estimates)). Runs on the calling thread. |
 | `Nav.estimateMany(from, targets, flightProfile, costProfile)`, `Nav.takeEstimates(request)`, `Nav.discardEstimates(request)` | The same for many targets on a worker: the first returns a request id, the second the results in the targets' order, `nil` until they have come (and once only), the third drops a request nobody waits for. |
+| `Nav.neighbours(ship, radius, filter)` | The entities near a ship ([neighbours](#neighbours)). |
 | `Nav.update(dt)` | One update of the order system, for an app that steps the simulation itself. A game that runs frames gets the update at `PreSim`, and must not call this too. |
 
 ### Kinds of order
@@ -163,9 +164,17 @@ local estimates = Nav.takeEstimates(request)     -- one result per candidate, in
 
 **Accuracy.** The detour factor is the planned path's length over the straight distance, measured in the planner sandbox scenarios (`ScenarioMetrics` logs the ratio of each plan). Those systems are sparse; a crowded one plans longer detours, and the factor then needs raising. The `OrdersEstimate` scenario logs a flight's estimated time against the time flown.
 
+## Neighbours
+
+`Nav.neighbours(ship, radius, filter)` lists the entities within `radius` game units of a ship, nearest first, as `{ entity, distance }` rows. `distance` is from the ship's position to the other body's surface, in game units. It reads the physics world's query index, the same one the avoidance senses through, so what a ship avoids and what an AI sees as near are one set. It needs the world attached (`Nav.attach`) and a ship with a rigid body.
+
+- The ship is not its own neighbour. An entity whose body has several colliders is listed once, at its nearest collider. A body that has no entity is not listed.
+- `filter(entity, distance)` is optional; the rows it returns `false` for are left out.
+- The query runs on the calling thread, once per call. A caller that asks for many ships in a frame keeps within its own budget.
+
 ## Events
 
-An order's end, and its suspension and resumption, are announced on the event bus, unscoped, with the order's entity id as the payload:
+The events an AI listens to are announced on the event bus, unscoped. An order's events carry the order's entity id as the payload:
 
 | Event | The order |
 |---|---|
@@ -174,8 +183,22 @@ An order's end, and its suspension and resumption, are announced on the event bu
 | `Event.NavOrderCancelled` | was cancelled |
 | `Event.NavOrderSuspended` | was displaced by an order of a higher priority |
 | `Event.NavOrderResumed` | is the head again and runs once more |
+| `Event.NavOrderArrived` | has reached its goal: each point of a Patrol, the end of a MoveTo (just before `NavOrderDone`), and the ship joining the circle of an Orbit or the slot of a Follow |
+| `Event.NavOrderReplanned` | is flown on a new path because its goal or its cost profile changed in flight (a `Nav.retarget`, a Follow's slot that moved, a new profile). Not the first plan, nor the plan after a resume, nor the path to a Patrol's next point |
+| `Event.NavOrderBlocked` | is stalled: the ship is no closer to what it flies to, see below |
+
+A zone's events carry a table `{ ship = id, zone = id }`:
+
+| Event | The ship |
+|---|---|
+| `Event.NavZoneEntered` | is inside a zone it was not inside at the last update |
+| `Event.NavZoneLeft` | is outside a zone it was inside, or the zone is gone |
 
 The events are delivered at `FrameStage.PostSim`, so they arrive in the frame loop, not inside the call that changed the order. The order's components stay readable until it is released. A subscriber compares the payload with the ids of the orders it issued.
+
+**Blocked.** A stall is a flight that has come no closer than `NavConfig.blockedProgressM` to what it flies to in `NavConfig.blockedWindowS` seconds (`ProgressWatch`, the rule the navigation sandbox calls a deadlock). What the distance is measured to is the corner the ship flies to on a planned path, and the goal on the final approach. The event is sent once per stall; the order goes on, and progress re-arms the watch, so a ship that frees itself and sticks again is reported again. Only a flight to a goal is watched, not a Hold or an Orbit or Follow that has joined.
+
+**Zones.** The events cover the sphere zones of the system and the ships that have orders (a claimed or suspended ship included): a ship is watched from its first order until its last one ends. The first check announces `NavZoneEntered` for the zones the ship is already inside; when its orders end the watch is dropped with no `NavZoneLeft`. The zone is its sphere: a zone with a parent that has a body is centred on it, and any other zone is at its position. A planet's gravity well can reach past its zone's sphere (the well covers the orbits of its moons), and the event follows the sphere. Events within one update come in the order of the zones' ids.
 
 ## Lifetime
 
@@ -183,4 +206,4 @@ The issuer releases an order. The system never destroys one, so a finished order
 
 ## Values
 
-`Config/Navigation/NavConfig.lua` holds what orders fly by, authored in metres and converted to game units on use: `pointArrivalM`, the distance from a point at which a ship has arrived, and `standOffRadii`, the stand-off in target radii of the default approach of a planet, a moon, an asteroid and any other entity. `estimateDetourFactor` is how much longer than the straight line an [estimate](#estimates) takes a flight to be.
+`Config/Navigation/NavConfig.lua` holds what orders fly by, authored in metres and converted to game units on use: `pointArrivalM`, the distance from a point at which a ship has arrived, and `standOffRadii`, the stand-off in target radii of the default approach of a planet, a moon, an asteroid and any other entity. `estimateDetourFactor` is how much longer than the straight line an [estimate](#estimates) takes a flight to be. `blockedProgressM` and `blockedWindowS` are the [stall](#events) rule.

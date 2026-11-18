@@ -9,6 +9,7 @@ local Component = require("Core.ECS.Component")
 local NavWorldComponent = Subclass("NavWorldComponent", Component, function(self, physics)
     self:setComponentName("NavWorld")
     self._nav = NavWorld.Create(physics)
+    self._physics = physics
     self._capacity = 0
     self._axes = nil
     self._arrived = nil
@@ -18,6 +19,9 @@ end)
 
 ---@return NavWorld
 function NavWorldComponent:getNav() return self._nav end
+
+---@return Physics The physics world the navigation world reads its bodies from
+function NavWorldComponent:getPhysics() return self._physics end
 
 ---@return ffi.cdata* double[], `NavWorld.AxisCount()` per slot
 function NavWorldComponent:getAxes() return self._axes end

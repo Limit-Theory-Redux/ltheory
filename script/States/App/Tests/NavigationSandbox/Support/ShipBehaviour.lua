@@ -12,6 +12,7 @@ local Nav                  = require("Modules.Navigation")
 local NavigationComponents = require("Modules.Navigation.Components")
 local SystemPlanner        = require("Shared.Helpers.SystemPlanner")
 local PlanFollower         = require("Shared.Helpers.PlanFollower")
+local ProgressWatch        = require("Shared.Helpers.ProgressWatch")
 
 -- A ship that tracks a moving point has done so when it has stayed on station this long.
 local STATION_HOLD_S      = 5
@@ -649,7 +650,7 @@ local function planListener(ship)
         self.metrics:planArcFlown(self.ship, flight, simTime)
     end
     function listener:legChanged(simTime)
-        self.ship.bestDistance, self.ship.progressTime = math.huge, simTime
+        ProgressWatch.reset(self.ship.watch, simTime)
     end
     function listener:finished(_)
         self.ship.behaviour.phase = "arrive"
@@ -700,7 +701,7 @@ function ShipBehaviour.advance(nav, ship, arrived, simTime, rules, metrics)
             ship.target = b.points[b.pointIndex]
             seekPoint(nav, ship)
         end
-        ship.bestDistance, ship.progressTime = math.huge, simTime
+        ProgressWatch.reset(ship.watch, simTime)
     elseif b.kind == "Hold" and b.phase == "cruise" and speed >= b.spec.holdAtSpeed * b.topSpeed then
         local at = ship.rb:getPos()
         ship.target = Position(at.x, at.y, at.z)
@@ -744,7 +745,7 @@ function ShipBehaviour.replan(nav, ship, rules, planner, simTime)
     nav:setSpeedCap(ship.agent, math.huge)
     b.replans = b.replans + 1
     requestPlan(nav, ship, rules, planner, simTime)
-    ship.bestDistance, ship.progressTime = math.huge, simTime
+    ProgressWatch.reset(ship.watch, simTime)
 end
 
 ---Takes a Plan ship's plan: the ship passes the plan's waypoints, the goal last being where it
@@ -774,7 +775,7 @@ function ShipBehaviour.planReceived(nav, ship, plan, simTime)
     b.listener = planListener(ship)
     b.phase = "pass"
     ship.target = b.follower.target
-    ship.bestDistance, ship.progressTime = math.huge, simTime
+    ProgressWatch.reset(ship.watch, simTime)
 end
 
 ---Notes how close a Plan ship is to each obstacle's safe sphere and to each cost zone's sphere.

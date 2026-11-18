@@ -174,6 +174,41 @@ function Nav.discardEstimates(request)
     NavEstimateClient.discard(request)
 end
 
+---One body near a ship.
+---@class NavNeighbour
+---@field entity Entity
+---@field distance gameunit From the ship's centre to the neighbour's surface
+
+---The entities whose bodies lie within `radius` of the ship's centre, nearest first: the same
+---bodies, found through the same physics query index, that avoidance senses. The ship itself is left
+---out, and so is a body with no entity. The positions are those of the last physics update.
+---@param ship Entity
+---@param radius gameunit
+---@param filter (fun(entity: Entity, distance: gameunit): boolean)|nil Keeps the neighbours it returns true for
+---@return NavNeighbour[]
+function Nav.neighbours(ship, radius, filter)
+    assert(worldEntity, "Nav.neighbours: there is no navigation world (Nav.attach it)")
+    local rb = ship:get(PhysicsComponents.RigidBody)
+    assert(rb, "Nav.neighbours: the ship has no rigid body")
+    rb = rb:getRigidBody()
+    local found = worldEntity:get(Components.NavWorld):getPhysics()
+        :queryRadius(rb:getPos(), radius, rb, SENSING_MASK)
+    local neighbours, seen = {}, {}
+    for i = 0, found.len - 1 do
+        local id = tonumber(found.ids[i])
+        -- A body with several colliders is listed once for each; the nearest comes first.
+        if id ~= 0 and not seen[id] then
+            seen[id] = true
+            local entity = Registry:getEntityById(id)
+            local distance = found.distances[i]
+            if entity and entity.id ~= ship.id and (not filter or filter(entity, distance)) then
+                neighbours[#neighbours + 1] = { entity = entity, distance = distance }
+            end
+        end
+    end
+    return neighbours
+end
+
 ---Runs one update of the order system, for an app that steps the simulation itself; a game
 ---that runs frames gets the update at PreSim, so it must not call this too.
 ---@param dt number Seconds

@@ -10,6 +10,8 @@ local NavAgentHelper      = require("Shared.Helpers.NavAgentHelper")
 local PlanFlight          = require("Shared.Helpers.PlanFlight")
 local ApproachSpecs       = require("Shared.Helpers.ApproachSpecs")
 local OrderGoals          = require("Shared.Helpers.OrderGoals")
+local ProgressWatch       = require("Shared.Helpers.ProgressWatch")
+local NavZoneSystem       = require("Modules.Navigation.Systems.NavZoneSystem")
 
 local Phase   = PlanFlight.Phase
 local Status  = Enums.NavOrderStatus
@@ -28,6 +30,16 @@ local END_EVENTS = {
 local TRANSITION_EVENTS = {
     suspended = "NavOrderSuspended",
     resumed   = "NavOrderResumed",
+}
+
+-- The events about a running order; the payload is the order's entity id. `NavOrderArrived`: the ship
+-- reached the goal (each Patrol point; a MoveTo just before it is done; an Orbit or Follow taking its
+-- circle or slot). `NavOrderReplanned`: a plan that was flown is made again. `NavOrderBlocked`: the
+-- ship has not come closer to its goal for the stall window (once per stall).
+local FLIGHT_EVENTS = {
+    arrived   = "NavOrderArrived",
+    replanned = "NavOrderReplanned",
+    blocked   = "NavOrderBlocked",
 }
 
 ---@class OrderHead A ship's head order, with what the frame needs of it
@@ -355,6 +367,9 @@ local function beginOrder(world, head)
     if flight.begun then return end
     flight.begun = true
     flight.elapsed = 0
+    flight.watch = ProgressWatch.new(0)
+    flight.watchedLeg = nil
+    flight.advanced = false
     -- The agent outlasts an order, so a facing left by the order before is not this order's.
     world:getNav():clearFacing(head.slot)
     if not head.handler then
@@ -381,16 +396,20 @@ local function aimFacing(world, head)
     world:getNav():setFacing(head.slot, point)
 end
 
----Gives the order's plan: a new one when there is none or what it was made under has changed.
+---Gives the order's plan: a new one when there is none or what it was made under has changed. A plan
+---that was being flown and is made again is announced, unless the order went on to its next goal.
 ---@param head OrderHead
 ---@param spec Component
 local function ensurePlan(head, spec)
     local flight = head.order:get(Components.OrderFlight)
     local key = head.handler.key(spec, head.goal)
     local profileRevision = costProfileRevision(head.ship)
+    local advanced = flight.advanced
+    flight.advanced = false
     if flight.plan and flight.plannedGoalKey == key and flight.plannedProfileRevision == profileRevision then
         return
     end
+    local replanned = flight.plan ~= nil and not advanced
     PlanFlight.drop(flight.plan)
     local goal = head.goal
     -- The travel drive thrusts along the nose, which a facing holds elsewhere: the path has no drive leg.
@@ -398,10 +417,13 @@ local function ensurePlan(head, spec)
         goal.arrivalRadius, goal.frameEntity, head.facing ~= nil)
     flight.plannedGoalKey = key
     flight.plannedProfileRevision = profileRevision
+    -- The stall check measures a new plan from the start.
+    flight.watchedLeg = nil
+    if replanned then EventBus:dispatch(Event[FLIGHT_EVENTS.replanned], head.order.id) end
 end
 
 ---Moves an order from flying its plan to keeping the world's behaviour: the plan is dropped, and the
----agent takes the behaviour, which the world flies from the next step on.
+---agent takes the behaviour, which the world flies from the next step on. Announces the arrival.
 ---@param world NavWorldComponent
 ---@param head OrderHead
 ---@param spec Component
@@ -411,6 +433,7 @@ local function beginTracking(world, head, spec)
     flight.plan = nil
     flight.tracking = true
     head.handler.track.start(world, head, spec)
+    EventBus:dispatch(Event[FLIGHT_EVENTS.arrived], head.order.id)
 end
 
 ---Switches a tracking order's flight: a follower far from its slot goes back to planning, and one near
@@ -500,6 +523,26 @@ local function flyApproach(head, plan, dist, zoneMax)
         not head.facing and PlanFlight.driveWillRun(drive, dist, goal.safeRange))
 end
 
+---Announces a stall of the flight: no progress for the stall window toward the leg being flown (the
+---plan's corner, or the goal when there is no corner), which restarts the check at each leg.
+---@param order Entity
+---@param flight OrderFlightComponent
+---@param plan PlanFlightState
+---@param shipPos Position
+---@param goalDist gameunit Distance to the goal, which is the measure when no corner is flown
+local function checkBlocked(order, flight, plan, shipPos, goalDist)
+    local atCorners = plan.phase == Phase.Plan
+    local leg = atCorners and plan.legs or -1
+    if flight.watchedLeg ~= leg then
+        flight.watchedLeg = leg
+        ProgressWatch.reset(flight.watch, flight.elapsed)
+    end
+    local dist = atCorners and shipPos:distance(plan.follower.target) or goalDist
+    if ProgressWatch.update(flight.watch, dist, flight.elapsed) then
+        EventBus:dispatch(Event[FLIGHT_EVENTS.blocked], order.id)
+    end
+end
+
 ---After the step of a goal order: arrival, the corners or the approach, the axes, and the progress.
 ---@param world NavWorldComponent
 ---@param head OrderHead
@@ -517,8 +560,13 @@ local function finishGoal(world, head)
         local spec = order:get(head.handler.spec)
         if head.handler.track then
             beginTracking(world, head, spec)
-        elseif head.handler.arrive(spec) then
-            endOrder(world, order, ship, Status.Done)
+        else
+            EventBus:dispatch(Event[FLIGHT_EVENTS.arrived], order.id)
+            if head.handler.arrive(spec) then
+                endOrder(world, order, ship, Status.Done)
+            else
+                flight.advanced = true
+            end
         end
         return
     end
@@ -528,6 +576,7 @@ local function finishGoal(world, head)
     else
         eta = flyApproach(head, plan, dist, zoneMax)
     end
+    checkBlocked(order, flight, plan, rb:getPos(), dist)
     local input = ship:get(ConstructComponents.ControlInput)
     if input then NavAgentHelper.writeAxes(world:getAxes(), head.slot, input) end
 
@@ -581,10 +630,12 @@ local NavOrderSystem = Class("NavOrderSystem", function(self)
     local names = {}
     for _, name in pairs(END_EVENTS) do names[#names + 1] = name end
     for _, name in pairs(TRANSITION_EVENTS) do names[#names + 1] = name end
+    for _, name in pairs(FLIGHT_EVENTS) do names[#names + 1] = name end
     Event.AddEvents(names)
     for _, name in ipairs(names) do
         EventBus:register(Event[name], name, FrameStage.PostSim)
     end
+    self.zones = NavZoneSystem()
     EventBus:subscribe(Event.PreSim, self, self.onPreSim)
 end)
 
@@ -639,6 +690,7 @@ function NavOrderSystem:update(dt)
         if head.facing then aimFacing(world, head) end
         if head.handler and not head.order:get(Components.OrderStatus):hasEnded() then aimGoal(world, head, dt) end
     end
+    self.zones:update()
     if not world:hasAgents() then return end
     stepWorld(world)
 

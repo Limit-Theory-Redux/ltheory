@@ -57,6 +57,7 @@ local FLYABLE = { [Status.Ok] = true, [Status.GoalNotSettled] = true, [Status.Dr
 ---@field follower PlanFollower|nil
 ---@field listener table|nil
 ---@field released integer|nil The corner whose drive run was released
+---@field legs integer How many times the follower has gone on to its next leg (a corner or an arc's end)
 
 ---@class PlanFlight
 local PlanFlight = { Phase = Phase }
@@ -272,7 +273,10 @@ local function request(shipEntity, rb, profile, goal, frameEntity, driveMinLengt
         zones = snapshot.zones,
         zoneCount = snapshot.zoneCount,
     })
-    return { phase = Phase.Planning, snapshot = snapshot, taskId = taskId, start = { x = at.x, y = at.y, z = at.z } }
+    return {
+        phase = Phase.Planning, snapshot = snapshot, taskId = taskId, start = { x = at.x, y = at.y, z = at.z },
+        legs = 0,
+    }
 end
 
 ---Starts a flight to `targetPos`: asks the planner for the path from the ship to the stand-off
@@ -291,7 +295,7 @@ function PlanFlight.begin(shipEntity, rb, targetPos, safeRange, arrivalRadius, f
     -- Within the stand-off distance, or within arrival of a goal that has none, there is nothing to plan.
     local range = math.max(safeRange, arrivalRadius)
     if not targetPos or dist <= range then
-        return { phase = Phase.Final }
+        return { phase = Phase.Final, legs = 0 }
     end
     local profile = ConstructComponents.FlightProfile.ProfileOf(shipEntity)
     return request(shipEntity, rb, profile, PlanFlight.standOffGoal(shipPos, targetPos, dist, dist, safeRange),
@@ -314,7 +318,7 @@ local function follow(plan, result, spec)
     plan.listener = {
         pointPassed = function() end,
         arcFlown = function() end,
-        legChanged = function() end,
+        legChanged = function() plan.legs = plan.legs + 1 end,
         finished = function() plan.phase = Phase.Final end,
     }
     plan.follower = PlanFollower.new({

@@ -2,12 +2,12 @@
 -- with its cost multiplied by the weight a cost profile gives its tags.
 -- Design: doc/script/nav/system-planner.md
 
-local Registry            = require("Core.ECS.Registry")
-local CoreComponents      = require("Modules.Core.Components")
-local PhysicsComponents   = require("Modules.Physics.Components")
-local SpatialComponents   = require("Modules.Spatial.Components")
+local Registry             = require("Core.ECS.Registry")
+local CoreComponents       = require("Modules.Core.Components")
+local SpatialComponents    = require("Modules.Spatial.Components")
 local NavigationComponents = require("Modules.Navigation.Components")
-local SystemPlanner       = require("Shared.Helpers.SystemPlanner")
+local SystemPlanner        = require("Shared.Helpers.SystemPlanner")
+local ZoneSphere           = require("Shared.Helpers.ZoneSphere")
 
 local Zone = SystemPlanner.Zone
 
@@ -35,13 +35,10 @@ end
 ---@return number y
 ---@return number z
 local function centreOf(zone, indexOf)
-    local parentCmp = zone:get(CoreComponents.Parent)
-    local parent = parentCmp and parentCmp:getParent()
-    local bodyIndex = parent and indexOf(parent)
+    local carrier = ZoneSphere.carrier(zone)
+    local bodyIndex = carrier and indexOf(carrier)
     if bodyIndex then return bodyIndex - 1, 0, 0, 0 end
-    local transform = zone:get(PhysicsComponents.Transform)
-    assert(transform, "CostZones: a zone with a path cost needs a body to ride on or a transform")
-    local at = transform:getPos()
+    local at = ZoneSphere.point(zone)
     return SystemPlanner.SYSTEM_FRAME, at.x, at.y, at.z
 end
 
@@ -49,11 +46,8 @@ end
 ---@param zone Entity
 ---@return gameunit
 local function radiusOf(zone)
-    local shapeCmp = zone:get(SpatialComponents.Shape)
-    assert(shapeCmp and shapeCmp:getShape() == Enums.ZoneShape.Sphere,
-        "CostZones: a zone with a path cost must be a sphere, for now")
-    local radius = shapeCmp:getRadius()
-    assert(type(radius) == "number" and radius > 0, "CostZones: a zone's radius must be above zero")
+    local radius = ZoneSphere.radius(zone)
+    assert(radius, "CostZones: a zone with a path cost must be a sphere with a radius above zero, for now")
     return radius
 end
 

@@ -6,6 +6,7 @@ local ScaleConfig   = require("Config.Gen.UniverseScaleConfig")
 local ShipBehaviour = require("States.App.Tests.NavigationSandbox.Support.ShipBehaviour")
 local Metres        = require("States.App.Tests.NavigationSandbox.Support.Metres")
 local SystemPlanner = require("Shared.Helpers.SystemPlanner")
+local ProgressWatch = require("Shared.Helpers.ProgressWatch")
 
 ---@type table<integer, string>
 local STATUS_NAMES = {}
@@ -14,16 +15,12 @@ for name, value in pairs(SystemPlanner.Status) do STATUS_NAMES[value] = name end
 -- A ship has arrived when it is this close to its target and this slow.
 local ARRIVAL_RANGE_M   = 100
 local ARRIVAL_SPEED_MS  = 50
--- A ship that has not come this much closer to its target for this long is deadlocked.
-local PROGRESS_STEP_M   = 10
-local DEADLOCK_WINDOW_S = 10
 -- Frames left out of the frame-time figures at the start, which pay for spawning.
 local WARMUP_FRAMES     = 1
 local MS_PER_SECOND     = 1000
 
 local ARRIVAL_RANGE = ScaleConfig:toGameUnits(ARRIVAL_RANGE_M, "starSystem")
 local ARRIVAL_SPEED = ScaleConfig:toGameUnits(ARRIVAL_SPEED_MS, "starSystem")
-local PROGRESS_STEP = ScaleConfig:toGameUnits(PROGRESS_STEP_M, "starSystem")
 
 ---What it takes to have arrived, for the ships judged by their behaviour.
 ---@type SandboxJudgingRules
@@ -92,8 +89,8 @@ local ScenarioMetrics = Class("ScenarioMetrics", function(self, name, ships, obs
     for _, ship in ipairs(ships) do
         ship.state = ship.spec.joinAtS and "pending" or "flying"
         ship.kind = "ship"
-        ship.bestDistance = math.huge
-        ship.progressTime = 0
+        -- A ship that has not come closer to its target for the watch's window is deadlocked.
+        ship.watch = ProgressWatch.new(0)
         self.byId[ship.entity.id] = ship
     end
     for _, obstacle in ipairs(obstacles) do
@@ -167,8 +164,7 @@ end
 function ScenarioMetrics:waypointReached(ship, simTime)
     ship.waypointIndex = ship.waypointIndex % #ship.route + 1
     ship.target = ship.route[ship.waypointIndex]
-    ship.bestDistance = math.huge
-    ship.progressTime = simTime
+    ProgressWatch.reset(ship.watch, simTime)
     self.waypoints = self.waypoints + 1
 end
 
@@ -358,10 +354,7 @@ function ScenarioMetrics:updateProgress(ship, simTime)
         self:log("%s: an order failed or was cancelled at %.2f s", ship.label, simTime)
     elseif behaviour and ShipBehaviour.exemptFromDeadlock(ship) then
         return
-    elseif distance <= ship.bestDistance - PROGRESS_STEP then
-        ship.bestDistance = distance
-        ship.progressTime = simTime
-    elseif simTime - ship.progressTime >= DEADLOCK_WINDOW_S then
+    elseif ProgressWatch.update(ship.watch, distance, simTime) then
         ship.state = "deadlocked"
         self.deadlocks = self.deadlocks + 1
         self:log("%s deadlocked at %.2f s, %.0f m from its target, speed %.0f m/s, %s",
