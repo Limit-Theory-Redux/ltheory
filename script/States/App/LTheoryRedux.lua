@@ -940,14 +940,16 @@ function LimitTheoryRedux:onRender(data)
 
             if self.mapMode == 1 then
                 local tPos = AutoPilotSystem:getTargetPosition(self.playerShip)
+                local mapState = self.mapState
+                mapState.autopilotTargetPos = tPos
                 if tPos then
-                    -- The map marks where the ship steers now: the plan's next corner, else the target
-                    local progress = AutoPilotSystem:getProgress(self.playerShip)
-                    self.mapState.autopilotTargetPos = tPos
-                    self.mapState.autopilotPos = progress and progress.nextWaypoint or tPos
+                    mapState.autopilotRoute = AutoPilotSystem:getRoute(self.playerShip, mapState.autopilotRoute)
+                    mapState.autopilotProgress = AutoPilotSystem:getProgress(self.playerShip)
+                    mapState.autopilotPlanning = AutoPilotSystem:isPlanning(self.playerShip)
                 else
-                    self.mapState.autopilotPos = nil
-                    self.mapState.autopilotTargetPos = nil
+                    mapState.autopilotRoute = nil
+                    mapState.autopilotProgress = nil
+                    mapState.autopilotPlanning = false
                 end
                 SystemMap:collectEntities(self.mapState, self.playerShip)
                 SystemMap:draw(self.mapState, 0, 0, Window:width(), Window:height())

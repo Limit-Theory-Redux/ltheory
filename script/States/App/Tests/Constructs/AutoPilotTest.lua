@@ -694,14 +694,20 @@ function AutoPilotTest:runTakeover()
     local ship = self:spawnShip(Position(0, 0, 0), false, true)
     local input = ship.entity:get(ConstructComponents.ControlInput)
     local flyer = playerFlyer(ship, self.world)
+    self:check(AutoPilotSystem:getRoute(ship.entity) == nil, name .. "there is no route before the autopilot is engaged")
     flyer.engage(nil, handoverPoint(1))
     self:check(ControlOwnerSystem:ownerOf(ship.entity) == Enums.ControlOwner.Orders,
         name .. "the order owns the ship's controls while it flies")
     self:check(self:awaitPlan(flyer), name .. "the plan comes")
     for _ = 1, math.floor(HANDOVER_FLIGHT_S / STEP) do self:step(flyer) end
     self:check(not axesAreZero(input), name .. "the flight writes the control input")
+    local route = AutoPilotSystem:getRoute(ship.entity)
+    self:check(route ~= nil and #route >= 1, name .. "the autopilot has a route while it flies")
+    self:check(route ~= nil and route[#route]:distance(AutoPilotSystem:getTargetPosition(ship.entity)) < STOPPED,
+        name .. "the route ends at the target (a bare point has no stand-off)")
 
     AutoPilotSystem:disengage(ship.entity)
+    self:check(AutoPilotSystem:getRoute(ship.entity) == nil, name .. "there is no route once it is disengaged")
     self:check(not flyer.flying(), name .. "disengaging ends the flight")
     self:check(ControlOwnerSystem:ownerOf(ship.entity) == Enums.ControlOwner.Manual,
         name .. "the player owns the controls at once")

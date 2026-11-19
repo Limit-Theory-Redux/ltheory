@@ -137,6 +137,16 @@ function AutoPilotSystem:getProgress(shipEntity)
     return order and Nav.progress(order) or nil
 end
 
+--- The path the autopilot has left to fly (`Nav.route`): the plan's corners and the goal, or the goal
+--- alone while the plan is out and on the final approach.
+---@param shipEntity Entity
+---@param out Position[]|nil A table to fill; a new one when nil
+---@return Position[]|nil route Nil while the autopilot is off
+function AutoPilotSystem:getRoute(shipEntity, out)
+    local order = orderOf(shipEntity)
+    return order and Nav.route(order, out) or nil
+end
+
 --- Where the autopilot's target is now: the entity's position, or the point (which moves with its
 --- frame entity, if it has one).
 ---@param shipEntity Entity

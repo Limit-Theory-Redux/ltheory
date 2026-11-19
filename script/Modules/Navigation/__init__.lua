@@ -13,6 +13,7 @@ local EstimateRequest     = require("Shared.Helpers.EstimateRequest")
 local NavEstimate         = require("Shared.Helpers.NavEstimate")
 local NavEstimateClient   = require("Shared.Helpers.NavEstimateClient")
 local NearbyBodies        = require("Shared.Helpers.NearbyBodies")
+local PlanFlight          = require("Shared.Helpers.PlanFlight")
 
 local Kind = Enums.NavOrderKind
 
@@ -227,6 +228,30 @@ end
 ---@return OrderProgressComponent
 function Nav.progress(order)
     return order:get(Components.OrderProgress)
+end
+
+---The path the ship has left to fly, as world points now: the plan's corners from the one flown to
+---and the goal, or the goal alone on the final approach and while the plan is out. Empty for an
+---order that is not flying a goal (not begun, ended, a Hold, or an Orbit or Follow that has joined).
+---The points may be shared with the plan: read them, don't change them.
+---@param order Entity
+---@param out Position[]|nil A table to fill, which is cleared first; a new one when nil
+---@return Position[]
+function Nav.route(order, out)
+    out = out or {}
+    for i = #out, 1, -1 do out[i] = nil end
+    local flight = order:get(Components.OrderFlight)
+    if not flight or flight.tracking or order:get(Components.OrderStatus):hasEnded() then return out end
+    local plan = flight.plan
+    local follower = plan and plan.phase == PlanFlight.Phase.Plan and plan.follower
+    if follower and not follower.finished then
+        for i = follower.index, #follower.points do out[#out + 1] = follower:pointNow(follower.points[i]) end
+        out[#out + 1] = follower:pointNow(plan.goal)
+    else
+        local goal = order:get(Components.OrderProgress).nextWaypoint
+        if goal then out[1] = goal end
+    end
+    return out
 end
 
 ---Destroys an order that has ended. The issuer calls it when it has read what it wants of the order.

@@ -8,7 +8,6 @@ local ConstructsComponents  = require("Modules.Constructs.Components")
 local Registry              = require("Core.ECS.Registry")
 local EntityPosition        = require("Shared.Helpers.EntityPosition")
 local Pipelines             = require("Render.Pipelines")
-local ShipFlightSystem      = require("Modules.Constructs.Systems.ShipFlightSystem")
 
 -- Scratch color for the shapes below (the batcher copies it at the call).
 local shapeColor = Color(0, 0, 0, 0)
@@ -16,6 +15,9 @@ local shapeColor = Color(0, 0, 0, 0)
 -- Pipeline state of the asteroid dots: the dot mesh, alpha blended.
 local dotState = { blend = BlendMode.Alpha }
 local dotParamsType
+
+-- A route leg shorter than this on screen is not drawn.
+local MIN_LEG_PIXELS = 5
 
 local function formatDistance(gameUnits)
     return UniverseScaleConfig:formatDistance(gameUnits)
@@ -53,7 +55,10 @@ function SystemMap:create(config)
         entities   = {},
         shipEntity = nil,
         selected   = nil,    -- currently selected entity entry
-        autopilotPos = nil,  -- current autopilot destination (Position or nil)
+        autopilotTargetPos = nil, -- the autopilot's target (Position or nil)
+        autopilotRoute = nil,     -- the path the autopilot has left (Position[], `Nav.route`) or nil
+        autopilotProgress = nil,  -- the order's progress (`OrderProgressComponent`) or nil
+        autopilotPlanning = false, -- is the path still being planned?
         dragging   = false,
         lastMouseX = 0,
         lastMouseY = 0,
@@ -599,20 +604,17 @@ function SystemMap:draw(state, x, y, sx, sy)
         DrawEx.TextAlpha('Unageo-Medium', "TARGET", 9,
             tpx + ms + 2, tpy - 5, 80, 12, 1.0, 0.8, 0.3, 0.9, 0.0, 0.5)
     end
-    -- Intercept marker (cyan, only if different from target)
-    if state.autopilotPos and state.autopilotTargetPos then
-        local ip = state.autopilotPos
-        local tp = state.autopilotTargetPos
-        local sep = math.sqrt((ip.x-tp.x)^2 + (ip.z-tp.z)^2) * state.zoom
-        if sep > 10 then
-            local ipx = cx + (ip.x + state.panX) * state.zoom
-            local ipy = cy + (ip.z + state.panY) * state.zoom
-            local ms = 4
-            DrawEx.SimpleRect(ipx - ms, ipy - 0.5, ms * 2, 1, Color(0.3, 0.8, 1.0, 0.7))
-            DrawEx.SimpleRect(ipx - 0.5, ipy - ms, 1, ms * 2, Color(0.3, 0.8, 1.0, 0.7))
-            DrawEx.TextAlpha('Unageo-Medium', "INTERCEPT", 8,
-                ipx + ms + 2, ipy - 5, 80, 10, 0.3, 0.8, 1.0, 0.7, 0.0, 0.5)
-        end
+    -- Next waypoint marker (cyan, only if it is not the target itself)
+    local route = state.autopilotRoute
+    if route and #route >= 2 then
+        local np = route[1]
+        local npx = cx + (np.x + state.panX) * state.zoom
+        local npy = cy + (np.z + state.panY) * state.zoom
+        local ms = 4
+        DrawEx.SimpleRect(npx - ms, npy - 0.5, ms * 2, 1, Color(0.3, 0.8, 1.0, 0.7))
+        DrawEx.SimpleRect(npx - 0.5, npy - ms, 1, ms * 2, Color(0.3, 0.8, 1.0, 0.7))
+        DrawEx.TextAlpha('Unageo-Medium', "NEXT", 8,
+            npx + ms + 2, npy - 5, 80, 10, 0.3, 0.8, 1.0, 0.7, 0.0, 0.5)
     end
     -- Selection marker (when no autopilot, just map selection)
     if not state.autopilotTargetPos and state.selected and state.selected.clickPos then
@@ -626,7 +628,7 @@ function SystemMap:draw(state, x, y, sx, sy)
             cpx + ms + 2, cpy - 5, 80, 12, 1.0, 0.8, 0.3, 0.9, 0.0, 0.5)
     end
 
-    if state.autopilotPos and state.shipEntity then
+    if route and #route > 0 and state.shipEntity then
         local shipRb = state.shipEntity:get(PhysicsComponents.RigidBody)
         if shipRb and shipRb:getRigidBody() then
             local shipPos = shipRb:getRigidBody():getPos()
@@ -644,39 +646,27 @@ function SystemMap:draw(state, x, y, sx, sy)
                 end
             end
 
-            -- White line: ship → predicted intercept position
-            local ap = state.autopilotPos
-            local destSX = cx + (ap.x + state.panX) * state.zoom
-            local destSY = cy + (ap.z + state.panY) * state.zoom
-
-            local ldx = destSX - shipSX
-            local ldy = destSY - shipSY
-            local len = math.sqrt(ldx * ldx + ldy * ldy)
-            if len > 5 then
-                -- White flight path line
-                DrawEx.Line(shipSX, shipSY, destSX, destSY,
-                    Color(1.0, 1.0, 1.0, 0.6))
-
-                -- Distance + ETA label at midpoint
-                local midX = (shipSX + destSX) * 0.5
-                local midY = (shipSY + destSY) * 0.5
-                local worldDist = math.sqrt(
-                    (ap.x - shipPos.x)^2 + (ap.z - shipPos.z)^2)
-                local distStr = formatDistance(worldDist)
-                local speed = ShipFlightSystem:getSpeed(state.shipEntity)
-                local etaStr = ""
-                if speed > 1 then
-                    local eta = worldDist / speed
-                    if eta > 3600 then
-                        etaStr = string.format(" | ETA %.0fh%02.0fm", math.floor(eta/3600), (eta%3600)/60)
-                    elseif eta > 60 then
-                        etaStr = string.format(" | ETA %.0fm%02.0fs", math.floor(eta/60), eta%60)
-                    else
-                        etaStr = string.format(" | ETA %.0fs", eta)
-                    end
+            -- White polyline: ship → the route's points to the goal
+            local fromX, fromY = shipSX, shipSY
+            local firstLeg
+            for i = 1, #route do
+                local p = route[i]
+                local toX = cx + (p.x + state.panX) * state.zoom
+                local toY = cy + (p.z + state.panY) * state.zoom
+                if (toX - fromX) ^ 2 + (toY - fromY) ^ 2 > MIN_LEG_PIXELS ^ 2 then
+                    DrawEx.Line(fromX, fromY, toX, toY, Color(1.0, 1.0, 1.0, 0.6))
+                    firstLeg = firstLeg or { shipSX, shipSY, toX, toY }
+                    fromX, fromY = toX, toY
                 end
-                DrawEx.TextAlpha('Unageo-Medium', distStr .. etaStr, 10,
-                    midX - 60, midY - 14, 200, 12,
+            end
+
+            -- Distance and ETA left to the goal, as the order reports them, at the first leg's midpoint
+            local progress = state.autopilotProgress
+            if firstLeg and progress then
+                local timeStr = state.autopilotPlanning and "PLANNING"
+                    or ("ETA " .. UniverseScaleConfig:formatDuration(progress.eta))
+                DrawEx.TextAlpha('Unageo-Medium', formatDistance(progress.distanceLeft) .. " | " .. timeStr, 10,
+                    (firstLeg[1] + firstLeg[3]) * 0.5 - 60, (firstLeg[2] + firstLeg[4]) * 0.5 - 14, 200, 12,
                     1.0, 1.0, 1.0, 0.8, 0.5, 0.5)
             end
         end

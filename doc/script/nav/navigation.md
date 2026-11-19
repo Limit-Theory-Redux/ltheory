@@ -23,6 +23,7 @@ if Nav.status(order) == Enums.NavOrderStatus.Done then Nav.release(order) end
 | `Nav.cancel(order)` | Asks for the order to end as `Cancelled`; the system ends it at its next update. |
 | `Nav.retarget(order, target, frame)` | Changes the target of a MoveTo, and its `frame` (see [Kinds of order](#kinds-of-order)); the path is planned again. |
 | `Nav.status(order)`, `Nav.failure(order)`, `Nav.progress(order)` | The order's status, the reason it failed (`nil` until it has), and its progress. |
+| `Nav.route(order, out)` | The path the order has left to fly, as `Position`s now; fills `out` (a new table when `nil`) and returns it. Empty when there is none. |
 | `Nav.release(order)` | Destroys an order that has ended. It is an error to release one that has not. |
 | `Nav.estimate(from, to, flightProfile, costProfile)` | What a flight would cost, without moving anything ([estimates](#estimates)). Runs on the calling thread. |
 | `Nav.estimateMany(from, targets, flightProfile, costProfile)`, `Nav.takeEstimates(request)`, `Nav.discardEstimates(request)` | The same for many targets on a worker: the first returns a request id, the second the results in the targets' order, `nil` until they have come (and once only), the third drops a request nobody waits for. |
@@ -119,6 +120,8 @@ stateDiagram-v2
 A `Suspended` order is one that had begun and was displaced. The system drops its plan, stops tracking and tells the travel drive to disengage; what the order itself holds stays (a Patrol's point, an Orbit's chosen plane, the target, the facing). When it is the head again it resumes: it begins as new, from where the ship is, so a goal order plans again and a Hold holds where the ship is then, not where it began. Cancelling a suspended order ends it `Cancelled` and it never resumes. Because a Hold is displaced by a higher priority, it no longer blocks the orders behind it.
 
 `Nav.progress(order)` has `distanceLeft` (game units to the stand-off point or point), `eta` (seconds), `nextWaypoint` (the `Position` the ship flies to now: the plan's next corner while it flies the corners, and the goal itself while it flies the approach or the plan is out; `nil` for Orbit and Follow) and, for a Patrol, `waypointIndex`. The system writes them while the order is the head, and they are `nil` before that.
+
+`Nav.route(order, out)` lists the path the order has left, for a map or a readout to draw. While the ship flies the corners of a plan, it is the corners not yet passed, then the goal; each corner is read as a position now, so a corner that rides on a moving body moves with it. While the plan is out and on the final approach it is the goal alone. It is empty for an order that has not begun or has ended, for an order that is not the head, and for an Orbit or Follow that tracks its target. The list changes with the flight, so a caller reads it again each frame, into the table it keeps.
 
 An order is also suspended when the ship's controls go to someone other than orders (below), whether or not it is the head: a begun order becomes `Suspended` with the same event, and leaves the world with the ship's agent. An order that had not begun stays `Queued`. When orders own the controls again, the head resumes as above.
 

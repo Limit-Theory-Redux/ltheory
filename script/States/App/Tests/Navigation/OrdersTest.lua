@@ -200,8 +200,12 @@ function OrdersTest:caseMoveToPastPlanet()
 
     local order = Nav.order(ship.entity, Nav.Orders.MoveTo { target = course })
     self:check(Nav.status(order) == Status.Queued, name .. "a new order is queued")
+    self:check(#Nav.route(order) == 0, name .. "a new order has no route")
     Nav.update(0)
     self:check(Nav.status(order) == Status.Planning, name .. "the order plans")
+    local planning = Nav.route(order)
+    self:check(#planning == 1 and planning[1] == Nav.progress(order).nextWaypoint,
+        name .. "while the plan is out the route is the goal alone")
     self:check(hasAgent(ship), name .. "a ship with an order has an agent")
     self:awaitPlan(order)
     self:check(Nav.status(order) == Status.Active, name .. "the plan comes and the order is active")
@@ -211,7 +215,19 @@ function OrdersTest:caseMoveToPastPlanet()
     local drive = ship.entity:get(ConstructComponents.TravelDrive)
     local driveSeen, closest, progressSeen = false, math.huge, false
     local cornerSeen, cornerMismatch = false, false
+    local routeBuffer, routeCorners, routeBad, routeShort, routeEnds = {}, 0, false, false, false
     local reached = self:flyUntil(function()
+        local route = Nav.route(order, routeBuffer)
+        local flying = planOf(order)
+        local expected = 1
+        if flying and flying.phase == Phase.Plan and not flying.follower.finished then
+            expected = #flying.follower.points - flying.follower.index + 2
+            routeCorners = math.max(routeCorners, #route)
+        end
+        local ended = Nav.status(order) == Status.Done
+        if #route ~= (ended and 0 or expected) then routeBad = true end
+        if #route > 0 and route[#route]:distance(course) > NavConfig.pointArrival() then routeEnds = true end
+        if Nav.status(order) == Status.Active and #route == 0 then routeShort = true end
         if drive:getState() ~= "idle" then driveSeen = true end
         closest = math.min(closest, ship.rb:getPos():distance(planet.planetPos))
         local progress = Nav.progress(order)
@@ -232,6 +248,11 @@ function OrdersTest:caseMoveToPastPlanet()
     self:check(progressSeen, name .. "progress has a distance and an ETA")
     self:check(cornerSeen, name .. "the next waypoint is a corner on the way, not only the goal")
     self:check(not cornerMismatch, name .. "on the corners the next waypoint is the follower's target")
+    self:check(routeCorners >= 2, name .. "the route has a corner and the goal while the corners are flown")
+    self:check(not routeBad, name .. "the route is the corners left and the goal")
+    self:check(not routeEnds, name .. "the route ends at the goal")
+    self:check(not routeShort, name .. "an active order has a route")
+    self:check(#Nav.route(order) == 0, name .. "an ended order has no route")
     self:check(closest > PLANET_RADIUS + ship.rb:getBoundingRadius(), name .. "the ship stays outside the planet",
         string.format("closest %.1f", closest))
     self:check(within(ship, course, NavConfig.pointArrival() * ARRIVED_SLACK), name .. "the ship is at the point")
@@ -1093,6 +1114,7 @@ function OrdersTest:flyOrbit(name, order, ship, centreOf, radius, move, well)
         string.format("off by %.1f of %.1f", worst, radius))
     local progress = Nav.progress(order)
     self:check(progress.eta == 0 and progress.distanceLeft ~= nil, name .. "the progress is the distance from the circle")
+    self:check(#Nav.route(order) == 0, name .. "an order that tracks has no route")
 end
 
 ---Cancels a tracking order and checks that the ship is let go.
