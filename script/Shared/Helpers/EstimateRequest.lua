@@ -75,9 +75,11 @@ end
 ---The goals: where a ship stops for each target. A target that is gone has no goal.
 ---@param start Position
 ---@param targets NavTarget[]
+---@param profile FlightProfile
 ---@return number[] goals `NavEstimate.GOAL_STRIDE` numbers per target
-local function goalsOf(start, targets)
+local function goalsOf(start, targets, profile)
     local goals = {}
+    local driveMinLength = PlanFlight.driveMinLength(profile)
     for _, target in ipairs(targets) do
         local row = {}
         if isEntity(target) and not target:isValid() then
@@ -89,7 +91,7 @@ local function goalsOf(start, targets)
             local stop = PlanFlight.standOffGoal(start, goal.targetPos, dist, dist, goal.safeRange)
             row[EstGoal.X + 1], row[EstGoal.Y + 1], row[EstGoal.Z + 1] = stop.x, stop.y, stop.z
             row[EstGoal.ArrivalRadius + 1] = goal.arrivalRadius
-            row[EstGoal.DriveMinLength + 1] = PlanFlight.driveMinLength(goal.safeRange)
+            row[EstGoal.DriveMinLength + 1] = driveMinLength
         end
         for k = 1, NavEstimate.GOAL_STRIDE do goals[#goals + 1] = row[k] end
     end
@@ -115,7 +117,7 @@ function EstimateRequest.build(from, targets, flightProfile, costProfile)
     local request = sceneOf(PlannerSnapshot.take(costProfile))
     request.ship = shipOf(from, profile)
     request.start = { start.x, start.y, start.z }
-    request.goals = goalsOf(start, targets)
+    request.goals = goalsOf(start, targets, profile)
     request.goalCount = #targets
     return request
 end

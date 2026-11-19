@@ -31,8 +31,9 @@ local HANDOVER_MULT = TravelDriveMath.HANDOVER_MULT
 local ARRIVAL_SHARE = 0.5
 -- A stand-off given in radii is at least this far from the target's centre.
 local MIN_STAND_OFF = 50
--- The drive engages only beyond this many stand-off distances from the target.
-local DRIVE_ENGAGE_STAND_OFFS = 100
+-- The drive is used only on a leg that the ship covers in at least this many seconds at its top
+-- speed without the drive: a shorter leg gains little, and nothing avoids obstacles under the drive.
+local DRIVE_MIN_LEG_TIME_S = 60
 
 local Status = SystemPlanner.Status
 local Drive  = SystemPlanner.Drive
@@ -82,12 +83,12 @@ function PlanFlight.arrivalRadius(targetRadius, gap, radii)
     return ARRIVAL_SHARE * (PlanFlight.standOff(targetRadius, gap, radii) - targetRadius)
 end
 
----The shortest leg the travel drive is used on: beyond this many stand-off distances, and a goal
----with a smaller stand-off than the default (a point) counts the default.
----@param safeRange gameunit The stand-off distance
+---The shortest leg the travel drive is used on: what the ship covers in `DRIVE_MIN_LEG_TIME_S` at
+---its top speed without the drive.
+---@param profile FlightProfile
 ---@return gameunit
-function PlanFlight.driveMinLength(safeRange)
-    return DRIVE_ENGAGE_STAND_OFFS * math.max(safeRange, MIN_STAND_OFF)
+function PlanFlight.driveMinLength(profile)
+    return DRIVE_MIN_LEG_TIME_S * profile.maxSpeed
 end
 
 ---Radius of the target for the stand-off distance.
@@ -164,13 +165,13 @@ end
 
 ---Is the drive engaged, or far enough away that it will be?
 ---@param drive TravelDriveComponent|nil
----@param dist gameunit Distance to the target's centre
----@param safeRange gameunit
+---@param profile FlightProfile
+---@param goalDist gameunit Distance left to the goal (the target's centre less the stand-off distance)
 ---@return boolean
-function PlanFlight.driveWillRun(drive, dist, safeRange)
+function PlanFlight.driveWillRun(drive, profile, goalDist)
     local cfg = Config.game.autoPilot or {}
     if not drive or cfg.enableTravelDrive == false then return false end
-    return drive:isActive() or dist > PlanFlight.driveMinLength(safeRange)
+    return drive:isActive() or goalDist > PlanFlight.driveMinLength(profile)
 end
 
 ---Drive the travel drive from the braking law: the cap follows the distance to the goal, and the
@@ -182,7 +183,8 @@ end
 ---@param dist gameunit Distance to the target's centre
 ---@param safeRange gameunit
 function PlanFlight.updateDrive(drive, input, profile, zoneMax, dist, safeRange)
-    local wanted = brakingMultiplier(math.max(0, dist - safeRange), profile)
+    local goalDist = math.max(0, dist - safeRange)
+    local wanted = brakingMultiplier(goalDist, profile)
     -- The drive system ramps its multiplier toward this cap over time.
     input:setDriveSpeedCap(TravelDriveMath.cappedMultiplier(wanted, zoneMax))
     if drive:getState() ~= "idle" and wanted < HANDOVER_MULT then
@@ -190,7 +192,7 @@ function PlanFlight.updateDrive(drive, input, profile, zoneMax, dist, safeRange)
     end
 
     local cfg = Config.game.autoPilot or {}
-    if cfg.enableTravelDrive ~= false and dist > PlanFlight.driveMinLength(safeRange)
+    if cfg.enableTravelDrive ~= false and goalDist > PlanFlight.driveMinLength(profile)
         and drive:getState() == "idle" then
         input:setDriveRequest(Enums.TravelDriveRequest.Engage)
     end
@@ -300,7 +302,7 @@ function PlanFlight.begin(shipEntity, rb, targetPos, safeRange, arrivalRadius, f
     end
     local profile = ConstructComponents.FlightProfile.ProfileOf(shipEntity)
     return request(shipEntity, rb, profile, PlanFlight.standOffGoal(shipPos, targetPos, dist, dist, safeRange),
-        frameEntity, not withoutDrive and PlanFlight.driveMinLength(safeRange) or nil, arrivalRadius)
+        frameEntity, not withoutDrive and PlanFlight.driveMinLength(profile) or nil, arrivalRadius)
 end
 
 ---Makes the plan's follower for the corners of a plan.

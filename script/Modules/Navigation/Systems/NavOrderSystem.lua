@@ -58,14 +58,14 @@ local FLIGHT_EVENTS = {
 ---How an order that keeps a behaviour of the world on reaching its goal (Orbit, Follow) switches to it.
 ---@class OrderTrack
 ---@field start fun(world: NavWorldComponent, head: OrderHead, spec: Component) Gives the ship's agent the behaviour
----@field joins fun(spec: Component, goal: OrderGoal, shipPos: Position): boolean Whether the ship is near enough to take the behaviour with no plan
----@field leaves fun(spec: Component, goal: OrderGoal, shipPos: Position): boolean Whether the ship is too far to keep it, and plans again
+---@field joins fun(spec: Component, goal: OrderGoal, shipPos: Position, ship: Entity): boolean Whether the ship is near enough to take the behaviour with no plan
+---@field leaves fun(spec: Component, goal: OrderGoal, shipPos: Position, ship: Entity): boolean Whether the ship is too far to keep it, and plans again
 
 ---What differs between the kinds of order that fly to a goal.
 ---@class OrderHandler
 ---@field spec table The component type that holds what the order flies to
 ---@field goal fun(spec: Component): OrderGoal|nil The goal now; nil when the target is gone
----@field key fun(spec: Component, goal: OrderGoal, shipPos: Position): integer A number that changes when the goal's place does, enough for a plan to be made again
+---@field key fun(spec: Component, goal: OrderGoal, shipPos: Position, ship: Entity): integer A number that changes when the goal's place does, enough for a plan to be made again
 ---@field arrive fun(spec: Component): boolean|nil Takes the order on from an arrival; true when it is done. Nil for an order with a `track`
 ---@field track OrderTrack|nil Set for an order that never ends and keeps a behaviour once it has reached its goal
 
@@ -82,9 +82,10 @@ local FOLLOW_LEAVE_FACTOR = 2
 local PLANE_SPEED_SHARE = 0.05
 local PLANE_MIN_SINE = 0.1
 
+---@param ship Entity
 ---@return gameunit
-local function followJoinRange()
-    return PlanFlight.driveMinLength(0)
+local function followJoinRange(ship)
+    return PlanFlight.driveMinLength(ConstructComponents.FlightProfile.ProfileOf(ship))
 end
 
 ---Where a follower's slot is now: its offset from the leader's centre, in the leader's axes.
@@ -233,12 +234,12 @@ local HANDLERS = {
             if not leader or not bodyOf(leader) then return nil end
             return makeGoal(slotPoint(leader, spec:getOffset()), 0, NavConfig.pointArrival(), leader)
         end,
-        key = function(spec, goal) return spec:slotKey(goal.targetPos, followJoinRange()) end,
+        key = function(spec, goal, _, ship) return spec:slotKey(goal.targetPos, followJoinRange(ship)) end,
         track = {
             start = startFollow,
-            joins = function(_, goal, shipPos) return shipPos:distance(goal.targetPos) <= followJoinRange() end,
-            leaves = function(_, goal, shipPos)
-                return shipPos:distance(goal.targetPos) > FOLLOW_LEAVE_FACTOR * followJoinRange()
+            joins = function(_, goal, shipPos, ship) return shipPos:distance(goal.targetPos) <= followJoinRange(ship) end,
+            leaves = function(_, goal, shipPos, ship)
+                return shipPos:distance(goal.targetPos) > FOLLOW_LEAVE_FACTOR * followJoinRange(ship)
             end,
         },
     },
@@ -499,7 +500,7 @@ end
 ---@param spec Component
 local function ensurePlan(world, head, spec)
     local flight = head.order:get(Components.OrderFlight)
-    local key = head.handler.key(spec, head.goal, bodyOf(head.ship):getPos())
+    local key = head.handler.key(spec, head.goal, bodyOf(head.ship):getPos(), head.ship)
     local advanced = flight.advanced
     flight.advanced = false
     local plan = flight.plan
@@ -588,8 +589,8 @@ end
 local function switchTracking(world, head, spec, flight)
     local track, goal = head.handler.track, head.goal
     local shipPos = bodyOf(head.ship):getPos()
-    if flight.tracking and track.leaves(spec, goal, shipPos) then flight.tracking = false end
-    if not flight.tracking and track.joins(spec, goal, shipPos) then beginTracking(world, head, spec) end
+    if flight.tracking and track.leaves(spec, goal, shipPos, head.ship) then flight.tracking = false end
+    if not flight.tracking and track.joins(spec, goal, shipPos, head.ship) then beginTracking(world, head, spec) end
     return flight.tracking
 end
 
@@ -665,7 +666,7 @@ local function flyApproach(head, plan, dist, zoneMax)
         PlanFlight.updateDrive(drive, input, profile, zoneMax, dist, goal.safeRange)
     end
     return PlanFlight.travelTime(math.max(0, dist - goal.safeRange), goal.arrivalRadius, profile, zoneMax,
-        not head.facing and PlanFlight.driveWillRun(drive, dist, goal.safeRange))
+        not head.facing and PlanFlight.driveWillRun(drive, profile, math.max(0, dist - goal.safeRange)))
 end
 
 ---Announces a stall of the flight: no progress for the stall window toward the leg being flown (the

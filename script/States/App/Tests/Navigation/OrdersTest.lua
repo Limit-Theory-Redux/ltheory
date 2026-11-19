@@ -1216,8 +1216,8 @@ end
 
 function OrdersTest:caseFollowOutOfRange()
     local name = "a follower out of range: "
-    local join = PlanFlight.driveMinLength(0)
     local ship = self:ship(Position(0, 0, 0))
+    local join = PlanFlight.driveMinLength(ConstructComponents.FlightProfile.ProfileOf(ship.entity))
     local leader = FlightScene.spawnBody(self.world, Position(join * LEADER_BEYOND, 0, 0), LEADER_RADIUS)
     self.world:update(STEP)
     local order = Nav.order(ship.entity, Nav.Orders.Follow {

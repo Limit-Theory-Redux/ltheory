@@ -76,6 +76,10 @@ local MAX_EDGE_SWING = 0.15
 local PLANET_RADIUS      = 500
 local PLANET_ALONG       = 0.5
 local PLANET_ORBIT_SPEEDUP = 0.01
+-- A generated moon's hull radius, and how far a flight to one runs in the scenario: under 100 of the
+-- moon's stand-offs (204), so the whole flight is shorter than the minimum a goal-sized rule gave.
+local MOON_RADIUS   = 136
+local MOON_DISTANCE = 12000
 -- The planner keeps the ship this many hull radii from a planet; the ship is only checked to stay
 -- outside the hull, and the clearance from this sphere is logged.
 local PLANET_SAFE_FACTOR = Config.game.autoPilot.safeRadiusFactor.planet
@@ -143,6 +147,13 @@ local SCENARIOS = {
     { name = "a body in a moving well", distance = 600, radius = BODY_RADIUS, drive = false, maxFlight = 700,
       well = true },
     { name = "a point, with drive, past a planet", distance = 20000, drive = true, maxFlight = 140, planet = true },
+    -- Targets whose stand-off is large: the plan's legs are short against it, so a drive minimum that
+    -- grew with the target's size would keep every leg in normal flight.
+    { name = "a moon-sized body, with drive, past a planet", distance = MOON_DISTANCE, radius = MOON_RADIUS,
+      drive = true, maxFlight = 60, planet = true },
+    -- Far enough that the drive's charge and ramp-up, which the ETA doesn't count, are a small part of the flight.
+    { name = "a planet-sized body, with drive", distance = 60000, radius = PLANET_RADIUS, drive = true,
+      maxFlight = 32 },
     { name = "a body in a moving well, with drive, from outside", distance = 20000, radius = BODY_RADIUS,
       drive = true, maxFlight = 32, well = true, outside = true },
     { name = "a body in a moving well, with drive, from outside, a planet as fast as the game's", distance = 20000,
@@ -388,11 +399,26 @@ function AutoPilotTest:awaitPlan(flyer)
     return not flyer.planning()
 end
 
----Fly one scenario and check it.
+---Fly one scenario and check it. A scenario that expects no drive flies with the autopilot's drive
+---switched off: a leg longer than the drive's shortest (about a minute of top speed) is driven, and
+---nothing avoids a rock under the drive, so a short flight past a rock is flown in normal flight.
 ---@param scenario AutoPilotScenario
 ---@param kind { name: string, autoPilot: boolean, make: fun(ship: table, world: Physics): AutoPilotFlyer } What flies it
 ---@return number|nil arrivedAt Seconds of simulated time the flight took; nil when it did not arrive
 function AutoPilotTest:run(scenario, kind)
+    local autoPilot = Config.game.autoPilot
+    local driveEnabled = autoPilot.enableTravelDrive
+    if not scenario.drive then autoPilot.enableTravelDrive = false end
+    local arrivedAt = self:fly(scenario, kind)
+    autoPilot.enableTravelDrive = driveEnabled
+    return arrivedAt
+end
+
+---The flight of `run`, with the drive's setting as the scenario wants it.
+---@param scenario AutoPilotScenario
+---@param kind { name: string, autoPilot: boolean, make: fun(ship: table, world: Physics): AutoPilotFlyer }
+---@return number|nil arrivedAt
+function AutoPilotTest:fly(scenario, kind)
     local name = kind.name .. ", " .. scenario.name .. ": "
     local length = math.sqrt(DIRECTION.x ^ 2 + DIRECTION.y ^ 2 + DIRECTION.z ^ 2)
     local well = scenario.well and self:buildWell(Position(WELL_ORBIT_RADIUS, 0, 0), BODY_RADIUS,

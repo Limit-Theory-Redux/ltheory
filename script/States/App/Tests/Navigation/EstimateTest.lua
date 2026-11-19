@@ -28,10 +28,11 @@ local MS_PER_S      = 1000
 -- Relative tolerance between two estimates that are computed the same way.
 local SAME = 1e-9
 
--- Distances, in game units. A flight beyond the drive's shortest leg for a point goal uses the drive.
+-- Distances, in game units. A flight beyond the drive's shortest leg (about 53 for the test ship, and
+-- twice `NEAR` is under it) uses the drive.
 local FAR       = 20000
-local NEAR      = 40
-local BODY_AT   = 140
+local NEAR      = 20
+local BODY_AT   = 80
 local BODY_RADIUS = 25
 -- The cost zone on the line: its place along it, radius and cost per unit of length.
 local ZONE_AT, ZONE_RADIUS, ZONE_COST = 5000, 400, 2.5
