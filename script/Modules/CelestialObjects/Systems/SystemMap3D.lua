@@ -1,19 +1,21 @@
-local CoreComponents       = require("Modules.Core.Components")
-local PhysicsComponents    = require("Modules.Physics.Components")
-local SpatialComponents    = require("Modules.Spatial.Components")
-local UniverseScaleConfig  = require("Config.Gen.UniverseScaleConfig")
-local DrawEx               = require("UI.DrawEx")
-local EntityPosition       = require("Shared.Helpers.EntityPosition")
-local Registry             = require("Core.ECS.Registry")
-local CelestialComponents  = require("Modules.CelestialObjects.Components")
-local ConstructsComponents = require("Modules.Constructs.Components")
-local Primitive            = require("Legacy.Systems.Gen.Primitive")
-local CameraEntity         = require("Modules.Cameras.Entities").Camera
-local CameraManager        = require("Modules.Cameras.Managers.CameraManager")
-local CameraDataComponent  = require("Modules.Cameras.Components.CameraDataComponent")
-local RenderCoreSystem     = require("Modules.Rendering.Systems.RenderCoreSystem")
-local Pipelines            = require("Render.Pipelines")
-local ffi                  = require("ffi")
+local CoreComponents           = require("Modules.Core.Components")
+local PhysicsComponents        = require("Modules.Physics.Components")
+local SpatialComponents        = require("Modules.Spatial.Components")
+local UniverseScaleConfig      = require("Config.Gen.UniverseScaleConfig")
+local DrawEx                   = require("UI.DrawEx")
+local EntityPosition           = require("Shared.Helpers.EntityPosition")
+local ScreenProjection         = require("Shared.Helpers.ScreenProjection")
+local RouteOverlayRenderSystem = require("Modules.UI.Systems.RouteOverlayRenderSystem")
+local Registry                 = require("Core.ECS.Registry")
+local CelestialComponents      = require("Modules.CelestialObjects.Components")
+local ConstructsComponents     = require("Modules.Constructs.Components")
+local Primitive                = require("Legacy.Systems.Gen.Primitive")
+local CameraEntity             = require("Modules.Cameras.Entities").Camera
+local CameraManager            = require("Modules.Cameras.Managers.CameraManager")
+local CameraDataComponent      = require("Modules.Cameras.Components.CameraDataComponent")
+local RenderCoreSystem         = require("Modules.Rendering.Systems.RenderCoreSystem")
+local Pipelines                = require("Render.Pipelines")
+local ffi                      = require("ffi")
 
 --- What the map draws, per kind marker. Asteroids only matter up close: their scale is small,
 --- so they cluster into a dot at system zoom.
@@ -63,24 +65,25 @@ function SystemMap3D:create(config)
         lastMouseX   = 0,
         lastMouseY   = 0,
         entities     = {},
-        selected     = nil,
-        shipEntity   = nil,
-        maxOrbit     = 1,
-        focusX       = 0,
-        focusY       = 0,
-        focusZ       = 0,
-        focusTargetX = 0,
-        focusTargetY = 0,
-        focusTargetZ = 0,
-        trails       = {},
-        trailMeshes  = {},
-        trailDirty   = false,
-        trailLen     = 300,
-        trailTimer   = 0,
-        trailInterval = 0.033,
+        selected         = nil,
+        shipEntity       = nil,
+        autopilotOverlay = nil, -- the autopilot's target, route and progress for `RouteOverlayRenderSystem`, or nil
+        maxOrbit         = 1,
+        focusX           = 0,
+        focusY           = 0,
+        focusZ           = 0,
+        focusTargetX     = 0,
+        focusTargetY     = 0,
+        focusTargetZ     = 0,
+        trails           = {},
+        trailMeshes      = {},
+        trailDirty       = false,
+        trailLen         = 300,
+        trailTimer       = 0,
+        trailInterval    = 0.033,
         -- Camera
-        cameraEntity = cam,
-        prevCamera   = nil, -- to restore when map closes
+        cameraEntity     = cam,
+        prevCamera       = nil, -- to restore when map closes
     }
 end
 
@@ -256,24 +259,15 @@ function SystemMap3D:updateInput(state, dt)
 
     -- Click to select
     if MapActions.Select:isPressed() then
-        local scrW = Window:width()
-        local scrH = Window:height()
-        local mV = state._mView
-        local mP = state._mProj
-        local focusPos = state._focusPos or Position(0, 0, 0)
-
-        if not mV or not mP then goto skip_click end
+        local projector = state._projector
+        if not projector then goto skip_click end
 
         local bestDist = 900
         local bestEntry = nil
         for _, entry in ipairs(state.entities) do
             if entry.isMoon and state.radius > 0.02 then goto next_sel end
-            local rel = entry.pos:relativeTo(focusPos)
-            local vp = mV:mulVec(Vec4f(rel.x, rel.y, rel.z, 1.0))
-            local cp = mP:mulVec(vp)
-            if cp.w <= 0 then goto next_sel end
-            local screenX = (cp.x / cp.w + 1) * 0.5 * scrW
-            local screenY = (1 - cp.y / cp.w) * 0.5 * scrH
+            local screenX, screenY = ScreenProjection.toScreen(projector, entry.pos)
+            if not screenX then goto next_sel end
             local dx = mp.x - screenX
             local dy = mp.y - screenY
             local d = dx * dx + dy * dy
@@ -358,6 +352,12 @@ function SystemMap3D:updateCamera(state)
     local camEyeVec = Vec3f(sphereOffset.x, sphereOffset.y, sphereOffset.z)
     state._mView = Matrix.LookAt(camEyeVec, Vec3f(0, 0, 0), Vec3f(0, 1, 0))
     state._mProj = Matrix.Perspective(60, sx / sy, camDist * 0.001, camDist * 1000)
+    -- The same matrices as a projector (points relative to the focus), reused each frame
+    local projector = state._projector or {}
+    projector.view, projector.proj = state._mView, state._mProj
+    projector.origin = focusReal
+    projector.x, projector.y, projector.w, projector.h = 0, 0, sx, sy
+    state._projector = projector
     state._camDist = camDist
     state._norm = norm
     state._focusPos = focusReal
@@ -398,7 +398,9 @@ function SystemMap3D:renderOverlay(state, x, y, sx, sy)
     local camDist = state._camDist or (state.radius * state.maxOrbit)
     local mView = state._mView
     local mProj = state._mProj
-    if not mView or not mProj then return end
+    local projector = state._projector
+    if not mView or not mProj or not projector then return end
+    projector.x, projector.y, projector.w, projector.h = x, y, sx, sy
 
     -- Draw trails in overlay (additive, using trail shader)
     local trailShader = Cache.Shader('hologram3d', 'ui/trail3d')
@@ -471,16 +473,9 @@ function SystemMap3D:renderOverlay(state, x, y, sx, sy)
         local rbCmp = entry.entity:get(PhysicsComponents.RigidBody)
         if rbCmp and rbCmp:getRigidBody() then entry.pos = rbCmp:getRigidBody():getPos() end
 
-        -- Position relative to camera focus (f64 subtraction, then f32)
-        local focusPos = state._focusPos or Position(0, 0, 0)
-        local rel = entry.pos:relativeTo(focusPos)
-
-        local vp = mView:mulVec(Vec4f(rel.x, rel.y, rel.z, 1.0))
-        local cp = mProj:mulVec(vp)
-        if cp.w <= 0 then goto next_lbl end
-
-        local screenX = x + (cp.x / cp.w + 1) * 0.5 * sx
-        local screenY = y + (1 - cp.y / cp.w) * 0.5 * sy
+        -- Relative to the camera focus (f64 subtraction, then f32)
+        local screenX, screenY = ScreenProjection.toScreen(projector, entry.pos)
+        if not screenX then goto next_lbl end
 
         if screenX > x and screenX < x + sx and screenY > y and screenY < y + sy then
             local c = entry.color
@@ -490,6 +485,11 @@ function SystemMap3D:renderOverlay(state, x, y, sx, sy)
                 c.r, c.g, c.b, isSelected and 1.0 or 0.8, 0.0, 0.5)
         end
         ::next_lbl::
+    end
+
+    -- The autopilot's target, next waypoint and route, through the map's projection
+    if state.autopilotOverlay then
+        RouteOverlayRenderSystem:draw(state.autopilotOverlay, ScreenProjection.toScreen, projector)
     end
 
     DrawEx.TextAdditive('Unageo-Medium',

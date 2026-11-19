@@ -1,13 +1,14 @@
-local CoreComponents        = require("Modules.Core.Components")
-local PhysicsComponents     = require("Modules.Physics.Components")
-local SpatialComponents     = require("Modules.Spatial.Components")
-local CelestialComponents   = require("Modules.CelestialObjects.Components")
-local UniverseScaleConfig   = require("Config.Gen.UniverseScaleConfig")
-local DrawEx                = require("UI.DrawEx")
-local ConstructsComponents  = require("Modules.Constructs.Components")
-local Registry              = require("Core.ECS.Registry")
-local EntityPosition        = require("Shared.Helpers.EntityPosition")
-local Pipelines             = require("Render.Pipelines")
+local CoreComponents           = require("Modules.Core.Components")
+local PhysicsComponents        = require("Modules.Physics.Components")
+local SpatialComponents        = require("Modules.Spatial.Components")
+local CelestialComponents      = require("Modules.CelestialObjects.Components")
+local UniverseScaleConfig      = require("Config.Gen.UniverseScaleConfig")
+local DrawEx                   = require("UI.DrawEx")
+local ConstructsComponents     = require("Modules.Constructs.Components")
+local Registry                 = require("Core.ECS.Registry")
+local EntityPosition           = require("Shared.Helpers.EntityPosition")
+local Pipelines                = require("Render.Pipelines")
+local RouteOverlayRenderSystem = require("Modules.UI.Systems.RouteOverlayRenderSystem")
 
 -- Scratch color for the shapes below (the batcher copies it at the call).
 local shapeColor = Color(0, 0, 0, 0)
@@ -16,11 +17,15 @@ local shapeColor = Color(0, 0, 0, 0)
 local dotState = { blend = BlendMode.Alpha }
 local dotParamsType
 
--- A route leg shorter than this on screen is not drawn.
-local MIN_LEG_PIXELS = 5
-
 local function formatDistance(gameUnits)
     return UniverseScaleConfig:formatDistance(gameUnits)
+end
+
+--- The map's top-down mapping for `RouteOverlayRenderSystem`: world x to screen x, world z to screen y.
+---@param mapping table { state, cx, cy }
+local function mapToScreen(mapping, pos)
+    local state = mapping.state
+    return mapping.cx + (pos.x + state.panX) * state.zoom, mapping.cy + (pos.z + state.panY) * state.zoom
 end
 
 --- What the map draws, per kind marker. A belt and a ring share the belt drawing (annulus + dots).
@@ -55,10 +60,7 @@ function SystemMap:create(config)
         entities   = {},
         shipEntity = nil,
         selected   = nil,    -- currently selected entity entry
-        autopilotTargetPos = nil, -- the autopilot's target (Position or nil)
-        autopilotRoute = nil,     -- the path the autopilot has left (Position[], `Nav.route`) or nil
-        autopilotProgress = nil,  -- the order's progress (`OrderProgressComponent`) or nil
-        autopilotPlanning = false, -- is the path still being planned?
+        autopilotOverlay = nil,   -- the autopilot's target, route and progress for `RouteOverlayRenderSystem`, or nil
         dragging   = false,
         lastMouseX = 0,
         lastMouseY = 0,
@@ -592,32 +594,17 @@ function SystemMap:draw(state, x, y, sx, sy)
         ::next_map_entity::
     end
 
-    -- Draw autopilot nav: target marker + intercept marker + lines
-    -- Target marker (yellow crosshair on actual target)
-    if state.autopilotTargetPos then
-        local tp = state.autopilotTargetPos
-        local tpx = cx + (tp.x + state.panX) * state.zoom
-        local tpy = cy + (tp.z + state.panY) * state.zoom
-        local ms = 6
-        DrawEx.SimpleRect(tpx - ms, tpy - 0.5, ms * 2, 1, Color(1.0, 0.8, 0.3, 0.9))
-        DrawEx.SimpleRect(tpx - 0.5, tpy - ms, 1, ms * 2, Color(1.0, 0.8, 0.3, 0.9))
-        DrawEx.TextAlpha('Unageo-Medium', "TARGET", 9,
-            tpx + ms + 2, tpy - 5, 80, 12, 1.0, 0.8, 0.3, 0.9, 0.0, 0.5)
+    -- The autopilot's target, next waypoint, route and distance/ETA, in the map's top-down mapping
+    local overlay = state.autopilotOverlay
+    if overlay then
+        local mapping = state._mapping or {}
+        state._mapping = mapping
+        mapping.state, mapping.cx, mapping.cy = state, cx, cy
+        RouteOverlayRenderSystem:draw(overlay, mapToScreen, mapping)
     end
-    -- Next waypoint marker (cyan, only if it is not the target itself)
-    local route = state.autopilotRoute
-    if route and #route >= 2 then
-        local np = route[1]
-        local npx = cx + (np.x + state.panX) * state.zoom
-        local npy = cy + (np.z + state.panY) * state.zoom
-        local ms = 4
-        DrawEx.SimpleRect(npx - ms, npy - 0.5, ms * 2, 1, Color(0.3, 0.8, 1.0, 0.7))
-        DrawEx.SimpleRect(npx - 0.5, npy - ms, 1, ms * 2, Color(0.3, 0.8, 1.0, 0.7))
-        DrawEx.TextAlpha('Unageo-Medium', "NEXT", 8,
-            npx + ms + 2, npy - 5, 80, 10, 0.3, 0.8, 1.0, 0.7, 0.0, 0.5)
-    end
+
     -- Selection marker (when no autopilot, just map selection)
-    if not state.autopilotTargetPos and state.selected and state.selected.clickPos then
+    if not (overlay and overlay.targetPos) and state.selected and state.selected.clickPos then
         local cp = state.selected.clickPos
         local cpx = cx + (cp.x + state.panX) * state.zoom
         local cpy = cy + (cp.z + state.panY) * state.zoom
@@ -626,50 +613,6 @@ function SystemMap:draw(state, x, y, sx, sy)
         DrawEx.SimpleRect(cpx - 0.5, cpy - ms, 1, ms * 2, Color(1.0, 0.8, 0.3, 0.9))
         DrawEx.TextAlpha('Unageo-Medium', "SELECTED", 9,
             cpx + ms + 2, cpy - 5, 80, 12, 1.0, 0.8, 0.3, 0.9, 0.0, 0.5)
-    end
-
-    if route and #route > 0 and state.shipEntity then
-        local shipRb = state.shipEntity:get(PhysicsComponents.RigidBody)
-        if shipRb and shipRb:getRigidBody() then
-            local shipPos = shipRb:getRigidBody():getPos()
-            local shipSX = cx + (shipPos.x + state.panX) * state.zoom
-            local shipSY = cy + (shipPos.z + state.panY) * state.zoom
-
-            -- Yellow line: ship → actual target position
-            if state.autopilotTargetPos then
-                local tp = state.autopilotTargetPos
-                local tSX = cx + (tp.x + state.panX) * state.zoom
-                local tSY = cy + (tp.z + state.panY) * state.zoom
-                local tLen = math.sqrt((tSX-shipSX)^2 + (tSY-shipSY)^2)
-                if tLen > 5 then
-                    DrawEx.Line(shipSX, shipSY, tSX, tSY, Color(1.0, 0.8, 0.3, 0.2))
-                end
-            end
-
-            -- White polyline: ship → the route's points to the goal
-            local fromX, fromY = shipSX, shipSY
-            local firstLeg
-            for i = 1, #route do
-                local p = route[i]
-                local toX = cx + (p.x + state.panX) * state.zoom
-                local toY = cy + (p.z + state.panY) * state.zoom
-                if (toX - fromX) ^ 2 + (toY - fromY) ^ 2 > MIN_LEG_PIXELS ^ 2 then
-                    DrawEx.Line(fromX, fromY, toX, toY, Color(1.0, 1.0, 1.0, 0.6))
-                    firstLeg = firstLeg or { shipSX, shipSY, toX, toY }
-                    fromX, fromY = toX, toY
-                end
-            end
-
-            -- Distance and ETA left to the goal, as the order reports them, at the first leg's midpoint
-            local progress = state.autopilotProgress
-            if firstLeg and progress then
-                local timeStr = state.autopilotPlanning and "PLANNING"
-                    or ("ETA " .. UniverseScaleConfig:formatDuration(progress.eta))
-                DrawEx.TextAlpha('Unageo-Medium', formatDistance(progress.distanceLeft) .. " | " .. timeStr, 10,
-                    (firstLeg[1] + firstLeg[3]) * 0.5 - 60, (firstLeg[2] + firstLeg[4]) * 0.5 - 14, 200, 12,
-                    1.0, 1.0, 1.0, 0.8, 0.5, 0.5)
-            end
-        end
     end
 
     -- Draw selected entity info panel

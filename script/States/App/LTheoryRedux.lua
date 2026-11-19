@@ -9,55 +9,58 @@ LimitTheoryRedux = require('States.Application')
 
 -- Sound / persistence
 local SoundManager = require('Legacy.Systems.SFX.SoundManager')
-local MusicPlayer = require('Shared.Audio.MusicPlayer')
-local InitFiles = require('Legacy.Systems.Files.InitFiles')
+local MusicPlayer  = require('Shared.Audio.MusicPlayer')
+local InitFiles    = require('Legacy.Systems.Files.InitFiles')
 local UserSettings = require('Shared.UserSettings')
 
 -- UI pages (HmGui): the Main_Menu page before a game, the Gameplay page in
 -- game (In_Game view with the HUD text, Paused and Controls views for the pause
 -- menu). The maps and world labels are still drawn by the state's onRender
 -- through the rendering systems.
-local UIRouter = require('UI.HmGui.UICore.UIRouter')
-local UIPageMainMenu = require('UI.HmGui.Pages.MainMenu')
-local UIPageGameplay = require('UI.HmGui.Pages.Gameplay')
-local UIViewInGame = require('UI.HmGui.Views.Gameplay.InGame')
+local UIRouter            = require('UI.HmGui.UICore.UIRouter')
+local UIPageMainMenu      = require('UI.HmGui.Pages.MainMenu')
+local UIPageGameplay      = require('UI.HmGui.Pages.Gameplay')
+local UIViewInGame        = require('UI.HmGui.Views.Gameplay.InGame')
 local ApplicationBindings = require('States.ApplicationBindings')
 
 -- ECS registry, physics/construct/celestial components, camera manager,
 -- render core, player controller, and the simulation systems the scene
 -- runs on.
-local Registry                = require('Core.ECS.Registry')
-local CoreComponents          = require('Modules.Core.Components')
-local PhysicsComponents       = require('Modules.Physics.Components')
-local ConstructComponents     = require('Modules.Constructs.Components')
-local CelestialComponents     = require('Modules.CelestialObjects.Components')
-local CameraManager           = require('Modules.Cameras.Managers.CameraManager')
-local CameraEntity            = require('Modules.Cameras.Entities').Camera
-local RenderCoreSystem        = require('Modules.Rendering.Systems.RenderCoreSystem')
-local PlayerController        = require('Modules.Constructs.Systems.PlayerController')
-local AutoPilotSystem         = require('Modules.Constructs.Systems.AutoPilotSystem')
-local Nav                     = require('Modules.Navigation')
-local ShipFlightSystem        = require('Modules.Constructs.Systems.ShipFlightSystem')
-local TravelDriveSystem       = require('Modules.Constructs.Systems.TravelDriveSystem')
-local GravityWellSystem       = require('Modules.Physics.Systems.GravityWellSystem')
-local CelestialLightingSystem = require('Modules.Rendering.Systems.CelestialLightingSystem')
-local LensFlareSystem         = require('Modules.Rendering.Systems.LensFlareSystem')
-local WorldLabelRenderSystem  = require('Modules.UI.Systems.WorldLabelRenderSystem')
-local AsteroidFieldSystem     = require('Modules.CelestialObjects.Systems.AsteroidFieldSystem')
-local GeneralActions          = require('Input.ActionBindings.GeneralActions')
-local CursorManager           = require('Input.CursorManager')
-local Rulesets                = require('Config.Gen.Rulesets')
-local UniverseManager         = require('Modules.CelestialObjects.Managers.UniverseManager')
-local SolarSystemVisualizer   = require('Modules.CelestialObjects.Managers.SolarSystemVisualizer')
-local CoordinateRebaser       = require('Modules.CelestialObjects.Managers.CoordinateRebaser')
-local OrbitalSystem           = require('Modules.CelestialObjects.Systems.OrbitalSystem')
-local SystemMap               = require('Modules.CelestialObjects.Systems.SystemMap')
-local SystemMap3D             = require('Modules.CelestialObjects.Systems.SystemMap3D')
-local MemoryReporter          = require('Modules.Profiling.MemoryReporter')
-local ConstructManager        = require('Modules.Constructs.Managers.ConstructManager')
-local StationGenerator        = require('Modules.Constructs.Managers.Generators.StationGenerator')
-local WeaponCombatSystem      = require('Modules.Constructs.Systems.WeaponCombatSystem')
-local ExplosionEffectSystem   = require('Modules.Constructs.Systems.ExplosionEffectSystem')
+local Registry                 = require('Core.ECS.Registry')
+local CoreComponents           = require('Modules.Core.Components')
+local PhysicsComponents        = require('Modules.Physics.Components')
+local ConstructComponents      = require('Modules.Constructs.Components')
+local CelestialComponents      = require('Modules.CelestialObjects.Components')
+local CameraManager            = require('Modules.Cameras.Managers.CameraManager')
+local CameraEntity             = require('Modules.Cameras.Entities').Camera
+local RenderCoreSystem         = require('Modules.Rendering.Systems.RenderCoreSystem')
+local PlayerController         = require('Modules.Constructs.Systems.PlayerController')
+local AutoPilotSystem          = require('Modules.Constructs.Systems.AutoPilotSystem')
+local Nav                      = require('Modules.Navigation')
+local ShipFlightSystem         = require('Modules.Constructs.Systems.ShipFlightSystem')
+local TravelDriveSystem        = require('Modules.Constructs.Systems.TravelDriveSystem')
+local GravityWellSystem        = require('Modules.Physics.Systems.GravityWellSystem')
+local CelestialLightingSystem  = require('Modules.Rendering.Systems.CelestialLightingSystem')
+local LensFlareSystem          = require('Modules.Rendering.Systems.LensFlareSystem')
+local WorldLabelRenderSystem   = require('Modules.UI.Systems.WorldLabelRenderSystem')
+local RouteOverlayRenderSystem = require('Modules.UI.Systems.RouteOverlayRenderSystem')
+local ScreenProjection         = require('Shared.Helpers.ScreenProjection')
+local EntityPosition           = require('Shared.Helpers.EntityPosition')
+local AsteroidFieldSystem      = require('Modules.CelestialObjects.Systems.AsteroidFieldSystem')
+local GeneralActions           = require('Input.ActionBindings.GeneralActions')
+local CursorManager            = require('Input.CursorManager')
+local Rulesets                 = require('Config.Gen.Rulesets')
+local UniverseManager          = require('Modules.CelestialObjects.Managers.UniverseManager')
+local SolarSystemVisualizer    = require('Modules.CelestialObjects.Managers.SolarSystemVisualizer')
+local CoordinateRebaser        = require('Modules.CelestialObjects.Managers.CoordinateRebaser')
+local OrbitalSystem            = require('Modules.CelestialObjects.Systems.OrbitalSystem')
+local SystemMap                = require('Modules.CelestialObjects.Systems.SystemMap')
+local SystemMap3D              = require('Modules.CelestialObjects.Systems.SystemMap3D')
+local MemoryReporter           = require('Modules.Profiling.MemoryReporter')
+local ConstructManager         = require('Modules.Constructs.Managers.ConstructManager')
+local StationGenerator         = require('Modules.Constructs.Managers.Generators.StationGenerator')
+local WeaponCombatSystem       = require('Modules.Constructs.Systems.WeaponCombatSystem')
+local ExplosionEffectSystem    = require('Modules.Constructs.Systems.ExplosionEffectSystem')
 
 -- Skybox. This state also draws from the light-transport nebula, which the
 -- Legacy namespace load used to register.
@@ -68,6 +71,10 @@ require('Shared.Generation.Nebula2')
 local Scenarios = require('Config.Scenarios')
 
 local rng = RNG.FromTime()
+
+-- Reused every frame: the autopilot's overlay for the maps and the flight view, and the flight view's projector.
+local autopilotOverlay = {}
+local flightProjector = {}
 
 -- Scene tuning: spawn placement + station layout for this state. Camera
 -- defaults and ship scale live in the generic game config (orbitCamera,
@@ -870,6 +877,28 @@ function LimitTheoryRedux:spawnStations()
     end
 end
 
+--- Fills the autopilot's overlay (target, route, progress) from the player's order and hands it to both
+--- maps. Returns it, or nil while the autopilot is off.
+---@return table|nil
+function LimitTheoryRedux:updateAutopilotOverlay()
+    local ship = self.playerShip
+    local targetPos = AutoPilotSystem:getTargetPosition(ship)
+    if not targetPos then
+        self.mapState.autopilotOverlay = nil
+        self.map3DState.autopilotOverlay = nil
+        return nil
+    end
+    local overlay = autopilotOverlay
+    overlay.targetPos = targetPos
+    overlay.route = AutoPilotSystem:getRoute(ship, overlay.route)
+    overlay.progress = AutoPilotSystem:getProgress(ship)
+    overlay.planning = AutoPilotSystem:isPlanning(ship)
+    overlay.shipPos = EntityPosition.Get(ship)
+    self.mapState.autopilotOverlay = overlay
+    self.map3DState.autopilotOverlay = overlay
+    return overlay
+end
+
 ---@param data EventData
 function LimitTheoryRedux:onRender(data)
     if not self.playerShip then
@@ -887,6 +916,7 @@ function LimitTheoryRedux:onRender(data)
     end
 
     CelestialLightingSystem:update(self.starEntity)
+    local overlay = self:updateAutopilotOverlay()
 
     -- The HUD text (In_Game view) hides with the HUD toggle and in the 3D map.
     UIViewInGame:setHudShown(not self.hudHidden and self.mapMode ~= 2)
@@ -939,20 +969,12 @@ function LimitTheoryRedux:onRender(data)
             end
 
             if self.mapMode == 1 then
-                local tPos = AutoPilotSystem:getTargetPosition(self.playerShip)
-                local mapState = self.mapState
-                mapState.autopilotTargetPos = tPos
-                if tPos then
-                    mapState.autopilotRoute = AutoPilotSystem:getRoute(self.playerShip, mapState.autopilotRoute)
-                    mapState.autopilotProgress = AutoPilotSystem:getProgress(self.playerShip)
-                    mapState.autopilotPlanning = AutoPilotSystem:isPlanning(self.playerShip)
-                else
-                    mapState.autopilotRoute = nil
-                    mapState.autopilotProgress = nil
-                    mapState.autopilotPlanning = false
-                end
                 SystemMap:collectEntities(self.mapState, self.playerShip)
                 SystemMap:draw(self.mapState, 0, 0, Window:width(), Window:height())
+            elseif overlay and showHud and overlay.route and #overlay.route > 0 then
+                -- Flight view: a marker on the next waypoint
+                RouteOverlayRenderSystem:drawNextMarker(
+                    ScreenProjection.active(flightProjector), overlay.route[1], overlay.shipPos)
             end
         end)
     end
