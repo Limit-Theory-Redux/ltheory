@@ -41,9 +41,9 @@ if Nav.status(order) == Enums.NavOrderStatus.Done then Nav.release(order) end
 
 Every spec also takes `priority`, a level of `Nav.Priority` (`Routine`, `Urgent`, `Combat`; `Routine` when `nil`). See [Queue and status](#queue-and-status).
 
-A MoveTo flies the path of the [system planner](system-planner.md#consumers): in normal flight while the plan is out, then the plan's corners with the travel drive on its drive legs, then the approach, as the autopilot does (`PlanFlight` is the code they share). The plan is made again when something it was made under changes: see [Replanning](#replanning).
+A MoveTo flies the path of the [system planner](system-planner.md#consumers): in normal flight while the plan is out, then the plan's corners with the travel drive on its drive legs, then the approach (`PlanFlight`, see [ship flight control](../flight.md#writers)). The plan is made again when something it was made under changes: see [Replanning](#replanning).
 
-A MoveTo to an entity doesn't lead a moving target; the autopilot does. A target the plan doesn't ride (a ship) that moves far makes the plan again.
+A MoveTo to an entity doesn't lead a moving target. A target the plan doesn't ride (a ship) that moves far makes the plan again.
 
 ### Approach specs
 
@@ -134,7 +134,13 @@ One of three owners writes a ship's control input; the strongest that wants it w
 
 The owner is kept in a `ControlOwnerComponent` on the ship and is decided when what a writer wants changes, not every frame. When the owner changes, the input is reset once: the axes are zeroed, the drive's speed cap is lifted and the travel drive is told to disengage. A new owner that wants the drive requests it again. A writer that is not the owner must not write the ship's input; the order system never does, and it takes the ship's agent out of the world while another owner has the ship. A claimer writes the six axes (and the drive requests) itself each frame, as the player controller does. See [ship flight control](../flight.md#control-ownership).
 
-`Nav.order` on a claimed or piloted ship queues the order and waits; the order begins when orders own the ship. The player's autopilot is a separate writer until it moves onto orders.
+`Nav.order` on a claimed or piloted ship queues the order and waits; the order begins when orders own the ship.
+
+### The player's autopilot
+
+The player's ship is flown by orders like any other, through `AutoPilotSystem` (`Modules/Constructs/Systems/`). `engage(ship, target, frame)` gives the ship a MoveTo of `Urgent` priority and takes manual input's want for the ship away, so orders own it; with an order already flying, it `Nav.retarget`s that order. A point target with a `frame` entity (a point on a belt, which moves with its planet) keeps its offset from that entity's body. The order flies to the point itself (a stand-off of 0), and to an entity's stand-off point.
+
+The order ends as any order does. `AutoPilotSystem` notices it once a frame, gives manual input its want back (the ownership reset zeroes the axes and stops the drive) and releases the order. A manual takeover (see [ship flight control](../flight.md#writers)) calls `disengage`: the order is cancelled and manual input owns the ship at once, so the player's keys act in the same frame; the order system ends the cancelled order at its next update. `Nav.attach` the scene's physics world before engaging, and `Nav.detach` it when the scene goes, which cancels the autopilot's order with the others.
 
 ## Estimates
 

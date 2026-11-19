@@ -51,9 +51,9 @@ function GameplayHUDSystem:draw(shipEntity, modeName, piloting)
     -- Read nav data from autopilot component
     local apLine
     if apActive then
-        local apCmp = shipEntity:get(ConstructComponents.AutoPilot)
-        local dist = apCmp and apCmp.distance or 0
-        local etaSec = apCmp and apCmp.eta or 0
+        local progress = AutoPilotSystem:getProgress(shipEntity)
+        local dist = progress and progress.distanceLeft or 0
+        local etaSec = progress and progress.eta or 0
         local distStr = UniverseScaleConfig:formatDistance(dist)
         local etaStr = ""
         if etaSec > 3600 then

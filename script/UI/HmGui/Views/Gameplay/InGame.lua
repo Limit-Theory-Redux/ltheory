@@ -126,11 +126,11 @@ local function updateAutopilot(ship)
         hud.autopilotText = ""
         return
     end
-    local cmp = ship:get(ConstructComponents.AutoPilot)
+    local progress = AutoPilotSystem:getProgress(ship)
     hud.autopilotText = string.format("AUTOPILOT  ›  %s  ·  %s%s  ·  N to cancel",
         targetName(AutoPilotSystem:getTargetName(ship)),
-        UniverseScaleConfig:formatDistance(cmp and cmp.distance or 0),
-        etaText(cmp and cmp.eta or 0))
+        UniverseScaleConfig:formatDistance(progress and progress.distanceLeft or 0),
+        etaText(progress and progress.eta or 0))
 end
 
 ------------------------------------------------------------------------------

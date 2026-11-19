@@ -1,11 +1,14 @@
--- Checks that the autopilot and a MoveTo order fly a ship through its control input, each scenario
--- twice with the same checks: they arrive at a point and at a body, with and without the travel
--- drive, stop outside the body's hull, steer around a rock on their course, and leave no axes behind.
+-- Checks that the player's autopilot, a MoveTo order given through `AutoPilotSystem`, flies a ship
+-- through its control input: it arrives at a point and at a body, with and without the travel
+-- drive, stops outside the body's hull, steers around a rock on its course, and gives the controls
+-- back to the player, with no axes left behind, and the order released.
 -- They also arrive at a planet whose orbit is faster than the ship's top speed, from inside the
 -- planet's gravity well, which carries the ship with the planet, and from outside it, where the travel
 -- drive runs on through the well's entry to the stand-off point. A drive flight among rocks logs the
--- time the update takes with and without sensing, and each scenario logs both arrival times.
+-- time the update takes with and without sensing, and each scenario logs its arrival time. Taking
+-- the controls by hand cancels the order, and a new engagement while one is on gives it a new target.
 -- Logs each failed check and ends with a failure exit code.
+
 local Application           = require("States.Application")
 local Registry              = require("Core.ECS.Registry")
 local PhysicsComponents     = require("Modules.Physics.Components")
@@ -13,6 +16,7 @@ local ConstructComponents   = require("Modules.Constructs.Components")
 local OrbitalSystem         = require("Modules.CelestialObjects.Systems.OrbitalSystem")
 local GravityWellSystem     = require("Modules.Physics.Systems.GravityWellSystem")
 local AutoPilotSystem       = require("Modules.Constructs.Systems.AutoPilotSystem")
+local ControlOwnerSystem    = require("Modules.Constructs.Systems.ControlOwnerSystem")
 local ShipFlightSystem      = require("Modules.Constructs.Systems.ShipFlightSystem")
 local TravelDriveSystem     = require("Modules.Constructs.Systems.TravelDriveSystem")
 local Nav                   = require("Modules.Navigation")
@@ -77,7 +81,13 @@ local PLANET_ORBIT_SPEEDUP = 0.01
 local PLANET_SAFE_FACTOR = Config.game.autoPilot.safeRadiusFactor.planet
 -- The wall-clock bound on waiting for a plan, in seconds: it turns a plan that never comes into a failure.
 local PLAN_WAIT_S        = 30
-local MS_PER_S           = 1000
+-- The handover runs: how far their points lie from the start, how long the ship flies before the
+-- player takes over or the target changes, and the bound on a flight to the new target. All in
+-- game units and seconds.
+local HANDOVER_DISTANCE     = 300
+local HANDOVER_FLIGHT_S     = 2
+local RETARGET_MAX_FLIGHT_S = 700
+local MS_PER_S              = 1000
 
 ---@class AutoPilotRock
 ---@field along number Share of the distance to the target, along the straight course from the start
@@ -90,7 +100,7 @@ local MS_PER_S           = 1000
 ---@field distance gameunit Distance of the target from the ship's start
 ---@field radius gameunit|nil Radius of a target body; nil for a bare point
 ---@field drive boolean Whether the travel drive is expected to engage
----@field maxFlight number Seconds of simulated time a flight may take to arrive: about 1.2 times what the slower flyer takes
+---@field maxFlight number Seconds of simulated time a flight may take to arrive: about 1.2 times what it takes
 ---@field rocks AutoPilotRock[]|nil Fixed spheres in the ship's way or beside it
 ---@field sensing boolean|nil False turns the autopilot's sensing off; the run is the baseline for its cost
 ---@field timed boolean|nil Whether the run's update times are logged, as a pair with `sensing` on and off
@@ -149,72 +159,43 @@ function AutoPilotTest:check(ok, what, detail)
     end
 end
 
----What flies the ship in a run, read through the same calls whatever it is, so that one set of checks
----judges both.
+---What flies the ship in a run, and the calls the checks read it through.
 ---@class AutoPilotFlyer
 ---@field name string
----@field engage fun(target: Entity|nil, targetPos: Position) Starts the flight to the entity, or to the point when there is none
----@field stopAt fun(): gameunit, gameunit The distance from the target's centre the flight stops at (the autopilot keeps its stand-off from a point too, an order flies to it), and how far from there counts as arrived
+---@field engage fun(target: Entity|nil, targetPos: Position) Starts the flight to the entity, or to the point when there is none; while a flight is on, gives it the new target
+---@field stopAt fun(): gameunit, gameunit The distance from the target's centre the flight stops at (0 for a point), and how far from there counts as arrived
 ---@field sensingOff fun() Turns the sensing of the flight's navigation world off
 ---@field flying fun(): boolean Whether the flight is still on
 ---@field arrived fun(): boolean Whether a flight that has ended ended at its goal
+---@field handedBack fun(): boolean Whether the player has the controls again and the order is released
 ---@field planning fun(): boolean Whether the plan has not come yet
 ---@field update fun(dt: number) The flight's update, which writes the ship's control input
 ---@field plan fun(): PlanFlightState|nil
 ---@field eta fun(): number Seconds the flight has left, by its own estimate
 ---@field finish fun() Ends the flight if it is on and lets go of what it holds
 
----The autopilot component of the ship flies it.
+---The player's autopilot flies the ship: a MoveTo order issued through `AutoPilotSystem`, flown by
+---the order system in a navigation world of its own.
 ---@param ship { entity: Entity }
 ---@param world Physics
 ---@return AutoPilotFlyer
-local function autopilotFlyer(ship, world)
-    local ap = ship.entity:get(ConstructComponents.AutoPilot)
-    ---@type Entity|nil
-    local flownTo
-    return {
-        name = "autopilot",
-        engage = function(target, targetPos)
-            flownTo = target
-            if target then
-                AutoPilotSystem:engageEntity(ship.entity, world, target)
-            else
-                AutoPilotSystem:engagePosition(ship.entity, world, targetPos)
-            end
-        end,
-        stopAt = function()
-            local radius = PlanFlight.targetRadius(flownTo)
-            return PlanFlight.standOff(radius), PlanFlight.arrivalRadius(radius)
-        end,
-        sensingOff = function() ap:getNav():setSensing(0) end,
-        flying = function() return ap:isActive() end,
-        arrived = function() return true end,
-        planning = function() return AutoPilotSystem:isPlanning(ship.entity) end,
-        update = function(dt) AutoPilotSystem:update(dt, ship.entity) end,
-        plan = function() return ap:getPlan() end,
-        eta = function() return ap.eta end,
-        finish = function()
-            if ap:isActive() then AutoPilotSystem:disengage(ship.entity) end
-        end,
-    }
-end
-
----A MoveTo order flies the ship, in a navigation world of its own.
----@param ship { entity: Entity }
----@param world Physics
----@return AutoPilotFlyer
-local function orderFlyer(ship, world)
+local function playerFlyer(ship, world)
     Nav.attach(world)
     local Status = Enums.NavOrderStatus
+    local ap = ship.entity:get(ConstructComponents.AutoPilot)
     ---@type Entity
     local order
     ---@type NavTarget
     local flownTo
+    -- How the order ended, read before the autopilot system releases it.
+    ---@type NavOrderStatusId|nil
+    local endedAs
     return {
-        name = "order",
+        name = "player autopilot",
         engage = function(target, targetPos)
             flownTo = target or targetPos
-            order = Nav.order(ship.entity, Nav.Orders.MoveTo { target = flownTo })
+            AutoPilotSystem:engage(ship.entity, flownTo)
+            order = ap:getOrder()
         end,
         stopAt = function()
             local goal = OrderGoals.moveTo(flownTo)
@@ -223,21 +204,27 @@ local function orderFlyer(ship, world)
         sensingOff = function()
             for _, navWorld in Registry:view(Nav.Components.NavWorld) do navWorld:getNav():setSensing(0) end
         end,
-        flying = function() return not order:get(Nav.Components.OrderStatus):hasEnded() end,
-        arrived = function() return Nav.status(order) == Status.Done end,
-        planning = function() return Nav.status(order) == Status.Planning end,
-        update = function(dt) Nav.update(dt) end,
+        flying = function() return AutoPilotSystem:isActive(ship.entity) end,
+        arrived = function() return endedAs == Status.Done end,
+        handedBack = function()
+            return ControlOwnerSystem:ownerOf(ship.entity) == Enums.ControlOwner.Manual
+                and not AutoPilotSystem:isActive(ship.entity) and #ap:getEnding() == 0 and not order:isValid()
+        end,
+        planning = function() return AutoPilotSystem:isPlanning(ship.entity) end,
+        update = function(dt)
+            Nav.update(dt)
+            if not endedAs and order:get(Nav.Components.OrderStatus):hasEnded() then endedAs = Nav.status(order) end
+            AutoPilotSystem:update()
+        end,
         plan = function()
-            local flight = order:get(Nav.Components.OrderFlight)
+            local flight = order:isValid() and order:get(Nav.Components.OrderFlight)
             return flight and flight.plan or nil
         end,
-        eta = function() return Nav.progress(order).eta end,
+        eta = function() return AutoPilotSystem:getProgress(ship.entity).eta end,
         finish = function()
-            if not order:get(Nav.Components.OrderStatus):hasEnded() then
-                Nav.cancel(order)
-                Nav.update(0)
-            end
-            Nav.release(order)
+            AutoPilotSystem:disengage(ship.entity)
+            Nav.update(0)
+            AutoPilotSystem:update()
             Nav.detach()
         end,
     }
@@ -245,17 +232,19 @@ end
 
 ---The ways a scenario is flown. `autoPilot`: the ship carries the autopilot component.
 local FLYERS = {
-    { name = "autopilot", autoPilot = true,  make = autopilotFlyer },
-    { name = "order",     autoPilot = false, make = orderFlyer },
+    { name = "player autopilot", autoPilot = true, make = playerFlyer },
 }
 
 ---A ship set up like the player ship, at `start`, with the autopilot component when `autoPilot`
----and, when `inWell`, a gravity well component that lets a zone carry it.
+---and, when `inWell`, a gravity well component that lets a zone carry it. The player pilots it:
+---manual input owns its controls.
 ---@param start Position
 ---@param inWell boolean|nil
 ---@param autoPilot boolean
 function AutoPilotTest:spawnShip(start, inWell, autoPilot)
-    return FlightScene.spawnShip(self.world, start, { inWell = inWell, autoPilot = autoPilot })
+    local ship = FlightScene.spawnShip(self.world, start, { inWell = inWell, autoPilot = autoPilot })
+    ControlOwnerSystem:setManual(ship.entity, true)
+    return ship
 end
 
 ---A planet of `radius` at `planetPos` on a circular orbit around a star, with a gravity well, whose
@@ -386,6 +375,19 @@ local function axesAreZero(input)
         and input:getPitch() == 0 and input:getYaw() == 0 and input:getRoll() == 0
 end
 
+---Wait for the plan of a flight that has just been engaged, from a worker. The ship is not stepped,
+---and `update` with no time passing only polls. The first update takes up the engagement.
+---@param flyer AutoPilotFlyer
+---@return boolean planned False when the wait ran out
+function AutoPilotTest:awaitPlan(flyer)
+    flyer.update(0)
+    local waitStart = InstantTime.Now()
+    while flyer.planning() and InstantTime.Now():durationSince(waitStart) < PLAN_WAIT_S * MS_PER_S do
+        flyer.update(0)
+    end
+    return not flyer.planning()
+end
+
 ---Fly one scenario and check it.
 ---@param scenario AutoPilotScenario
 ---@param kind { name: string, autoPilot: boolean, make: fun(ship: table, world: Physics): AutoPilotFlyer } What flies it
@@ -437,15 +439,8 @@ function AutoPilotTest:run(scenario, kind)
     local hull = ship.rb:getBoundingRadius()
     self:check(flyer.flying(), name .. "engaging starts the flight")
 
-    -- The plan comes from a worker: wait for it, so that every run flies the same way. The ship is
-    -- not stepped, and `update` with no time passing only polls. The first update takes up the
-    -- engagement.
-    flyer.update(0)
-    local waitStart = InstantTime.Now()
-    while flyer.planning() and InstantTime.Now():durationSince(waitStart) < PLAN_WAIT_S * MS_PER_S do
-        flyer.update(0)
-    end
-    self:check(not flyer.planning(), name .. "the plan comes")
+    -- The plan comes from a worker: wait for it, so that every run flies the same way.
+    self:check(self:awaitPlan(flyer), name .. "the plan comes")
 
     -- The first update writes the axes of a ship that is far from its goal and not facing it.
     flyer.update(STEP)
@@ -568,6 +563,7 @@ function AutoPilotTest:run(scenario, kind)
     self:check(math.abs(distance - standOff) <= arrivalRadius + hull, name .. "it arrives at the stand-off distance",
         string.format("%.1f against %.1f ± %.1f", distance, standOff, arrivalRadius))
     self:check(axesAreZero(input), name .. "disengaging leaves no axes")
+    self:check(flyer.handedBack(), name .. "the player has the controls again and the order is released")
     self:check(driveSeen == scenario.drive, name .. "the travel drive engages only when it should",
         string.format("drive seen %s", tostring(driveSeen)))
 
@@ -656,6 +652,78 @@ function AutoPilotTest:run(scenario, kind)
     return arrivedAt
 end
 
+---Where the handover runs fly: a point this far from the start, along `DIRECTION` or against it.
+---@param sign number 1 or -1
+---@return Position
+local function handoverPoint(sign)
+    local length = math.sqrt(DIRECTION.x ^ 2 + DIRECTION.y ^ 2 + DIRECTION.z ^ 2)
+    local reach = sign * HANDOVER_DISTANCE / length
+    return Position(DIRECTION.x * reach, DIRECTION.y * reach, DIRECTION.z * reach)
+end
+
+---The player takes the controls during a flight: the order is cancelled and released, the player
+---has the controls at once with no axes left from the autopilot, and engaging again starts a flight.
+function AutoPilotTest:runTakeover()
+    local name = "takeover: "
+    local ship = self:spawnShip(Position(0, 0, 0), false, true)
+    local input = ship.entity:get(ConstructComponents.ControlInput)
+    local flyer = playerFlyer(ship, self.world)
+    flyer.engage(nil, handoverPoint(1))
+    self:check(ControlOwnerSystem:ownerOf(ship.entity) == Enums.ControlOwner.Orders,
+        name .. "the order owns the ship's controls while it flies")
+    self:check(self:awaitPlan(flyer), name .. "the plan comes")
+    for _ = 1, math.floor(HANDOVER_FLIGHT_S / STEP) do self:step(flyer) end
+    self:check(not axesAreZero(input), name .. "the flight writes the control input")
+
+    AutoPilotSystem:disengage(ship.entity)
+    self:check(not flyer.flying(), name .. "disengaging ends the flight")
+    self:check(ControlOwnerSystem:ownerOf(ship.entity) == Enums.ControlOwner.Manual,
+        name .. "the player owns the controls at once")
+    self:check(axesAreZero(input), name .. "the autopilot's axes are cleared")
+    -- The order system ends the cancelled order at its next update; the autopilot system releases it.
+    self:step(flyer)
+    self:check(flyer.handedBack(), name .. "the cancelled order is released")
+    for _ = 1, math.floor(HANDOVER_FLIGHT_S / STEP) do self:step(flyer) end
+    self:check(axesAreZero(input), name .. "nothing writes the input once the player has the controls")
+
+    flyer.engage(nil, handoverPoint(-1))
+    self:check(flyer.flying(), name .. "engaging again starts a flight")
+    self:check(ControlOwnerSystem:ownerOf(ship.entity) == Enums.ControlOwner.Orders,
+        name .. "the new order owns the controls")
+    flyer.finish()
+    self:despawn(ship, nil, {})
+end
+
+---Engaging while the autopilot flies gives its order a new target, and the ship flies to it.
+function AutoPilotTest:runRetarget()
+    local name = "retarget: "
+    local ship = self:spawnShip(Position(0, 0, 0), false, true)
+    local ap = ship.entity:get(ConstructComponents.AutoPilot)
+    local flyer = playerFlyer(ship, self.world)
+    flyer.engage(nil, handoverPoint(1))
+    local order = ap:getOrder()
+    self:check(self:awaitPlan(flyer), name .. "the first plan comes")
+    for _ = 1, math.floor(HANDOVER_FLIGHT_S / STEP) do self:step(flyer) end
+
+    local newTarget = handoverPoint(-1)
+    flyer.engage(nil, newTarget)
+    self:check(ap:getOrder() == order, name .. "the flight keeps its order")
+    local goal = AutoPilotSystem:getTargetPosition(ship.entity)
+    self:check(goal ~= nil and goal:distance(newTarget) < STOPPED, name .. "the order has the new target")
+    self:check(self:awaitPlan(flyer), name .. "the new plan comes")
+    local flownFor = 0
+    while flyer.flying() and flownFor < RETARGET_MAX_FLIGHT_S do
+        self:step(flyer)
+        flownFor = flownFor + STEP
+    end
+    local _, arrivalRadius = flyer.stopAt()
+    self:check(flyer.arrived(), name .. "it arrives", string.format("%.0f s", flownFor))
+    self:check(ship.rb:getPos():distance(newTarget) <= arrivalRadius + ship.rb:getBoundingRadius(),
+        name .. "it arrives at the new target")
+    flyer.finish()
+    self:despawn(ship, nil, {})
+end
+
 function AutoPilotTest:onInit()
     self.passed, self.failed = 0, 0
     -- Mean update time of the timed runs, in milliseconds, by what flew and whether sensing was on.
@@ -682,6 +750,9 @@ function AutoPilotTest:onInit()
                 means.on - means.off, kind.name, means.on, means.off)
         end
     end
+
+    self:runTakeover()
+    self:runRetarget()
 
     Log.Info("ConstructsAutoPilotTest: %d checks passed, %d failed", self.passed, self.failed)
     self:quit(self.failed == 0 and Core.ExitCode.Success or Core.ExitCode.Failure)

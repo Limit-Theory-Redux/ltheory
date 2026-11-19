@@ -32,7 +32,7 @@ B             -- when in startup mode (not flight mode), generate a new backgrou
 H             -- while held down, increase game processing speed
 K             -- toggle the realtime metrics overlay on/off
 L             -- toggle the dynamic lighting on/off (default is OFF, heavy performance cost!)
-M             -- toggle autopilot: click on target (world view or System Map), then press this key to fly there
+M             -- toggle autopilot: click on target (world view or System Map), then press this key to fly there; thrust, roll, boost, the travel drive and fire take the controls back
 P             -- pause and unpause the game (flight mode)
 Ctrl-W        -- immediately exit game
 Alt-Q         -- immediately exit game

@@ -19,6 +19,9 @@ local UserSettings                = require("Shared.UserSettings")
 
 -- Fire input above this stops the travel drive.
 local FIRE_THRESHOLD           = 0.5
+-- Thrust, roll and boost input beyond this takes the controls from the autopilot: a key gives 1,
+-- and the margin keeps a stick that rests off centre from taking them.
+local TAKEOVER_THRESHOLD       = 0.3
 -- Aiming dead zones, as fractions of the full axis.
 local AIM_DEAD_ZONE_YAW        = 0.004
 local AIM_DEAD_ZONE_PITCH      = 0.008
@@ -324,27 +327,41 @@ function PlayerController:writeAxes(dt, input)
     input:setPitch(pitch)
 end
 
---- Update the player controller: writes the ship's control input (call each frame at PreSim, before the actuation systems)
+--- Whether the player asks for the controls this frame: a thrust, roll, boost, fire or travel-drive
+--- key. The cursor doesn't count, since in the chase mode its position steers.
+---@return boolean
+local function takesTheControls()
+    for _, action in ipairs({ ShipActions.ThrustX, ShipActions.ThrustY, ShipActions.ThrustZ,
+                              ShipActions.Roll, ShipActions.Boost }) do
+        if math.abs(action:get()) > TAKEOVER_THRESHOLD then return true end
+    end
+    return ShipActions.Fire:get() > FIRE_THRESHOLD or ShipActions.TravelDrive:isPressed()
+end
+
+--- Update the player controller: writes the ship's control input while the player owns it (call
+--- each frame at PreSim, before the actuation systems)
 ---@param dt number Delta time
 function PlayerController:update(dt)
     for _, binding in pairs(ShipActions) do
         binding:update(dt)
     end
 
-    -- The drive is requested even with the map open: the ship keeps moving.
-    local input = self.ship:get(ConstructComponents.ControlInput)
-    if input then
-        self:requestDrive(input)
+    -- The autopilot's order flies the ship while it owns the controls (even with the map open);
+    -- the player's keys cancel it, and then fly the ship in this same frame.
+    AutoPilotSystem:update()
+    if AutoPilotSystem:isActive(self.ship) and self:isPiloting() and not self.inputBlocked
+        and takesTheControls() then
+        AutoPilotSystem:disengage(self.ship)
     end
+    local input = self.ship:get(ConstructComponents.ControlInput)
+    local manual = input ~= nil and ControlOwnerSystem:ownerOf(self.ship) == Enums.ControlOwner.Manual
 
-    -- AutoPilot always updates (even with map open — ship keeps navigating). While it flies, it
-    -- owns the axes: it has just written them, and nothing here may clear or overwrite them.
-    AutoPilotSystem:update(dt, self.ship)
-    local autoPiloted = AutoPilotSystem:isActive(self.ship)
+    -- The drive is requested even with the map open: the ship keeps moving.
+    if manual then self:requestDrive(input) end
 
     -- Don't process other input when blocked (map open, menu, etc.)
     if self.inputBlocked then
-        if input and not autoPiloted then input:clearAxes() end
+        if manual then input:clearAxes() end
         return
     end
 
@@ -354,8 +371,8 @@ function PlayerController:update(dt)
         self:cycleMode()
     end
 
-    -- Manual flight only when piloting AND not on autopilot
-    if input and not autoPiloted then
+    -- Manual flight only when piloting AND the player owns the controls (not the autopilot)
+    if manual then
         if self:isPiloting() then
             self:writeAxes(dt, input)
         else
@@ -374,7 +391,10 @@ end
 ---@param shipEntity Entity
 function PlayerController:setShip(shipEntity)
     -- The old ship must not keep flying on its last input: giving up its controls resets them.
-    if self.ship then ControlOwnerSystem:setManual(self.ship, false) end
+    if self.ship and self.ship:isValid() then
+        AutoPilotSystem:disengage(self.ship)
+        ControlOwnerSystem:setManual(self.ship, false)
+    end
 
     self.ship = shipEntity
     ControlOwnerSystem:setManual(shipEntity, true)

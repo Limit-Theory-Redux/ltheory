@@ -46,4 +46,4 @@ Both read the orbit data, never the parent's rigid body. A rigid body moved with
 
 The rigid body moves over the next physics step, so the app calls `update` and then steps the physics world with the same `dt`. Physics then sees each body's velocity: contacts push dynamic bodies, and `RigidBody:getVelocity()` reports the motion (the average over the last step, which differs from `velocity(entity, 0)` by a part of the order of `(angularSpeed · dt)²`). See [Physics](../engine/physics.md#kinematic-bodies).
 
-Code that tracks a moving body (the autopilot's lead prediction) reads the body's velocity from its rigid body.
+Code that tracks a moving body reads the body's velocity from its rigid body.

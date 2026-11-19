@@ -36,6 +36,7 @@ local CameraEntity            = require('Modules.Cameras.Entities').Camera
 local RenderCoreSystem        = require('Modules.Rendering.Systems.RenderCoreSystem')
 local PlayerController        = require('Modules.Constructs.Systems.PlayerController')
 local AutoPilotSystem         = require('Modules.Constructs.Systems.AutoPilotSystem')
+local Nav                     = require('Modules.Navigation')
 local ShipFlightSystem        = require('Modules.Constructs.Systems.ShipFlightSystem')
 local TravelDriveSystem       = require('Modules.Constructs.Systems.TravelDriveSystem')
 local GravityWellSystem       = require('Modules.Physics.Systems.GravityWellSystem')
@@ -388,6 +389,7 @@ function LimitTheoryRedux:startGame(seed, scenario)
     self.world = Physics.Create()
     self.world:setLengthUnit(Config.game.physics.lengthUnit)
     self.world:setContactNaturalFrequency(Config.game.physics.contactNaturalFrequency)
+    self:attachNavigation()
     self.constructManager = ConstructManager(Registry, self.world)
     -- Every armed ship's weapons (WeaponBattery) run through this
     self.weaponCombat = WeaponCombatSystem(self.world)
@@ -588,12 +590,26 @@ function LimitTheoryRedux:orbitDistances(radius)
     }
 end
 
+--- Give the game's physics world a navigation world, which flies the orders the ships are given
+--- (the player's autopilot among them).
+function LimitTheoryRedux:attachNavigation()
+    Nav.attach(self.world)
+    self.navAttached = true
+end
+
 --- Remove what a game built: the scenario's things, the stations, the star
 --- system and (unless kept) the player's ship.
 ---@param keepShip boolean|nil
 function LimitTheoryRedux:destroyScene(keepShip)
     if self.scenario and self.scenario.teardown then
         self.scenario.teardown(self)
+    end
+    -- The orders end while the ships' bodies are still in the physics world; the autopilot lets go
+    -- of its ended order.
+    if self.navAttached then
+        Nav.detach()
+        self.navAttached = false
+        AutoPilotSystem:update()
     end
     -- Beams, projectiles and effect lights, before the ships they came from
     if self.weaponCombat then
@@ -917,16 +933,12 @@ function LimitTheoryRedux:onRender(data)
             end
 
             if self.mapMode == 1 then
-                local ap = self.playerShip:get(ConstructComponents.AutoPilot)
-                if ap and ap:isActive() then
-                    local tPos = ap:getTargetPos()
-                    local tEnt = ap:getTargetEntity()
-                    if tEnt then
-                        local tRb = tEnt:get(PhysicsComponents.RigidBody)
-                        if tRb and tRb:getRigidBody() then tPos = tRb:getRigidBody():getPos() end
-                    end
+                local tPos = AutoPilotSystem:getTargetPosition(self.playerShip)
+                if tPos then
+                    -- The map marks where the ship steers now: the plan's next corner, else the target
+                    local progress = AutoPilotSystem:getProgress(self.playerShip)
                     self.mapState.autopilotTargetPos = tPos
-                    self.mapState.autopilotPos = ap.interceptPos or tPos
+                    self.mapState.autopilotPos = progress and progress.nextWaypoint or tPos
                 else
                     self.mapState.autopilotPos = nil
                     self.mapState.autopilotTargetPos = nil
@@ -1007,12 +1019,11 @@ function LimitTheoryRedux:onInput(data)
             if GeneralActions.AutoPilotToggle:isPressed() and self.mapState.selected then
                 local sel = self.mapState.selected
                 if sel.clickPos then
-                    local parentEnt = sel._parentEntity
-                    local localX = sel._clickLocalX
-                    local localZ = sel._clickLocalZ
-                    AutoPilotSystem:engagePosition(self.playerShip, self.world, sel.clickPos, nil, parentEnt, localX, localZ)
+                    -- A point on a belt keeps its place on the planet it goes round
+                    local frame = sel._clickLocalX and sel._parentEntity or nil
+                    AutoPilotSystem:engage(self.playerShip, sel.clickPos, frame)
                 else
-                    AutoPilotSystem:engageEntity(self.playerShip, self.world, sel.entity)
+                    AutoPilotSystem:engage(self.playerShip, sel.entity)
                 end
                 self.mapMode = 0
                 self.mapState.enabled = false
@@ -1022,7 +1033,7 @@ function LimitTheoryRedux:onInput(data)
             SystemMap3D:updateInput(self.map3DState, dt)
 
             if GeneralActions.AutoPilotToggle:isPressed() and self.map3DState.selected then
-                AutoPilotSystem:engageEntity(self.playerShip, self.world, self.map3DState.selected.entity)
+                AutoPilotSystem:engage(self.playerShip, self.map3DState.selected.entity)
                 self.mapMode = 0
                 self.map3DState.enabled = false
                 SystemMap3D:deactivate(self.map3DState)
@@ -1131,6 +1142,7 @@ end
 --- The second half of `regenerate`: build the scene again.
 function LimitTheoryRedux:finishRegenerate()
     self.rng = RNG.Create(self.seed)
+    self:attachNavigation()
     self:buildScene()
     self.player:setShip(self.playerShip)
     UIViewInGame:setPlayer(self.player)

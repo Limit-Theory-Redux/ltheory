@@ -2,70 +2,37 @@ local Component = require("Core.ECS.Component")
 
 ---@class AutoPilotComponent: Component
 ---@overload fun(): AutoPilotComponent
+--- What the player's autopilot flies: the MoveTo order it issued to the ship, and the entity it
+--- was given as the target (for its name). Both are nil while the autopilot is off. A cancelled
+--- order stays in `ending` until the order system has ended it, so that it can be released.
 local AutoPilotComponent = Subclass("AutoPilotComponent", Component, function(self)
     self:setComponentName("AutoPilot")
 
-    self._active       = false
-    self._targetEntity = nil
-    self._targetPos    = nil     -- Position (f64)
-    self._arrivalRange = 500
-    self._elapsed      = 0
-    self._localOffsetX = nil     -- for tracking targets on orbiting bodies
-    self._localOffsetZ = nil
-    self._parentEntity = nil
-
-    -- The navigation of one engagement: a `NavWorld` with the ship as its only agent, and the
-    -- buffers its results are copied into. All nil while the autopilot is off.
-    self._nav          = nil     -- NavWorld
-    self._agent        = nil     -- the ship's agent id in `_nav`
-    self._axes         = nil     -- double[NavWorld.AxisCount()]
-    self._arrived      = nil     -- bool[1]
-
-    -- The engagement's path plan: its phase, the snapshot it was made from, the follower of its
-    -- corners (see `PlanFlight`). Nil while the autopilot is off.
-    self._plan         = nil
-
-    -- Computed nav data (written by AutoPilotSystem, read by map/HUD)
-    self.interceptPos  = nil     -- predicted intercept position
-    self.distance      = 0       -- distance to target
-    self.eta           = 0       -- estimated time of arrival (seconds)
-    self.targetVelX    = 0       -- the tracked target's velocity
-    self.targetVelY    = 0
-    self.targetVelZ    = 0
+    self._order        = nil     -- Entity: the MoveTo order
+    self._targetEntity = nil     -- Entity: the target of the order, nil for a point
+    self._ending       = {}      -- Entity[]: cancelled orders that have not ended yet
 end)
 
--- GETTERS
-function AutoPilotComponent:isActive()         return self._active end
+---@return boolean
+function AutoPilotComponent:isActive()         return self._order ~= nil end
+---@return Entity|nil
+function AutoPilotComponent:getOrder()         return self._order end
+---@return Entity|nil
 function AutoPilotComponent:getTargetEntity()  return self._targetEntity end
-function AutoPilotComponent:getTargetPos()     return self._targetPos end
-function AutoPilotComponent:getArrivalRange()  return self._arrivalRange end
-function AutoPilotComponent:getElapsed()       return self._elapsed end
-function AutoPilotComponent:getNav()           return self._nav end
-function AutoPilotComponent:getAgent()         return self._agent end
-function AutoPilotComponent:getAxes()          return self._axes end
-function AutoPilotComponent:getArrived()       return self._arrived end
-function AutoPilotComponent:getPlan()          return self._plan end
-function AutoPilotComponent:setPlan(v)         self._plan = v end
+---@return Entity[]
+function AutoPilotComponent:getEnding()        return self._ending end
 
--- SETTERS
-function AutoPilotComponent:setActive(v)        self._active = v end
-function AutoPilotComponent:setTargetEntity(v)  self._targetEntity = v end
-function AutoPilotComponent:setTargetPos(v)     self._targetPos = v end
-function AutoPilotComponent:setArrivalRange(v)  self._arrivalRange = v end
-function AutoPilotComponent:setElapsed(v)       self._elapsed = v end
-
---- Keep the navigation of an engagement and its result buffers.
----@param nav NavWorld
----@param agent integer
----@param axes ffi.cdata*
----@param arrived ffi.cdata*
-function AutoPilotComponent:setNavigation(nav, agent, axes, arrived)
-    self._nav, self._agent, self._axes, self._arrived = nav, agent, axes, arrived
+--- Keep the order of an engagement and its target.
+---@param order Entity
+---@param targetEntity Entity|nil Nil when the target is a point
+function AutoPilotComponent:setEngagement(order, targetEntity)
+    self._order, self._targetEntity = order, targetEntity
 end
 
---- Drop the navigation of the engagement.
-function AutoPilotComponent:clearNavigation()
-    self._nav, self._agent, self._axes, self._arrived = nil, nil, nil, nil
+--- Let go of the engagement, and wait for its order to end.
+function AutoPilotComponent:endEngagement()
+    if self._order then self._ending[#self._ending + 1] = self._order end
+    self._order, self._targetEntity = nil, nil
 end
 
 --- Get target name for HUD display
@@ -73,7 +40,7 @@ end
 function AutoPilotComponent:getTargetName()
     if self._targetEntity then
         return tostring(self._targetEntity)
-    elseif self._targetPos then
+    elseif self._order then
         return "Position"
     end
     return ""
