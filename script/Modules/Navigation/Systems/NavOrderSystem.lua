@@ -14,6 +14,8 @@ local ProgressWatch       = require("Shared.Helpers.ProgressWatch")
 local PlannerSnapshot     = require("Shared.Helpers.PlannerSnapshot")
 local CostZones           = require("Shared.Helpers.CostZones")
 local NavZoneSystem       = require("Modules.Navigation.Systems.NavZoneSystem")
+local NavRateSystem       = require("Modules.Navigation.Systems.NavRateSystem")
+local Stagger             = require("Shared.Helpers.Stagger")
 
 local Phase   = PlanFlight.Phase
 local Status  = Enums.NavOrderStatus
@@ -79,10 +81,6 @@ local FOLLOW_LEAVE_FACTOR = 2
 -- from the line to the centre; otherwise from the ship's own up axis.
 local PLANE_SPEED_SHARE = 0.05
 local PLANE_MIN_SINE = 0.1
-
--- Each order's refresh timer is offset by `(id × STAGGER_STEP) mod 1` of the period. The golden ratio
--- conjugate spreads consecutive ids evenly over the period, however many there are.
-local STAGGER_STEP = 0.6180339887498949
 
 ---@return gameunit
 local function followJoinRange()
@@ -266,6 +264,7 @@ local function detachAgent(world, ship)
     world:getNav():removeAgent(agent:getSlot())
     world:unassign(agent:getSlot())
     ship:remove(Components.NavAgent)
+    ship:remove(Components.NavRate)
 end
 
 ---Tells the travel drive to stop, if orders own the ship's input.
@@ -394,6 +393,8 @@ local function beginOrder(world, head)
     flight.advanced = false
     -- The agent outlasts an order, so a facing left by the order before is not this order's.
     world:getNav():clearFacing(head.slot)
+    -- Nor is a detour held from it.
+    world:getNav():refresh(head.slot)
     if not head.handler then
         world:getNav():setHold(head.slot, NavConfig.pointArrival())
         head.order:get(Components.OrderStatus):setStatus(Status.Active)
@@ -447,13 +448,6 @@ local function notePlanned(head, flight, delay)
     flight.replanDue = false
 end
 
----The share of the period an order's first refresh is put off by, from its id.
----@param orderId integer
----@return number In [0, 1)
-local function staggerOf(orderId)
-    return (orderId * STAGGER_STEP) % 1
-end
-
 ---Makes a new plan for the goal, dropping the one that was flown: the ship flies straight to the goal
 ---until it comes. A plan that was being flown and is made again is announced when `announce`.
 ---@param world NavWorldComponent
@@ -466,10 +460,12 @@ local function startPlan(world, head, key, announce)
     if PlanFlight.onArc(flight.plan) then world:getNav():setSpeedCap(head.slot, math.huge) end
     dropPlans(flight)
     flight.plan = beginPlan(head)
+    -- The ship's course changes: the detour held for the old goal is not for this one.
+    world:getNav():refresh(head.slot)
     flight.plannedGoalKey = key
     flight.refreshedLegs = 0
     -- The first refresh waits one period and a share of another, which keeps orders begun together apart.
-    notePlanned(head, flight, NavConfig.replanPeriodS * (1 + staggerOf(head.order.id)))
+    notePlanned(head, flight, NavRateSystem.replanPeriodS(head.ship) * (1 + Stagger.of(head.order.id)))
     -- The stall check measures a new plan from the start.
     flight.watchedLeg = nil
     if announce then EventBus:dispatch(Event[FLIGHT_EVENTS.replanned], head.order.id) end
@@ -480,7 +476,7 @@ end
 ---@param flight OrderFlightComponent
 ---@param announce boolean Whether the replacement is announced
 local function requestRefresh(head, flight, announce)
-    notePlanned(head, flight, NavConfig.replanPeriodS)
+    notePlanned(head, flight, NavRateSystem.replanPeriodS(head.ship))
     flight.refreshedLegs = flight.plan.legs
     local fresh = beginPlan(head)
     -- With the ship in range of the goal there is nothing to plan.
@@ -783,6 +779,7 @@ local NavOrderSystem = Class("NavOrderSystem", function(self)
         EventBus:register(Event[name], name, FrameStage.PostSim)
     end
     self.zones = NavZoneSystem()
+    self.rates = NavRateSystem()
     EventBus:subscribe(Event.PreSim, self, self.onPreSim)
 end)
 
@@ -817,9 +814,10 @@ end
 
 ---Steps the world and copies what it computed.
 ---@param world NavWorldComponent
-local function stepWorld(world)
+---@param dt number Seconds
+local function stepWorld(world, dt)
     local nav = world:getNav()
-    nav:step()
+    nav:step(dt)
     nav:copyArrived(world:getArrived(), nav:slotCount())
     nav:copyAxes(world:getAxes(), nav:slotCount() * NavWorld.AxisCount())
 end
@@ -839,9 +837,10 @@ function NavOrderSystem:update(dt)
         if head.facing then aimFacing(world, head) end
         if head.handler and not head.order:get(Components.OrderStatus):hasEnded() then aimGoal(world, head, dt) end
     end
-    self.zones:update()
+    local changed = self.zones:update()
+    self.rates:update(world, dt, heads, changed)
     if not world:hasAgents() then return end
-    stepWorld(world)
+    stepWorld(world, dt)
 
     for _, head in ipairs(heads) do
         if not head.order:get(Components.OrderStatus):hasEnded() then

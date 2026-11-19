@@ -204,12 +204,46 @@ function NavWorld:clearBehaviour(id) end
 ---@param aimFactor number
 function NavWorld:setAvoidanceTuning(horizonS, clearanceRadii, aimFactor) end
 
--- Reads every agent and tracked body from physics, senses obstacles, and computes each
--- agent's control axes and arrival.
+-- Sets how often the agent's avoidance, and the sensing it needs, runs, in seconds; 0 (the
+-- default) runs it at every step. The behaviour, the controller and the arrival test run at
+-- every step either way, and between runs the agent keeps the detour the last run gave it.
+-- Agents with one period run in different steps. A goal change doesn't bring the next run
+-- forward: call [`refresh`](NavWorld::refresh) for that.
 --
 -- # Panics
--- If an agent's body or a tracked body has left the physics world.
-function NavWorld:step() end
+-- If `id` isn't an agent, or `seconds` is negative or not finite.
+---@param id integer
+---@param seconds number
+function NavWorld:setAvoidancePeriod(id, seconds) end
+
+-- Makes the agent's avoidance run at the next step and drops the detour it kept. Call it when
+-- the agent's goal changes to somewhere else, so the new course isn't flown on the old
+-- detour; the goal setters don't, because a caller may repeat them every frame.
+--
+-- # Panics
+-- If `id` isn't an agent.
+---@param id integer
+function NavWorld:refresh(id) end
+
+-- The distance (game units) from the agent's centre within which it senses bodies now, from
+-- its velocity relative to its frame: the longer it takes to stop, the farther it looks. It
+-- is the range [`step`](NavWorld::step) queries, whatever the sensing mask.
+--
+-- # Panics
+-- If `id` isn't an agent, or its body has left the physics world.
+---@param id integer
+---@return number
+function NavWorld:sensingRange(id) end
+
+-- Reads every agent and tracked body from physics, senses obstacles for the agents whose
+-- avoidance is due, and computes each agent's control axes and arrival. `dt` is the time in
+-- seconds since the last step.
+--
+-- # Panics
+-- If an agent's body or a tracked body has left the physics world, or `dt` is negative or
+-- not finite.
+---@param dt number
+function NavWorld:step(dt) end
 
 -- Copies the control axes of the last step into `out`: one value per axis for each slot, in
 -- slot order and in the order of `NavAxis`. A free slot's are zero.

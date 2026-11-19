@@ -352,6 +352,8 @@ end
 function PlanFlight.fly(plan, spec)
     local result = plan.result
     plan.result = nil
+    -- A new course: the detour held for the one before is not for it.
+    spec.nav:refresh(spec.agent)
     if not FLYABLE[result.status] then
         Log.Warn("PlanFlight: no usable plan (status %s%s), flying straight to the goal with no detours",
             tostring(result.status), result.error and (", " .. result.error) or "")

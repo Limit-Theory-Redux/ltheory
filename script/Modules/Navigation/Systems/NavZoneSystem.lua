@@ -47,12 +47,14 @@ end)
 ---@param rb RigidBody
 ---@param zones table<integer, { zone: Entity, radius: gameunit }>
 ---@param live table<EntityId, true>
+---@return boolean changed Whether the ship entered or left a zone
 local function checkShip(ship, rb, zones, live)
     local membership = ship:get(Components.ZoneMembership)
     if not membership then
         membership = Components.ZoneMembership()
         ship:add(membership)
     end
+    local changed = false
     local position = rb:getPos()
     for _, entry in ipairs(zones) do
         local id = entry.zone.id
@@ -60,27 +62,33 @@ local function checkShip(ship, rb, zones, live)
         if inside ~= membership:isInside(id) then
             membership:setInside(id, inside)
             announce(inside and ZONE_EVENTS.entered or ZONE_EVENTS.left, ship, id)
+            changed = true
         end
     end
     for _, id in ipairs(membership:ids()) do
         if not live[id] then
             membership:setInside(id, false)
             announce(ZONE_EVENTS.left, ship, id)
+            changed = true
         end
     end
+    return changed
 end
 
 ---Announces the zones entered and left since the last update by the ships that have orders.
+---@return table<EntityId, true> changed The ships that entered or left a zone
 function NavZoneSystem:update()
     local zones, live = sphereZones()
+    local changed = {}
     for ship, queue in Registry:view(Components.OrderQueue) do
         local rb = OrderGoals.bodyOf(ship)
         if queue:count() > 0 and rb then
-            checkShip(ship, rb, zones, live)
+            if checkShip(ship, rb, zones, live) then changed[ship.id] = true end
         elseif ship:get(Components.ZoneMembership) then
             ship:remove(Components.ZoneMembership)
         end
     end
+    return changed
 end
 
 return NavZoneSystem

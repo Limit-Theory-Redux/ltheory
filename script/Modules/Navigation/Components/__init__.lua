@@ -16,4 +16,6 @@ return {
     NavAgent       = require("Modules.Navigation.Components.NavAgentComponent"),
     NavWorld       = require("Modules.Navigation.Components.NavWorldComponent"),
     ZoneMembership = require("Modules.Navigation.Components.ZoneMembershipComponent"),
+    NavRate        = require("Modules.Navigation.Components.NavRateComponent"),
+    NavRateClass   = require("Modules.Navigation.Components.NavRateClassComponent"),
 }

@@ -449,6 +449,29 @@ function NavigationSandbox:moveObstacles(t)
     end
 end
 
+---The avoidance period every ship of the scenario runs at, in seconds: the environment variable
+---`LTHEORY_NAV_UPDATE_PERIOD_S` if set, so one build can be run at several periods, else the
+---scenario's `updatePeriodS`, else 0 (avoidance at every step).
+---@return number
+function NavigationSandbox:updatePeriodS()
+    local override = os.getenv("LTHEORY_NAV_UPDATE_PERIOD_S")
+    if override then
+        local seconds = tonumber(override)
+        if not seconds or seconds < 0 then
+            error(string.format("LTHEORY_NAV_UPDATE_PERIOD_S must be zero or more seconds, got '%s'", override))
+        end
+        return seconds
+    end
+    return self.scenarios[self.scenarioIndex].updatePeriodS or 0
+end
+
+---Makes the ship an agent of the sandbox's `NavWorld`, at the scenario's avoidance period.
+---@param ship SandboxShip
+function NavigationSandbox:addAgent(ship)
+    ship.agent = NavAgentHelper.addShip(self.nav, ship.entity, ship.rb)
+    self.nav:setAvoidancePeriod(ship.agent, self:updatePeriodS())
+end
+
 ---Register the ships as agents in a `NavWorld` over the physics world, turn sensing on so the
 ---obstacles are found from physics, send each ship to its target, and allocate the buffers its
 ---results are copied into.
@@ -460,7 +483,7 @@ function NavigationSandbox:createNavigation()
         if ShipBehaviour.isOrdered(ship) then
             table.insert(ordered, ship)
         elseif ship.state == "flying" then
-            ship.agent = NavAgentHelper.addShip(self.nav, ship.entity, ship.rb)
+            self:addAgent(ship)
         end
     end
     -- The obstacles are kinematic bodies in the physics world, so sensing finds them in every
@@ -515,7 +538,7 @@ function NavigationSandbox:applyLifecycle()
     end
     for _, ship in ipairs(self.ships) do
         if ship.state == "pending" and self.simTime >= ship.spec.joinAtS then
-            ship.agent = NavAgentHelper.addShip(self.nav, ship.entity, ship.rb)
+            self:addAgent(ship)
             self:startShip(ship)
             -- Expecting a freed slot that doesn't exist (-1) fails the run too.
             local expected = ship.spec.joinsSlotOf and (self.ships[ship.spec.joinsSlotOf].freedSlot or -1)
@@ -662,6 +685,7 @@ function NavigationSandbox:applyToAgent(ship)
     elseif ship.route and self.arrived[ship.agent] then
         self.metrics:waypointReached(ship, self.simTime)
         self.nav:setArrive(ship.agent, ship.target, ScenarioMetrics.ARRIVAL_RANGE)
+        self.nav:refresh(ship.agent)
     end
     NavAgentHelper.writeAxes(self.axes, ship.agent, ship.input)
 end
@@ -672,7 +696,7 @@ function NavigationSandbox:onPreSim(data)
     if not self.metrics then return end
     self.metrics:recordFrame(data:deltaTime())
     local start = InstantTime.Now()
-    self.nav:step()
+    self.nav:step(data:deltaTime())
     self.stepMs = msSince(start)
     start = InstantTime.Now()
     self:applyNavigation()

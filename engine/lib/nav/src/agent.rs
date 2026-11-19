@@ -1,7 +1,7 @@
 use glam::DVec3;
 
 use crate::avoidance::Commitment;
-use crate::behaviour::Behaviour;
+use crate::behaviour::{Behaviour, Wanted};
 use crate::obstacle::ObstacleKey;
 
 /// Number of control axes the controller writes per agent.
@@ -212,6 +212,32 @@ pub(crate) struct Agent {
     pub commitment: Option<Commitment>,
     /// A world point the nose is to hold toward, instead of the behaviour's own facing.
     pub facing: Option<DVec3>,
+    /// Seconds between the runs of the agent's avoidance; 0 runs it at every step.
+    pub avoidance_period: f64,
+    /// The world's clock at which the agent's avoidance next runs; unused with a period of 0.
+    pub next_avoidance: f64,
+    /// The wanted course the last run of avoidance chose, kept for the steps between runs; `None`
+    /// when that run left the course as the behaviour wanted it.
+    pub held: Option<Wanted>,
+}
+
+impl Agent {
+    /// Whether the agent's avoidance runs when the world's clock reads `clock`.
+    pub(crate) fn is_due(&self, clock: f64) -> bool {
+        self.avoidance_period == 0.0 || clock >= self.next_avoidance
+    }
+
+    /// Schedules the next run of avoidance after one at `clock`: a period after the last due
+    /// time, which keeps the agent's stagger, or after `clock` if the steps were longer than a
+    /// period.
+    pub(crate) fn scheduled_after_run(&mut self, clock: f64) {
+        let next = self.next_avoidance + self.avoidance_period;
+        self.next_avoidance = if next > clock {
+            next
+        } else {
+            clock + self.avoidance_period
+        };
+    }
 }
 
 #[cfg(test)]

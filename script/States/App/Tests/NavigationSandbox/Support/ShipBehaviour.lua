@@ -204,6 +204,7 @@ end
 local function seekPoint(nav, ship)
     local b = ship.behaviour
     nav:setSeek(ship.agent, ship.target, b.passRadius, b.passSpeed)
+    nav:refresh(ship.agent)
 end
 
 ---Where a ship tracking a moving point is to be now, in the sandbox's own terms.
@@ -266,6 +267,7 @@ local function arriveAtGoal(nav, ship, radius)
     else
         nav:setArrive(ship.agent, goal.offset, radius)
     end
+    nav:refresh(ship.agent)
 end
 
 ---The point a ship flown by orders is shown to fly to: where its MoveTo goes, the last point of its
@@ -714,6 +716,7 @@ function ShipBehaviour.advance(nav, ship, arrived, simTime, rules, metrics)
             b.phase = "arrive"
             ship.target = Metres.position(ship.spec.target)
             nav:setArrive(ship.agent, ship.target, rules.range)
+            nav:refresh(ship.agent)
         else
             ship.target = b.points[b.pointIndex]
             seekPoint(nav, ship)
@@ -724,6 +727,7 @@ function ShipBehaviour.advance(nav, ship, arrived, simTime, rules, metrics)
         ship.target = Position(at.x, at.y, at.z)
         b.phase = "switched"
         nav:setHold(ship.agent, rules.range)
+        nav:refresh(ship.agent)
         metrics:log("%s holds at %.0f m/s, %.2f s", ship.label, Metres.toMetres(speed), simTime)
     end
 end

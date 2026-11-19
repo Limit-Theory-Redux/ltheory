@@ -231,6 +231,8 @@ end
 ---@param listener PlanFollowerListener
 function PlanFollower:nextPoint(time, listener)
     self.index = self.index + 1
+    -- The next leg is a new course: the detour held for the one before is not for it.
+    self.nav:refresh(self.agent)
     if not self.points[self.index] then
         self.finished = true
         listener:finished(time)

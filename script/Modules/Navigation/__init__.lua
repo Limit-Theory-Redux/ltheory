@@ -12,11 +12,12 @@ local Systems             = require("Modules.Navigation.Systems")
 local EstimateRequest     = require("Shared.Helpers.EstimateRequest")
 local NavEstimate         = require("Shared.Helpers.NavEstimate")
 local NavEstimateClient   = require("Shared.Helpers.NavEstimateClient")
+local NearbyBodies        = require("Shared.Helpers.NearbyBodies")
 
 local Kind = Enums.NavOrderKind
 
 -- The collision mask the navigation world senses obstacles with: every collision group.
-local SENSING_MASK = 0xFFFFFFFF
+local SENSING_MASK = NearbyBodies.ALL_GROUPS
 
 ---@class Nav
 local Nav = { Components = Components, Orders = {}, Priority = Enums.NavOrderPriority }
@@ -174,11 +175,6 @@ function Nav.discardEstimates(request)
     NavEstimateClient.discard(request)
 end
 
----One body near a ship.
----@class NavNeighbour
----@field entity Entity
----@field distance gameunit From the ship's centre to the neighbour's surface
-
 ---The entities whose bodies lie within `radius` of the ship's centre, nearest first: the same
 ---bodies, found through the same physics query index, that avoidance senses. The ship itself is left
 ---out, and so is a body with no entity. The positions are those of the last physics update.
@@ -188,25 +184,8 @@ end
 ---@return NavNeighbour[]
 function Nav.neighbours(ship, radius, filter)
     assert(worldEntity, "Nav.neighbours: there is no navigation world (Nav.attach it)")
-    local rb = ship:get(PhysicsComponents.RigidBody)
-    assert(rb, "Nav.neighbours: the ship has no rigid body")
-    rb = rb:getRigidBody()
-    local found = worldEntity:get(Components.NavWorld):getPhysics()
-        :queryRadius(rb:getPos(), radius, rb, SENSING_MASK)
-    local neighbours, seen = {}, {}
-    for i = 0, found.len - 1 do
-        local id = tonumber(found.ids[i])
-        -- A body with several colliders is listed once for each; the nearest comes first.
-        if id ~= 0 and not seen[id] then
-            seen[id] = true
-            local entity = Registry:getEntityById(id)
-            local distance = found.distances[i]
-            if entity and entity.id ~= ship.id and (not filter or filter(entity, distance)) then
-                neighbours[#neighbours + 1] = { entity = entity, distance = distance }
-            end
-        end
-    end
-    return neighbours
+    assert(ship:get(PhysicsComponents.RigidBody), "Nav.neighbours: the ship has no rigid body")
+    return NearbyBodies.of(worldEntity:get(Components.NavWorld):getPhysics(), ship, radius, filter)
 end
 
 ---Runs one update of the order system, for an app that steps the simulation itself; a game

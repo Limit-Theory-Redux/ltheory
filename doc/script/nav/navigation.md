@@ -200,9 +200,34 @@ flowchart TD
 - **When a refresh is asked for.** Not while the ship is on an arc, and not while the travel drive is running or charging: the planner times a path from a ship at rest, so a plan asked for under a drive run would place the bodies late and cut the run short. The reasons stay due and the request goes out when the ship is clear. A request is also not sent when the ship is already within range of the goal.
 - **When it is taken.** A reply replaces the plan once the ship is off an arc. A reply is dropped as stale if the ship passed a corner since it was asked for, because the new plan's first corner would then be behind the ship; the reason stays due. A reply with no usable plan is dropped with a warning, and the old plan is flown on. A goal change or the end of the order drops a request that is out, and so does a change of profile or zones, which asks again.
 - **A refresh after each corner.** After a sharp corner is passed or an arc is flown, never in the middle of an arc.
-- **The timer.** `NavConfig.replanPeriodS`, and the first refresh is offset by a share of it taken from the order's id, so the requests of many orders spread over frames. A plan that flies straight (no plan was usable) is not refreshed by the timer.
+- **The timer.** The `replanPeriodS` of the ship's [rate class](#update-rate-classes), and the first refresh is offset by a share of it taken from the order's id (`Stagger.of`), so the requests of many orders spread over frames. A plan that flies straight (no plan was usable) is not refreshed by the timer.
 - **Zones.** `CostZones.signature` folds the zones' ids, path costs, radii and tags into one number. An order compares it with the one its plan was made under, so a change to any zone asks every flying order for a refresh, near the zone or not.
 - **Announcement.** The swap sends `NavOrderReplanned` for a goal change, a drift, a stall, a profile change or a zone change, and not for the timer or a corner. The stall also sends `NavOrderBlocked` ([Events](#events)). A swap while the first plan is still out is a drop, since there is no plan to keep flying.
+
+## Update-rate classes
+
+How often a ship's avoidance runs, and how often its plan is checked, follows what is around it: often near stations and in traffic, seldom in empty space. A ship that has an agent in the navigation world has a *rate class* (`Enums.NavRateClass`: `High`, `Normal`, `Low`; `NavRateComponent` holds it), and `NavConfig.rateClasses` gives each class two periods in seconds:
+
+| Class | `avoidancePeriodS` | `replanPeriodS` |
+|---|---|---|
+| High | 0 (every step) | 0.5 |
+| Normal | 0.02 | 1 |
+| Low | 0.05 | 2 |
+
+Only avoidance and its sensing run at the class rate ([update rate](../../engine/nav.md#update-rate)); the steering of the order, the controller and the arrival test run at every step. The class sets the agent's avoidance period when it changes, and the replan period is read when a plan is asked for. A ship that has not been judged yet has the Normal replan period.
+
+`NavRateSystem`, run by `NavOrderSystem` after the zones, judges a ship by the first of these that holds:
+
+1. **A rate zone.** A ship inside a zone entity that has a `NavRateClassComponent` has its class. Inside several, it has the highest rate of them. The component is how a designer marks a station, a gate or a point of interest.
+2. **Traffic.** At least `NavConfig.trafficShips` other ships (entities with a `ControlInputComponent`) within `NavConfig.trafficRadiusM`: High. The ships are found with the same physics query as [`Nav.neighbours`](#neighbours).
+3. **Empty space.** No body of any kind within the ship's sensing range (`NavWorld:sensingRange`, the range avoidance senses by): Low.
+4. Otherwise Normal.
+
+A ship is judged when it first has an agent, then every `NavConfig.rateJudgePeriodS`, the first of the later judgings put off by a share of it taken from the ship's id so that ships are not all judged in one frame, and at once when it enters or leaves a zone (the same check that sends the zone events). A change of class sets the new avoidance period and refreshes the agent, so a ship that was Low and meets a rock is not left on the long period until its next run. The class is dropped with the agent.
+
+An agent keeps the detour its last avoidance run found until the next run, so goal changes call `NavWorld:refresh`: a new order, a new plan, a new leg of a plan. A caller that steers an agent itself (a test, the sandbox) does the same when it sends the agent somewhere else, as a goal set again at every frame does not.
+
+The classes judge by where the ship is, not by what it does. A class for ships in combat, an AI's choice of class and the autopilot's class are not made.
 
 ## Events
 
@@ -238,4 +263,4 @@ The issuer releases an order. The system never destroys one, so a finished order
 
 ## Values
 
-`Config/Navigation/NavConfig.lua` holds what orders fly by, authored in metres and converted to game units on use: `pointArrivalM`, the distance from a point at which a ship has arrived, and `standOffRadii`, the stand-off in target radii of the default approach of a planet, a moon, an asteroid and any other entity. `estimateDetourFactor` is how much longer than the straight line an [estimate](#estimates) takes a flight to be. `blockedProgressM` and `blockedWindowS` are the [stall](#events) rule. `replanPeriodS` and `goalDriftShare` are the timer and the drift of a target in [replanning](#replanning).
+`Config/Navigation/NavConfig.lua` holds what orders fly by, authored in metres and converted to game units on use: `pointArrivalM`, the distance from a point at which a ship has arrived, and `standOffRadii`, the stand-off in target radii of the default approach of a planet, a moon, an asteroid and any other entity. `estimateDetourFactor` is how much longer than the straight line an [estimate](#estimates) takes a flight to be. `blockedProgressM` and `blockedWindowS` are the [stall](#events) rule. `goalDriftShare` is the drift of a target in [replanning](#replanning). `rateClasses`, `rateJudgePeriodS`, `trafficRadiusM` and `trafficShips` are the [update-rate classes](#update-rate-classes): the periods of each class, how often a ship is judged, and the radius and the count of ships that make traffic dense.

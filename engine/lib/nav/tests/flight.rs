@@ -152,7 +152,7 @@ fn fly_ship(
     while time < TIME_LIMIT_S {
         world.set_body(id, ship.body());
         world.set_obstacles(&obstacles);
-        world.step();
+        world.step(STEP_S);
         let axes = &world.axes()[id.index() * AXIS_COUNT..][..AXIS_COUNT];
         ship.apply(profile, axes);
         for obstacle in &mut obstacles {
@@ -320,7 +320,7 @@ fn fly_carried(tell_the_frame: bool) -> (Ship, Option<f64>) {
                 arrival_radius: ARRIVAL_RADIUS,
             })),
         );
-        world.step();
+        world.step(STEP_S);
         ship.apply(PROFILE, &world.axes()[..AXIS_COUNT]);
         ship.clearance = ship
             .clearance
@@ -551,7 +551,7 @@ fn crowd_ships_left_out(start_distance_m: f64) -> Vec<usize> {
         for (id, ship, _) in &ships {
             world.set_body(*id, ship.body());
         }
-        world.step();
+        world.step(STEP_S);
         for (id, ship, arrived) in &mut ships {
             let axes = &world.axes()[id.index() * AXIS_COUNT..][..AXIS_COUNT];
             ship.apply(profile(8800.0), axes);
@@ -630,7 +630,7 @@ fn fly_fleet_with(
                 turn_rate: ships[index].angular_velocity.length(),
             });
         }
-        world.step();
+        world.step(STEP_S);
         for (index, id) in ids.iter().enumerate() {
             let axes = &world.axes()[id.index() * AXIS_COUNT..][..AXIS_COUNT];
             ships[index].apply(profile, axes);

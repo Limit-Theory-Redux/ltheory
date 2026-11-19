@@ -229,12 +229,13 @@ end
 ---@param speed number Game units per second, relative to the carrying well
 ---@param targetPos Position
 ---@param zoneMax number
-local function flyPlan(ap, shipEntity, speed, targetPos, zoneMax)
+---@param dt number Seconds
+local function flyPlan(ap, shipEntity, speed, targetPos, zoneMax, dt)
     local plan = ap:getPlan()
     local rb = shipEntity:get(PhysicsComponents.RigidBody):getRigidBody()
     local nav, agent = ap:getNav(), ap:getAgent()
     NavAgentHelper.setFrameFromWell(nav, agent, shipEntity)
-    nav:step()
+    nav:step(dt)
     nav:copyArrived(ap:getArrived(), 1)
     plan.follower:advance(ap:getArrived()[0], speed, ap:getElapsed(), plan.listener, NavAgentHelper.isCarried(shipEntity))
     nav:copyAxes(ap:getAxes(), NavWorld.AxisCount())
@@ -315,7 +316,7 @@ function AutoPilotSystem:update(dt, shipEntity)
     ap:setElapsed(ap:getElapsed() + dt)
     if plan.snapshot then plan.snapshot:advance(dt) end
     if plan.phase == Phase.Plan then
-        flyPlan(ap, shipEntity, speed, targetPos, zoneMax)
+        flyPlan(ap, shipEntity, speed, targetPos, zoneMax, dt)
         return
     end
 
@@ -392,7 +393,7 @@ function AutoPilotSystem:update(dt, shipEntity)
     PlanFlight.setGoal(nav, agent, frameBody,
         PlanFlight.standOffGoal(shipPos, interceptPos, interceptDist, actualDist, safeRange), arrivalRadius)
     NavAgentHelper.setFrameFromWell(nav, agent, shipEntity)
-    nav:step()
+    nav:step(dt)
     nav:copyArrived(ap:getArrived(), 1)
     if ap:getArrived()[0] then
         Log.Info("AutoPilot: arrived at destination (dist=%.0f, safe=%.0f)", dist, safeRange)

@@ -42,11 +42,12 @@ impl Sequence {
     }
 }
 
-fn scene() -> World {
+fn scene(avoidance_period: f64) -> World {
     let mut sequence = Sequence(1);
     let mut world = World::new();
     for _ in 0..AGENTS {
         let id = world.add_agent(PROFILE);
+        world.set_avoidance_period(id, avoidance_period);
         world.set_body(
             id,
             Body {
@@ -80,13 +81,14 @@ const DENSE_LENGTH: f64 = 10_000.0;
 
 /// Every agent flies the same way through a field of obstacles lying on its course, so the
 /// avoidance has a threat at almost every step.
-fn dense_scene() -> World {
+fn dense_scene(avoidance_period: f64) -> World {
     let mut sequence = Sequence(2);
     let across =
         |sequence: &mut Sequence| DVec3::new(sequence.next(), sequence.next(), 0.0) * DENSE_SPREAD;
     let mut world = World::new();
     for _ in 0..AGENTS {
         let id = world.add_agent(PROFILE);
+        world.set_avoidance_period(id, avoidance_period);
         world.set_body(
             id,
             Body {
@@ -117,21 +119,43 @@ fn dense_scene() -> World {
     world
 }
 
+/// The length of a step: a frame at 60 Hz.
+const TICK_S: f64 = 1.0 / 60.0;
+/// The avoidance period the periodic benchmarks give every agent.
+const PERIOD_S: f64 = 0.1;
+
 fn step_benchmark(c: &mut Criterion) {
-    let mut sparse = scene();
+    let mut sparse = scene(0.0);
     c.bench_function("step 100 agents 60 obstacles", |b| {
         b.iter(|| {
-            sparse.step();
+            sparse.step(TICK_S);
             black_box(sparse.axes());
         })
     });
-    let mut dense = dense_scene();
+    let mut dense = dense_scene(0.0);
     c.bench_function("step 100 agents 60 obstacles dense", |b| {
         b.iter(|| {
-            dense.step();
+            dense.step(TICK_S);
             black_box(dense.axes());
         })
     });
+    let mut sparse_periodic = scene(PERIOD_S);
+    c.bench_function("step 100 agents 60 obstacles, avoidance every 0.1 s", |b| {
+        b.iter(|| {
+            sparse_periodic.step(TICK_S);
+            black_box(sparse_periodic.axes());
+        })
+    });
+    let mut dense_periodic = dense_scene(PERIOD_S);
+    c.bench_function(
+        "step 100 agents 60 obstacles dense, avoidance every 0.1 s",
+        |b| {
+            b.iter(|| {
+                dense_periodic.step(TICK_S);
+                black_box(dense_periodic.axes());
+            })
+        },
+    );
 }
 
 criterion_group!(benches, step_benchmark);

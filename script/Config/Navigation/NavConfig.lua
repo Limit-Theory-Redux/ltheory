@@ -16,9 +16,22 @@ local NavConfig = {
     blockedProgressM = 10,
     -- s
     blockedWindowS = 10,
-    -- s: how often an order asks for a fresh plan while it flies one (an event may ask sooner). Each
-    -- order's timer is offset by a share of it, so the requests of many orders spread over frames.
-    replanPeriodS = 1,
+    -- By rate class, in seconds: `avoidancePeriodS`, how often a ship's avoidance runs (0: at every
+    -- step), and `replanPeriodS`, how often an order asks for a fresh plan while it flies one (an event
+    -- may ask sooner). Each order's timer is offset by a share of its period, so the requests of many
+    -- orders spread over frames.
+    rateClasses = {
+        [Enums.NavRateClass.High]   = { avoidancePeriodS = 0,    replanPeriodS = 0.5 },
+        [Enums.NavRateClass.Normal] = { avoidancePeriodS = 0.02, replanPeriodS = 1 },
+        [Enums.NavRateClass.Low]    = { avoidancePeriodS = 0.05, replanPeriodS = 2 },
+    },
+    -- s: how often a ship's rate class is judged again (a zone entry or exit judges it at once). Each
+    -- ship's judging is offset by a share of it.
+    rateJudgePeriodS = 1,
+    -- m, and a count: a ship with at least `trafficShips` other ships within `trafficRadiusM` is in dense
+    -- traffic, which gives it the High class.
+    trafficRadiusM = 2000,
+    trafficShips = 3,
     -- A goal that no plan rides on (a ship) has drifted when it has moved more than this share of the
     -- distance from the ship to it, from where the plan ends.
     goalDriftShare = 0.1,
@@ -34,6 +47,12 @@ end
 ---@return gameunit
 function NavConfig.blockedProgress()
     return ScaleConfig:toGameUnits(NavConfig.blockedProgressM, "starSystem")
+end
+
+---How far from a ship the ships that make traffic dense are counted.
+---@return gameunit
+function NavConfig.trafficRadius()
+    return ScaleConfig:toGameUnits(NavConfig.trafficRadiusM, "starSystem")
 end
 
 return NavConfig

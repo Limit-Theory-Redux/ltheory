@@ -37,7 +37,10 @@ function Loader.defineType()
             void      NavWorld_SetOrbit           (NavWorld*, uint32 id, RigidBody const* centre, double radius, Vec3d const* normal, double arrivalRadius);
             void      NavWorld_ClearBehaviour     (NavWorld*, uint32 id);
             void      NavWorld_SetAvoidanceTuning (NavWorld*, double horizonS, double clearanceRadii, double aimFactor);
-            void      NavWorld_Step               (NavWorld*);
+            void      NavWorld_SetAvoidancePeriod (NavWorld*, uint32 id, double seconds);
+            void      NavWorld_Refresh            (NavWorld*, uint32 id);
+            double    NavWorld_SensingRange       (NavWorld const*, uint32 id);
+            void      NavWorld_Step               (NavWorld*, double dt);
             void      NavWorld_CopyAxes           (NavWorld const*, double* out, uint64 out_size);
             void      NavWorld_CopyArrived        (NavWorld const*, bool* out, uint64 out_size);
         ]]
@@ -77,6 +80,9 @@ function Loader.defineType()
                 setOrbit           = libphx.NavWorld_SetOrbit,
                 clearBehaviour     = libphx.NavWorld_ClearBehaviour,
                 setAvoidanceTuning = libphx.NavWorld_SetAvoidanceTuning,
+                setAvoidancePeriod = libphx.NavWorld_SetAvoidancePeriod,
+                refresh            = libphx.NavWorld_Refresh,
+                sensingRange       = libphx.NavWorld_SensingRange,
                 step               = libphx.NavWorld_Step,
                 copyAxes           = libphx.NavWorld_CopyAxes,
                 copyArrived        = libphx.NavWorld_CopyArrived,

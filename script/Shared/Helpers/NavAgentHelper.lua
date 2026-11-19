@@ -49,7 +49,7 @@ end
 
 ---Tell `nav` the velocity the ship's gravity well carries it at, so that the agent is steered
 ---relative to the well (drag acts on that part of its velocity only). A ship without a well is
----carried at nothing. Call it before every `nav:step()`.
+---carried at nothing. Call it before every `nav:step(dt)`.
 ---@param nav NavWorld
 ---@param agent integer The ship's agent id in `nav`
 ---@param shipEntity Entity

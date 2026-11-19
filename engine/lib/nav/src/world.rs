@@ -2,7 +2,7 @@ use glam::DVec3;
 
 use crate::agent::{AT_REST_RADII_PER_S, AXIS_COUNT, Agent, AgentId, Body, Goal, Profile, Speed};
 use crate::avoidance::{AvoidanceTuning, Peer, Peers, Sphere, avoid};
-use crate::behaviour::{Behaviour, facing_toward, rest_facing, steer};
+use crate::behaviour::{Behaviour, Wanted, facing_toward, rest_facing, steer};
 use crate::controller::control;
 use crate::obstacle::{Obstacle, ObstacleKey};
 
@@ -37,23 +37,90 @@ pub struct World {
     /// free slots left out, reused between steps.
     was_arrived: Vec<bool>,
     tuning: AvoidanceTuning,
+    /// The seconds the steps have passed so far.
+    clock: f64,
 }
 
 /// How far from the hull of the agent that holds its goal an agent still counts as having reached
 /// it, in the agent's own radii: the room the arrival floor leaves around a goal.
 const HELD_GOAL_GAP_RADII: f64 = 3.0;
 
+/// The step of the golden ratio: `fract(slot · GOLDEN_STEP)` spreads any run of slots evenly over
+/// `[0, 1)`, whatever the number of agents, so agents with one avoidance period don't run in the
+/// same step.
+const GOLDEN_STEP: f64 = 0.618_033_988_749_894_9;
+
+/// The share of an avoidance period that passes before the agent in `slot` first runs avoidance.
+fn stagger_of(slot: usize) -> f64 {
+    (slot as f64 * GOLDEN_STEP).fract()
+}
+
+/// What `World::step` shares between the agents of one step.
+struct StepScene<'a> {
+    /// The obstacles and one sphere per live agent.
+    scene: &'a mut Vec<Obstacle>,
+    /// `scene` as seen from the frame of the agent being steered.
+    shifted: &'a mut Vec<Obstacle>,
+    spheres: &'a mut Vec<Sphere>,
+    peers: &'a [Peer],
+    tuning: &'a AvoidanceTuning,
+}
+
+impl StepScene<'_> {
+    /// The course `agent`, the one in `index`, wants after avoiding the scene: its sphere is the
+    /// one at `own` and the scene ends at `last`. An agent in a moving frame works in a still one:
+    /// every velocity it looks at loses the frame's. The shifted scene is a copy, because
+    /// shifting in place and back would round.
+    fn avoid(
+        &mut self,
+        agent: &mut Agent,
+        index: usize,
+        (own, last): (usize, usize),
+        (body, toward_goal, goal): (&Body, Wanted, Goal),
+    ) -> Wanted {
+        let frame = agent.frame_velocity;
+        let scene = if frame == DVec3::ZERO {
+            &mut *self.scene
+        } else {
+            self.shifted.clear();
+            self.shifted
+                .extend(self.scene.iter().map(|sphere| sphere.seen_from(frame)));
+            &mut *self.shifted
+        };
+        scene.swap(own, last);
+        let wanted = avoid(
+            body,
+            &agent.profile,
+            toward_goal,
+            &scene[..last],
+            self.tuning,
+            Some(goal),
+            Peers {
+                own: AgentId::new(index),
+                tracked: agent.tracked,
+                all: self.peers,
+            },
+            &mut agent.commitment,
+            self.spheres,
+        );
+        scene.swap(own, last);
+        wanted
+    }
+}
+
 /// Whether `body` has reached `goal`: it is within the goal's arrival radius, or another agent
 /// that had arrived and is at rest holds the goal (the goal lies within the two hulls' reach) and
 /// `body` is next to it. Goals closer together than hulls can't all be sat on, so the agents that
 /// come last would otherwise circle those that settled and never arrive.
 ///
-/// `agents` holds one sphere per agent, in agent order, `was_arrived` the arrival flags of the
-/// step before, and `own` is the index of `body`'s agent.
+/// `agents` holds one sphere per agent, in agent order, in world axes, `was_arrived` the arrival
+/// flags of the step before, and `own` is the index of `body`'s agent. `frame` is the velocity of
+/// `body`'s frame, which the other agents' rest is judged against.
 fn has_reached(
     body: &Body,
     goal: Goal,
     agents: &[Obstacle],
+    frame: DVec3,
     was_arrived: &[bool],
     own: usize,
 ) -> bool {
@@ -68,7 +135,7 @@ fn has_reached(
             let hull = other.radius + body.radius;
             index != own
                 && arrived
-                && other.velocity.length() <= other.radius * AT_REST_RADII_PER_S
+                && (other.velocity - frame).length() <= other.radius * AT_REST_RADII_PER_S
                 && other.position.distance(goal.target) <= hull
                 && body.position.distance(other.position)
                     <= hull + HELD_GOAL_GAP_RADII * body.radius
@@ -92,6 +159,9 @@ impl World {
             tracked: None,
             commitment: None,
             facing: None,
+            avoidance_period: 0.0,
+            next_avoidance: 0.0,
+            held: None,
         };
         if let Some(index) = self.agents.iter().position(Option::is_none) {
             self.agents[index] = Some(agent);
@@ -196,6 +266,48 @@ impl World {
         self.agent_mut(id).facing = point;
     }
 
+    /// Sets how often the agent's avoidance runs, in seconds; 0 (the default) runs it at every
+    /// step. The behaviour, the controller and the arrival test run at every step either way.
+    /// Between runs the agent keeps the course the last run gave it, if that changed the
+    /// behaviour's course, and otherwise flies the behaviour's fresh course. Agents with one period
+    /// first run at different times, staggered by slot, so they don't all run in one step.
+    ///
+    /// # Panics
+    /// If `id` isn't an agent of this world, or `seconds` is negative or not finite.
+    pub fn set_avoidance_period(&mut self, id: AgentId, seconds: f64) {
+        assert!(
+            seconds.is_finite() && seconds >= 0.0,
+            "an avoidance period must be zero or more seconds, got {seconds}"
+        );
+        let clock = self.clock;
+        let agent = self.agent_mut(id);
+        agent.avoidance_period = seconds;
+        agent.next_avoidance = clock + seconds * stagger_of(id.index());
+        agent.held = None;
+    }
+
+    /// Makes the agent's avoidance run at the next step, and drops the course it kept from the
+    /// last run. A caller that changes the agent's goal calls it, so the new goal is not flown
+    /// on a stale course. Panics if `id` isn't an agent of this world.
+    pub fn refresh(&mut self, id: AgentId) {
+        let clock = self.clock;
+        let agent = self.agent_mut(id);
+        agent.next_avoidance = clock;
+        agent.held = None;
+    }
+
+    /// Whether the agent's avoidance runs in a step of `dt` seconds taken now: a caller that
+    /// senses obstacles only for the agents that need them asks it before the step. Panics if
+    /// `id` isn't an agent of this world.
+    pub fn avoidance_due(&self, id: AgentId, dt: f64) -> bool {
+        let agent = self
+            .agents
+            .get(id.index())
+            .and_then(Option::as_ref)
+            .unwrap_or_else(|| panic!("{id:?} isn't an agent of this world"));
+        agent.is_due(self.clock + dt)
+    }
+
     /// Replaces the obstacles.
     pub fn set_obstacles(&mut self, obstacles: &[Obstacle]) {
         self.obstacles.clear();
@@ -212,8 +324,18 @@ impl World {
         self.tuning = tuning;
     }
 
-    /// Computes every agent's control axes and arrival from the current bodies and obstacles.
-    pub fn step(&mut self) {
+    /// Computes every agent's control axes and arrival from the current bodies and obstacles,
+    /// after `dt` seconds have passed since the last step. The agents whose avoidance period has
+    /// run out avoid the obstacles; see [`set_avoidance_period`](World::set_avoidance_period).
+    ///
+    /// # Panics
+    /// If `dt` is negative or not finite.
+    pub fn step(&mut self, dt: f64) {
+        assert!(
+            dt.is_finite() && dt >= 0.0,
+            "a step must be zero or more seconds long, got {dt}"
+        );
+        self.clock += dt;
         // The set obstacles, then one sphere per live agent, each keeping its velocity. An agent
         // leaves its own sphere out by swapping it behind the end of the slice it avoids.
         self.scene.clear();
@@ -248,6 +370,13 @@ impl World {
                 tracks: agent.tracked,
             })
         }));
+        let mut shared = StepScene {
+            scene: &mut self.scene,
+            shifted: &mut self.shifted,
+            spheres: &mut self.spheres,
+            peers: &self.peers,
+            tuning: &self.tuning,
+        };
         let slots = self.axes.iter_mut().zip(&mut self.arrived);
         // The place of the agent being steered among the live ones: its sphere's place in the
         // scene after the obstacles, and its entry in `was_arrived`.
@@ -263,40 +392,25 @@ impl World {
             let Some(behaviour) = agent.behaviour else {
                 *axes = [0.0; AXIS_COUNT];
                 *arrived = false;
+                // A behaviour set later starts with a run of avoidance and no kept course.
+                agent.next_avoidance = self.clock;
+                agent.held = None;
                 continue;
             };
-            // An agent in a moving frame works in a still one: every velocity it looks at loses
-            // the frame's. The shifted scene is a copy, because shifting in place and back would
-            // round.
             let frame = agent.frame_velocity;
-            let scene = if frame == DVec3::ZERO {
-                &mut self.scene
-            } else {
-                self.shifted.clear();
-                self.shifted
-                    .extend(self.scene.iter().map(|sphere| sphere.seen_from(frame)));
-                &mut self.shifted
-            };
             let body = agent.body.seen_from(frame);
             let behaviour = behaviour.seen_from(frame);
             let (toward_goal, goal) = steer(&behaviour, &body, &agent.profile);
-            scene.swap(own, last);
-            let wanted = avoid(
-                &body,
-                &agent.profile,
-                toward_goal,
-                &scene[..last],
-                &self.tuning,
-                Some(goal),
-                Peers {
-                    own: AgentId::new(index),
-                    tracked: agent.tracked,
-                    all: &self.peers,
-                },
-                &mut agent.commitment,
-                &mut self.spheres,
-            );
-            scene.swap(own, last);
+            let wanted = if agent.is_due(self.clock) {
+                let wanted = shared.avoid(agent, index, (own, last), (&body, toward_goal, goal));
+                agent.held = (wanted != toward_goal).then_some(wanted);
+                if agent.avoidance_period > 0.0 {
+                    agent.scheduled_after_run(self.clock);
+                }
+                wanted
+            } else {
+                agent.held.unwrap_or(toward_goal)
+            };
             let facing = agent
                 .facing
                 .and_then(|point| facing_toward(&body, point))
@@ -305,7 +419,8 @@ impl World {
             *arrived = has_reached(
                 &body,
                 goal,
-                &scene[self.obstacles.len()..],
+                &shared.scene[self.obstacles.len()..],
+                frame,
                 &self.was_arrived,
                 rank - 1,
             );
@@ -339,6 +454,9 @@ mod tests {
 
     const PROFILE: Profile = Profile::TEST;
 
+    /// The length of a step in the tests: a frame at 60 Hz.
+    const TICK_S: f64 = 1.0 / 60.0;
+
     fn goal(target: DVec3) -> Behaviour {
         Behaviour::Arrive(Goal::fixed(target, 5.0))
     }
@@ -365,7 +483,7 @@ mod tests {
                 pass_speed: f64::INFINITY,
             }),
         );
-        world.step();
+        world.step(TICK_S);
         world.axes().try_into().expect("one agent")
     }
 
@@ -466,14 +584,14 @@ mod tests {
         let mut world = World::new();
         let id = world.add_agent(PROFILE);
         world.set_behaviour(id, Some(goal(DVec3::new(0.0, 0.0, -1000.0))));
-        world.step();
+        world.step(TICK_S);
         assert_ne!(world.axes(), [0.0; AXIS_COUNT], "the agent steers");
         world.remove_agent(id);
         assert_eq!(world.axes(), [0.0; AXIS_COUNT]);
-        world.step();
+        world.step(TICK_S);
         assert_eq!(world.axes(), [0.0; AXIS_COUNT]);
         let reused = world.add_agent(PROFILE);
-        world.step();
+        world.step(TICK_S);
         assert_eq!(
             axes_of(&world, reused),
             [0.0; AXIS_COUNT],
@@ -503,14 +621,14 @@ mod tests {
     #[test]
     fn a_removed_agent_is_no_longer_in_the_scene() {
         let (mut world, flier, blocker) = flier_and_blocker();
-        world.step();
+        world.step(TICK_S);
         let blocked = axes_of(&world, flier);
         world.remove_agent(blocker);
-        world.step();
+        world.step(TICK_S);
         let mut alone = World::new();
         let only = alone.add_agent(PROFILE);
         alone.set_behaviour(only, Some(goal(DVec3::new(0.0, 0.0, -1000.0))));
-        alone.step();
+        alone.step(TICK_S);
         assert_ne!(axes_of(&world, flier), blocked);
         assert_eq!(axes_of(&world, flier), axes_of(&alone, only));
     }
@@ -518,7 +636,7 @@ mod tests {
     #[test]
     fn a_free_slot_before_an_agent_does_not_change_how_it_is_steered() {
         let (mut compact, flier, _) = flier_and_blocker();
-        compact.step();
+        compact.step(TICK_S);
 
         let mut holed = World::new();
         let hole = holed.add_agent(PROFILE);
@@ -534,7 +652,7 @@ mod tests {
                 ..Body::AT_REST
             },
         );
-        holed.step();
+        holed.step(TICK_S);
         assert_eq!(axes_of(&holed, moved), axes_of(&compact, flier));
     }
 
@@ -542,7 +660,7 @@ mod tests {
     fn an_agent_that_takes_a_freed_slot_inherits_no_tracked_target() {
         let (mut world, flier, blocker) = flier_and_blocker();
         world.set_tracked(flier, Some(ObstacleKey::Agent(blocker)));
-        world.step();
+        world.step(TICK_S);
         let tracked = axes_of(&world, flier);
         world.remove_agent(blocker);
         let newcomer = world.add_agent(PROFILE);
@@ -555,7 +673,7 @@ mod tests {
                 ..Body::AT_REST
             },
         );
-        world.step();
+        world.step(TICK_S);
         assert_eq!(world.agents[flier.index()].as_ref().unwrap().tracked, None);
         assert_ne!(axes_of(&world, flier), tracked, "the newcomer is avoided");
     }
@@ -563,7 +681,7 @@ mod tests {
     #[test]
     fn the_side_remembered_about_a_removed_agent_is_forgotten() {
         let (mut world, flier, blocker) = flier_and_blocker();
-        world.step();
+        world.step(TICK_S);
         let commitment = |world: &World| world.agents[flier.index()].as_ref().unwrap().commitment;
         assert!(commitment(&world).is_some(), "the flier remembers its side");
         world.remove_agent(blocker);
@@ -574,7 +692,7 @@ mod tests {
     fn an_agent_without_a_goal_gets_no_input() {
         let mut world = World::new();
         let id = world.add_agent(PROFILE);
-        world.step();
+        world.step(TICK_S);
         assert_eq!(world.axes(), [0.0; AXIS_COUNT]);
         assert!(!world.arrived(id));
     }
@@ -586,7 +704,7 @@ mod tests {
         let to_left = world.add_agent(PROFILE);
         world.set_behaviour(to_right, Some(goal(DVec3::new(500.0, 0.0, 0.0))));
         world.set_behaviour(to_left, Some(goal(DVec3::new(-500.0, 0.0, 0.0))));
-        world.step();
+        world.step(TICK_S);
 
         let yaw_of = |id: AgentId| world.axes()[id.index() * AXIS_COUNT + Axis::Yaw as usize];
         assert_eq!(yaw_of(to_right), 1.0);
@@ -598,11 +716,11 @@ mod tests {
         let mut world = World::new();
         let id = world.add_agent(PROFILE);
         world.set_behaviour(id, Some(goal(DVec3::new(0.0, 0.0, -4.0))));
-        world.step();
+        world.step(TICK_S);
         assert!(world.arrived(id));
 
         world.set_behaviour(id, Some(goal(DVec3::new(0.0, 0.0, -6.0))));
-        world.step();
+        world.step(TICK_S);
         assert!(!world.arrived(id));
     }
 
@@ -621,11 +739,11 @@ mod tests {
         // The goal's own radius is 5, less than the agent's two radii.
         let at = |distance: f64| goal(DVec3::new(0.0, 0.0, -distance));
         world.set_behaviour(id, Some(at(2.0 * radius - 0.5)));
-        world.step();
+        world.step(TICK_S);
         assert!(world.arrived(id));
 
         world.set_behaviour(id, Some(at(2.0 * radius + 0.5)));
-        world.step();
+        world.step(TICK_S);
         assert!(!world.arrived(id));
     }
 
@@ -665,8 +783,8 @@ mod tests {
         };
         world.set_behaviour(holder, Some(goal(holder_goal)));
         world.set_behaviour(waiting, Some(goal(goal_point)));
-        world.step();
-        world.step();
+        world.step(TICK_S);
+        world.step(TICK_S);
         world.arrived(waiting)
     }
 
@@ -710,11 +828,11 @@ mod tests {
                 let start = id.index() * AXIS_COUNT;
                 world.axes()[start..start + AXIS_COUNT].to_vec()
             };
-            world.step();
+            world.step(TICK_S);
             let alone = axes_of(&world, flier);
 
             world.set_body(blocker, blocker_body);
-            world.step();
+            world.step(TICK_S);
             assert_ne!(axes_of(&world, flier), alone, "flier first: {flier_first}");
             assert_eq!(axes_of(&world, blocker), [0.0; AXIS_COUNT]);
         }
@@ -725,7 +843,7 @@ mod tests {
         let mut world = World::new();
         let id = world.add_agent(PROFILE);
         world.set_behaviour(id, Some(goal(DVec3::new(0.0, 0.0, -1000.0))));
-        world.step();
+        world.step(TICK_S);
         let straight = world.axes().to_vec();
 
         world.set_obstacles(&[Obstacle {
@@ -734,10 +852,10 @@ mod tests {
             velocity: DVec3::ZERO,
             radius: 30.0,
         }]);
-        world.step();
+        world.step(TICK_S);
         assert_ne!(world.axes(), straight);
         world.set_obstacles(&[]);
-        world.step();
+        world.step(TICK_S);
         assert_eq!(world.axes(), straight);
     }
 
@@ -788,7 +906,7 @@ mod tests {
                 world.set_tracked(flier, Some(ObstacleKey::Agent(other)));
             }
         }
-        world.step();
+        world.step(TICK_S);
         world.axes()[..AXIS_COUNT].to_vec()
     }
 
@@ -959,12 +1077,12 @@ mod tests {
             let carry = Sequence(seed ^ 0xC0FFEE).vector(CARRY_SPEED);
             let mut still = carried_world(seed, DVec3::ZERO, true);
             let mut moving = carried_world(seed, carry, true);
-            still.step();
-            moving.step();
+            still.step(TICK_S);
+            moving.step(TICK_S);
             assert_same_axes(&still, &moving, seed);
 
             let mut open = carried_world(seed, DVec3::ZERO, false);
-            open.step();
+            open.step(TICK_S);
             avoided += usize::from(open.axes() != still.axes());
         }
         // The obstacles and the other agents must change what the agents do in most worlds,
@@ -980,8 +1098,8 @@ mod tests {
         for index in 0..FRAME_AGENTS {
             unaware.set_frame_velocity(AgentId::new(index), DVec3::ZERO);
         }
-        still.step();
-        unaware.step();
+        still.step(TICK_S);
+        unaware.step(TICK_S);
         assert_ne!(still.axes(), unaware.axes());
     }
 
@@ -1006,7 +1124,7 @@ mod tests {
                 arrival_radius: 5.0,
             })),
         );
-        world.step();
+        world.step(TICK_S);
         assert!(world.arrived(id));
         let thrust = &world.axes()[Axis::ThrustForward as usize..AXIS_COUNT];
         assert_eq!(thrust, [0.0; 3]);
@@ -1027,7 +1145,7 @@ mod tests {
         };
         world.set_behaviour(id, Some(goal(target)));
         world.set_facing(id, facing);
-        world.step();
+        world.step(TICK_S);
         world.axes()[Axis::Yaw as usize]
     }
 
@@ -1070,13 +1188,13 @@ mod tests {
                 arrival_radius: 5.0,
             }),
         );
-        world.step();
+        world.step(TICK_S);
         assert!(
             world.axes()[Axis::Yaw as usize] > 0.0,
             "faces the leader's heading"
         );
         world.set_facing(id, Some(-RIGHT_POINT));
-        world.step();
+        world.step(TICK_S);
         assert!(world.axes()[Axis::Yaw as usize] < 0.0, "faces the point");
     }
 
@@ -1099,7 +1217,7 @@ mod tests {
         let next = world.add_agent(PROFILE);
         assert_eq!(next.index(), id.index());
         world.set_behaviour(next, Some(goal(DVec3::ZERO)));
-        world.step();
+        world.step(TICK_S);
         assert_eq!(world.axes()[Axis::Yaw as usize], 0.0);
     }
 
@@ -1110,5 +1228,152 @@ mod tests {
         let id = world.add_agent(PROFILE);
         world.remove_agent(id);
         world.set_facing(id, None);
+    }
+
+    /// A step and a period that are exact in binary, so the clock reaches a due time exactly: the
+    /// period is `PERIOD_STEPS` steps.
+    const EXACT_STEP_S: f64 = 1.0 / 64.0;
+    const PERIOD_STEPS: usize = 8;
+    const PERIOD_S: f64 = EXACT_STEP_S * PERIOD_STEPS as f64;
+
+    /// Moves the blocker of `flier_and_blocker` far off the flier's course.
+    fn move_blocker_away(world: &mut World, blocker: AgentId) {
+        world.set_body(
+            blocker,
+            Body {
+                position: DVec3::new(5000.0, 0.0, -200.0),
+                radius: 30.0,
+                ..Body::AT_REST
+            },
+        );
+    }
+
+    /// The axes of the flier alone, on the same course with nothing in its way.
+    fn free_axes() -> Vec<f64> {
+        let mut alone = World::new();
+        let only = alone.add_agent(PROFILE);
+        alone.set_behaviour(only, Some(goal(DVec3::new(0.0, 0.0, -1000.0))));
+        alone.step(EXACT_STEP_S);
+        axes_of(&alone, only)
+    }
+
+    #[test]
+    fn a_detour_is_held_until_the_agent_is_due_again() {
+        let (mut world, flier, blocker) = flier_and_blocker();
+        world.set_avoidance_period(flier, PERIOD_S);
+        world.step(EXACT_STEP_S);
+        let detour = axes_of(&world, flier);
+        assert_ne!(detour, free_axes(), "the first step runs avoidance");
+        move_blocker_away(&mut world, blocker);
+        for step in 2..PERIOD_STEPS {
+            world.step(EXACT_STEP_S);
+            assert_eq!(axes_of(&world, flier), detour, "step {step} keeps it");
+        }
+        world.step(EXACT_STEP_S);
+        assert_eq!(
+            axes_of(&world, flier),
+            free_axes(),
+            "the run a period after the first sees the way clear"
+        );
+    }
+
+    #[test]
+    fn an_agent_whose_last_run_found_nothing_flies_the_fresh_course() {
+        let (mut world, flier, blocker) = flier_and_blocker();
+        move_blocker_away(&mut world, blocker);
+        world.set_avoidance_period(flier, PERIOD_S);
+        world.step(EXACT_STEP_S);
+        assert_eq!(axes_of(&world, flier), free_axes());
+        assert!(
+            world.agents[flier.index()]
+                .as_ref()
+                .is_some_and(|agent| agent.held.is_none()),
+            "nothing is held"
+        );
+        // The goal changes between runs: the fresh course is flown at once, not a held one.
+        world.set_behaviour(flier, Some(goal(DVec3::new(500.0, 0.0, 0.0))));
+        world.step(EXACT_STEP_S);
+        assert_eq!(
+            world.axes()[Axis::Yaw as usize],
+            1.0,
+            "turns to the new goal"
+        );
+    }
+
+    #[test]
+    fn a_refresh_runs_avoidance_at_the_next_step_and_drops_the_detour() {
+        let (mut world, flier, blocker) = flier_and_blocker();
+        world.set_avoidance_period(flier, PERIOD_S);
+        world.step(EXACT_STEP_S);
+        move_blocker_away(&mut world, blocker);
+        world.step(EXACT_STEP_S);
+        assert_ne!(axes_of(&world, flier), free_axes(), "the detour is held");
+        world.refresh(flier);
+        assert!(world.avoidance_due(flier, EXACT_STEP_S));
+        world.step(EXACT_STEP_S);
+        assert_eq!(axes_of(&world, flier), free_axes());
+    }
+
+    #[test]
+    fn avoidance_runs_once_a_period_for_each_agent_and_not_all_in_one_step() {
+        const AGENTS: usize = 8;
+        const STEPS: usize = 4 * PERIOD_STEPS;
+        let mut world = World::new();
+        let ids: Vec<_> = (0..AGENTS).map(|_| world.add_agent(PROFILE)).collect();
+        for &id in &ids {
+            world.set_avoidance_period(id, PERIOD_S);
+            world.set_behaviour(id, Some(goal(DVec3::new(0.0, 0.0, -1000.0))));
+        }
+        let next_of =
+            |world: &World, id: AgentId| world.agents[id.index()].as_ref().unwrap().next_avoidance;
+        let mut runs = vec![0; AGENTS];
+        let mut most_in_a_step = 0;
+        // The first period is the stagger's, in which each agent runs once.
+        for step in 0..PERIOD_STEPS + STEPS {
+            let before: Vec<f64> = ids.iter().map(|&id| next_of(&world, id)).collect();
+            let due: Vec<bool> = ids
+                .iter()
+                .map(|&id| world.avoidance_due(id, EXACT_STEP_S))
+                .collect();
+            world.step(EXACT_STEP_S);
+            for (index, &id) in ids.iter().enumerate() {
+                let ran = next_of(&world, id) != before[index];
+                assert_eq!(ran, due[index], "avoidance_due predicts the step");
+                if step >= PERIOD_STEPS {
+                    runs[index] += usize::from(ran);
+                }
+            }
+            most_in_a_step = most_in_a_step.max(due.iter().filter(|&&due| due).count());
+        }
+        assert_eq!(runs, vec![STEPS / PERIOD_STEPS; AGENTS], "once a period");
+        assert!(
+            most_in_a_step < AGENTS / 2,
+            "the agents are staggered, but {most_in_a_step} ran in one step"
+        );
+    }
+
+    #[test]
+    fn a_period_of_zero_runs_avoidance_at_every_step() {
+        let (mut world, flier, blocker) = flier_and_blocker();
+        world.set_avoidance_period(flier, PERIOD_S);
+        world.set_avoidance_period(flier, 0.0);
+        world.step(EXACT_STEP_S);
+        move_blocker_away(&mut world, blocker);
+        world.step(EXACT_STEP_S);
+        assert_eq!(axes_of(&world, flier), free_axes());
+    }
+
+    #[test]
+    #[should_panic(expected = "an avoidance period must be zero or more")]
+    fn a_negative_avoidance_period_is_refused() {
+        let mut world = World::new();
+        let id = world.add_agent(PROFILE);
+        world.set_avoidance_period(id, -1.0);
+    }
+
+    #[test]
+    #[should_panic(expected = "a step must be zero or more seconds long")]
+    fn a_negative_step_is_refused() {
+        World::new().step(-EXACT_STEP_S);
     }
 }
