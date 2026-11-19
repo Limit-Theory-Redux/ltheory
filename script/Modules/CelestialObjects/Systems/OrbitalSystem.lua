@@ -32,6 +32,16 @@ local function orbitOf(entity)
     return nil
 end
 
+--- The orbit of an entity that is in use (`collectOrbiters` has set it up), nil for a body that
+--- stays where it is: one without an orbit, or in a scene whose orbits are not run.
+---@param entity Entity
+---@return OrbitComponent|nil
+function OrbitalSystem:runningOrbit(entity)
+    local orbit = orbitOf(entity)
+    if orbit and orbit:isRunning() then return orbit end
+    return nil
+end
+
 ---@param entity Entity
 ---@return Entity|nil
 local function parentOf(entity)
@@ -103,6 +113,7 @@ local function initialiseOrbit(entity, parentEntity, orbit)
         z = entPos.z - parentPos.z,
     }, inclination))
     orbit:setAngularSpeed(ORBIT_SPEED_SCALE / math.sqrt(math.max(MIN_SPEED_RADIUS, orbit:getOrbitRadius())))
+    orbit:setRunning(true)
 end
 
 ---@param entity Entity
@@ -131,7 +142,7 @@ end
 ---@param t number Seconds from now, may be negative
 ---@return gameunit x, gameunit y, gameunit z
 function OrbitalSystem:_predictXYZ(entity, t)
-    local orbit = orbitOf(entity)
+    local orbit = self:runningOrbit(entity)
     if not orbit then
         local pos = getEntityPos(entity)
         return pos.x, pos.y, pos.z
@@ -156,7 +167,7 @@ end
 ---@param t number Seconds from now, may be negative
 ---@return gameunit vx, gameunit vy, gameunit vz Game units per second
 function OrbitalSystem:velocity(entity, t)
-    local orbit = orbitOf(entity)
+    local orbit = self:runningOrbit(entity)
     if not orbit then return 0, 0, 0 end
     local vx, vy, vz = 0, 0, 0
     local parent = parentOf(entity)

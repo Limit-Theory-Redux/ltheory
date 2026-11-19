@@ -15,7 +15,20 @@ local OrbitComponent = Subclass("OrbitComponent", Component, function(self, orbi
     self.phase = 0
     self.angularSpeed = 0
     self.inclination = 0
+    self.running = false
 end)
+
+---Whether the orbit is in use: its phase and speed are set up from the body's place. An orbit that is
+---not leaves the body where it is: it neither moves nor is predicted to.
+---@param running boolean
+function OrbitComponent:setRunning(running)
+    self.running = running
+end
+
+---@return boolean running
+function OrbitComponent:isRunning()
+    return self.running
+end
 
 ---@param orbitRadius gameunit
 function OrbitComponent:setOrbitRadius(orbitRadius)

@@ -1,5 +1,6 @@
 -- Checks orbits: the orbit data is set up from where the bodies are, predicted positions and
--- velocities match what the system and the physics step produce, and rings follow their planet.
+-- velocities match what the system and the physics step produce, rings follow their planet, and a
+-- body whose orbit is not set up stays where it is, for the planner's snapshot as well.
 -- Logs each failed check and ends with a failure exit code.
 
 local Application         = require("States.Application")
@@ -9,6 +10,8 @@ local PhysicsComponents   = require("Modules.Physics.Components")
 local SpatialComponents   = require("Modules.Spatial.Components")
 local CelestialComponents = require("Modules.CelestialObjects.Components")
 local OrbitalSystem       = require("Modules.CelestialObjects.Systems.OrbitalSystem")
+local PlannerSnapshot     = require("Shared.Helpers.PlannerSnapshot")
+local SystemPlanner       = require("Shared.Helpers.SystemPlanner")
 
 ---@class SpatialOrbitTest: Application
 local OrbitTest = Subclass("SpatialOrbitTest", Application)
@@ -90,8 +93,34 @@ function OrbitTest:buildScene()
     self.ringRb = self:giveBody(self.ring, planetPos)
     Registry:attachEntity(self.planet, self.ring)
 
+    self:checkNotRunning()
     self.orbiters, self.followers = OrbitalSystem:collectOrbiters(self.star)
     self.world:update(STEP)
+end
+
+---Orbit data that `collectOrbiters` has not set up is not run: the bodies stay where they are, for
+---a prediction as well (a scene whose orbits are not run is static).
+function OrbitTest:checkNotRunning()
+    self:check(not self.planet:get(SpatialComponents.Orbit):isRunning(), "an orbit is not run before it is set up")
+    self:check(OrbitalSystem:runningOrbit(self.moon) == nil, "a body whose orbit is not run has no running orbit")
+    local later = 10
+    self:checkSamePos(OrbitalSystem:predictPos(self.planet, later), self.planetRb:getPos(),
+        "a planet whose orbit is not run is predicted where it stands")
+    self:checkSamePos(OrbitalSystem:predictPos(self.moon, later), self.moonRb:getPos(),
+        "a moon whose orbit is not run is predicted where it stands")
+    local vx, vy, vz = OrbitalSystem:velocity(self.moon, 0)
+    self:check(vx == 0 and vy == 0 and vz == 0, "a body whose orbit is not run has no velocity")
+    local speed, radius = self:snapshotOrbit(self.planet)
+    self:check(speed == 0 and radius == 0, "the planner is given no orbit for a body whose orbit is not run",
+        string.format("speed %.9g, radius %.9g", speed, radius))
+end
+
+---The angular speed and the orbit radius the planner's snapshot holds for `entity`.
+---@return number speed, number radius
+function OrbitTest:snapshotOrbit(entity)
+    local snapshot = PlannerSnapshot.take(nil)
+    local base = (snapshot.index[entity.id] - 1) * SystemPlanner.BODY_STRIDE + 1
+    return snapshot.bodies[base + SystemPlanner.Body.AngularSpeed], snapshot.bodies[base + SystemPlanner.Body.OrbitRadius]
 end
 
 function OrbitTest:checkSetUp()
@@ -102,6 +131,10 @@ function OrbitTest:checkSetUp()
     self:check(#self.followers == 1 and self.followers[1].entity.id == self.ring.id, "a ring follows its planet")
 
     local orbit = self.planet:get(SpatialComponents.Orbit)
+    self:check(orbit:isRunning(), "setting an orbit up runs it")
+    local speed, radius = self:snapshotOrbit(self.planet)
+    self:check(near(speed, SPEED_SCALE / math.sqrt(PLANET_RADIUS), 1e-12) and near(radius, PLANET_RADIUS, 1e-9),
+        "the planner is given the orbit that is run", string.format("speed %.9g, radius %.9g", speed, radius))
     self:check(near(orbit:getPhase(), PLANET_PHASE, 1e-9), "the phase comes from the generated position",
         tostring(orbit:getPhase()))
     self:check(near(orbit:getInclination(), math.rad(PLANET_INCLINATION_DEG), 1e-12), "the inclination is in radians")

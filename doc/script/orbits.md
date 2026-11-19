@@ -31,7 +31,7 @@ The formula lives in `Shared/Helpers/OrbitMath.lua` (`offsetAt` and `velocityAt`
 
 It also returns the followers: rings and belts that have a parent but no orbit.
 
-Predictions need this set-up. Bodies that were not set up are taken as not moving.
+Setting an orbit up also marks it as running (`OrbitComponent:isRunning()`). Predictions need this: a body whose orbit was not set up is taken as not moving, and `OrbitalSystem:runningOrbit(entity)` gives the orbit only for a body that moves. An app whose scene does not run its orbits (a static scene) does not call `collectOrbiters`, so that predictions, velocities and the [planner's](nav/system-planner.md) snapshot take its bodies as fixed where they stand. Orbit data that was set up but is not advanced would predict a motion the scene does not have.
 
 ## Predicting
 

@@ -16,7 +16,7 @@ It plans in the frame of the system: bodies on analytic orbits are placed where 
 |---|---|
 | `Parent` | Index of the parent body, `-1` for none. A parent comes before its children |
 | `X`, `Y`, `Z` | The position of a body that does not orbit; for a body that orbits, the position it circles when it has no parent |
-| `OrbitRadius` | Orbit radius; zero or less means the body stays where it is |
+| `OrbitRadius` | Orbit radius; zero or less means the body stays where it is. The snapshot writes the radius only for an orbit the scene runs (`OrbitalSystem:runningOrbit`), so a body of a static scene is a fixed one |
 | `Phase`, `AngularSpeed`, `Inclination` | The orbit at the snapshot, as in [orbits](../orbits.md) |
 | `Radius` | The hull's radius, above zero |
 | `SafeRadius` | The radius the path keeps out of, at least `Radius` |

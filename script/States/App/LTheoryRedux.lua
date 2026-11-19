@@ -464,7 +464,13 @@ end
 
 --- Orbits, gravity wells and the maps' entity lists, after the scene changed.
 function LimitTheoryRedux:collectSceneSystems()
-    self.orbiters, self.followers = OrbitalSystem:collectOrbiters(self.universe)
+    -- Orbits are set up only where they run: a static scene's bodies stay at their generated places,
+    -- and predictions (the planner's, the wells') take them as fixed.
+    if self.staticStarSystem then
+        self.orbiters, self.followers = {}, {}
+    else
+        self.orbiters, self.followers = OrbitalSystem:collectOrbiters(self.universe)
+    end
     GravityWellSystem:collectZones()
     self.mapState._entityListBuilt = false
     self.mapState._dotCache = nil

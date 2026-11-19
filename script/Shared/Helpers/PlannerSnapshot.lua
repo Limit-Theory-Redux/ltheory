@@ -7,7 +7,6 @@
 local Registry            = require("Core.ECS.Registry")
 local CoreComponents      = require("Modules.Core.Components")
 local PhysicsComponents   = require("Modules.Physics.Components")
-local SpatialComponents   = require("Modules.Spatial.Components")
 local CelestialComponents = require("Modules.CelestialObjects.Components")
 local ConstructComponents = require("Modules.Constructs.Components")
 local OrbitalSystem       = require("Modules.CelestialObjects.Systems.OrbitalSystem")
@@ -109,8 +108,8 @@ end
 local function appendBody(values, item, indexOf, zone)
     local entity = item.entity
     local rb = entity:get(PhysicsComponents.RigidBody):getRigidBody()
-    local orbitCmp = entity:get(SpatialComponents.Orbit)
-    local orbit = orbitCmp and (orbitCmp:getOrbitRadius() or 0) > 0 and orbitCmp or nil
+    -- The orbit the scene runs; a body whose orbit is not run is a fixed one, as it is for the prediction.
+    local orbit = OrbitalSystem:runningOrbit(entity)
     local parent = parentOf(entity)
     local parentIndex = orbit and parent and indexOf[parent.id]
     local outsideParent = not parentIndex and parent or nil
