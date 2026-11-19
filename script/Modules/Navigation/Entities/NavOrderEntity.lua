@@ -4,7 +4,7 @@ local Components = require("Modules.Navigation.Components")
 --- The components of an order of each kind, besides the ones every order has.
 ---@type table<NavOrderKindId, fun(spec: table): Component>
 local SPEC_COMPONENTS = {
-    [Enums.NavOrderKind.MoveTo] = function(spec) return Components.MoveToOrder(spec.target, spec.approach) end,
+    [Enums.NavOrderKind.MoveTo] = function(spec) return Components.MoveToOrder(spec.target, spec.approach, spec.frame) end,
     [Enums.NavOrderKind.Patrol] = function(spec) return Components.PatrolOrder(spec.points, spec.loop) end,
     [Enums.NavOrderKind.Hold]   = function() return Components.HoldOrder() end,
     [Enums.NavOrderKind.Orbit]  = function(spec) return Components.OrbitOrder(spec.target, spec.altitude, spec.normal) end,

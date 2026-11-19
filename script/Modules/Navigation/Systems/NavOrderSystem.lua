@@ -173,7 +173,12 @@ local HANDLERS = {
         spec = Components.MoveToOrder,
         goal = function(spec)
             local targetId = spec:getTargetEntityId()
-            if not targetId then return pointGoal(spec:getTargetPos()) end
+            if not targetId then
+                local frameId = spec:getFrameEntityId()
+                if not frameId then return pointGoal(spec:getTargetPos()) end
+                local frame = Registry:getEntityById(frameId)
+                return frame and OrderGoals.framePoint(frame, spec:getFrameOffset()) or nil
+            end
             local target = Registry:getEntityById(targetId)
             if not target then return nil end
             return approachGoal(target, ApproachSpecs.For(target, spec:getApproach()))
@@ -727,6 +732,7 @@ local function finishGoal(world, head)
     local progress = order:get(Components.OrderProgress)
     progress.distanceLeft = math.max(0, dist - goal.safeRange)
     progress.eta = eta
+    progress.nextWaypoint = atCorners and plan.follower.target or goal.targetPos
     local patrol = order:get(Components.PatrolOrder)
     if patrol then progress.waypointIndex = patrol:getIndex() end
 end
@@ -754,6 +760,7 @@ local function finishTrack(world, head)
     local progress = head.order:get(Components.OrderProgress)
     progress.distanceLeft = math.abs(bodyOf(head.ship):getPos():distance(goal.targetPos) - goal.safeRange)
     progress.eta = 0
+    progress.nextWaypoint = nil
     head.order:get(Components.OrderStatus):setStatus(Status.Active)
 end
 

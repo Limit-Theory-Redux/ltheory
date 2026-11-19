@@ -54,11 +54,11 @@ end
 
 ---Flies to a target: an entity, which the ship stops at the approach of (its kind's own when none
 ---is named), or a point.
----@param spec { target: NavTarget, approach: ApproachSpecId|ApproachSpecConstructor|ApproachSpec|nil, facing: NavFacing|nil, priority: NavOrderPriorityId|nil } `approach`: for an entity target only; `priority`: an `Nav.Priority` level, `Routine` when nil. Every order takes `priority`
+---@param spec { target: NavTarget, approach: ApproachSpecId|ApproachSpecConstructor|ApproachSpec|nil, frame: Entity|nil, facing: NavFacing|nil, priority: NavOrderPriorityId|nil } `approach`: for an entity target only; `frame`: for a point target only, an entity with a rigid body that the point keeps its offset from (as a place on a belt that goes round a planet); `priority`: an `Nav.Priority` level, `Routine` when nil. Every order takes `priority`
 ---@return table
 function Nav.Orders.MoveTo(spec)
-    return { kind = Kind.MoveTo, target = spec.target, approach = spec.approach, facing = spec.facing,
-        priority = spec.priority }
+    return { kind = Kind.MoveTo, target = spec.target, approach = spec.approach, frame = spec.frame,
+        facing = spec.facing, priority = spec.priority }
 end
 
 ---Flies through points in turn.
@@ -204,10 +204,11 @@ end
 ---Changes the target of a MoveTo order; the ship's path is planned again.
 ---@param order Entity
 ---@param target NavTarget
-function Nav.retarget(order, target)
+---@param frame Entity|nil As the MoveTo spec's `frame`: a point target only
+function Nav.retarget(order, target, frame)
     local moveTo = order:get(Components.MoveToOrder)
     assert(moveTo, "Nav.retarget: not a MoveTo order")
-    moveTo:setTarget(target)
+    moveTo:setTarget(target, frame)
 end
 
 ---@param order Entity

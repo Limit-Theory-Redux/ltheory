@@ -10,6 +10,7 @@ local OrderProgressComponent = Subclass("OrderProgressComponent", Component, fun
     self.distanceLeft = nil -- gameunit: to the order's goal
     self.eta = nil          -- seconds until the ship is at the goal
     self.waypointIndex = nil -- Patrol: the 1-based point the ship flies to
+    self.nextWaypoint = nil -- Position: where the ship steers now (the plan's next corner or arc point, else the goal); nil for Orbit, Follow and Hold
 end)
 
 return OrderProgressComponent

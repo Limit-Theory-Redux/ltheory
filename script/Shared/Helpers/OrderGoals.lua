@@ -6,6 +6,7 @@
 local PhysicsComponents = require("Modules.Physics.Components")
 local NavConfig         = require("Config.Navigation.NavConfig")
 local EntityPosition    = require("Shared.Helpers.EntityPosition")
+local FrameOffset       = require("Shared.Helpers.FrameOffset")
 local PlanFlight        = require("Shared.Helpers.PlanFlight")
 local ApproachSpecs     = require("Shared.Helpers.ApproachSpecs")
 local ApproachSpec      = require("Shared.Types.ApproachSpec")
@@ -47,6 +48,15 @@ end
 ---@return OrderGoal
 function OrderGoals.point(point)
     return OrderGoals.make(point, 0, NavConfig.pointArrival(), nil)
+end
+
+---The goal of a point that keeps its offset from a frame entity's body.
+---@param frame Entity
+---@param offset FrameOffsetVector From `FrameOffset.of`
+---@return OrderGoal|nil Nil when the frame has no body now
+function OrderGoals.framePoint(frame, offset)
+    local point = FrameOffset.point(frame, offset)
+    return point and OrderGoals.make(point, 0, NavConfig.pointArrival(), frame) or nil
 end
 
 ---The goal of an approach to an entity: a stand-off from its centre, or a point fixed to its body.

@@ -1,5 +1,5 @@
--- Checks the navigation orders: MoveTo to a point past a planet (a plan with a corner, the drive) and
--- to a body, the approach specs (stand-off, point, refused), the facing goal, a queue, priorities, control ownership (a claim, a piloted ship), Patrol with and without a loop, Hold, cancel (a queued order and a running
+-- Checks the navigation orders: MoveTo to a point past a planet (a plan with a corner, the drive, the
+-- next waypoint in the progress), to a body and to a point in a moving body's frame, the approach specs (stand-off, point, refused), the facing goal, a queue, priorities, control ownership (a claim, a piloted ship), Patrol with and without a loop, Hold, cancel (a queued order and a running
 -- one), a change of target in flight (the path is planned again), of cost profile (a new plan replaces the
 -- old one while the ship flies on), a target and
 -- a ship that are destroyed, Orbit (a named plane, the ship's plane, a planet in a moving well), Follow
@@ -9,6 +9,7 @@
 
 local Application           = require("States.Application")
 local Registry              = require("Core.ECS.Registry")
+local Entity                = require("Core.ECS.Entity")
 local ConstructComponents   = require("Modules.Constructs.Components")
 local OrbitalSystem         = require("Modules.CelestialObjects.Systems.OrbitalSystem")
 local GravityWellSystem     = require("Modules.Physics.Systems.GravityWellSystem")
@@ -68,6 +69,9 @@ local WIDE_RADII      = 3
 -- A station: its radius, so that its approach point is clear of the hull.
 local STATION_RADIUS = 10
 -- A facing holds within this angle of the point, in radians; the flight a facing is checked on, in game units.
+-- A frame body that is moved by hand while the ship flies: its speed, and the least it must have moved.
+local FRAME_DRIFT_SPEED = 0.1
+local FRAME_MOVED_MIN = 3
 local FACING_TOLERANCE = 0.2
 local FACING_FLIGHT    = LEG
 
@@ -206,6 +210,7 @@ function OrdersTest:caseMoveToPastPlanet()
 
     local drive = ship.entity:get(ConstructComponents.TravelDrive)
     local driveSeen, closest, progressSeen = false, math.huge, false
+    local cornerSeen, cornerMismatch = false, false
     local reached = self:flyUntil(function()
         if drive:getState() ~= "idle" then driveSeen = true end
         closest = math.min(closest, ship.rb:getPos():distance(planet.planetPos))
@@ -213,11 +218,20 @@ function OrdersTest:caseMoveToPastPlanet()
         if progress.distanceLeft and progress.eta and progress.distanceLeft > 0 and progress.eta > 0 then
             progressSeen = true
         end
+        local flown = planOf(order)
+        local waypoint = progress.nextWaypoint
+        if waypoint and flown and flown.phase == Phase.Plan then
+            -- On the corners, the next waypoint is the point the follower steers to; it is not the goal until the last.
+            if waypoint ~= flown.follower.target then cornerMismatch = true end
+            if waypoint:distance(course) > NavConfig.pointArrival() then cornerSeen = true end
+        end
         return Nav.status(order) == Status.Done
     end, PLANET_COURSE_S, planet)
     self:check(reached, name .. "the order is done")
     self:check(driveSeen, name .. "the travel drive runs")
     self:check(progressSeen, name .. "progress has a distance and an ETA")
+    self:check(cornerSeen, name .. "the next waypoint is a corner on the way, not only the goal")
+    self:check(not cornerMismatch, name .. "on the corners the next waypoint is the follower's target")
     self:check(closest > PLANET_RADIUS + ship.rb:getBoundingRadius(), name .. "the ship stays outside the planet",
         string.format("closest %.1f", closest))
     self:check(within(ship, course, NavConfig.pointArrival() * ARRIVED_SLACK), name .. "the ship is at the point")
@@ -860,6 +874,69 @@ function OrdersTest:caseTargetDestroyed()
     self:finish({ order }, { ship })
 end
 
+---A point that keeps its offset from a body that moves while the ship flies.
+function OrdersTest:caseFramePoint()
+    local name = "a point in a body's frame: "
+    local ship = self:ship(Position(0, 0, 0))
+    local framePos = Position(LEG, 0, 0)
+    local frame = FlightScene.spawnBody(self.world, framePos, BODY_RADIUS)
+    local offset = { x = 0, y = LEG / 4, z = LEG / 2 }
+    local point = Position(framePos.x + offset.x, framePos.y + offset.y, framePos.z + offset.z)
+    self.world:update(STEP)
+
+    local order = Nav.order(ship.entity, Nav.Orders.MoveTo { target = point, frame = frame.entity })
+    local start = frame.rb:getPos()
+    local reached = self:flyUntil(function()
+        local at = frame.rb:getPos()
+        -- A kinematic target, not a teleport, so that physics sees the body's velocity.
+        frame.rb:setKinematicTarget(Position(at.x + FRAME_DRIFT_SPEED * STEP, at.y, at.z), frame.rb:getRot())
+        return Nav.status(order) == Status.Done
+    end, MAX_FLIGHT_S)
+    local moved = frame.rb:getPos():distance(start)
+    self:check(reached, name .. "the order is done")
+    self:check(moved >= FRAME_MOVED_MIN, name .. "the frame moved while the ship flew", string.format("%.2f", moved))
+    local at = frame.rb:getPos()
+    local goal = Position(at.x + offset.x, at.y + offset.y, at.z + offset.z)
+    self:check(within(ship, goal, NavConfig.pointArrival() * ARRIVED_SLACK), name .. "the ship is at the moved point",
+        string.format("%.2f from it", ship.rb:getPos():distance(goal)))
+    self:finish({ order }, { ship, frame })
+end
+
+function OrdersTest:caseFrameRefused()
+    local name = "a refused frame: "
+    local ship = self:ship(Position(0, 0, 0))
+    local frame = FlightScene.spawnBody(self.world, Position(LEG, 0, 0), BODY_RADIUS)
+    local target = FlightScene.spawnBody(self.world, Position(LEG, LEG, 0), BODY_RADIUS)
+    local refused = {
+        ["a frame with an entity target"] = { target = target.entity, frame = frame.entity },
+        ["a frame that is not an entity"] = { target = Position(LEG, 0, 0), frame = Position(0, 0, 0) },
+        ["a frame with no rigid body"] = { target = Position(LEG, 0, 0), frame = Entity.Create("FlightSceneNoBody") },
+    }
+    for what, spec in pairs(refused) do
+        self:check(not pcall(Nav.order, ship.entity, Nav.Orders.MoveTo(spec)), name .. what .. " is refused")
+    end
+    self:check(ship.entity:get(Components.OrderQueue) == nil or ship.entity:get(Components.OrderQueue):count() == 0,
+        name .. "no order is left queued")
+    self:finish({}, { ship, frame, target })
+end
+
+function OrdersTest:caseFrameDestroyed()
+    local name = "a destroyed frame: "
+    local ship = self:ship(Position(0, 0, 0))
+    local frame = FlightScene.spawnBody(self.world, Position(LEG, 0, 0), BODY_RADIUS)
+    self.world:update(STEP)
+    local order = Nav.order(ship.entity, Nav.Orders.MoveTo { target = Position(LEG, 0, LEG / 2), frame = frame.entity })
+    self:flyUntil(function() return false end, SECONDS_BEFORE_CHANGE / 2)
+    self:check(Nav.status(order) == Status.Planning or Nav.status(order) == Status.Active, name .. "the order runs")
+
+    FlightScene.despawn(self.world, { frame })
+    self:step()
+    self:check(Nav.status(order) == Status.Failed, name .. "the order fails")
+    self:check(Nav.failure(order) == Failure.TargetLost, name .. "because the frame is lost")
+    self:check(not hasAgent(ship), name .. "the agent is gone")
+    self:finish({ order }, { ship })
+end
+
 function OrdersTest:caseShipDestroyed()
     local name = "a destroyed ship: "
     local ship = self:ship(Position(0, 0, 0))
@@ -1321,6 +1398,9 @@ function OrdersTest:onInit()
     self:caseRetarget()
     self:caseCostProfileChange()
     self:caseTargetDestroyed()
+    self:caseFramePoint()
+    self:caseFrameRefused()
+    self:caseFrameDestroyed()
     self:caseShipDestroyed()
     self:caseRelease()
     self:caseDetach()

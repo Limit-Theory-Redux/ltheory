@@ -21,7 +21,7 @@ if Nav.status(order) == Enums.NavOrderStatus.Done then Nav.release(order) end
 | `Nav.claim(ship)`, `Nav.unclaim(ship)` | Takes the ship's controls for the caller, who then writes the input directly, and gives them back ([control ownership](#control-ownership)). Claiming a claimed ship, or unclaiming one that is not claimed, is an error. |
 | `Nav.controlOwner(ship)` | Who owns the ship's control input: an `Enums.ControlOwner` value. |
 | `Nav.cancel(order)` | Asks for the order to end as `Cancelled`; the system ends it at its next update. |
-| `Nav.retarget(order, target)` | Changes the target of a MoveTo; the path is planned again. |
+| `Nav.retarget(order, target, frame)` | Changes the target of a MoveTo, and its `frame` (see [Kinds of order](#kinds-of-order)); the path is planned again. |
 | `Nav.status(order)`, `Nav.failure(order)`, `Nav.progress(order)` | The order's status, the reason it failed (`nil` until it has), and its progress. |
 | `Nav.release(order)` | Destroys an order that has ended. It is an error to release one that has not. |
 | `Nav.estimate(from, to, flightProfile, costProfile)` | What a flight would cost, without moving anything ([estimates](#estimates)). Runs on the calling thread. |
@@ -33,7 +33,7 @@ if Nav.status(order) == Enums.NavOrderStatus.Done then Nav.release(order) end
 
 | Spec | The ship |
 |---|---|
-| `Nav.Orders.MoveTo { target, approach, facing }` | Flies to `target`, an entity or a `Position`. For an entity it stops where its [approach](#approach-specs) says: `approach` names a spec, and without it the target's kind decides. For a point it stops within `NavConfig.pointArrivalM` of it, and an `approach` for a point is an error. It ends `Done` there. |
+| `Nav.Orders.MoveTo { target, approach, frame, facing }` | Flies to `target`, an entity or a `Position`. For an entity it stops where its [approach](#approach-specs) says: `approach` names a spec, and without it the target's kind decides. For a point it stops within `NavConfig.pointArrivalM` of it, and an `approach` for a point is an error. With a `frame`, an entity with a rigid body, the point rides it: the order keeps the point's offset from the frame's centre, as it was when the order was given (or retargeted), and the offset is translation only, so the point does not turn with the body. A `frame` for an entity target is an error. If the frame is destroyed, or loses its body, the order ends `Failed` with `TargetLost`. It ends `Done` at the point. |
 | `Nav.Orders.Patrol { points, loop, facing }` | Flies to each point in turn, as a MoveTo to a point. Without `loop` it ends `Done` at the last point; with it, it goes back to the first and never ends. `progress.waypointIndex` is the point it flies to. |
 | `Nav.Orders.Hold { facing }` | Stays where it was when the order began, and brings the ship back if it drifts. It never ends by itself: cancel it. `Nav.Orders.Hold()` has no facing. |
 | `Nav.Orders.Orbit { target, altitude, normal, facing }` | Circles `target`, an entity with a rigid body, anticlockwise about `normal`, at a radius of `altitude` target radii from its centre (at least 50 game units, as a stand-off; `NavConfig.standOffRadii` when `altitude` is `nil`). `altitude` must be more than 1. It never ends by itself: cancel it. See [Orbit and Follow](#orbit-and-follow). |
@@ -118,7 +118,7 @@ stateDiagram-v2
 
 A `Suspended` order is one that had begun and was displaced. The system drops its plan, stops tracking and tells the travel drive to disengage; what the order itself holds stays (a Patrol's point, an Orbit's chosen plane, the target, the facing). When it is the head again it resumes: it begins as new, from where the ship is, so a goal order plans again and a Hold holds where the ship is then, not where it began. Cancelling a suspended order ends it `Cancelled` and it never resumes. Because a Hold is displaced by a higher priority, it no longer blocks the orders behind it.
 
-`Nav.progress(order)` has `distanceLeft` (game units to the stand-off point or point), `eta` (seconds) and, for a Patrol, `waypointIndex`. The system writes them while the order is the head, and they are `nil` before that.
+`Nav.progress(order)` has `distanceLeft` (game units to the stand-off point or point), `eta` (seconds), `nextWaypoint` (the `Position` the ship flies to now: the plan's next corner while it flies the corners, and the goal itself while it flies the approach or the plan is out; `nil` for Orbit and Follow) and, for a Patrol, `waypointIndex`. The system writes them while the order is the head, and they are `nil` before that.
 
 An order is also suspended when the ship's controls go to someone other than orders (below), whether or not it is the head: a begun order becomes `Suspended` with the same event, and leaves the world with the ship's agent. An order that had not begun stays `Queued`. When orders own the controls again, the head resumes as above.
 
