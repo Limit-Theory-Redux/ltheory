@@ -744,10 +744,12 @@ end
 ---The detour waypoint for a leg that enters body `i`'s sphere: in the plane of the leg and the
 ---body's centre half way through the overlap, on the side of the leg away from the centre, where
 ---the tangents from both ends to the detour sphere meet (or a capped point when they don't).
+---A positive `push` widens the detour sphere by that much, within the cap that keeps it clear of
+---the endpoints; when the cap leaves the sphere no wider, there is no point (nil).
 ---@return number|nil x
 ---@return number y
 ---@return number z
-local function detourPoint(profile, i, ax, ay, az, length, ux, uy, uz, tIn, tEnd, flip)
+local function detourPoint(profile, i, ax, ay, az, length, ux, uy, uz, tIn, tEnd, flip, push)
     local tm = overlapMidTime(profile, i, ax, ay, az, ux, uy, uz, tIn, tEnd)
     local cx, cy, cz = legBodyPosition(i, tm)
     local wx, wy, wz = cx - ax, cy - ay, cz - az
@@ -766,7 +768,14 @@ local function detourPoint(profile, i, ax, ay, az, length, ux, uy, uz, tIn, tEnd
     local hit = hitRadius[i + 1]
     local nearest = min(dA, dB)
     if nearest <= hit then return nil, 0, 0 end
-    local r = min(hit * (1 + DETOUR_MARGIN), hit + (nearest - hit) * HALF)
+    local cap = hit + (nearest - hit) * HALF
+    local margin = hit * (1 + DETOUR_MARGIN)
+    local r = min(margin, cap)
+    if push then
+        local pushed = min(margin + push, cap)
+        if pushed <= r then return nil, 0, 0 end
+        r = pushed
+    end
 
     local tau, tae = tangentPoint(au, side, r)
     local tbu, tbe = tangentPoint(bu, side, r)
@@ -867,27 +876,37 @@ function Corners.isMarked(k)
     return false
 end
 
----Remembers the waypoint written at `k`, a detour corner whose turn did not hold, with the run's
----speed and the time at it. A plan that releases more corners than `Corners.MAX_RELEASED` forgets
----the later ones, which then keep their release.
-function Corners.remember(k)
-    if Corners.releasedCount >= Corners.MAX_RELEASED then return end
+---The record of the waypoint written at `k`, a detour corner whose turn did not hold: its frame and
+---offset, the run's speed and the time at it.
+function Corners.snapshot(k)
     local base = k * OUT_STRIDE
-    Corners.releasedCount = Corners.releasedCount + 1
-    Corners.released[Corners.releasedCount] = {
+    return {
         frame = out[base + OUT_FRAME], x = out[base + OUT_X], y = out[base + OUT_Y], z = out[base + OUT_Z],
         speed = out[base + OUT_SPEED], t = out[base + OUT_T],
     }
 end
 
+---Remembers a released corner's record (`Corners.snapshot`). A plan that releases more corners than
+---`Corners.MAX_RELEASED` forgets the later ones, which then keep their release.
+function Corners.remember(record)
+    if not record or Corners.releasedCount >= Corners.MAX_RELEASED then return end
+    Corners.releasedCount = Corners.releasedCount + 1
+    Corners.released[Corners.releasedCount] = record
+end
+
 ---Plans the head a to w of a detour as a drive run that goes on through the detour corner w, and
 ---the tail w to b as its continuation, when the corner holds the drive (`driveCornerHolds`). The
 ---head is planned first, since the corner's speed is the run's speed there; a corner that does not
----hold leaves everything as it was, and is remembered (`Corners`) when the run could go on through
----it. A corner marked by an earlier plan is kept without the check.
+---hold leaves everything as it was. A corner marked by an earlier plan is kept without the check.
+---A corner that fails only because its turn hits body `i`, the body the detour goes around, also
+---returns the turn's cut, the push that may make it hold (see `planDetour`); a corner released
+---though the run could go on through it also returns its record, for the caller to remember
+---(`Corners.remember`).
 ---@return boolean kept Whether the plan of the detour was written
 ---@return number|nil tEnd The time at b, nil when the plan stopped
-local function planDetourThrough(ax, ay, az, t0, wx, wy, wz, frame, bx, by, bz, bFrame, depth, run)
+---@return number|nil push Metres, when moving the waypoint out may make the corner hold
+---@return table|nil record The released corner, see `Corners.snapshot`
+local function planDetourThrough(i, ax, ay, az, t0, wx, wy, wz, frame, bx, by, bz, bFrame, depth, run)
     local rest = sqrt((bx - wx) ^ 2 + (by - wy) ^ 2 + (bz - wz) ^ 2)
     local before = run and run.beyond or 0
     local startsRun = run and run.m or sqrt((wx - ax) ^ 2 + (wy - ay) ^ 2 + (wz - az) ^ 2) >= driveMinLength
@@ -900,21 +919,30 @@ local function planDetourThrough(ax, ay, az, t0, wx, wy, wz, frame, bx, by, bz, 
     local px, py, pz = ax, ay, az
     if corner - 1 >= savedWritten then px, py, pz = legWaypointPoint(corner - 1, 0, 0, 0) end
     local through = out[corner * OUT_STRIDE + OUT_THROUGH] ~= 0
-    if through and (Corners.isMarked(corner)
-        or driveCornerHolds(px, py, pz, wx, wy, wz, bx, by, bz, out[corner * OUT_STRIDE + OUT_SPEED], tW)) then
+    local holds, blocker, cut = false, nil, nil
+    if through then
+        holds = Corners.isMarked(corner)
+        if not holds then
+            holds, blocker, cut = driveCornerHolds(px, py, pz, wx, wy, wz, bx, by, bz,
+                out[corner * OUT_STRIDE + OUT_SPEED], tW)
+        end
+    end
+    if holds then
         return true, planLeg(wx, wy, wz, tW, bx, by, bz, bFrame, depth + 1,
             { beyond = before, m = runEndMultiplier, v = runEndSpeed })
     end
-    if through then Corners.remember(corner) end
+    local record = through and Corners.snapshot(corner) or nil
     written, failures, status = savedWritten, savedFailures, savedStatus
-    return false
+    return false, nil, blocker == i and cut or nil, record
 end
 
 ---Plans the leg a to b, whose timeline is `profile`, through one detour around obstacle `i` and
 ---writes its waypoints; the detour waypoint is in the obstacle's frame (`detourFrame`), and b in
 ---`bFrame`. `flip` passes the obstacle on the other side. `run` is the leg's run (see
 ---`buildProfile`). The drive run goes through the detour's corner when that holds, else the corner
----ends it.
+---ends it. A corner that fails only because its turn cuts into the obstacle is tried once more with
+---the waypoint pushed out by the turn's cut, and kept if that holds; otherwise it ends the run at
+---the first waypoint.
 ---@return number|nil tEnd The time at b, nil when the plan stopped
 local function planDetour(profile, i, ax, ay, az, bx, by, bz, bFrame, length, ux, uy, uz, t0, tIn, tB, depth, flip, run)
     local wx, wy, wz = detourPoint(profile, i, ax, ay, az, length, ux, uy, uz, tIn, tB, flip)
@@ -923,8 +951,16 @@ local function planDetour(profile, i, ax, ay, az, bx, by, bz, bFrame, length, ux
         return append(bx, by, bz, tB, bFrame, profile) and tB or nil
     end
     local frame = detourFrame(i)
-    local kept, tEnd = planDetourThrough(ax, ay, az, t0, wx, wy, wz, frame, bx, by, bz, bFrame, depth, run)
+    local kept, tEnd, push, record = planDetourThrough(i, ax, ay, az, t0, wx, wy, wz, frame, bx, by, bz, bFrame, depth, run)
     if kept then return tEnd end
+    if push then
+        local px, py, pz = detourPoint(profile, i, ax, ay, az, length, ux, uy, uz, tIn, tB, flip, push)
+        if px then
+            kept, tEnd = planDetourThrough(i, ax, ay, az, t0, px, py, pz, frame, bx, by, bz, bFrame, depth, run)
+            if kept then return tEnd end
+        end
+    end
+    Corners.remember(record)
     local tW = planLeg(ax, ay, az, t0, wx, wy, wz, frame, depth + 1, headRun(run))
     if not tW then return nil end
     return planLeg(wx, wy, wz, tW, bx, by, bz, bFrame, depth + 1, tailRun(run))
@@ -1122,10 +1158,11 @@ local function driveTurnSettle(turn)
     return max(DRIVE_TURN_LEAD_TAUS, log(2 * sin(turn * HALF) / DRIVE_TURN_TOLERANCE))
 end
 
----Whether the drive turn of a corner clears every body, as `DRIVE_TURN_CHORDS` chords flown over
----the turn's time at the run's speed. The turn begins one time constant before the corner and
----lasts until it has settled.
-local function driveTurnIsClear(cx, cy, cz, u1x, u1y, u1z, u2x, u2y, u2z, lead, tCorner, turn)
+---The first body the drive turn of a corner hits, as `DRIVE_TURN_CHORDS` chords flown over the
+---turn's time at the run's speed, or -1 when it clears every body. The turn begins one time
+---constant before the corner and lasts until it has settled.
+---@return integer body Body index (0-based), or -1
+local function driveTurnBlocker(cx, cy, cz, u1x, u1y, u1z, u2x, u2y, u2z, lead, tCorner, turn)
     local step = driveTurnSettle(turn) / DRIVE_TURN_CHORDS
     local duration = step / shipDrag
     local px, py, pz = SystemPlanner.pointOnDriveTurn(cx, cy, cz, u1x, u1y, u1z, u2x, u2y, u2z, lead, 0)
@@ -1139,13 +1176,12 @@ local function driveTurnIsClear(cx, cy, cz, u1x, u1y, u1z, u2x, u2y, u2z, lead, 
             times[1], along[1], vmax[1] = t, 0, length / duration
             times[2], along[2] = t + duration, length
             chordProfile.count, chordProfile.drive, chordProfile.through = 2, false, false
-            if firstHit(chordProfile, px, py, pz, dx / length, dy / length, dz / length, t, t + duration, bodyCount, nil) >= 0 then
-                return false
-            end
+            local hit = firstHit(chordProfile, px, py, pz, dx / length, dy / length, dz / length, t, t + duration, bodyCount, nil)
+            if hit >= 0 then return hit end
         end
         px, py, pz, t = qx, qy, qz, t + duration
     end
-    return true
+    return -1
 end
 
 ---Whether a drive run keeps going through the corner `c` between the points before it (`p`) and
@@ -1155,6 +1191,12 @@ end
 ---corner, and the settling after it, which grows with the turn, take at most `ARC_LEG_SHARE` of
 ---each leg); and the path of the
 ---turn clears the bodies. A corner that barely turns holds.
+---A corner that passes the first two and fails the third also returns the body its turn hits and
+---the turn's cut: how far the turn's path passes the corner on its inside (the distance of the
+---model's point one time constant into the turn from the corner).
+---@return boolean holds
+---@return integer|nil blocker Body index (0-based), only when the turn's path hits a body
+---@return number|nil cut Metres, only with `blocker`
 function driveCornerHolds(px, py, pz, cx, cy, cz, nx, ny, nz, v, tCorner)
     local turn, la, lb, u1x, u1y, u1z, u2x, u2y, u2z = cornerTurn(px, py, pz, cx, cy, cz, nx, ny, nz)
     if not turn then return false end
@@ -1163,7 +1205,10 @@ function driveCornerHolds(px, py, pz, cx, cy, cz, nx, ny, nz, v, tCorner)
     local lead = SystemPlanner.driveTurnLead(v, shipDrag)
     local settle = lead * (driveTurnSettle(turn) - DRIVE_TURN_LEAD_TAUS)
     if lead > ARC_LEG_SHARE * la or settle > ARC_LEG_SHARE * lb then return false end
-    return driveTurnIsClear(cx, cy, cz, u1x, u1y, u1z, u2x, u2y, u2z, lead, tCorner, turn)
+    local blocker = driveTurnBlocker(cx, cy, cz, u1x, u1y, u1z, u2x, u2y, u2z, lead, tCorner, turn)
+    if blocker < 0 then return true end
+    local qx, qy, qz = SystemPlanner.pointOnDriveTurn(cx, cy, cz, u1x, u1y, u1z, u2x, u2y, u2z, lead, DRIVE_TURN_LEAD_TAUS)
+    return false, blocker, sqrt((qx - cx) ^ 2 + (qy - cy) ^ 2 + (qz - cz) ^ 2)
 end
 
 ---The arc radius and passing speed of a corner reached at time `tCorner`. The radius is the

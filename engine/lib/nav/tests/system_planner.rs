@@ -1651,13 +1651,10 @@ fn a_detour_in_the_well_ends_the_run_at_the_entry() {
         "the entry and a detour: {:?}",
         plan.offsets
     );
-    assert!(
-        plan.throughs.iter().all(|through| !through),
-        "{:?}",
-        plan.throughs
-    );
     let e = entry_index_in(&plan, BIG_WELL_RADIUS).expect("the entry");
     assert_eq!(e, 0, "the system part is one leg");
+    // Only the entry ends the run: a detour corner round the rock may keep the drive.
+    assert!(!plan.throughs[e], "{:?}", plan.throughs);
     assert_eq!(
         plan.speeds[e], SPEED,
         "the entry is passed at the planning speed"
@@ -2790,14 +2787,14 @@ fn corner_turn(plan: &Plan, k: usize) -> f64 {
 
 const MIN_ARC_ANGLE: f64 = 0.02;
 const STALE_SAFE: f64 = 2e7;
-const STALE_BODY_X: f64 = 1.6e8;
+const STALE_BODY_X: f64 = 1.0e8;
 const STALE_BODY_Z: f64 = 6e6;
-const STALE_SECOND_X: f64 = 1.8e8;
+const STALE_SECOND_X: f64 = 1.25e8;
 
-/// A big body a little off the line and a small one behind it, placed so that the second detour's
-/// waypoint lies on the ray through the first one: the first corner is judged against the straight
-/// leg to the goal, which it fails, and ends up almost straight. `second_z` and `second_safe` place
-/// the small body.
+/// A big body a little off the line, near the start, and a smaller one behind it, placed so that
+/// the second detour's waypoint lies on the ray through the first one: the first corner is judged
+/// against the straight leg to the goal, which it fails, and ends up almost straight. `second_z`
+/// and `second_safe` place the small body.
 fn stale_turn_bodies(second_z: f64, second_safe: f64) -> Vec<Body> {
     vec![
         fixed(
@@ -2816,8 +2813,10 @@ fn stale_turn_bodies(second_z: f64, second_safe: f64) -> Vec<Body> {
 #[test]
 fn a_corner_released_on_a_stale_turn_keeps_the_run_when_the_finished_path_holds_it() {
     let planner = Planner::new();
-    let bodies = stale_turn_bodies(-1.4724e7, 3e6);
-    // The big body alone bends the path by more than its drive turn clears.
+    let bodies = stale_turn_bodies(-1.48e7, 5e6);
+    // The big body alone bends the path by more than the drive turn keeps. It is near the start,
+    // so the failure is the leg before the corner being short for the turn's lead, which no push
+    // of the waypoint changes.
     let alone = planner.plan_driven(&bodies[..1], [0.0; 3], [1e9, 0.0, 0.0]);
     assert_eq!(alone.detours(), 1);
     assert!(!alone.throughs[0], "{:?}", alone.throughs);
@@ -2843,12 +2842,71 @@ fn a_corner_released_on_a_stale_turn_keeps_the_run_when_the_finished_path_holds_
 fn a_corner_released_on_a_stale_turn_stays_released_when_the_finished_path_fails_it_too() {
     let planner = Planner::new();
     // A smaller second body bends the first corner by a large angle again.
-    let bodies = stale_turn_bodies(-1.5824e7, 2e6);
+    let bodies = stale_turn_bodies(-1.55e7, 2e6);
     let plan = planner.plan_driven(&bodies, [0.0; 3], [1e9, 0.0, 0.0]);
     assert_eq!(plan.status, STATUS_OK);
     assert_eq!(plan.detours(), 2, "{:?}", plan.points);
     assert!(corner_turn(&plan, 0) > MIN_ARC_ANGLE);
     assert!(!plan.throughs[0], "{:?}", plan.throughs);
+    for i in 0..bodies.len() {
+        assert!(min_driven_clearance_ratio(&plan, &bodies, i) >= CLEARANCE_TOLERANCE);
+    }
+}
+
+/// A body off the line, far enough from both ends for a long leg before and after its detour, so
+/// that a corner there fails the drive turn's clearance alone: the turn cuts the corner inward by
+/// more than the detour's margin.
+fn clearance_only_body() -> Body {
+    fixed([1.6e8, 0.0, 6e6], 0.5 * STALE_SAFE, STALE_SAFE)
+}
+
+#[test]
+fn a_corner_that_fails_only_on_clearance_is_kept_with_its_waypoint_pushed_out() {
+    let planner = Planner::new();
+    let bodies = vec![clearance_only_body()];
+    let plan = planner.plan_driven(&bodies, [0.0; 3], [1e9, 0.0, 0.0]);
+    assert_eq!(plan.status, STATUS_OK);
+    assert_eq!(plan.detours(), 1);
+    assert!(corner_turn(&plan, 0) > MIN_ARC_ANGLE);
+    assert!(plan.throughs[0], "{:?}", plan.throughs);
+    assert!(min_drive_turn_clearance_ratio(&plan, &bodies, 0) >= CLEARANCE_TOLERANCE);
+    assert!(min_driven_clearance_ratio(&plan, &bodies, 0) >= CLEARANCE_TOLERANCE);
+}
+
+#[test]
+fn a_pushed_corner_that_another_body_blocks_is_released() {
+    const GOAL: Vec3 = [1e9, 0.0, 0.0];
+    // Time constants into the turn: far enough for the blocker to lie off the unpushed waypoint
+    // and the legs, near enough to lie on the turn.
+    const BLOCKER_TAU: f64 = 2.0;
+    let planner = Planner::new();
+    let kept = planner.plan_driven(&[clearance_only_body()], [0.0; 3], GOAL);
+    assert!(kept.throughs[0], "{:?}", kept.throughs);
+    // A small body on the pushed corner's turn path.
+    let corners = kept.corners();
+    let before = unit(sub(corners[1], corners[0]));
+    let after = unit(sub(corners[2], corners[1]));
+    let lead = kept.speeds[0] / SHIP.drag;
+    let on_turn = plus(
+        corners[1],
+        plus(
+            scaled(after, lead * (BLOCKER_TAU - 1.0 + (-BLOCKER_TAU).exp())),
+            scaled(before, -lead * (-BLOCKER_TAU).exp()),
+        ),
+    );
+    let reach = distance(on_turn, corners[1]);
+    let bodies = vec![
+        clearance_only_body(),
+        fixed(on_turn, 0.01 * reach, 0.02 * reach),
+    ];
+    let plan = planner.plan_driven(&bodies, [0.0; 3], GOAL);
+    assert_eq!(plan.status, STATUS_OK);
+    assert_eq!(plan.detours(), 1, "{:?}", plan.points);
+    assert!(
+        !plan.throughs[0],
+        "{:?} {:?} {:?}",
+        plan.throughs, plan.points, kept.points
+    );
     for i in 0..bodies.len() {
         assert!(min_driven_clearance_ratio(&plan, &bodies, i) >= CLEARANCE_TOLERANCE);
     }

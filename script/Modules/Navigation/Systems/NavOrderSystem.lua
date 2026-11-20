@@ -733,7 +733,8 @@ local function finishGoal(world, head)
     local progress = order:get(Components.OrderProgress)
     progress.distanceLeft = math.max(0, dist - goal.safeRange)
     progress.eta = eta
-    progress.nextWaypoint = atCorners and plan.follower.target or goal.targetPos
+    -- The phase after the step: the follower that has just passed its last corner no longer steers to it.
+    progress.nextWaypoint = plan.phase == Phase.Plan and plan.follower.target or goal.targetPos
     local patrol = order:get(Components.PatrolOrder)
     if patrol then progress.waypointIndex = patrol:getIndex() end
 end
