@@ -175,7 +175,7 @@ The drive has no lateral thrust of its own: with the nose turned to the new leg,
 A corner holds when all of these do:
 
 - **Speed.** The run's speed at the corner times `cos(turn / 2)`, the lowest speed of the turn, is at least `HANDOVER_MULT · speed`: never slower than a released corner, so the flyer does not hand over in the turn.
-- **Fit.** The lead is at most `ARC_LEG_SHARE` of the leg before the corner, and the path up to `DRIVE_TURN_SETTLE` time constants is at most that share of the leg after it.
+- **Fit.** The lead is at most `ARC_LEG_SHARE` of the leg before the corner, and the path up to the turn's settle point is at most that share of the leg after it. The settle point is the time, in time constants from the start of the turn, at which the velocity error `2·sin(turn / 2)·e^−τ` (as a share of the speed) falls to `DRIVE_TURN_TOLERANCE`: `τ_settle = max(DRIVE_TURN_LEAD_TAUS, ln(2·sin(turn / 2) / DRIVE_TURN_TOLERANCE))`. A slight kink settles within about the lead; a right angle needs about five time constants.
 - **Clearance.** `DRIVE_TURN_CHORDS` chords of the path clear the bodies at the run's times.
 
 A corner that turns less than `MIN_ARC_ANGLE` holds. A corner that fails is released and rounded as before.
@@ -213,7 +213,7 @@ The planner does not move the ship: whoever flies the plan resolves each waypoin
 - Arcs do not change the times: the planned path is still the sharp-cornered one, and a ship that slows to a corner's speed arrives later than `T` says. The arc's clearance is checked at the sharp path's times for the same reason.
 - A kept drive corner follows the same model: its times are the sharp path's, so the turn's speed dip and cut corner are ignored. The lead uses the speed at the corner, and the run's braking length is the straight distance to the next waypoint, so a later detour makes the timed braking slightly early. The model's lead is a little under the measured one (about 0.5 s against 0.6 to 0.7 s).
 - The turn cuts the corner towards the inside, and a detour corner lies only `DETOUR_MARGIN` of the safe radius outside the safe sphere, so the clearance check lets only a gentle detour keep the run: the cut grows with the lead (the run's speed) and the turn, and the speed grows with the length of the course. A detour that turns the course more is released, flown as a sharp corner or an arc.
-- A corner close to the goal is released: when the tail leg ends at the goal, the braking law holds the run's speed to about the tail's length over the braking time, and the fit check needs the tail to be longer than `DRIVE_TURN_SETTLE - 1` leads, a little more than the braking time allows. Only a corner with a tail well past that length keeps the run.
+- A corner close to the goal is released: when the tail leg ends at the goal, the braking law holds the run's speed to about the tail's length over the braking time, and the fit check needs the tail to be longer than `(τ_settle - DRIVE_TURN_LEAD_TAUS) / ARC_LEG_SHARE` leads. A slight kink needs almost no tail, so it keeps the run close to the goal; a sharp turn needs more than the braking time allows, and is released.
 - A corner is passed at its turn speed only if the ship can get down to it: the ship brakes toward the corner's speed before the arc, and how well it does is the flyer's, not the planner's.
 - A drive leg's times follow the model above: the ship's charge, climb and lag are as the model has them, not as a flight measured them. A leg's start speed is taken as `speed`, though a ship that leaves an arc is slower.
 - The carry is modelled in the goal body's well only. A detour through another body's well, and the nested wells of a goal on a moon or a station (the moon's well sits inside its planet's), are timed in the system frame, so the planner is conservative there: a body that outruns the ship before the goal body's well is `GoalOutrun`, though the ship might be carried by a larger well on the way.
@@ -249,7 +249,8 @@ The planner does not move the ship: whoever flies the plan resolves each waypoin
 | `DRIVE_FEATURE_FLOOR` | The least distance to a zone's edge that counts, as a share of its influence radius, so a ship on the edge still takes steps |
 | `DRIVE_TRANSIENT_TOLERANCE`, `DRIVE_TRANSIENT_STEP` | How far the multiplier or speed may be off its target before steps shrink, and the share of the shortest time constant they shrink to |
 | `DRIVE_MIN_STEP_S`, `MAX_DRIVE_STEPS` | The shortest step, and the most steps of one leg before it is planned without the drive |
-| `DRIVE_TURN_SETTLE` | The time constants after which a drive turn counts as done: the path's extent after the corner, for the fit check |
+| `DRIVE_TURN_TOLERANCE` | The velocity error, as a share of the speed, below which a drive turn counts as done: it sets the settle point `τ_settle` of a turn, and so the path's extent after the corner, for the fit check |
+| `DRIVE_TURN_LEAD_TAUS` | The time constants of the lead before the corner, and the least a turn's settle point can be |
 | `DRIVE_TURN_CHORDS` | How many chords the drive turn's path is checked as against the bodies |
 | `ZONE_EXIT_BISECTIONS` | How many times the time a leg leaves a cost zone is halved after the overlap walk: the length inside it, and so the choice to go around, is exact to that fraction of a walk step |
 

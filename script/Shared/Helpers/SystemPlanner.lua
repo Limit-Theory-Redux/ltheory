@@ -9,7 +9,7 @@
 local OrbitMath       = require("Shared.Helpers.OrbitMath")
 local TravelDriveMath = require("Shared.Helpers.TravelDriveMath")
 
-local sqrt, atan2, acos, sin, cos, tan, exp = math.sqrt, math.atan2, math.acos, math.sin, math.cos, math.tan, math.exp
+local sqrt, atan2, acos, sin, cos, tan, exp, log = math.sqrt, math.atan2, math.acos, math.sin, math.cos, math.tan, math.exp, math.log
 local max, min, abs = math.max, math.min, math.abs
 
 local SystemPlanner = {}
@@ -189,10 +189,13 @@ local DRIVE_MIN_STEP_S = 1e-6
 local MAX_DRIVE_STEPS = 20000
 
 -- A corner flown under the drive is a turn of the velocity toward the new leg with the drag's time
--- constant: it counts as done after this many time constants (the velocity is within e^-4.6, about
--- 1 %, of the new heading), and it is checked against the bodies as this many chords.
-local DRIVE_TURN_SETTLE = 4.6
-local DRIVE_TURN_CHORDS = 12
+-- constant. The nose turns one time constant before the corner (the lead). The turn counts as done
+-- when the velocity is off the new heading by at most this share of the run's speed (the error
+-- starts at `2 · sin(turn / 2)` of the speed and falls by `e^-τ`), and it is checked against the
+-- bodies as this many chords.
+local DRIVE_TURN_LEAD_TAUS  = 1
+local DRIVE_TURN_TOLERANCE  = 0.01
+local DRIVE_TURN_CHORDS     = 12
 
 -- The exit of a cost zone is found within a quarter radius by the overlap walk, then bisected this
 -- many times: the length inside the zone is what the cross-or-go-around rule weighs, so it needs
@@ -1061,13 +1064,23 @@ function SystemPlanner.pointOnDriveTurn(cx, cy, cz, u1x, u1y, u1z, u2x, u2y, u2z
     return cx + u2x * along - u1x * back, cy + u2y * along - u1y * back, cz + u2z * along - u1z * back
 end
 
+---The time, in the drag's time constants from the start of the turn (a lead before the corner), at
+---which the velocity of a drive turn of `turn` radians is within `DRIVE_TURN_TOLERANCE` of the new
+---heading. At least the lead: the turn lasts to the corner.
+---@param turn number Radians, above zero
+---@return number
+local function driveTurnSettle(turn)
+    return max(DRIVE_TURN_LEAD_TAUS, log(2 * sin(turn * HALF) / DRIVE_TURN_TOLERANCE))
+end
+
 ---Whether the drive turn of a corner clears every body, as `DRIVE_TURN_CHORDS` chords flown over
----the turn's time at the run's speed. The turn begins one time constant before the corner.
-local function driveTurnIsClear(cx, cy, cz, u1x, u1y, u1z, u2x, u2y, u2z, lead, tCorner)
-    local step = DRIVE_TURN_SETTLE / DRIVE_TURN_CHORDS
+---the turn's time at the run's speed. The turn begins one time constant before the corner and
+---lasts until it has settled.
+local function driveTurnIsClear(cx, cy, cz, u1x, u1y, u1z, u2x, u2y, u2z, lead, tCorner, turn)
+    local step = driveTurnSettle(turn) / DRIVE_TURN_CHORDS
     local duration = step / shipDrag
     local px, py, pz = SystemPlanner.pointOnDriveTurn(cx, cy, cz, u1x, u1y, u1z, u2x, u2y, u2z, lead, 0)
-    local t = tCorner - 1 / shipDrag
+    local t = tCorner - DRIVE_TURN_LEAD_TAUS / shipDrag
     local times, along, vmax = chordProfile.t, chordProfile.s, chordProfile.vmax
     for j = 1, DRIVE_TURN_CHORDS do
         local qx, qy, qz = SystemPlanner.pointOnDriveTurn(cx, cy, cz, u1x, u1y, u1z, u2x, u2y, u2z, lead, step * j)
@@ -1090,7 +1103,8 @@ end
 ---after it (`n`), reached at `tCorner` at the run's speed `v` there. All of these hold: the turn
 ---does not slow the ship below the hand-over (`v · cos(turn / 2)`, the lowest speed of the turn, is
 ---at least `HANDOVER_MULT` times the planning speed); the turn fits in the legs (the lead before the
----corner, and the settling after it, take at most `ARC_LEG_SHARE` of each leg); and the path of the
+---corner, and the settling after it, which grows with the turn, take at most `ARC_LEG_SHARE` of
+---each leg); and the path of the
 ---turn clears the bodies. A corner that barely turns holds.
 function driveCornerHolds(px, py, pz, cx, cy, cz, nx, ny, nz, v, tCorner)
     local turn, la, lb, u1x, u1y, u1z, u2x, u2y, u2z = cornerTurn(px, py, pz, cx, cy, cz, nx, ny, nz)
@@ -1098,8 +1112,9 @@ function driveCornerHolds(px, py, pz, cx, cy, cz, nx, ny, nz, v, tCorner)
     if turn < MIN_ARC_ANGLE then return true end
     if v * cos(turn * HALF) < TravelDriveMath.HANDOVER_MULT * speed then return false end
     local lead = SystemPlanner.driveTurnLead(v, shipDrag)
-    if lead > ARC_LEG_SHARE * la or lead * (DRIVE_TURN_SETTLE - 1) > ARC_LEG_SHARE * lb then return false end
-    return driveTurnIsClear(cx, cy, cz, u1x, u1y, u1z, u2x, u2y, u2z, lead, tCorner)
+    local settle = lead * (driveTurnSettle(turn) - DRIVE_TURN_LEAD_TAUS)
+    if lead > ARC_LEG_SHARE * la or settle > ARC_LEG_SHARE * lb then return false end
+    return driveTurnIsClear(cx, cy, cz, u1x, u1y, u1z, u2x, u2y, u2z, lead, tCorner, turn)
 end
 
 ---The arc radius and passing speed of a corner reached at time `tCorner`. The radius is the

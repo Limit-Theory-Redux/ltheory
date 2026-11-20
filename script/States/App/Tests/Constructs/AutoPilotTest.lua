@@ -92,6 +92,9 @@ local MOON_COURSE_DISTANCE = 8000
 local MOON_ALONG           = 0.3
 local MOON_OFFSET          = 140
 local MOON_ASIDE           = { x = 0.74 / 0.9528, y = 0, z = -0.6 / 0.9528 }
+-- The flight with a short leg after the corner: the moon lies this share along the same course.
+local MOON_LATE_ALONG  = 0.56
+local MOON_LATE_OFFSET = 140
 -- The turn's distance from the sharp path is measured while the ship is within this many leads
 -- (`speed / drag`) of the corner.
 local TURN_WINDOW_LEADS = 3
@@ -130,6 +133,8 @@ local MS_PER_S              = 1000
 ---@field well boolean|nil The target is a planet in a moving gravity well, and the ship starts inside the well
 ---@field planet boolean|nil A planet with a gravity well lies across the course, on a slow orbit
 ---@field moon boolean|nil With `planet`: the body across the course is a moon of `MOON_RADIUS`, not a planet
+---@field moonAlong number|nil With `moon`: the share of the course at which the moon lies; `MOON_ALONG` when nil
+---@field moonOffset gameunit|nil With `moon`: the moon's distance from the course's line; `MOON_OFFSET` when nil
 ---@field outside boolean|nil With `well`: the ship starts outside the well and has to be planned into it
 ---@field wellSpeedup number|nil The planet's speed on its orbit as a multiple of the ship's top speed; `WELL_ORBIT_SPEEDUP` when nil
 
@@ -175,6 +180,11 @@ local SCENARIOS = {
     -- releases the drive at the corner takes about 60 s, and this one about 42 s.
     { name = "a point, with drive, round a moon", distance = MOON_COURSE_DISTANCE, drive = true, maxFlight = 50,
       planet = true, moon = true },
+    -- The same round a moon, with the moon late on the course: the leg after the corner is short, and
+    -- the turn is slight. The run's speed there is high enough that a settle that does not depend on
+    -- the turn does not fit that leg, and the one that does depend on it fits.
+    { name = "a point, with drive, round a moon, a slight kink before the goal", distance = MOON_COURSE_DISTANCE,
+      drive = true, maxFlight = 50, planet = true, moon = true, moonAlong = MOON_LATE_ALONG, moonOffset = MOON_LATE_OFFSET },
     -- Far enough that the drive's charge and ramp-up, which the ETA doesn't count, are a small part of the flight.
     { name = "a planet-sized body, with drive", distance = 60000, radius = PLANET_RADIUS, drive = true,
       maxFlight = 32 },
@@ -518,8 +528,8 @@ function AutoPilotTest:fly(scenario, kind)
     -- A moon, when the scenario has one, is the body across the course instead of a planet.
     local bodyRadius = scenario.moon and MOON_RADIUS or PLANET_RADIUS
     local bodySafeFactor = scenario.moon and MOON_SAFE_FACTOR or PLANET_SAFE_FACTOR
-    local along = scenario.moon and MOON_ALONG or PLANET_ALONG
-    local aside = scenario.moon and MOON_OFFSET or 0
+    local along = scenario.moon and (scenario.moonAlong or MOON_ALONG) or PLANET_ALONG
+    local aside = scenario.moon and (scenario.moonOffset or MOON_OFFSET) or 0
     local planet = scenario.planet and self:buildWell(Position(
         DIRECTION.x / length * scenario.distance * along + MOON_ASIDE.x * aside,
         DIRECTION.y / length * scenario.distance * along + MOON_ASIDE.y * aside,

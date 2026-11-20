@@ -2694,6 +2694,70 @@ fn a_corner_whose_turn_does_not_fit_the_leg_after_it_is_released() {
     assert!(plan.radii[0] > 0.0, "and rounded as in normal flight");
 }
 
+/// The time constants a drive turn would need to settle if it did not depend on the turn: the
+/// settle of a turn of about a right angle.
+const TURN_INDEPENDENT_SETTLE: f64 = 4.6;
+
+#[test]
+fn a_slight_kink_keeps_the_run_where_a_settle_that_ignores_the_turn_would_not_fit() {
+    let planner = Planner::new();
+    // The planet's safe sphere is entered by a tenth of its radius, so the detour is a kink of a
+    // few degrees; the goal is a few million past it, where the braking law holds the run's speed
+    // to a few times the leg (the same legs as the sharper turn above, which is released).
+    let bodies = vec![fixed([5e8, 0.0, 9e5], 5e5, 1e6).with_zone(5e7, 2000.0)];
+    for tail in [3e6, 5e6, 8e6] {
+        let plan = planner.plan_driven(&bodies, [0.0; 3], [5e8 + tail, 0.0, 0.0]);
+        assert_eq!(plan.status, STATUS_OK);
+        assert_eq!(plan.detours(), 1, "tail {tail}");
+        assert_eq!(
+            plan.throughs,
+            vec![true, false],
+            "tail {tail}: the corner keeps the run"
+        );
+        assert_eq!(plan.radii[0], 0.0, "no arc under the drive");
+        let corner = plan.points[0];
+        let before = unit(sub(corner, plan.start));
+        let after = unit(sub(plan.points[1], corner));
+        let turn = dot(before, after).clamp(-1.0, 1.0).acos();
+        assert!(
+            turn < 5.0_f64.to_radians(),
+            "tail {tail}: a slight kink: {turn}"
+        );
+        // The case is the interesting one: the settle after the corner, were it the right angle's,
+        // would be more than the share of the leg after it that a turn may take.
+        let lead = plan.speeds[0] / SHIP.drag;
+        let leg_after = distance(corner, plan.points[1]);
+        assert!(
+            lead * (TURN_INDEPENDENT_SETTLE - 1.0) > ARC_LEG_SHARE * leg_after,
+            "tail {tail}: settle {} against room {}",
+            lead * (TURN_INDEPENDENT_SETTLE - 1.0),
+            ARC_LEG_SHARE * leg_after
+        );
+    }
+}
+
+#[test]
+fn a_kink_is_kept_up_to_the_turn_whose_settle_fits_the_leg_after_it() {
+    let planner = Planner::new();
+    let tail = 3e6;
+    let mut kept = Vec::new();
+    // From a graze of the safe sphere to a deep cut: the turn grows as the body comes onto the line.
+    for side in [9.5e5, 9e5, 8e5, 6e5, 3e5, 0.0] {
+        let bodies = vec![fixed([5e8, 0.0, side], 5e5, 1e6).with_zone(5e7, 2000.0)];
+        let plan = planner.plan_driven(&bodies, [0.0; 3], [5e8 + tail, 0.0, 0.0]);
+        assert_eq!(plan.detours(), 1, "side {side}");
+        kept.push(plan.throughs[0]);
+    }
+    assert!(kept[0], "a graze keeps the run: {kept:?}");
+    assert!(!kept[kept.len() - 1], "a deep cut releases it: {kept:?}");
+    // One switch from kept to released, and none back.
+    assert_eq!(
+        kept.windows(2).filter(|pair| pair[0] != pair[1]).count(),
+        1,
+        "{kept:?}"
+    );
+}
+
 #[test]
 fn a_kept_corner_that_a_later_detour_makes_too_tight_releases_every_detour_corner() {
     let planner = Planner::new();

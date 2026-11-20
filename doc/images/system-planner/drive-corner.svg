@@ -19,8 +19,8 @@
 
   <text x="400" y="278" fill="#111827" text-anchor="middle" font-weight="bold">corner</text>
   <text x="280" y="288" fill="#2563eb" text-anchor="middle" font-size="12">turn starts</text>
-  <text x="650" y="196" fill="#2563eb" font-size="12">DRIVE_TURN_SETTLE</text>
-  <text x="650" y="212" fill="#2563eb" font-size="12">time constants</text>
+  <text x="650" y="196" fill="#2563eb" font-size="12">settle point τ_settle</text>
+  <text x="650" y="212" fill="#2563eb" font-size="12">from the turn's start</text>
   <text x="60" y="290" fill="#6b7280">leg 1, direction n1</text>
   <text x="560" y="110" fill="#6b7280">leg 2, direction n2</text>
   <text x="20" y="390" fill="#111827" font-size="12">Through = 1, Radius = 0, Speed = the run's speed. Lowest speed of the turn: speed · cos(turn / 2).</text>
