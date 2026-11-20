@@ -2780,6 +2780,80 @@ fn a_kept_corner_that_a_later_detour_makes_too_tight_releases_every_detour_corne
     }
 }
 
+/// The turn of corner `k` (a waypoint index), in radians.
+fn corner_turn(plan: &Plan, k: usize) -> f64 {
+    let corners = plan.corners();
+    let before = unit(sub(corners[k + 1], corners[k]));
+    let after = unit(sub(corners[k + 2], corners[k + 1]));
+    dot(before, after).clamp(-1.0, 1.0).acos()
+}
+
+const MIN_ARC_ANGLE: f64 = 0.02;
+const STALE_SAFE: f64 = 2e7;
+const STALE_BODY_X: f64 = 1.6e8;
+const STALE_BODY_Z: f64 = 6e6;
+const STALE_SECOND_X: f64 = 1.8e8;
+
+/// A big body a little off the line and a small one behind it, placed so that the second detour's
+/// waypoint lies on the ray through the first one: the first corner is judged against the straight
+/// leg to the goal, which it fails, and ends up almost straight. `second_z` and `second_safe` place
+/// the small body.
+fn stale_turn_bodies(second_z: f64, second_safe: f64) -> Vec<Body> {
+    vec![
+        fixed(
+            [STALE_BODY_X, 0.0, STALE_BODY_Z],
+            0.5 * STALE_SAFE,
+            STALE_SAFE,
+        ),
+        fixed(
+            [STALE_SECOND_X, 0.0, second_z],
+            0.5 * second_safe,
+            second_safe,
+        ),
+    ]
+}
+
+#[test]
+fn a_corner_released_on_a_stale_turn_keeps_the_run_when_the_finished_path_holds_it() {
+    let planner = Planner::new();
+    let bodies = stale_turn_bodies(-1.4724e7, 3e6);
+    // The big body alone bends the path by more than its drive turn clears.
+    let alone = planner.plan_driven(&bodies[..1], [0.0; 3], [1e9, 0.0, 0.0]);
+    assert_eq!(alone.detours(), 1);
+    assert!(!alone.throughs[0], "{:?}", alone.throughs);
+    assert!(corner_turn(&alone, 0) > MIN_ARC_ANGLE);
+
+    let plan = planner.plan_driven(&bodies, [0.0; 3], [1e9, 0.0, 0.0]);
+    assert_eq!(plan.status, STATUS_OK);
+    assert_eq!(plan.detours(), 2, "{:?}", plan.points);
+    assert!(
+        corner_turn(&plan, 0) < MIN_ARC_ANGLE,
+        "the second detour straightens the first corner: {}",
+        corner_turn(&plan, 0)
+    );
+    assert!(plan.throughs[0], "{:?}", plan.throughs);
+    assert!(plan.drives[1], "{:?}", plan.drives);
+    for i in 0..bodies.len() {
+        assert!(min_driven_clearance_ratio(&plan, &bodies, i) >= CLEARANCE_TOLERANCE);
+        assert!(min_drive_turn_clearance_ratio(&plan, &bodies, i) >= CLEARANCE_TOLERANCE);
+    }
+}
+
+#[test]
+fn a_corner_released_on_a_stale_turn_stays_released_when_the_finished_path_fails_it_too() {
+    let planner = Planner::new();
+    // A smaller second body bends the first corner by a large angle again.
+    let bodies = stale_turn_bodies(-1.5824e7, 2e6);
+    let plan = planner.plan_driven(&bodies, [0.0; 3], [1e9, 0.0, 0.0]);
+    assert_eq!(plan.status, STATUS_OK);
+    assert_eq!(plan.detours(), 2, "{:?}", plan.points);
+    assert!(corner_turn(&plan, 0) > MIN_ARC_ANGLE);
+    assert!(!plan.throughs[0], "{:?}", plan.throughs);
+    for i in 0..bodies.len() {
+        assert!(min_driven_clearance_ratio(&plan, &bodies, i) >= CLEARANCE_TOLERANCE);
+    }
+}
+
 #[test]
 fn the_drive_turn_path_starts_a_lead_before_the_corner_and_meets_the_new_leg() {
     let planner = Planner::new();

@@ -197,6 +197,21 @@ local DRIVE_TURN_LEAD_TAUS  = 1
 local DRIVE_TURN_TOLERANCE  = 0.01
 local DRIVE_TURN_CHORDS     = 12
 
+-- A detour corner released because its turn did not hold is remembered, to be judged again on the
+-- finished path. One table (the chunk is near Lua's limit of local variables) holds:
+--   `released`, `releasedCount`: the corners released in the plan being made, each
+--     `{ frame, x, y, z, speed, t }`: the waypoint's frame and offset as written to the output, the
+--     run's speed and the time it would have had there; at most `MAX_RELEASED` are remembered,
+--   `marked`, `markedCount`: the corners to keep in the next plan, `{ frame, x, y, z }`; a waypoint
+--     written in that plan is the same corner when its offset from the frame body differs by at
+--     most `MATCH_TOLERANCE` of the offset's length,
+--   `firstPlan`: the output of a finished plan, kept while the plan is made once more.
+-- and the functions that work on them (defined where the planning functions they need exist).
+local Corners = {
+    MAX_RELEASED = 16, MATCH_TOLERANCE = 1e-2,
+    released = {}, releasedCount = 0, marked = {}, markedCount = 0, firstPlan = {},
+}
+
 -- The exit of a cost zone is found within a quarter radius by the overlap walk, then bisected this
 -- many times: the length inside the zone is what the cross-or-go-around rule weighs, so it needs
 -- more than the walk's step.
@@ -834,10 +849,42 @@ end
 
 local driveCornerHolds, legWaypointPoint
 
+---Whether the waypoint written at `k` of the output is the corner `corner` (a `{ frame, x, y, z }`
+---record): the same frame and an offset within `Corners.MATCH_TOLERANCE` of the corner's.
+function Corners.isAt(corner, k)
+    local base = k * OUT_STRIDE
+    if out[base + OUT_FRAME] ~= corner.frame then return false end
+    local dx, dy, dz = out[base + OUT_X] - corner.x, out[base + OUT_Y] - corner.y, out[base + OUT_Z] - corner.z
+    return sqrt(dx * dx + dy * dy + dz * dz)
+        <= Corners.MATCH_TOLERANCE * sqrt(corner.x ^ 2 + corner.y ^ 2 + corner.z ^ 2)
+end
+
+---Whether the waypoint written at `k` is one of the corners marked to keep the drive run.
+function Corners.isMarked(k)
+    for n = 1, Corners.markedCount do
+        if Corners.isAt(Corners.marked[n], k) then return true end
+    end
+    return false
+end
+
+---Remembers the waypoint written at `k`, a detour corner whose turn did not hold, with the run's
+---speed and the time at it. A plan that releases more corners than `Corners.MAX_RELEASED` forgets
+---the later ones, which then keep their release.
+function Corners.remember(k)
+    if Corners.releasedCount >= Corners.MAX_RELEASED then return end
+    local base = k * OUT_STRIDE
+    Corners.releasedCount = Corners.releasedCount + 1
+    Corners.released[Corners.releasedCount] = {
+        frame = out[base + OUT_FRAME], x = out[base + OUT_X], y = out[base + OUT_Y], z = out[base + OUT_Z],
+        speed = out[base + OUT_SPEED], t = out[base + OUT_T],
+    }
+end
+
 ---Plans the head a to w of a detour as a drive run that goes on through the detour corner w, and
 ---the tail w to b as its continuation, when the corner holds the drive (`driveCornerHolds`). The
 ---head is planned first, since the corner's speed is the run's speed there; a corner that does not
----hold leaves everything as it was.
+---hold leaves everything as it was, and is remembered (`Corners`) when the run could go on through
+---it. A corner marked by an earlier plan is kept without the check.
 ---@return boolean kept Whether the plan of the detour was written
 ---@return number|nil tEnd The time at b, nil when the plan stopped
 local function planDetourThrough(ax, ay, az, t0, wx, wy, wz, frame, bx, by, bz, bFrame, depth, run)
@@ -852,11 +899,13 @@ local function planDetourThrough(ax, ay, az, t0, wx, wy, wz, frame, bx, by, bz, 
     local corner = written - 1
     local px, py, pz = ax, ay, az
     if corner - 1 >= savedWritten then px, py, pz = legWaypointPoint(corner - 1, 0, 0, 0) end
-    if out[corner * OUT_STRIDE + OUT_THROUGH] ~= 0
-        and driveCornerHolds(px, py, pz, wx, wy, wz, bx, by, bz, out[corner * OUT_STRIDE + OUT_SPEED], tW) then
+    local through = out[corner * OUT_STRIDE + OUT_THROUGH] ~= 0
+    if through and (Corners.isMarked(corner)
+        or driveCornerHolds(px, py, pz, wx, wy, wz, bx, by, bz, out[corner * OUT_STRIDE + OUT_SPEED], tW)) then
         return true, planLeg(wx, wy, wz, tW, bx, by, bz, bFrame, depth + 1,
             { beyond = before, m = runEndMultiplier, v = runEndSpeed })
     end
+    if through then Corners.remember(corner) end
     written, failures, status = savedWritten, savedFailures, savedStatus
     return false
 end
@@ -1189,6 +1238,44 @@ local function roundCorners(sx, sy, sz)
     return held
 end
 
+---Whether the released corner at waypoint `k` of the finished path holds the drive now: it lies
+---between two driven legs of one frame, and `driveCornerHolds` accepts its turn at the run speed
+---and time it would have had.
+local function releasedCornerHolds(k, corner, sx, sy, sz)
+    local base = k * OUT_STRIDE
+    local inFrame = legFrameOf[k + 1]
+    if out[base + OUT_DRIVE] == 0 or out[base + OUT_STRIDE + OUT_DRIVE] == 0 or inFrame ~= legFrameOf[k + 2] then
+        return false
+    end
+    setLegFrame(inFrame)
+    local px, py, pz = legWaypointPoint(k - 1, sx, sy, sz)
+    local cx, cy, cz = legWaypointPoint(k, sx, sy, sz)
+    local nx, ny, nz = legWaypointPoint(k + 1, sx, sy, sz)
+    return driveCornerHolds(px, py, pz, cx, cy, cz, nx, ny, nz, corner.speed, corner.t)
+end
+
+---Marks, for the next plan, the released corners whose turn holds the drive on the finished path
+---(`releasedCornerHolds`), by their offsets in the finished path.
+---@return integer count The corners marked
+function Corners.markHolding(sx, sy, sz)
+    Corners.markedCount = 0
+    for n = 1, Corners.releasedCount do
+        local corner = Corners.released[n]
+        for k = 0, written - 2 do
+            if out[k * OUT_STRIDE + OUT_THROUGH] == 0 and Corners.isAt(corner, k) then
+                if releasedCornerHolds(k, corner, sx, sy, sz) then
+                    local base = k * OUT_STRIDE
+                    Corners.markedCount = Corners.markedCount + 1
+                    Corners.marked[Corners.markedCount] =
+                        { frame = out[base + OUT_FRAME], x = out[base + OUT_X], y = out[base + OUT_Y], z = out[base + OUT_Z] }
+                end
+                break
+            end
+        end
+    end
+    return Corners.markedCount
+end
+
 ---Where the goal is at `time`: the point (gx, gy, gz) itself in the system frame, else that offset
 ---from the goal's frame body.
 local function goalPoint(gx, gy, gz, time)
@@ -1313,6 +1400,7 @@ end
 ---@return number|nil tEntry The time at the entry, when the plan has one
 local function planPass(sx, sy, sz, gx, gy, gz, goalTime, entryTime)
     written, status, failures, entryIndex, lastProfile = 0, Status.Ok, 0, -1, nil
+    Corners.releasedCount = 0
     resetHitRadii()
     setLegFrame(SYSTEM_FRAME)
     local px, py, pz = goalPoint(gx, gy, gz, goalTime)
@@ -1424,6 +1512,23 @@ local function solve(sx, sy, sz, frame, gx, gy, gz, planSpeed)
     return status, written
 end
 
+---Plans again with the marked corners kept, the one extra plan of a finished plan (`Ok`, with
+---`waypoints` waypoints in the output buffer) whose released corners hold now. The second plan is
+---taken when it is `Ok` too, which includes the recheck of its kept corners; otherwise the first
+---plan is written back.
+---@return integer status
+---@return integer waypointCount
+function Corners.planAgain(sx, sy, sz, frame, gx, gy, gz, planSpeed, waypoints)
+    local values = waypoints * OUT_STRIDE
+    for i = 0, values - 1 do Corners.firstPlan[i] = out[i] end
+    local result, count = solve(sx, sy, sz, frame, gx, gy, gz, planSpeed)
+    Corners.markedCount = 0
+    if result == Status.Ok then return result, count end
+    for i = 0, values - 1 do out[i] = Corners.firstPlan[i] end
+    written = waypoints
+    return Status.Ok, waypoints
+end
+
 ---Plans a path from the start to the goal through the bodies. The goal is the point (gx, gy, gz)
 ---in the system frame, or that offset (world axes) from the centre of body `frame`; a goal on a
 ---moving body is planned for the time the ship gets there, and a goal inside that body's well
@@ -1474,12 +1579,17 @@ function SystemPlanner.plan(bodiesBuffer, count, sx, sy, sz, frame, gx, gy, gz, 
     if outrunsBeforePlanning(frame, planSpeed) then return Status.GoalOutrun, 0 end
 
     driveCornersOn = true
+    Corners.markedCount = 0
     local result, waypoints = solve(sx, sy, sz, frame, gx, gy, gz, planSpeed)
     if result == nil then
         -- A corner kept under the drive stopped holding once the whole path was known: plan again
         -- with every detour corner releasing the drive.
         driveCornersOn = false
         result, waypoints = solve(sx, sy, sz, frame, gx, gy, gz, planSpeed)
+    elseif result == Status.Ok and Corners.releasedCount > 0 and Corners.markHolding(sx, sy, sz) > 0 then
+        -- A corner released on a turn that a later detour has since changed holds the drive on the
+        -- finished path: plan again with it kept, and take that plan when it is as good.
+        result, waypoints = Corners.planAgain(sx, sy, sz, frame, gx, gy, gz, planSpeed, waypoints)
     end
     return result, waypoints
 end

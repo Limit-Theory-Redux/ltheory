@@ -185,6 +185,7 @@ The flyer needs no mode of its own for the turn. Under the drive the `NavWorld`'
 - **Planning.** The head leg of a detour is planned as a run that goes through the detour point, and its end state (multiplier and speed) is carried to the corner check. If the corner fails, the output is restored and the head is planned again with the run ending there. If it holds, the tail continues the run with no charge and no minimum length.
 - **Output.** A kept corner has `Through` 1, `Radius` 0 and `Speed` the run's speed there.
 - **Final check.** A later detour in the tail can turn the direction out of a kept corner. `roundCorners` checks every kept corner again on the finished path; if one fails, the whole plan is made again with drive corners off (all of its detour corners are released, and the status does not change).
+- **Released corners.** A later detour can also turn the leg after a *released* corner so that its turn holds: a corner is judged against the straight line to the goal, and the finished path may bend it much less. The planner remembers every detour corner released because its turn did not hold, with the run speed and time it would have had. When the plan is finished, it checks each of them that is still a waypoint between two driven legs on the finished path. If any holds now, the plan is made once more with those corners kept; the check of kept corners above then judges them on the second plan's finished path. The second plan is returned when its status is `Ok`; otherwise the first plan is. At most one extra plan is made, a corner is the same corner in both plans when its offset from its frame body is the same within `MATCH_TOLERANCE`, and a plan remembers at most `MAX_RELEASED` of them.
 
 ## Frames
 
@@ -252,6 +253,7 @@ The planner does not move the ship: whoever flies the plan resolves each waypoin
 | `DRIVE_TURN_TOLERANCE` | The velocity error, as a share of the speed, below which a drive turn counts as done: it sets the settle point `τ_settle` of a turn, and so the path's extent after the corner, for the fit check |
 | `DRIVE_TURN_LEAD_TAUS` | The time constants of the lead before the corner, and the least a turn's settle point can be |
 | `DRIVE_TURN_CHORDS` | How many chords the drive turn's path is checked as against the bodies |
+| `MAX_RELEASED`, `MATCH_TOLERANCE` (in the table of remembered corners) | How many released detour corners a plan remembers for the recheck on the finished path, and how close two waypoints' offsets must be (as a share of the offset's length) to be the same corner |
 | `ZONE_EXIT_BISECTIONS` | How many times the time a leg leaves a cost zone is halved after the overlap walk: the length inside it, and so the choice to go around, is exact to that fraction of a walk step |
 
 The safe radius itself comes from the caller: the sandbox uses a factor on the hull radius, `safeRadiusFactor` (see [navigation sandbox](navigation-sandbox.md)), and the game takes one per body kind from `Config.game.autoPilot.safeRadiusFactor`.
