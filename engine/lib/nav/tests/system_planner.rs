@@ -1700,30 +1700,52 @@ fn a_run_starts_at_a_detour_corner_of_the_system_part_and_goes_through_the_entry
     );
     assert_eq!(
         plan.throughs,
-        vec![false, true, false],
-        "the detour corner ends a run, the entry doesn't"
+        vec![true, true, false],
+        "the run goes through the gentle detour corner and the entry"
     );
     assert!(
         plan.drives.iter().all(|drive| *drive),
         "every leg is driven"
     );
     assert!(
-        plan.speeds[e] > SPEED,
-        "at the run's speed: {}",
-        plan.speeds[e]
+        plan.speeds[0] > SPEED && plan.speeds[e] > SPEED,
+        "at the run's speed: {:?}",
+        plan.speeds
     );
-    // The run from the corner charges there, and takes about the time of one leg from the corner
-    // to the goal: the corner, the entry and the goal are all but in line.
-    let run = drive_leg(
+    // One run from the start: one charge, and the legs chained as the oracle flies them.
+    let (corner, entry) = (plan.points[0], plan.points[e]);
+    let to_goal = distance(entry, RUN_GOAL_OFFSET);
+    let to_entry = distance(corner, entry);
+    let (_, first) = drive_run_leg(
         &bodies,
-        plan.points[0],
-        RUN_GOAL_OFFSET,
+        RUN_START,
+        corner,
+        0.0,
+        DRIVE,
+        to_entry + to_goal,
+        None,
+    );
+    let (second, second_end) = drive_run_leg(
+        &bodies,
+        corner,
+        entry,
         plan.times[0],
         DRIVE,
+        to_goal,
+        Some(first),
+    );
+    let (third, _) = drive_run_leg(
+        &bodies,
+        entry,
+        RUN_GOAL_OFFSET,
+        second.last().unwrap().0,
+        DRIVE,
+        0.0,
+        Some(second_end),
     );
     assert_close(
         plan.times[n - 1],
-        run.last().unwrap().0,
+        third.last().unwrap().0,
         DRIVE_TIME_TOLERANCE,
         "arrival",
     );
@@ -2300,15 +2322,42 @@ fn zones_allow(bodies: &[Body], point: Vec3, t: f64, drive: Drive) -> f64 {
 /// speed with the ship's drag, and the drive is released `HANDOVER_MULT · T · SPEED` before the
 /// end. The kernel's model, integrated again here in fixed small steps.
 fn drive_leg(bodies: &[Body], from: Vec3, to: Vec3, t0: f64, drive: Drive) -> Vec<(f64, f64)> {
+    drive_run_leg(bodies, from, to, t0, drive, 0.0, None).0
+}
+
+/// The state a drive run carries from one leg to the next: the multiplier and the speed.
+type RunState = (f64, f64);
+
+/// `drive_leg` for a leg of a drive run: it starts from the state `carried` with no charge (a
+/// fresh leg charges), and a leg that the run goes on from for `beyond` more length is not released
+/// but ends with the state it has, which is returned.
+fn drive_run_leg(
+    bodies: &[Body],
+    from: Vec3,
+    to: Vec3,
+    t0: f64,
+    drive: Drive,
+    beyond: f64,
+    carried: Option<RunState>,
+) -> (Vec<(f64, f64)>, RunState) {
     let length = distance(from, to);
     let direction = unit(sub(to, from));
     let braking_time = BRAKING_LAG_MARGIN * (1.0 / drive.ramp_down + 1.0 / SHIP.drag);
-    let release = length - HANDOVER_MULT * braking_time * SPEED;
+    let continues = beyond > 0.0;
+    let release = if continues {
+        length
+    } else {
+        length - HANDOVER_MULT * braking_time * SPEED
+    };
     let (mut t, mut s, mut m, mut v) = (t0 + drive.charge, SPEED * drive.charge, 1.0, SPEED);
     let mut samples = vec![(t0, 0.0), (t, s)];
+    if let Some((carried_m, carried_v)) = carried {
+        (t, s, m, v) = (t0, 0.0, carried_m, carried_v);
+        samples = vec![(t0, 0.0)];
+    }
     while s < release {
         let point = plus(from, scaled(direction, s));
-        let wanted = (length - s) / (braking_time * SPEED);
+        let wanted = (length - s + beyond) / (braking_time * SPEED);
         let target = zones_allow(bodies, point, t, drive).min(wanted).max(1.0);
         m = if m < target {
             target.min(m + (target - 1.0) * drive.ramp_up * ORACLE_STEP)
@@ -2322,8 +2371,10 @@ fn drive_leg(bodies: &[Body], from: Vec3, to: Vec3, t0: f64, drive: Drive) -> Ve
         samples.push((t, s.min(length)));
     }
     let (t_release, s_release) = *samples.last().unwrap();
-    samples.push((t_release + (length - s_release) / SPEED, length));
-    samples
+    if !continues {
+        samples.push((t_release + (length - s_release) / SPEED, length));
+    }
+    (samples, (m, v))
 }
 
 impl Planner {
@@ -2584,14 +2635,135 @@ fn a_leg_through_a_zone_is_slower_and_the_oracle_agrees() {
 }
 
 #[test]
-fn a_drive_ends_before_every_corner() {
+fn a_gentle_detour_keeps_the_drive_run() {
     let planner = Planner::new();
     let bodies = vec![planet_with_zone([5e8, 0.0, 0.0])];
     let plan = planner.plan_driven(&bodies, [0.0; 3], [1e9, 0.0, 0.0]);
     assert_eq!(plan.status, STATUS_OK);
     assert_eq!(plan.detours(), 1);
-    // Both legs of the detour are long enough to drive; each one ends at a corner.
     assert_eq!(plan.drives, vec![true, true]);
+    assert_eq!(plan.throughs, vec![true, false], "the corner keeps the run");
+    assert_eq!(plan.radii[0], 0.0, "no arc under the drive");
+    assert!(
+        plan.speeds[0] > HANDOVER_MULT * SPEED,
+        "passed at the run's speed: {}",
+        plan.speeds[0]
+    );
+    // One charge and no release at the corner: the run's time is the chain of its legs, and it is
+    // sooner than the two legs each charged and released.
+    let corner = plan.points[0];
+    let goal = plan.points[1];
+    let to_goal = distance(corner, goal);
+    let (_, state) = drive_run_leg(&bodies, plan.start, corner, 0.0, DRIVE, to_goal, None);
+    let (run, _) = drive_run_leg(
+        &bodies,
+        corner,
+        goal,
+        plan.times[0],
+        DRIVE,
+        0.0,
+        Some(state),
+    );
+    assert_close(
+        plan.times[1],
+        run.last().unwrap().0,
+        DRIVE_TIME_TOLERANCE,
+        "arrival",
+    );
+    let first = drive_leg(&bodies, plan.start, corner, 0.0, DRIVE);
+    let second = drive_leg(&bodies, corner, goal, first.last().unwrap().0, DRIVE);
+    assert!(
+        plan.times[1] < second.last().unwrap().0,
+        "{} against {} released",
+        plan.times[1],
+        second.last().unwrap().0
+    );
+}
+
+#[test]
+fn a_corner_whose_turn_does_not_fit_the_leg_after_it_is_released() {
+    let planner = Planner::new();
+    let bodies = vec![planet_with_zone([5e8, 0.0, 0.0])];
+    // The goal is 3e6 past the planet's centre: the leg after the detour is too short for the
+    // settling of a turn at the speed the run has there (the braking law slows it to about 3e5).
+    let plan = planner.plan_driven(&bodies, [0.0; 3], [5e8 + 3e6, 0.0, 0.0]);
+    assert_eq!(plan.status, STATUS_OK);
+    assert_eq!(plan.detours(), 1);
+    assert_eq!(plan.drives, vec![true, true], "both legs are driven");
+    assert_eq!(plan.throughs, vec![false, false], "the corner is released");
+    assert!(plan.radii[0] > 0.0, "and rounded as in normal flight");
+}
+
+#[test]
+fn a_kept_corner_that_a_later_detour_makes_too_tight_releases_every_detour_corner() {
+    let planner = Planner::new();
+    // A second planet just behind the first: the leg after the first detour is bent again soon, so
+    // the first corner fits the straight leg it was judged on but not the short one it got.
+    let bodies = vec![
+        planet_with_zone([3e8, 0.0, 0.0]),
+        fixed([3.04e8, 0.0, 1.5e6], 5e5, 1e6),
+    ];
+    let plan = planner.plan_driven(&bodies, [0.0; 3], [1e9, 0.0, 0.0]);
+    assert_eq!(plan.status, STATUS_OK);
+    assert!(plan.detours() >= 2, "{:?}", plan.points);
+    assert!(
+        plan.throughs.iter().all(|through| !through),
+        "{:?}",
+        plan.throughs
+    );
+    for i in 0..bodies.len() {
+        assert!(min_driven_clearance_ratio(&plan, &bodies, i) >= CLEARANCE_TOLERANCE);
+    }
+}
+
+#[test]
+fn the_drive_turn_path_starts_a_lead_before_the_corner_and_meets_the_new_leg() {
+    let planner = Planner::new();
+    let lead_of: Function = planner.kernel.get("driveTurnLead").unwrap();
+    let point_on: Function = planner.kernel.get("pointOnDriveTurn").unwrap();
+    let (speed, drag) = (400.0, 2.0);
+    let lead: f64 = lead_of.call((speed, drag)).unwrap();
+    assert_eq!(lead, speed / drag);
+    let corner = [10.0, -4.0, 7.0];
+    let angle: f64 = 0.6;
+    let before = [1.0, 0.0, 0.0];
+    let after = [angle.cos(), angle.sin(), 0.0];
+    let at = |tau: f64| -> Vec3 {
+        let (x, y, z): (f64, f64, f64) = point_on
+            .call((
+                corner[0], corner[1], corner[2], before[0], before[1], before[2], after[0],
+                after[1], after[2], lead, tau,
+            ))
+            .unwrap();
+        [x, y, z]
+    };
+    let start = at(0.0);
+    assert!(distance(start, sub(corner, scaled(before, lead))) < 1e-9);
+    // Integrate the ship: the nose snaps to the new leg, and the velocity follows it under drag.
+    let (mut position, mut velocity) = (start, scaled(before, speed));
+    let dt = 1e-5;
+    let target = scaled(after, speed);
+    let mut tau = 0.0;
+    for tau_check in [0.5, 1.0, 2.0, 4.6] {
+        while tau < tau_check {
+            position = plus(position, scaled(velocity, dt));
+            velocity = plus(velocity, scaled(sub(target, velocity), drag * dt));
+            tau += drag * dt;
+        }
+        let model = at(tau_check);
+        assert!(
+            distance(position, model) < 1e-3 * lead,
+            "tau {tau_check}: {position:?} against {model:?}"
+        );
+    }
+    // After the settling the ship is within a hair of the new leg's line.
+    let offset = sub(position, corner);
+    let across = sub(offset, scaled(after, dot(offset, after)));
+    assert!(dot(offset, after) > 0.0);
+    assert!(
+        (across[0].powi(2) + across[1].powi(2) + across[2].powi(2)).sqrt() < 0.02 * lead,
+        "{across:?}"
+    );
 }
 
 #[test]
@@ -2690,17 +2862,57 @@ fn leg_start_time(plan: &Plan, k: usize) -> f64 {
 fn min_driven_clearance_ratio(plan: &Plan, bodies: &[Body], i: usize) -> f64 {
     let corners = plan.corners();
     let mut smallest = f64::INFINITY;
+    let mut carried: Option<RunState> = None;
     for (k, leg) in corners.windows(2).enumerate() {
         let t0 = leg_start_time(plan, k);
         let length = distance(leg[0], leg[1]);
         let timeline = if plan.drives[k] {
-            drive_leg(bodies, leg[0], leg[1], t0, DRIVE)
+            // The run goes on past this leg's end by the legs up to the first corner that ends it.
+            let mut beyond = 0.0;
+            let mut end = k;
+            while plan.throughs[end] {
+                beyond += distance(corners[end + 1], corners[end + 2]);
+                end += 1;
+            }
+            let (samples, state) =
+                drive_run_leg(bodies, leg[0], leg[1], t0, DRIVE, beyond, carried);
+            carried = plan.throughs[k].then_some(state);
+            samples
         } else {
+            carried = None;
             vec![(t0, 0.0), (t0 + length / SPEED, length)]
         };
         let direction = unit(sub(leg[1], leg[0]));
         for &(t, s) in &timeline {
             let position = plus(leg[0], scaled(direction, s.min(length)));
+            let ratio = distance(position, body_position(bodies, i, t)) / bodies[i].safe;
+            smallest = smallest.min(ratio);
+        }
+    }
+    smallest
+}
+
+/// The smallest ratio of distance to safe radius between the drive turns of the plan's kept corners
+/// and body `i`: the path a ship takes that turns its nose to the new leg a lead before the corner,
+/// written out again from its differential equation's solution, sampled along the turn's time.
+fn min_drive_turn_clearance_ratio(plan: &Plan, bodies: &[Body], i: usize) -> f64 {
+    const SAMPLES: usize = 200;
+    const SETTLE: f64 = 4.6;
+    let corners = plan.corners();
+    let mut smallest = f64::INFINITY;
+    for k in (0..plan.points.len()).filter(|&k| plan.throughs[k]) {
+        let before = unit(sub(corners[k + 1], corners[k]));
+        let after = unit(sub(corners[k + 2], corners[k + 1]));
+        let lead = plan.speeds[k] / SHIP.drag;
+        for j in 0..=SAMPLES {
+            let tau = SETTLE * j as f64 / SAMPLES as f64;
+            let along = lead * (tau - 1.0 + (-tau).exp());
+            let back = lead * (-tau).exp();
+            let position = plus(
+                corners[k + 1],
+                plus(scaled(after, along), scaled(before, -back)),
+            );
+            let t = plan.times[k] + (tau - 1.0) / SHIP.drag;
             let ratio = distance(position, body_position(bodies, i, t)) / bodies[i].safe;
             smallest = smallest.min(ratio);
         }
@@ -2731,7 +2943,7 @@ fn random_drive_plans_clear_the_bodies_at_the_times_the_drive_gives() {
     const EXTENT: f64 = 2.5e8;
     let planner = Planner::new();
     let mut rng = Rng(0x5EED_D41E_0B1D_C0DE);
-    let (mut cases, mut driven, mut driven_detours, mut ok) = (0, 0, 0, 0);
+    let (mut cases, mut driven, mut driven_detours, mut ok, mut kept) = (0, 0, 0, 0, 0);
     let mut closest = f64::INFINITY;
     while cases < CASES {
         let bodies = drive_scale_system(&mut rng);
@@ -2754,6 +2966,7 @@ fn random_drive_plans_clear_the_bodies_at_the_times_the_drive_gives() {
                 driven_detours += 1;
             }
         }
+        kept += plan.throughs.iter().filter(|&&through| through).count();
         for i in 0..bodies.len() {
             let ratio = min_driven_clearance_ratio(&plan, &bodies, i);
             closest = closest.min(ratio);
@@ -2761,14 +2974,20 @@ fn random_drive_plans_clear_the_bodies_at_the_times_the_drive_gives() {
                 ratio >= CLEARANCE_TOLERANCE,
                 "case {cases}, body {i}: path enters the safe sphere to {ratio} of its radius"
             );
+            let turn_ratio = min_drive_turn_clearance_ratio(&plan, &bodies, i);
+            assert!(
+                turn_ratio >= CLEARANCE_TOLERANCE,
+                "case {cases}, body {i}: a drive turn enters the safe sphere to {turn_ratio} of its radius"
+            );
         }
     }
     println!(
-        "drive: ok {ok}, driven {driven}, driven with detours {driven_detours}, closest {closest}"
+        "drive: ok {ok}, driven {driven}, driven with detours {driven_detours}, kept corners {kept}, closest {closest}"
     );
     assert!(ok * 10 >= CASES * 5, "most cases plan");
     assert!(driven * 10 >= CASES * 5, "most plans use the drive");
     assert!(driven_detours >= 5, "detours under the drive occur");
+    assert!(kept >= 3, "corners that keep the drive occur");
 }
 
 // ---- The arrival radius ----

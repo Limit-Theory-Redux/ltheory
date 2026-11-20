@@ -150,7 +150,7 @@ With a drive block, a leg is timed as the travel drive flies it, because the dri
 1. **Model.** A leg is a chain of time samples from the start of the leg. The ship flies at `speed` while the drive charges. After that the drive's target multiplier is the lowest of the zones' cap at the ship's point and time, `OpenCap`, and the braking law's multiplier for the distance left (`TravelDriveMath.brakingMultiplier`), and at least 1. The multiplier rises and falls toward it as in the table, and the ship's speed follows `speed ·` the multiplier with its drag, the lag of the real ship.
 2. **Zones.** A body's zone caps the drive with `TravelDriveMath.zoneCap`, the formula `GravityWellSystem:getMaxDriveSpeedAt` uses too (see [zones](../zones.md)); the zone is where its body is at the time. The braking law, the release distance and the ETA come from the same module, which the autopilot uses (`TravelDriveMath.travelTime`).
 3. **Release.** The drive is released `HANDOVER_MULT · braking time · speed` before the leg's end, and the rest of the leg is flown at `speed`. So a drive leg ends below the multiplier at which the autopilot hands over, and never carries speed into a corner or the goal.
-4. **Policy.** A leg is flown under the drive when its drive timeline ends sooner than flight at `speed`; a leg too short to charge and release is not, and neither is a leg shorter than `MinLength` (such a leg raises no `DriveNotTimed`). Every leg is judged on its own, so a detour splits a drive leg into two, each with its own charge, and the drive is released before every corner. The one exception is the leg that continues a drive run through a well's entry (see below). Arcs are flown at the planning speed, at their turn speed, as without the drive.
+4. **Policy.** A leg is flown under the drive when its drive timeline ends sooner than flight at `speed`; a leg too short to charge and release is not, and neither is a leg shorter than `MinLength` (such a leg raises no `DriveNotTimed`). Every leg is judged on its own, so a detour splits a drive leg into two, each with its own charge, unless its corner keeps the run (see [Corners under the drive](#corners-under-the-drive)); a corner that does not is released. The other exception is the leg that continues a drive run through a well's entry (see below). Arcs are flown at the planning speed, at their turn speed, as without the drive.
 5. **Steps.** A sample step is at most `DRIVE_FEATURE_STEP` of the distance to the nearest zone's edge (counted with the body's speed bound) and of the distance left, and, while the multiplier or the speed is off its target by more than `DRIVE_TRANSIENT_TOLERANCE`, at most `DRIVE_TRANSIENT_STEP` of the shortest time constant. A long cruise therefore costs few steps. A leg that needs more than `MAX_DRIVE_STEPS` is planned at `speed`, with the status `DriveNotTimed`. 6. **Hit tests.** The hit search and the overlap walk read the ship's distance along the leg from the timeline: each step is bounded by the greatest speed of its interval of samples, so no crossing is skipped, and an overlap that the ship leaves and re-enters is followed to its last time.
 **Arrival.** The last leg's timeline holds the release at `HANDOVER_MULT · braking time · speed` before the goal, and the flat tail after it, at `speed`. A caller that calls the ship arrived within a radius of the goal, with the drive still on, arrives earlier than the timeline's end. With an `arrival` radius (the violet marker in the diagram above) the goal's `T` is read off the timeline at the distance `radius` before its end (linear between samples), so it is the time of that call. Within the flat tail the cut is the radius over `speed`; a radius longer than the tail cuts into the braking, flown faster. A leg that is not timed (shorter than the minimum timeline) has no cut. For a goal on a moving body the goal-time iteration settles on this time.
 
@@ -164,7 +164,25 @@ A **drive run** is a chain of legs flown under one drive engagement: one charge 
 - **The framed leg** starts from the carried multiplier and speed, with no charge, and `MinLength` does not apply to it. It is released before the goal as any leg is.
 - **The entry corner** is passed at the run's speed there (`Out.Speed`), not at the planning speed. The ship's velocity relative to the body changes at the entry by the body's velocity; the timeline ignores that, since it is at most the body's speed bound, against drive speeds of orders of magnitude more.
 - **A detour inside the well** ends the run at the entry. The braking distance across the entry is the framed leg's length, which is the run's remaining length only for a straight leg. When the framed part needs a detour or cannot be timed under the drive, the plan is made again with the system leg released before the entry, as a plan without runs is: `Through` is 0 and the entry is passed at the planning speed.
-- **Other corners** end a run: a detour corner is rounded at the planning speed, and the drive has no lateral thrust. A system leg that is not driven (shorter than `MinLength`, or not sooner under the drive) starts no run.
+- **Other corners** end a run, unless they keep it as below: a corner that fails is rounded at the planning speed. A system leg that is not driven (shorter than `MinLength`, or not sooner under the drive) starts no run.
+
+### Corners under the drive
+
+![A detour corner under the drive: the path leaves the first leg a lead L before the corner and relaxes onto the second leg, with no arc](../../images/system-planner/drive-corner.svg)
+
+The drive has no lateral thrust of its own: with the nose turned to the new leg, the ship's velocity relaxes onto it with the drag's time constant `1/k`. A detour corner whose turn the legs and bodies leave room for therefore keeps the run, with no arc and no new charge. The model is one copy, `SystemPlanner.driveTurnLead(speed, drag)` (the lead `L = speed / k`) and `SystemPlanner.pointOnDriveTurn` (the path `C + L·[n2(τ − 1 + e^−τ) − n1·e^−τ]`, τ = k·t from the lead's start, `n1` and `n2` the unit directions of the two legs).
+
+A corner holds when all of these do:
+
+- **Speed.** The run's speed at the corner times `cos(turn / 2)`, the lowest speed of the turn, is at least `HANDOVER_MULT · speed`: never slower than a released corner, so the flyer does not hand over in the turn.
+- **Fit.** The lead is at most `ARC_LEG_SHARE` of the leg before the corner, and the path up to `DRIVE_TURN_SETTLE` time constants is at most that share of the leg after it.
+- **Clearance.** `DRIVE_TURN_CHORDS` chords of the path clear the bodies at the run's times.
+
+A corner that turns less than `MIN_ARC_ANGLE` holds. A corner that fails is released and rounded as before.
+
+- **Planning.** The head leg of a detour is planned as a run that goes through the detour point, and its end state (multiplier and speed) is carried to the corner check. If the corner fails, the output is restored and the head is planned again with the run ending there. If it holds, the tail continues the run with no charge and no minimum length.
+- **Output.** A kept corner has `Through` 1, `Radius` 0 and `Speed` the run's speed there.
+- **Final check.** A later detour in the tail can turn the direction out of a kept corner. `roundCorners` checks every kept corner again on the finished path; if one fails, the whole plan is made again with drive corners off (all of its detour corners are released, and the status does not change).
 
 ## Frames
 
@@ -191,6 +209,7 @@ The planner does not move the ship: whoever flies the plan resolves each waypoin
 
 - The planning speed is constant: the ship's acceleration and turns are not in the times. A ship that accelerates from rest arrives later than the plan says, so a body that was predicted to be clear can be in the way.
 - Arcs do not change the times: the planned path is still the sharp-cornered one, and a ship that slows to a corner's speed arrives later than `T` says. The arc's clearance is checked at the sharp path's times for the same reason.
+- A kept drive corner follows the same model: its times are the sharp path's, so the turn's speed dip and cut corner are ignored. The lead uses the speed at the corner, and the run's braking length is the straight distance to the next waypoint, so a later detour makes the timed braking slightly early. The model's lead is a little under the measured one (about 0.5 s against 0.6 to 0.7 s).
 - A corner is passed at its turn speed only if the ship can get down to it: the ship brakes toward the corner's speed before the arc, and how well it does is the flyer's, not the planner's.
 - A drive leg's times follow the model above: the ship's charge, climb and lag are as the model has them, not as a flight measured them. A leg's start speed is taken as `speed`, though a ship that leaves an arc is slower.
 - The carry is modelled in the goal body's well only. A detour through another body's well, and the nested wells of a goal on a moon or a station (the moon's well sits inside its planet's), are timed in the system frame, so the planner is conservative there: a body that outruns the ship before the goal body's well is `GoalOutrun`, though the ship might be carried by a larger well on the way.
@@ -226,6 +245,8 @@ The planner does not move the ship: whoever flies the plan resolves each waypoin
 | `DRIVE_FEATURE_FLOOR` | The least distance to a zone's edge that counts, as a share of its influence radius, so a ship on the edge still takes steps |
 | `DRIVE_TRANSIENT_TOLERANCE`, `DRIVE_TRANSIENT_STEP` | How far the multiplier or speed may be off its target before steps shrink, and the share of the shortest time constant they shrink to |
 | `DRIVE_MIN_STEP_S`, `MAX_DRIVE_STEPS` | The shortest step, and the most steps of one leg before it is planned without the drive |
+| `DRIVE_TURN_SETTLE` | The time constants after which a drive turn counts as done: the path's extent after the corner, for the fit check |
+| `DRIVE_TURN_CHORDS` | How many chords the drive turn's path is checked as against the bodies |
 | `ZONE_EXIT_BISECTIONS` | How many times the time a leg leaves a cost zone is halved after the overlap walk: the length inside it, and so the choice to go around, is exact to that fraction of a walk step |
 
 The safe radius itself comes from the caller: the sandbox uses a factor on the hull radius, `safeRadiusFactor` (see [navigation sandbox](navigation-sandbox.md)), and the game takes one per body kind from `Config.game.autoPilot.safeRadiusFactor`.

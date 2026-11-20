@@ -1,7 +1,7 @@
 --- System planner kernel: a path through a system of orbiting bodies as waypoints (a body index and
 --- an offset from it). Straight legs get detours around the bodies' safe spheres at their predicted
 --- positions, corners are rounded into arcs, legs are timed under the travel drive where that is
---- sooner, a goal inside its body's well is flown in the body's frame from the well's edge, and a
+--- sooner (a gentle detour corner keeps the drive run), a goal inside its body's well is flown in the body's frame from the well's edge, and a
 --- cost zone is gone around where that is cheaper than crossing it.
 --- Pure numbers in and out (no entities, no globals), so it runs on a worker or in a test state.
 --- Not reentrant: it keeps module scratch state.
@@ -188,6 +188,12 @@ local DRIVE_TRANSIENT_STEP = 0.1
 local DRIVE_MIN_STEP_S = 1e-6
 local MAX_DRIVE_STEPS = 20000
 
+-- A corner flown under the drive is a turn of the velocity toward the new leg with the drag's time
+-- constant: it counts as done after this many time constants (the velocity is within e^-4.6, about
+-- 1 %, of the new heading), and it is checked against the bodies as this many chords.
+local DRIVE_TURN_SETTLE = 4.6
+local DRIVE_TURN_CHORDS = 12
+
 -- The exit of a cost zone is found within a quarter radius by the overlap walk, then bisected this
 -- many times: the length inside the zone is what the cross-or-go-around rule weighs, so it needs
 -- more than the walk's step.
@@ -212,6 +218,9 @@ local shipAccel, shipDrag, shipTopSpeed, kneeRadius
 local driveOn, driveOpenCap, driveCharge, driveRampUp, driveRampDown = false, 1, 0, 1, 1
 local driveMinLength = 0
 local driveShortestLag, driveBrakingTime, driveRelease = 1, 1, 0
+-- Whether a detour corner may keep the drive run (see `driveCornerHolds`). Off for the second pass
+-- of a plan whose kept corners did not hold up once the whole path was known.
+local driveCornersOn = true
 -- Per body: the speed bound of its orbit chain, and the radius of the sphere the hit test uses.
 local speedBound, hitRadius = {}, {}
 -- The frame the legs being planned are flown in: a body index (the legs are straight lines of
@@ -774,7 +783,11 @@ local function append(x, y, z, t, frame, profile)
     out[base + OUT_RADIUS], out[base + OUT_SPEED] = 0, 0
     out[base + OUT_DRIVE] = profile and profile.drive and 1 or 0
     out[base + OUT_THROUGH] = profile and profile.through and 1 or 0
-    if profile and profile.through then runEndMultiplier, runEndSpeed = profile.endM, profile.endV end
+    if profile and profile.through then
+        runEndMultiplier, runEndSpeed = profile.endM, profile.endV
+        -- A waypoint the run goes through is passed at the run's speed there.
+        out[base + OUT_SPEED] = profile.endV
+    end
     lastProfile = profile
     written = written + 1
     return true
@@ -816,10 +829,40 @@ local function zoneWorthDetour(profile, i, ax, ay, az, bx, by, bz, length, ux, u
     return viaLength - length < zones[(i - bodyCount) * ZONE_STRIDE + ZONE_COST] * inside
 end
 
+local driveCornerHolds, legWaypointPoint
+
+---Plans the head a to w of a detour as a drive run that goes on through the detour corner w, and
+---the tail w to b as its continuation, when the corner holds the drive (`driveCornerHolds`). The
+---head is planned first, since the corner's speed is the run's speed there; a corner that does not
+---hold leaves everything as it was.
+---@return boolean kept Whether the plan of the detour was written
+---@return number|nil tEnd The time at b, nil when the plan stopped
+local function planDetourThrough(ax, ay, az, t0, wx, wy, wz, frame, bx, by, bz, bFrame, depth, run)
+    local rest = sqrt((bx - wx) ^ 2 + (by - wy) ^ 2 + (bz - wz) ^ 2)
+    local before = run and run.beyond or 0
+    local startsRun = run and run.m or sqrt((wx - ax) ^ 2 + (wy - ay) ^ 2 + (wz - az) ^ 2) >= driveMinLength
+    if not (driveCornersOn and driveOn and startsRun and (before > 0 or rest > driveRelease)) then return false end
+    local savedWritten, savedFailures, savedStatus = written, failures, status
+    local tW = planLeg(ax, ay, az, t0, wx, wy, wz, frame, depth + 1,
+        { beyond = rest + before, m = run and run.m, v = run and run.v })
+    if not tW then return true, nil end
+    local corner = written - 1
+    local px, py, pz = ax, ay, az
+    if corner - 1 >= savedWritten then px, py, pz = legWaypointPoint(corner - 1, 0, 0, 0) end
+    if out[corner * OUT_STRIDE + OUT_THROUGH] ~= 0
+        and driveCornerHolds(px, py, pz, wx, wy, wz, bx, by, bz, out[corner * OUT_STRIDE + OUT_SPEED], tW) then
+        return true, planLeg(wx, wy, wz, tW, bx, by, bz, bFrame, depth + 1,
+            { beyond = before, m = runEndMultiplier, v = runEndSpeed })
+    end
+    written, failures, status = savedWritten, savedFailures, savedStatus
+    return false
+end
+
 ---Plans the leg a to b, whose timeline is `profile`, through one detour around obstacle `i` and
 ---writes its waypoints; the detour waypoint is in the obstacle's frame (`detourFrame`), and b in
 ---`bFrame`. `flip` passes the obstacle on the other side. `run` is the leg's run (see
----`buildProfile`).
+---`buildProfile`). The drive run goes through the detour's corner when that holds, else the corner
+---ends it.
 ---@return number|nil tEnd The time at b, nil when the plan stopped
 local function planDetour(profile, i, ax, ay, az, bx, by, bz, bFrame, length, ux, uy, uz, t0, tIn, tB, depth, flip, run)
     local wx, wy, wz = detourPoint(profile, i, ax, ay, az, length, ux, uy, uz, tIn, tB, flip)
@@ -828,6 +871,8 @@ local function planDetour(profile, i, ax, ay, az, bx, by, bz, bFrame, length, ux
         return append(bx, by, bz, tB, bFrame, profile) and tB or nil
     end
     local frame = detourFrame(i)
+    local kept, tEnd = planDetourThrough(ax, ay, az, t0, wx, wy, wz, frame, bx, by, bz, bFrame, depth, run)
+    if kept then return tEnd end
     local tW = planLeg(ax, ay, az, t0, wx, wy, wz, frame, depth + 1, headRun(run))
     if not tW then return nil end
     return planLeg(wx, wy, wz, tW, bx, by, bz, bFrame, depth + 1, tailRun(run))
@@ -994,6 +1039,69 @@ local function arcIsClear(ex, ey, ez, ox, oy, oz, kx, ky, kz, turn, radius, tEnt
     return true
 end
 
+---The distance before a corner at which a ship under the drive turns its nose to the new leg, so
+---that its velocity, which follows the nose with the drag's time constant, meets that leg: the
+---distance it covers in one time constant.
+---@param speed number Speed at the corner, game units per second
+---@param drag number Linear drag rate, per second, above zero
+---@return number Game units
+function SystemPlanner.driveTurnLead(speed, drag)
+    return speed / drag
+end
+
+---The point of the path of a ship that snaps its nose to the new leg when it is `lead` before the
+---corner `c`, with `u1` the unit direction of the leg before and `u2` that of the leg after:
+---`c + lead · (u2 · (τ − 1 + e^-τ) − u1 · e^-τ)`, with `τ` the time since the turn began in the
+---drag's time constants. At `τ = 0` it is `lead` before the corner, at `τ = 1` at the corner (to
+---first order), and it tends to the new leg. The one place this model is written.
+function SystemPlanner.pointOnDriveTurn(cx, cy, cz, u1x, u1y, u1z, u2x, u2y, u2z, lead, tau)
+    local decay = exp(-tau)
+    local along = lead * (tau - 1 + decay)
+    local back = lead * decay
+    return cx + u2x * along - u1x * back, cy + u2y * along - u1y * back, cz + u2z * along - u1z * back
+end
+
+---Whether the drive turn of a corner clears every body, as `DRIVE_TURN_CHORDS` chords flown over
+---the turn's time at the run's speed. The turn begins one time constant before the corner.
+local function driveTurnIsClear(cx, cy, cz, u1x, u1y, u1z, u2x, u2y, u2z, lead, tCorner)
+    local step = DRIVE_TURN_SETTLE / DRIVE_TURN_CHORDS
+    local duration = step / shipDrag
+    local px, py, pz = SystemPlanner.pointOnDriveTurn(cx, cy, cz, u1x, u1y, u1z, u2x, u2y, u2z, lead, 0)
+    local t = tCorner - 1 / shipDrag
+    local times, along, vmax = chordProfile.t, chordProfile.s, chordProfile.vmax
+    for j = 1, DRIVE_TURN_CHORDS do
+        local qx, qy, qz = SystemPlanner.pointOnDriveTurn(cx, cy, cz, u1x, u1y, u1z, u2x, u2y, u2z, lead, step * j)
+        local dx, dy, dz = qx - px, qy - py, qz - pz
+        local length = sqrt(dx * dx + dy * dy + dz * dz)
+        if length > MIN_LENGTH then
+            times[1], along[1], vmax[1] = t, 0, length / duration
+            times[2], along[2] = t + duration, length
+            chordProfile.count, chordProfile.drive, chordProfile.through = 2, false, false
+            if firstHit(chordProfile, px, py, pz, dx / length, dy / length, dz / length, t, t + duration, bodyCount, nil) >= 0 then
+                return false
+            end
+        end
+        px, py, pz, t = qx, qy, qz, t + duration
+    end
+    return true
+end
+
+---Whether a drive run keeps going through the corner `c` between the points before it (`p`) and
+---after it (`n`), reached at `tCorner` at the run's speed `v` there. All of these hold: the turn
+---does not slow the ship below the hand-over (`v · cos(turn / 2)`, the lowest speed of the turn, is
+---at least `HANDOVER_MULT` times the planning speed); the turn fits in the legs (the lead before the
+---corner, and the settling after it, take at most `ARC_LEG_SHARE` of each leg); and the path of the
+---turn clears the bodies. A corner that barely turns holds.
+function driveCornerHolds(px, py, pz, cx, cy, cz, nx, ny, nz, v, tCorner)
+    local turn, la, lb, u1x, u1y, u1z, u2x, u2y, u2z = cornerTurn(px, py, pz, cx, cy, cz, nx, ny, nz)
+    if not turn then return false end
+    if turn < MIN_ARC_ANGLE then return true end
+    if v * cos(turn * HALF) < TravelDriveMath.HANDOVER_MULT * speed then return false end
+    local lead = SystemPlanner.driveTurnLead(v, shipDrag)
+    if lead > ARC_LEG_SHARE * la or lead * (DRIVE_TURN_SETTLE - 1) > ARC_LEG_SHARE * lb then return false end
+    return driveTurnIsClear(cx, cy, cz, u1x, u1y, u1z, u2x, u2y, u2z, lead, tCorner)
+end
+
 ---The arc radius and passing speed of a corner reached at time `tCorner`. The radius is the
 ---largest the legs and the turn-speed knee allow that the bodies leave clear, halving until one
 ---does. A corner that barely turns is passed at the planning speed with no arc; one with no clear
@@ -1019,7 +1127,7 @@ end
 
 ---The point of waypoint `k` of the output (the start for -1) in the legs' frame: its offset from
 ---its frame body's position at the waypoint's time, as seen from the legs' frame.
-local function legWaypointPoint(k, sx, sy, sz)
+function legWaypointPoint(k, sx, sy, sz)
     if k < 0 then
         if legFrame == SYSTEM_FRAME then return sx, sy, sz end
         local fx, fy, fz = bodyPosition(legFrame, 0)
@@ -1035,24 +1143,35 @@ end
 ---Gives every corner of the written plan its arc radius and passing speed. A corner is rounded in
 ---the frame its two legs are flown in; the corner where the frame changes (the entry into a well)
 ---is not rounded, and is passed at the run's speed when a drive run goes on through it, else at
----the planning speed. The goal keeps radius and speed zero, since the ship stops there. The plan's
----times stay as the legs gave them.
+---the planning speed. A corner the drive run goes through keeps radius zero and the run's speed;
+---it is checked again against the finished path, since a later detour can turn the leg after it.
+---The goal keeps radius and speed zero, since the ship stops there. The plan's times stay as the
+---legs gave them.
+---@return boolean held False when a corner kept under the drive no longer holds
 local function roundCorners(sx, sy, sz)
+    local held = true
     for k = 0, written - 2 do
         local base = k * OUT_STRIDE
         local inFrame = legFrameOf[k + 1]
+        local through = out[base + OUT_THROUGH] ~= 0
         if inFrame ~= legFrameOf[k + 2] then
-            local through = out[base + OUT_THROUGH] ~= 0
-            out[base + OUT_RADIUS], out[base + OUT_SPEED] = 0, through and runEndSpeed or speed
+            out[base + OUT_RADIUS], out[base + OUT_SPEED] = 0, through and out[base + OUT_SPEED] or speed
         else
             setLegFrame(inFrame)
             local px, py, pz = legWaypointPoint(k - 1, sx, sy, sz)
             local cx, cy, cz = legWaypointPoint(k, sx, sy, sz)
             local nx, ny, nz = legWaypointPoint(k + 1, sx, sy, sz)
-            out[base + OUT_RADIUS], out[base + OUT_SPEED] =
-                roundCorner(px, py, pz, cx, cy, cz, nx, ny, nz, out[base + OUT_T])
+            if through then
+                out[base + OUT_RADIUS] = 0
+                held = held and out[(k + 1) * OUT_STRIDE + OUT_DRIVE] ~= 0
+                    and driveCornerHolds(px, py, pz, cx, cy, cz, nx, ny, nz, out[base + OUT_SPEED], out[base + OUT_T])
+            else
+                out[base + OUT_RADIUS], out[base + OUT_SPEED] =
+                    roundCorner(px, py, pz, cx, cy, cz, nx, ny, nz, out[base + OUT_T])
+            end
         end
     end
+    return held
 end
 
 ---Where the goal is at `time`: the point (gx, gy, gz) itself in the system frame, else that offset
@@ -1250,6 +1369,46 @@ local function outrunsBeforePlanning(frame, planSpeed)
     return speedBound[frame + 1] >= top
 end
 
+---Plans toward the goal until the goal's time settles, then rounds the corners. Returns nil
+---(nothing else) when a corner kept under the drive no longer holds on the finished path.
+---@return integer|nil status
+---@return integer waypointCount
+local function solve(sx, sy, sz, frame, gx, gy, gz, planSpeed)
+    local fx, fy, fz = goalPoint(gx, gy, gz, 0)
+    local dx, dy, dz = fx - sx, fy - sy, fz - sz
+    local goalTime = sqrt(dx * dx + dy * dy + dz * dz) / planSpeed
+    local entryTime = goalTime
+    local settled, tEntry = false, nil
+    for _ = 1, frame == SYSTEM_FRAME and 1 or MAX_GOAL_ITERATIONS do
+        local ok, tEnd
+        ok, tEnd, tEntry = planPass(sx, sy, sz, gx, gy, gz, goalTime, entryTime)
+        if not ok then return Status.EndpointInsideBody, 0 end
+        settled = frame == SYSTEM_FRAME or tEnd == nil
+            or (abs(tEnd - goalTime) <= GOAL_TIME_TOLERANCE
+                and (tEntry == nil or abs(tEntry - entryTime) <= GOAL_TIME_TOLERANCE))
+        if settled then break end
+        goalTime, entryTime = tEnd, tEntry or entryTime
+    end
+    if not settled then
+        -- A ship that cannot close on the well's entry never settles on it.
+        if wellMode == WELL_ENTRY and entryChord <= speedBound[frame + 1] * tEntry then return Status.GoalOutrun, 0 end
+        if status == Status.Ok then status = Status.GoalNotSettled end
+    end
+
+    -- The goal and the entry keep their offsets exactly, not the ones rounded from the last pass's
+    -- points.
+    if frame ~= SYSTEM_FRAME and written > 0 and status ~= Status.CapacityExceeded then
+        local base = (written - 1) * OUT_STRIDE
+        out[base + OUT_X], out[base + OUT_Y], out[base + OUT_Z] = gx, gy, gz
+        if entryIndex >= 0 then
+            base = entryIndex * OUT_STRIDE
+            out[base + OUT_X], out[base + OUT_Y], out[base + OUT_Z] = entryOffsetX, entryOffsetY, entryOffsetZ
+        end
+    end
+    if status ~= Status.CapacityExceeded and not roundCorners(sx, sy, sz) then return nil, 0 end
+    return status, written
+end
+
 ---Plans a path from the start to the goal through the bodies. The goal is the point (gx, gy, gz)
 ---in the system frame, or that offset (world axes) from the centre of body `frame`; a goal on a
 ---moving body is planned for the time the ship gets there, and a goal inside that body's well
@@ -1299,39 +1458,15 @@ function SystemPlanner.plan(bodiesBuffer, count, sx, sy, sz, frame, gx, gy, gz, 
     wellMode = chooseWellMode(sx, sy, sz, gx, gy, gz)
     if outrunsBeforePlanning(frame, planSpeed) then return Status.GoalOutrun, 0 end
 
-    local fx, fy, fz = goalPoint(gx, gy, gz, 0)
-    local dx, dy, dz = fx - sx, fy - sy, fz - sz
-    local goalTime = sqrt(dx * dx + dy * dy + dz * dz) / planSpeed
-    local entryTime = goalTime
-    local settled, tEntry = false, nil
-    for _ = 1, frame == SYSTEM_FRAME and 1 or MAX_GOAL_ITERATIONS do
-        local ok, tEnd
-        ok, tEnd, tEntry = planPass(sx, sy, sz, gx, gy, gz, goalTime, entryTime)
-        if not ok then return Status.EndpointInsideBody, 0 end
-        settled = frame == SYSTEM_FRAME or tEnd == nil
-            or (abs(tEnd - goalTime) <= GOAL_TIME_TOLERANCE
-                and (tEntry == nil or abs(tEntry - entryTime) <= GOAL_TIME_TOLERANCE))
-        if settled then break end
-        goalTime, entryTime = tEnd, tEntry or entryTime
+    driveCornersOn = true
+    local result, waypoints = solve(sx, sy, sz, frame, gx, gy, gz, planSpeed)
+    if result == nil then
+        -- A corner kept under the drive stopped holding once the whole path was known: plan again
+        -- with every detour corner releasing the drive.
+        driveCornersOn = false
+        result, waypoints = solve(sx, sy, sz, frame, gx, gy, gz, planSpeed)
     end
-    if not settled then
-        -- A ship that cannot close on the well's entry never settles on it.
-        if wellMode == WELL_ENTRY and entryChord <= speedBound[frame + 1] * tEntry then return Status.GoalOutrun, 0 end
-        if status == Status.Ok then status = Status.GoalNotSettled end
-    end
-
-    -- The goal and the entry keep their offsets exactly, not the ones rounded from the last pass's
-    -- points.
-    if frame ~= SYSTEM_FRAME and written > 0 and status ~= Status.CapacityExceeded then
-        local base = (written - 1) * OUT_STRIDE
-        out[base + OUT_X], out[base + OUT_Y], out[base + OUT_Z] = gx, gy, gz
-        if entryIndex >= 0 then
-            base = entryIndex * OUT_STRIDE
-            out[base + OUT_X], out[base + OUT_Y], out[base + OUT_Z] = entryOffsetX, entryOffsetY, entryOffsetZ
-        end
-    end
-    if status ~= Status.CapacityExceeded then roundCorners(sx, sy, sz) end
-    return status, written
+    return result, waypoints
 end
 
 return SystemPlanner
