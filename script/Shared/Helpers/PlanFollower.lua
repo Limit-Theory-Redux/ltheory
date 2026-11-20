@@ -2,7 +2,8 @@
 -- the entry of the next corner's arc (or the corner, when sharp) at the corner's speed, each arc is
 -- flown by pure pursuit under the corner's speed cap. Corner points are taken from where their
 -- frame bodies are now, except a well's entry, which is sought where it is planned to be on arrival;
--- the arcs are the ones the planner cleared, kept at their planned offsets.
+-- the arcs are the ones the planner cleared, kept at their planned offsets. A drive run's corner
+-- (`through`, no arc) is passed a lead (`speed / drag`) before it, where the drive turn begins.
 -- The follower stops after the last corner; the owner flies the leg to the goal.
 -- Design: doc/script/nav/system-planner.md
 local SystemPlanner = require("Shared.Helpers.SystemPlanner")
@@ -212,18 +213,25 @@ function PlanFollower:seekLeg(arc)
     self.nav:setSeek(self.agent, self.target, self.passRadius, waypoint.speed)
 end
 
----Whether the ship has crossed the plane through the sharp corner it is flying to, normal to the leg.
+---Whether the ship has reached the point at which it turns at the sharp corner it is flying to.
 ---A drive run goes through such a corner at a speed that covers more than the pass radius in a
----frame, so the ship can step over the corner without coming within reach of it; crossing the
----plane counts as passing it. Only a corner the drive is kept at (`through`) is passed this way:
----any other is reached at a speed the pass radius is sized for.
+---frame, so the ship can step over the corner without coming within reach of it; being past the
+---plane through the corner, normal to the leg, counts as passing it. Only a corner the drive is
+---kept at (`through`) is passed this way: any other is reached at a speed the pass radius is sized
+---for. A corner that is not a well's entry is a drive turn: the ship turns its nose to the new leg
+---`SystemPlanner.driveTurnLead` before the corner, so that its velocity, which follows the nose
+---through the drag, meets the new leg (the path the planner cleared).
+---@param speed number Game units per second now
 ---@return boolean
-function PlanFollower:crossedCorner()
+function PlanFollower:reachedCorner(speed)
     local waypoint = self.points[self.index]
     if not waypoint.through or waypoint.radius > 0 then return false end
     local corner = self:pointNow(waypoint)
     local before = self.index == 1 and toPosition(self.start) or self:pointNow(self.points[self.index - 1])
-    return dot(sub(corner, before), sub(corner, self.rb:getPos())) <= 0
+    local leg = sub(corner, before)
+    local left = dot(leg, sub(corner, self.rb:getPos())) / length(leg)
+    local lead = self:isEntry(self.index) and 0 or SystemPlanner.driveTurnLead(speed, self.drag)
+    return left <= lead
 end
 
 ---Steps on to the corner after the one passed; after the last, the follower is finished.
@@ -316,7 +324,7 @@ function PlanFollower:advance(arrived, speed, time, listener, carried)
         self:endArc(time, listener)
         if self.finished then return end
         arc = self:currentArc()
-    elseif arrived or self:crossedCorner() then
+    elseif arrived or self:reachedCorner(speed) then
         listener:pointPassed(self.index, speed, time)
         if arc then
             self:beginArc(speed, time)

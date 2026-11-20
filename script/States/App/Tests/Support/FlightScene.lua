@@ -84,20 +84,23 @@ end
 ---@param planetPos Position
 ---@param radius gameunit
 ---@param speedup number
+---@param options { moon: boolean|nil, wellRadius: gameunit|nil }|nil `moon`: the body is a moon, not a planet (its zone caps the drive lower); `wellRadius`: the well's radius, `WELL_RADIUS` when nil
 ---@return table well `planetBody` is the planet as a target: its entity and rigid body
-function FlightScene.buildWell(world, planetPos, radius, speedup)
+function FlightScene.buildWell(world, planetPos, radius, speedup, options)
     local star = Entity.Create("StarEntity", CelestialComponents.Star())
     local starRb = FlightScene.giveKinematicBody(world, star,
         Position(planetPos.x - FlightScene.WELL_ORBIT_RADIUS, planetPos.y, planetPos.z), 1)
 
-    local planet = Entity.Create("PlanetEntity", CelestialComponents.Planet())
+    local isMoon = options and options.moon
+    local planet = isMoon and Entity.Create("MoonEntity", CelestialComponents.Moon())
+        or Entity.Create("PlanetEntity", CelestialComponents.Planet())
     local planetRb = FlightScene.giveKinematicBody(world, planet, planetPos, radius)
     planet:add(PhysicsComponents.Transform()):setPos(planetPos)
     planet:add(SpatialComponents.Orbit(FlightScene.WELL_ORBIT_RADIUS))
     Registry:attachEntity(star, planet)
 
     local zone = SpatialEntities.Zone()
-    zone:get(SpatialComponents.Shape):setRadius(FlightScene.WELL_RADIUS)
+    zone:get(SpatialComponents.Shape):setRadius(options and options.wellRadius or FlightScene.WELL_RADIUS)
     Registry:attachEntity(planet, zone)
 
     local orbiters, followers = OrbitalSystem:collectOrbiters(star)

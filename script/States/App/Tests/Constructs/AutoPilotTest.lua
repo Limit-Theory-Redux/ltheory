@@ -80,9 +80,28 @@ local PLANET_ORBIT_SPEEDUP = 0.01
 -- moon's stand-offs (204), so the whole flight is shorter than the minimum a goal-sized rule gave.
 local MOON_RADIUS   = 136
 local MOON_DISTANCE = 12000
+-- The flight round a moon: the moon lies this share of the way along the course, which is this
+-- long, and its centre is this far off the course's line (along `MOON_ASIDE`, perpendicular to the
+-- course). The course enters the moon's safe sphere only a little, so the detour round it is a
+-- gentle corner: the drive turn cuts the corner towards the moon by a distance that grows with the
+-- run's speed and the turn, and must stay within the detour's margin (a tenth of the safe radius).
+-- The legs on either side are long enough for the turn at the speed the run has there (the turn
+-- needs about 3.6 times the speed on each side of the corner), and the goal is far enough past it
+-- that the braking law does not slow the run before the turn.
+local MOON_COURSE_DISTANCE = 8000
+local MOON_ALONG           = 0.3
+local MOON_OFFSET          = 140
+local MOON_ASIDE           = { x = 0.74 / 0.9528, y = 0, z = -0.6 / 0.9528 }
+-- The turn's distance from the sharp path is measured while the ship is within this many leads
+-- (`speed / drag`) of the corner.
+local TURN_WINDOW_LEADS = 3
+-- What the planned turn of that flight may be, in radians: gentle, but a real turn.
+local MOON_TURN_MIN = math.rad(1.5)
+local MOON_TURN_MAX = math.rad(40)
 -- The planner keeps the ship this many hull radii from a planet; the ship is only checked to stay
 -- outside the hull, and the clearance from this sphere is logged.
 local PLANET_SAFE_FACTOR = Config.game.autoPilot.safeRadiusFactor.planet
+local MOON_SAFE_FACTOR   = Config.game.autoPilot.safeRadiusFactor.moon
 -- The wall-clock bound on waiting for a plan, in seconds: it turns a plan that never comes into a failure.
 local PLAN_WAIT_S        = 30
 -- The handover runs: how far their points lie from the start, how long the ship flies before the
@@ -110,6 +129,7 @@ local MS_PER_S              = 1000
 ---@field timed boolean|nil Whether the run's update times are logged, as a pair with `sensing` on and off
 ---@field well boolean|nil The target is a planet in a moving gravity well, and the ship starts inside the well
 ---@field planet boolean|nil A planet with a gravity well lies across the course, on a slow orbit
+---@field moon boolean|nil With `planet`: the body across the course is a moon of `MOON_RADIUS`, not a planet
 ---@field outside boolean|nil With `well`: the ship starts outside the well and has to be planned into it
 ---@field wellSpeedup number|nil The planet's speed on its orbit as a multiple of the ship's top speed; `WELL_ORBIT_SPEEDUP` when nil
 
@@ -151,6 +171,10 @@ local SCENARIOS = {
     -- grew with the target's size would keep every leg in normal flight.
     { name = "a moon-sized body, with drive, past a planet", distance = MOON_DISTANCE, radius = MOON_RADIUS,
       drive = true, maxFlight = 60, planet = true },
+    -- A gentle corner round a moon: the drive's run goes through it, with one charge. A flight that
+    -- releases the drive at the corner takes about 60 s, and this one about 42 s.
+    { name = "a point, with drive, round a moon", distance = MOON_COURSE_DISTANCE, drive = true, maxFlight = 50,
+      planet = true, moon = true },
     -- Far enough that the drive's charge and ramp-up, which the ETA doesn't count, are a small part of the flight.
     { name = "a planet-sized body, with drive", distance = 60000, radius = PLANET_RADIUS, drive = true,
       maxFlight = 32 },
@@ -263,9 +287,10 @@ end
 ---@param planetPos Position
 ---@param radius gameunit
 ---@param speedup number
+---@param options { moon: boolean|nil }|nil As `FlightScene.buildWell`
 ---@return table well `planetBody` is the planet as a target: its entity and rigid body
-function AutoPilotTest:buildWell(planetPos, radius, speedup)
-    return FlightScene.buildWell(self.world, planetPos, radius, speedup)
+function AutoPilotTest:buildWell(planetPos, radius, speedup, options)
+    return FlightScene.buildWell(self.world, planetPos, radius, speedup, options)
 end
 
 ---Remove a moving well's bodies from physics and destroy its entities.
@@ -399,6 +424,72 @@ function AutoPilotTest:awaitPlan(flyer)
     return not flyer.planning()
 end
 
+---The distance from `p` to the segment from `a` to `b`, all `{ x, y, z }`.
+local function segmentDistance(p, a, b)
+    local abx, aby, abz = b.x - a.x, b.y - a.y, b.z - a.z
+    local length2 = abx * abx + aby * aby + abz * abz
+    local along = length2 > 0 and ((p.x - a.x) * abx + (p.y - a.y) * aby + (p.z - a.z) * abz) / length2 or 0
+    along = math.max(0, math.min(1, along))
+    local dx, dy, dz = p.x - (a.x + abx * along), p.y - (a.y + aby * along), p.z - (a.z + abz * along)
+    return math.sqrt(dx * dx + dy * dy + dz * dz)
+end
+
+---The turn of a plan of one corner, read when its follower first exists: the corner's turn angle
+---and whether every corner keeps the drive run, and what the flight is then measured against.
+---@param plan PlanFlightState
+---@param follower PlanFollower|nil
+---@return table|nil trace Nil while the plan has no follower
+function AutoPilotTest:captureTurn(plan, follower)
+    if not follower then return nil end
+    local corner, goal, start = follower:pointNow(follower.points[1]), follower:pointNow(plan.goal), plan.start
+    local through = true
+    for _, point in ipairs(follower.points) do through = through and point.through == true and point.radius == 0 end
+    return {
+        start = start, corner = corner, goal = goal, corners = #follower.points, through = through,
+        drag = follower.drag, maxOff = 0,
+        turn = angleBetween({ x = corner.x - start.x, y = corner.y - start.y, z = corner.z - start.z },
+            { x = goal.x - corner.x, y = goal.y - corner.y, z = goal.z - corner.z }),
+    }
+end
+
+---One step of a turn's measure: the largest distance of the ship from the plan's sharp-cornered
+---path, and the ship at the moment its follower has passed the corner (its speed, its drive and how
+---far it still is from the corner).
+function AutoPilotTest:traceTurn(trace, plan, follower, ship, driveState)
+    if plan.phase ~= PlanFlight.Phase.Plan and plan.phase ~= PlanFlight.Phase.Final then return end
+    local at = ship.rb:getPos()
+    -- The corner is a point of the moon's frame, so it moves with the moon: it is where the plan puts
+    -- it only at the time the ship reaches it, and the distance is taken only while the ship is near.
+    local corner = follower and follower:pointNow(follower.points[1]) or trace.corner
+    local lead = ShipFlightSystem:getSpeed(ship.entity) / trace.drag
+    if at:distance(corner) <= TURN_WINDOW_LEADS * lead then
+        trace.maxOff = math.max(trace.maxOff, math.min(segmentDistance(at, trace.start, corner),
+            segmentDistance(at, corner, trace.goal)))
+    end
+    if not trace.passSpeed and follower and (follower.finished or follower.index > 1) then
+        trace.passSpeed = ShipFlightSystem:getSpeed(ship.entity)
+        trace.passDrive = driveState
+        trace.passDistance = at:distance(corner)
+    end
+end
+
+---The checks of the flight round a moon: its corner keeps the drive run, with one charge and no arc.
+function AutoPilotTest:checkMoonTurn(name, trace, arcs, charges)
+    self:check(trace ~= nil, name .. "the plan has a corner to turn at")
+    if not trace then return end
+    self:check(trace.through, name .. "every corner keeps the drive run (no arc)", string.format("%d corners", trace.corners))
+    self:check(trace.turn >= MOON_TURN_MIN and trace.turn <= MOON_TURN_MAX, name .. "the corner is a gentle turn",
+        string.format("%.1f deg", math.deg(trace.turn)))
+    self:check(arcs == 0, name .. "no arc is flown", string.format("%d arcs", arcs))
+    self:check(charges == 1, name .. "the drive charges once", string.format("%d charges", charges))
+    self:check(trace.passDrive == "active", name .. "the drive is on at the corner", tostring(trace.passDrive))
+    Log.Info("ConstructsAutoPilotTest: %sturn %.1f deg, %d corners; passed at speed %s with the drive %s, %s from the corner (model lead %s); "
+        .. "largest distance from the sharp path %.1f; %d charges",
+        name, math.deg(trace.turn), trace.corners, trace.passSpeed and string.format("%.1f", trace.passSpeed) or "-",
+        tostring(trace.passDrive), trace.passDistance and string.format("%.1f", trace.passDistance) or "-",
+        trace.passSpeed and string.format("%.1f", trace.passSpeed / trace.drag) or "-", trace.maxOff, charges)
+end
+
 ---Fly one scenario and check it. A scenario that expects no drive flies with the autopilot's drive
 ---switched off: a leg longer than the drive's shortest (about a minute of top speed) is driven, and
 ---nothing avoids a rock under the drive, so a short flight past a rock is flown in normal flight.
@@ -424,10 +515,16 @@ function AutoPilotTest:fly(scenario, kind)
     local well = scenario.well and self:buildWell(Position(WELL_ORBIT_RADIUS, 0, 0), BODY_RADIUS,
         scenario.wellSpeedup or WELL_ORBIT_SPEEDUP)
     -- The planet across the course: the ship starts at the origin, so the course runs from there.
+    -- A moon, when the scenario has one, is the body across the course instead of a planet.
+    local bodyRadius = scenario.moon and MOON_RADIUS or PLANET_RADIUS
+    local bodySafeFactor = scenario.moon and MOON_SAFE_FACTOR or PLANET_SAFE_FACTOR
+    local along = scenario.moon and MOON_ALONG or PLANET_ALONG
+    local aside = scenario.moon and MOON_OFFSET or 0
     local planet = scenario.planet and self:buildWell(Position(
-        DIRECTION.x / length * scenario.distance * PLANET_ALONG,
-        DIRECTION.y / length * scenario.distance * PLANET_ALONG,
-        DIRECTION.z / length * scenario.distance * PLANET_ALONG), PLANET_RADIUS, PLANET_ORBIT_SPEEDUP)
+        DIRECTION.x / length * scenario.distance * along + MOON_ASIDE.x * aside,
+        DIRECTION.y / length * scenario.distance * along + MOON_ASIDE.y * aside,
+        DIRECTION.z / length * scenario.distance * along + MOON_ASIDE.z * aside), bodyRadius, PLANET_ORBIT_SPEEDUP,
+        { moon = scenario.moon })
     -- The scenario's moving bodies, whose orbits and wells are updated with each step.
     local moving = well or planet
     -- A ship starts at the origin, or at the distance of the scenario from a planet's start.
@@ -477,6 +574,8 @@ function AutoPilotTest:fly(scenario, kind)
     local etaAtDrive, driveAt
     local updateSum, updateMax, updateCount = 0, 0, 0
     local planetClosest, cornered, arcs, arcOnDrive = math.huge, false, 0, 0
+    -- The turn of a flight round a moon, and how many times the drive began to charge.
+    local turnTrace, charges, lastDriveState = nil, 0, nil
     local onArc, arcStart, finalAt = false, nil, nil
     -- The flight into a moving well: which phases the plan went through, and the ship at the moment
     -- the well took it.
@@ -539,6 +638,13 @@ function AutoPilotTest:fly(scenario, kind)
             entrySamples[#entrySamples + 1] = { at = now, nose = ship.rb:getRot():getForward() }
         end
         cornered = cornered or follower ~= nil
+        local driveState = drive:getState()
+        if driveState == "charging" and lastDriveState ~= "charging" then charges = charges + 1 end
+        lastDriveState = driveState
+        if scenario.moon and plan then
+            turnTrace = turnTrace or self:captureTurn(plan, follower)
+            if turnTrace then self:traceTurn(turnTrace, plan, follower, ship, driveState) end
+        end
         local arcNow = follower ~= nil and follower.arc ~= nil
         if plan and plan.phase == "final" and not finalAt then finalAt = stepIndex * STEP end
         if arcNow and not onArc then
@@ -623,14 +729,18 @@ function AutoPilotTest:fly(scenario, kind)
     end
 
     if planet then
-        self:check(planetClosest > PLANET_RADIUS + hull, name .. "the ship stays outside the planet's hull",
-            string.format("closest %.1f, hull %.1f", planetClosest, PLANET_RADIUS + hull))
+        self:check(planetClosest > bodyRadius + hull, name .. "the ship stays outside the planet's hull",
+            string.format("closest %.1f, hull %.1f", planetClosest, bodyRadius + hull))
         self:check(cornered, name .. "the plan has a corner")
         self:check(arcOnDrive == 0, name .. "the drive is off when an arc starts",
             string.format("%d of %d arcs", arcOnDrive, arcs))
         Log.Info("ConstructsAutoPilotTest: %sclosest to the planet %.0f (hull %.0f, safe sphere %.0f), %d arcs, arc at %s s, final from %s s",
-            name, planetClosest, PLANET_RADIUS, PLANET_RADIUS * PLANET_SAFE_FACTOR, arcs,
+            name, planetClosest, bodyRadius, bodyRadius * bodySafeFactor, arcs,
             tostring(arcStart), tostring(finalAt))
+    end
+
+    if scenario.moon then
+        self:checkMoonTurn(name, turnTrace, arcs, charges)
     end
 
     if scenario.outside then
