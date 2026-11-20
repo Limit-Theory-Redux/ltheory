@@ -1,8 +1,10 @@
 local CameraController = require("Modules.Cameras.Managers").CameraController
 local PhysicsComponents = require("Modules.Physics.Components")
+local FlightProfileComponent = require("Modules.Constructs.Components").FlightProfile
 
---- Chase camera — follows behind the ship, smoothly interpolating.
---- Direct port of Legacy CameraChase into ECS controller pattern.
+--- Chase camera — follows behind the ship, smoothly interpolating its offset from the ship.
+--- The offset stretches with the ship's speed, up to `1 + maxLag` times the rest distance.
+--- Design: doc/script/cameras.md
 ---@class ChaseCameraController : CameraController
 ---@overload fun(entity: Entity, config?: table): ChaseCameraController
 local ChaseCameraController = Subclass("ChaseCameraController", CameraController, function(self, entity, config)
@@ -18,14 +20,33 @@ local ChaseCameraController = Subclass("ChaseCameraController", CameraController
     self.minRadius = config.minRadius or 0.5
     self.maxRadius = config.maxRadius or 10.0
     self.zoomSpeed = config.zoomSpeed or 0.1
+    -- Speed trail: the offset grows by up to `maxLag` times the rest distance, on a log curve of
+    -- the speed between the reference and top speeds (both multiples of the profile's max speed).
+    self.maxLag              = config.maxLag or 1.5
+    self.trailReferenceRatio = config.trailReferenceRatio or 0.1
+    self.trailTopSpeedRatio  = config.trailTopSpeedRatio
+    assert(self.trailTopSpeedRatio and self.trailTopSpeedRatio > self.trailReferenceRatio,
+        "ChaseCameraController: trailTopSpeedRatio must be above trailReferenceRatio")
 
-    -- Smoothed position and rotation (lerp targets)
+    -- Smoothed offset from the ship and rotation (lerp targets)
     self.posT   = Position(0, 0, 0)
     self.rotT   = Quat.Identity()
-    self.posSmooth = Position(0, 0, 0)
+    self.offsetSmooth = Vec3f(0, 0, 0)
     self.rotSmooth = Quat.Identity()
     self.initialized = false
 end)
+
+--- The trail's share of the rest distance at `speed`: 0 at rest, `maxLag` at `topSpeed` and above,
+--- logarithmic in between so that speeds decades apart stay distinguishable.
+---@param speed number Game units per second, >= 0
+---@param referenceSpeed number > 0
+---@param topSpeed number > referenceSpeed
+---@param maxLag number
+---@return number
+local function trailShare(speed, referenceSpeed, topSpeed, maxLag)
+    local share = math.log(1 + speed / referenceSpeed) / math.log(1 + topSpeed / referenceSpeed)
+    return maxLag * math.min(share, 1)
+end
 
 ---@param target Entity
 function ChaseCameraController:setTarget(target)
@@ -75,15 +96,19 @@ function ChaseCameraController:onPreRender(dt)
     -- of their own size. A floor of 1 GU would treat every small ship as
     -- a 1 GU object and push the camera hundreds of ship-lengths away.
     local shipRadius = math.max(rb:getBoundingRadius(), 1e-4)
-    local scale = 0.25 * self.radius * shipRadius
+    local maxSpeed = FlightProfileComponent.ProfileOf(self.target).maxSpeed
+    local trail = trailShare(rb:getSpeed(), maxSpeed * self.trailReferenceRatio,
+        maxSpeed * self.trailTopSpeedRatio, self.maxLag)
+    local scale = 0.25 * self.radius * shipRadius * (1 + trail)
     local pr = self.posRel
 
     -- Transform posRel from ship-local to world space (matches legacy toWorld)
-    self.posT = Position(
-        shipPos.x + (shipRt.x * pr.x + shipUp.x * pr.y + shipFwd.x * pr.z) * scale,
-        shipPos.y + (shipRt.y * pr.x + shipUp.y * pr.y + shipFwd.y * pr.z) * scale,
-        shipPos.z + (shipRt.z * pr.x + shipUp.z * pr.y + shipFwd.z * pr.z) * scale
+    local offsetT = Vec3f(
+        (shipRt.x * pr.x + shipUp.x * pr.y + shipFwd.x * pr.z) * scale,
+        (shipRt.y * pr.x + shipUp.y * pr.y + shipFwd.y * pr.z) * scale,
+        (shipRt.z * pr.x + shipUp.z * pr.y + shipFwd.z * pr.z) * scale
     )
+    self.posT = Position(shipPos.x + offsetT.x, shipPos.y + offsetT.y, shipPos.z + offsetT.z)
 
     -- Look-at point in world space (far ahead of ship)
     local la = self.lookAtRel
@@ -94,11 +119,7 @@ function ChaseCameraController:onPreRender(dt)
     )
 
     -- Compute target rotation: look from camera toward ship (always valid direction)
-    local lookDir = Vec3f(
-        shipPos.x - self.posT.x,
-        shipPos.y - self.posT.y,
-        shipPos.z - self.posT.z
-    )
+    local lookDir = Vec3f(-offsetT.x, -offsetT.y, -offsetT.z)
     local len = lookDir:length()
     if len < 1e-6 then
         lookDir = shipFwd
@@ -107,23 +128,26 @@ function ChaseCameraController:onPreRender(dt)
     end
     self.rotT = Quat.FromLook(lookDir, shipUp)
 
-    -- Lerp smoothing (matches legacy: 1 - exp(-10 * dt))
+    -- Lerp smoothing (matches legacy: 1 - exp(-10 * dt)). The offset from the ship is smoothed,
+    -- not the world position: a smoothed world position trails a moving ship by speed / 10.
     if not self.initialized then
-        self.posSmooth = self.posT
+        self.offsetSmooth = offsetT
         self.rotSmooth = self.rotT
         self.initialized = true
     else
         local lerpF = 1.0 - math.exp(-10.0 * dt)
-        self.posSmooth = Position(
-            self.posSmooth.x + (self.posT.x - self.posSmooth.x) * lerpF,
-            self.posSmooth.y + (self.posT.y - self.posSmooth.y) * lerpF,
-            self.posSmooth.z + (self.posT.z - self.posSmooth.z) * lerpF
+        local o = self.offsetSmooth
+        self.offsetSmooth = Vec3f(
+            o.x + (offsetT.x - o.x) * lerpF,
+            o.y + (offsetT.y - o.y) * lerpF,
+            o.z + (offsetT.z - o.z) * lerpF
         )
         self.rotSmooth = self.rotSmooth:slerp(self.rotT, lerpF)
     end
 
     -- Set camera transform directly
-    self.transform:setPos(self.posSmooth)
+    local o = self.offsetSmooth
+    self.transform:setPos(Position(shipPos.x + o.x, shipPos.y + o.y, shipPos.z + o.z))
     self.transform:setRot(self.rotSmooth)
 end
 

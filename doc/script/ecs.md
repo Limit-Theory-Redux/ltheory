@@ -26,6 +26,8 @@ See [modules documentation](modules.md).
 
 An entity is a unique identifier that acts as a container for components. It does not have any data or behavior on its own. Think of entities as empty shells that become meaningful when associated with components.
 
+An entity's id is a Lua number, unique for the run. `Registry:getEntityById(id)` finds the entity for an id, including the `uint64` ids that physics queries report. Ids are numbers rather than `uint64` cdata because LuaJIT tables key cdata by object, not by value: an equal id coming back from the engine would never find its entry.
+
 In LTR entity definition files operate a little bit (but not quite) like blueprints which you might know from other game engines.
 
 Entity definitions are created as functions that return an Entity instance with the appropriate components.
@@ -50,6 +52,8 @@ end
 ```
 
 As you can see, first the Entity module is imported, followed by the relevant component modules. `Entity.Create` constructs an entity with the specified components.
+
+The kind of an entity is a marker component that holds no data: a moon has `CelestialObjects.Moon`, a planet `CelestialObjects.Planet`, and so on. Its constructor adds the marker, so create an entity of a kind with its constructor (`CelestialEntities.Moon(seed, meshes)`), not with `Entity.Create` and a repeated component list. `Core.Type` only holds the variety within a kind (`Rocky`, `Icy`), whose values can repeat between kinds. To find the entities of a kind, view the marker: `for moon in Registry:view(CelestialObjects.Moon) do … end` lists the live moons in creation order, so a system never walks the hierarchy to test names. A view covers the whole registry, and it doesn't list an entity created during the loop. To test one entity, call `entity:get(CelestialObjects.Moon)`. A belt and an asteroid are different markers, so a name that contains another (`AsteroidBeltEntity`, `AsteroidEntity`) can't confuse them.
 
 ### Components
 

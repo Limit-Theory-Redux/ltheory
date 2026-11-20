@@ -105,12 +105,32 @@ do -- Transparent Structs
             double     posy;
             double     posz;
             float      t;
+            uint64     id;
         } RayCastResult;
 
         typedef struct ShapeCastResult {
             RigidBody** hits;
             uint32      hits_len;
+            uint64*     ids;
         } ShapeCastResult;
+
+        typedef struct SphereSweepResult {
+            RigidBody* body;
+            uint64     id;
+            float      normx;
+            float      normy;
+            float      normz;
+            double     posx;
+            double     posy;
+            double     posz;
+            double     t;
+        } SphereSweepResult;
+
+        typedef struct RadiusQueryResult {
+            uint64* ids;
+            double* distances;
+            uint32  len;
+        } RadiusQueryResult;
 
         typedef struct Time {
             int second;
@@ -233,6 +253,8 @@ do -- Transparent Structs
         'IntersectSphereProfiling',
         'RayCastResult',
         'ShapeCastResult',
+        'SphereSweepResult',
+        'RadiusQueryResult',
         'Vec2d',
         'Vec2f',
         'Vec2i',

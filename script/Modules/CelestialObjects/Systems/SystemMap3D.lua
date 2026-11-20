@@ -1,15 +1,33 @@
-local CoreComponents      = require("Modules.Core.Components")
-local PhysicsComponents   = require("Modules.Physics.Components")
-local SpatialComponents   = require("Modules.Spatial.Components")
-local UniverseScaleConfig = require("Config.Gen.UniverseScaleConfig")
-local DrawEx              = require("UI.DrawEx")
-local Primitive           = require("Legacy.Systems.Gen.Primitive")
-local CameraEntity        = require("Modules.Cameras.Entities").Camera
-local CameraManager       = require("Modules.Cameras.Managers.CameraManager")
-local CameraDataComponent = require("Modules.Cameras.Components.CameraDataComponent")
-local RenderCoreSystem    = require("Modules.Rendering.Systems.RenderCoreSystem")
-local Pipelines           = require("Render.Pipelines")
-local ffi                 = require("ffi")
+local CoreComponents           = require("Modules.Core.Components")
+local PhysicsComponents        = require("Modules.Physics.Components")
+local SpatialComponents        = require("Modules.Spatial.Components")
+local UniverseScaleConfig      = require("Config.Gen.UniverseScaleConfig")
+local DrawEx                   = require("UI.DrawEx")
+local EntityPosition           = require("Shared.Helpers.EntityPosition")
+local ScreenProjection         = require("Shared.Helpers.ScreenProjection")
+local RouteOverlayRenderSystem = require("Modules.UI.Systems.RouteOverlayRenderSystem")
+local Registry                 = require("Core.ECS.Registry")
+local CelestialComponents      = require("Modules.CelestialObjects.Components")
+local ConstructsComponents     = require("Modules.Constructs.Components")
+local Primitive                = require("Legacy.Systems.Gen.Primitive")
+local CameraEntity             = require("Modules.Cameras.Entities").Camera
+local CameraManager            = require("Modules.Cameras.Managers.CameraManager")
+local CameraDataComponent      = require("Modules.Cameras.Components.CameraDataComponent")
+local RenderCoreSystem         = require("Modules.Rendering.Systems.RenderCoreSystem")
+local Pipelines                = require("Render.Pipelines")
+local ffi                      = require("ffi")
+
+--- What the map draws, per kind marker. Asteroids only matter up close: their scale is small,
+--- so they cluster into a dot at system zoom.
+local MAP_KINDS = {
+    { marker = CelestialComponents.Star,          label = "Star",          color = Color(1.0, 0.9, 0.3, 0.5), trailWidth = 3.0 },
+    { marker = CelestialComponents.Planet,        label = "Planet",        color = Color(0.3, 0.6, 1.0, 0.5), trailWidth = 2.0, numbered = true },
+    { marker = CelestialComponents.Moon,          label = "Moon",          color = Color(0.5, 0.5, 0.6, 0.4), trailWidth = 0.5, isMoon = true },
+    { marker = ConstructsComponents.SpaceStation, label = "Station",       color = Color(1.0, 0.5, 0.1, 0.4), trailWidth = 0.3 },
+    { marker = CelestialComponents.AsteroidBelt,  label = "Asteroid Belt", color = Color(0.7, 0.5, 0.3, 0.3), trailWidth = 0 },
+    { marker = CelestialComponents.AsteroidRing,  label = "Asteroid Ring", color = Color(0.6, 0.5, 0.4, 0.3), trailWidth = 0 },
+    { marker = CelestialComponents.Asteroid,      label = "Asteroid",      color = Color(0.7, 0.6, 0.5, 0.6), trailWidth = 0 },
+}
 
 -- Orbit trails: additive, drawn with the map's own view and projection.
 local trailState = { blend = BlendMode.Additive }
@@ -47,24 +65,25 @@ function SystemMap3D:create(config)
         lastMouseX   = 0,
         lastMouseY   = 0,
         entities     = {},
-        selected     = nil,
-        shipEntity   = nil,
-        maxOrbit     = 1,
-        focusX       = 0,
-        focusY       = 0,
-        focusZ       = 0,
-        focusTargetX = 0,
-        focusTargetY = 0,
-        focusTargetZ = 0,
-        trails       = {},
-        trailMeshes  = {},
-        trailDirty   = false,
-        trailLen     = 300,
-        trailTimer   = 0,
-        trailInterval = 0.033,
+        selected         = nil,
+        shipEntity       = nil,
+        autopilotOverlay = nil, -- the autopilot's target, route and progress for `RouteOverlayRenderSystem`, or nil
+        maxOrbit         = 1,
+        focusX           = 0,
+        focusY           = 0,
+        focusZ           = 0,
+        focusTargetX     = 0,
+        focusTargetY     = 0,
+        focusTargetZ     = 0,
+        trails           = {},
+        trailMeshes      = {},
+        trailDirty       = false,
+        trailLen         = 300,
+        trailTimer       = 0,
+        trailInterval    = 0.033,
         -- Camera
-        cameraEntity = cam,
-        prevCamera   = nil, -- to restore when map closes
+        cameraEntity     = cam,
+        prevCamera       = nil, -- to restore when map closes
     }
 end
 
@@ -73,12 +92,17 @@ function SystemMap3D:setSkybox(state, skyboxEntity)
     state.skyboxEntity = skyboxEntity
 end
 
-function SystemMap3D:collectEntities(state, rootEntity, shipEntity)
+--- Collect all entities with positions, one registry view per kind
+---@param state table
+---@param shipEntity Entity|nil
+function SystemMap3D:collectEntities(state, shipEntity)
     state.entities = {}
     state.shipEntity = shipEntity
     state._planetIdx = 0
     state.maxOrbit = 1
-    self:_walk(state, rootEntity, nil)
+    for _, kind in ipairs(MAP_KINDS) do
+        self:_collectKind(state, kind)
+    end
 
     if shipEntity then
         local rbCmp = shipEntity:get(PhysicsComponents.RigidBody)
@@ -95,58 +119,40 @@ function SystemMap3D:collectEntities(state, rootEntity, shipEntity)
     end
 end
 
-function SystemMap3D:_walk(state, entity, parentPos)
-    local name = tostring(entity)
-    local transform = entity:get(PhysicsComponents.Transform)
-    if not transform then
-        local cc = entity:get(CoreComponents.Children)
-        if cc then for child in cc:iterChildren() do self:_walk(state, child, parentPos) end end
-        return
+---@param state table
+---@param kind table An entry of MAP_KINDS
+function SystemMap3D:_collectKind(state, kind)
+    for entity in Registry:view(kind.marker) do
+        local transform = entity:get(PhysicsComponents.Transform)
+        if transform then
+            local pos = transform:getPos()
+            local rbCmp = entity:get(PhysicsComponents.RigidBody)
+            if rbCmp and rbCmp:getRigidBody() then pos = rbCmp:getRigidBody():getPos() end
+
+            local label = kind.label
+            if kind.numbered then
+                state._planetIdx = state._planetIdx + 1
+                label = label .. " " .. state._planetIdx
+            end
+
+            local orbitCmp = entity:get(SpatialComponents.Orbit)
+            local orbitRadius = orbitCmp and orbitCmp:getOrbitRadius() or 0
+            local incCmp = entity:get(SpatialComponents.Inclination)
+            local inclination = incCmp and math.rad(incCmp:getInclination() or 0) or 0
+            if orbitRadius > state.maxOrbit then state.maxOrbit = orbitRadius end
+
+            local parentCmp = entity:get(CoreComponents.Parent)
+            local parentEntity = parentCmp and parentCmp:getParent()
+
+            table.insert(state.entities, {
+                entity = entity, label = label, pos = pos,
+                scale = transform:getScale(), orbitRadius = orbitRadius,
+                inclination = inclination, isMoon = kind.isMoon or false,
+                parentPos = parentEntity and EntityPosition.Get(parentEntity) or nil,
+                color = kind.color, trailWidth = kind.trailWidth,
+            })
+        end
     end
-
-    local pos = transform:getPos()
-    local label, color, isMoon, trailWidth = nil, nil, false, 1.0
-
-    if name:find("StarEntity") then
-        label = "Star"; color = Color(1.0, 0.9, 0.3, 0.5); trailWidth = 3.0
-    elseif name:find("PlanetEntity") then
-        state._planetIdx = state._planetIdx + 1
-        label = "Planet " .. state._planetIdx; color = Color(0.3, 0.6, 1.0, 0.5); trailWidth = 2.0
-    elseif name:find("MoonEntity") then
-        label = "Moon"; color = Color(0.5, 0.5, 0.6, 0.4); isMoon = true; trailWidth = 0.5
-    elseif name:find("SpaceStationEntity") then
-        label = "Station"; color = Color(1.0, 0.5, 0.1, 0.4); trailWidth = 0.3
-    elseif name:find("AsteroidBeltEntity") then
-        label = "Asteroid Belt"; color = Color(0.7, 0.5, 0.3, 0.3); trailWidth = 0
-    elseif name:find("AsteroidRingEntity") then
-        label = "Asteroid Ring"; color = Color(0.6, 0.5, 0.4, 0.3); trailWidth = 0
-    elseif name:find("AsteroidEntity") then
-        -- Spawned asteroid (AsteroidFieldSystem attaches these to the belt
-        -- entity). Markers only matter up close; the per-entity scale is
-        -- small so they cluster into a dot at system zoom.
-        label = "Asteroid"; color = Color(0.7, 0.6, 0.5, 0.6); trailWidth = 0
-    end
-
-    if label then
-        local rbCmp = entity:get(PhysicsComponents.RigidBody)
-        if rbCmp and rbCmp:getRigidBody() then pos = rbCmp:getRigidBody():getPos() end
-
-        local orbitCmp = entity:get(SpatialComponents.Orbit)
-        local orbitRadius = orbitCmp and orbitCmp:getOrbitRadius() or 0
-        local incCmp = entity:get(SpatialComponents.Inclination)
-        local inclination = incCmp and math.rad(incCmp:getInclination() or 0) or 0
-        if orbitRadius > state.maxOrbit then state.maxOrbit = orbitRadius end
-
-        table.insert(state.entities, {
-            entity = entity, label = label, pos = pos,
-            scale = transform:getScale(), orbitRadius = orbitRadius,
-            inclination = inclination, isMoon = isMoon,
-            parentPos = parentPos, color = color, trailWidth = trailWidth,
-        })
-    end
-
-    local cc = entity:get(CoreComponents.Children)
-    if cc then for child in cc:iterChildren() do self:_walk(state, child, pos) end end
 end
 
 function SystemMap3D:updateTrails(state, dt)
@@ -253,24 +259,15 @@ function SystemMap3D:updateInput(state, dt)
 
     -- Click to select
     if MapActions.Select:isPressed() then
-        local scrW = Window:width()
-        local scrH = Window:height()
-        local mV = state._mView
-        local mP = state._mProj
-        local focusPos = state._focusPos or Position(0, 0, 0)
-
-        if not mV or not mP then goto skip_click end
+        local projector = state._projector
+        if not projector then goto skip_click end
 
         local bestDist = 900
         local bestEntry = nil
         for _, entry in ipairs(state.entities) do
             if entry.isMoon and state.radius > 0.02 then goto next_sel end
-            local rel = entry.pos:relativeTo(focusPos)
-            local vp = mV:mulVec(Vec4f(rel.x, rel.y, rel.z, 1.0))
-            local cp = mP:mulVec(vp)
-            if cp.w <= 0 then goto next_sel end
-            local screenX = (cp.x / cp.w + 1) * 0.5 * scrW
-            local screenY = (1 - cp.y / cp.w) * 0.5 * scrH
+            local screenX, screenY = ScreenProjection.toScreen(projector, entry.pos)
+            if not screenX then goto next_sel end
             local dx = mp.x - screenX
             local dy = mp.y - screenY
             local d = dx * dx + dy * dy
@@ -355,6 +352,12 @@ function SystemMap3D:updateCamera(state)
     local camEyeVec = Vec3f(sphereOffset.x, sphereOffset.y, sphereOffset.z)
     state._mView = Matrix.LookAt(camEyeVec, Vec3f(0, 0, 0), Vec3f(0, 1, 0))
     state._mProj = Matrix.Perspective(60, sx / sy, camDist * 0.001, camDist * 1000)
+    -- The same matrices as a projector (points relative to the focus), reused each frame
+    local projector = state._projector or {}
+    projector.view, projector.proj = state._mView, state._mProj
+    projector.origin = focusReal
+    projector.x, projector.y, projector.w, projector.h = 0, 0, sx, sy
+    state._projector = projector
     state._camDist = camDist
     state._norm = norm
     state._focusPos = focusReal
@@ -395,7 +398,9 @@ function SystemMap3D:renderOverlay(state, x, y, sx, sy)
     local camDist = state._camDist or (state.radius * state.maxOrbit)
     local mView = state._mView
     local mProj = state._mProj
-    if not mView or not mProj then return end
+    local projector = state._projector
+    if not mView or not mProj or not projector then return end
+    projector.x, projector.y, projector.w, projector.h = x, y, sx, sy
 
     -- Draw trails in overlay (additive, using trail shader)
     local trailShader = Cache.Shader('hologram3d', 'ui/trail3d')
@@ -468,16 +473,9 @@ function SystemMap3D:renderOverlay(state, x, y, sx, sy)
         local rbCmp = entry.entity:get(PhysicsComponents.RigidBody)
         if rbCmp and rbCmp:getRigidBody() then entry.pos = rbCmp:getRigidBody():getPos() end
 
-        -- Position relative to camera focus (f64 subtraction, then f32)
-        local focusPos = state._focusPos or Position(0, 0, 0)
-        local rel = entry.pos:relativeTo(focusPos)
-
-        local vp = mView:mulVec(Vec4f(rel.x, rel.y, rel.z, 1.0))
-        local cp = mProj:mulVec(vp)
-        if cp.w <= 0 then goto next_lbl end
-
-        local screenX = x + (cp.x / cp.w + 1) * 0.5 * sx
-        local screenY = y + (1 - cp.y / cp.w) * 0.5 * sy
+        -- Relative to the camera focus (f64 subtraction, then f32)
+        local screenX, screenY = ScreenProjection.toScreen(projector, entry.pos)
+        if not screenX then goto next_lbl end
 
         if screenX > x and screenX < x + sx and screenY > y and screenY < y + sy then
             local c = entry.color
@@ -487,6 +485,11 @@ function SystemMap3D:renderOverlay(state, x, y, sx, sy)
                 c.r, c.g, c.b, isSelected and 1.0 or 0.8, 0.0, 0.5)
         end
         ::next_lbl::
+    end
+
+    -- The autopilot's target, next waypoint and route, through the map's projection
+    if state.autopilotOverlay then
+        RouteOverlayRenderSystem:draw(state.autopilotOverlay, ScreenProjection.toScreen, projector)
     end
 
     DrawEx.TextAdditive('Unageo-Medium',

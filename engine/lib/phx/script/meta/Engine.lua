@@ -34,7 +34,13 @@ function Engine:getTime() end
 ---@return string
 function Engine.GetVersion() end
 
+-- Ends the run with the success exit code (0).
 function Engine:exit() end
+
+-- Ends the run with `code` as the process exit code. No frame Lua runs
+-- after the request; `AppClose` still does. The first non-zero code wins.
+---@param code integer
+function Engine:exitWithCode(code) end
 
 function Engine.Terminate() end
 

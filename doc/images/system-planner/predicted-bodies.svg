@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 420" font-family="sans-serif" font-size="14">
+  <title>The planner places an orbiting body where it will be when the ship passes</title>
+  <defs>
+    <marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2563eb"/></marker>
+    <marker id="k" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#6b7280"/></marker>
+  </defs>
+  <rect width="800" height="420" fill="#ffffff"/>
+  <text x="20" y="28" fill="#111827" font-weight="bold">Bodies are placed where they will be at the time the ship gets there</text>
+  <!-- orbit arc -->
+  <path d="M200,100 Q320,100 460,215" fill="none" stroke="#6b7280" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#k)"/>
+  <!-- body now (faded) -->
+  <circle cx="200" cy="100" r="40" fill="#dc2626" fill-opacity="0.08" stroke="#dc2626" stroke-opacity="0.4" stroke-width="2" stroke-dasharray="6 4"/>
+  <circle cx="200" cy="100" r="14" fill="#9ca3af" fill-opacity="0.5"/>
+  <text x="200" y="165" fill="#6b7280" text-anchor="middle">body now (t = 0)</text>
+  <!-- body later -->
+  <circle cx="460" cy="215" r="52" fill="#fee2e2" fill-opacity="0.6" stroke="#dc2626" stroke-width="2" stroke-dasharray="8 4"/>
+  <circle cx="460" cy="215" r="14" fill="#9ca3af"/>
+  <text x="460" y="295" fill="#dc2626" text-anchor="middle">body when the ship passes</text>
+  <text x="460" y="313" fill="#dc2626" text-anchor="middle">(t = leg length / speed)</text>
+  <!-- straight leg and detour -->
+  <line x1="80" y1="330" x2="720" y2="130" stroke="#6b7280" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <polyline points="80,330 470,128 720,130" fill="none" stroke="#2563eb" stroke-width="3.5"/>
+  <circle cx="80" cy="330" r="7" fill="#2563eb"/>
+  <text x="80" y="356" fill="#2563eb" text-anchor="middle">start</text>
+  <circle cx="720" cy="130" r="7" fill="#2563eb"/>
+  <text x="720" y="156" fill="#2563eb" text-anchor="middle">goal</text>
+  <text x="560" y="106" fill="#2563eb">plan with a detour</text>
+  <text x="20" y="396" fill="#6b7280">The straight leg is clear of the body's position now, but not of where it will be: the planner detours around that.</text>
+</svg>

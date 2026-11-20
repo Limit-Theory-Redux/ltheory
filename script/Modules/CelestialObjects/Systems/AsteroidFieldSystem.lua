@@ -1,12 +1,12 @@
-local Registry          = require("Core.ECS.Registry")
-local Entity            = require("Core.ECS.Entity")
-local CoreComponents    = require("Modules.Core.Components")
-local PhysicsComponents = require("Modules.Physics.Components")
+local Registry            = require("Core.ECS.Registry")
+local CoreComponents      = require("Modules.Core.Components")
+local PhysicsComponents   = require("Modules.Physics.Components")
 local CelestialComponents = require("Modules.CelestialObjects.Components")
-local RenderComp        = require("Modules.Rendering.Components").Render
-local Materials         = require("Shared.Registries.Materials")
-local CameraManager     = require("Modules.Cameras.Managers.CameraManager")
-local AsteroidMeshPool  = require("Modules.CelestialObjects.Systems.AsteroidMeshPool")
+local CelestialEntities   = require("Modules.CelestialObjects.Entities")
+local RenderComp          = require("Modules.Rendering.Components").Render
+local Materials           = require("Shared.Registries.Materials")
+local CameraManager       = require("Modules.Cameras.Managers.CameraManager")
+local AsteroidMeshPool    = require("Modules.CelestialObjects.Systems.AsteroidMeshPool")
 
 --- AsteroidFieldSystem — spawns/despawns asteroid entities based on player distance.
 --- Nearby asteroids become real entities (physics, selectable, mineable).
@@ -194,7 +194,7 @@ function AsteroidFieldSystem:update(dt, beltEntities, physicsWorld, refEntity)
     end
 
     for _, beltEntity in ipairs(beltEntities) do
-        local beltCmp = beltEntity:get(CelestialComponents.AsteroidBelt)
+        local beltCmp = beltEntity:get(CelestialComponents.AsteroidBeltData)
         if not beltCmp then goto next_belt end
 
         local asteroids = beltCmp:getAsteroidData()
@@ -264,17 +264,16 @@ function AsteroidFieldSystem:update(dt, beltEntities, physicsWorld, refEntity)
             local worldY = beltPosY + a.py
             local worldZ = beltPosZ + a.pz
 
-            local entity = Entity.Create("AsteroidEntity",
-                CoreComponents.Seed(a.rotSeed),
-                CoreComponents.Type("Asteroid"),
-                PhysicsComponents.Transform()
-            )
+            local entity = CelestialEntities.Asteroid(a.rotSeed)
 
             local transform = entity:get(PhysicsComponents.Transform)
             transform:setPos(Position(worldX, worldY, worldZ))
             transform:setScale(a.scale)
 
-            -- Mesh from pool + asteroid material
+            -- Mesh from pool + asteroid material. The constructor's render component holds no
+            -- mesh, so it is removed first: a component added over another would leave the old
+            -- one in the registry's dense storage.
+            entity:remove(RenderComp)
             local lodMesh = beltCmp:getLodMesh() or AsteroidMeshPool:getFromSeed(a.rotSeed)
             local mesh = lodMesh and lodMesh:get(0)
             if mesh then
@@ -318,7 +317,7 @@ end
 --- Also handles trimesh collider upgrade/downgrade based on distance
 function AsteroidFieldSystem:updatePositions()
     for beltEntity, spawned in pairs(spawnedAsteroids) do
-        local beltCmp = beltEntity:get(CelestialComponents.AsteroidBelt)
+        local beltCmp = beltEntity:get(CelestialComponents.AsteroidBeltData)
         if not beltCmp then goto next_pos end
         local asteroids = beltCmp:getAsteroidData()
         local bx, by, bz = getRenderOrigin(beltEntity)
@@ -329,9 +328,10 @@ function AsteroidFieldSystem:updatePositions()
                 local t = entity:get(PhysicsComponents.Transform)
                 if t then t:setPos(worldPos) end
                 local rbCmp = entity:get(PhysicsComponents.RigidBody)
-                if rbCmp and rbCmp:getRigidBody() then
-                    rbCmp:getRigidBody():setPos(worldPos)
-
+                local rb = rbCmp and rbCmp:getRigidBody()
+                if rb then
+                    -- A kinematic target, so physics sees the asteroid's velocity as the belt moves.
+                    rb:setKinematicTarget(worldPos, rb:getRot())
                 end
             end
         end
@@ -342,7 +342,7 @@ end
 function AsteroidFieldSystem:getSpawnedEntities()
     local result = {}
     for beltEntity, spawned in pairs(spawnedAsteroids) do
-        local beltCmp = beltEntity:get(CelestialComponents.AsteroidBelt)
+        local beltCmp = beltEntity:get(CelestialComponents.AsteroidBeltData)
         if beltCmp then
             local asteroids = beltCmp:getAsteroidData()
             local bx, by, bz = getRenderOrigin(beltEntity)

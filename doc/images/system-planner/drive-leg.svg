@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" font-family="sans-serif" font-size="14">
+  <title>The speed along a leg flown under the travel drive</title>
+  <rect width="800" height="500" fill="#ffffff"/>
+  <text x="20" y="28" fill="#111827" font-weight="bold">Speed along a drive leg (not to scale)</text>
+  <!-- axes -->
+  <line x1="70" y1="430" x2="770" y2="430" stroke="#111827" stroke-width="1.5"/>
+  <line x1="70" y1="430" x2="70" y2="70" stroke="#111827" stroke-width="1.5"/>
+  <text x="770" y="456" fill="#111827" text-anchor="end">time along the leg</text>
+  <text x="20" y="250" fill="#111827" transform="rotate(-90 20 250)" text-anchor="middle">speed</text>
+  <!-- the planning speed -->
+  <line x1="70" y1="390" x2="770" y2="390" stroke="#9ca3af" stroke-width="1" stroke-dasharray="2 4"/>
+  <text x="78" y="382" fill="#6b7280">speed (the planning speed)</text>
+  <!-- the zone cap -->
+  <path d="M 70 120 L 360 120 Q 440 120 470 300 Q 500 120 580 120 L 770 120" fill="none" stroke="#d97706" stroke-width="2" stroke-dasharray="7 4"/>
+  <text x="78" y="108" fill="#d97706">zone cap: DriveCap, lowest of the zones, falling toward a body's centre</text>
+  <!-- the braking law -->
+  <path d="M 560 70 Q 640 300 705 390" fill="none" stroke="#dc2626" stroke-width="2" stroke-dasharray="7 4"/>
+  <text x="690" y="200" fill="#dc2626">braking law:</text>
+  <text x="690" y="218" fill="#dc2626">distance left</text>
+  <text x="690" y="236" fill="#dc2626">/ braking time</text>
+  <!-- the ship's speed -->
+  <path d="M 70 390 L 160 390 L 270 122 L 360 122 Q 420 124 445 280 Q 470 300 490 280 Q 520 140 575 124 Q 640 132 668 280 Q 690 360 705 390 L 770 390"
+        fill="none" stroke="#2563eb" stroke-width="3.5"/>
+  <!-- phases -->
+  <line x1="160" y1="436" x2="160" y2="424" stroke="#111827"/>
+  <line x1="705" y1="436" x2="705" y2="424" stroke="#111827"/>
+  <text x="115" y="418" fill="#2563eb" text-anchor="middle">charge</text>
+  <text x="215" y="300" fill="#2563eb" text-anchor="middle">ramp up</text>
+  <text x="470" y="320" fill="#2563eb" text-anchor="middle">zone</text>
+  <text x="600" y="320" fill="#2563eb" text-anchor="end">braking</text>
+  <text x="738" y="418" fill="#2563eb" text-anchor="middle">at speed</text>
+  <!-- the arrival: where the goal's time is read -->
+  <line x1="655" y1="226" x2="655" y2="430" stroke="#7c3aed" stroke-width="1.5" stroke-dasharray="3 3"/>
+  <circle cx="655" cy="226" r="5" fill="#7c3aed"/>
+  <text x="649" y="404" fill="#7c3aed" text-anchor="end">goal's T: arrivalRadius</text>
+  <text x="649" y="421" fill="#7c3aed" text-anchor="end">before the end (the drive is still on)</text>
+  <!-- the release and the corner -->
+  <circle cx="705" cy="390" r="6" fill="#111827"/>
+  <text x="770" y="476" fill="#111827" text-anchor="end">release: HANDOVER_MULT · braking time · speed before the end</text>
+  <circle cx="770" cy="390" r="7" fill="#2563eb"/>
+  <text x="770" y="350" fill="#2563eb" text-anchor="end">corner</text>
+  <text x="770" y="367" fill="#2563eb" text-anchor="end">or goal</text>
+</svg>

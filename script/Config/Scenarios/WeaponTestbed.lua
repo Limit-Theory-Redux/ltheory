@@ -568,7 +568,7 @@ local function collectObstacles(game, center, reach)
     end
 
     for _, belt in ipairs(game.beltEntities or {}) do
-        local beltComponent = belt:get(CelestialComponents.AsteroidBelt)
+        local beltComponent = belt:get(CelestialComponents.AsteroidBeltData)
         -- Rock positions are relative to the belt's render origin: its parent
         -- body when it has one (as in LimitTheoryRedux:defaultShipSpawn)
         local origin = belt

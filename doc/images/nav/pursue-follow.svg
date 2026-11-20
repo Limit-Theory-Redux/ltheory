@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 380" font-family="sans-serif" font-size="14">
+  <title>Pursue stand-off point and Follow slot</title>
+  <defs>
+    <marker id="k" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#111827"/></marker>
+    <marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2563eb"/></marker>
+  </defs>
+  <rect width="800" height="380" fill="#ffffff"/>
+  <line x1="400" y1="20" x2="400" y2="360" stroke="#d1d5db" stroke-width="1"/>
+  <!-- Pursue -->
+  <text x="20" y="30" fill="#111827" font-weight="bold">Pursue</text>
+  <line x1="50" y1="210" x2="330" y2="210" stroke="#6b7280" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <circle cx="50" cy="210" r="16" fill="#2563eb"/>
+  <text x="50" y="248" fill="#2563eb" text-anchor="middle">agent</text>
+  <circle cx="300" cy="210" r="60" fill="#e5e7eb" stroke="#6b7280" stroke-width="2"/>
+  <circle cx="300" cy="210" r="4" fill="#6b7280"/>
+  <text x="300" y="300" fill="#6b7280" text-anchor="middle">target (its hull)</text>
+  <!-- settled position -->
+  <circle cx="164" cy="210" r="16" fill="none" stroke="#2563eb" stroke-width="2" stroke-dasharray="4 3"/>
+  <circle cx="164" cy="210" r="3" fill="#2563eb"/>
+  <text x="164" y="246" fill="#2563eb" text-anchor="middle">goal point</text>
+  <line x1="180" y1="185" x2="240" y2="185" stroke="#111827" stroke-width="1.5" marker-start="url(#k)" marker-end="url(#k)"/>
+  <text x="210" y="178" fill="#111827" text-anchor="middle">stand_off</text>
+  <text x="20" y="340" fill="#6b7280">The goal lies on the line of sight, stand_off beyond</text>
+  <text x="20" y="358" fill="#6b7280">the target's hull and the agent's own.</text>
+  <!-- Follow -->
+  <text x="420" y="30" fill="#111827" font-weight="bold">Follow (seen from above)</text>
+  <!-- leader -->
+  <polygon points="600,150 630,215 570,215" fill="#e5e7eb" stroke="#6b7280" stroke-width="2"/>
+  <text x="600" y="240" fill="#6b7280" text-anchor="middle">leader</text>
+  <line x1="600" y1="190" x2="600" y2="110" stroke="#111827" stroke-width="2" marker-end="url(#k)"/>
+  <text x="608" y="110" fill="#111827">forward</text>
+  <line x1="600" y1="190" x2="690" y2="190" stroke="#111827" stroke-width="2" marker-end="url(#k)"/>
+  <text x="696" y="195" fill="#111827">right</text>
+  <!-- slot -->
+  <circle cx="680" cy="300" r="16" fill="none" stroke="#2563eb" stroke-width="2" stroke-dasharray="4 3"/>
+  <circle cx="680" cy="300" r="3" fill="#2563eb"/>
+  <text x="706" y="305" fill="#2563eb">slot</text>
+  <line x1="600" y1="190" x2="680" y2="190" stroke="#2563eb" stroke-width="1.5" stroke-dasharray="3 3"/>
+  <line x1="680" y1="190" x2="680" y2="283" stroke="#2563eb" stroke-width="1.5" stroke-dasharray="3 3" marker-end="url(#b)"/>
+  <text x="688" y="248" fill="#2563eb">forward &lt; 0</text>
+  <text x="640" y="182" fill="#2563eb">right</text>
+  <text x="420" y="340" fill="#6b7280">The slot is an offset in the leader's frame</text>
+  <text x="420" y="358" fill="#6b7280">(right, up, forward) and turns with the leader.</text>
+</svg>

@@ -1,5 +1,7 @@
 #![allow(unsafe_code)] // TODO: remove
 
+use std::collections::btree_map::Entry;
+use std::collections::{BTreeMap, HashSet};
 use std::ptr::NonNull;
 use std::sync::{Mutex, MutexGuard, OnceLock};
 
@@ -15,6 +17,9 @@ use crate::rf::Rf;
 pub type CollisionGroup = u32;
 pub type CollisionMask = u32;
 
+/// The id a body's owner assigns to it and physics queries report; 0 means none.
+pub type BodyUserId = u64;
+
 /*
  * The following API functions are disabled for parent objects:
  * get_position_local, set_position_local, get_rotation_local, and
@@ -22,12 +27,12 @@ pub type CollisionMask = u32;
  *
  * The following API functions are disabled for child objects:
  * apply_force, apply_torque, get_speed, get_velocity, get_angular_velocity,
- * set_position, and set_rotation.
+ * set_position, set_rotation, and set_kinematic_target.
  *
  * The following API functions only have an effect once the child is removed
  * from its parent: set_collidable, set_collision_group, set_collision_mask,
- * set_drag, set_friction, set_kinematic, set_restitution, and
- * set_sleep_threshold.
+ * set_drag, set_friction, set_kinematic, set_restitution,
+ * set_sleep_threshold, and set_soft_ccd_prediction.
  *
  * The following API functions return information only about the current part
  * when the object is part of a compound: get_bounding_box_local,
@@ -71,6 +76,9 @@ pub struct RigidBody {
 
     collidable: bool,
     collision_group: rp::InteractionGroups,
+
+    /// Set by the owner and reported by physics queries; 0 means none.
+    user_id: BodyUserId,
 }
 
 impl RigidBody {
@@ -95,6 +103,7 @@ impl RigidBody {
             mass: 1.0,
             collidable: true,
             collision_group: rp::InteractionGroups::default(),
+            user_id: 0,
         });
 
         // The collider stores a reference to the handle for this rigid body
@@ -219,7 +228,6 @@ impl RigidBody {
     ///
     /// The rest of the physics module guarantees that as long as a given
     /// collider exists, it's corresponding linked RigidBody exists as well.
-    #[allow(dead_code)]
     pub(crate) fn linked_with_collider(collider: &rp::Collider) -> Option<*const RigidBody> {
         if collider.user_data != 0 {
             Some(collider.user_data as *const RigidBody)
@@ -238,6 +246,25 @@ impl RigidBody {
         } else {
             None
         }
+    }
+
+    /// Reads the RigidBody linked to a Rapier Collider; None for an unlinked collider (a Trigger).
+    fn read_linked<T>(collider: &rp::Collider, read: impl FnOnce(&RigidBody) -> T) -> Option<T> {
+        // Sound: a linked collider's RigidBody outlives it (see linked_with_collider), and the
+        // shared reference doesn't escape `read`.
+        Self::linked_with_collider(collider).map(|rb| read(unsafe { &*rb }))
+    }
+
+    /// The user id of the RigidBody linked to a Rapier Collider; 0 for an unlinked collider
+    /// or a body without an id.
+    pub(crate) fn linked_user_id(collider: &rp::Collider) -> BodyUserId {
+        Self::read_linked(collider, |rb| rb.user_id).unwrap_or(0)
+    }
+
+    /// The collision group set on the RigidBody linked to a Rapier Collider, whether or
+    /// not it is collidable; no group for an unlinked collider.
+    pub(crate) fn linked_collision_group(collider: &rp::Collider) -> CollisionGroup {
+        Self::read_linked(collider, |rb| rb.collision_group.memberships.bits()).unwrap_or(0)
     }
 
     /// Is this rigid body a child of another?
@@ -650,8 +677,8 @@ impl RigidBody {
         Vec3::from_na(self.rigid_body.as_ref().angvel())
     }
 
-    /// When disabled, the object will pass through others without colliding
-    /// and will not be returned from ray or shape casts.
+    /// When disabled, the object will pass through others without colliding.
+    /// Physics queries still return it.
     pub fn set_collidable(&mut self, collidable: bool) {
         self.collidable = collidable;
         let collision_group = if self.collidable {
@@ -713,6 +740,25 @@ impl RigidBody {
         rb.activation_mut().angular_threshold = angular as rp::Real;
     }
 
+    /// How far ahead along its path, in game units, contacts are predicted (Rapier's soft
+    /// CCD); 0 disables it. Larger distances enlarge the body's broad-phase box.
+    pub fn set_soft_ccd_prediction(&mut self, distance: f64) {
+        self.rigid_body.as_mut().set_soft_ccd_prediction(distance);
+    }
+
+    /// The id physics queries report for this body; 0 means none.
+    // `u64`, not `BodyUserId`: the FFI generator doesn't resolve aliases.
+    pub fn get_user_id(&self) -> u64 {
+        self.user_id
+    }
+
+    /// Sets the id physics queries report for this body, such as the id of the entity
+    /// that owns it; 0 means none.
+    // `u64`, not `BodyUserId`: the FFI generator doesn't resolve aliases.
+    pub fn set_user_id(&mut self, id: u64) {
+        self.user_id = id;
+    }
+
     pub fn get_mass(&self) -> f32 {
         self.mass
     }
@@ -748,6 +794,24 @@ impl RigidBody {
     #[bind(name = "SetPos")]
     pub fn set_position(&mut self, pos: &Position) {
         self.rigid_body.as_mut().set_translation(pos.to_na(), true);
+    }
+
+    /// Moves a kinematic body to `pos` and `rot` over the next physics step, so physics sees its
+    /// velocity: contacts push dynamic bodies and `get_velocity` reports the motion. Unlike
+    /// `set_position` and `set_rotation`, which teleport, the body stays where it is until then.
+    ///
+    /// # Panics
+    /// If the body is not kinematic, which Rapier would silently ignore.
+    pub fn set_kinematic_target(&mut self, pos: &Position, rot: &Quat) {
+        let mut rigid_body = self.rigid_body.as_mut();
+        assert!(
+            rigid_body.is_kinematic(),
+            "set_kinematic_target needs a kinematic body"
+        );
+        rigid_body.set_next_kinematic_position(na::Isometry3::from_parts(
+            na::Translation3::from(pos.to_na()),
+            rot.to_na(),
+        ));
     }
 
     /// Local coordinates are relative to the parent *before* scaling. The
@@ -842,6 +906,184 @@ impl RigidBody {
 
     pub fn is_sleeping(&self) -> bool {
         self.rigid_body.as_ref().is_sleeping()
+    }
+}
+
+/// Names an added rigid body in a physics world by its Rapier handles. Handles are generational,
+/// so they stop resolving once the body leaves the world.
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct BodyHandles {
+    body: rp::RigidBodyHandle,
+    collider: rp::ColliderHandle,
+}
+
+/// A body's pose, motion and extent as the physics world holds them, in game units.
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct BodyState {
+    pub position: DVec3,
+    pub velocity: DVec3,
+    pub rotation: na::UnitQuaternion<rp::Real>,
+    /// Angular velocity in world axes, in radians per second.
+    pub angular_velocity: DVec3,
+    /// Radius of the collider's bounding sphere.
+    pub radius: f64,
+    /// Mass in kilograms; 0 for a body without mass.
+    pub mass: f64,
+    /// The diagonal of the inverse angular inertia tensor about the body's own x, y and z axes;
+    /// 0 on an axis without inertia.
+    pub inverse_inertia: DVec3,
+}
+
+impl RigidBody {
+    /// The handles of this body in `world`; None unless it is a root body added to that world.
+    pub(crate) fn handles_in(&self, world: &Rf<PhysicsWorld>) -> Option<BodyHandles> {
+        if self.is_child() {
+            return None;
+        }
+        let (body, body_world) = self.rigid_body.added_as_ref()?;
+        let (collider, _) = self.collider.added_as_ref()?;
+        body_world.ptr_eq(world).then_some(BodyHandles {
+            body: *body,
+            collider: *collider,
+        })
+    }
+}
+
+/// A number that names a Rapier body for as long as it lives, and never again after it is
+/// removed: the handle's index and generation.
+pub(crate) type BodyKey = u64;
+
+fn body_key(handle: rp::RigidBodyHandle) -> BodyKey {
+    let (index, generation) = handle.into_raw_parts();
+    (BodyKey::from(generation) << u32::BITS) | BodyKey::from(index)
+}
+
+impl BodyHandles {
+    /// The key of the Rapier body (the compound's root, for a compound).
+    pub(crate) fn key(&self) -> BodyKey {
+        body_key(self.body)
+    }
+}
+
+/// A root body found by [`PhysicsWorld::sense_ball`], as a sphere that covers all its colliders.
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct SensedBody {
+    pub position: DVec3,
+    pub velocity: DVec3,
+    pub radius: f64,
+}
+
+impl PhysicsWorld {
+    /// Adds to `found`, by key, each root body that has a collider within `radius` of `centre`,
+    /// whose collision group shares a bit with `mask` and whose key is not in `skip`. A compound
+    /// is one body: its sphere covers the colliders of all its parts. Triggers are not bodies.
+    /// Reads the query index as `Physics::update` last refreshed it.
+    pub(crate) fn sense_ball(
+        &self,
+        centre: DVec3,
+        radius: f64,
+        mask: CollisionMask,
+        skip: &HashSet<BodyKey>,
+        found: &mut BTreeMap<BodyKey, SensedBody>,
+    ) {
+        let sensed = |collider: &rp::Collider| {
+            collider
+                .parent()
+                .map(body_key)
+                .filter(|key| !skip.contains(key))
+        };
+        let predicate = |_: rp::ColliderHandle, collider: &rp::Collider| {
+            RigidBody::linked_collision_group(collider) & mask != 0 && sensed(collider).is_some()
+        };
+        let filter = rp::QueryFilter {
+            predicate: Some(&predicate),
+            ..Default::default()
+        };
+        self.query_pipeline.intersections_with_shape(
+            &self.rigid_bodies,
+            &self.colliders,
+            &rp::Isometry::translation(centre.x, centre.y, centre.z),
+            &rp::Ball::new(radius),
+            filter,
+            |handle| {
+                let collider = self.get(handle);
+                // The predicate already kept only sensed colliders, so the skip set isn't read again.
+                if let Some(parent) = collider.parent() {
+                    if let Entry::Vacant(slot) = found.entry(body_key(parent)) {
+                        if let Some(body) = self.sphere_of(parent) {
+                            slot.insert(body);
+                        }
+                    }
+                }
+                true
+            },
+        );
+    }
+
+    /// The sphere around the body's position that covers all its colliders; None once the body
+    /// has left this world.
+    fn sphere_of(&self, handle: rp::RigidBodyHandle) -> Option<SensedBody> {
+        let body = self.rigid_bodies.get(handle)?;
+        let origin = body.translation();
+        let radius = body
+            .colliders()
+            .iter()
+            .filter_map(|&collider| self.colliders.get(collider))
+            .map(|collider| {
+                let sphere = collider
+                    .shape()
+                    .compute_bounding_sphere(collider.position());
+                (sphere.center().coords - origin).norm() + sphere.radius()
+            })
+            .fold(0.0, f64::max);
+        let velocity = body.linvel();
+        Some(SensedBody {
+            position: DVec3::new(origin.x, origin.y, origin.z),
+            velocity: DVec3::new(velocity.x, velocity.y, velocity.z),
+            radius,
+        })
+    }
+
+    /// The state of the body named by `handles`; None once it has left this world.
+    pub(crate) fn body_state(&self, handles: &BodyHandles) -> Option<BodyState> {
+        let body = self.rigid_bodies.get(handles.body)?;
+        let collider = self.colliders.get(handles.collider)?;
+        let position = body.translation();
+        let velocity = body.linvel();
+        let angular_velocity = body.angvel();
+        let inverse_inertia = body
+            .mass_properties()
+            .local_mprops
+            .reconstruct_inverse_inertia_matrix();
+        Some(BodyState {
+            position: DVec3::new(position.x, position.y, position.z),
+            velocity: DVec3::new(velocity.x, velocity.y, velocity.z),
+            rotation: *body.rotation(),
+            angular_velocity: DVec3::new(
+                angular_velocity.x,
+                angular_velocity.y,
+                angular_velocity.z,
+            ),
+            radius: collider.shape().compute_local_bounding_sphere().radius(),
+            mass: body.mass(),
+            inverse_inertia: DVec3::new(
+                inverse_inertia[(0, 0)],
+                inverse_inertia[(1, 1)],
+                inverse_inertia[(2, 2)],
+            ),
+        })
+    }
+}
+
+/// Access to Rapier body settings that the Lua API doesn't expose, for physics tests.
+#[cfg(test)]
+impl RigidBody {
+    pub(crate) fn set_linear_velocity(&mut self, velocity: &na::Vector3<rp::Real>) {
+        self.rigid_body.as_mut().set_linvel(*velocity, true);
+    }
+
+    pub(crate) fn enable_ccd(&mut self) {
+        self.rigid_body.as_mut().enable_ccd(true);
     }
 }
 

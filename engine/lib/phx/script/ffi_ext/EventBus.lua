@@ -19,6 +19,8 @@ function onDef_EventBus_t(t, mt)
     end
 
     mt.__index.subscribe = function(self, event, ctxTable, callback)
+        -- A nil callback would otherwise only fail at the first dispatch, far from the caller.
+        assert(callback ~= nil, "EventBus:subscribe: callback is nil for event " .. tostring(event))
         local entityId = ctxTable and ctxTable.getGuid and ctxTable:getGuid()
         local entityIdPtr = Converter.ToValuePtr(entityId, "uint64")
 

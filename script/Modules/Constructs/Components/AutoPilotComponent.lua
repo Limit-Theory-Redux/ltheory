@@ -2,48 +2,45 @@ local Component = require("Core.ECS.Component")
 
 ---@class AutoPilotComponent: Component
 ---@overload fun(): AutoPilotComponent
+--- What the player's autopilot flies: the MoveTo order it issued to the ship, and the entity it
+--- was given as the target (for its name). Both are nil while the autopilot is off. A cancelled
+--- order stays in `ending` until the order system has ended it, so that it can be released.
 local AutoPilotComponent = Subclass("AutoPilotComponent", Component, function(self)
     self:setComponentName("AutoPilot")
 
-    self._active       = false
-    self._targetEntity = nil
-    self._targetPos    = nil     -- Position (f64)
-    self._arrivalRange = 500
-    self._elapsed      = 0
-    self._localOffsetX = nil     -- for tracking targets on orbiting bodies
-    self._localOffsetZ = nil
-    self._parentEntity = nil
-
-    -- Computed nav data (written by AutoPilotSystem, read by map/HUD)
-    self.interceptPos  = nil     -- predicted intercept position
-    self.distance      = 0       -- distance to target
-    self.eta           = 0       -- estimated time of arrival (seconds)
-    self.targetVelX    = 0       -- computed target velocity
-    self.targetVelY    = 0
-    self.targetVelZ    = 0
-    self._prevTargetPos = nil    -- for velocity computation
+    self._order        = nil     -- Entity: the MoveTo order
+    self._targetEntity = nil     -- Entity: the target of the order, nil for a point
+    self._ending       = {}      -- Entity[]: cancelled orders that have not ended yet
 end)
 
--- GETTERS
-function AutoPilotComponent:isActive()         return self._active end
+---@return boolean
+function AutoPilotComponent:isActive()         return self._order ~= nil end
+---@return Entity|nil
+function AutoPilotComponent:getOrder()         return self._order end
+---@return Entity|nil
 function AutoPilotComponent:getTargetEntity()  return self._targetEntity end
-function AutoPilotComponent:getTargetPos()     return self._targetPos end
-function AutoPilotComponent:getArrivalRange()  return self._arrivalRange end
-function AutoPilotComponent:getElapsed()       return self._elapsed end
+---@return Entity[]
+function AutoPilotComponent:getEnding()        return self._ending end
 
--- SETTERS
-function AutoPilotComponent:setActive(v)        self._active = v end
-function AutoPilotComponent:setTargetEntity(v)  self._targetEntity = v end
-function AutoPilotComponent:setTargetPos(v)     self._targetPos = v end
-function AutoPilotComponent:setArrivalRange(v)  self._arrivalRange = v end
-function AutoPilotComponent:setElapsed(v)       self._elapsed = v end
+--- Keep the order of an engagement and its target.
+---@param order Entity
+---@param targetEntity Entity|nil Nil when the target is a point
+function AutoPilotComponent:setEngagement(order, targetEntity)
+    self._order, self._targetEntity = order, targetEntity
+end
+
+--- Let go of the engagement, and wait for its order to end.
+function AutoPilotComponent:endEngagement()
+    if self._order then self._ending[#self._ending + 1] = self._order end
+    self._order, self._targetEntity = nil, nil
+end
 
 --- Get target name for HUD display
 ---@return string
 function AutoPilotComponent:getTargetName()
     if self._targetEntity then
         return tostring(self._targetEntity)
-    elseif self._targetPos then
+    elseif self._order then
         return "Position"
     end
     return ""
