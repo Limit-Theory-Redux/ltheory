@@ -2756,10 +2756,10 @@ fn a_kink_is_kept_up_to_the_turn_whose_settle_fits_the_leg_after_it() {
 }
 
 #[test]
-fn a_kept_corner_that_a_later_detour_makes_too_tight_releases_every_detour_corner() {
+fn a_corner_that_a_later_detour_leaves_too_tight_a_leg_after_it_is_released() {
     let planner = Planner::new();
     // A second planet just behind the first: the leg after the first detour is bent again soon, so
-    // the first corner fits the straight leg it was judged on but not the short one it got.
+    // the first corner fits the straight leg to the goal but not the short one it gets.
     let bodies = vec![
         planet_with_zone([3e8, 0.0, 0.0]),
         fixed([3.04e8, 0.0, 1.5e6], 5e5, 1e6),
@@ -2772,6 +2772,7 @@ fn a_kept_corner_that_a_later_detour_makes_too_tight_releases_every_detour_corne
         "{:?}",
         plan.throughs
     );
+    assert_through_corners_hold(&plan, &bodies, "too tight");
     for i in 0..bodies.len() {
         assert!(min_driven_clearance_ratio(&plan, &bodies, i) >= CLEARANCE_TOLERANCE);
     }
@@ -3093,15 +3094,18 @@ fn min_driven_clearance_ratio(plan: &Plan, bodies: &[Body], i: usize) -> f64 {
 /// written out again from its differential equation's solution, sampled along the turn's time.
 fn min_drive_turn_clearance_ratio(plan: &Plan, bodies: &[Body], i: usize) -> f64 {
     const SAMPLES: usize = 200;
-    const SETTLE: f64 = 4.6;
     let corners = plan.corners();
     let mut smallest = f64::INFINITY;
     for k in (0..plan.points.len()).filter(|&k| plan.throughs[k]) {
         let before = unit(sub(corners[k + 1], corners[k]));
         let after = unit(sub(corners[k + 2], corners[k + 1]));
         let lead = plan.speeds[k] / SHIP.drag;
+        // The turn is modelled until it settles, which grows with the turn: past that the ship is
+        // on the leg after the corner, whose own path the other checks cover.
+        let settle = DRIVE_TURN_LEAD_TAUS
+            .max((2.0 * (corner_turn(plan, k) / 2.0).sin() / DRIVE_TURN_TOLERANCE).ln());
         for j in 0..=SAMPLES {
-            let tau = SETTLE * j as f64 / SAMPLES as f64;
+            let tau = settle * j as f64 / SAMPLES as f64;
             let along = lead * (tau - 1.0 + (-tau).exp());
             let back = lead * (-tau).exp();
             let position = plus(
@@ -3114,6 +3118,59 @@ fn min_drive_turn_clearance_ratio(plan: &Plan, bodies: &[Body], i: usize) -> f64
         }
     }
     smallest
+}
+
+/// How far a drive turn's velocity may be off the new heading when it counts as settled, as a share
+/// of the run's speed: the kernel's `DRIVE_TURN_TOLERANCE`.
+const DRIVE_TURN_TOLERANCE: f64 = 0.01;
+/// The time constants a drive turn spends before its corner: the kernel's `DRIVE_TURN_LEAD_TAUS`.
+const DRIVE_TURN_LEAD_TAUS: f64 = 1.0;
+/// Slack for comparing a kernel decision with the same formula written out again.
+const ROUNDING_SLACK: f64 = 1e-9;
+
+/// Asserts that every corner the plan's drive run goes through holds the drive on the finished
+/// path: the leg after it is driven, the run's speed there is not slowed below the hand-over by the
+/// turn, the lead and the settling fit their legs, and the turn clears every body. The rules are
+/// written out again from the plan's own legs, so a corner judged on other neighbours fails here.
+fn assert_through_corners_hold(plan: &Plan, bodies: &[Body], what: &str) {
+    let corners = plan.corners();
+    for k in (0..plan.points.len()).filter(|&k| plan.throughs[k]) {
+        assert!(
+            plan.drives[k + 1],
+            "{what}: corner {k}: the next leg is driven"
+        );
+        let turn = corner_turn(plan, k);
+        if turn < MIN_ARC_ANGLE {
+            continue;
+        }
+        let speed = plan.speeds[k];
+        assert!(
+            speed * (turn / 2.0).cos() >= HANDOVER_MULT * SPEED * (1.0 - ROUNDING_SLACK),
+            "{what}: corner {k}: turn {turn} slows the run below the hand-over"
+        );
+        let lead = speed / SHIP.drag;
+        let settle =
+            DRIVE_TURN_LEAD_TAUS.max((2.0 * (turn / 2.0).sin() / DRIVE_TURN_TOLERANCE).ln());
+        let before = distance(corners[k], corners[k + 1]);
+        let after = distance(corners[k + 1], corners[k + 2]);
+        assert!(
+            lead <= ARC_LEG_SHARE * before * (1.0 + ROUNDING_SLACK),
+            "{what}: corner {k}: lead {lead} against the leg before, {before}"
+        );
+        assert!(
+            lead * (settle - DRIVE_TURN_LEAD_TAUS)
+                <= ARC_LEG_SHARE * after * (1.0 + ROUNDING_SLACK),
+            "{what}: corner {k}: settle {} against the leg after, {after}",
+            lead * (settle - DRIVE_TURN_LEAD_TAUS)
+        );
+    }
+    for i in 0..bodies.len() {
+        let ratio = min_drive_turn_clearance_ratio(plan, bodies, i);
+        assert!(
+            ratio >= CLEARANCE_TOLERANCE,
+            "{what}: body {i}: a drive turn enters the safe sphere to {ratio} of its radius"
+        );
+    }
 }
 
 /// Eight planets with zones on circles, a moon for each of the first two, scaled up so that a
@@ -3163,6 +3220,7 @@ fn random_drive_plans_clear_the_bodies_at_the_times_the_drive_gives() {
             }
         }
         kept += plan.throughs.iter().filter(|&&through| through).count();
+        assert_through_corners_hold(&plan, &bodies, &format!("case {cases}"));
         for i in 0..bodies.len() {
             let ratio = min_driven_clearance_ratio(&plan, &bodies, i);
             closest = closest.min(ratio);
@@ -3184,6 +3242,59 @@ fn random_drive_plans_clear_the_bodies_at_the_times_the_drive_gives() {
     assert!(driven * 10 >= CASES * 5, "most plans use the drive");
     assert!(driven_detours >= 5, "detours under the drive occur");
     assert!(kept >= 3, "corners that keep the drive occur");
+}
+
+#[test]
+fn random_chained_detours_keep_only_corners_that_hold_on_the_finished_path() {
+    const CASES: usize = 200;
+    const GOAL: Vec3 = [1e9, 0.0, 0.0];
+    let planner = Planner::new();
+    let mut rng = Rng(0xC0DE_CA11_5EED_0032);
+    let (mut ok, mut chained, mut kept, mut kept_in_chains, mut released_in_chains) =
+        (0, 0, 0, 0, 0);
+    for case in 0..CASES {
+        // Bodies strewn along the line to the goal, so that detours follow one another.
+        let count = 3 + (rng.next() * 3.0) as usize;
+        let bodies: Vec<Body> = (0..count)
+            .map(|_| {
+                let safe = rng.range(0.5 * STALE_SAFE, 1.5 * STALE_SAFE);
+                let x = rng.range(1e8, 9e8);
+                let z = rng.range(-0.8 * safe, 0.8 * safe);
+                fixed([x, 0.0, z], 0.5 * safe, safe)
+            })
+            .collect();
+        let plan = planner.plan_driven(&bodies, [0.0; 3], GOAL);
+        if plan.status != STATUS_OK {
+            continue;
+        }
+        ok += 1;
+        let what = format!("case {case}");
+        assert_through_corners_hold(&plan, &bodies, &what);
+        for i in 0..bodies.len() {
+            let ratio = min_driven_clearance_ratio(&plan, &bodies, i);
+            assert!(
+                ratio >= CLEARANCE_TOLERANCE,
+                "{what}, body {i}: path enters the safe sphere to {ratio} of its radius"
+            );
+        }
+        let through = plan.throughs.iter().filter(|&&through| through).count();
+        kept += through;
+        if plan.detours() >= 2 {
+            chained += 1;
+            kept_in_chains += through;
+            released_in_chains += plan.detours() - through;
+        }
+    }
+    println!(
+        "chained: ok {ok}, chained {chained}, kept {kept}, kept in chains {kept_in_chains}, released in chains {released_in_chains}"
+    );
+    assert!(ok * 10 >= CASES * 5, "most cases plan");
+    assert!(chained >= CASES / 2, "chained detours occur");
+    assert!(kept_in_chains >= CASES / 4, "kept corners in chains occur");
+    assert!(
+        released_in_chains >= CASES / 4,
+        "released corners in chains occur"
+    );
 }
 
 // ---- The arrival radius ----
