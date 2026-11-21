@@ -61,6 +61,8 @@ The default of a target is chosen by its kind (a marker component): a planet, a 
 
 A turn of the target does not make the order plan again: the point moves with it, and the ship follows it in the final approach.
 
+For a `StandOff`, the plan goes to the target's centre, and its last leg stops the stand-off distance short, on its own line to the centre ([goal with a stand-off](system-planner.md#goal-with-a-stand-off)). The last leg therefore points at the target, on the line the final approach steers along, and the ship does not turn when the plan ends, even after a detour.
+
 ### Orbit and Follow
 
 Orbit and Follow keep the ship with a body that moves, so they never end by themselves. They have two phases, and the order moves between them:

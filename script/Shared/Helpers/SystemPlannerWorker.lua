@@ -62,7 +62,7 @@ local function fillDrive(values)
 end
 
 ---Plans one path.
----@param request table `bodies`: count * BODY_STRIDE numbers, `count`, `start` and `goal`: 3 numbers each, `goalFrame`, `speed`, `accel`, `drag`, `depth`, `capacity`, `drive`: DRIVE_STRIDE numbers or nil, `arrivalRadius`: a number or nil, and `zones`: zoneCount * ZONE_STRIDE numbers or nil, with `zoneCount`
+---@param request table `bodies`: count * BODY_STRIDE numbers, `count`, `start` and `goal`: 3 numbers each, `goalFrame`, `speed`, `accel`, `drag`, `depth`, `capacity`, `drive`: DRIVE_STRIDE numbers or nil, `arrivalRadius` and `standOff`: a number or nil, and `zones`: zoneCount * ZONE_STRIDE numbers or nil, with `zoneCount`
 ---@return table `status`, `count`, `waypoints` (count * OUT_STRIDE numbers, empty for none), `kernelMs`
 Run = WorkerFunction.Create(function(request)
     local count = request.count
@@ -73,7 +73,7 @@ Run = WorkerFunction.Create(function(request)
     local status, written = SystemPlanner.plan(bodiesBuffer, count, start[1], start[2], start[3],
         request.goalFrame, goal[1], goal[2], goal[3], request.speed, request.accel, request.drag,
         request.depth, outBuffer, request.capacity, fillDrive(request.drive), request.arrivalRadius,
-        fillZones(request.zones, request.zoneCount), request.zoneCount)
+        fillZones(request.zones, request.zoneCount), request.zoneCount, request.standOff)
     local kernelMs = InstantTime.Now():durationSince(begun)
     local waypoints = {}
     for i = 1, written * OUT_STRIDE do waypoints[i] = outBuffer[i - 1] end

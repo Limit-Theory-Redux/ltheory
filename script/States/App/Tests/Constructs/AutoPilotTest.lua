@@ -95,6 +95,12 @@ local MOON_ASIDE           = { x = 0.74 / 0.9528, y = 0, z = -0.6 / 0.9528 }
 -- The flight with a short leg after the corner: the moon lies this share along the same course.
 local MOON_LATE_ALONG  = 0.56
 local MOON_LATE_OFFSET = 140
+-- The flight to a big body past a moon: the body's hull radius (its stand-off is a few times that),
+-- and the largest angle, in radians, between the plan's last leg and the line from its start to the
+-- body's centre. The last leg points at the centre, so the final approach, which steers along that
+-- line, does not turn; a goal put on the line from the ship's start leaves an angle of about 0.05.
+local BIG_BODY_RADIUS    = 1500
+local MAX_LAST_LEG_ANGLE = 0.002
 -- The turn's distance from the sharp path is measured while the ship is within this many leads
 -- (`speed / drag`) of the corner.
 local TURN_WINDOW_LEADS = 3
@@ -135,6 +141,7 @@ local MS_PER_S              = 1000
 ---@field moon boolean|nil With `planet`: the body across the course is a moon of `MOON_RADIUS`, not a planet
 ---@field moonAlong number|nil With `moon`: the share of the course at which the moon lies; `MOON_ALONG` when nil
 ---@field moonOffset gameunit|nil With `moon`: the moon's distance from the course's line; `MOON_OFFSET` when nil
+---@field lastLeg boolean|nil The angle between the plan's last leg and the line to the target's centre is checked
 ---@field outside boolean|nil With `well`: the ship starts outside the well and has to be planned into it
 ---@field wellSpeedup number|nil The planet's speed on its orbit as a multiple of the ship's top speed; `WELL_ORBIT_SPEEDUP` when nil
 
@@ -185,6 +192,11 @@ local SCENARIOS = {
     -- the turn does not fit that leg, and the one that does depend on it fits.
     { name = "a point, with drive, round a moon, a slight kink before the goal", distance = MOON_COURSE_DISTANCE,
       drive = true, maxFlight = 50, planet = true, moon = true, moonAlong = MOON_LATE_ALONG, moonOffset = MOON_LATE_OFFSET },
+    -- A big body past a moon, the moon late on the course: the plan's last leg is short, and points
+    -- at the body's centre, so the ship does not turn on the final approach.
+    { name = "a big body, with drive, past a moon, the last leg points at it", distance = MOON_COURSE_DISTANCE,
+      radius = BIG_BODY_RADIUS, drive = true, maxFlight = 60, planet = true, moon = true, lastLeg = true,
+      moonAlong = MOON_LATE_ALONG, moonOffset = MOON_LATE_OFFSET },
     -- Far enough that the drive's charge and ramp-up, which the ETA doesn't count, are a small part of the flight.
     { name = "a planet-sized body, with drive", distance = 60000, radius = PLANET_RADIUS, drive = true,
       maxFlight = 32 },
@@ -586,6 +598,8 @@ function AutoPilotTest:fly(scenario, kind)
     local planetClosest, cornered, arcs, arcOnDrive = math.huge, false, 0, 0
     -- The turn of a flight round a moon, and how many times the drive began to charge.
     local turnTrace, charges, lastDriveState = nil, 0, nil
+    -- The angle between the plan's last leg and the line from its start to the target's centre.
+    local lastLegAngle = nil
     local onArc, arcStart, finalAt = false, nil, nil
     -- The flight into a moving well: which phases the plan went through, and the ship at the moment
     -- the well took it.
@@ -654,6 +668,11 @@ function AutoPilotTest:fly(scenario, kind)
         if scenario.moon and plan then
             turnTrace = turnTrace or self:captureTurn(plan, follower)
             if turnTrace then self:traceTurn(turnTrace, plan, follower, ship, driveState) end
+            if scenario.lastLeg and turnTrace and not lastLegAngle then
+                local corner, goal, centre = turnTrace.corner, turnTrace.goal, aim()
+                lastLegAngle = angleBetween({ x = goal.x - corner.x, y = goal.y - corner.y, z = goal.z - corner.z },
+                    { x = centre.x - corner.x, y = centre.y - corner.y, z = centre.z - corner.z })
+            end
         end
         local arcNow = follower ~= nil and follower.arc ~= nil
         if plan and plan.phase == "final" and not finalAt then finalAt = stepIndex * STEP end
@@ -690,7 +709,8 @@ function AutoPilotTest:fly(scenario, kind)
         if moving then self:despawnWell(moving) end
         return nil
     end
-    if etaAtDrive then
+    -- The estimate is the straight line to the target, which a detour round a moon lengthens.
+    if etaAtDrive and not scenario.lastLeg then
         local left = arrivedAt - driveAt
         self:check(math.abs(etaAtDrive - left) <= ETA_TOLERANCE * left, name .. "the ETA matches the flight",
             string.format("eta %.1f s, left %.1f s, drive at %.1f, arc at %s, final from %s, arrived %.1f", etaAtDrive, left,
@@ -749,8 +769,17 @@ function AutoPilotTest:fly(scenario, kind)
             tostring(arcStart), tostring(finalAt))
     end
 
-    if scenario.moon then
+    if scenario.moon and not scenario.lastLeg then
         self:checkMoonTurn(name, turnTrace, arcs, charges)
+    end
+
+    if scenario.lastLeg then
+        self:check(turnTrace ~= nil and turnTrace.corners == 1, name .. "the plan has the one corner of the detour",
+            turnTrace and string.format("%d corners", turnTrace.corners) or "no plan")
+        self:check(lastLegAngle ~= nil and lastLegAngle <= MAX_LAST_LEG_ANGLE,
+            name .. "the last leg points at the target's centre",
+            string.format("%s rad against %.4f", tostring(lastLegAngle), MAX_LAST_LEG_ANGLE))
+        Log.Info("ConstructsAutoPilotTest: %sthe last leg is %s rad off the line to the target's centre", name, tostring(lastLegAngle))
     end
 
     if scenario.outside then

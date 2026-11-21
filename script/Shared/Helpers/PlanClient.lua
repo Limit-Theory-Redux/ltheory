@@ -29,7 +29,8 @@ local WORKER_COUNT  = 1
 ---What a request carries: the worker's task. `bodies` is `count * BODY_STRIDE` numbers, `start` and
 ---`goal` are 3 numbers, `goalFrame` is a 0-based body index or `SYSTEM_FRAME`, `drive` is
 ---`DRIVE_STRIDE` numbers or nil, and `arrivalRadius` is how close to the goal the ship counts as
----arrived (game units, nil for zero): the goal's time is when the ship comes within it. `zones` and
+---arrived (game units, nil for zero): the goal's time is when the ship comes within it. `standOff` is
+---the distance the last leg stops short of `goal` (game units, nil for zero). `zones` and
 ---`zoneCount` are the cost zones, as `SystemPlanner.Zone` lays them out; nil for none.
 ---@class PlanRequest
 ---@field bodies number[]
@@ -44,6 +45,7 @@ local WORKER_COUNT  = 1
 ---@field capacity integer
 ---@field drive number[]|nil
 ---@field arrivalRadius gameunit|nil
+---@field standOff gameunit|nil
 ---@field zones number[]|nil `zoneCount * ZONE_STRIDE` numbers, the cost zones; nil for none
 ---@field zoneCount integer|nil
 

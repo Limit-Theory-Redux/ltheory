@@ -246,12 +246,13 @@ end
 ---@param shipEntity Entity
 ---@param rb RigidBody
 ---@param profile FlightProfile
----@param goal Position The stand-off point, in the world
+---@param goal Position The target's centre (or the point to stop at), in the world
 ---@param frameEntity Entity|nil The entity the goal rides on, when it is a body of the system
 ---@param driveMinLength gameunit|nil Legs shorter than this are not flown under the drive; nil asks for no drive
 ---@param arrivalRadius gameunit How close to the goal the ship counts as arrived
+---@param standOff gameunit The distance the last leg stops short of `goal`; 0 for a point
 ---@return PlanFlightState
-local function request(shipEntity, rb, profile, goal, frameEntity, driveMinLength, arrivalRadius)
+local function request(shipEntity, rb, profile, goal, frameEntity, driveMinLength, arrivalRadius, standOff)
     local snapshot = PlannerSnapshot.take(NavigationComponents.CostProfile.ProfileOf(shipEntity))
     local frameIndex = frameEntity and snapshot:indexOf(frameEntity)
     local goalFrame, gx, gy, gz = SystemPlanner.SYSTEM_FRAME, goal.x, goal.y, goal.z
@@ -273,6 +274,7 @@ local function request(shipEntity, rb, profile, goal, frameEntity, driveMinLengt
         capacity = CAPACITY,
         drive = driveMinLength and driveBlock(shipEntity, driveMinLength) or nil,
         arrivalRadius = arrivalRadius,
+        standOff = standOff,
         zones = snapshot.zones,
         zoneCount = snapshot.zoneCount,
     })
@@ -282,8 +284,9 @@ local function request(shipEntity, rb, profile, goal, frameEntity, driveMinLengt
     }
 end
 
----Starts a flight to `targetPos`: asks the planner for the path from the ship to the stand-off
----point. A ship already within the stand-off distance has no path to plan.
+---Starts a flight to `targetPos`: asks the planner for the path from the ship to the target's centre,
+---whose last leg stops at the stand-off distance (`SystemPlanner.plan`). A ship already within the
+---stand-off distance has no path to plan.
 ---@param shipEntity Entity
 ---@param rb RigidBody
 ---@param targetPos Position|nil The target now; nil when there is none, which flies nothing
@@ -301,8 +304,8 @@ function PlanFlight.begin(shipEntity, rb, targetPos, safeRange, arrivalRadius, f
         return { phase = Phase.Final, legs = 0 }
     end
     local profile = ConstructComponents.FlightProfile.ProfileOf(shipEntity)
-    return request(shipEntity, rb, profile, PlanFlight.standOffGoal(shipPos, targetPos, dist, dist, safeRange),
-        frameEntity, not withoutDrive and PlanFlight.driveMinLength(profile) or nil, arrivalRadius)
+    return request(shipEntity, rb, profile, targetPos, frameEntity,
+        not withoutDrive and PlanFlight.driveMinLength(profile) or nil, arrivalRadius, safeRange)
 end
 
 ---Makes the plan's follower for the corners of a plan.

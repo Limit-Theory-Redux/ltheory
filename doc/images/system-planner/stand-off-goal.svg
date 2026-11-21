@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" font-family="sans-serif" font-size="14">
+  <title>A goal with a stand-off: the last leg is cut on the line to the centre</title>
+  <rect width="800" height="500" fill="#ffffff"/>
+  <text x="20" y="28" fill="#111827" font-weight="bold">Goal with a stand-off</text>
+  <!-- legend -->
+  <line x1="20" y1="52" x2="60" y2="52" stroke="#2563eb" stroke-width="3.5"/>
+  <text x="68" y="57" fill="#2563eb">plan: the last leg ends at goalStop(waypoint)</text>
+  <line x1="380" y1="52" x2="420" y2="52" stroke="#d97706" stroke-width="2.5" stroke-dasharray="6 4"/>
+  <text x="428" y="57" fill="#d97706">a goal fixed from the start</text>
+  <!-- detoured body -->
+  <circle cx="330" cy="330" r="70" fill="#fee2e2" fill-opacity="0.6" stroke="#dc2626" stroke-width="2" stroke-dasharray="8 4"/>
+  <circle cx="330" cy="330" r="30" fill="#9ca3af"/>
+  <text x="330" y="335" fill="#ffffff" text-anchor="middle">moon</text>
+  <!-- stand-off sphere and target -->
+  <circle cx="700" cy="330" r="90" fill="#eff6ff" stroke="#2563eb" stroke-width="2" stroke-dasharray="3 4"/>
+  <circle cx="700" cy="330" r="30" fill="#6b7280"/>
+  <text x="700" y="335" fill="#ffffff" text-anchor="middle">target</text>
+  <text x="700" y="452" fill="#2563eb" text-anchor="middle">standOff</text>
+  <line x1="700" y1="360" x2="700" y2="420" stroke="#2563eb" stroke-width="1.5" stroke-dasharray="3 3"/>
+  <!-- line from the start to the centre -->
+  <line x1="60" y1="330" x2="670" y2="330" stroke="#6b7280" stroke-width="1.5" stroke-dasharray="2 5"/>
+  <!-- old last leg and its stop point -->
+  <line x1="330" y1="200" x2="610" y2="330" stroke="#d97706" stroke-width="2.5" stroke-dasharray="6 4"/>
+  <circle cx="610" cy="330" r="6" fill="#d97706"/>
+  <text x="598" y="356" fill="#d97706" text-anchor="end">stop point on the start line:</text>
+  <text x="598" y="374" fill="#d97706" text-anchor="end">the leg points beside the centre</text>
+  <!-- plan -->
+  <polyline points="60,330 330,200 615,300" fill="none" stroke="#2563eb" stroke-width="3.5"/>
+  <line x1="615" y1="300" x2="672" y2="320" stroke="#2563eb" stroke-width="1.5" stroke-dasharray="3 3"/>
+  <circle cx="615" cy="300" r="6" fill="#2563eb"/>
+  <text x="615" y="284" fill="#2563eb" text-anchor="middle">goalStop</text>
+  <!-- endpoints -->
+  <circle cx="60" cy="330" r="7" fill="#2563eb"/>
+  <text x="60" y="356" fill="#2563eb" text-anchor="middle">start</text>
+  <circle cx="330" cy="200" r="6" fill="#111827"/>
+  <text x="330" y="182" fill="#111827" text-anchor="middle" font-weight="bold">waypoint</text>
+  <text x="400" y="228" fill="#2563eb">last leg: radial, it points at the centre</text>
+</svg>
