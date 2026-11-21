@@ -230,6 +230,16 @@ function Nav.progress(order)
     return order:get(Components.OrderProgress)
 end
 
+---The order's flight state while it flies a goal: nil for an order that is not flying one (not begun,
+---ended, or tracking a target).
+---@param order Entity
+---@return table|nil
+local function flyingGoal(order)
+    local flight = order:get(Components.OrderFlight)
+    if not flight or flight.tracking or order:get(Components.OrderStatus):hasEnded() then return nil end
+    return flight
+end
+
 ---The path the ship has left to fly, as world points now: the plan's corners from the one flown to
 ---and the goal, or the goal alone on the final approach and while the plan is out. Empty for an
 ---order that is not flying a goal (not begun, ended, a Hold, or an Orbit or Follow that has joined).
@@ -240,8 +250,8 @@ end
 function Nav.route(order, out)
     out = out or {}
     for i = #out, 1, -1 do out[i] = nil end
-    local flight = order:get(Components.OrderFlight)
-    if not flight or flight.tracking or order:get(Components.OrderStatus):hasEnded() then return out end
+    local flight = flyingGoal(order)
+    if not flight then return out end
     local plan = flight.plan
     local follower = plan and plan.phase == PlanFlight.Phase.Plan and plan.follower
     if follower and not follower.finished then
@@ -250,6 +260,29 @@ function Nav.route(order, out)
     else
         local goal = order:get(Components.OrderProgress).nextWaypoint
         if goal then out[1] = goal end
+    end
+    return out
+end
+
+---The path the ship has flown under the order's current plan, as world points now: where the ship was
+---when the plan was asked for, then the plan's corners it has passed (a corner that rides on a moving
+---body is read where the body is now). A new plan, made after a retarget or a refresh, starts it again.
+---Empty when `Nav.route` is, and for a flight that began within range of its goal (nothing was planned).
+---@param order Entity
+---@param out Position[]|nil A table to fill, which is cleared first; a new one when nil
+---@return Position[]
+function Nav.routeFlown(order, out)
+    out = out or {}
+    for i = #out, 1, -1 do out[i] = nil end
+    local flight = flyingGoal(order)
+    local plan = flight and flight.plan
+    local start = plan and plan.start
+    if not start then return out end
+    out[1] = Position(start.x, start.y, start.z)
+    local follower = plan.follower
+    if follower then
+        local passed = follower.finished and #follower.points or follower.index - 1
+        for i = 1, passed do out[#out + 1] = follower:pointNow(follower.points[i]) end
     end
     return out
 end

@@ -891,6 +891,7 @@ function LimitTheoryRedux:updateAutopilotOverlay()
     local overlay = autopilotOverlay
     overlay.targetPos = targetPos
     overlay.route = AutoPilotSystem:getRoute(ship, overlay.route)
+    overlay.flown = AutoPilotSystem:getRouteFlown(ship, overlay.flown)
     overlay.progress = AutoPilotSystem:getProgress(ship)
     overlay.planning = AutoPilotSystem:isPlanning(ship)
     overlay.shipPos = EntityPosition.Get(ship)

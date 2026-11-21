@@ -844,6 +844,8 @@ function AutoPilotTest:runTakeover()
     local input = ship.entity:get(ConstructComponents.ControlInput)
     local flyer = playerFlyer(ship, self.world)
     self:check(AutoPilotSystem:getRoute(ship.entity) == nil, name .. "there is no route before the autopilot is engaged")
+    self:check(AutoPilotSystem:getRouteFlown(ship.entity) == nil,
+        name .. "there is no flown route before the autopilot is engaged")
     flyer.engage(nil, handoverPoint(1))
     self:check(ControlOwnerSystem:ownerOf(ship.entity) == Enums.ControlOwner.Orders,
         name .. "the order owns the ship's controls while it flies")
@@ -854,9 +856,14 @@ function AutoPilotTest:runTakeover()
     self:check(route ~= nil and #route >= 1, name .. "the autopilot has a route while it flies")
     self:check(route ~= nil and route[#route]:distance(AutoPilotSystem:getTargetPosition(ship.entity)) < STOPPED,
         name .. "the route ends at the target (a bare point has no stand-off)")
+    local flown = AutoPilotSystem:getRouteFlown(ship.entity)
+    self:check(flown ~= nil and #flown >= 1 and flown[1]:distance(Position(0, 0, 0)) < 1,
+        name .. "the flown route starts where the ship was when the plan was asked for")
 
     AutoPilotSystem:disengage(ship.entity)
     self:check(AutoPilotSystem:getRoute(ship.entity) == nil, name .. "there is no route once it is disengaged")
+    self:check(AutoPilotSystem:getRouteFlown(ship.entity) == nil,
+        name .. "there is no flown route once it is disengaged")
     self:check(not flyer.flying(), name .. "disengaging ends the flight")
     self:check(ControlOwnerSystem:ownerOf(ship.entity) == Enums.ControlOwner.Manual,
         name .. "the player owns the controls at once")

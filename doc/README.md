@@ -17,6 +17,7 @@
    - [Navigation sandbox](script/nav/navigation-sandbox.md)
    - [System planner](script/nav/system-planner.md)
    - [Navigation orders](script/nav/navigation.md)
+   - [System maps](script/system-map.md)
    - [HmGui](../script/UI/HmGui/README.md)
 1. [Full structure](LTheory%20Full%20Restructure.md)
 1. [Control keys](GameControlKeys.txt)

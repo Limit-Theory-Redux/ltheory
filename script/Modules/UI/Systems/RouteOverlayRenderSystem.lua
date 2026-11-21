@@ -21,6 +21,7 @@ local TARGET_COLOR = Color(1.0, 0.8, 0.3, 0.9)
 local TARGET_LINE_COLOR = Color(1.0, 0.8, 0.3, 0.2)
 local NEXT_COLOR = Color(0.3, 0.8, 1.0, 0.7)
 local ROUTE_COLOR = Color(1.0, 1.0, 1.0, 0.6)
+local FLOWN_COLOR = Color(0.45, 0.55, 0.7, 0.45)
 
 --- The pixel of `pos` through `toScreen(ctx, pos)`, or nil when it is hidden or absurdly far.
 local function project(toScreen, ctx, pos)
@@ -34,29 +35,45 @@ local function drawCross(x, y, half, color)
     DrawEx.SimpleRect(x - 0.5, y - half, 1, half * 2, color)
 end
 
---- Draws the route polyline from the ship through the route's points, and returns the first leg drawn
---- (`{ x1, y1, x2, y2 }`) or nil.
-local function drawPolyline(overlay, toScreen, ctx, shipX, shipY)
-    local fromX, fromY = shipX, shipY
+--- Draws a line from `(fromX, fromY)` to `(toX, toY)` unless it is shorter than `MIN_LEG_PIXELS`.
+--- Returns whether it drew.
+local function drawLeg(fromX, fromY, toX, toY, color)
+    if (toX - fromX) ^ 2 + (toY - fromY) ^ 2 <= MIN_LEG_PIXELS ^ 2 then return false end
+    DrawEx.Line(fromX, fromY, toX, toY, color)
+    return true
+end
+
+--- Draws a polyline through `points`, starting at `(fromX, fromY)` (nil starts at the first point that
+--- can be shown). Returns the first leg drawn (`{ x1, y1, x2, y2 }`, from the start) or nil, and the
+--- pixel the polyline ended at (nil when its last point is hidden).
+local function drawPolyline(points, toScreen, ctx, fromX, fromY, color)
+    local startX, startY = fromX, fromY
     local firstLeg
-    for _, point in ipairs(overlay.route) do
+    for _, point in ipairs(points) do
         local toX, toY = project(toScreen, ctx, point)
         if not toX then
             fromX, fromY = nil, nil
         elseif not fromX then
             fromX, fromY = toX, toY
-        elseif (toX - fromX) ^ 2 + (toY - fromY) ^ 2 > MIN_LEG_PIXELS ^ 2 then
-            DrawEx.Line(fromX, fromY, toX, toY, ROUTE_COLOR)
-            firstLeg = firstLeg or { shipX, shipY, toX, toY }
+            startX, startY = startX or toX, startY or toY
+        elseif drawLeg(fromX, fromY, toX, toY, color) then
+            firstLeg = firstLeg or { startX, startY, toX, toY }
             fromX, fromY = toX, toY
         end
     end
-    return firstLeg
+    return firstLeg, fromX, fromY
+end
+
+--- Draws the legs the ship has already flown under its plan, up to the ship.
+local function drawFlown(flown, toScreen, ctx, shipX, shipY)
+    local _, endX, endY = drawPolyline(flown, toScreen, ctx, nil, nil, FLOWN_COLOR)
+    if endX then drawLeg(endX, endY, shipX, shipY, FLOWN_COLOR) end
 end
 
 --- Draws the overlay.
---- `overlay` is `{ shipPos, targetPos, route, progress, planning }` (`Position`s, the route from `Nav.route`,
---- the order's `OrderProgressComponent`); any of them may be nil. `toScreen(ctx, pos)` returns the pixel of a
+--- `overlay` is `{ shipPos, targetPos, route, flown, progress, planning }` (`Position`s, the route from
+--- `Nav.route`, the passed legs from `Nav.routeFlown`, the order's `OrderProgressComponent`); any of them
+--- may be nil. `toScreen(ctx, pos)` returns the pixel of a
 --- position, or nil when it can't be shown.
 ---@param overlay table
 ---@param toScreen fun(ctx: any, pos: Position): number|nil, number|nil
@@ -93,7 +110,9 @@ function RouteOverlayRenderSystem:draw(overlay, toScreen, ctx)
         DrawEx.Line(shipX, shipY, targetX, targetY, TARGET_LINE_COLOR)
     end
 
-    local firstLeg = drawPolyline(overlay, toScreen, ctx, shipX, shipY)
+    if overlay.flown then drawFlown(overlay.flown, toScreen, ctx, shipX, shipY) end
+
+    local firstLeg = drawPolyline(route, toScreen, ctx, shipX, shipY, ROUTE_COLOR)
 
     -- Distance and ETA left to the goal, as the order reports them, at the first leg's midpoint
     local progress = overlay.progress

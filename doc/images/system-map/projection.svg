@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 440" font-family="sans-serif" font-size="14">
+  <title>The 2D system map is a top-down projection: a ship above a planet is drawn inside the planet's disc</title>
+  <rect width="800" height="440" fill="#ffffff"/>
+  <text x="20" y="28" fill="#111827" font-weight="bold">Top-down projection: height is dropped, sizes and horizontal distances are kept</text>
+
+  <!-- side view -->
+  <text x="40" y="66" fill="#111827" font-weight="bold">Side view (the world)</text>
+  <line x1="40" y1="380" x2="380" y2="380" stroke="#6b7280" stroke-width="2"/>
+  <text x="40" y="402" fill="#6b7280">map plane (the map shows what lies over it)</text>
+  <circle cx="210" cy="260" r="90" fill="#dbeafe" fill-opacity="0.6" stroke="#2563eb" stroke-width="2"/>
+  <circle cx="210" cy="260" r="3" fill="#2563eb"/>
+  <line x1="210" y1="260" x2="300" y2="260" stroke="#2563eb" stroke-width="1"/>
+  <text x="256" y="252" fill="#2563eb" text-anchor="middle">R</text>
+  <text x="210" y="285" fill="#2563eb" text-anchor="middle">planet</text>
+  <!-- the planet's projection -->
+  <line x1="120" y1="380" x2="300" y2="380" stroke="#2563eb" stroke-width="6"/>
+  <line x1="120" y1="260" x2="120" y2="380" stroke="#2563eb" stroke-width="1" stroke-dasharray="4 4"/>
+  <line x1="300" y1="260" x2="300" y2="380" stroke="#2563eb" stroke-width="1" stroke-dasharray="4 4"/>
+  <!-- the ship, above the planet -->
+  <circle cx="150" cy="120" r="6" fill="#16a34a"/>
+  <text x="162" y="116" fill="#16a34a" font-weight="bold">ship</text>
+  <line x1="150" y1="120" x2="210" y2="260" stroke="#dc2626" stroke-width="2"/>
+  <text x="236" y="146" fill="#dc2626">3D distance &gt; R</text>
+  <line x1="150" y1="126" x2="150" y2="380" stroke="#16a34a" stroke-width="1" stroke-dasharray="4 4"/>
+  <circle cx="150" cy="380" r="5" fill="#16a34a"/>
+  <text x="140" y="330" fill="#16a34a" text-anchor="end">height</text>
+  <text x="140" y="348" fill="#16a34a" text-anchor="end">(dropped)</text>
+
+  <!-- top view -->
+  <text x="450" y="66" fill="#111827" font-weight="bold">Top view (the map)</text>
+  <circle cx="620" cy="260" r="90" fill="#dbeafe" fill-opacity="0.6" stroke="#2563eb" stroke-width="2"/>
+  <circle cx="620" cy="260" r="3" fill="#2563eb"/>
+  <text x="620" y="285" fill="#2563eb" text-anchor="middle">disc</text>
+  <circle cx="560" cy="260" r="6" fill="#16a34a"/>
+  <text x="572" y="250" fill="#16a34a" font-weight="bold">ship</text>
+  <line x1="560" y1="260" x2="620" y2="260" stroke="#16a34a" stroke-width="1" stroke-dasharray="4 4"/>
+  <text x="590" y="312" fill="#16a34a" text-anchor="middle">offset &lt; R</text>
+  <text x="620" y="380" fill="#111827" text-anchor="middle">The ship is drawn inside the disc</text>
+  <text x="620" y="402" fill="#111827" text-anchor="middle">although it is outside the planet.</text>
+</svg>

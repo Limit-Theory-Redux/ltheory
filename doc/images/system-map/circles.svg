@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 460" font-family="sans-serif" font-size="14">
+  <title>The circles the 2D system map draws around a body: its size, the planner's clearance, its gravity well</title>
+  <rect width="800" height="460" fill="#ffffff"/>
+  <text x="20" y="28" fill="#111827" font-weight="bold">Circles under a body's point on the 2D map</text>
+
+  <!-- gravity well -->
+  <circle cx="240" cy="250" r="190" fill="none" stroke="#06b6d4" stroke-width="3"/>
+  <!-- planner clearance -->
+  <circle cx="240" cy="250" r="110" fill="none" stroke="#ef4444" stroke-width="3"/>
+  <!-- body -->
+  <circle cx="240" cy="250" r="70" fill="#2563eb" fill-opacity="0.3"/>
+  <circle cx="240" cy="250" r="4" fill="#2563eb"/>
+  <text x="252" y="246" fill="#2563eb">point</text>
+
+  <!-- a path that keeps outside the clearance ring -->
+  <path d="M 40 380 C 90 330 110 380 150 400 C 200 420 250 392 300 392 C 370 392 410 340 420 280" fill="none" stroke="#111827" stroke-width="2" stroke-dasharray="6 4"/>
+  <text x="44" y="420" fill="#111827">a path stays outside the red ring</text>
+
+  <!-- legend -->
+  <g font-size="14">
+    <rect x="470" y="86" width="24" height="16" fill="#2563eb" fill-opacity="0.3"/>
+    <text x="504" y="99" fill="#111827" font-weight="bold">Disc</text>
+    <text x="504" y="119" fill="#111827">the body's size: its rigid body's</text>
+    <text x="504" y="137" fill="#111827">bounding radius</text>
+
+    <line x1="470" y1="196" x2="494" y2="196" stroke="#ef4444" stroke-width="3"/>
+    <text x="504" y="201" fill="#111827" font-weight="bold">Red ring</text>
+    <text x="504" y="221" fill="#111827">the distance the planner keeps a</text>
+    <text x="504" y="239" fill="#111827">path outside of: the radius times</text>
+    <text x="504" y="257" fill="#111827">its safeRadiusFactor</text>
+
+    <line x1="470" y1="306" x2="494" y2="306" stroke="#06b6d4" stroke-width="3"/>
+    <text x="504" y="311" fill="#111827" font-weight="bold">Blue ring</text>
+    <text x="504" y="331" fill="#111827">the body's gravity well: the</text>
+    <text x="504" y="349" fill="#111827">radius of its zone</text>
+
+    <text x="470" y="400" fill="#6b7280">The rings are independent: a small</text>
+    <text x="470" y="418" fill="#6b7280">body's well can lie inside its red ring.</text>
+  </g>
+</svg>

@@ -39,6 +39,14 @@ local BODY_KINDS = {
 local PlannerSnapshot = {}
 PlannerSnapshot.__index = PlannerSnapshot
 
+---The distance from a body's centre that the planner keeps a path outside of.
+---@param radius gameunit The body's bounding radius
+---@param kind string One of the body kinds above (`star`, `planet`, `moon`, `station`)
+---@return gameunit
+function PlannerSnapshot.safeRadius(radius, kind)
+    return radius * Config.game.autoPilot.safeRadiusFactor[kind]
+end
+
 ---@param entity Entity
 ---@return Entity|nil
 local function parentOf(entity)
@@ -125,7 +133,7 @@ local function appendBody(values, item, indexOf, zone)
     row[Body.AngularSpeed + 1] = orbit and orbit:getAngularSpeed() or 0
     row[Body.Inclination + 1] = orbit and orbit:getInclination() or 0
     row[Body.Radius + 1] = radius
-    row[Body.SafeRadius + 1] = radius * Config.game.autoPilot.safeRadiusFactor[item.kind]
+    row[Body.SafeRadius + 1] = PlannerSnapshot.safeRadius(radius, item.kind)
     row[Body.ZoneRadius + 1] = zone and zone.radius or 0
     row[Body.ZoneCap + 1] = zone and (drive[zone.zoneType] or drive.openSpace) or 0
     for i = 1, SystemPlanner.BODY_STRIDE do values[#values + 1] = row[i] end

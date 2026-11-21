@@ -147,6 +147,16 @@ function AutoPilotSystem:getRoute(shipEntity, out)
     return order and Nav.route(order, out) or nil
 end
 
+--- The path the autopilot has flown under its current plan (`Nav.routeFlown`): the ship's place when
+--- the plan was asked for, then the corners passed.
+---@param shipEntity Entity
+---@param out Position[]|nil A table to fill; a new one when nil
+---@return Position[]|nil route Nil while the autopilot is off
+function AutoPilotSystem:getRouteFlown(shipEntity, out)
+    local order = orderOf(shipEntity)
+    return order and Nav.routeFlown(order, out) or nil
+end
+
 --- Where the autopilot's target is now: the entity's position, or the point (which moves with its
 --- frame entity, if it has one).
 ---@param shipEntity Entity

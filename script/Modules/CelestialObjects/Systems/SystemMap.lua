@@ -9,6 +9,8 @@ local Registry                 = require("Core.ECS.Registry")
 local EntityPosition           = require("Shared.Helpers.EntityPosition")
 local Pipelines                = require("Render.Pipelines")
 local RouteOverlayRenderSystem = require("Modules.UI.Systems.RouteOverlayRenderSystem")
+local GravityWellSystem        = require("Modules.Physics.Systems.GravityWellSystem")
+local PlannerSnapshot          = require("Shared.Helpers.PlannerSnapshot")
 
 -- Scratch color for the shapes below (the batcher copies it at the call).
 local shapeColor = Color(0, 0, 0, 0)
@@ -28,16 +30,92 @@ local function mapToScreen(mapping, pos)
     return mapping.cx + (pos.x + state.panX) * state.zoom, mapping.cy + (pos.z + state.panY) * state.zoom
 end
 
+-- The circles drawn under a body's point: its size, the distance the planner keeps a path outside of
+-- (`PlannerSnapshot.safeRadius`) and its gravity well. All are alpha-blended annuli.
+local BODY_DISC_ALPHA  = 0.3
+local RING_WIDTH_PX    = 3
+local MIN_CIRCLE_PX    = 2    -- a circle of a smaller radius is not drawn
+local ANNULUS_FEATHER  = 2    -- the annulus shader's soft edge, in pixels
+local ANNULUS_PAD_PX   = 4    -- the quad's margin around the circle, at least the feather
+local MAX_QUAD_SCREENS = 4    -- a circle whose quad is larger than this many screens is not drawn
+local MOON_HIDE_PX     = 20   -- a moon whose orbit is smaller on screen than this is hidden
+local SAFE_RING_COLOR  = { r = 1.0, g = 0.35, b = 0.3, a = 0.55 }
+local WELL_RING_COLOR  = { r = 0.3, g = 0.85, b = 1.0, a = 0.45 }
+local LEGEND_LINE_PX   = 14
+local LEGEND = {
+    { text = "Disc: the body's size",                 color = { r = 0.8, g = 0.8, b = 0.8 } },
+    { text = "Red ring: the path keeps outside it",   color = SAFE_RING_COLOR },
+    { text = "Blue ring: gravity well",               color = WELL_RING_COLOR },
+}
+
 --- What the map draws, per kind marker. A belt and a ring share the belt drawing (annulus + dots).
+--- `bodyKind` is the planner's kind of a body (`Config.game.autoPilot.safeRadiusFactor`): its circles are drawn.
 local MAP_KINDS = {
-    { marker = CelestialComponents.Star,         label = "Star",          color = { 1.0, 0.9, 0.3 }, size = 8 },
-    { marker = CelestialComponents.Planet,       label = "Planet",        color = { 0.3, 0.6, 1.0 }, size = 5, numbered = true },
-    { marker = CelestialComponents.Moon,         label = "Moon",          color = { 0.6, 0.6, 0.6 }, size = 3, isMoon = true },
-    { marker = ConstructsComponents.SpaceStation, label = "Station",      color = { 1.0, 0.5, 0.1 }, size = 4 },
+    { marker = CelestialComponents.Star,         label = "Star",          color = { 1.0, 0.9, 0.3 }, size = 8, bodyKind = "star" },
+    { marker = CelestialComponents.Planet,       label = "Planet",        color = { 0.3, 0.6, 1.0 }, size = 5, numbered = true, bodyKind = "planet" },
+    { marker = CelestialComponents.Moon,         label = "Moon",          color = { 0.6, 0.6, 0.6 }, size = 3, isMoon = true, bodyKind = "moon" },
+    { marker = ConstructsComponents.SpaceStation, label = "Station",      color = { 1.0, 0.5, 0.1 }, size = 4, bodyKind = "station" },
     { marker = CelestialComponents.AsteroidBelt, label = "Asteroid Belt", color = { 0.7, 0.5, 0.3 }, size = 3, isBelt = true },
     { marker = CelestialComponents.AsteroidRing, label = "Asteroid Ring", color = { 0.6, 0.5, 0.4 }, size = 3, isBelt = true },
     { marker = CelestialComponents.Asteroid,     label = "Asteroid",      color = { 0.7, 0.5, 0.3 }, size = 2 },
 }
+
+--- Whether a moon is hidden at this zoom: its orbit is small on screen, so it sits on its planet.
+---@param state table
+---@param entry table
+---@return boolean
+local function isHiddenMoon(state, entry)
+    return entry.isMoon and entry.parentPos ~= nil and entry.orbitRadius * state.zoom < MOON_HIDE_PX
+end
+
+--- Draws an annulus of `innerR` to `outerR` pixels around `(px, py)` in `shapeColor`, on the map area
+--- `(x, y, sx, sy)`. Draws nothing, and returns true, when it is off the area. Returns false when its quad
+--- would be larger than `MAX_QUAD_SCREENS` screens (a quad that large costs fill rate), and draws nothing.
+local function drawAnnulus(px, py, innerR, outerR, x, y, sx, sy)
+    if px + outerR < x or px - outerR > x + sx or py + outerR < y or py - outerR > y + sy then return true end
+    local size = 2 * (outerR + ANNULUS_PAD_PX)
+    if size >= math.max(sx, sy) * MAX_QUAD_SCREENS then return false end
+    Imm.Shape(Shape.Annulus, px - size * 0.5, py - size * 0.5, size, size, shapeColor, innerR, outerR)
+    return true
+end
+
+--- Whether the whole map area `(x, y, sx, sy)` lies inside the circle of radius `r` around `(px, py)`.
+local function areaInsideCircle(px, py, r, x, y, sx, sy)
+    local dx = math.max(math.abs(px - x), math.abs(px - (x + sx)))
+    local dy = math.max(math.abs(py - y), math.abs(py - (y + sy)))
+    return dx * dx + dy * dy < r * r
+end
+
+--- Draws a ring `RING_WIDTH_PX` wide at pixel radius `r` in `color` (`{ r, g, b, a }`), unless `r` is too small.
+local function drawRing(px, py, r, color, x, y, sx, sy)
+    if r < MIN_CIRCLE_PX then return end
+    shapeColor.r, shapeColor.g, shapeColor.b, shapeColor.a = color.r, color.g, color.b, color.a
+    drawAnnulus(px, py, r - RING_WIDTH_PX * 0.5, r + RING_WIDTH_PX * 0.5, x, y, sx, sy)
+end
+
+--- Draws the circles of a body of the planner (`entry.bodyKind`) under its point: a translucent disc
+--- of its size, a ring at the distance the planner keeps a path outside of, and a ring at its gravity well.
+local function drawBodyCircles(state, entry, cx, cy, x, y, sx, sy)
+    local zoom = state.zoom
+    local px = cx + (entry.pos.x + state.panX) * zoom
+    local py = cy + (entry.pos.z + state.panY) * zoom
+
+    local bodyR = entry.scale * zoom
+    if bodyR >= MIN_CIRCLE_PX then
+        local c = entry.color
+        shapeColor.r, shapeColor.g, shapeColor.b, shapeColor.a = c[1], c[2], c[3], BODY_DISC_ALPHA
+        -- An inner radius of minus the feather fills the centre (the shader feathers around the radius).
+        local drawn = drawAnnulus(px, py, -ANNULUS_FEATHER, bodyR, x, y, sx, sy)
+        -- A body that fills the map area is too large for a quad: the area is its disc.
+        if not drawn and areaInsideCircle(px, py, bodyR, x, y, sx, sy) then
+            DrawEx.SimpleRect(x, y, sx, sy, Color(c[1], c[2], c[3], BODY_DISC_ALPHA))
+        end
+    end
+    drawRing(px, py, PlannerSnapshot.safeRadius(entry.scale, entry.bodyKind) * zoom, SAFE_RING_COLOR, x, y, sx, sy)
+    if entry.wellRadius then
+        drawRing(px, py, entry.wellRadius * zoom, WELL_RING_COLOR, x, y, sx, sy)
+    end
+end
 
 --- ECS System Map — top-down 2D view of the star system with mouse interaction.
 ---@class SystemMap
@@ -76,6 +154,8 @@ function SystemMap:collectEntities(state, shipEntity)
         state.entities = {}
         state.shipEntity = shipEntity
         state._planetIdx = 0
+        state._wellRadii = {}
+        for _, zone in ipairs(GravityWellSystem.zones) do state._wellRadii[zone.zoneEntity.id] = zone.radius end
         for _, kind in ipairs(MAP_KINDS) do
             self:_collectKind(state, kind)
         end
@@ -179,6 +259,8 @@ function SystemMap:_collectKind(state, kind)
                 label         = label,
                 pos           = pos,
                 scale         = scale,
+                bodyKind      = kind.bodyKind,
+                wellRadius    = kind.bodyKind and state._wellRadii[entity.id] or nil,
                 orbitRadius   = orbitRadius,
                 color         = kind.color,
                 size          = kind.size,
@@ -536,13 +618,17 @@ function SystemMap:draw(state, x, y, sx, sy)
         end
     end
 
+    -- Body circles, under every point and label
+    for _, entry in ipairs(state.entities) do
+        if entry.bodyKind and not isHiddenMoon(state, entry) then
+            drawBodyCircles(state, entry, cx, cy, x, y, sx, sy)
+        end
+    end
+
     -- Draw entities
     for _, entry in ipairs(state.entities) do
         -- Hide moons unless zoomed in close to their parent planet
-        if entry.isMoon and entry.parentPos then
-            local parentScreenDist = entry.orbitRadius * state.zoom
-            if parentScreenDist < 20 then goto next_map_entity end
-        end
+        if isHiddenMoon(state, entry) then goto next_map_entity end
 
         -- Belt entities: draw label at top of ring, not as a point
         if entry.isBelt and entry.orbitRadius and entry.orbitRadius > 0 then
@@ -618,6 +704,13 @@ function SystemMap:draw(state, x, y, sx, sy)
     -- Draw selected entity info panel
     if state.selected then
         self:drawSelectedInfo(state, x + sx - 250, y + 40, 240)
+    end
+
+    -- Legend of the body circles
+    for i, line in ipairs(LEGEND) do
+        local c = line.color
+        DrawEx.TextAlpha('Unageo-Medium', line.text, 10,
+            x + 10, y + sy - 25 - LEGEND_LINE_PX * (#LEGEND - i + 1), 240, 14, c.r, c.g, c.b, 0.9, 0.0, 0.5)
     end
 
     -- Draw zoom level
