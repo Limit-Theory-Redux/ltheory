@@ -983,6 +983,12 @@ end
 
 ---@param data EventData
 function LimitTheoryRedux:onInput(data)
+    -- Wall-clock frame time: `data:deltaTime()` is scaled by the sim's time
+    -- scale, which is 0 while paused, and the maps must stay usable then.
+    local now = Engine:getTime()
+    local realDt = self.lastInputTime and (now - self.lastInputTime) or 0
+    self.lastInputTime = now
+
     if self:handleAppInput() then return end
 
     -- Regenerate waits a few frames between tearing down and building
@@ -999,11 +1005,14 @@ function LimitTheoryRedux:onInput(data)
 
     -- Escape toggles the pause menu (Return to Game / Controls / Back to Main
     -- Menu / Exit); from the Controls screen it goes back to the pause menu.
+    -- In a system map it only freezes the sim (as P does), so the map stays usable.
     if Input:isPressed(ApplicationBindings.Escape) then
         if self.controlsOpen then
             self:closeControls()
         elseif self.pauseMenuOpen then
             self:closePauseMenu()
+        elseif self.mapMode > 0 then
+            self:togglePause()
         else
             self:openPauseMenu()
         end
@@ -1045,7 +1054,7 @@ function LimitTheoryRedux:onInput(data)
         self.player:setInputBlocked(true)
 
         if self.mapMode == 1 then
-            SystemMap:updateInput(self.mapState, dt)
+            SystemMap:updateInput(self.mapState, realDt)
 
             if GeneralActions.AutoPilotToggle:isPressed() and self.mapState.selected then
                 local sel = self.mapState.selected
@@ -1061,7 +1070,7 @@ function LimitTheoryRedux:onInput(data)
                 self.mapClosedFrame = true
             end
         else
-            SystemMap3D:updateInput(self.map3DState, dt)
+            SystemMap3D:updateInput(self.map3DState, realDt)
 
             if GeneralActions.AutoPilotToggle:isPressed() and self.map3DState.selected then
                 AutoPilotSystem:engage(self.playerShip, self.map3DState.selected.entity)
