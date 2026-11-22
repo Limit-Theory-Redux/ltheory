@@ -55,6 +55,7 @@ local FLYABLE = { [Status.Ok] = true, [Status.GoalNotSettled] = true, [Status.Dr
 ---@field taskId integer|nil The request that is out
 ---@field result Plan|nil The reply that has come and is not yet flown (`receive`, `fly`)
 ---@field start table|nil { x, y, z } where the ship was when the plan was asked for
+---@field standOff gameunit|nil The distance the plan's last leg stops short of the target's centre
 ---@field goal PlanWaypoint|nil The plan's last waypoint
 ---@field follower PlanFollower|nil
 ---@field listener table|nil
@@ -280,7 +281,7 @@ local function request(shipEntity, rb, profile, goal, frameEntity, driveMinLengt
     })
     return {
         phase = Phase.Planning, snapshot = snapshot, taskId = taskId, start = { x = at.x, y = at.y, z = at.z },
-        legs = 0,
+        standOff = standOff, legs = 0,
     }
 end
 
@@ -329,7 +330,8 @@ local function follow(plan, result, spec)
     }
     plan.follower = PlanFollower.new({
         nav = spec.nav, agent = spec.agent, rb = spec.rb, frames = plan.snapshot.frames, points = points,
-        goal = plan.goal, start = plan.start, passRadius = spec.profile.maxSpeed * PASS_TIME_S,
+        goal = plan.goal, standOff = plan.standOff, start = plan.start,
+        passRadius = spec.profile.maxSpeed * PASS_TIME_S,
         accel = spec.profile.thrustForward / spec.profile.mass, drag = spec.profile.linearDrag,
     })
     plan.phase = Phase.Plan

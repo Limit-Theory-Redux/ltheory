@@ -2,7 +2,8 @@
 -- does not turn on the last leg: the moons between lie across the course, so the plan goes round them,
 -- and its last corner before the goal, the entry of the goal moon's well, lies on the line from the
 -- corner before it to the moon's centre, so the plan does not turn there. The ship flies the plan
--- and arrives. Logs each failed check and ends with a failure exit code.
+-- and arrives, and its nose does not swing out and back as it crosses the well's ring. Logs each
+-- failed check and ends with a failure exit code.
 
 local Application         = require("States.Application")
 local ConstructComponents = require("Modules.Constructs.Components")
@@ -14,6 +15,7 @@ local TravelDriveSystem   = require("Modules.Constructs.Systems.TravelDriveSyste
 local Nav                 = require("Modules.Navigation")
 local SystemPlanner       = require("Shared.Helpers.SystemPlanner")
 local FlightScene         = require("States.App.Tests.Support.FlightScene")
+local NoseSwing           = require("States.App.Tests.Support.NoseSwing")
 
 ---@class ConstructsMoonRowTest: Application
 local MoonRowTest = Subclass("ConstructsMoonRowTest", Application)
@@ -36,20 +38,29 @@ local START_GAP = 1.5 * MOON_RADIUS + 10
 -- The largest turn at the last corner before the goal, in radians: the legs on either side of it
 -- point the same way.
 local MAX_LAST_CORNER_TURN = 0.002
+-- The largest angle between the nose and the direction to the moon's centre when the ship has
+-- stopped, in radians (about 3 degrees).
+local MAX_STOP_NOSE_ERROR = 0.05
 -- Where the planner puts the entry waypoint of a goal in a well: this share of the well's radius.
 local WELL_ENTRY_RADIUS = (1 - SystemPlanner.WELL_ENTRY_MARGIN) * FlightScene.WELL_RADIUS
 
----The angle between two vectors in radians, zero for a vector of no length.
-local function angleBetween(a, b)
-    local la = math.sqrt(a.x * a.x + a.y * a.y + a.z * a.z)
-    local lb = math.sqrt(b.x * b.x + b.y * b.y + b.z * b.z)
-    if la == 0 or lb == 0 then return 0 end
-    local cosine = (a.x * b.x + a.y * b.y + a.z * b.z) / (la * lb)
-    return math.acos(math.max(-1, math.min(1, cosine)))
-end
+local angleBetween = NoseSwing.angleBetween
 
 local function offset(from, to)
     return { x = to.x - from.x, y = to.y - from.y, z = to.z - from.z }
+end
+
+---How far `point` lies from the line through `a` and `b`, game units.
+local function distanceFromLine(point, a, b)
+    local along = offset(a, b)
+    local length = math.sqrt(along.x * along.x + along.y * along.y + along.z * along.z)
+    local from = offset(a, point)
+    local cross = {
+        x = along.y * from.z - along.z * from.y,
+        y = along.z * from.x - along.x * from.z,
+        z = along.x * from.y - along.y * from.x,
+    }
+    return math.sqrt(cross.x * cross.x + cross.y * cross.y + cross.z * cross.z) / length
 end
 
 function MoonRowTest:check(ok, what, detail)
@@ -135,8 +146,13 @@ function MoonRowTest:onInit()
 
     local path, turns, plannedAt = nil, nil, nil
     local driveSeen, arrivedAt = false, nil
+    -- The nose at every step, and where the ship was when it first came within the well's entry radius.
+    local noseSamples, ringAt, ringPos = {}, nil, nil
     for stepIndex = 1, math.floor(MAX_FLIGHT_S / STEP) do
         self:step(order)
+        local pos = ship.rb:getPos()
+        noseSamples[#noseSamples + 1] = { at = stepIndex * STEP, nose = ship.rb:getRot():getForward(), pos = pos }
+        if not ringAt and pos:distance(centre) <= WELL_ENTRY_RADIUS then ringAt, ringPos = stepIndex * STEP, pos end
         local flight = order:isValid() and order:get(Nav.Components.OrderFlight)
         local plan = flight and flight.plan
         if plan and plan.follower and not path then
@@ -164,6 +180,25 @@ function MoonRowTest:onInit()
             string.format("%.1f from the centre, the entry is at %.1f", entry:distance(centre), WELL_ENTRY_RADIUS))
         self:check(lastTurn <= MAX_LAST_CORNER_TURN, "no turn at the last corner before the goal",
             string.format("%.4f rad against %.4f", lastTurn, MAX_LAST_CORNER_TURN))
+    end
+    self:check(ringAt ~= nil, "the ship crosses the well's ring")
+    if ringAt then
+        local swing = NoseSwing.excursion(NoseSwing.around(noseSamples, ringAt, NoseSwing.EDGE_WINDOW_S))
+        self:check(swing <= NoseSwing.MAX_EDGE_SWING, "the nose does not swing at the well's ring",
+            string.format("%.3f rad against %.2f, within %d s of the ring", swing, NoseSwing.MAX_EDGE_SWING,
+                NoseSwing.EDGE_WINDOW_S))
+        local detourCorner = path and path[#path - 2]
+        Log.Info("ConstructsMoonRowTest: the nose swings out and back by %.3f rad within %d s of the ring; the ship is %.1f from the line from the last detour corner to the centre there",
+            swing, NoseSwing.EDGE_WINDOW_S, detourCorner and distanceFromLine(ringPos, detourCorner, centre) or -1)
+        local last = noseSamples[#noseSamples]
+        local atStop = last.pos
+        local toCentre = offset(atStop, centre)
+        local stopNose = angleBetween(last.nose, toCentre)
+        self:check(stopNose <= MAX_STOP_NOSE_ERROR, "the ship stops facing the moon",
+            string.format("%.3f rad off the centre against %.2f", stopNose, MAX_STOP_NOSE_ERROR))
+        Log.Info("ConstructsMoonRowTest: at the stop the ship is %.1f from the centre and %.1f from that line, its nose %.3f rad off the centre",
+            atStop:distance(centre), detourCorner and distanceFromLine(atStop, detourCorner, centre) or -1,
+            stopNose)
     end
     self:check(arrivedAt ~= nil and self.endedAs == Status.Done, "the ship arrives",
         string.format("%s s, ended as %s", tostring(arrivedAt), tostring(self.endedAs)))

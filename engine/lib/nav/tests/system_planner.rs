@@ -859,6 +859,46 @@ fn the_kernels_turn_speed_is_the_circle_speed_of_nav() {
 }
 
 #[test]
+fn a_line_meets_a_sphere_where_it_first_crosses_it() {
+    let planner = Planner::new();
+    let sphere_entry: Function = planner.kernel.get("sphereEntry").unwrap();
+    let entry = |a: [f64; 3], g: [f64; 3], radius: f64| -> [f64; 3] {
+        let (x, y, z): (f64, f64, f64) = sphere_entry
+            .call((a[0], a[1], a[2], g[0], g[1], g[2], radius))
+            .unwrap();
+        [x, y, z]
+    };
+    let close = |got: [f64; 3], want: [f64; 3]| {
+        assert!(
+            distance(got, want) < 1e-9,
+            "the entry is at {got:?}, wanted {want:?}"
+        );
+    };
+
+    // A line through the sphere is met on the side it comes from, not where it leaves.
+    close(
+        entry([-10.0, 0.0, 0.0], [10.0, 0.0, 0.0], 2.0),
+        [-2.0, 0.0, 0.0],
+    );
+    // A goal inside the sphere: the line ends there, so it meets the sphere once, short of the goal.
+    let a = [-10.0, 0.5, 0.2];
+    let hit = entry(a, [0.0, 0.0, 0.0], 2.0);
+    assert!((distance(hit, [0.0; 3]) - 2.0).abs() < 1e-9);
+    // The point is on the line: its distance from `a` and from the goal add up to the line's length.
+    assert!((distance(a, hit) + distance(hit, [0.0; 3]) - distance(a, [0.0; 3])).abs() < 1e-9);
+    // A start already inside the sphere enters at once.
+    close(
+        entry([0.5, 0.0, 0.0], [10.0, 0.0, 0.0], 2.0),
+        [0.5, 0.0, 0.0],
+    );
+    // A line that misses the sphere meets it at its closest approach.
+    close(
+        entry([-10.0, 3.0, 0.0], [10.0, 3.0, 0.0], 1.0),
+        [0.0, 3.0, 0.0],
+    );
+}
+
+#[test]
 fn a_corner_gets_an_arc_the_ship_can_hold() {
     let planner = Planner::new();
     let bodies = [fixed([0.0; 3], 1000.0, 1500.0)];

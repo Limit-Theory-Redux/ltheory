@@ -2,9 +2,11 @@
 -- the entry of the next corner's arc (or the corner, when sharp) at the corner's speed, each arc is
 -- flown by pure pursuit under the corner's speed cap. Corner points are taken from where their
 -- frame bodies are now, except a well's entry, which is sought where it is planned to be on arrival;
--- the arcs are the ones the planner cleared, kept at their planned offsets. A drive run's corner
--- (`through`, no arc) is passed a lead (`speed / drag`) before it, where the drive turn begins.
--- The follower stops after the last corner; the owner flies the leg to the goal.
+-- when the entry is the last corner, it is the point where the line from the ship to the target's
+-- centre meets the entry sphere. The arcs are the ones the planner cleared, kept at their planned
+-- offsets. A drive run's corner (`through`, no arc) is passed a lead (`speed / drag`) before it,
+-- where the drive turn begins. The follower stops after the last corner; the owner flies the leg
+-- to the goal.
 -- Design: doc/script/nav/system-planner.md
 local SystemPlanner = require("Shared.Helpers.SystemPlanner")
 
@@ -52,6 +54,7 @@ local MAX_ARC_LOOKAHEAD = 0.6
 ---@field frames PlanFrame[] Indexed by a waypoint's `frame`
 ---@field points PlanWaypoint[] The corners, in order
 ---@field goal PlanWaypoint The plan's last waypoint, which the last corner's arc leaves toward
+---@field standOff gameunit The distance the plan's last leg stops short of the target's centre; 0 for a point
 ---@field start table { x, y, z } where the ship was when the plan was made
 ---@field passRadius number A corner is reached within this distance, game units
 ---@field accel number The ship's forward acceleration, game units per second squared
@@ -77,14 +80,14 @@ end
 local function toPosition(v) return Position(v.x, v.y, v.z) end
 
 ---Starts flying the corners of a plan, and sends the ship to the first.
----@param spec { nav: NavWorld, agent: integer, rb: RigidBody, frames: PlanFrame[], points: PlanWaypoint[], goal: PlanWaypoint, start: table, passRadius: number, accel: number, drag: number }
+---@param spec { nav: NavWorld, agent: integer, rb: RigidBody, frames: PlanFrame[], points: PlanWaypoint[], goal: PlanWaypoint, standOff: gameunit|nil, start: table, passRadius: number, accel: number, drag: number }
 ---@return PlanFollower
 function PlanFollower.new(spec)
     assert(#spec.points > 0, "PlanFollower: a plan with no corner has nothing to follow")
     local follower = setmetatable({
         nav = spec.nav, agent = spec.agent, rb = spec.rb, frames = spec.frames, points = spec.points,
-        goal = spec.goal, start = spec.start, passRadius = spec.passRadius, accel = spec.accel,
-        drag = spec.drag, index = 1, finished = false, carried = false,
+        goal = spec.goal, standOff = spec.standOff or 0, start = spec.start, passRadius = spec.passRadius,
+        accel = spec.accel, drag = spec.drag, index = 1, finished = false, carried = false,
     }, PlanFollower)
     follower:seekLeg(follower:currentArc())
     return follower
@@ -161,7 +164,9 @@ function PlanFollower:runRemaining()
     local remaining = self.rb:getPos():distance(self.target)
     local index = self.index
     while self.points[index].through do
-        local here = self:pointNow(self.points[index])
+        -- The corner being flown to, when it is the last entry, is the one steered at (`alignedEntry`).
+        local here = (index == self.index and self:isFinalEntry(index)) and self.target
+            or self:pointNow(self.points[index])
         local nextWaypoint = self.points[index + 1] or self.goal
         remaining = remaining + here:distance(self:pointNow(nextWaypoint))
         index = index + 1
@@ -195,16 +200,64 @@ function PlanFollower:isEntry(index)
     return after.frame == frame and not (before and before.frame == frame)
 end
 
+---Whether corner `index` is the entry into the goal body's well and the last corner: the leg after
+---it is the plan's last, in the body's frame, and ends at the stop point.
+---@param index integer
+---@return boolean
+function PlanFollower:isFinalEntry(index)
+    return self.points[index + 1] == nil and self:isEntry(index)
+end
+
+---The centre of the goal body's well for the last entry: where the body is planned to be when the
+---ship arrives at the entry, or where it is now for a ship the well carries.
+---@return table { x, y, z }
+function PlanFollower:entryCentre()
+    local waypoint = self.points[self.index]
+    local frame = self.frames[waypoint.frame]
+    if self.carried then
+        local centre = frame.rb:getPos()
+        return { x = centre.x, y = centre.y, z = centre.z }
+    end
+    return frame.positionAt(waypoint.time)
+end
+
+---Where the ship is steered to cross the entry sphere of the goal body's well on its way to the
+---target's centre: the point where the line from the ship to the centre first meets the sphere. The
+---plan's entry is where the line from the last detour's corner meets it (the corner, the entry and
+---the stop point are on one line through the centre), so the two are the same for a ship that has
+---kept to the leg; a ship that has drifted off steers at the line from where it is, and the last
+---leg points at the centre from the start of the approach, as the final approach does after it.
+---The centre is the stop point and the stand-off further along the framed leg.
+---@return Position
+function PlanFollower:alignedEntry()
+    local waypoint = self.points[self.index]
+    local entry, stop = waypoint.offset, self.goal.offset
+    local back = sub(stop, entry)
+    local backLength = length(back)
+    local target = stop
+    if self.standOff > 0 and backLength > 0 then
+        local share = self.standOff / backLength
+        target = { x = stop.x + back.x * share, y = stop.y + back.y * share, z = stop.z + back.z * share }
+    end
+    local centre, ship = self:entryCentre(), self.rb:getPos()
+    local x, y, z = SystemPlanner.sphereEntry(ship.x - centre.x, ship.y - centre.y, ship.z - centre.z,
+        target.x, target.y, target.z, length(entry))
+    return Position(centre.x + x, centre.y + y, centre.z + z)
+end
+
 ---Sends the ship along its leg to the entry of `arc`, or to the sharp corner when there is none,
 ---to pass it at the corner's speed. A well's entry is sought where it is planned to be when the
 ---ship arrives, which keeps the system leg straight; a pursuit of the point where it is now curves
 ---the ship's velocity as the body moves on. A ship the well already carries moves with the body, so
----there the entry is where it is now.
+---there the entry is where it is now. The last entry is the point on the line to the target's centre
+---(`alignedEntry`).
 ---@param arc PlanArc|nil The arc of the corner being flown to
 function PlanFollower:seekLeg(arc)
     local waypoint = self.points[self.index]
     local corner
-    if not self.carried and self:isEntry(self.index) then
+    if self:isFinalEntry(self.index) then
+        corner = self:alignedEntry()
+    elseif not self.carried and self:isEntry(self.index) then
         corner = self:pointPlanned(waypoint)
     else
         corner = self:pointNow(waypoint)
@@ -220,11 +273,19 @@ end
 ---kept at (`through`) is passed this way: any other is reached at a speed the pass radius is sized
 ---for. A corner that is not a well's entry is a drive turn: the ship turns its nose to the new leg
 ---`SystemPlanner.driveTurnLead` before the corner, so that its velocity, which follows the nose
----through the drag, meets the new leg (the path the planner cleared).
+---through the drag, meets the new leg (the path the planner cleared). The last entry is the point on
+---the line from the ship to the centre, which moves with the ship, so it is passed on entering
+---the entry sphere.
 ---@param speed number Game units per second now
 ---@return boolean
 function PlanFollower:reachedCorner(speed)
     local waypoint = self.points[self.index]
+    if self:isFinalEntry(self.index) then
+        local centre = self:entryCentre()
+        local ship = self.rb:getPos()
+        return length({ x = ship.x - centre.x, y = ship.y - centre.y, z = ship.z - centre.z })
+            <= length(waypoint.offset)
+    end
     if not waypoint.through or waypoint.radius > 0 then return false end
     local corner = self:pointNow(waypoint)
     local before = self.index == 1 and toPosition(self.start) or self:pointNow(self.points[self.index - 1])

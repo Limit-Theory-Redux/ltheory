@@ -16,6 +16,8 @@ Docs: [navigation guide](guide.md), [navigation orders](navigation.md), [system 
 
 **Aim sphere** — the sphere (obstacle radius plus the agent's radius plus the aim factor times the clearance) that a candidate course just touches. [Obstacle avoidance](../../engine/nav.md#obstacle-avoidance).
 
+**Aligned entry** — the point a ship steers at to cross a goal well's entry sphere when the entry is the plan's last corner: where the line from the ship to the target's centre first meets the sphere. [Consumers](system-planner.md#consumers).
+
 **Approach spec** (`ApproachSpec`) — data that says where a ship stops at an entity: a `StandOff` or a `Point`. [Approach specs](navigation.md#approach-specs).
 
 **Arc** — the circle segment that rounds a corner of a plan, tangent to both legs and flown at a speed the ship can hold. A corner that cannot get one stays sharp. [Corners](system-planner.md#corners).

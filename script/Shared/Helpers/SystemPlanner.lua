@@ -841,22 +841,30 @@ local function goalStop(ax, ay, az)
     return goalCut.x + dx * share, goalCut.y + dy * share, goalCut.z + dz * share
 end
 
----The offset from the goal's body, at `entryTime`, of the point where the straight line from the
----start to the goal first crosses the entry sphere: the start is `a` from the body and the goal is
----`g`, so the line is `a + λ(g − a)` and `λ` is the smaller root of `|a + λ(g − a)|² = r²`. A start
----already inside the sphere at that time enters at once (`λ = 0`).
-local function entryOffset(sx, sy, sz, gx, gy, gz, entryTime)
-    local cx, cy, cz = bodyPosition(goalFrame, entryTime)
-    local ax, ay, az = sx - cx, sy - cy, sz - cz
+---Where the straight line from `a` to `g` first crosses the sphere of `radius` about the origin:
+---`a + λ(g − a)`, with `λ` the smaller root of `|a + λ(g − a)|² = radius²`. A line that misses the
+---sphere meets it at its closest approach, and an `a` already inside it enters at once (`λ = 0`).
+---Both points are offsets from the sphere's centre.
+---@return number x
+---@return number y
+---@return number z
+function SystemPlanner.sphereEntry(ax, ay, az, gx, gy, gz, radius)
     local dx, dy, dz = gx - ax, gy - ay, gz - az
     local qa = dx * dx + dy * dy + dz * dz
     local qb = ax * dx + ay * dy + az * dz
-    local qc = ax * ax + ay * ay + az * az - entryRadius * entryRadius
+    local qc = ax * ax + ay * ay + az * az - radius * radius
     local lambda = 0
     if qc > 0 and qa > MIN_LENGTH then
         lambda = max(0, (-qb - sqrt(max(0, qb * qb - qa * qc))) / qa)
     end
     return ax + dx * lambda, ay + dy * lambda, az + dz * lambda
+end
+
+---The offset from the goal's body, at `entryTime`, of the point where the straight line from the
+---start to the goal first crosses the entry sphere (`SystemPlanner.sphereEntry`).
+local function entryOffset(sx, sy, sz, gx, gy, gz, entryTime)
+    local cx, cy, cz = bodyPosition(goalFrame, entryTime)
+    return SystemPlanner.sphereEntry(sx - cx, sy - cy, sz - cz, gx, gy, gz, entryRadius)
 end
 
 ---Where a leg of end rule `rule` (`END.goal` or `END.entry`) that starts at (ax, ay, az) ends: the

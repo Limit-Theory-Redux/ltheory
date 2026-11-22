@@ -23,6 +23,7 @@ local Nav                   = require("Modules.Navigation")
 local PlanFlight            = require("Shared.Helpers.PlanFlight")
 local OrderGoals            = require("Shared.Helpers.OrderGoals")
 local FlightScene           = require("States.App.Tests.Support.FlightScene")
+local NoseSwing             = require("States.App.Tests.Support.NoseSwing")
 
 ---@class ConstructsAutoPilotTest: Application
 local AutoPilotTest = Subclass("ConstructsAutoPilotTest", Application)
@@ -65,11 +66,10 @@ local WELL_ORBIT_SPEEDUP = 2
 -- entry is about 200 game units per second, and the planet moves at about half of it: 115 times
 -- the Solo top speed.
 local WELL_FAST_SPEEDUP = 115
--- The nose's turn is judged over this many seconds around the ship's entry into the well.
-local EDGE_WINDOW_S = 3
--- The most the nose may swing out and back across that window, in radians (about 9 degrees): a
--- swing a pilot does not see as a wrong turn. The slow planet's flight swings 0.05.
-local MAX_EDGE_SWING = 0.15
+-- The nose's turn is judged over `EDGE_WINDOW_S` around the ship's entry into the well, against
+-- `MAX_EDGE_SWING`. The slow planet's flight swings 0.05.
+local EDGE_WINDOW_S  = NoseSwing.EDGE_WINDOW_S
+local MAX_EDGE_SWING = NoseSwing.MAX_EDGE_SWING
 -- The planet in the drive's way: its hull radius, how far along the course it lies as a share of
 -- the distance, and its speed on its orbit as a share of the ship's top speed (slow: it stays across
 -- the course while the ship flies).
@@ -395,38 +395,7 @@ function AutoPilotTest:step(flyer, well)
     return updateMs
 end
 
----The angle between two vectors in radians, zero for a vector of no length.
-local function angleBetween(a, b)
-    local la = math.sqrt(a.x * a.x + a.y * a.y + a.z * a.z)
-    local lb = math.sqrt(b.x * b.x + b.y * b.y + b.z * b.z)
-    if la == 0 or lb == 0 then return 0 end
-    local cosine = (a.x * b.x + a.y * b.y + a.z * b.z) / (la * lb)
-    return math.acos(math.max(-1, math.min(1, cosine)))
-end
-
----How far the nose swings out and back across a window of samples: the largest, over the window,
----of the smaller of its angles to the nose at the start and at the end. A nose that turns once,
----from one heading to another, stays near zero; one that turns away and returns is as large as the
----swing.
----@param samples table[] Samples with a `nose`, in time order
----@return number radians
-local function noseExcursion(samples)
-    local first, last = samples[1].nose, samples[#samples].nose
-    local excursion = 0
-    for _, sample in ipairs(samples) do
-        excursion = math.max(excursion, math.min(angleBetween(sample.nose, first), angleBetween(sample.nose, last)))
-    end
-    return excursion
-end
-
----The samples within `EDGE_WINDOW_S` of `at`.
-local function samplesAround(samples, at)
-    local window = {}
-    for _, sample in ipairs(samples) do
-        if math.abs(sample.at - at) <= EDGE_WINDOW_S then window[#window + 1] = sample end
-    end
-    return window
-end
+local angleBetween = NoseSwing.angleBetween
 
 local function axesAreZero(input)
     return input:getThrustForward() == 0 and input:getThrustRight() == 0 and input:getThrustUp() == 0
@@ -807,7 +776,7 @@ function AutoPilotTest:fly(scenario, kind)
                 wellEntry.passSpeed and string.format("%.2f", wellEntry.passSpeed) or "-")
         end
         if wellEntry then
-            local swing = noseExcursion(samplesAround(entrySamples, wellEntry.at))
+            local swing = NoseSwing.excursion(NoseSwing.around(entrySamples, wellEntry.at, EDGE_WINDOW_S))
             self:check(swing <= MAX_EDGE_SWING, name .. "the nose does not swing at the well's edge",
                 string.format("%.3f rad against %.2f, within %d s of the edge", swing, MAX_EDGE_SWING, EDGE_WINDOW_S))
             Log.Info("ConstructsAutoPilotTest: %sthe nose swings out and back by %.3f rad within %d s of the edge",
