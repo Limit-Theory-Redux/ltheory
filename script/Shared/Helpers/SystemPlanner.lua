@@ -171,6 +171,7 @@ local MAX_ARC_HALVINGS  = 4
 local MIN_ARC_ANGLE     = 0.02
 
 SystemPlanner.TURN_THRUST_SHARE = TURN_THRUST_SHARE
+SystemPlanner.WELL_ENTRY_MARGIN = WELL_ENTRY_MARGIN
 
 -- A drive leg is timed in steps. Each step covers at most this share of the distance to the
 -- nearest feature that changes the drive's cap: a zone's edge or body, or the point where the
@@ -230,8 +231,7 @@ local legFrame, legBound, legFrameOf = SYSTEM_FRAME, {}, {}
 -- A goal on a body: how it relates to the body's well, the entry sphere's radius, the waypoint
 -- written for the entry, and the entry's offset from the body and its distance from the start in
 -- the last pass.
-local wellMode, entryRadius, entryIndex, entryOffsetX, entryOffsetY, entryOffsetZ, entryChord =
-    WELL_NONE, 0, -1, 0, 0, 0, 0
+local wellMode, entryRadius, entryIndex, entryChord = WELL_NONE, 0, -1, 0
 -- The drive multiplier and speed at the end of the last leg written with `Through`: the state a
 -- run carries through the entry. Read only when the entry has `Through`.
 local runEndMultiplier, runEndSpeed = 1, 0
@@ -241,6 +241,13 @@ local arrivalRadius, lastProfile = 0, nil
 -- The distance a leg that ends at the goal stops short of it, and the goal point in the coordinates
 -- of the legs being planned (`goalStop`). A table, for the limit on a chunk's locals.
 local goalCut = { standOff = 0, x = 0, y = 0, z = 0 }
+-- For a leg that ends at the well's entry (`legEnd`): the goal's offset from its body (x, y, z), the
+-- entry's time, and the offset the plan's entry has from the body (offsetX, offsetY, offsetZ). A
+-- table, for the limit on a chunk's locals.
+local entryCut = { x = 0, y = 0, z = 0, time = 0, offsetX = 0, offsetY = 0, offsetZ = 0 }
+-- How a leg ends, when it does not end at the point it is given: at the goal's stop point, or at the
+-- well's entry (`legEnd`). The tail of a detour on the leg ends as the leg does.
+local END = { goal = 1, entry = 2 }
 -- The timeline of a leg: its samples (time, distance along the leg) and, per interval between two
 -- samples, the greatest speed in it. A leg's profile is kept per recursion depth, so a retry on
 -- the other side of a body finds its parent's intact; chords of an arc use their own.
@@ -834,6 +841,33 @@ local function goalStop(ax, ay, az)
     return goalCut.x + dx * share, goalCut.y + dy * share, goalCut.z + dz * share
 end
 
+---The offset from the goal's body, at `entryTime`, of the point where the straight line from the
+---start to the goal first crosses the entry sphere: the start is `a` from the body and the goal is
+---`g`, so the line is `a + λ(g − a)` and `λ` is the smaller root of `|a + λ(g − a)|² = r²`. A start
+---already inside the sphere at that time enters at once (`λ = 0`).
+local function entryOffset(sx, sy, sz, gx, gy, gz, entryTime)
+    local cx, cy, cz = bodyPosition(goalFrame, entryTime)
+    local ax, ay, az = sx - cx, sy - cy, sz - cz
+    local dx, dy, dz = gx - ax, gy - ay, gz - az
+    local qa = dx * dx + dy * dy + dz * dz
+    local qb = ax * dx + ay * dy + az * dz
+    local qc = ax * ax + ay * ay + az * az - entryRadius * entryRadius
+    local lambda = 0
+    if qc > 0 and qa > MIN_LENGTH then
+        lambda = max(0, (-qb - sqrt(max(0, qb * qb - qa * qc))) / qa)
+    end
+    return ax + dx * lambda, ay + dy * lambda, az + dz * lambda
+end
+
+---Where a leg of end rule `rule` (`END.goal` or `END.entry`) that starts at (ax, ay, az) ends: the
+---goal's stop point, or the well's entry, each on the line from the leg's own start to the goal.
+local function legEnd(rule, ax, ay, az)
+    if rule == END.goal then return goalStop(ax, ay, az) end
+    local ox, oy, oz = entryOffset(ax, ay, az, entryCut.x, entryCut.y, entryCut.z, entryCut.time)
+    local cx, cy, cz = bodyPosition(goalFrame, entryCut.time)
+    return ox + cx, oy + cy, oz + cz
+end
+
 ---The run of the first part of a leg that a detour splits: it starts as the leg does, and it ends
 ---at the detour's corner, where a run ends. Nil for a leg without a run.
 local function headRun(run)
@@ -899,9 +933,9 @@ end
 ---as it was.
 ---@return boolean kept Whether the plan of the detour was written
 ---@return number|nil tEnd The time at b, nil when the plan stopped
-local function planDetourThrough(ax, ay, az, t0, wx, wy, wz, frame, bx, by, bz, bFrame, depth, run, toGoal)
+local function planDetourThrough(ax, ay, az, t0, wx, wy, wz, frame, bx, by, bz, bFrame, depth, run, endRule)
     local tx, ty, tz = bx, by, bz
-    if toGoal then tx, ty, tz = goalStop(wx, wy, wz) end
+    if endRule then tx, ty, tz = legEnd(endRule, wx, wy, wz) end
     local mayKeep, rest, before = detourMayKeepRun(ax, ay, az, wx, wy, wz, tx, ty, tz, run)
     if not mayKeep then return false end
     local savedWritten, savedFailures, savedStatus = written, failures, status
@@ -912,7 +946,7 @@ local function planDetourThrough(ax, ay, az, t0, wx, wy, wz, frame, bx, by, bz, 
     if out[corner * OUT_STRIDE + OUT_THROUGH] ~= 0 then
         local cornerSpeed = out[corner * OUT_STRIDE + OUT_SPEED]
         local tEnd = planLeg(wx, wy, wz, tW, bx, by, bz, bFrame, depth + 1,
-            { beyond = before, m = runEndMultiplier, v = runEndSpeed }, toGoal)
+            { beyond = before, m = runEndMultiplier, v = runEndSpeed }, endRule)
         if not tEnd then return true, nil end
         local px, py, pz = ax, ay, az
         if corner - 1 >= savedWritten then px, py, pz = legWaypointPoint(corner - 1, 0, 0, 0) end
@@ -934,7 +968,7 @@ end
 ---expected to fail only because its turn cuts into the obstacle (`predictedPush`) is tried with the
 ---waypoint pushed out by the turn's cut.
 ---@return number|nil tEnd The time at b, nil when the plan stopped
-local function planDetour(profile, i, ax, ay, az, bx, by, bz, bFrame, length, ux, uy, uz, t0, tIn, tB, depth, flip, run, toGoal)
+local function planDetour(profile, i, ax, ay, az, bx, by, bz, bFrame, length, ux, uy, uz, t0, tIn, tB, depth, flip, run, endRule)
     local wx, wy, wz = detourPoint(profile, i, ax, ay, az, length, ux, uy, uz, tIn, tB, flip)
     if not wx then
         fail(Status.NoDetour)
@@ -943,17 +977,17 @@ local function planDetour(profile, i, ax, ay, az, bx, by, bz, bFrame, length, ux
     local frame = detourFrame(i)
     local keptX, keptY, keptZ = wx, wy, wz
     local tx, ty, tz = bx, by, bz
-    if toGoal then tx, ty, tz = goalStop(wx, wy, wz) end
+    if endRule then tx, ty, tz = legEnd(endRule, wx, wy, wz) end
     local push = predictedPush(profile, i, ax, ay, az, wx, wy, wz, tx, ty, tz, run)
     if push then
         local px, py, pz = detourPoint(profile, i, ax, ay, az, length, ux, uy, uz, tIn, tB, flip, push)
         if px then keptX, keptY, keptZ = px, py, pz end
     end
-    local kept, tEnd = planDetourThrough(ax, ay, az, t0, keptX, keptY, keptZ, frame, bx, by, bz, bFrame, depth, run, toGoal)
+    local kept, tEnd = planDetourThrough(ax, ay, az, t0, keptX, keptY, keptZ, frame, bx, by, bz, bFrame, depth, run, endRule)
     if kept then return tEnd end
     local tW = planLeg(ax, ay, az, t0, wx, wy, wz, frame, depth + 1, headRun(run))
     if not tW then return nil end
-    return planLeg(wx, wy, wz, tW, bx, by, bz, bFrame, depth + 1, tailRun(run), toGoal)
+    return planLeg(wx, wy, wz, tW, bx, by, bz, bFrame, depth + 1, tailRun(run), endRule)
 end
 
 ---Plans the leg a to b around obstacle `i` on one side, and on the other when that side's legs
@@ -961,11 +995,11 @@ end
 ---`planned` is false, so the leg crosses the zone.
 ---@return number|nil tEnd The time at b, nil when the plan stopped
 ---@return boolean planned False for a zone that cannot be gone around
-local function planAround(profile, i, ax, ay, az, bx, by, bz, bFrame, length, ux, uy, uz, t0, tIn, tB, depth, run, toGoal)
+local function planAround(profile, i, ax, ay, az, bx, by, bz, bFrame, length, ux, uy, uz, t0, tIn, tB, depth, run, endRule)
     local savedWritten, savedFailures, savedStatus = written, failures, status
     local function detour(flip)
         return planDetour(profile, i, ax, ay, az, bx, by, bz, bFrame, length, ux, uy, uz, t0, tIn, tB, depth, flip, run,
-            toGoal)
+            endRule)
     end
     local tEnd = detour(false)
     if tEnd == nil or failures == savedFailures then return tEnd, true end
@@ -983,12 +1017,12 @@ end
 ---waypoints. The leg's timeline is the drive's where that is sooner. A detour that fails
 ---further down (a waypoint inside another body, a leg that cannot be cleared) is redone on the
 ---other side of the body; if both fail, the first side's result stands. `run` (nil for none) is
----the drive run the leg belongs to: how far it goes on past b, and what it starts from. A leg that
----ends at the goal (`toGoal`) ends at the goal's stop point from its own start (`goalStop`), not at
----b, and so does the tail of a detour on it.
+---the drive run the leg belongs to: how far it goes on past b, and what it starts from. A leg with
+---an end rule (`endRule`, `END.goal` or `END.entry`) ends where the rule puts it from its own start
+---(`legEnd`), not at b, and so does the tail of a detour on it.
 ---@return number|nil tEnd The time at the leg's end, nil when the plan stopped
-function planLeg(ax, ay, az, t0, bx, by, bz, bFrame, depth, run, toGoal)
-    if toGoal then bx, by, bz = goalStop(ax, ay, az) end
+function planLeg(ax, ay, az, t0, bx, by, bz, bFrame, depth, run, endRule)
+    if endRule then bx, by, bz = legEnd(endRule, ax, ay, az) end
     local dx, dy, dz = bx - ax, by - ay, bz - az
     local length = sqrt(dx * dx + dy * dy + dz * dz)
     if length <= MIN_LENGTH then
@@ -1016,7 +1050,7 @@ function planLeg(ax, ay, az, t0, bx, by, bz, bFrame, depth, run, toGoal)
                 and zoneWorthDetour(profile, obstacle, ax, ay, az, bx, by, bz, length, ux, uy, uz, tIn, tB))
         if goAround then
             local tEnd, planned = planAround(profile, obstacle, ax, ay, az, bx, by, bz, bFrame, length, ux, uy, uz, t0,
-                tIn, tB, depth, run, toGoal)
+                tIn, tB, depth, run, endRule)
             if planned then return tEnd end
         end
         waived[obstacle] = true
@@ -1298,40 +1332,28 @@ local function chooseWellMode(sx, sy, sz, gx, gy, gz)
     return sqrt(dx * dx + dy * dy + dz * dz) < wellRadius and WELL_INSIDE or WELL_ENTRY
 end
 
----The offset from the goal's body, at `entryTime`, of the point where the straight line from the
----start to the goal first crosses the entry sphere: the start is `a` from the body and the goal is
----`g`, so the line is `a + λ(g − a)` and `λ` is the smaller root of `|a + λ(g − a)|² = r²`. A start
----already inside the sphere at that time enters at once (`λ = 0`).
-local function entryOffset(sx, sy, sz, gx, gy, gz, entryTime)
-    local cx, cy, cz = bodyPosition(goalFrame, entryTime)
-    local ax, ay, az = sx - cx, sy - cy, sz - cz
-    local dx, dy, dz = gx - ax, gy - ay, gz - az
-    local qa = dx * dx + dy * dy + dz * dz
-    local qb = ax * dx + ay * dy + az * dz
-    local qc = ax * ax + ay * ay + az * az - entryRadius * entryRadius
-    local lambda = 0
-    if qc > 0 and qa > MIN_LENGTH then
-        lambda = max(0, (-qb - sqrt(max(0, qb * qb - qa * qc))) / qa)
-    end
-    return ax + dx * lambda, ay + dy * lambda, az + dz * lambda
-end
-
----Plans the system part to the entry (the point (wx, wy, wz) in the system, (ex, ey, ez) from the
----body) and the part in the body's frame from there to the goal. With a `run` the system part's
----last leg goes on through the entry, and the part in the frame is one leg that continues it.
+---Plans the system part to the entry and the part in the body's frame from there to the goal. The
+---system part's last leg ends at the entry on its own line to the goal (`legEnd`), so the entry,
+---wherever a detour leaves the leg, is on the line from the leg's start through the goal. With a
+---`run` that leg goes on through the entry, and the part in the frame is one leg that continues it.
 ---@return number|nil tEnd The time the plan reaches its last point, nil when it stopped
 ---@return number|nil tEntry The time at the entry
-local function planEntryLegs(sx, sy, sz, wx, wy, wz, ex, ey, ez, gx, gy, gz, run)
+local function planEntryLegs(sx, sy, sz, gx, gy, gz, run)
     setLegFrame(SYSTEM_FRAME)
-    local tEntry = planLeg(sx, sy, sz, 0, wx, wy, wz, goalFrame, 0, run)
+    -- The entry is not a point given to the leg: the leg works it out from its own start.
+    local tEntry = planLeg(sx, sy, sz, 0, 0, 0, 0, goalFrame, 0, run, END.entry)
     if not tEntry then return nil end
     entryIndex = written - 1
     local carried = nil
     if out[entryIndex * OUT_STRIDE + OUT_THROUGH] ~= 0 then
         carried = { beyond = 0, m = runEndMultiplier, v = runEndSpeed }
     end
+    -- The entry's offset, from the start of the leg that wrote it, as `legEnd` worked it out.
+    local px, py, pz = legWaypointPoint(entryIndex - 1, sx, sy, sz)
+    local ex, ey, ez = entryOffset(px, py, pz, gx, gy, gz, entryCut.time)
+    entryCut.offsetX, entryCut.offsetY, entryCut.offsetZ = ex, ey, ez
     setLegFrame(goalFrame)
-    return planLeg(ex, ey, ez, tEntry, gx, gy, gz, goalFrame, 0, carried, true), tEntry
+    return planLeg(ex, ey, ez, tEntry, gx, gy, gz, goalFrame, 0, carried, END.goal), tEntry
 end
 
 ---Whether the drive run goes on through the entry waypoint written last.
@@ -1360,23 +1382,24 @@ local function planWell(sx, sy, sz, gx, gy, gz, entryTime)
     if wellMode == WELL_INSIDE then
         setLegFrame(goalFrame)
         local fx, fy, fz = bodyPosition(goalFrame, 0)
-        return planLeg(sx - fx, sy - fy, sz - fz, 0, gx, gy, gz, goalFrame, 0, nil, true)
+        return planLeg(sx - fx, sy - fy, sz - fz, 0, gx, gy, gz, goalFrame, 0, nil, END.goal)
     end
+    entryCut.x, entryCut.y, entryCut.z, entryCut.time = gx, gy, gz, entryTime
+    -- The entry on the line from the start: the plan's entry when no detour comes before it, and
+    -- otherwise the estimate of its distance from the start and of the part in the frame's length.
     local ex, ey, ez = entryOffset(sx, sy, sz, gx, gy, gz, entryTime)
     local cx, cy, cz = bodyPosition(goalFrame, entryTime)
-    local wx, wy, wz = ex + cx, ey + cy, ez + cz
-    entryOffsetX, entryOffsetY, entryOffsetZ = ex, ey, ez
-    entryChord = sqrt((wx - sx) ^ 2 + (wy - sy) ^ 2 + (wz - sz) ^ 2)
+    entryChord = sqrt((ex + cx - sx) ^ 2 + (ey + cy - sy) ^ 2 + (ez + cz - sz) ^ 2)
     local stopX, stopY, stopZ = goalStop(ex, ey, ez)
     local framedLength = sqrt((stopX - ex) ^ 2 + (stopY - ey) ^ 2 + (stopZ - ez) ^ 2)
     if driveOn and framedLength > driveRelease then
-        local tEnd, tEntry = planEntryLegs(sx, sy, sz, wx, wy, wz, ex, ey, ez, gx, gy, gz, { beyond = framedLength })
+        local tEnd, tEntry = planEntryLegs(sx, sy, sz, gx, gy, gz, { beyond = framedLength })
         -- A stopped plan, a plan whose last system leg is not a run, and a run that reaches the goal
         -- stand as they are.
         if tEnd == nil or not entryIsThrough() or runReachesGoal() then return tEnd, tEntry end
         written, status, failures = 0, Status.Ok, 0
     end
-    return planEntryLegs(sx, sy, sz, wx, wy, wz, ex, ey, ez, gx, gy, gz, nil)
+    return planEntryLegs(sx, sy, sz, gx, gy, gz, nil)
 end
 
 ---Moves the goal's time, the last waypoint written, from the time the ship reaches the goal point
@@ -1409,7 +1432,7 @@ local function planPass(sx, sy, sz, gx, gy, gz, goalTime, entryTime)
     if not (shrinkAround(sx, sy, sz, 0) and shrinkAround(qx, qy, qz, goalTime)) then return false end
     markIgnoredZones(sx, sy, sz, qx, qy, qz, goalTime)
     if wellMode == WELL_NONE then
-        return true, arrivalTime(planLeg(sx, sy, sz, 0, px, py, pz, goalFrame, 0, nil, true))
+        return true, arrivalTime(planLeg(sx, sy, sz, 0, px, py, pz, goalFrame, 0, nil, END.goal))
     end
     local tEnd, tEntry = planWell(sx, sy, sz, gx, gy, gz, entryTime)
     return true, arrivalTime(tEnd), tEntry
@@ -1508,7 +1531,8 @@ local function solve(sx, sy, sz, frame, gx, gy, gz, planSpeed)
         end
         if entryIndex >= 0 then
             base = entryIndex * OUT_STRIDE
-            out[base + OUT_X], out[base + OUT_Y], out[base + OUT_Z] = entryOffsetX, entryOffsetY, entryOffsetZ
+            out[base + OUT_X], out[base + OUT_Y], out[base + OUT_Z] =
+                entryCut.offsetX, entryCut.offsetY, entryCut.offsetZ
         end
     end
     if status ~= Status.CapacityExceeded then roundCorners(sx, sy, sz) end

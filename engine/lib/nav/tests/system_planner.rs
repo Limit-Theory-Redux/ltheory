@@ -3995,3 +3995,98 @@ fn a_goal_in_a_wells_frame_with_a_stand_off_is_reached_along_one_radial_line() {
     let cosine = dot(unit(plan.offsets[e]), unit(plan.offsets[n - 1]));
     assert!(cosine > 1.0 - RADIAL_TOLERANCE, "cosine {cosine}");
 }
+
+// ---- Moons in a row, the last one the goal ----
+
+/// A moon's size, and the clearance and stand-off the game gives it (1.5 radii).
+const ROW_MOON_RADIUS: f64 = 1000.0;
+const ROW_MOON_SAFE: f64 = 1.5 * ROW_MOON_RADIUS;
+/// The distance between neighbouring moons along the row.
+const ROW_SPACING: f64 = 30000.0;
+/// How far each moon lies off the row's axis, so that the detour round each is on a known side.
+const ROW_ASIDE: [f64; 4] = [0.0, 200.0, -300.0, 0.0];
+/// The frame of the goal moon, the last of the row.
+const ROW_GOAL_FRAME: i32 = 3;
+
+/// Four moons with a well each, `ROW_SPACING` apart along x.
+fn moon_row() -> Vec<Body> {
+    (0..ROW_ASIDE.len())
+        .map(|i| {
+            fixed(
+                [ROW_SPACING * i as f64, 0.0, ROW_ASIDE[i]],
+                ROW_MOON_RADIUS,
+                ROW_MOON_SAFE,
+            )
+            .with_zone(WELL_RADIUS, WELL_ZONE_CAP)
+        })
+        .collect()
+}
+
+/// The waypoint at the entry radius in the frame of the goal moon.
+fn row_entry_index(plan: &Plan) -> Option<usize> {
+    plan.frames
+        .iter()
+        .zip(&plan.offsets)
+        .position(|(frame, offset)| {
+            *frame == ROW_GOAL_FRAME
+                && (distance(*offset, [0.0; 3]) - WELL_RADIUS * WELL_ENTRY_SHARE).abs()
+                    <= 1e-9 * WELL_RADIUS
+        })
+}
+
+/// The angle between the legs `a`-`b` and `b`-`c`: the turn at `b`.
+fn turn_at(a: Vec3, b: Vec3, c: Vec3) -> f64 {
+    dot(unit(sub(b, a)), unit(sub(c, b)))
+        .clamp(-1.0, 1.0)
+        .acos()
+}
+
+#[test]
+fn the_flight_along_a_row_of_moons_does_not_turn_at_the_goals_well_or_stand_off() {
+    let planner = Planner::new();
+    let bodies = moon_row();
+    let first = bodies[0].position;
+    let centre = bodies[ROW_GOAL_FRAME as usize].position;
+    // The ship starts at the first moon's stand-off, on the side of the row.
+    let start = plus(first, [ROW_MOON_SAFE, 0.0, 0.0]);
+    for drive in [None, Some(DRIVE)] {
+        let plan = planner.run_all(
+            &bodies,
+            start,
+            ROW_GOAL_FRAME,
+            [0.0; 3],
+            SPEED,
+            SHIP,
+            DEPTH,
+            CAPACITY,
+            drive,
+            None,
+            None,
+            None,
+            Some(ROW_MOON_SAFE),
+        );
+        let label = format!("drive {}", drive.is_some());
+        assert_eq!(plan.status, STATUS_OK, "{label}: {:?}", plan.points);
+        let n = plan.points.len();
+        assert_eq!(plan.frames[n - 1], ROW_GOAL_FRAME, "{label}");
+        assert!(
+            (distance(plan.points[n - 1], centre) - ROW_MOON_SAFE).abs() < 1e-6,
+            "{label}: the goal is the stand-off from the centre"
+        );
+        let e = row_entry_index(&plan).expect("the entry in the goal moon's well");
+        assert!(e >= 1, "{label}: the moons on the row are gone round");
+        let corners = plan.corners();
+        // The corners are the start first, so waypoint i is corners[i + 1]: the leg that ends at the
+        // entry begins at corners[e].
+        let (before, entry, goal) = (corners[e], corners[e + 1], corners[n]);
+        assert!(
+            turn_at(before, entry, goal) < RADIAL_TOLERANCE,
+            "{label}: the turn at the entry is {}",
+            turn_at(before, entry, goal)
+        );
+        assert!(
+            last_leg_angle_to(&plan, centre) < RADIAL_TOLERANCE,
+            "{label}: the last leg points at the centre"
+        );
+    }
+}

@@ -115,6 +115,23 @@ function FlightScene.buildWell(world, planetPos, radius, speedup, options)
     }
 end
 
+---A moon of `radius` that stays at `position`, with a gravity well of `wellRadius`, on no orbit. It is a
+---body of the planner's snapshot once `GravityWellSystem:collectZones` has run.
+---@param world Physics
+---@param position Position
+---@param radius gameunit
+---@param wellRadius gameunit|nil The well's radius, `WELL_RADIUS` when nil
+---@return { entity: Entity, rb: RigidBody, zone: Entity }
+function FlightScene.spawnMoon(world, position, radius, wellRadius)
+    local moon = Entity.Create("MoonEntity", CelestialComponents.Moon())
+    local rb = FlightScene.giveKinematicBody(world, moon, position, radius)
+    moon:add(PhysicsComponents.Transform()):setPos(position)
+    local zone = SpatialEntities.Zone()
+    zone:get(SpatialComponents.Shape):setRadius(wellRadius or FlightScene.WELL_RADIUS)
+    Registry:attachEntity(moon, zone)
+    return { entity = moon, rb = rb, zone = zone }
+end
+
 ---Remove a moving well's bodies from physics and destroy its entities.
 ---@param world Physics
 ---@param well table From `buildWell`
