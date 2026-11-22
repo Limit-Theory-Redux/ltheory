@@ -55,6 +55,7 @@ end
 
 local function noBodies() return nil end
 
+---The registered profiles, and the validation of a profile: unknown tags, bad weights, no name, no id.
 function CostProfileTest:checkData()
     self:check(CostProfileRegistry:has(STANDARD) and CostProfileRegistry:has(CAUTIOUS) and CostProfileRegistry:has(BOLD),
         "the three profiles are registered")
@@ -69,6 +70,8 @@ function CostProfileTest:checkData()
     self:check(inline.id == nil and not CostProfileRegistry:has(inline.id or 0), "a profile with no id is not registered")
 end
 
+---The weight of a zone's tags: the largest the profile gives, and one for a tag it doesn't name or a zone
+---with no tags.
 function CostProfileTest:checkWeights()
     local standard = CostProfileRegistry:get(STANDARD)
     local cautious = CostProfileRegistry:get(CAUTIOUS)
@@ -86,6 +89,8 @@ function CostProfileTest:checkWeights()
     self:check(cautious:weightOf(belt_and_well) == CAUTIOUS_X, "the largest weight applies for a named tag too")
 end
 
+---A ship's cost profile component: it keeps its profile, a change raises its revision, and `ProfileOf`
+---finds it (nil for a ship with none).
 function CostProfileTest:checkComponent()
     local standard = CostProfileRegistry:get(STANDARD)
     local component = NavigationComponents.CostProfile(standard)
@@ -111,6 +116,8 @@ local function row(values, index)
     }
 end
 
+---The planner rows `CostZones.collect` gives: only spheres with a path cost, the cost weighed by the
+---profile, a zone on a body riding it, and the errors for other shapes.
 function CostProfileTest:checkRows()
     local belt = makeZone(PATH_COST, "AsteroidField")
     local untagged = makeZone(1)
@@ -159,6 +166,7 @@ function CostProfileTest:checkRows()
     Registry:destroyEntity(belt)
 end
 
+---A planner snapshot carries the zones weighed by the ship's profile, as authored with none.
 function CostProfileTest:checkSnapshot()
     local zone = makeZone(PATH_COST, "AsteroidField")
     local withProfile = PlannerSnapshot.take(CostProfileRegistry:get(CAUTIOUS))

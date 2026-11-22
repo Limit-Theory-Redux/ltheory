@@ -96,6 +96,8 @@ local function lawTime(profile, length, arrival, driveUsed)
         Config.game.travelDrive.maxSpeedByZone.openSpace, driveUsed)
 end
 
+---Flights in open space: the lengthened distance, top speed for a near point and the drive for a far
+---one, a point start (which needs a flight profile and has no drive), and a ship already at its goal.
 function EstimateTest:caseOpenSpace()
     local name = "open space: "
     local ship = self:ship(Position(0, 0, 0))
@@ -127,6 +129,8 @@ function EstimateTest:caseOpenSpace()
     self:release({ ship })
 end
 
+---An entity target is estimated to its stand-off; a ship already inside it has arrived, and a target
+---that is gone is not reachable.
 function EstimateTest:caseEntityTarget()
     local name = "an entity: "
     local ship = self:ship(Position(0, 0, 0))
@@ -151,6 +155,7 @@ function EstimateTest:caseEntityTarget()
     self:release({ ship, body })
 end
 
+---A goal or a start inside a body's hull is not reachable.
 function EstimateTest:caseHull()
     local name = "a hull: "
     local ship = self:ship(Position(0, 0, 0))
@@ -170,6 +175,8 @@ function EstimateTest:caseHull()
     self:release({ ship, station })
 end
 
+---The risk of a cost zone on the line is its cost times the chord, weighed by the cost profile, and 0
+---for a line that misses it.
 function EstimateTest:caseRisk()
     local name = "a cost zone: "
     local ship = self:ship(Position(0, 0, 0))
@@ -196,6 +203,8 @@ function EstimateTest:caseRisk()
     self:release({ ship })
 end
 
+---A planet's drive zone on the line slows a drive flight, and neither a flight with no drive nor a line
+---that misses the zone.
 function EstimateTest:caseDriveZone()
     local name = "a drive zone: "
     local ship = self:ship(Position(0, 0, 0))
@@ -235,6 +244,8 @@ local function awaitEstimates(request)
     return nil
 end
 
+---The batch form on the worker gives the single form's numbers in the targets' order, once, and a
+---discarded request is never given and doesn't block the next.
 function EstimateTest:caseBatch()
     local name = "a batch: "
     local ship = self:ship(Position(0, 0, 0))

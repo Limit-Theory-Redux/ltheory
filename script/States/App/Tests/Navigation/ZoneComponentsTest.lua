@@ -35,6 +35,7 @@ local function found(component)
     return set
 end
 
+---A speed limit and a path cost keep their values; a path cost may be zero.
 function ZoneComponentsTest:checkValues()
     local limit = UniverseScaleConfig:toGameUnits(SPEED_LIMIT_MS)
     local speed = NavigationComponents.SpeedLimit(limit)
@@ -46,6 +47,7 @@ function ZoneComponentsTest:checkValues()
     self:check(NavigationComponents.PathCost(0):getCost() == 0, "a path cost of zero is allowed")
 end
 
+---Values outside a component's range, or missing, are rejected when it is made.
 function ZoneComponentsTest:checkRanges()
     local SpeedLimit, PathCost = NavigationComponents.SpeedLimit, NavigationComponents.PathCost
     self:check(not pcall(SpeedLimit, 0), "a speed limit of zero is rejected")
@@ -56,6 +58,8 @@ function ZoneComponentsTest:checkRanges()
     self:check(not pcall(PathCost, nil), "a missing path cost is rejected")
 end
 
+---A zone set up with a speed limit, a path cost and tags; a query for a component finds only the zones
+---that carry it.
 function ZoneComponentsTest:checkQueries()
     local belt = SpatialEntities.Zone()
     belt:add(NavigationComponents.SpeedLimit(UniverseScaleConfig:toGameUnits(SPEED_LIMIT_MS)))

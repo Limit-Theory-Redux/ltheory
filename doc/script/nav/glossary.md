@@ -2,7 +2,7 @@
 
 The terms the navigation docs use, in alphabetical order. An entry is a short definition and a link to the section that defines the term: that section is the contract, and this page only helps you find it. Where one word has several meanings, each has its own entry.
 
-Docs: [navigation orders](navigation.md), [system planner](system-planner.md), [navigation sandbox](navigation-sandbox.md), [navigation maths](../../engine/nav.md), [system maps](../system-map.md).
+Docs: [navigation guide](guide.md), [navigation orders](navigation.md), [system planner](system-planner.md), [navigation sandbox](navigation-sandbox.md), [navigation maths](../../engine/nav.md), [system maps](../system-map.md).
 
 ## A
 
@@ -124,6 +124,8 @@ Docs: [navigation orders](navigation.md), [system planner](system-planner.md), [
 
 **Frame** (engine) — an agent's three unit directions (forward, right, up). [Model](../../engine/nav.md#model).
 
+**Frame** (game loop) — one pass of the game's stages: orders update at `PreSim`, ships and physics step at `Sim`, events arrive at `PostSim`. [The frame](guide.md#the-frame).
+
 **Frame velocity** (carry) — the velocity of the surroundings that carry an agent, such as a gravity well. Drag, top speed and braking work relative to it. [Model](../../engine/nav.md#model).
 
 **Framed part** — the part of a plan into a well that is flown in the body's frame, from the entry waypoint to the goal. [Frames](system-planner.md#frames).
@@ -147,6 +149,10 @@ Docs: [navigation orders](navigation.md), [system planner](system-planner.md), [
 **Held detour** — the detour an agent keeps flying between two avoidance runs. [Update rate](../../engine/nav.md#update-rate).
 
 **Hold** — an order and a behaviour that stay at a point; the behaviour is Arrive at the body's own position. [Kinds of order](navigation.md#kinds-of-order), [Behaviours](../../engine/nav.md#behaviours).
+
+## I
+
+**Issuer** — whoever gives a ship an order (a script, an AI, a tool): it reads the order's status and events, and releases the order when it has ended. [Navigation orders](navigation.md), [releasing an order](guide.md#fly-somewhere-and-release-the-order-when-it-ends).
 
 ## J
 

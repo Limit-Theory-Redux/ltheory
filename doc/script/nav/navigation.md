@@ -1,6 +1,6 @@
 # Navigation orders
 
-An order tells a ship where to go. The issuer (a script, an AI, a designer's tool) gives a ship an order with `Nav.order`, reads the order's status and progress while it runs, and releases it when it has ended. The module is `Modules/Navigation`; `local Nav = require("Modules.Navigation")`. The navigation terms are in the [glossary](glossary.md).
+An order tells a ship where to go. The issuer (a script, an AI, a designer's tool) gives a ship an order with `Nav.order`, reads the order's status and progress while it runs, and releases it when it has ended. The module is `Modules/Navigation`; `local Nav = require("Modules.Navigation")`. To start using it, read the [navigation guide](guide.md): setup, use cases with the tests that run them, and pitfalls. This page is the contract. The navigation terms are in the [glossary](glossary.md).
 
 An order is an entity of its own, linked to its ship by the ship's id. The order system writes a ship's `ControlInputComponent` only while orders own the ship's controls; the ship the player pilots, or one an AI has claimed, is owned by someone else and its orders wait ([control ownership](#control-ownership)).
 

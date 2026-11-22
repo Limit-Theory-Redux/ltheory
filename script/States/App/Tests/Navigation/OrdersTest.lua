@@ -1,10 +1,14 @@
--- Checks the navigation orders: MoveTo to a point past a planet (a plan with a corner, the drive, the
--- next waypoint in the progress), to a body and to a point in a moving body's frame, the approach specs (stand-off, point, refused), the facing goal, a queue, priorities, control ownership (a claim, a piloted ship), Patrol with and without a loop, Hold, cancel (a queued order and a running
--- one), a change of target in flight (the path is planned again), of cost profile (a new plan replaces the
--- old one while the ship flies on), a target and
--- a ship that are destroyed, Orbit (a named plane, the ship's plane, a planet in a moving well), Follow
--- (in and out of the join range, a leader that leaves it), the refused specs, release, and the world's detach. The end events are checked in frames
--- after the flights, since the event bus delivers them there. Logs each failed check and ends
+-- Checks the navigation orders, one case per behaviour:
+--   * MoveTo to a point past a planet (a plan with corners, the drive, progress and route), to a body,
+--     and to a point in a moving body's frame;
+--   * the approach specs (stand-off, point, refused) and the facing goal;
+--   * the queue, priorities, and control ownership (a claim, a piloted ship);
+--   * Patrol with and without a loop, Hold, Orbit (a named plane, the ship's plane, a planet in a moving
+--     well) and Follow (in and out of the join range, a leader that leaves it);
+--   * cancel, a change of target or of cost profile in flight, a target, frame or ship destroyed;
+--   * the refused specs, release, and the world's detach.
+-- The simulation is stepped by hand with `Nav.update`, not by frames; the end events are checked in
+-- frames after the flights, since the event bus delivers them there. Logs each failed check and ends
 -- with a failure exit code.
 
 local Application           = require("States.Application")
@@ -189,6 +193,8 @@ local function within(ship, goal, radius)
     return ship.rb:getPos():distance(goal) <= radius
 end
 
+---A MoveTo to a point past a planet: queued, planned, flown on corners with the drive, and done; the
+---progress and the route left and flown are read at each phase, and the agent goes with the last order.
 function OrdersTest:caseMoveToPastPlanet()
     local name = "a point past a planet: "
     local course = Position(PLANET_COURSE.x, PLANET_COURSE.y, PLANET_COURSE.z)
@@ -281,6 +287,7 @@ function OrdersTest:caseMoveToPastPlanet()
     self:finish({ order }, { ship })
 end
 
+---A MoveTo to a body stops at its stand-off, outside the hull.
 function OrdersTest:caseMoveToBody()
     local name = "a body: "
     local ship = self:ship(Position(0, 0, 0))
@@ -324,6 +331,8 @@ function OrdersTest:standOffTo(approach, markers)
     return dist, PlanFlight.arrivalRadius(FAR_BODY_RADIUS, nil, radii)
 end
 
+---Stand-off approaches: the default of a target with no kind, a named spec and an inline one, and wider
+---radii that stop the ship farther out.
 function OrdersTest:caseApproachStandOff()
     local name = "a stand-off approach: "
     local default = ApproachSpecs.For(Registry:createEntity(), nil)
@@ -349,6 +358,7 @@ function OrdersTest:caseApproachStandOff()
         string.format("%.1f against %.1f", dist, defaultStop))
 end
 
+---A station's default approach is a point, and the ship stops at it.
 function OrdersTest:caseApproachPoint()
     local name = "a point approach: "
     local ship = self:ship(Position(0, 0, 0))
@@ -368,6 +378,7 @@ function OrdersTest:caseApproachPoint()
     self:finish({ order }, { ship, station })
 end
 
+---Bad approach specs are errors, and leave no order queued.
 function OrdersTest:caseApproachRefused()
     local name = "a refused approach: "
     local ship = self:ship(Position(0, 0, 0))
@@ -404,6 +415,8 @@ local function noseOff(ship, point)
     return math.acos(math.max(-1, math.min(1, cosine)))
 end
 
+---A Hold with a facing turns the nose to a point, then to an entity, and fails with `TargetLost` when
+---that entity is destroyed.
 function OrdersTest:caseFacingHold()
     local name = "a hold with a facing: "
     local ship = self:ship(Position(0, 0, 0))
@@ -435,6 +448,7 @@ function OrdersTest:caseFacingHold()
     self:finish({ hold, second }, { ship })
 end
 
+---A MoveTo with a facing arrives with the nose toward the facing point, and never runs the drive.
 function OrdersTest:caseFacingMoveTo()
     local name = "a move with a facing: "
     local ship = self:ship(Position(0, 0, 0))
@@ -494,6 +508,7 @@ function OrdersTest:caseFacingNoDrive()
     FlightScene.despawn(self.world, { planet.planetBody })
 end
 
+---Two orders of one priority run one after the other, and the ship keeps its agent between them.
 function OrdersTest:caseQueue()
     local name = "a queue: "
     local ship = self:ship(Position(0, 0, 0))
@@ -537,6 +552,8 @@ function OrdersTest:flyUntilMoving(ship, order, name)
     self:check(ship.rb:getSpeed() > MOVING and order:get(Components.OrderFlight).begun, name .. "the order is under way")
 end
 
+---An order of higher priority displaces the flying one, which is suspended, loses its plan, and resumes
+---from where the ship is when the new one is done.
 function OrdersTest:casePriorityInterrupt()
     local name = "an order of higher priority: "
     local ship = self:ship(Position(0, 0, 0))
@@ -567,6 +584,7 @@ function OrdersTest:casePriorityInterrupt()
     self:finish({ routine, urgent }, { ship })
 end
 
+---A displaced Hold resumes where the ship is then, not where it began.
 function OrdersTest:casePriorityHold()
     local name = "a hold that is displaced: "
     local ship = self:ship(Position(0, 0, 0))
@@ -593,6 +611,7 @@ function OrdersTest:casePriorityHold()
     self:finish({ hold, urgent }, { ship })
 end
 
+---A displaced Patrol keeps the point it was flying to, and resumes there.
 function OrdersTest:casePriorityPatrol()
     local name = "a patrol that is displaced: "
     local ship = self:ship(Position(0, 0, 0))
@@ -615,6 +634,8 @@ function OrdersTest:casePriorityPatrol()
     self:finish({ patrol, urgent }, { ship })
 end
 
+---The queue is ordered by priority, and by the order given within a level; a suspended order can be
+---cancelled.
 function OrdersTest:casePriorityQueueOrder()
     local name = "the order of a queue by priority: "
     local ship = self:ship(Position(0, 0, 0))
@@ -649,6 +670,7 @@ function OrdersTest:casePriorityQueueOrder()
     self:finish({ a, b, c, d, e }, { ship })
 end
 
+---A priority that is not a level is an error, and leaves no order behind.
 function OrdersTest:casePriorityRefused()
     local name = "a priority that is not a level: "
     local ship = self:ship(Position(0, 0, 0))
@@ -661,6 +683,8 @@ function OrdersTest:casePriorityRefused()
     self:finish({}, { ship })
 end
 
+---A claim takes the controls from orders: the input is reset, the running order is suspended, and it
+---resumes after the unclaim.
 function OrdersTest:caseClaim()
     local name = "a claimed ship: "
     local ship = self:ship(Position(0, 0, 0))
@@ -694,6 +718,7 @@ function OrdersTest:caseClaim()
     self:finish({ order }, { ship })
 end
 
+---The order of a ship the player pilots waits, unflown, until the player leaves the ship.
 function OrdersTest:caseManualShip()
     local name = "a ship the player pilots: "
     local ship = self:ship(Position(0, 0, 0))
@@ -712,6 +737,8 @@ function OrdersTest:caseManualShip()
     self:finish({ order }, { ship })
 end
 
+---Who owns the controls as writers come and go: manual input over a claim over orders, the refused
+---double claim and stray unclaim, and the reset when the owner changes.
 function OrdersTest:caseOwnerPrecedence()
     local name = "who owns the controls: "
     local ship = self:ship(Position(0, 0, 0))
@@ -744,6 +771,7 @@ function OrdersTest:caseOwnerPrecedence()
     self:finish({ order }, { ship })
 end
 
+---Orders given to a claimed ship wait, and run by priority once the claim ends.
 function OrdersTest:caseClaimedPriority()
     local name = "orders given to a claimed ship: "
     local ship = self:ship(Position(0, 0, 0))
@@ -764,6 +792,9 @@ function OrdersTest:caseClaimedPriority()
     self:finish({ routine, combat }, { ship })
 end
 
+---A Patrol flies to each point in turn: without `loop` it is done at the last one, with it it goes on
+---after a lap until cancelled.
+---@param loop boolean
 function OrdersTest:casePatrol(loop)
     local name = loop and "a patrol with a loop: " or "a patrol without a loop: "
     local ship = self:ship(Position(0, 0, 0))
@@ -799,6 +830,7 @@ function OrdersTest:casePatrol(loop)
     self:finish({ order }, { ship })
 end
 
+---A Hold given to a moving ship brings it back to where the Hold began, and never ends by itself.
 function OrdersTest:caseHold()
     local name = "a hold: "
     local ship = self:ship(Position(0, 0, 0))
@@ -829,6 +861,7 @@ function OrdersTest:caseHold()
     self:finish({ run, hold }, { ship })
 end
 
+---A queued order that is cancelled ends without having begun, and the running one goes on.
 function OrdersTest:caseCancelQueued()
     local name = "a cancelled queued order: "
     local ship = self:ship(Position(0, 0, 0))
@@ -847,6 +880,7 @@ function OrdersTest:caseCancelQueued()
     self:finish({ a, b }, { ship })
 end
 
+---A change of target in flight plans the path again, and the ship arrives at the new target.
 function OrdersTest:caseRetarget()
     local name = "a change of target: "
     local ship = self:ship(Position(0, 0, 0))
@@ -868,6 +902,7 @@ function OrdersTest:caseRetarget()
     self:finish({ order }, { ship })
 end
 
+---A change of the ship's cost profile asks for a new plan while the ship flies the old one.
 function OrdersTest:caseCostProfileChange()
     local name = "a change of cost profile: "
     local ship = self:ship(Position(0, 0, 0))
@@ -895,6 +930,7 @@ function OrdersTest:caseCostProfileChange()
     self:finish({ order }, { ship })
 end
 
+---A target destroyed in flight fails the order with `TargetLost`.
 function OrdersTest:caseTargetDestroyed()
     local name = "a destroyed target: "
     local ship = self:ship(Position(0, 0, 0))
@@ -941,6 +977,7 @@ function OrdersTest:caseFramePoint()
     self:finish({ order }, { ship, frame })
 end
 
+---A frame for an entity target, or one with no body, is an error, and leaves no order queued.
 function OrdersTest:caseFrameRefused()
     local name = "a refused frame: "
     local ship = self:ship(Position(0, 0, 0))
@@ -959,6 +996,7 @@ function OrdersTest:caseFrameRefused()
     self:finish({}, { ship, frame, target })
 end
 
+---A frame destroyed in flight fails the order with `TargetLost`.
 function OrdersTest:caseFrameDestroyed()
     local name = "a destroyed frame: "
     local ship = self:ship(Position(0, 0, 0))
@@ -976,6 +1014,7 @@ function OrdersTest:caseFrameDestroyed()
     self:finish({ order }, { ship })
 end
 
+---A ship destroyed in flight fails its order with `ShipLost`; another ship's order goes on.
 function OrdersTest:caseShipDestroyed()
     local name = "a destroyed ship: "
     local ship = self:ship(Position(0, 0, 0))
@@ -996,6 +1035,7 @@ function OrdersTest:caseShipDestroyed()
     self:finish({ lost, kept }, { other })
 end
 
+---Releasing an order that has not ended is an error, and so is a second navigation world.
 function OrdersTest:caseRelease()
     local name = "release: "
     local ship = self:ship(Position(0, 0, 0))
@@ -1147,6 +1187,9 @@ function OrdersTest:cancelTracking(name, order, ship)
     self:check(axesAreZero(ship.entity:get(ConstructComponents.ControlInput)), name .. "no axes are left")
 end
 
+---An Orbit flies a plan to the circle, then tracks it anticlockwise, about the named normal or in the
+---ship's own plane, until cancelled.
+---@param named boolean
 function OrdersTest:caseOrbit(named)
     local name = named and "an orbit about a named normal: " or "an orbit in the ship's plane: "
     local ship = self:ship(Position(0, 0, 0))
@@ -1209,6 +1252,7 @@ local function slotOf(leader)
         at.z + right.z * x + up.z * y + forward.z * z)
 end
 
+---A follower within the join range tracks its slot at once, with no plan, and matches the leader.
 function OrdersTest:caseFollowInRange()
     local name = "a follower in range: "
     local top = FlightProfileRegistry:get(Enums.FlightProfile.Solo).maxSpeed
@@ -1254,6 +1298,8 @@ function OrdersTest:caseFollowInRange()
     self:finish({ order }, { ship, leader })
 end
 
+---A follower beyond the join range plans to its slot, plans again only when the slot moves far, joins,
+---and plans again when the leader leaves too far.
 function OrdersTest:caseFollowOutOfRange()
     local name = "a follower out of range: "
     local ship = self:ship(Position(0, 0, 0))

@@ -14,6 +14,7 @@
    - [Ship flight control](script/flight.md)
    - [Zones and gravity wells](script/zones.md)
    - [Cameras](script/cameras.md)
+   - [Navigation guide](script/nav/guide.md)
    - [Navigation sandbox](script/nav/navigation-sandbox.md)
    - [System planner](script/nav/system-planner.md)
    - [Navigation orders](script/nav/navigation.md)

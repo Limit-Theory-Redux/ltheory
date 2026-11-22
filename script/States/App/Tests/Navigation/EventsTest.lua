@@ -1,12 +1,15 @@
--- Checks the navigation queries and events an AI listens to: the neighbours of a ship (order, radius,
--- the ship itself, a filter, a compound body, a body with no entity), the stall rule, and the events of
--- orders and zones: arrived (a point of a patrol, the end of a move, the join of an orbit), replanned (a
--- change of target or of cost profile, a target that drifts, a zone whose cost changes, and not a first
--- plan, a resume, or a refresh by timer or after a corner, which are checked to happen quietly and to
--- leave the flight in its phase), blocked (a ship that can't move, and not one that flies), and a ship
--- entering and leaving a zone. The events are checked in
--- frames after the flights, since the event bus delivers them there. Logs each failed check and ends
--- with a failure exit code.
+-- Checks the navigation queries and the events of orders and zones:
+--   * the neighbours of a ship (order, radius, the ship itself, a filter, a compound body, a body with
+--     no entity) and the stall rule on its own;
+--   * arrived: a point of a patrol, the end of a move, the join of an orbit;
+--   * replanned: a change of target or of cost profile, a target that drifts, a zone whose cost changes;
+--     and not a first plan, a resume, or a refresh by timer or after a corner, which happen quietly and
+--     leave the flight in its phase;
+--   * blocked: a ship that can't move, and not one that flies;
+--   * a ship entering and leaving a zone, and which ships are watched.
+-- The simulation is stepped by hand with `Nav.update`, not by frames; the events are checked in frames
+-- after the flights, since the event bus delivers them there. Logs each failed check and ends with a
+-- failure exit code.
 
 local Application         = require("States.Application")
 local Registry            = require("Core.ECS.Registry")
@@ -206,6 +209,8 @@ function EventsTest:caseProgressWatch()
         name .. "less than the rule's progress is none")
 end
 
+---The neighbours of a ship: in range, nearest first, each entity once at its nearest collider, the
+---distance to the surface, a filter, and the ship itself and a body with no entity left out.
 function EventsTest:caseNeighbours()
     local name = "neighbours: "
     local ship = self:ship(Position(0, 0, 0))
@@ -257,6 +262,7 @@ function EventsTest:caseNeighbours()
     self:finish({}, { ship })
 end
 
+---A MoveTo sends one `NavOrderArrived` at its goal.
 function EventsTest:caseMoveTo()
     local name = "a move: "
     local ship = self:ship(Position(0, 0, 0))
@@ -268,6 +274,7 @@ function EventsTest:caseMoveTo()
     self:finish({ order }, { ship })
 end
 
+---A Patrol sends a `NavOrderArrived` at each of its points.
 function EventsTest:casePatrol()
     local name = "a patrol: "
     local ship = self:ship(Position(0, 0, 0))
@@ -279,6 +286,7 @@ function EventsTest:casePatrol()
     self:finish({ order }, { ship })
 end
 
+---An Orbit sends a `NavOrderArrived` when the ship joins the circle.
 function EventsTest:caseOrbit()
     local name = "an orbit: "
     local ship = self:ship(Position(0, 0, 0))
@@ -295,6 +303,7 @@ function EventsTest:caseOrbit()
     self:finish({ order }, { ship, body })
 end
 
+---A change of target in flight sends one `NavOrderReplanned`, and the order arrives.
 function EventsTest:caseRetarget()
     local name = "a change of target: "
     local ship = self:ship(Position(0, 0, 0))
@@ -310,6 +319,7 @@ function EventsTest:caseRetarget()
     self:finish({ order }, { ship })
 end
 
+---A change of the ship's cost profile in flight sends one `NavOrderReplanned`, and the order arrives.
 function EventsTest:caseCostProfileChange()
     local name = "a change of cost profile: "
     local ship = self:ship(Position(0, 0, 0))
@@ -467,6 +477,8 @@ function EventsTest:expectZone(ship, zone, ...)
     self.expectedZone[ship.entity.id .. ":" .. zone.id] = table.concat({ ... }, ",")
 end
 
+---A flight through zones enters and leaves the one it crosses and the one it starts in, and not the one
+---aside.
 function EventsTest:caseZoneFlight()
     local name = "a flight through zones: "
     local ship = self:ship(Position(0, 0, 0))

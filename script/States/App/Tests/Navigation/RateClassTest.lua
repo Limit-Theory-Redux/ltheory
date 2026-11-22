@@ -1,8 +1,8 @@
 -- Checks the update-rate classes of navigation: a ship inside a zone with a rate class has it (the
 -- highest of several), dense traffic gives High, open space gives Low, and a body in range gives
 -- Normal; the class is judged again at once when a zone is entered or left and otherwise once a
--- period, and the replan period follows the class. Logs each failed check and ends with a failure
--- exit code.
+-- period, and the replan period follows the class. The simulation is stepped by hand with
+-- `Nav.update`, not by frames. Logs each failed check and ends with a failure exit code.
 
 local Application       = require("States.Application")
 local Registry          = require("Core.ECS.Registry")
@@ -107,6 +107,7 @@ local function sphereZone(at, radius)
     return zone
 end
 
+---A ship with nothing near is Low, with Low's replan period; a ship that is no agent has no class.
 function RateClassTest:caseOpenSpace()
     local name = "open space: "
     local ship, order = self:holder(Position(0, 0, 0))
@@ -152,6 +153,7 @@ function RateClassTest:crowd(count, distance)
     return ships, orders
 end
 
+---Enough ships near make a ship High; fewer ships, or bodies that are not ships, do not.
 function RateClassTest:caseTraffic()
     local name = "traffic: "
     local radius = NavConfig.trafficRadius()
