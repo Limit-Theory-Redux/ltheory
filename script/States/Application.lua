@@ -74,7 +74,13 @@ function Application:eventLoop()
 
     local eventData, payload = EventBus:nextEvent()
     while eventData ~= nil do
-        EventTunnels[eventData:tunnelId()](eventData, payload)
+        -- EventBus:unsubscribe drops the Lua handler at once, but the bus only
+        -- removes the subscriber at the next startEventIteration: the rest of
+        -- this frame can still deliver events for a tunnel that has no handler.
+        local tunnel = EventTunnels[eventData:tunnelId()]
+        if tunnel then
+            tunnel(eventData, payload)
+        end
         eventData, payload = EventBus:nextEvent()
     end
 end
