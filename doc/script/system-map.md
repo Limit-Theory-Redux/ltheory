@@ -1,6 +1,6 @@
 # System maps
 
-`SystemMap` is the top-down 2D map of the star system and `SystemMap3D` the 3D one (both in the CelestialObjects module). The autopilot's route is drawn on both by `RouteOverlayRenderSystem` (UI module), through a world-to-screen mapping that each map supplies, so the two maps and the flight view draw it the same way.
+`SystemMap` is the top-down 2D map of the star system and `SystemMap3D` the 3D one (both in the CelestialObjects module). The autopilot's route is drawn on both by `RouteOverlayRenderSystem` (UI module), through a world-to-screen mapping that each map supplies, so the two maps and the flight view draw it the same way. The navigation terms are in the [glossary](nav/glossary.md).
 
 ## The route
 

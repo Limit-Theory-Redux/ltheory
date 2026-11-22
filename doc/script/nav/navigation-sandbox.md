@@ -2,7 +2,7 @@
 
 `Tests/NavigationSandbox` runs navigation scenarios with nobody at the window. It spawns each scenario's ships in an empty scene, steers them through a `NavWorld` (see [navigation maths](../../engine/nav.md)), logs what happens and ends with an exit code, so a script or CI can run it and judge the result.
 
-Code: `script/States/App/Tests/NavigationSandbox.lua` and `script/States/App/Tests/NavigationSandbox/`.
+Code: `script/States/App/Tests/NavigationSandbox.lua` and `script/States/App/Tests/NavigationSandbox/`. The navigation terms are in the [glossary](glossary.md).
 
 ## Running it
 
