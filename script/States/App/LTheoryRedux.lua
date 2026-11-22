@@ -483,6 +483,9 @@ function LimitTheoryRedux:collectSceneSystems()
     self.mapState._dotCache = nil
     SystemMap:collectEntities(self.mapState, self.playerShip)
     SystemMap3D:collectEntities(self.map3DState, self.playerShip)
+    -- Both maps open on the player's ship
+    SystemMap:selectShip(self.mapState)
+    SystemMap3D:selectShip(self.map3DState)
 end
 
 --- Generate the universe through UniverseManager + SolarSystemVisualizer.
@@ -981,6 +984,13 @@ function LimitTheoryRedux:onRender(data)
     end
 end
 
+--- Whether a map's selection is somewhere the autopilot can go: anything but nothing or the player's own ship.
+---@param entry table|nil A map's selected entry
+---@return boolean
+function LimitTheoryRedux:isFlyableTarget(entry)
+    return entry ~= nil and entry.entity ~= self.playerShip
+end
+
 ---@param data EventData
 function LimitTheoryRedux:onInput(data)
     -- Wall-clock frame time: `data:deltaTime()` is scaled by the sim's time
@@ -1056,7 +1066,7 @@ function LimitTheoryRedux:onInput(data)
         if self.mapMode == 1 then
             SystemMap:updateInput(self.mapState, realDt)
 
-            if GeneralActions.AutoPilotToggle:isPressed() and self.mapState.selected then
+            if GeneralActions.AutoPilotToggle:isPressed() and self:isFlyableTarget(self.mapState.selected) then
                 local sel = self.mapState.selected
                 if sel.clickPos then
                     -- A point on a belt keeps its place on the planet it goes round
@@ -1072,7 +1082,7 @@ function LimitTheoryRedux:onInput(data)
         else
             SystemMap3D:updateInput(self.map3DState, realDt)
 
-            if GeneralActions.AutoPilotToggle:isPressed() and self.map3DState.selected then
+            if GeneralActions.AutoPilotToggle:isPressed() and self:isFlyableTarget(self.map3DState.selected) then
                 AutoPilotSystem:engage(self.playerShip, self.map3DState.selected.entity)
                 self.mapMode = 0
                 self.map3DState.enabled = false

@@ -222,6 +222,15 @@ function SystemMap:collectEntities(state, shipEntity)
     end
 end
 
+--- Select the ship given to the last `collectEntities` call, as a click on it would.
+---@param state table
+function SystemMap:selectShip(state)
+    state.selected = nil
+    for _, entry in ipairs(state.entities) do
+        if entry.entity == state.shipEntity then state.selected = entry; break end
+    end
+end
+
 ---@param state table
 ---@param kind table An entry of MAP_KINDS
 function SystemMap:_collectKind(state, kind)

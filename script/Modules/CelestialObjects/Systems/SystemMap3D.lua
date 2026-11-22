@@ -96,6 +96,7 @@ end
 ---@param state table
 ---@param shipEntity Entity|nil
 function SystemMap3D:collectEntities(state, shipEntity)
+    local selectedEntity = state.selected and state.selected.entity
     state.entities = {}
     state.shipEntity = shipEntity
     state._planetIdx = 0
@@ -116,6 +117,23 @@ function SystemMap3D:collectEntities(state, shipEntity)
                 trailWidth = 0.3,
             })
         end
+    end
+
+    -- The entries are rebuilt every call: keep the selection on the fresh entry of its entity.
+    if state.selected then
+        state.selected = nil
+        for _, entry in ipairs(state.entities) do
+            if entry.entity == selectedEntity then state.selected = entry; break end
+        end
+    end
+end
+
+--- Select the ship given to the last `collectEntities` call, as a click on it would (without the zoom).
+---@param state table
+function SystemMap3D:selectShip(state)
+    state.selected = nil
+    for _, entry in ipairs(state.entities) do
+        if entry.entity == state.shipEntity then state.selected = entry; break end
     end
 end
 
