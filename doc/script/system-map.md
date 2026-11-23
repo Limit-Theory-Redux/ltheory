@@ -10,7 +10,17 @@
 - the legs the ship has left to fly (`overlay.route`, from `Nav.route`), in white;
 - the legs it has already passed (`overlay.flown`, from `Nav.routeFlown`), in a dimmer blue-grey, ending at the ship.
 
-The passed legs are those of the current plan, so they start again when a new plan is made ([navigation orders](nav/navigation.md#queue-and-status)).
+The passed legs are those of the current plan, so they start again when a new plan is made ([navigation orders](nav/navigation.md#queue-and-status)). `overlay.color` (a `Color`) draws the legs left to fly in it instead of white.
+
+### Many ships
+
+A map can show other ships too, through three fields of its state, which the caller sets:
+
+- `ships`: a list of `{ entity, label, color }`. Each is a point in `color` (`{ r, g, b }`), and its label shows while it is selected. The label and the colour are read each frame, so a caller can change them.
+- `routeOverlay`: one ship's full overlay, as above.
+- `extraRoutes`: a list of overlays that `RouteOverlayRenderSystem:drawRoute` draws, which are only the passed legs and the legs left to fly, so that a map with many ships has no target and distance texts to read through. They are drawn under `routeOverlay`, so the selected ship's route lies on top.
+
+`selectEntity(state, entity)` selects an entity's entry as a click on it would, so the caller can move the selection to a ship it picked elsewhere, and read `state.selected` to follow a click.
 
 ## Circles on the 2D map
 

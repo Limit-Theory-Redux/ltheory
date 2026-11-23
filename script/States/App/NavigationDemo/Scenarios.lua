@@ -241,15 +241,28 @@ local follow = {
     end,
 }
 
+---Where the ship of a slot holds, now: the planet moves.
+---@param ctx NavigationDemoContext
+---@param slot integer
+---@return Position
+local function holdPlace(ctx, slot)
+    local goliath = ctx.scene.planets.Goliath
+    return shift(Scene.around(EntityPosition.Get(goliath), HOLD_ANGLE_DEG, HOLD_DISTANCE_M), 0, 0,
+        (slot - 1) * SPACING_M)
+end
+
 local hold = {
     name = "Hold", orders = "Hold in a planet's well, which carries the ships along",
     count = 3,
-    spawn = function(ctx, slot)
-        local goliath = ctx.scene.planets.Goliath
-        return shift(Scene.around(EntityPosition.Get(goliath), HOLD_ANGLE_DEG, HOLD_DISTANCE_M), 0, 0,
-            (slot - 1) * SPACING_M)
+    spawn = holdPlace,
+    order = function(ctx, ship)
+        -- A ship that has joined the scenario is far from its place: it flies there, in the planet's
+        -- frame, and holds when it has arrived.
+        if ship.joined and ship.step == 1 then
+            return Nav.Orders.MoveTo { target = holdPlace(ctx, ship.slot), frame = ctx.scene.planets.Goliath }
+        end
+        return Nav.Orders.Hold {}
     end,
-    order = function() return Nav.Orders.Hold {} end,
 }
 
 local traffic = {

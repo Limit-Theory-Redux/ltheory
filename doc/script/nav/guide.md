@@ -203,6 +203,51 @@ mine = {}
 - Tests: `UsageTest` `caseDetach`; `OrdersTest` `caseDetach`.
 - Contract: [Using orders](navigation.md#using-orders).
 
+## The navigation demo
+
+`cargo run -p ltr -- NavigationDemo` ([NavigationDemo.lua](../../../script/States/App/NavigationDemo.lua)) is an authored star system in which about thirty ships fly the orders of this guide on their own, for a person to watch and for a designer to copy. It shows how a game gives an order, reacts to its end event and gives the next one: the demo is an issuer, and its code is the use cases above in a running game.
+
+| Key | Does |
+|---|---|
+| Left, Right | The previous or next scenario; the camera goes to its first ship |
+| Up, Down | The previous or next ship of the scenario |
+| M | The 2D map, then the 3D map, then the flight view |
+| Right mouse, wheel | Turn and zoom the orbit camera; in a map, its own controls |
+
+The label in the corner tells the selected ship's scenario, its role, the kind and status of its order, the distance left and the ETA, the last failure, and the time to the next swap.
+
+### Scenarios
+
+A *scenario* is a group of ships that fly one order or behaviour. It gives the place a ship starts at and the order of each step; the demo gives the next order when one is done, so a scenario runs as long as the app does. The scenarios are in [Scenarios.lua](../../../script/States/App/NavigationDemo/Scenarios.lua) and the system in [Scene.lua](../../../script/States/App/NavigationDemo/Scene.lua).
+
+| Scenario | Ships | Shows |
+|---|---|---|
+| Far crossing | 3 | `MoveTo` a point across the system, with the travel drive, round the star |
+| Moons and the station | 3 | `MoveTo` a moving body, in turn |
+| Chase | 4 | `MoveTo` a moving ship, in open space; the leader patrols |
+| Chase through the rocks | 3 | the same through a rock cluster |
+| Patrol | 3 | `Patrol` a loop round the cluster, in both directions |
+| Orbit | 3 | `Orbit` a planet, a moon and a gas giant |
+| Follow | 4 | `Follow` a leader that flies across the system, at offsets |
+| Hold | 3 | `Hold` in a planet's well, which carries the ships along |
+| Traffic | 6 | `MoveTo` back and forth: head-on and crossing streams |
+
+A scenario with a `leader` has one ship the others follow or chase. To add a scenario, add a table to the list at the end of `Scenarios.lua` with a `name`, `orders` (a line for the label), `count`, `spawn(ctx, slot)` and `order(ctx, ship)`, and a colour in `SCENARIO_COLORS` in `NavigationDemo.lua`.
+
+### Swaps
+
+One timer for the whole app, every 30 s of simulated time give or take 10 s (uniformly, from a seeded stream), swaps two ships. The ships are not leaders and come from different scenarios. Each *swap* cancels the ship's order, takes the other's scenario and slot, and flies that scenario's first order from where it is; the cancelled order is released when its `NavOrderCancelled` arrives. A *leader* never moves, so the ships that follow or chase it keep a target. A ship that joins Hold flies to its place in the planet's frame first. The camera stays on its ship, which may move to another scenario.
+
+The jitter keeps the swaps from coming in a rhythm, and the single timer keeps them from coming all at once.
+
+### Maps
+
+M opens the 2D map, then the 3D map ([system maps](../system-map.md)). Each ship is a point in the colour of its scenario, named (for example "Chase 2") while it is selected, and its route is a line in the same colour: the legs left to fly (`Nav.route`) and the legs passed (`Nav.routeFlown`). The selected ship's route also has its goal, the next waypoint, the distance and the ETA. Picking a ship in a map selects it and points the camera at it, and the keys that pick a ship select it in the map.
+
+### Test
+
+`cargo run -p ltr -- Navigation.DemoTest` ([DemoTest.lua](../../../script/States/App/Tests/Navigation/DemoTest.lua)) runs the demo faster, with frequent swaps, and ends when it has seen the work: every ship's order begins, each scenario whose orders end finishes one, ships swap, their new orders begin, and both maps draw every ship and route and take a ship picked in them. During the whole run it checks that no order fails, no leader moves, and no ship is inside a body or a rock, or in another ship.
+
 ## Pitfalls
 
 - **Release every order.** The system never destroys an order, so its status stays readable; one that is not released stays in the registry. Releasing an order that has not ended is an error: wait for its end event, or check `Nav.status`.
@@ -226,4 +271,4 @@ A checklist for an LLM (or anyone) writing code against navigation:
 4. Release every order on `NavOrderDone`, `NavOrderFailed` or `NavOrderCancelled`, and after `Nav.detach`.
 5. Rank destinations by the estimate's `time`, `distance` or `risk`, whichever is meant; never call the least time "nearest".
 6. Keep units straight: game units, except the values named in metres.
-7. Check the behaviour in a run: `cargo run -p ltr -- Navigation.UsageTest` (or the test app of the case), and in the game, `cargo run -p ltr -- LTheoryRedux`.
+7. Check the behaviour in a run: `cargo run -p ltr -- Navigation.UsageTest` (or the test app of the case), and in the game, `cargo run -p ltr -- LTheoryRedux`. To watch an order fly, use [the demo](#the-navigation-demo).

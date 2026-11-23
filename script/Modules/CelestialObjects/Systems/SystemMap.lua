@@ -42,6 +42,8 @@ local MOON_HIDE_PX     = 20   -- a moon whose orbit is smaller on screen than th
 local SAFE_RING_COLOR  = { r = 1.0, g = 0.35, b = 0.3, a = 0.55 }
 local WELL_RING_COLOR  = { r = 0.3, g = 0.85, b = 1.0, a = 0.45 }
 local LEGEND_LINE_PX   = 14
+local SHIP_COLOR       = { 0.2, 1.0, 0.2 }
+local SHIP_POINT_PX    = 3
 local LEGEND = {
     { text = "Disc: the body's size",                 color = { r = 0.8, g = 0.8, b = 0.8 } },
     { text = "Red ring: the path keeps outside it",   color = SAFE_RING_COLOR },
@@ -138,7 +140,9 @@ function SystemMap:create(config)
         entities   = {},
         shipEntity = nil,
         selected   = nil,    -- currently selected entity entry
-        autopilotOverlay = nil,   -- the autopilot's target, route and progress for `RouteOverlayRenderSystem`, or nil
+        routeOverlay = nil,       -- a ship's target, route and progress for `RouteOverlayRenderSystem:draw`, or nil
+        extraRoutes  = nil,       -- other ships' routes, each for `RouteOverlayRenderSystem:drawRoute`, or nil
+        ships        = nil,       -- other ships to show, `{ entity, label, color }` (the label may change), or nil
         dragging   = false,
         lastMouseX = 0,
         lastMouseY = 0,
@@ -175,11 +179,16 @@ function SystemMap:collectEntities(state, shipEntity)
                 })
             end
         end
+        self:_collectShips(state)
         state._entityListBuilt = true
     end
 
     -- Cheap per-frame position update (no tree walk)
     for _, entry in ipairs(state.entities) do
+        if entry.spec then
+            entry.label = entry.spec.label
+            entry.color = entry.spec.color or SHIP_COLOR
+        end
         local rbCmp = entry.entity:get(PhysicsComponents.RigidBody)
         if rbCmp and rbCmp:getRigidBody() then
             entry.pos = rbCmp:getRigidBody():getPos()
@@ -222,13 +231,38 @@ function SystemMap:collectEntities(state, shipEntity)
     end
 end
 
+--- Adds an entry for each of `state.ships`: a point whose label shows only while it is selected.
+---@param state table
+function SystemMap:_collectShips(state)
+    for _, spec in ipairs(state.ships or {}) do
+        local rb = spec.entity:get(PhysicsComponents.RigidBody):getRigidBody()
+        table.insert(state.entities, {
+            entity = spec.entity,
+            spec = spec,
+            label = spec.label,
+            pos = rb:getPos(),
+            scale = rb:getBoundingRadius(),
+            color = spec.color or SHIP_COLOR,
+            size = SHIP_POINT_PX,
+            labelOnSelect = true,
+        })
+    end
+end
+
+--- Selects the entry of `entity` as a click on it would (nothing when it has none).
+---@param state table
+---@param entity Entity|nil
+function SystemMap:selectEntity(state, entity)
+    state.selected = nil
+    for _, entry in ipairs(state.entities) do
+        if entry.entity == entity then state.selected = entry; break end
+    end
+end
+
 --- Select the ship given to the last `collectEntities` call, as a click on it would.
 ---@param state table
 function SystemMap:selectShip(state)
-    state.selected = nil
-    for _, entry in ipairs(state.entities) do
-        if entry.entity == state.shipEntity then state.selected = entry; break end
-    end
+    self:selectEntity(state, state.shipEntity)
 end
 
 ---@param state table
@@ -682,21 +716,25 @@ function SystemMap:draw(state, x, y, sx, sy)
             end
 
             -- Draw label
-            DrawEx.TextAlpha('Unageo-Medium', entry.label, 10,
-                screenX + ps + 4, screenY - 6, 120, 14,
-                c[1], c[2], c[3], 0.9, 0.0, 0.5)
+            if not entry.labelOnSelect or (state.selected and state.selected.entity == entry.entity) then
+                DrawEx.TextAlpha('Unageo-Medium', entry.label, 10,
+                    screenX + ps + 4, screenY - 6, 120, 14,
+                    c[1], c[2], c[3], 0.9, 0.0, 0.5)
+            end
         end
         ::next_map_entity::
     end
 
-    -- The autopilot's target, next waypoint, route and distance/ETA, in the map's top-down mapping
-    local overlay = state.autopilotOverlay
-    if overlay then
-        local mapping = state._mapping or {}
-        state._mapping = mapping
-        mapping.state, mapping.cx, mapping.cy = state, cx, cy
-        RouteOverlayRenderSystem:draw(overlay, mapToScreen, mapping)
+    -- Routes, in the map's top-down mapping: other ships' first, so the selected ship's lies on top;
+    -- then its target, next waypoint, route and distance/ETA
+    local mapping = state._mapping or {}
+    state._mapping = mapping
+    mapping.state, mapping.cx, mapping.cy = state, cx, cy
+    for _, route in ipairs(state.extraRoutes or {}) do
+        RouteOverlayRenderSystem:drawRoute(route, mapToScreen, mapping)
     end
+    local overlay = state.routeOverlay
+    if overlay then RouteOverlayRenderSystem:draw(overlay, mapToScreen, mapping) end
 
     -- Selection marker (when no autopilot, just map selection)
     if not (overlay and overlay.targetPos) and state.selected and state.selected.clickPos then

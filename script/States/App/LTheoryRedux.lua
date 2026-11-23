@@ -887,8 +887,8 @@ function LimitTheoryRedux:updateAutopilotOverlay()
     local ship = self.playerShip
     local targetPos = AutoPilotSystem:getTargetPosition(ship)
     if not targetPos then
-        self.mapState.autopilotOverlay = nil
-        self.map3DState.autopilotOverlay = nil
+        self.mapState.routeOverlay = nil
+        self.map3DState.routeOverlay = nil
         return nil
     end
     local overlay = autopilotOverlay
@@ -898,8 +898,8 @@ function LimitTheoryRedux:updateAutopilotOverlay()
     overlay.progress = AutoPilotSystem:getProgress(ship)
     overlay.planning = AutoPilotSystem:isPlanning(ship)
     overlay.shipPos = EntityPosition.Get(ship)
-    self.mapState.autopilotOverlay = overlay
-    self.map3DState.autopilotOverlay = overlay
+    self.mapState.routeOverlay = overlay
+    self.map3DState.routeOverlay = overlay
     return overlay
 end
 

@@ -29,6 +29,10 @@ local MAP_KINDS = {
     { marker = CelestialComponents.Asteroid,      label = "Asteroid",      color = Color(0.7, 0.6, 0.5, 0.6), trailWidth = 0 },
 }
 
+-- The colour of a ship given with none, and the side of the square it is marked with, in pixels.
+local SHIP_COLOR = { 0.2, 1.0, 0.2 }
+local SHIP_MARK_PX = 4
+
 -- Orbit trails: additive, drawn with the map's own view and projection.
 local trailState = { blend = BlendMode.Additive }
 local trailParamsType
@@ -67,7 +71,9 @@ function SystemMap3D:create(config)
         entities     = {},
         selected         = nil,
         shipEntity       = nil,
-        autopilotOverlay = nil, -- the autopilot's target, route and progress for `RouteOverlayRenderSystem`, or nil
+        routeOverlay     = nil, -- a ship's target, route and progress for `RouteOverlayRenderSystem:draw`, or nil
+        extraRoutes      = nil, -- other ships' routes, each for `RouteOverlayRenderSystem:drawRoute`, or nil
+        ships            = nil, -- other ships to show, `{ entity, label, color }` (an `{ r, g, b }` array), or nil
         maxOrbit         = 1,
         focusX           = 0,
         focusY           = 0,
@@ -119,22 +125,34 @@ function SystemMap3D:collectEntities(state, shipEntity)
         end
     end
 
+    for _, spec in ipairs(state.ships or {}) do
+        local rb = spec.entity:get(PhysicsComponents.RigidBody):getRigidBody()
+        local c = spec.color or SHIP_COLOR
+        table.insert(state.entities, {
+            entity = spec.entity, label = spec.label, pos = rb:getPos(), scale = rb:getBoundingRadius(),
+            orbitRadius = 0, inclination = 0, isMoon = false, parentPos = nil,
+            color = Color(c[1], c[2], c[3], 0.9), trailWidth = 0.3, isShip = true,
+        })
+    end
+
     -- The entries are rebuilt every call: keep the selection on the fresh entry of its entity.
-    if state.selected then
-        state.selected = nil
-        for _, entry in ipairs(state.entities) do
-            if entry.entity == selectedEntity then state.selected = entry; break end
-        end
+    if state.selected then self:selectEntity(state, selectedEntity) end
+end
+
+--- Selects the entry of `entity` as a click on it would (without the zoom); nothing when it has none.
+---@param state table
+---@param entity Entity|nil
+function SystemMap3D:selectEntity(state, entity)
+    state.selected = nil
+    for _, entry in ipairs(state.entities) do
+        if entry.entity == entity then state.selected = entry; break end
     end
 end
 
 --- Select the ship given to the last `collectEntities` call, as a click on it would (without the zoom).
 ---@param state table
 function SystemMap3D:selectShip(state)
-    state.selected = nil
-    for _, entry in ipairs(state.entities) do
-        if entry.entity == state.shipEntity then state.selected = entry; break end
-    end
+    self:selectEntity(state, state.shipEntity)
 end
 
 ---@param state table
@@ -498,16 +516,27 @@ function SystemMap3D:renderOverlay(state, x, y, sx, sy)
         if screenX > x and screenX < x + sx and screenY > y and screenY < y + sy then
             local c = entry.color
             local isSelected = state.selected and state.selected.entity == entry.entity
-            DrawEx.TextAdditive('Unageo-Medium', entry.label, 11,
-                screenX + 10, screenY - 6, 160, 14,
-                c.r, c.g, c.b, isSelected and 1.0 or 0.8, 0.0, 0.5)
+            -- A ship is a mark; its name shows while it is selected
+            if entry.isShip then
+                DrawEx.SimpleRect(screenX - SHIP_MARK_PX * 0.5, screenY - SHIP_MARK_PX * 0.5, SHIP_MARK_PX,
+                    SHIP_MARK_PX, c)
+            end
+            if isSelected or not entry.isShip then
+                DrawEx.TextAdditive('Unageo-Medium', entry.label, 11,
+                    screenX + 10, screenY - 6, 160, 14,
+                    c.r, c.g, c.b, isSelected and 1.0 or 0.8, 0.0, 0.5)
+            end
         end
         ::next_lbl::
     end
 
-    -- The autopilot's target, next waypoint and route, through the map's projection
-    if state.autopilotOverlay then
-        RouteOverlayRenderSystem:draw(state.autopilotOverlay, ScreenProjection.toScreen, projector)
+    -- Routes through the map's projection: other ships' first, so the selected ship's lies on top;
+    -- then its target, next waypoint and route
+    for _, route in ipairs(state.extraRoutes or {}) do
+        RouteOverlayRenderSystem:drawRoute(route, ScreenProjection.toScreen, projector)
+    end
+    if state.routeOverlay then
+        RouteOverlayRenderSystem:draw(state.routeOverlay, ScreenProjection.toScreen, projector)
     end
 
     DrawEx.TextAdditive('Unageo-Medium',

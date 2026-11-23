@@ -168,6 +168,8 @@ Docs: [navigation guide](guide.md), [navigation orders](navigation.md), [system 
 
 **Lead** — the distance before a drive-turn corner at which the path leaves the first leg: `speed / drag`. [Corners under the drive](system-planner.md#corners-under-the-drive).
 
+**Leader** — the ship of a demo scenario that the others follow or chase; it never swaps. [Swaps](guide.md#swaps).
+
 **Leg** — the straight (or framed) segment of a plan between two waypoints. [Algorithm](system-planner.md#algorithm).
 
 **Lifetime** (of an order) — an order lives until its issuer releases it; the system never destroys one. [Lifetime](navigation.md#lifetime).
@@ -260,6 +262,8 @@ Docs: [navigation guide](guide.md), [navigation orders](navigation.md), [system 
 
 **Safe radius** (`SafeRadius`) — the radius a path keeps out of; at least the hull radius. [Input](system-planner.md#input).
 
+**Scenario** (demo) — a group of ships in the navigation demo that fly one order or behaviour. [Scenarios](guide.md#scenarios).
+
 **Scenario** (sandbox) — a table that defines ships, obstacles and zones, and what a run checks. [Scenarios](navigation-sandbox.md#scenarios).
 
 **Seek** — the behaviour that flies through a point at a pass speed and does not stop. [Behaviours](../../engine/nav.md#behaviours).
@@ -291,6 +295,8 @@ Docs: [navigation guide](guide.md), [navigation orders](navigation.md), [system 
 **Stopping speed** — the inverse of the braking curve: the speed from which the agent stops within a distance. [Behaviours](../../engine/nav.md#behaviours).
 
 **Suspended** — the status of an order that had begun and was displaced by a higher priority or by another control owner. [Queue and status](navigation.md#queue-and-status).
+
+**Swap** — two ships of different demo scenarios, neither a leader, trade scenarios and slots on a timer. [Swaps](guide.md#swaps).
 
 **System frame** (`SYSTEM_FRAME`) — the planner's frame for a point fixed in the system. [Frames](system-planner.md#frames).
 

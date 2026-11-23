@@ -70,10 +70,31 @@ local function drawFlown(flown, toScreen, ctx, shipX, shipY)
     if endX then drawLeg(endX, endY, shipX, shipY, FLOWN_COLOR) end
 end
 
+--- Draws the passed legs and the remaining route from the ship's pixel. Returns the first remaining leg
+--- as `drawPolyline` does.
+local function drawLegs(overlay, toScreen, ctx, shipX, shipY)
+    if overlay.flown then drawFlown(overlay.flown, toScreen, ctx, shipX, shipY) end
+    return (drawPolyline(overlay.route, toScreen, ctx, shipX, shipY, overlay.color or ROUTE_COLOR))
+end
+
+--- Draws only the passed legs and the remaining route of `overlay` (the fields of `draw`; `target`,
+--- `progress` and `planning` are not read), for a map that shows many ships' routes. `overlay.color`
+--- (a `Color`) draws the remaining route in it. `toScreen` and `ctx` are as in `draw`.
+---@param overlay table
+---@param toScreen fun(ctx: any, pos: Position): number|nil, number|nil
+---@param ctx any
+function RouteOverlayRenderSystem:drawRoute(overlay, toScreen, ctx)
+    local route = overlay.route
+    if not (route and #route > 0 and overlay.shipPos) then return end
+    local shipX, shipY = project(toScreen, ctx, overlay.shipPos)
+    if not shipX then return end
+    drawLegs(overlay, toScreen, ctx, shipX, shipY)
+end
+
 --- Draws the overlay.
---- `overlay` is `{ shipPos, targetPos, route, flown, progress, planning }` (`Position`s, the route from
---- `Nav.route`, the passed legs from `Nav.routeFlown`, the order's `OrderProgressComponent`); any of them
---- may be nil. `toScreen(ctx, pos)` returns the pixel of a
+--- `overlay` is `{ shipPos, targetPos, route, flown, progress, planning, color }` (`Position`s, the route
+--- from `Nav.route`, the passed legs from `Nav.routeFlown`, the order's `OrderProgressComponent`, a
+--- `Color` for the remaining route); any of them may be nil. `toScreen(ctx, pos)` returns the pixel of a
 --- position, or nil when it can't be shown.
 ---@param overlay table
 ---@param toScreen fun(ctx: any, pos: Position): number|nil, number|nil
@@ -110,9 +131,7 @@ function RouteOverlayRenderSystem:draw(overlay, toScreen, ctx)
         DrawEx.Line(shipX, shipY, targetX, targetY, TARGET_LINE_COLOR)
     end
 
-    if overlay.flown then drawFlown(overlay.flown, toScreen, ctx, shipX, shipY) end
-
-    local firstLeg = drawPolyline(route, toScreen, ctx, shipX, shipY, ROUTE_COLOR)
+    local firstLeg = drawLegs(overlay, toScreen, ctx, shipX, shipY)
 
     -- Distance and ETA left to the goal, as the order reports them, at the first leg's midpoint
     local progress = overlay.progress
