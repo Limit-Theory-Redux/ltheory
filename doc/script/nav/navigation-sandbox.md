@@ -31,7 +31,7 @@ A scenario is a table:
 | `ships[i].removeAtS` | The ship stops being an agent after this many seconds of simulated time (`NavWorld:removeAgent`). Its controls are released and its body stays in physics, so it coasts and the agents sense it as an obstacle |
 | `safeRadiusFactor` | Optional, 1 by default: the planner's safe radius of every obstacle is its radius times this factor |
 | `timeLimit` | Seconds of simulated time for every ship to finish; 120 by default. Route ships never finish, so a scenario with them runs to its limit |
-| `avoidance` | Optional `{ horizonS, clearanceRadii, aimFactor }` passed to `NavWorld:setAvoidanceTuning`; the engine defaults when absent |
+| `avoidance` | Optional `{ horizonS, clearanceRadii, aimFactor }` passed to `NavWorld:setAvoidanceTuning`; `NavConfig.avoidance` when absent |
 
 Every ship is a fighter from `ShipGenerator` with the Solo flight profile, built from one fixed seed, so a run is repeatable up to the variable frame time. `hull` changes only the size (the mesh scale and so the bounding radius), not the flight profile. An obstacle is a kinematic unit-sphere body scaled to its radius, owned by an entity, so a physics query reports it by entity id. A circling obstacle gets a kinematic target before each physics step, the position it will have at the end of the step, so physics and the `NavWorld` see its velocity.
 

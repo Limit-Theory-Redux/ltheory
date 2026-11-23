@@ -37,6 +37,19 @@ local NavConfig = {
     -- A goal that no plan rides on (a ship) has drifted when it has moved more than this share of the
     -- distance from the ship to it, from where the plan ends.
     goalDriftShare = 0.1,
+    -- How the navigation world's ships avoid obstacles: `horizonS`, in seconds, ignores obstacles reached
+    -- later than that; `clearanceRadii`, in ship radii, is the largest distance kept from an obstacle's
+    -- surface; `aimFactor`, 1 or more, is the multiple of that clearance a new course passes at.
+    avoidance = { horizonS = 10, clearanceRadii = 2, aimFactor = 1.05 },
+    -- 0 to 1: a ship has arrived when it is within this share of the gap between the target's hull and
+    -- its stand-off distance from the stand-off point.
+    arrivalShare = 0.5,
+    -- s: the travel drive is used only on a leg that a ship covers in at least this long at its top speed
+    -- without the drive. It is also a follower's join range.
+    driveMinLegTimeS = 60,
+    -- More than 1: a tracking follower goes back to planning when its slot is farther than this many
+    -- join ranges.
+    followLeaveFactor = 2,
 }
 
 ---How close to a point a ship counts as arrived.

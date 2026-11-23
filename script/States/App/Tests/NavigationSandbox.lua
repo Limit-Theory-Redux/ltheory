@@ -28,6 +28,7 @@ local SpatialEntities       = require("Modules.Spatial.Entities")
 local CostProfileRegistry   = require("Shared.Registries.CostProfileRegistry")
 local Entity                = require("Core.ECS.Entity")
 local Nav                   = require("Modules.Navigation")
+local NavConfig             = require("Config.Navigation.NavConfig")
 local NavAgentHelper        = require("Shared.Helpers.NavAgentHelper")
 local OrbitMath             = require("Shared.Helpers.OrbitMath")
 
@@ -498,10 +499,8 @@ function NavigationSandbox:createNavigation()
         self.ordersAttached = true
         for _, ship in ipairs(ordered) do self:startShip(ship) end
     end
-    local avoidance = self.scenarios[self.scenarioIndex].avoidance
-    if avoidance then
-        self.nav:setAvoidanceTuning(avoidance.horizonS, avoidance.clearanceRadii, avoidance.aimFactor)
-    end
+    local avoidance = self.scenarios[self.scenarioIndex].avoidance or NavConfig.avoidance
+    self.nav:setAvoidanceTuning(avoidance.horizonS, avoidance.clearanceRadii, avoidance.aimFactor)
     -- Room for every ship at once: a slot is never past the number of ships.
     self.axes = ffi.new("double[?]", #self.ships * NavWorld.AxisCount())
     self.arrived = ffi.new("bool[?]", #self.ships)

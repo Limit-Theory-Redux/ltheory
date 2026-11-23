@@ -26,13 +26,6 @@ local PASS_TIME_S = 0.1
 -- Below this drive multiplier the drive is released and the NavWorld flies the rest.
 local HANDOVER_MULT = TravelDriveMath.HANDOVER_MULT
 
--- The ship has arrived when it is within this share of the gap between the target's hull and the
--- stand-off distance from the stand-off point, so a ship that coasts in afterwards stops outside the hull.
-local ARRIVAL_SHARE = 0.5
--- The drive is used only on a leg that the ship covers in at least this many seconds at its top
--- speed without the drive: a shorter leg gains little, and nothing avoids obstacles under the drive.
-local DRIVE_MIN_LEG_TIME_S = 60
-
 local Status = SystemPlanner.Status
 local Drive  = SystemPlanner.Drive
 
@@ -73,21 +66,24 @@ function PlanFlight.standOff(targetRadius, gap, radii)
     return math.max(NavConfig.minStandOff(), targetRadius * (radii or NavConfig.standOffRadii))
 end
 
----How far from its stand-off point a ship counts as arrived.
+---How far from its stand-off point a ship counts as arrived: `NavConfig.arrivalShare` of the gap
+---between the target's hull and the stand-off distance, so a ship that coasts in afterwards stops
+---outside the hull.
 ---@param targetRadius gameunit 0 for a point
 ---@param gap gameunit|nil As in `standOff`
 ---@param radii number|nil As in `standOff`
 ---@return gameunit
 function PlanFlight.arrivalRadius(targetRadius, gap, radii)
-    return ARRIVAL_SHARE * (PlanFlight.standOff(targetRadius, gap, radii) - targetRadius)
+    return NavConfig.arrivalShare * (PlanFlight.standOff(targetRadius, gap, radii) - targetRadius)
 end
 
----The shortest leg the travel drive is used on: what the ship covers in `DRIVE_MIN_LEG_TIME_S` at
----its top speed without the drive.
+---The shortest leg the travel drive is used on: what the ship covers in `NavConfig.driveMinLegTimeS`
+---at its top speed without the drive. A shorter leg gains little, and nothing avoids obstacles under
+---the drive.
 ---@param profile FlightProfile
 ---@return gameunit
 function PlanFlight.driveMinLength(profile)
-    return DRIVE_MIN_LEG_TIME_S * profile.maxSpeed
+    return NavConfig.driveMinLegTimeS * profile.maxSpeed
 end
 
 ---Radius of the target for the stand-off distance.

@@ -14,6 +14,7 @@ local NavEstimate         = require("Shared.Helpers.NavEstimate")
 local NavEstimateClient   = require("Shared.Helpers.NavEstimateClient")
 local NearbyBodies        = require("Shared.Helpers.NearbyBodies")
 local PlanFlight          = require("Shared.Helpers.PlanFlight")
+local NavConfig           = require("Config.Navigation.NavConfig")
 
 local Kind = Enums.NavOrderKind
 
@@ -34,7 +35,10 @@ local system = nil
 function Nav.attach(physics)
     assert(not worldEntity, "Nav.attach: there is a navigation world already (Nav.detach it first)")
     local component = Components.NavWorld(physics)
-    component:getNav():setSensing(SENSING_MASK)
+    local nav = component:getNav()
+    nav:setSensing(SENSING_MASK)
+    local avoidance = NavConfig.avoidance
+    nav:setAvoidanceTuning(avoidance.horizonS, avoidance.clearanceRadii, avoidance.aimFactor)
     worldEntity = Entity.Create("NavWorldEntity", component)
     system = system or Systems.NavOrder()
 end

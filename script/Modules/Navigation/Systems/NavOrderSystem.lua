@@ -72,10 +72,6 @@ local FLIGHT_EVENTS = {
 local bodyOf, makeGoal, pointGoal, approachGoal =
     OrderGoals.bodyOf, OrderGoals.make, OrderGoals.point, OrderGoals.approach
 
--- A follower within this many of the shortest leg the travel drive is used on keeps its slot with no plan,
--- and goes back to planning when it is farther than the leave factor times that.
-local FOLLOW_LEAVE_FACTOR = 2
-
 -- The plane of an orbit with no named normal comes from the ship's velocity about the centre when the
 -- ship moves at more than this share of its top speed, and its direction is more than this sine away
 -- from the line to the centre; otherwise from the ship's own up axis.
@@ -239,7 +235,7 @@ local HANDLERS = {
             start = startFollow,
             joins = function(_, goal, shipPos, ship) return shipPos:distance(goal.targetPos) <= followJoinRange(ship) end,
             leaves = function(_, goal, shipPos, ship)
-                return shipPos:distance(goal.targetPos) > FOLLOW_LEAVE_FACTOR * followJoinRange(ship)
+                return shipPos:distance(goal.targetPos) > NavConfig.followLeaveFactor * followJoinRange(ship)
             end,
         },
     },
