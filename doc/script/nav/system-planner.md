@@ -1,6 +1,6 @@
 # System planner
 
-`Shared/Helpers/SystemPlanner.lua` plans a path through a system of orbiting bodies as a list of waypoints. It is a pure Lua kernel: numbers in buffers go in, numbers come out, and it touches no entities and no globals, so it runs on a worker (see [Lua workers](../workers.md)) or in a Lua test state. Its tests run it through the Lua kernel harness of the `nav` crate (`engine/lib/nav/tests/system_planner/`, one file per topic).
+`Shared/Helpers/SystemPlanner.lua` plans a path through a system of orbiting bodies as a list of waypoints. It is the entry of a kernel in six files, which each keep their own scratch state and are loaded as siblings in `Shared/Helpers/`: `SystemPlannerLayout` (statuses and buffer layouts), `SystemPlannerProfile` (the timeline of a leg), `SystemPlannerScene` (bodies and zones as obstacles, the hit search, the detour point), `SystemPlannerTimeline` (the travel drive), `SystemPlannerCorners` (arcs and drive turns) and the entry itself (the plan). It is a pure Lua kernel: numbers in buffers go in, numbers come out, and it touches no entities and no globals, so it runs on a worker (see [Lua workers](../workers.md)) or in a Lua test state. Its tests run it through the Lua kernel harness of the `nav` crate (`engine/lib/nav/tests/system_planner/`, one file per topic).
 
 It plans in the frame of the system: bodies on analytic orbits are placed where they will be when the ship gets there, not where they are now. The navigation terms are in the [glossary](glossary.md).
 
