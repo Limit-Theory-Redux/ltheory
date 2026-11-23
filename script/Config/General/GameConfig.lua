@@ -97,11 +97,11 @@ Config.game = {
 
     travelDrive = {
         chargeRequired  = 3.0,     -- seconds holding T to activate
-        speedMultiplier = 40000,   -- adjusted for higher base thrust
         rampUpSpeed     = 0.3,
         rampDownSpeed   = 1.5,
 
-        -- Max speed multiplier per zone type
+        -- Max speed multiplier per zone type; `openSpace` is the drive's top multiplier
+        -- (adjusted for higher base thrust)
         maxSpeedByZone = {
             moon      = 200,
             planet    = 2000,
@@ -111,7 +111,6 @@ Config.game = {
     },
 
     autoPilot = {
-        arrivalRange      = 500,    -- distance to target to consider arrived
         enableTravelDrive = true,   -- auto-engage travel drive during autopilot
         -- The planner keeps the ship this many hull radii from a body of each kind
         safeRadiusFactor  = { star = 2, planet = 1.5, moon = 1.5, station = 1.5 },

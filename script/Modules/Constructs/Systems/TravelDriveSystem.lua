@@ -90,7 +90,7 @@ local function updateDrive(dt, drive, input, rb, profile)
         rb:applyForce(fwd:scale(profile.thrustForward * currentMult))
 
     elseif state == "decelerating" then
-        currentMult = math.max(1.0, currentMult - (cfg.speedMultiplier - 1) * cfg.rampDownSpeed * dt)
+        currentMult = math.max(1.0, currentMult - (cfg.maxSpeedByZone.openSpace - 1) * cfg.rampDownSpeed * dt)
         if currentMult <= IDLE_MULT then
             drive:setState("idle")
             currentMult = 1.0

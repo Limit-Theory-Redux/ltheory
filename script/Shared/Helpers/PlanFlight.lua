@@ -29,8 +29,6 @@ local HANDOVER_MULT = TravelDriveMath.HANDOVER_MULT
 -- The ship has arrived when it is within this share of the gap between the target's hull and the
 -- stand-off distance from the stand-off point, so a ship that coasts in afterwards stops outside the hull.
 local ARRIVAL_SHARE = 0.5
--- A stand-off given in radii is at least this far from the target's centre.
-local MIN_STAND_OFF = 50
 -- The drive is used only on a leg that the ship covers in at least this many seconds at its top
 -- speed without the drive: a shorter leg gains little, and nothing avoids obstacles under the drive.
 local DRIVE_MIN_LEG_TIME_S = 60
@@ -68,11 +66,11 @@ local PlanFlight = { Phase = Phase }
 ---The distance from a target's centre at which a ship stops.
 ---@param targetRadius gameunit 0 for a point
 ---@param gap gameunit|nil The wanted distance from the target's hull; `radii` decide when nil
----@param radii number|nil The wanted distance in target radii, at least `MIN_STAND_OFF`; `NavConfig.standOffRadii` when nil
+---@param radii number|nil The wanted distance in target radii, at least `NavConfig.minStandOff()`; `NavConfig.standOffRadii` when nil
 ---@return gameunit
 function PlanFlight.standOff(targetRadius, gap, radii)
     if gap then return targetRadius + gap end
-    return math.max(MIN_STAND_OFF, targetRadius * (radii or NavConfig.standOffRadii))
+    return math.max(NavConfig.minStandOff(), targetRadius * (radii or NavConfig.standOffRadii))
 end
 
 ---How far from its stand-off point a ship counts as arrived.

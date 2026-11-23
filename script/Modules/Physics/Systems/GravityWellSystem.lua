@@ -6,14 +6,15 @@ local SpatialComponents   = require("Modules.Spatial.Components")
 local CelestialComponents = require("Modules.CelestialObjects.Components")
 local OrbitalSystem       = require("Modules.CelestialObjects.Systems.OrbitalSystem")
 local TravelDriveMath     = require("Shared.Helpers.TravelDriveMath")
+local ScaleConfig         = require("Config.Gen.UniverseScaleConfig")
 
 local OPEN_SPACE = PhysicsComponents.GravityWell.OPEN_SPACE
 
 -- A planet's well reaches at least this far past its outermost moon's orbit radius.
 local MOON_ORBIT_WELL_FACTOR = 1.5
--- Largest body move (game units) in one update that is motion; a larger one is a jump (a rebuilt or
--- rebased scene), and the ship's carried velocity is kept through it.
-local MAX_FOLLOW_DELTA = 1000
+-- m: largest body move in one update that is motion; a larger one is a jump (a rebuilt or rebased
+-- scene), and the ship's carried velocity is kept through it.
+local MAX_FOLLOW_DELTA_M = 1e7
 
 --- Gravity Well System — finds the well each ship with a `GravityWellComponent` is in, carries it with
 --- the body it orbits, and gives the travel-drive speed cap at any position.
@@ -141,7 +142,7 @@ local function frameVelocity(well, zone, dt)
     well:setPrevBodyPos(Position(now.x, now.y, now.z))
 
     local dx, dy, dz = now.x - prev.x, now.y - prev.y, now.z - prev.z
-    if math.max(math.abs(dx), math.abs(dy), math.abs(dz)) > MAX_FOLLOW_DELTA then
+    if math.max(math.abs(dx), math.abs(dy), math.abs(dz)) > ScaleConfig:toGameUnits(MAX_FOLLOW_DELTA_M, "starSystem") then
         return well:getCarriedVelocity()
     end
     return dx / dt, dy / dt, dz / dt

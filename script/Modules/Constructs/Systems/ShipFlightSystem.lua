@@ -10,7 +10,10 @@ local DRIVE_STEER_GAIN  = 0.1 -- torque while the travel drive is active (no thr
 --- Ship flight system — direct port of Legacy ThrustController into ECS.
 --- Turns each ship's ControlInput into forces and torques; physics does the rest.
 ---@class ShipFlightSystem
-local ShipFlightSystem = {}
+local ShipFlightSystem = {
+    -- Boost 1 adds this share of the forward thrust.
+    BOOST_GAIN = BOOST_GAIN,
+}
 
 ---@param v number
 ---@param limit number

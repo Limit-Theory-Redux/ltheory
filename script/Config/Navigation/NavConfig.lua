@@ -9,6 +9,8 @@ local NavConfig = {
     pointArrivalM = 100,
     -- The distance from a target's centre at which a ship stops, in target radii, when nothing says otherwise.
     standOffRadii = 1.5,
+    -- m: a stand-off given in target radii is at least this far from the target's centre.
+    minStandOffM = 500000,
     -- How much longer a planned path is than the straight line, for estimates, which plan nothing.
     -- Taken from the planned paths of sparse systems; a crowded system detours more.
     estimateDetourFactor = 1.02,
@@ -41,6 +43,12 @@ local NavConfig = {
 ---@return gameunit
 function NavConfig.pointArrival()
     return ScaleConfig:toGameUnits(NavConfig.pointArrivalM, "starSystem")
+end
+
+---The least distance from a target's centre at which a stand-off given in radii stops a ship.
+---@return gameunit
+function NavConfig.minStandOff()
+    return ScaleConfig:toGameUnits(NavConfig.minStandOffM, "starSystem")
 end
 
 ---How much closer to its goal a ship must come to count as making progress.

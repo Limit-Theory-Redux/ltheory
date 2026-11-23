@@ -43,9 +43,9 @@ end
 ------------------------------------------------------------------------------
 -- Speed tape, curved around the reticle on its left (Components/Hud/SpeedTape).
 
--- ShipFlightSystem multiplies the thrust by 1 + 2 x boost; with linear drag the
--- top speed scales with the thrust, so boosting triples it.
-local BOOST_SPEED_FACTOR = 3
+-- ShipFlightSystem multiplies the thrust by 1 + BOOST_GAIN x boost; with linear drag the
+-- top speed scales with the thrust, so full boost multiplies it by the same factor.
+local BOOST_SPEED_FACTOR = 1 + ShipFlightSystem.BOOST_GAIN
 
 -- Sized like the rest of the HUD: to the window height, times the UI Scale setting.
 local speedTape = UIComponent.SpeedTape {
