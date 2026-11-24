@@ -1,15 +1,19 @@
 -- Runs the navigation demo (`States/App/NavigationDemo.lua`) on its own and checks its work:
---   * every ship's order begins, and each scenario that finishes an order finishes one;
+--   * every ship's order begins; every ship of the scenarios that finish orders finishes one, and the
+--     bodies the "Bodies" scenario flies to (moons, station, planet, rock) are each reached;
 --   * ships swap scenarios, leaders stay, and a swapped ship's new order begins;
 --   * the 2D and the 3D map show every ship and its route, and picking a ship in a map selects it;
---   * across the whole run, no order fails and no ship is inside a body, a rock or another ship.
+--   * across the whole run, no order fails and no ship's bounding sphere touches a body, a rock or another
+--     ship's (the navigation sandbox's collision rule).
 -- The run ends when the work has been seen, not after a time; a simulated-time limit turns a hang into a
 -- failure. Logs each failed check and ends with a failure exit code.
 
+local Registry           = require("Core.ECS.Registry")
 local Nav                = require("Modules.Navigation")
 local PhysicsComponents  = require("Modules.Physics.Components")
 local NavigationDemo     = require("States.App.NavigationDemo")
 local Scenarios          = require("States.App.NavigationDemo.Scenarios")
+local Scene              = require("States.App.NavigationDemo.Scene")
 local SystemMap          = require("Modules.CelestialObjects.Systems.SystemMap")
 local SystemMap3D        = require("Modules.CelestialObjects.Systems.SystemMap3D")
 
@@ -27,11 +31,16 @@ DemoTest.maxStepS = TIME_SCALE / 20
 -- The run ends once this many swaps have happened and their ships have begun their new orders.
 local SWAPS_SEEN = 2
 -- The scenarios whose orders end, by name: each must finish one.
-local FINISHING = { "Far crossing", "Moons and the station", "Traffic" }
--- Two ships are overlapping when their centres are closer than this fraction of their radii added.
-local OVERLAP_FRACTION = 0.5
+local FINISHING = { "Far crossing", "Bodies", "Traffic" }
+-- Two bounding spheres may overlap by this share of the ship's radius before it is a contact: the
+-- avoidance steers by the spheres and a ship can graze a hull inside its clearance.
+local OVERLAP_TOLERANCE = 0.75
 -- The first few of a kind of violation are told in detail.
-local DETAILS_SHOWN = 3
+local DETAILS_SHOWN = 20
+
+---@param gameUnits gameunit
+---@return number
+local function metres(gameUnits) return gameUnits / Scene.toGame(1) end
 
 local Status = Enums.NavOrderStatus
 local MapMode = NavigationDemo.MapMode
@@ -78,6 +87,9 @@ function DemoTest:onInit()
     -- The swaps wait for their part of the run.
     self.nextSwapAt = math.huge
     self.finished = {}
+    -- The ships that have finished an order, and the ids of the entities a done MoveTo reached.
+    self.finishedShips = {}
+    self.reached = {}
     self.awaiting = {}
     self.mapFrames = { [MapMode.Flat] = 0, [MapMode.Space] = 0 }
     self.violations = { solid = 0, ship = 0 }
@@ -89,48 +101,85 @@ function DemoTest:onInit()
     self.cases = coroutine.create(function() self:runCases() end)
 end
 
----The bodies and rocks no ship may be inside.
+---The bodies and rocks no ship may touch, and the ships.
 function DemoTest:collectSolids()
     local scene = self.scene
-    local bodies = { scene.star, scene.station }
-    for _, planet in pairs(scene.planets) do table.insert(bodies, planet) end
-    for _, moon in pairs(scene.moons) do table.insert(bodies, moon) end
+    local bodies = { { name = "the star", entity = scene.star }, { name = "the station", entity = scene.station } }
+    for name, planet in pairs(scene.planets) do table.insert(bodies, { name = name, entity = planet }) end
+    for name, moon in pairs(scene.moons) do table.insert(bodies, { name = name, entity = moon }) end
     self.solids = {}
     for _, body in ipairs(bodies) do
-        local rb = body:get(PhysicsComponents.RigidBody):getRigidBody()
-        table.insert(self.solids, { rb = rb, radius = rb:getBoundingRadius() })
+        local rb = body.entity:get(PhysicsComponents.RigidBody):getRigidBody()
+        table.insert(self.solids, { name = body.name, rb = rb, radius = rb:getBoundingRadius() })
     end
-    for _, rock in ipairs(scene.rocks) do table.insert(self.solids, { rb = rock.rb, radius = rock.radius }) end
+    for i, rock in ipairs(scene.rocks) do
+        table.insert(self.solids, { name = "rock " .. i, rb = rock.rb, radius = rock.radius })
+    end
     self.bodies = {}
     for i, ship in ipairs(self.ships) do
         local rb = ship.entity:get(PhysicsComponents.RigidBody):getRigidBody()
         self.bodies[i] = { rb = rb, radius = rb:getBoundingRadius() }
     end
+    -- The pairs in contact, each counted once while it lasts: a key per (ship, solid) and per (ship, ship).
+    self.touching, self.grazing, self.grazes = {}, {}, 0
+    self.shipPairBase = #self.bodies * #self.solids
 end
 
----Counts the ships that are inside a body or a rock, or overlapping another ship, now.
+---Counts a new contact when a pair's bounding spheres overlap by more than `OVERLAP_TOLERANCE` of the
+---ship's radius; a shallower overlap is a graze, counted and not failed. A pair is counted once while
+---it stays in contact.
+---@param key integer The pair's key
+---@param depth gameunit How far the spheres overlap; negative when apart
+---@param shipRadius gameunit
+---@param kind string "solid" or "ship"
+---@param describe fun(): string What the log says of the pair
+function DemoTest:noteContact(key, depth, shipRadius, kind, describe)
+    local touching, grazing = self.touching, self.grazing
+    if depth <= 0 then
+        grazing[key] = nil
+    elseif not grazing[key] then
+        grazing[key] = true
+        self.grazes = self.grazes + 1
+    end
+    if depth <= OVERLAP_TOLERANCE * shipRadius then
+        touching[key] = nil
+    elseif not touching[key] then
+        touching[key] = true
+        self.violations[kind] = self.violations[kind] + 1
+        if self.violations[kind] <= DETAILS_SHOWN then
+            Log.Warn("NavigationDemoTest: %s at %.1f s", describe(), self.simSeconds)
+        end
+    end
+end
+
+---Counts the ships whose bounding sphere starts to touch a body, a rock or another ship, now.
 function DemoTest:sampleSeparation()
-    local bodies, violations = self.bodies, self.violations
+    local bodies, solids = self.bodies, self.solids
     for i, ship in ipairs(bodies) do
         local at = ship.rb:getPos()
-        for _, solid in ipairs(self.solids) do
-            if at:distance(solid.rb:getPos()) < solid.radius then
-                violations.solid = violations.solid + 1
-                if violations.solid <= DETAILS_SHOWN then
-                    Log.Warn("NavigationDemoTest: ship %d is inside a body at %.1f s", i, self.simSeconds)
-                end
-            end
+        for k, solid in ipairs(solids) do
+            local distance, reach = at:distance(solid.rb:getPos()), solid.radius + ship.radius
+            self:noteContact((i - 1) * #solids + k, reach - distance, ship.radius, "solid", function()
+                return string.format("%s touches %s: %.0f m apart, spheres reach %.0f m, ship at %.0f m/s",
+                    self:shipLabel(i), solid.name, metres(distance), metres(reach), metres(ship.rb:getVelocity():length()))
+            end)
         end
         for j = i + 1, #bodies do
             local other = bodies[j]
-            if at:distance(other.rb:getPos()) < (ship.radius + other.radius) * OVERLAP_FRACTION then
-                violations.ship = violations.ship + 1
-                if violations.ship <= DETAILS_SHOWN then
-                    Log.Warn("NavigationDemoTest: ships %d and %d overlap at %.1f s", i, j, self.simSeconds)
-                end
-            end
+            local distance, reach = at:distance(other.rb:getPos()), ship.radius + other.radius
+            self:noteContact(self.shipPairBase + (i - 1) * #bodies + j, reach - distance, ship.radius, "ship", function()
+                return string.format("%s and %s touch: %.0f m apart, spheres reach %.0f m", self:shipLabel(i),
+                    self:shipLabel(j), metres(distance), metres(reach))
+            end)
         end
     end
+end
+
+---@param index integer Index in `self.ships`
+---@return string The ship's scenario and slot now
+function DemoTest:shipLabel(index)
+    local ship = self.ships[index]
+    return string.format("ship %d (%s %d)", index, Scenarios[ship.scenario].name, ship.slot)
 end
 
 ---A leader never moves between scenarios: the ship in its slot is the one that started there.
@@ -148,6 +197,9 @@ function DemoTest:onOrderEnded(name, id)
     local ship = self.orderShip[id]
     if ship and name == "NavOrderDone" then
         self.finished[ship.scenario] = true
+        self.finishedShips[ship] = true
+        local moveTo = Registry:getEntityById(id):get(Nav.Components.MoveToOrder)
+        if moveTo and moveTo:getTargetEntityId() then self.reached[moveTo:getTargetEntityId()] = true end
         -- An order that starts within reach of its goal is done in its first update: it began, though
         -- no frame saw it `Active`.
         ship.began = true
@@ -186,12 +238,28 @@ function DemoTest:everyShipBegan()
     return true
 end
 
+---What the scenarios that end an order still have to show: a ship of each that has not finished one,
+---and a body of "Bodies" that no ship has reached. Meaningful before the first swap, while a slot
+---holds its first ship.
+---@return string[]
+function DemoTest:missingFinishes()
+    local missing = {}
+    for _, name in ipairs(FINISHING) do
+        local index = scenarioIndex(name)
+        for slot, ship in ipairs(self.groups[index]) do
+            if not self.finishedShips[ship] then missing[#missing + 1] = string.format("%s ship %d", name, slot) end
+        end
+        local targets = Scenarios[index].targets
+        for _, target in ipairs(targets and targets(self.context) or {}) do
+            if not self.reached[target.id] then missing[#missing + 1] = string.format("%s target %d", name, target.id) end
+        end
+    end
+    return missing
+end
+
 ---@return boolean
 function DemoTest:everyFinishingScenarioDone()
-    for _, name in ipairs(FINISHING) do
-        if not self.finished[scenarioIndex(name)] then return false end
-    end
-    return true
+    return #self:missingFinishes() == 0
 end
 
 ---The ships that are shown in the open map: how many of its entries are ships.
@@ -247,17 +315,19 @@ function DemoTest:runCases()
     local function reached(what) Log.Info("NavigationDemoTest: %s at %.0f s", what, self.simSeconds) end
     self:waitUntil(function() return self:everyShipBegan() end, "every ship's order begins")
     reached("every ship's order has begun")
-    self:waitUntil(function() return self:everyFinishingScenarioDone() end,
-        "every scenario that ends an order finishes one")
-    reached("every scenario that ends an order has finished one")
+    if not self:waitUntil(function() return self:everyFinishingScenarioDone() end,
+        "every ship of the scenarios that end an order finishes one, and every body is reached") then
+        Log.Warn("NavigationDemoTest: still missing: %s", table.concat(self:missingFinishes(), ", "))
+    end
+    reached("every ship of the scenarios that end an order has finished one, and every body is reached")
     self:caseSwaps()
     reached("the swaps are seen")
     self:caseMap(MapMode.Flat, "2D map: ", SystemMap)
     self:caseMap(MapMode.Space, "3D map: ", SystemMap3D)
-    self:check(self.violations.solid == 0, "no ship is inside a body or a rock", tostring(self.violations.solid))
+    self:check(self.violations.solid == 0, "no ship overlaps a body or a rock", tostring(self.violations.solid))
     self:check(self.violations.ship == 0, "no two ships overlap", tostring(self.violations.ship))
-    Log.Info("NavigationDemoTest: %.0f s of simulated time, %d swaps, %d checks passed, %d failed",
-        self.simSeconds, self.swapCount, self.passed, self.failed)
+    Log.Info("NavigationDemoTest: %.0f s of simulated time, %d swaps, %d grazes, %d checks passed, %d failed",
+        self.simSeconds, self.swapCount, self.grazes, self.passed, self.failed)
     self:quit(self.failed == 0 and Core.ExitCode.Success or Core.ExitCode.Failure)
 end
 
@@ -277,9 +347,10 @@ function DemoTest:onInput(data)
     EventBus:setTimeScale(TIME_SCALE)
 end
 
----@param data EventData
-function DemoTest:onSim(data)
-    NavigationDemo.onSim(self, data)
+---Every step is checked, so that a touch inside a frame's several steps is seen.
+---@param dt number
+function DemoTest:simStep(dt)
+    NavigationDemo.simStep(self, dt)
     self:sampleSeparation()
 end
 

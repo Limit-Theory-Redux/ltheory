@@ -5,6 +5,7 @@
 
 local Nav                = require("Modules.Navigation")
 local PhysicsComponents  = require("Modules.Physics.Components")
+local CelestialComponents = require("Modules.CelestialObjects.Components")
 local EntityPosition     = require("Shared.Helpers.EntityPosition")
 local Scene              = require("States.App.NavigationDemo.Scene")
 
@@ -19,12 +20,16 @@ local FAR_B = Scene.pointAt(180, 9.0e9)
 
 -- The same for the group that follows its leader.
 local FOLLOW_A = Scene.pointAt(300, 3.0e9)
-local FOLLOW_B = Scene.pointAt(240, 6.5e9)
--- Where a follower keeps from its leader: right, up, forward, metres.
+-- The leader's first leg runs along +x, the way the ships face when they spawn, so that the group
+-- doesn't swing round at the start.
+local FOLLOW_LEG_M = 5.6e9
+local FOLLOW_B = Position(FOLLOW_A.x + Scene.toGame(FOLLOW_LEG_M), FOLLOW_A.y, FOLLOW_A.z)
+-- Where a follower keeps from its leader: right, up, forward, metres. Each is more than two ship
+-- radii (about 150 m) from the leader and from the other followers.
 local FOLLOW_OFFSETS_M = {
-    { 150, 0, -100 },
-    { -150, 0, -100 },
-    { 0, 100, -250 },
+    { 300, 0, -300 },
+    { -300, 0, -300 },
+    { 0, 200, -600 },
 }
 
 -- A square of open space the chased leader patrols, and its start.
@@ -43,6 +48,9 @@ local FIELD_POINT_SEED = 7
 -- The patrol round the cluster: corners of a square this many times its extent.
 local PERIMETER_ANGLES_DEG = { 45, 135, 225, 315 }
 local PERIMETER_FACTOR = 2.0
+
+-- A ship sent to a rock stops this far from its hull.
+local ROCK_GAP_M = 1000
 
 -- The ships orbit this body in order of slot; each starts this many of its radii from it.
 local ORBIT_START_RADII = 2.5
@@ -109,6 +117,7 @@ end
 ---@field orders string The orders it shows, for the label
 ---@field count integer Ships
 ---@field leader integer|nil The slot of the ship the others follow or chase
+---@field targets (fun(ctx: NavigationDemoContext): Entity[])|nil The bodies its orders fly to, each of which a test expects to see reached
 ---@field spawn fun(ctx: NavigationDemoContext, slot: integer): Position Where the ship of a slot starts
 ---@field order fun(ctx: NavigationDemoContext, ship: NavigationDemoShip): table The order of the ship's current step
 ---@type NavigationDemoScenario[]
@@ -124,20 +133,27 @@ local farCrossing = {
     end,
 }
 
+---The bodies the ships of "Bodies" fly to, in turn: two moons, the station, a planet and a rock.
 local function bodyTargets(ctx)
-    return { ctx.scene.moons.Luna, ctx.scene.moons.Pebble, ctx.scene.station }
+    local scene = ctx.scene
+    return { scene.moons.Luna, scene.moons.Pebble, scene.station, scene.planets.Aurora, Scene.centralRock(scene) }
 end
 
-local moonsAndStation = {
-    name = "Moons and the station", orders = "MoveTo a moving body (an entity), in turn",
+local bodies = {
+    name = "Bodies", orders = "MoveTo a moon, the station, a planet and a rock, in turn",
     count = 3,
+    targets = bodyTargets,
     spawn = function(ctx, slot)
         return shift(Scene.around(EntityPosition.Get(ctx.scene.planets.Aurora), 290, 2.5e7), 0, 0,
             (slot - 1) * SPACING_M)
     end,
     order = function(ctx, ship)
         local targets = bodyTargets(ctx)
-        return Nav.Orders.MoveTo { target = targets[(ship.slot + ship.step - 2) % #targets + 1] }
+        local target = targets[(ship.slot + ship.step - 2) % #targets + 1]
+        -- The default stand-off of a rock is far outside the cluster: the ship goes to its hull.
+        local approach = target:get(CelestialComponents.Asteroid)
+            and { kind = Enums.ApproachKind.StandOff, gapM = ROCK_GAP_M } or nil
+        return Nav.Orders.MoveTo { target = target, approach = approach }
     end,
 }
 
@@ -199,6 +215,8 @@ local function perimeter(ctx, first, direction)
     return points
 end
 
+-- Each patrol ship loops at a level of its own, SPACING_M above the one below, so that the ships
+-- that circle in opposite directions pass over one another.
 local patrol = {
     name = "Patrol", orders = "Patrol a loop round the rock cluster, in both directions",
     count = 3,
@@ -206,7 +224,9 @@ local patrol = {
         return shift(perimeter(ctx, slot, 1)[1], 0, (slot - 1) * SPACING_M, 0)
     end,
     order = function(ctx, ship)
-        return Nav.Orders.Patrol { loop = true, points = perimeter(ctx, ship.slot, ship.slot == 3 and -1 or 1) }
+        local points = perimeter(ctx, ship.slot, ship.slot == 3 and -1 or 1)
+        for i, point in ipairs(points) do points[i] = shift(point, 0, (ship.slot - 1) * SPACING_M, 0) end
+        return Nav.Orders.Patrol { loop = true, points = points }
     end,
 }
 
@@ -230,7 +250,13 @@ local orbit = {
 local follow = {
     name = "Follow", orders = "Follow a leader that flies across the system, at offsets",
     count = 4, leader = 1,
-    spawn = function(_, slot) return shift(FOLLOW_A, (slot - 1) * SPACING_M) end,
+    -- A follower starts at its offset from the leader, so that none crosses another to reach it. Ships
+    -- spawn facing +x, so the offset's forward is +x and its right is +z.
+    spawn = function(_, slot)
+        if slot == 1 then return FOLLOW_A end
+        local right, up, forward = table.unpack(FOLLOW_OFFSETS_M[slot - 1])
+        return shift(FOLLOW_A, forward, up, right)
+    end,
     order = function(ctx, ship)
         if ship.slot == 1 then return betweenPoints(ship, FOLLOW_A, FOLLOW_B) end
         local offset = FOLLOW_OFFSETS_M[ship.slot - 1]
@@ -279,7 +305,7 @@ local traffic = {
     end,
 }
 
-for _, scenario in ipairs({ farCrossing, moonsAndStation, chase, chaseInField, patrol, orbit, follow, hold, traffic }) do
+for _, scenario in ipairs({ farCrossing, bodies, chase, chaseInField, patrol, orbit, follow, hold, traffic }) do
     table.insert(Scenarios, scenario)
 end
 

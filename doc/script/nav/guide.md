@@ -223,7 +223,7 @@ A *scenario* is a group of ships that fly one order or behaviour. It gives the p
 | Scenario | Ships | Shows |
 |---|---|---|
 | Far crossing | 3 | `MoveTo` a point across the system, with the travel drive, round the star |
-| Moons and the station | 3 | `MoveTo` a moving body, in turn |
+| Bodies | 3 | `MoveTo` a moon, the station, a planet and a rock of the cluster (stopping 1 km from its hull, as `approach = { kind = StandOff, gapM = 1000 }`), in turn |
 | Chase | 4 | `MoveTo` a moving ship, in open space; the leader patrols |
 | Chase through the rocks | 3 | the same through a rock cluster |
 | Patrol | 3 | `Patrol` a loop round the cluster, in both directions |
@@ -232,7 +232,7 @@ A *scenario* is a group of ships that fly one order or behaviour. It gives the p
 | Hold | 3 | `Hold` in a planet's well, which carries the ships along |
 | Traffic | 6 | `MoveTo` back and forth: head-on and crossing streams |
 
-A scenario with a `leader` has one ship the others follow or chase. To add a scenario, add a table to the list at the end of `Scenarios.lua` with a `name`, `orders` (a line for the label), `count`, `spawn(ctx, slot)` and `order(ctx, ship)`, and a colour in `SCENARIO_COLORS` in `NavigationDemo.lua`.
+A scenario with a `leader` has one ship the others follow or chase. To add a scenario, add a table to the list at the end of `Scenarios.lua` with a `name`, `orders` (a line for the label), `count`, `spawn(ctx, slot)` and `order(ctx, ship)`, and a colour in `SCENARIO_COLORS` in `NavigationDemo.lua`. A scenario whose orders fly to bodies can list them in `targets(ctx)`, and `Navigation.DemoTest` then expects each to be reached.
 
 ### Swaps
 
@@ -246,7 +246,7 @@ M opens the 2D map, then the 3D map ([system maps](../system-map.md)). Each ship
 
 ### Test
 
-`cargo run -p ltr -- Navigation.DemoTest` ([DemoTest.lua](../../../script/States/App/Tests/Navigation/DemoTest.lua)) runs the demo faster, with frequent swaps, and ends when it has seen the work: every ship's order begins, each scenario whose orders end finishes one, ships swap, their new orders begin, and both maps draw every ship and route and take a ship picked in them. During the whole run it checks that no order fails, no leader moves, and no ship is inside a body or a rock, or in another ship.
+`cargo run -p ltr -- Navigation.DemoTest` ([DemoTest.lua](../../../script/States/App/Tests/Navigation/DemoTest.lua)) runs the demo faster, with frequent swaps (a frame advances several steps of at most 0.05 s, so a sped-up run steps the ships as finely as a real-time one, and every step is checked), and ends when it has seen the work: every ship's order begins, every ship of the scenarios whose orders end ("Far crossing", "Bodies" and "Traffic") finishes one, each body of "Bodies" is reached, ships swap, their new orders begin, and both maps draw every ship and route and take a ship picked in them. During the whole run it checks that no order fails, no leader moves, and no ship's bounding sphere touches a body, a rock or another ship's (the [sandbox's](navigation-sandbox.md) collision rule).
 
 ## Pitfalls
 

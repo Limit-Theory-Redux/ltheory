@@ -87,8 +87,8 @@ local FIELD = {
     angleDeg = 215, orbitM = 6.0e9,
     halfExtentM = { x = 12000, y = 2000, z = 12000 },
     rockCount = 50, minRadiusM = 300, maxRadiusM = 700,
-    -- Rocks keep this multiple of their radii apart.
-    clearance = 1.2,
+    -- Rocks keep this much, in metres, between their surfaces: room for a ship and the clearance it keeps.
+    gapM = 1000,
     placementAttempts = 500,
 }
 local ROCK_MESH_POOL_SIZE, ROCK_MESH_POOL_SEED = 8, 42
@@ -176,6 +176,9 @@ local function buildPlanet(star, spec, seeds, scene)
             scale = toGame(STATION_RADIUS_M),
             isKinematic = true,
         })
+        -- The generator scales a mesh of its own size, so the bounding radius is rescaled to the authored one.
+        local stationBody = station:get(PhysicsComponents.RigidBody):getRigidBody()
+        stationBody:setScale(stationBody:getScale() * toGame(STATION_RADIUS_M) / stationBody:getBoundingRadius())
         station:add(SpatialComponents.Orbit(toGame(spec.stationOrbitM)))
         Registry:attachEntity(planet, station)
         scene.station = station
@@ -244,7 +247,7 @@ local function buildField(world, scene)
                 centre.z + toGame(z * half.z))
             local clear = true
             for _, rock in ipairs(scene.rocks) do
-                if candidate:distance(rock.rb:getPos()) < (radius + rock.radius) * FIELD.clearance then
+                if candidate:distance(rock.rb:getPos()) < radius + rock.radius + toGame(FIELD.gapM) then
                     clear = false
                     break
                 end
@@ -281,6 +284,18 @@ function Scene.freePointInField(scene, rng, marginM)
         if clear then return candidate end
     end
     error("NavigationDemo: no free point in the rock cluster")
+end
+
+---The rock nearest the middle of the cluster.
+---@param scene NavigationDemoScene
+---@return Entity
+function Scene.centralRock(scene)
+    local nearest, nearestDistance = nil, math.huge
+    for _, rock in ipairs(scene.rocks) do
+        local distance = rock.rb:getPos():distance(scene.fieldCentre)
+        if distance < nearestDistance then nearest, nearestDistance = rock, distance end
+    end
+    return assert(nearest, "NavigationDemo: the cluster has no rocks").entity
 end
 
 ---A point `outsideFactor` times the cluster's extent from its middle, in the orbit plane, at `angleDeg`.

@@ -48,14 +48,18 @@ local Scenarios               = require("States.App.NavigationDemo.Scenarios")
 ---@class NavigationDemo: Application
 ---@field swapPeriodS number Simulated seconds between two swaps, on average
 ---@field swapJitterS number A swap comes this much sooner or later than the period, uniformly
----@field maxStepS number The longest simulated step, in seconds
+---@field maxStepS number The most simulated time a frame advances, in seconds
+---@field substepS number The longest single simulation step, in seconds
 ---@field mapMode integer One of `MapMode`
 local NavigationDemo = Subclass("NavigationDemo", Application)
 
 NavigationDemo.swapPeriodS = 30
 NavigationDemo.swapJitterS = 10
--- The longest simulated step: a hitch of a frame would otherwise be one huge physics step.
+-- The most a frame advances: a hitch of a frame would otherwise be one huge advance.
 NavigationDemo.maxStepS = 0.05
+-- A frame that advances more than this runs several equal steps, so that a sped-up run steps the
+-- ships as finely as a real-time one.
+NavigationDemo.substepS = 0.05
 
 local SEED = 20261122
 -- The swaps pick their ships and times from a stream of their own, so the scenarios' random points
@@ -410,7 +414,14 @@ end
 ---Bodies move, then ships are actuated from the control input the orders wrote, then physics steps.
 ---@param data EventData
 function NavigationDemo:onSim(data)
-    local dt = math.min(data:deltaTime(), self.maxStepS)
+    local advance = math.min(data:deltaTime(), self.maxStepS)
+    local steps = math.max(1, math.ceil(advance / self.substepS))
+    for _ = 1, steps do self:simStep(advance / steps) end
+end
+
+---One simulation step of `dt` seconds.
+---@param dt number
+function NavigationDemo:simStep(dt)
     self.simSeconds = self.simSeconds + dt
     self.simSteps = self.simSteps + 1
     OrbitalSystem:update(self.scene.orbiters, dt, self.scene.followers)
