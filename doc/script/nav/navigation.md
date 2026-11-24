@@ -81,7 +81,7 @@ stateDiagram-v2
     Tracking --> [*]: cancelled, or the target is gone
 ```
 
-While it flies, the order is a MoveTo to the point where tracking begins: the plan, its corners with the travel drive on the long legs, then the final approach, flown by the same code as a MoveTo (`PlanFlight`). The goal of an Orbit is the target's centre with the orbit radius as the distance to stop at. The goal of a Follow is the slot, which moves with the leader: the plan is made again only when the slot has moved more than `joinRange` from where the plan ends, so a leader that cruises on doesn't make the follower plan every frame.
+While it flies, the order is a MoveTo to the point where tracking begins: the plan, its corners with the travel drive on the long legs, then the final approach, flown by the same code as a MoveTo (`PlanFlight`). The goal of an Orbit is the target's centre with the orbit radius as the distance to stop at. The goal of a Follow is the slot, which moves with the leader: the plan is refreshed (see [Replanning](#replanning)) only when the slot has moved more than `joinRange`, or a share of the follower's distance to it if that is more, from where the plan ends, so a leader that cruises on doesn't make the follower plan every frame, and the follower flies its plan meanwhile.
 
 While it tracks, the order stops flying a plan: the navigation world holds the Orbit or Follow behaviour of the ship, which steers it onto the circle or the slot as the body moves, and the drive is released. `progress.distanceLeft` is then the distance from the circle or the slot, and `eta` is 0. The status is `Active`.
 
@@ -190,12 +190,13 @@ local estimates = Nav.takeEstimates(request)     -- one result per candidate, in
 
 A plan is made for a goal, a cost profile and a set of cost zones, with the ship at rest where it was asked for. A flight plans again when one of them changes, and also on a timer, because the world moves under a plan. There are two ways to swap the plan:
 
-- **Drop.** The goal moved: a `Nav.retarget`, a Patrol's next point, a Follow's slot that moved more than `joinRange` ([Orbit and Follow](#orbit-and-follow)), or a MoveTo's target that is not a body the plan rides (a ship) and has moved more than `NavConfig.goalDriftShare` of the ship's distance to it, and at least the goal's arrival radius, from where the plan ends. The old plan ends at a place nobody wants, so it is dropped; the ship flies toward the goal in normal flight while the new plan is made.
-- **Refresh.** The ship keeps flying the old plan while a new one is made on the worker, and the new one replaces it when it arrives. The reasons are the ship's cost profile, the cost zones, a stall, a corner and the timer.
+- **Drop.** The goal is another one: a `Nav.retarget` or a Patrol's next point. The old plan ends at a place nobody wants, so it is dropped, and a request that is out with it; the ship flies toward the goal in normal flight while the new plan is made.
+- **Refresh.** The ship keeps flying the old plan while a new one is made on the worker, and the new one replaces it when it arrives. The reasons are a **drift**, the ship's cost profile, the cost zones, a stall, a corner and the timer. A drift is a goal that moves and has gone far from where the plan ends: a Follow's slot that moved more than its range, or a MoveTo's target that is not a body the plan rides (a ship) and has moved more than that range. The range is `NavConfig.goalDriftShare` of the ship's distance to the goal, and at least `joinRange` for a Follow ([Orbit and Follow](#orbit-and-follow)) or the goal's arrival radius for a MoveTo. A drift is never a drop: a goal that moves fast would drop each plan before its reply came, and the ship would never get one.
 
 ```mermaid
 flowchart TD
-    G{{"goal moved"}} --> Drop["drop the plan, fly toward the goal, plan again"]
+    G{{"goal is another one"}} --> Drop["drop the plan, fly toward the goal, plan again"]
+    D{{"goal drifted from where the plan ends"}} --> Ask
     P{{"cost profile changed"}} --> Ask
     Z{{"cost zones changed"}} --> Ask
     S{{"stalled"}} --> Ask
@@ -212,11 +213,11 @@ flowchart TD
 ```
 
 - **When a refresh is asked for.** Not while the ship is on an arc, and not while the travel drive is running or charging: the planner times a path from a ship at rest, so a plan asked for under a drive run would place the bodies late and cut the run short. The reasons stay due and the request goes out when the ship is clear. A request is also not sent when the ship is already within range of the goal.
-- **When it is taken.** A reply replaces the plan once the ship is off an arc. A reply is dropped as stale if the ship passed a corner since it was asked for, because the new plan's first corner would then be behind the ship; the reason stays due. A reply with no usable plan is dropped with a warning, and the old plan is flown on. A goal change or the end of the order drops a request that is out, and so does a change of profile or zones, which asks again.
+- **When it is taken.** A reply replaces the plan once the ship is off an arc. A reply is dropped as stale if the ship passed a corner since it was asked for, because the new plan's first corner would then be behind the ship; the reason stays due. A reply with no usable plan is dropped with a warning, and the old plan is flown on. A goal change or the end of the order drops a request that is out, and so does a change of profile or zones, which asks again. A drift keeps it: the reply is taken, and when the goal has drifted from where that request was made, another refresh follows.
 - **A refresh after each corner.** After a sharp corner is passed or an arc is flown, never in the middle of an arc.
 - **The timer.** The `replanPeriodS` of the ship's [rate class](#update-rate-classes), and the first refresh is offset by a share of it taken from the order's id (`Stagger.of`), so the requests of many orders spread over frames. A plan that flies straight (no plan was usable) is not refreshed by the timer.
 - **Zones.** `CostZones.signature` folds the zones' ids, path costs, radii and tags into one number. An order compares it with the one its plan was made under, so a change to any zone asks every flying order for a refresh, near the zone or not.
-- **Announcement.** The swap sends `NavOrderReplanned` for a goal change, a drift, a stall, a profile change or a zone change, and not for the timer or a corner. The stall also sends `NavOrderBlocked` ([Events](#events)). A swap while the first plan is still out is a drop, since there is no plan to keep flying.
+- **Announcement.** The swap sends `NavOrderReplanned` for a goal change, a drift, a stall, a profile change or a zone change, and not for the timer or a corner. The stall also sends `NavOrderBlocked` ([Events](#events)). While the first plan is still out, the ship has no plan to keep flying: a change of profile or zones asks for it again, and a drift waits for its reply, which is then refreshed.
 
 ## Update-rate classes
 

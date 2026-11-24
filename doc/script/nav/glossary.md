@@ -88,13 +88,15 @@ Docs: [navigation guide](guide.md), [navigation orders](navigation.md), [system 
 
 **Done** — an ended order that arrived. One of the three ended statuses. [Queue and status](navigation.md#queue-and-status).
 
+**Drift** — a goal that moves (a ship, a Follow's slot) having gone farther than a range from where the plan ends: a reason to refresh the plan, never to drop it. [Replanning](navigation.md#replanning).
+
 **Drive leg** — a leg flown under the travel drive. `Out.Drive` is 1 at its end. [Drive](system-planner.md#drive).
 
 **Drive run** — a chain of legs flown under one drive engagement: one charge at the start and one release before the end. [Run through a well's entry](system-planner.md#run-through-a-wells-entry).
 
 **Drive turn** — a corner of a drive run that keeps the drive: no arc, and the velocity relaxes onto the next leg over the drag's time constant. [Corners under the drive](system-planner.md#corners-under-the-drive).
 
-**Drop** — a replan that discards the old plan because the goal moved. [Replanning](navigation.md#replanning).
+**Drop** — a replan that discards the old plan, and a request that is out, because the goal is another one. [Replanning](navigation.md#replanning).
 
 ## E
 

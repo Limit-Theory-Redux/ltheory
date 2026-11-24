@@ -52,6 +52,7 @@ local FLIGHT_EVENTS = {
 ---@field goal OrderGoal|nil
 ---@field facing FacingGoalComponent|nil What the nose is to face, when the order says
 ---@field zoneSignature integer `CostZones.signature` of this frame
+---@field drift integer|nil The handler's drift key of this frame; nil for a goal that does not move
 
 local bodyOf = OrderGoals.bodyOf
 
@@ -260,6 +261,7 @@ end
 local function notePlanned(head, flight, delay)
     flight.plannedProfileRevision = costProfileRevision(head.ship)
     flight.plannedZoneSignature = head.zoneSignature
+    flight.plannedDrift = head.drift
     flight.nextRefresh = flight.elapsed + delay
     flight.replanDue = false
 end
@@ -300,17 +302,21 @@ local function requestRefresh(head, flight, announce)
     flight.pending = { plan = fresh, announce = announce, legs = flight.plan.legs }
 end
 
----Gives the order its plan: a new one when there is none or the goal has moved (the old is dropped), a
----refresh asked for in the background when what the plan was made under has changed, the ship has stalled,
----a corner has been passed, or the period has run out. Replacing a plan that was being flown is announced
----for a goal change or what it was made under, but not for a corner or the period, unless the order
----went on to its next goal.
+---Gives the order its plan: a new one when there is none or the goal is another one (the old is
+---dropped), a refresh asked for in the background when what the plan was made under has changed, a
+---goal that moves has gone far from where the plan ends, the ship has stalled, a corner has been passed,
+---or the period has run out. A drift never drops a plan or a request that is out: a goal that moves
+---fast would leave the ship with none. Replacing a plan that was being flown is announced for a goal
+---change, a drift or what it was made under, but not for a corner or the period, unless the order went
+---on to its next goal.
 ---@param world NavWorldComponent
 ---@param head OrderHead
 ---@param spec Component
 local function ensurePlan(world, head, spec)
     local flight = head.order:get(Components.OrderFlight)
-    local key = head.handler.key(spec, head.goal, bodyOf(head.ship):getPos(), head.ship)
+    local handler, shipPos = head.handler, bodyOf(head.ship):getPos()
+    local key = handler.key(spec, head.goal, shipPos, head.ship)
+    head.drift = handler.drift and handler.drift(spec, head.goal, shipPos, head.ship)
     local advanced = flight.advanced
     flight.advanced = false
     local plan = flight.plan
@@ -320,7 +326,8 @@ local function ensurePlan(world, head, spec)
     end
     local changed = flight.plannedProfileRevision ~= costProfileRevision(head.ship)
         or flight.plannedZoneSignature ~= head.zoneSignature
-    -- The first plan is still out: it has nothing to fly meanwhile, so it is asked for again.
+    -- The first plan is still out: it has nothing to fly meanwhile, so it is asked for again. A drift
+    -- waits for the reply, which is then refreshed.
     if plan.phase == Phase.Planning then
         if changed then startPlan(world, head, key, true) end
         return
@@ -340,7 +347,7 @@ local function ensurePlan(world, head, spec)
     -- The planner times a path from a ship at rest, with the drive still to charge: a plan asked for under
     -- a drive run would place the corners' bodies late and cut the run short. Whatever is due waits.
     if PlanFlight.onArc(plan) or not driveIdle(head.ship) then return end
-    local announce = changed or flight.replanDue
+    local announce = changed or flight.plannedDrift ~= head.drift or flight.replanDue
     local corner = plan.phase == Phase.Plan and plan.legs > flight.refreshedLegs
     local period = plan.phase ~= Phase.Direct and flight.elapsed >= flight.nextRefresh
     if announce or corner or period then requestRefresh(head, flight, announce) end

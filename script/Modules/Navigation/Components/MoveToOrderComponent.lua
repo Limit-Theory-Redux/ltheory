@@ -38,13 +38,13 @@ function MoveToOrderComponent:setTarget(target, frame)
     self._drift.point = nil
 end
 
----The key of the plan for the goal: it changes with the target (`setTarget`) and when a goal that
----moves has gone farther than `range` from the point the current key was made for.
+---The drift key of a goal that moves: it rises when the goal has gone farther than `range` from the
+---point the current key was made for. A new target (`setTarget`) starts it over.
 ---@param goal Position The goal now
 ---@param range gameunit
 ---@return integer
-function MoveToOrderComponent:goalKey(goal, range)
-    return self._revision + GoalDrift.key(self._drift, goal, range)
+function MoveToOrderComponent:driftKey(goal, range)
+    return GoalDrift.key(self._drift, goal, range)
 end
 
 ---@return EntityId|nil The target entity's id; nil for a point

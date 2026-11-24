@@ -349,7 +349,8 @@ local function sphereZone(at, radius)
 end
 
 ---A target that no plan rides on (a ship) has drifted when it has moved more than a share of the ship's
----distance to it: a smaller move keeps the plan, a larger one makes a new plan at once, announced.
+---distance to it: a smaller move changes nothing, a larger one asks for a new plan while the old one is
+---flown, and the new one's taking over is announced.
 function EventsTest:caseTargetDrift()
     local name = "a drifting target: "
     local ship = self:ship(Position(0, 0, 0))
@@ -361,10 +362,32 @@ function EventsTest:caseTargetDrift()
     local plan = flight.plan
     target.rb:setPos(Position(DRIFT_DISTANCE, DRIFT_SMALL, 0))
     self:step()
-    self:check(flight.plan == plan, name .. "a small move keeps the plan")
+    self:check(flight.plan == plan and flight.pending == nil, name .. "a small move keeps the plan, and asks for none")
     target.rb:setPos(Position(DRIFT_DISTANCE, DRIFT_LARGE, 0))
     self:step()
-    self:check(flight.plan ~= plan, name .. "a large move makes a new plan")
+    self:check(flight.plan == plan and flight.pending ~= nil, name .. "a large move keeps the plan and asks for a new one")
+    self:awaitAdopted(flight, 1, name)
+    self:expect("NavOrderReplanned", order, 1)
+    self:fly(order, name)
+    self:expect("NavOrderArrived", order, 1)
+    self:finish({ order }, { ship, target })
+end
+
+---A target that goes on moving while the first plan is out doesn't cost the ship that plan: the reply is
+---taken, and a refresh for where the target went is then adopted.
+function EventsTest:caseDriftDuringFirstPlan()
+    local name = "a drift while the first plan is out: "
+    local ship = self:ship(Position(0, 0, 0))
+    local target = self:ship(Position(DRIFT_DISTANCE, 0, 0))
+    local order = Nav.order(ship.entity, Nav.Orders.MoveTo { target = target.entity })
+    Nav.update(0)
+    local flight = order:get(Components.OrderFlight)
+    target.rb:setPos(Position(DRIFT_DISTANCE, DRIFT_LARGE, 0))
+    -- No thrust: a refresh waits while the travel drive charges or runs, which the plan's flight would start.
+    self:step(true)
+    self:awaitPlan(order)
+    self:step(true)
+    self:awaitAdopted(flight, 1, name)
     self:expect("NavOrderReplanned", order, 1)
     self:fly(order, name)
     self:expect("NavOrderArrived", order, 1)
@@ -634,6 +657,7 @@ function EventsTest:onInit()
     self:caseRetarget()
     self:caseCostProfileChange()
     self:caseTargetDrift()
+    self:caseDriftDuringFirstPlan()
     self:caseZoneCostChange()
     self:caseQuietRefresh()
     self:caseResume()

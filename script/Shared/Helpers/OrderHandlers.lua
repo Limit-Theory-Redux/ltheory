@@ -25,7 +25,8 @@ local Kind = Enums.NavOrderKind
 ---@class OrderHandler
 ---@field spec table The component type that holds what the order flies to
 ---@field goal fun(spec: Component): OrderGoal|nil The goal now; nil when the target is gone
----@field key fun(spec: Component, goal: OrderGoal, shipPos: Position, ship: Entity): integer A number that changes when the goal's place does, enough for a plan to be made again
+---@field key fun(spec: Component, goal: OrderGoal, shipPos: Position, ship: Entity): integer A number that changes when the order's goal is another one, which drops the plan
+---@field drift (fun(spec: Component, goal: OrderGoal, shipPos: Position, ship: Entity): integer)|nil A number that rises when a goal that moves has gone far from where the plan ends, which asks for a refresh; nil for a goal that does not move
 ---@field arrive fun(spec: Component): boolean|nil Takes the order on from an arrival; true when it is done. Nil for an order with a `track`
 ---@field track OrderTrack|nil Set for an order that never ends and keeps a behaviour once it has reached its goal
 
@@ -42,6 +43,16 @@ local PLANE_MIN_SINE = 0.1
 ---@return gameunit
 local function followJoinRange(ship)
     return PlanFlight.driveMinLength(ConstructComponents.FlightProfile.ProfileOf(ship))
+end
+
+---How far a moving goal goes from where the plan ends before a refresh is asked for: a share of the
+---ship's distance to it, and at least `floor`.
+---@param shipPos Position
+---@param goal OrderGoal
+---@param floor gameunit
+---@return gameunit
+local function driftRange(shipPos, goal, floor)
+    return math.max(NavConfig.goalDriftShare * shipPos:distance(goal.targetPos), floor)
 end
 
 ---Where a follower's slot is now: its offset from the leader's centre, in the leader's axes.
@@ -140,13 +151,13 @@ local HANDLERS = {
             if not target then return nil end
             return approachGoal(target, ApproachSpecs.For(target, spec:getApproach()))
         end,
-        key = function(spec, goal, shipPos)
+        key = function(spec) return spec:getRevision() end,
+        drift = function(spec, goal, shipPos)
             -- A body the plan rides on moves with it. Any other entity (a ship) that has moved farther than
             -- a share of its distance has left the place the plan ends at.
             local entity = goal.frameEntity
-            if not entity or PlannerSnapshot.isBody(entity) then return spec:getRevision() end
-            local range = math.max(NavConfig.goalDriftShare * shipPos:distance(goal.targetPos), goal.arrivalRadius)
-            return spec:goalKey(goal.targetPos, range)
+            if not entity or PlannerSnapshot.isBody(entity) then return nil end
+            return spec:driftKey(goal.targetPos, driftRange(shipPos, goal, goal.arrivalRadius))
         end,
         arrive = function() return true end,
     },
@@ -190,7 +201,10 @@ local HANDLERS = {
             if not leader or not bodyOf(leader) then return nil end
             return makeGoal(slotPoint(leader, spec:getOffset()), 0, NavConfig.pointArrival(), leader)
         end,
-        key = function(spec, goal, _, ship) return spec:slotKey(goal.targetPos, followJoinRange(ship)) end,
+        key = function() return 1 end,
+        drift = function(spec, goal, shipPos, ship)
+            return spec:slotKey(goal.targetPos, driftRange(shipPos, goal, followJoinRange(ship)))
+        end,
         track = {
             start = startFollow,
             joins = function(_, goal, shipPos, ship) return shipPos:distance(goal.targetPos) <= followJoinRange(ship) end,

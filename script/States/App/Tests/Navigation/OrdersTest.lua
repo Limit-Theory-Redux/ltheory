@@ -1298,8 +1298,8 @@ function OrdersTest:caseFollowInRange()
     self:finish({ order }, { ship, leader })
 end
 
----A follower beyond the join range plans to its slot, plans again only when the slot moves far, joins,
----and plans again when the leader leaves too far.
+---A follower beyond the join range plans to its slot, keeps its plan when the slot moves (a far move
+---is a refresh once the plan has come), joins, and plans again when the leader leaves too far.
 function OrdersTest:caseFollowOutOfRange()
     local name = "a follower out of range: "
     local ship = self:ship(Position(0, 0, 0))
@@ -1318,7 +1318,8 @@ function OrdersTest:caseFollowOutOfRange()
     self:check(planOf(order) == before, name .. "a slot that moved a little keeps the plan")
     leader.rb:setPos(Position(join * LEADER_BEYOND, join * SLOT_FAR_SHARE, 0))
     self:step()
-    self:check(planOf(order) ~= before and planOf(order) ~= nil, name .. "a slot that moved far makes a new plan")
+    -- The first plan is still out, and a drift never drops it: the slot is refreshed once it has come.
+    self:check(planOf(order) == before and planOf(order) ~= nil, name .. "a slot that moved far keeps the plan that is out")
 
     self:awaitPlan(order)
     local joined = self:flyUntil(function() return flight.tracking end, MAX_FLIGHT_S)
