@@ -45,7 +45,7 @@ function WorldLabelRenderSystem:draw(labeledEntities, moonDistThreshold)
         local dist = rel:length()
 
         -- Get camera axes
-        local camRot = camTransform:getRot()
+        local camRot = CameraManager:getViewRot()
         local camFwd = camRot:getForward()
         local camRight = camRot:getRight()
         local camUp = camRot:getUp()
@@ -55,7 +55,7 @@ function WorldLabelRenderSystem:draw(labeledEntities, moonDistThreshold)
         if dot < 0 then goto next_label end
 
         -- Project onto screen axes
-        local fovRad = math.rad(Config.render.camera.fov)
+        local fovRad = math.rad(CameraManager:getFov())
         local tanHalfFov = math.tan(fovRad / 2)
         local aspect = resX / resY
 
@@ -90,14 +90,14 @@ function WorldLabelRenderSystem:drawAsteroidMarkers(beltEntities, maxDist)
     local camTransform = camEntity:get(PhysicsComponents.Transform)
     if not camTransform then return end
     local camPos = camTransform:getPos()
-    local camRot = camTransform:getRot()
+    local camRot = CameraManager:getViewRot()
     local camFwd = camRot:getForward()
     local camRight = camRot:getRight()
     local camUp = camRot:getUp()
 
     local resX = Window:width()
     local resY = Window:height()
-    local fovRad = math.rad(Config.render.camera.fov)
+    local fovRad = math.rad(CameraManager:getFov())
     local tanHalfFov = math.tan(fovRad / 2)
     local aspect = resX / resY
 

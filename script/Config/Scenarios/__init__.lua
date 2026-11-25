@@ -66,6 +66,7 @@ local ids = {
     "TrinaryStarSystem",
     "WeaponTestbed",
     "ExplosionShowcase",
+    "SpeedFeelTest",
     "ShipShowcase",
     "StationShowcase",
     "MoonShowcase",

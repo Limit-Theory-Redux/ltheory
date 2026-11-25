@@ -39,7 +39,7 @@ function LensFlareSystem:drawAt(worldPos, opts)
     local camTransform = camEntity:get(PhysicsComponents.Transform)
     if not camTransform then return end
     local camPos = camTransform:getPos()
-    local camRot = camTransform:getRot()
+    local camRot = CameraManager:getViewRot()
 
     -- Check if light is in front of camera
     local rel = worldPos:relativeTo(camPos)
@@ -50,7 +50,7 @@ function LensFlareSystem:drawAt(worldPos, opts)
     -- Project to screen
     local camRight = camRot:getRight()
     local camUp = camRot:getUp()
-    local fovRad = math.rad(Config.render.camera.fov)
+    local fovRad = math.rad(CameraManager:getFov())
     local tanHalfFov = math.tan(fovRad / 2)
     local aspect = Window:width() / Window:height()
 
