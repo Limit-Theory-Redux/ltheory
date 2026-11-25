@@ -165,11 +165,10 @@ function AudioTest:onRender()
     pass:finish()
 end
 
-function AudioTest:onUpdate(dt)
+function AudioTest:onSim(data)
+    local dt = data:deltaTime()
     self.pos = self.pos + self.vel:scale(dt)
     self.vel:iscale(exp(-dt))
-
-    SoundManager:update(dt)
 
     do -- Play 'ambient' sound effects in a cloud around the listener
         -- WARNING : May cause extreme annoyance, nightmares, and/or euphoria.

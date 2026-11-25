@@ -353,7 +353,7 @@ function Test:buildGui()
     Gui:endGui()
 end
 
--- Built and drawn from the render event (`Application` never calls `onUpdate`).
+-- Built and drawn from the render event.
 function Test:onRender()
     self:buildGui()
     self:immediateUI(function()

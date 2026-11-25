@@ -1,6 +1,6 @@
 --- Deterministic UI coverage: every `DrawEx` shape, both text blends, nested
---- clipping and alpha, an icon, and an HmGui panel (rects, text, images). Used
---- to compare UI output across renderer changes (capture with LTHEORY_CAPTURE).
+--- clipping and alpha, and an icon. Used to compare UI output across renderer
+--- changes (capture with LTHEORY_CAPTURE).
 local Test = require('States.Application')
 local DrawEx = require('UI.DrawEx')
 
@@ -11,22 +11,6 @@ function Test:onInit()
 end
 
 function Test:onInput() end
-
-function Test:onUpdate(dt)
-    Gui:beginGui(self.resX, self.resY)
-
-    Gui:beginVerticalContainer()
-    Gui:text('HmGui text sample', Cache.Font('Unageo-Medium', 24), Color(1.0, 1.0, 1.0, 1.0))
-    Gui:text('Second line, smaller', Cache.Font('Unageo-Medium', 14), Color(0.7, 0.9, 1.0, 1.0))
-    Gui:button('Button A')
-    Gui:button('Button B')
-    Gui:checkbox('Checkbox', true)
-    Gui:image(self.icon)
-    Gui:endContainer()
-    Gui:setAlignment(AlignHorizontal.Right, AlignVertical.Bottom)
-
-    Gui:endGui()
-end
 
 function Test:onRender()
     self:immediateUI(function()
@@ -77,8 +61,6 @@ function Test:onRender()
         DrawEx.TextAlpha('Unageo-Medium', 'The quick brown fox jumps over the lazy dog', 11, 40, 600, 600, 16, 1, 1, 1, 1, 0, 0.5)
         DrawEx.TextAlpha('Unageo-Medium', 'The quick brown fox jumps over the lazy dog', 22, 40, 630, 800, 28, 1, 1, 1, 1, 0, 0.5)
         DrawEx.TextAlpha('Unageo-Medium', 'Kerning: AVATAR WAVE To Ty', 18, 40, 670, 800, 24, 1, 0.8, 0.6, 1, 0, 0.5)
-
-        Gui:draw()
     end)
 end
 
