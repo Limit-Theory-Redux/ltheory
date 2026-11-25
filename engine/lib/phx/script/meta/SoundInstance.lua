@@ -16,6 +16,7 @@ function SoundInstance:isStopped() end
 ---@return number
 function SoundInstance:getVolume() end
 
+-- Sets the volume as a linear amplitude, where `1.0` plays the sound unchanged.
 ---@param volume number
 ---@param fadeMillis integer
 function SoundInstance:setVolume(volume, fadeMillis) end
@@ -29,6 +30,7 @@ function SoundInstance:resume(fadeMillis) end
 ---@param fadeMillis integer
 function SoundInstance:stop(fadeMillis) end
 
+-- Releases the spatial track of a 3D sound, which stops the sound.
 function SoundInstance:freeEmitter() end
 
 ---@param position number

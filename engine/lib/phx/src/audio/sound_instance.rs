@@ -1,15 +1,15 @@
-use std::time::Duration;
-
-use kira::StartTime;
+use kira::Tween;
 use kira::sound::PlaybackState;
 use kira::sound::static_sound::StaticSoundHandle;
-use kira::spatial::emitter::EmitterHandle;
-use kira::tween::{Easing, Tween};
+use kira::track::SpatialTrackHandle;
 
+use super::convert::{amplitude_to_decibels, linear_tween};
 use crate::math::Position;
 
+/// The spatial track a 3D sound plays on. Dropping it removes the track and
+/// stops the sound.
 struct EmitterInfo {
-    emitter: EmitterHandle,
+    emitter: SpatialTrackHandle,
     position: Position,
     audio_origin: Position,
 }
@@ -24,7 +24,7 @@ impl SoundInstance {
     pub fn new(
         handle: StaticSoundHandle,
         init_volume: f64,
-        emitter: Option<(EmitterHandle, Position, Position)>,
+        emitter: Option<(SpatialTrackHandle, Position, Position)>,
     ) -> Self {
         Self {
             handle: Some(handle),
@@ -41,7 +41,10 @@ impl SoundInstance {
     fn update_kira_emitter_position(&mut self) {
         if let Some(emitter_info) = &mut self.emitter_info {
             emitter_info.emitter.set_position(
-                emitter_info.position.relative_to(emitter_info.audio_origin),
+                emitter_info
+                    .position
+                    .relative_to(emitter_info.audio_origin)
+                    .to_array(),
                 Tween::default(),
             );
         }
@@ -78,49 +81,33 @@ impl SoundInstance {
         self.volume
     }
 
+    /// Sets the volume as a linear amplitude, where `1.0` plays the sound unchanged.
     pub fn set_volume(&mut self, volume: f64, fade_millis: u64) {
         if let Some(handle) = &mut self.handle {
-            handle.set_volume(
-                volume,
-                Tween {
-                    duration: Duration::from_millis(fade_millis),
-                    ..Default::default()
-                },
-            );
+            handle.set_volume(amplitude_to_decibels(volume), linear_tween(fade_millis));
         }
         self.volume = volume;
     }
 
     pub fn pause(&mut self, fade_millis: u64) {
         if let Some(handle) = &mut self.handle {
-            handle.pause(Tween {
-                start_time: StartTime::Immediate,
-                duration: Duration::from_millis(fade_millis),
-                easing: Easing::Linear,
-            });
+            handle.pause(linear_tween(fade_millis));
         }
     }
 
     pub fn resume(&mut self, fade_millis: u64) {
         if let Some(handle) = &mut self.handle {
-            handle.resume(Tween {
-                start_time: StartTime::Immediate,
-                duration: Duration::from_millis(fade_millis),
-                easing: Easing::Linear,
-            });
+            handle.resume(linear_tween(fade_millis));
         }
     }
 
     pub fn stop(&mut self, fade_millis: u64) {
         if let Some(handle) = &mut self.handle {
-            handle.stop(Tween {
-                start_time: StartTime::Immediate,
-                duration: Duration::from_millis(fade_millis),
-                easing: Easing::Linear,
-            });
+            handle.stop(linear_tween(fade_millis));
         }
     }
 
+    /// Releases the spatial track of a 3D sound, which stops the sound.
     pub fn free_emitter(&mut self) {
         self.emitter_info = None;
     }
