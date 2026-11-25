@@ -60,7 +60,7 @@ function UIRouter:setCurrentPage(name)
     elseif not self.pages[name] then
         Log.Error("page does not exist")
         return nil
-    elseif name == self.currentPage then
+    elseif self.pages[name] == self.currentPage then
         Log.Warn("Already rendering this page: " .. name)
         return self.currentPage
     end
