@@ -470,9 +470,14 @@ function HmGui:setVerticalAlignment(align) end
 ---@param color Color
 function HmGui:setBorderColor(color) end
 
+-- Set the last widget's background colour: a panel in that colour is
+-- drawn behind its content. Fully transparent, the default, draws none.
 ---@param color Color
 function HmGui:setBackgroundColor(color) end
 
+-- Set how opaque the inside of the last widget's background is, 0 to 1
+-- (default 1); the background's shadow stays. Without a background
+-- colour there is nothing to draw either way.
 ---@param opacity number
 function HmGui:setOpacity(opacity) end
 
