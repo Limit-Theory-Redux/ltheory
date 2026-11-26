@@ -21,17 +21,35 @@ function EconomySetup.equipStation(station, definition, name)
     end
 end
 
+-- How many ore spots an asteroid's deposit shows.
+local ORE_SPOTS = 5
+
+---A unit direction, uniformly over the sphere.
+---@param rng RNG
+---@return Vec3f
+local function randomDirection(rng)
+    while true do
+        local x, y, z = rng:getUniformRange(-1, 1), rng:getUniformRange(-1, 1), rng:getUniformRange(-1, 1)
+        local length = math.sqrt(x * x + y * y + z * z)
+        if length > 0.1 and length <= 1 then return Vec3f(x / length, y / length, z / length) end
+    end
+end
+
 ---@param asteroid Entity
 ---@param item ItemDefinition
 ---@param quantity integer What it holds, and the most it grows back to
 ---@param regrowPerSecond number|nil
-function EconomySetup.equipAsteroid(asteroid, item, quantity, regrowPerSecond)
+---@param seed integer|nil Places the ore spots; the entity id when nil
+function EconomySetup.equipAsteroid(asteroid, item, quantity, regrowPerSecond, seed)
     for _, componentType in ipairs({ Economy.Item, Economy.Quantity, Economy.Yield }) do
         if asteroid:get(componentType) then asteroid:remove(componentType) end
     end
     asteroid:add(Economy.Item(item.id))
     asteroid:add(Economy.Quantity(quantity))
-    asteroid:add(Economy.Yield(quantity, regrowPerSecond))
+    local rng = RNG.Create(seed or asteroid.id)
+    local spots = {}
+    for i = 1, ORE_SPOTS do spots[i] = randomDirection(rng) end
+    asteroid:add(Economy.Yield(quantity, regrowPerSecond, spots))
 end
 
 ---@class EconomyAgentSpec

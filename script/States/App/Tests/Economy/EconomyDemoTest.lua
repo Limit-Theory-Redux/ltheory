@@ -38,12 +38,13 @@ end
 ---Waits, a frame at a time, until `done()` holds.
 ---@param done fun(): boolean
 ---@param what string Named in the failure when the wait runs out
+---@param detail (fun(): string)|nil Tells, when the wait runs out, what it was waiting on
 ---@return boolean reached
-function DemoTest:waitUntil(done, what)
+function DemoTest:waitUntil(done, what, detail)
     local start = MarketplaceSystem:now()
     while not done() do
         if MarketplaceSystem:now() - start > MAX_WAIT_S then
-            self:check(false, what, "ran out of time")
+            self:check(false, what, "ran out of time" .. (detail and ("; " .. detail()) or ""))
             return false
         end
         coroutine.yield()
@@ -108,6 +109,22 @@ function DemoTest:someoneSold(role)
     return false
 end
 
+---The ships not in `set`, with what each is doing.
+---@param set table<integer, boolean>
+---@return string
+function DemoTest:shipsMissing(set)
+    local parts = {}
+    for _, ship in ipairs(self.ships) do
+        if not set[ship.entity.id] then
+            local agent = ship.entity:get(Economy.EconomyAgent)
+            local phase = DockingSystem:phaseOf(ship.entity)
+            parts[#parts + 1] = string.format("%s (%s, state %s, docking phase %s)", ship.name,
+                agent and agent:getActivity() or "no agent", agent and tostring(agent:getState()) or "-", tostring(phase))
+        end
+    end
+    return table.concat(parts, "; ")
+end
+
 ---@return boolean
 function DemoTest:everyShip(set)
     for _, ship in ipairs(self.ships) do
@@ -139,7 +156,8 @@ function DemoTest:runCases()
     self:waitUntil(function() return self:someoneSold(Enums.EconomyAgentRole.Trader) end, "a trader sells")
     self:waitUntil(function() return self:someoneSold(Enums.EconomyAgentRole.Miner) end, "a miner sells ore")
     self:waitUntil(function() return self:idleStation() == nil end, "every station trades and produces")
-    self:waitUntil(function() return self:everyShip(self.docked) end, "every ship docks")
+    self:waitUntil(function() return self:everyShip(self.docked) end, "every ship docks",
+        function() return self:shipsMissing(self.docked) end)
     self:waitUntil(function() return next(self.undocked) ~= nil end, "a ship leaves a port")
 
     local expected = self.startCredits + self:incomePaid() - self.startIncome

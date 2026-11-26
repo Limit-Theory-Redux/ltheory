@@ -19,8 +19,6 @@ local Component = require("Core.ECS.Component")
 ---@field order Entity|nil The navigation order the agent flies, outside docking
 ---@field waitUntil number|nil Simulated seconds, while `Waiting` or docked
 ---@field resume boolean Whether the job goes on after an undocking or a wait
----@field mined number Ore mined in this mining run, with its fraction of a unit
----@field miningUntil number|nil Simulated seconds the mining run ends at, at the latest
 ---@field trips integer Jobs finished
 ---@field earned number Credits earned by sales, all told
 ---@field spent number Credits spent on purchases, all told
@@ -36,8 +34,6 @@ local EconomyAgentComponent = Subclass("EconomyAgentComponent", Component, funct
     self.order = nil
     self.waitUntil = nil
     self.resume = false
-    self.mined = 0
-    self.miningUntil = nil
     self.trips = 0
     self.earned = 0
     self.spent = 0

@@ -8,6 +8,7 @@ local Nav = require("Modules.Navigation")
 local PhysicsComponents = require("Modules.Physics.Components")
 local FlightProfile = require("Modules.Constructs.Components.FlightProfileComponent")
 local DockingSystem = require("Modules.Docking.Systems.DockingSystem")
+local MiningSystem = require("Modules.Economy.Systems.MiningSystem")
 local Economy = require("Modules.Economy.Components")
 local InventoryManager = require("Modules.Economy.Managers.InventoryManager")
 local AccountManager = require("Modules.Economy.Managers.AccountManager")
@@ -19,6 +20,12 @@ local DockingComponents = require("Modules.Docking.Components")
 
 local State = Enums.EconomyAgentState
 local Phase = Enums.DockingPhase
+
+-- The states of a leg: flying, or docking at the end of a flight.
+local LEG_STATES = { [State.DockingToBuy] = true, [State.DockingToSell] = true, [State.FlyingToMine] = true }
+
+-- The economy clock's time this update, for the states' start times.
+local currentNow = 0
 
 ---Runs the economic agents (`EconomyAgentComponent`): ships that pick a job from the markets and
 ---fly it. A trader buys an item at the station that asks least for it and sells it to one that
@@ -46,13 +53,16 @@ function EconomyAgentSystem:registerVars()
     self.estimateCandidates = 4
     -- Seconds added to a job's time for each docking.
     self.dockOverheadS = 40
-    -- A miner takes this many units a second, for at most `maxMiningS`, from `mineGapM` off the hull.
-    self.miningRate = 2
+    -- A miner's run lasts at most `maxMiningS`; it flies to `mineGapM` off the rock's hull first.
     self.maxMiningS = 120
     self.mineGapM = 250
     self.maxMinersPerAsteroid = 2
     -- A trade may pay this much over the planned buy price, or take this much under the planned sell price.
     self.priceSlack = 0.1
+    -- A flight or docking leg that hasn't ended after this many seconds is given up, with its job.
+    self.maxLegS = 900
+    -- A miner whose run took nothing leaves that rock alone for this many seconds.
+    self.badRockS = 300
     ---@type Entity[] Navigation orders cancelled and not yet ended, released once they have
     self.cancelled = {}
 end
@@ -82,6 +92,7 @@ function EconomyAgentSystem:update(dt)
     for ship, agent in Registry:view(Economy.EconomyAgent) do agents[#agents + 1] = { ship, agent } end
     self:collectClaims(agents)
     local now = MarketplaceSystem:now()
+    currentNow = now
     for _, entry in ipairs(agents) do
         local ship, agent = entry[1], entry[2]
         if ship:get(PhysicsComponents.RigidBody) and ship:get(Economy.Inventory) then
@@ -303,7 +314,7 @@ end
 ---@param ship Entity
 ---@param inventory InventoryComponent
 ---@return EconomyJob|nil
-function EconomyAgentSystem:planMining(ship, inventory)
+function EconomyAgentSystem:planMining(ship, agent, inventory)
     local stations = markets()
     local candidates = {}
     for asteroid, yield, item, quantity in Registry:iterEntities(Economy.Yield, Economy.Item, Economy.Quantity) do
@@ -311,7 +322,8 @@ function EconomyAgentSystem:planMining(ship, inventory)
         local rockKey = claimKey("rock", asteroid.id, itemId)
         local left = quantity:getQuantity() - self:claimed(rockKey)
         local miners = self.claims and self.claims["miners:" .. asteroid.id] or 0
-        if left > 0 and miners < self.maxMinersPerAsteroid then
+        local avoidUntil = agent.badRocks and agent.badRocks[asteroid.id]
+        if left > 0 and miners < self.maxMinersPerAsteroid and not (avoidUntil and currentNow < avoidUntil) then
             for _, station in ipairs(stations) do
                 local quote = MarketplaceSystem:quote(station, itemId, ship)
                 local demand = quote.demand - self:claimed(claimKey("bid", station.id, itemId))
@@ -328,7 +340,7 @@ function EconomyAgentSystem:planMining(ship, inventory)
                             time = function()
                                 return self:flightTime(ship, ship, asteroid)
                                     + self:flightTime(ship, departurePoint(asteroid), station)
-                                    + amount / self.miningRate + self.dockOverheadS
+                                    + amount / MiningSystem.rate + self.dockOverheadS
                             end,
                         }
                     end
@@ -366,6 +378,7 @@ end
 ---@param state EconomyAgentState
 ---@param activity string
 local function enter(agent, state, activity)
+    if agent.state ~= state then agent.stateSince = currentNow end
     agent.state = state
     agent.activity = activity
 end
@@ -473,12 +486,19 @@ function EconomyAgentSystem:step(ship, agent, now, dt)
     local state = agent.state
     local inventory = ship:get(Economy.Inventory)
 
+    if LEG_STATES[state] and now - (agent.stateSince or now) > self.maxLegS then
+        Log.Debug("[EconomyAgent] %s gave up %s after %.0f s", tostring(ship), agent.activity, now - agent.stateSince)
+        if DockingSystem:phaseOf(ship) then DockingSystem:release(ship) end
+        self:endJob(agent)
+        return self:wait(agent, now, self.idleRetryS, false)
+    end
+
     if state == State.Idle then
         local job = self:planSale(ship, agent, inventory)
         if job then
             job.stage = "sell"
         elseif agent.role == Enums.EconomyAgentRole.Miner then
-            job = self:planMining(ship, inventory)
+            job = self:planMining(ship, agent, inventory)
             if job then job.stage = "mine" end
         else
             job = self:planTrade(ship, inventory)
@@ -514,7 +534,7 @@ function EconomyAgentSystem:step(ship, agent, now, dt)
     elseif state == State.FlyingToMine then
         self:flyToMine(ship, agent, now)
     elseif state == State.Mining then
-        self:mine(ship, agent, inventory, now, dt)
+        self:mine(ship, agent, now)
     end
 end
 
@@ -561,48 +581,37 @@ end
 ---@param agent EconomyAgentComponent
 ---@param now number
 function EconomyAgentSystem:flyToMine(ship, agent, now)
-    if not alive(agent.job.source) then return self:endJob(agent) end
+    local rock = alive(agent.job.source)
+    if not rock then return self:endJob(agent) end
     local status = agent.order and Nav.status(agent.order)
     if status == Enums.NavOrderStatus.Done then
         self:dropOrder(agent)
-        -- The ship keeps its place by the asteroid, nose to it, while it mines.
-        agent.order = Nav.order(ship, Nav.Orders.Hold { facing = { target = alive(agent.job.source) } })
-        agent.mined = 0
-        agent.miningUntil = now + self.maxMiningS
+        local room = InventoryManager:getRoomFor(ship:get(Economy.Inventory), agent.job.itemId)
+        if not MiningSystem:begin(ship, rock, math.min(agent.job.quantity, room), self.maxMiningS, now) then
+            return self:endJob(agent)
+        end
         enter(agent, State.Mining, "mining " .. itemName(agent.job.itemId))
     elseif not status or status == Enums.NavOrderStatus.Failed or status == Enums.NavOrderStatus.Cancelled then
         self:endJob(agent)
     end
 end
 
+---Waits for the mining run to end, then sells what it took.
 ---@param ship Entity
 ---@param agent EconomyAgentComponent
----@param inventory InventoryComponent
 ---@param now number
----@param dt number
-function EconomyAgentSystem:mine(ship, agent, inventory, now, dt)
+function EconomyAgentSystem:mine(ship, agent, now)
+    local run = MiningSystem:runOf(ship)
+    if run and not run:isDone() then return end
+    local taken = MiningSystem:finish(ship)
     local job = agent.job
-    local asteroid = alive(job.source)
-    local deposit = asteroid and asteroid:get(Economy.Quantity)
-    local room = InventoryManager:getRoomFor(inventory, job.itemId)
-    local held = InventoryManager:count(inventory, job.itemId)
-
-    if deposit and room > 0 and held < job.quantity then
-        agent.mined = agent.mined + self.miningRate * dt
-        local whole = math.min(math.floor(agent.mined), deposit:getQuantity(), room, job.quantity - held)
-        if whole > 0 then
-            deposit:setQuantity(deposit:getQuantity() - whole)
-            InventoryManager:add(inventory, job.itemId, whole)
-            agent.mined = agent.mined - whole
-            held = held + whole
-        end
+    if taken <= 0 then
+        agent.badRocks = agent.badRocks or {}
+        agent.badRocks[job.source] = now + self.badRockS
     end
-
-    local done = not deposit or deposit:getQuantity() <= 0 or room <= 0 or held >= job.quantity or now >= agent.miningUntil
-    if not done then return end
-    self:dropOrder(agent)
     dropClaims(job, "rock:")
     dropClaims(job, "miners:")
+    local held = InventoryManager:count(ship:get(Economy.Inventory), job.itemId)
     if held <= 0 then return self:endJob(agent) end
     job.quantity = held
     job.stage = "sell"

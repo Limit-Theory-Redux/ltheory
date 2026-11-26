@@ -4,15 +4,12 @@
 
 local Registry          = require("Core.ECS.Registry")
 local PhysicsComponents = require("Modules.Physics.Components")
-local CelestialEntities = require("Modules.CelestialObjects.Entities")
-local RenderComp        = require("Modules.Rendering.Components").Render
-local Materials         = require("Shared.Registries.Materials")
-local AsteroidMeshPool  = require("Modules.CelestialObjects.Systems.AsteroidMeshPool")
 local StationGenerator  = require("Modules.Constructs.Managers.Generators.StationGenerator")
 local EntityPosition    = require("Shared.Helpers.EntityPosition")
 local Items             = require("Shared.Registries.Items")
 local StationEconomies  = require("Shared.Definitions.StationEconomyDefs")
 local EconomySetup      = require("Modules.Economy.Managers.EconomySetup")
+local OreField          = require("Shared.Helpers.OreField")
 local NavScene          = require("States.App.NavigationDemo.Scene")
 
 ---@class EconomyDemoStation
@@ -74,61 +71,17 @@ local function createStation(world, seed, position, parent)
     return station
 end
 
----An ore rock: an `Asteroid` entity that yields iron ore, with a mesh from the pool and a kinematic
----sphere body in `world`.
----@param world Physics
----@param seed integer
----@param position Position
----@param radius gameunit
----@return Entity
-local function createOreRock(world, seed, position, radius)
-    local entity = CelestialEntities.Asteroid(seed)
-    local transform = entity:get(PhysicsComponents.Transform)
-    transform:setPos(position)
-    transform:setScale(radius)
-    -- The constructor's render component holds no mesh; it is removed before the one with a mesh is added.
-    entity:remove(RenderComp)
-    local mesh = AsteroidMeshPool:getFromSeed(seed):get(0)
-    entity:add(RenderComp({ { mesh = mesh, material = Materials.Asteroid:instance() } }))
-
-    local rb = RigidBody.CreateSphere()
-    rb:setKinematic(true)
-    rb:setPos(position)
-    rb:setScale(radius)
-    entity:add(PhysicsComponents.RigidBody()):setRigidBody(rb)
-    world:addRigidBody(rb)
-    EconomySetup.equipAsteroid(entity, Items.RawMaterials.IronOre, ORE.quantity, ORE.regrowPerSecond)
-    return entity
-end
-
 ---@param world Physics
 ---@param scene EconomyDemoScene
 ---@param rng RNG
 local function buildOreField(world, scene, rng)
     local toGame = NavScene.toGame
-    local centre = NavScene.around(EntityPosition.Get(bodyNamed(scene, ORE.body)), ORE.angleDeg, ORE.distanceM)
-    scene.oreCentre = centre
-    scene.oreRocks = {}
-    local placed = {}
-    for _ = 1, ORE.count * 50 do
-        if #placed >= ORE.count then break end
-        local radiusM = rng:getUniformRange(ORE.minRadiusM, ORE.maxRadiusM)
-        local x, y, z = rng:getUniformRange(-1, 1), rng:getUniformRange(-0.25, 0.25), rng:getUniformRange(-1, 1)
-        local p = { x = x * ORE.halfExtentM, y = y * ORE.halfExtentM, z = z * ORE.halfExtentM, r = radiusM }
-        local free = true
-        for _, q in ipairs(placed) do
-            local dx, dy, dz = p.x - q.x, p.y - q.y, p.z - q.z
-            if math.sqrt(dx * dx + dy * dy + dz * dz) < p.r + q.r + ORE.gapM then
-                free = false
-                break
-            end
-        end
-        if free then
-            placed[#placed + 1] = p
-            local position = Position(centre.x + toGame(p.x), centre.y + toGame(p.y), centre.z + toGame(p.z))
-            scene.oreRocks[#scene.oreRocks + 1] = createOreRock(world, rng:get31(), position, toGame(radiusM))
-        end
-    end
+    scene.oreCentre = NavScene.around(EntityPosition.Get(bodyNamed(scene, ORE.body)), ORE.angleDeg, ORE.distanceM)
+    scene.oreRocks = OreField.build(world, rng, {
+        centre = scene.oreCentre, halfExtent = toGame(ORE.halfExtentM), count = ORE.count,
+        minRadius = toGame(ORE.minRadiusM), maxRadius = toGame(ORE.maxRadiusM), gap = toGame(ORE.gapM),
+        item = Items.RawMaterials.IronOre, quantity = ORE.quantity, regrowPerSecond = ORE.regrowPerSecond,
+    })
 end
 
 ---Builds the navigation demo's system, then the stations and the ore field, and equips them.

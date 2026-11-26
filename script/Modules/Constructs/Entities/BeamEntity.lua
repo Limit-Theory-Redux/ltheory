@@ -5,6 +5,7 @@ local Rendering = require("Modules.Rendering.Components")
 local Constructs = require("Modules.Constructs.Components")
 local CameraManager = require("Modules.Cameras.Managers.CameraManager")
 local Pipelines = require("Render.Pipelines")
+local Primitive = require("Legacy.Systems.Gen.Primitive")
 
 local ffi = require("ffi")
 
@@ -51,7 +52,7 @@ local function render(entity, blendMode)
     end
 
     if not beamMesh then
-        beamMesh = Gen.Primitive.Billboard(-1, 0, 1, 1)
+        beamMesh = Primitive.Billboard(-1, 0, 1, 1)
         beamShader = Cache.Shader("billboard/axis_draw", "effect/beam_draw")
         DrawBlock = beamShader:blockType("DrawBlock")
     end
