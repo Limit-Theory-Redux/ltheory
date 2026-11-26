@@ -6,10 +6,11 @@
 -- rocks that come close get a signature too.
 --
 -- Passive contacts update all the time; X (held) scans the target, Z sends a
--- pulse. The text lists the contacts, the target and the scan, and the keys
--- change the hull, the surroundings, the fighter's activity and the model's
--- rules. Regenerate (B) puts everything back around the ship as it is now and
--- clears what the sensor learned.
+-- pulse. The sensor HUD (UIComponent.SensorHud) shows the radar, the contacts
+-- and the scan; the text shows the settings and the keys, which change the
+-- hull, the surroundings, the fighter's activity and the model's rules.
+-- Regenerate (B) puts everything back around the ship as it is now and clears
+-- what the sensor learned.
 --
 -- The objects' sensor values (size, power draw, what a scan reads) are the
 -- sensor model's reference scene, so they read as in the model's own test.
@@ -27,7 +28,7 @@ local UniverseScaleConfig = require("Config.Gen.UniverseScaleConfig")
 local SensorComponents = require("Modules.Sensors.Components")
 local SensorSystem = require("Modules.Sensors.Systems.SensorSystem")
 local SensorModel = require("Modules.Sensors.SensorModel")
-local SensorText = require("Modules.Sensors.SensorText")
+local SensorPicture = require("Modules.Sensors.SensorPicture")
 
 -- The scene around the ship: distance (m) and bearing (degrees clockwise from
 -- the nose, in the ship's plane), the sensor values, and what a T3 and a T4
@@ -79,7 +80,11 @@ local FIRST_TARGET = 2 -- the freighter
 local STAR_REFERENCE = { dist = 6e7, em = 1e7, heat = 1e10, glow = 3e10 }
 local PLANET_HEAT = 50
 
-local MAX_CONTACT_LINES = 6
+local sensorHud = UIComponent.SensorHud {
+    -- The HUD's size: the window height, times the UI Scale setting
+    scale = function() return Window:height() / 1080 * GameState.ui.hudScale end,
+    scanHint = "HOLD X TO SCAN",
+}
 
 ---@param game table
 ---@return SensorComponent|nil
@@ -216,21 +221,6 @@ local function signBeltRocks()
     end
 end
 
---- The contacts, strongest tier first, then nearest.
-local function contacts(sensor)
-    local readings = sensor:getReadings()
-    local list = {}
-    for _, o in ipairs(sensor:getObjects()) do
-        local r = readings[o]
-        if r and r.tier >= 1 then list[#list + 1] = { o = o, r = r } end
-    end
-    table.sort(list, function(a, b)
-        if a.r.tier ~= b.r.tier then return a.r.tier > b.r.tier end
-        return SensorModel.distance(a.o) < SensorModel.distance(b.o)
-    end)
-    return list
-end
-
 --- Everything the sensor sees, nearest first: what Tab cycles through.
 local function byDistance(sensor)
     local list = {}
@@ -275,53 +265,6 @@ local function reset(game)
     data.wantTarget = data.objects[FIRST_TARGET]
 end
 
-local function targetLines(sensor)
-    local o = sensor:getTarget()
-    if not o then return { "TARGET: NONE (TAB PICKS ONE)" } end
-    local state = sensor:getState()
-    local r = sensor:getReadings()[o]
-    if not r then return { "TARGET: " .. string.upper(o.label) } end
-    local d = string.upper(SensorText.distance(SensorModel.distance(o)))
-    if r.tier < 1 then
-        return {
-            string.format("TARGET: %s (FROM THE MAP) · %s · NO CONTACT: %s", string.upper(o.label), d, string.upper(r.why)),
-            "NOTHING TO AIM AT: TRY A PULSE, OR GET CLOSER",
-        }
-    end
-    local scan = SensorModel.scanEcho(state, r.passive)
-    local read = state.reads[o] or 0
-    local lines = { string.format("TARGET: T%d · %s · ECHO SNR %s", r.tier, SensorText.contact(o, r), SensorText.number(scan.snr)) }
-    local ranges = SensorModel.ranges(state, o)
-    local status
-    if state.scanning and scan.level > read then
-        status = string.format("SCANNING: READING T%d · %d%%", scan.level, math.floor((state.progress[o] or 0) * 100))
-    elseif state.scanning and scan.level == 0 then
-        status = "SCANNING: ECHO TOO WEAK, GET CLOSER (T3 WITHIN " .. string.upper(SensorText.distance(ranges.scan3)) .. ")"
-    elseif state.scanning then
-        status = "SCANNING: NOTHING MORE TO READ FROM HERE"
-    elseif scan.level < 3 then
-        status = "TOO WEAK TO READ · T3 WITHIN " .. string.upper(SensorText.distance(ranges.scan3))
-    elseif scan.level < 4 then
-        status = "READS T3 · T4 WITHIN " .. string.upper(SensorText.distance(ranges.scan4)) .. " · HOLD X TO SCAN"
-    else
-        status = "READS T4: EVERYTHING · HOLD X TO SCAN"
-    end
-    lines[#lines + 1] = status
-    if read >= 3 then
-        local parts = { SensorText.name(o) }
-        if o.details then parts[#parts + 1] = o.details end
-        if (o.mw or 0) > 0 then parts[#parts + 1] = "DRAWING " .. SensorText.power(o.mw) end
-        if o.kind == "ship" and o.activity ~= "idle" then
-            parts[#parts + 1] = string.upper(SensorModel.activityNames[o.activity])
-        end
-        if read >= 4 and o.contents then
-            for _, line in ipairs(o.contents) do parts[#parts + 1] = line end
-        end
-        lines[#lines + 1] = "READ: " .. table.concat(parts, " · ")
-    end
-    return lines
-end
-
 return {
     name = "Sensor Testbed",
     description = "Passive and active sensors on your ship; X scans, Z pulses, 1 2 3 pick a hull.",
@@ -358,6 +301,7 @@ return {
         signCelestials(game)
         game.playerShip:add(SensorComponents.Sensor(SensorModel.hulls[data.hull]))
         data.wantTarget = data.objects[FIRST_TARGET]
+        sensorHud:update(nil)
     end,
 
     update = function(game, dt)
@@ -377,7 +321,12 @@ return {
                 end
             end
         end
+        local body = game.playerShip:get(PhysicsComponents.RigidBody)
+        sensorHud:update(SensorPicture.build(sensor, body:getForward(), body:getRight(),
+            SensorModel.hullNames[data.hull]), dt)
     end,
+
+    hud = { sensorHud },
 
     regenerate = reset,
 
@@ -428,41 +377,15 @@ return {
         local data = game.scenarioData
         local sensor = sensorOf(game)
         if not sensor then return { "Sensor Testbed" } end
-        local state = sensor:getState()
-        local dials = state.dials
         local fighter = data.objects[FIGHTER]:get(SensorComponents.SensorSignature)
-
-        local lines = {
+        return {
             string.format("SENSOR TESTBED · %s · %s · %s RULE · MERGE %s · FIGHTER %s",
                 string.upper(SensorModel.hullNames[data.hull]),
-                string.upper(SensorModel.surroundingsNames[state.surroundings]),
-                string.upper(state.resolutionRule),
-                state.merge and "ON" or "OFF",
+                string.upper(SensorModel.surroundingsNames[sensor:getSurroundings()]),
+                string.upper(sensor:getResolutionRule()),
+                sensor:isMerging() and "ON" or "OFF",
                 string.upper(SensorModel.activityNames[fighter:getActivity()])),
-            string.format("YOU: %s, HEARD WITHIN %s (EM) · HEAT %d%%%s%s",
-                SensorText.power(dials.ownMw),
-                string.upper(SensorText.distance(SensorModel.heardWithin(dials.ownMw))),
-                math.floor(state.heat * 100),
-                state.heat >= SensorModel.constants.bloom and " (THERMAL BLOOM)" or "",
-                state.pulseAge < SensorModel.constants.pulseEchoTime and string.format(
-                    " · PULSE HEARD WITHIN %s, BY %d",
-                    string.upper(SensorText.distance(SensorModel.heardWithin(dials.power))), state.pulseHeardBy) or ""),
+            "X scan (hold) · Z pulse · Tab target · 1 2 3 hull · 4 surroundings · 5 fighter · 6 rule · 7 merge · B reset",
         }
-
-        local list = contacts(sensor)
-        for i = 1, math.min(MAX_CONTACT_LINES, #list) do
-            local c = list[i]
-            local marker = c.o == sensor:getTarget() and "> " or "   "
-            lines[#lines + 1] = string.format("%sT%d %s   (%s)", marker, c.r.tier, SensorText.contact(c.o, c.r), c.r.why)
-        end
-        if #list > MAX_CONTACT_LINES then
-            lines[#lines] = lines[#lines] .. string.format("   +%d MORE", #list - MAX_CONTACT_LINES)
-        elseif #list == 0 then
-            lines[#lines + 1] = "   NO CONTACTS"
-        end
-
-        for _, line in ipairs(targetLines(sensor)) do lines[#lines + 1] = line end
-        lines[#lines + 1] = "X scan (hold) · Z pulse · Tab target · 1 2 3 hull · 4 surroundings · 5 fighter · 6 rule · 7 merge · B reset"
-        return lines
     end,
 }
