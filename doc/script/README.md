@@ -4,3 +4,4 @@
 1. [Entity Component System](ecs.md)
 1. [Modules](modules.md)
 1. [HmGui](../../script/UI/HmGui/README.md)
+1. [Sensors](sensors.md)
