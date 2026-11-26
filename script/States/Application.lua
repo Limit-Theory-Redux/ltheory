@@ -38,7 +38,6 @@ end
 function Application:onInit() end
 function Application:onDraw() end
 function Application:onResize(sx, sy) end
-function Application:onUpdate(dt) end
 function Application:onExit() end
 
 function Application:quit()

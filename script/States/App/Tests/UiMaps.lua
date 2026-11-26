@@ -42,7 +42,6 @@ function Test:onInit()
 end
 
 function Test:onInput() end
-function Test:onUpdate(dt) end
 
 local alpha = { blend = BlendMode.Alpha }
 local additive = { blend = BlendMode.Additive }
