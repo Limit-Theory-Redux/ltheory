@@ -90,7 +90,31 @@ stateDiagram-v2
 - **Claims.** A job holds the quantities it plans to buy, sell and mine against the other agents'
   plans, and at most `maxMinersPerAsteroid` miners work a rock.
 - **Flights.** Docking legs use `DockingSystem:requestDock`; a ship docked elsewhere undocks first. A
-  miner flies a `MoveTo` with a stand-off of `mineGapM` from the rock, then holds there facing it,
-  taking `miningRate` units a second.
+  miner flies a `MoveTo` with a stand-off of `mineGapM` from the rock and hands over to
+  `MiningSystem` (see [Mining](#mining)). A leg that hasn't ended after `maxLegS` is given up with its
+  job; a ship with nothing to do docks at the nearest station to wait, and keeps looking for work on
+  the way.
 - **Trades** happen docked, after `serviceS`, at once, within `priceSlack` of the planned price.
   What didn't sell is sold by the next job.
+
+## Mining
+
+`MiningSystem` runs a miner's run at its rock (`MiningComponent` on the ship, from `begin` to
+`finish`):
+
+- The ship's controls are claimed and its body made kinematic. It glides onto a circle just off the
+  rock's surface (`clearance`), at the latitude of the deposit's main ore spot, and flies round it at
+  `circleSpeed` with its nose on the rock.
+- A deposit (`YieldComponent`) has ore spots: directions in the rock's own axes. The laser (a beam that
+  does no damage, `MiningLaserDefs`) plays on the spot that faces the ship most, and ore is taken only
+  while it does, at `rate` units a second.
+- The run ends when the hold is full, its quantity is taken, the rock is empty or gone, or time is up;
+  the body and controls go back to the ship's orders. A run that took nothing makes the miner leave
+  that rock alone for `badRockS`.
+
+`MiningEffectsSystem` shows it: the laser flickers; sparks flash at the spot; chips of ore break off
+it and drift into the miner; a deposit's rock shrinks to `minRockScale` of its size as it is mined
+out, grows back as it regrows, and tumbles slowly.
+
+`Testbeds/Mining` is a light scene to watch it in: an ore field, a refinery and three miners, no
+player ship, the orbit camera on the miner that starts mining first (Left and Right pick another).

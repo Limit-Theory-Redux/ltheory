@@ -45,7 +45,8 @@ function OreField.createRock(world, seed, position, radius, item, quantity, regr
     local mesh = AsteroidMeshPool:getFromSeed(seed):get(0)
     entity:add(RenderComp({ { mesh = mesh, material = Materials.Asteroid:instance() } }))
 
-    local rb = RigidBody.CreateSphere()
+    -- The hull of the drawn mesh, so that rays (a mining laser) and contacts meet the surface seen.
+    local rb = RigidBody.CreateConvexHullFromMesh(mesh)
     rb:setKinematic(true)
     rb:setPos(position)
     rb:setScale(radius)

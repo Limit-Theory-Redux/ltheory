@@ -17,6 +17,8 @@ local Component = require("Core.ECS.Component")
 ---@field fromRot Quat The ship's orientation when it arrived
 ---@field beam Entity|nil The laser, while it is on
 ---@field lasing boolean Whether the laser is on an ore spot this frame
+---@field charge number 0 to 1: what is left of the laser's capacitor
+---@field recharging boolean Whether the capacitor is refilling, the laser off
 ---@overload fun(self: MiningComponent, rock: integer, itemId: integer, quantity: integer, untilTime: number): MiningComponent subclass internal
 ---@overload fun(rock: integer, itemId: integer, quantity: integer, untilTime: number): MiningComponent subclass external
 local MiningComponent = Subclass("MiningComponent", Component, function(self, rock, itemId, quantity, untilTime)
@@ -46,6 +48,12 @@ end
 ---@return boolean
 function MiningComponent:isLasing()
     return self.lasing
+end
+
+---@return number charge 0 to 1
+---@return boolean recharging
+function MiningComponent:getCharge()
+    return self.charge or 0, self.recharging == true
 end
 
 return MiningComponent

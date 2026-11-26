@@ -2,22 +2,27 @@ local Registry = require("Core.ECS.Registry")
 local Entity = require("Core.ECS.Entity")
 local QuickProfiler = require("Shared.Tools.QuickProfiler")
 local ScaleConfig = require("Config.Gen.UniverseScaleConfig")
+local RaycastHelper = require("Shared.Helpers.RaycastHelper")
 local MiningLaser = require("Shared.Definitions.MiningLaserDefs")
 local Nav = require("Modules.Navigation")
 local PhysicsComponents = require("Modules.Physics.Components")
 local ConstructEntities = require("Modules.Constructs.Entities")
+local ConstructComponents = require("Modules.Constructs.Components")
 local Economy = require("Modules.Economy.Components")
 local InventoryManager = require("Modules.Economy.Managers.InventoryManager")
 
 -- Design: doc/script/economy.md
 
----Mines asteroids. A ship that begins a run (`begin`) has its controls claimed and its body made
----kinematic; it glides onto a circle just off the rock's surface and flies round it slowly, nose
----to the rock. Its laser plays on the ore spot of the rock's deposit (`YieldComponent:getSpots`)
----that faces the ship most, and ore is taken while it does, at `rate` units a second, from the
----rock's quantity into the ship's hold. The run ends when the hold is full, the run's quantity is
----taken, the rock is empty or gone, or time is up; the ship's body and controls are given back
----then and the run is marked done for whoever asked for it (`isDone`, `finish`). Runs at PreSim.
+---Mines asteroids. A ship that begins a run (`begin`) has its controls claimed and its body taken
+---out of physics (kinematic, not collidable). It is given an ore spot of the rock's deposit
+---(`YieldComponent:getSpots`) that no other miner of the rock works if there is one, and a circle
+---of its own round the rock: in a plane through that spot, at a radius that clears the rock and the
+---ship, flown one way or the other at a speed of its own. It glides onto the circle and flies it,
+---nose to where its laser hits. The laser leaves the ship's nose and stops where a ray toward the
+---spot meets the rock's surface; it is on while the spot faces the ship, and ore is taken while
+---it is, at `rate` units a second. The run ends when the hold is full, the run's quantity is
+---taken, the rock is empty or gone, or time is up; the body and controls go back to the ship's
+---orders then and the run is marked done (`isDone`, `finish`). Runs at PreSim.
 ---@class MiningSystem
 local MiningSystem = Class("MiningSystem", function(self)
     self:registerVars()
@@ -26,16 +31,32 @@ end)
 
 function MiningSystem:registerVars()
     self.profiler = QuickProfiler("MiningSystem", false, false)
-    -- Units of ore a second while the laser is on a spot.
-    self.rate = 2
-    -- The circle: this far off the rock's surface, flown at this speed.
-    self.clearance = ScaleConfig:toGameUnits(250, "starSystem")
+    self.rng = RNG.FromTime()
+    -- Units of ore a second while the laser is on the rock.
+    self.rate = 0.6
+    -- The laser fires in pulses: `pulseOnS` on, `pulseOffS` off, each on a point of its own near the
+    -- spot (within `pulseSpread` of the rock's radius). A full capacitor holds `pulsesPerCharge`; an
+    -- empty one recharges in `rechargeS` while the ship keeps circling, and the next pulses go to the
+    -- spot that faces the ship then. A run is so many short shots over several spots.
+    self.pulseOnS = 2.5
+    self.pulseOffS = 1.2
+    self.pulseSpread = 0.15
+    self.pulsesPerCharge = 5
+    self.rechargeS = 6
+    -- The circle: this far off the rock's surface plus a few ship radii, with up to `radiusSpread`
+    -- of the rock's radius more, flown at `circleSpeed` (each run within `speedSpread` of it).
+    self.clearance = ScaleConfig:toGameUnits(150, "starSystem")
+    self.shipRadii = 3
+    self.radiusSpread = 0.35
     self.circleSpeed = ScaleConfig:toGameUnits(40, "starSystem")
-    -- Seconds the glide from where the ship arrived onto the circle takes.
-    self.settleS = 4
-    -- The laser reaches a spot whose direction is within this cosine of the ship's.
-    self.minSpotCosine = 0.3
-    self.clock = 0
+    self.speedSpread = 0.3
+    -- The glide from where the ship arrived onto the circle: at this speed, within these seconds.
+    self.settleSpeed = ScaleConfig:toGameUnits(150, "starSystem")
+    self.minSettleS, self.maxSettleS = 3, 20
+    -- The laser reaches the spot while the spot faces the ship within this cosine.
+    self.minSpotCosine = 0.15
+    ---@type table<integer, table<integer, integer>> Rock id -> spot index -> ship id working it
+    self.spotUsers = {}
 end
 
 function MiningSystem:registerEvents()
@@ -61,6 +82,54 @@ local function bodyOf(entity)
     return rbCmp and rbCmp:getRigidBody() or nil
 end
 
+---The physics world of the navigation world: where the rocks' bodies are.
+---@return Physics|nil
+local function physicsWorld()
+    for _, navWorld in Registry:view(Nav.Components.NavWorld) do return navWorld:getPhysics() end
+    return nil
+end
+
+---@param a Vec3f
+---@param b Vec3f
+---@return Vec3f
+local function cross(a, b)
+    return Vec3f(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x)
+end
+
+---A direction in the body's axes, in world axes.
+---@param body RigidBody
+---@param local3 Vec3f
+---@return Vec3f
+function MiningSystem:worldDirection(body, local3)
+    local rot = body:getRot()
+    local right, up, forward = rot:getRight(), rot:getUp(), rot:getForward()
+    return Vec3f(
+        right.x * local3.x + up.x * local3.y + forward.x * local3.z,
+        right.y * local3.x + up.y * local3.y + forward.y * local3.z,
+        right.z * local3.x + up.z * local3.y + forward.z * local3.z)
+end
+
+---The spot of the rock's deposit for a new run: one nobody works, nearest the ship; else any.
+---@param rock Entity
+---@param rockBody RigidBody
+---@param from Position
+---@return integer|nil index
+function MiningSystem:pickSpot(rock, rockBody, from)
+    local spots = rock:get(Economy.Yield) and rock:get(Economy.Yield):getSpots() or {}
+    if #spots == 0 then return nil end
+    local users = self.spotUsers[rock.id] or {}
+    local centre = rockBody:getPos()
+    local toShip = Vec3f(from.x - centre.x, from.y - centre.y, from.z - centre.z):normalize()
+    local best, bestScore = nil, -math.huge
+    for index, local3 in ipairs(spots) do
+        local dir = self:worldDirection(rockBody, local3)
+        local score = dir.x * toShip.x + dir.y * toShip.y + dir.z * toShip.z
+        if users[index] and alive(users[index]) then score = score - 10 end
+        if score > bestScore then best, bestScore = index, score end
+    end
+    return best
+end
+
 ---Starts a mining run of the ship at the rock, from where the ship is now.
 ---@param ship Entity A ship that takes navigation orders, with an inventory
 ---@param rock Entity An asteroid with Yield, Item and Quantity
@@ -77,16 +146,67 @@ function MiningSystem:begin(ship, rock, quantity, maxSeconds, now)
     local pos, centre = shipBody:getPos(), rockBody:getPos()
     mining.from = pos
     mining.fromRot = shipBody:getRot()
-    mining.radius = rockBody:getBoundingRadius() + self.clearance
-    mining.angle = math.atan2(pos.z - centre.z, pos.x - centre.x)
-    -- The circle passes at the latitude of the deposit's first spot, so the laser reaches a spot
-    -- on each lap; a deposit without spots is circled at the height the ship came at.
-    local spots = rock:get(Economy.Yield) and rock:get(Economy.Yield):getSpots() or {}
-    local latitude = spots[1] and self:worldDirection(rockBody, spots[1]).y or (pos.y - centre.y) / mining.radius
-    mining.height = math.max(-0.7, math.min(0.7, latitude)) * mining.radius
+
+    -- The spot, held for this ship.
+    mining.spot = self:pickSpot(rock, rockBody, pos)
+    if mining.spot then
+        self.spotUsers[rock.id] = self.spotUsers[rock.id] or {}
+        self.spotUsers[rock.id][mining.spot] = ship.id
+    end
+
+    -- The circle: in a plane through the spot (so the ship passes over it each lap), tilted about
+    -- it at random, at a radius and speed of its own, one way round or the other.
+    local spotDir = mining.spot and self:worldDirection(rockBody, rock:get(Economy.Yield):getSpots()[mining.spot])
+        or Vec3f(pos.x - centre.x, pos.y - centre.y, pos.z - centre.z):normalize()
+    local any = Vec3f(self.rng:getUniformRange(-1, 1), self.rng:getUniformRange(-1, 1), self.rng:getUniformRange(-1, 1))
+    local normal = cross(spotDir, any)
+    if normal:length() < 1e-4 then normal = cross(spotDir, Vec3f(0, 1, 0)) end
+    normal = normal:normalize()
+    mining.axisU = spotDir
+    mining.axisV = cross(normal, spotDir):normalize()
+    local rockRadius = rockBody:getBoundingRadius()
+    mining.radius = rockRadius * (1 + self.rng:getUniformRange(0, self.radiusSpread))
+        + self.clearance + shipBody:getBoundingRadius() * self.shipRadii
+    mining.direction = self.rng:getUniformRange(0, 1) < 0.5 and -1 or 1
+    mining.speed = self.circleSpeed * self.rng:getUniformRange(1 - self.speedSpread, 1 + self.speedSpread)
+    -- Start where the ship's direction from the rock falls on the circle.
+    local rel = Vec3f(pos.x - centre.x, pos.y - centre.y, pos.z - centre.z)
+    mining.angle = math.atan2(rel.x * mining.axisV.x + rel.y * mining.axisV.y + rel.z * mining.axisV.z,
+        rel.x * mining.axisU.x + rel.y * mining.axisU.y + rel.z * mining.axisU.z)
+    local start = self:circlePoint(mining, centre)
+    local d = Vec3f(start.x - pos.x, start.y - pos.y, start.z - pos.z):length()
+    mining.settleS = math.max(self.minSettleS, math.min(self.maxSettleS, d / self.settleSpeed))
+    mining.charge, mining.recharging = 1, false
+    mining.pulseTimer, mining.pulseOn = 0, false
+
     Nav.claim(ship)
+    -- Kinematic and out of collisions: a ship circling just off a rock would make contacts with it.
     shipBody:setKinematic(true)
+    shipBody:setCollidable(false)
     return true
+end
+
+---Moves the run to the free spot that faces the ship most, giving up the one it held.
+---@param ship Entity
+---@param rock Entity
+---@param rockBody RigidBody
+---@param mining MiningComponent
+---@param at Position
+function MiningSystem:changeSpot(ship, rock, rockBody, mining, at)
+    local users = self.spotUsers[rock.id] or {}
+    self.spotUsers[rock.id] = users
+    if mining.spot and users[mining.spot] == ship.id then users[mining.spot] = nil end
+    mining.spot = self:pickSpot(rock, rockBody, at)
+    if mining.spot then users[mining.spot] = ship.id end
+end
+
+---@param mining MiningComponent
+---@param centre Position
+---@return Position
+function MiningSystem:circlePoint(mining, centre)
+    local c, s = math.cos(mining.angle) * mining.radius, math.sin(mining.angle) * mining.radius
+    local u, v = mining.axisU, mining.axisV
+    return Position(centre.x + u.x * c + v.x * s, centre.y + u.y * c + v.y * s, centre.z + u.z * c + v.z * s)
 end
 
 ---@param ship Entity
@@ -107,13 +227,20 @@ function MiningSystem:finish(ship)
     return taken
 end
 
----Ends the run: the laser off, the body and controls given back.
+---Ends the run: the laser off, the spot given up, the body and controls given back.
 ---@param ship Entity
 ---@param mining MiningComponent
 function MiningSystem:stop(ship, mining)
     self:laserOff(mining)
+    if mining.emitter and Registry:hasEntity(mining.emitter) then Registry:destroyEntity(mining.emitter) end
+    mining.emitter = nil
+    local users = self.spotUsers[mining.rock]
+    if users and mining.spot and users[mining.spot] == ship.id then users[mining.spot] = nil end
     local body = bodyOf(ship)
-    if body then body:setKinematic(false) end
+    if body then
+        body:setKinematic(false)
+        body:setCollidable(true)
+    end
     Nav.unclaim(ship)
     mining.lasing = false
     mining.done = true
@@ -127,7 +254,6 @@ end
 
 ---@param dt number
 function MiningSystem:update(dt)
-    self.clock = self.clock + dt
     self.profiler:start()
     local runs = {}
     for ship, mining in Registry:view(Economy.Mining) do runs[#runs + 1] = { ship, mining } end
@@ -154,27 +280,63 @@ function MiningSystem:updateRun(ship, mining, dt)
     local shipBody = bodyOf(ship)
     if not rockBody or not deposit or not shipBody then return self:stop(ship, mining) end
 
-    -- Fly: glide onto the circle, then round it, nose to the rock.
+    -- Fly: glide onto the circle, then round it.
     local centre = rockBody:getPos()
-    mining.angle = mining.angle + self.circleSpeed / mining.radius * dt
-    local onCircle = Position(
-        centre.x + math.cos(mining.angle) * mining.radius,
-        centre.y + mining.height,
-        centre.z + math.sin(mining.angle) * mining.radius)
-    mining.settle = math.min(1, mining.settle + dt / self.settleS)
+    mining.angle = mining.angle + mining.direction * mining.speed / mining.radius * dt
+    local onCircle = self:circlePoint(mining, centre)
+    mining.settle = math.min(1, mining.settle + dt / mining.settleS)
     local s = smoothstep(mining.settle)
     local from = mining.from
     local at = Position(from.x + (onCircle.x - from.x) * s, from.y + (onCircle.y - from.y) * s,
         from.z + (onCircle.z - from.z) * s)
-    local toRock = Vec3f(centre.x - at.x, centre.y - at.y, centre.z - at.z):normalize()
-    local facing = Quat.FromLook(toRock, Vec3f(0, 1, 0))
-    shipBody:setKinematicTarget(at, s < 1 and mining.fromRot:slerp(facing, s) or facing)
 
-    -- Lase the spot that faces the ship most, once on the circle.
-    local spot = s >= 1 and self:visibleSpot(rock, rockBody, at) or nil
-    mining.lasing = spot ~= nil
-    if spot then
-        self:laserOn(ship, mining, spot)
+    -- The capacitor: an empty one recharges in full before the laser fires again, and the next
+    -- pulses go to the spot that faces the ship then.
+    if mining.recharging then
+        mining.charge = math.min(1, mining.charge + dt / self.rechargeS)
+        if mining.charge >= 1 then
+            mining.recharging = false
+            mining.pulseTimer, mining.pulseOn = 0, false
+            self:changeSpot(ship, rock, rockBody, mining, at)
+        end
+    end
+
+    -- The pulses: on and off in turn while there is charge; each new pulse spends a share of it and
+    -- takes a point of its own near the spot.
+    local firing = false
+    if s >= 1 and not mining.recharging then
+        mining.pulseTimer = mining.pulseTimer - dt
+        if mining.pulseTimer <= 0 then
+            mining.pulseOn = not mining.pulseOn
+            mining.pulseTimer = mining.pulseOn and self.pulseOnS * self.rng:getUniformRange(0.7, 1.3)
+                or self.pulseOffS * self.rng:getUniformRange(0.6, 1.4)
+            if mining.pulseOn then
+                mining.charge = mining.charge - 1 / self.pulsesPerCharge
+                local spread = self.pulseSpread
+                mining.pulseOffset = Vec3f(self.rng:getUniformRange(-spread, spread), self.rng:getUniformRange(-spread, spread),
+                    self.rng:getUniformRange(-spread, spread))
+            elseif mining.charge <= 1e-6 then
+                mining.charge, mining.recharging = 0, true
+            end
+        end
+        firing = mining.pulseOn
+    end
+
+    -- Aim at the spot when it faces the ship, else at the rock's centre; the nose follows the aim.
+    local spotPoint = firing and self:visibleSpot(rock, rockBody, mining, at) or nil
+    local aim = spotPoint or mining.lastAim or centre
+    if spotPoint then mining.lastAim = spotPoint end
+    local toAim = Vec3f(aim.x - at.x, aim.y - at.y, aim.z - at.z):normalize()
+    local facing = Quat.FromLook(toAim, mining.axisV)
+    mining.facing = mining.facing and mining.facing:slerp(facing, math.min(1, dt * 2)) or facing
+    shipBody:setKinematicTarget(at, s < 1 and mining.fromRot:slerp(mining.facing, s) or mining.facing)
+
+    -- The laser, from the nose to where a ray toward the spot meets the rock.
+    local nose = self:nosePoint(shipBody, at, mining.facing)
+    local hit = spotPoint and self:surfaceHit(nose, spotPoint, rockBody, shipBody) or nil
+    mining.lasing = hit ~= nil
+    if hit then
+        self:laserOn(ship, mining, nose, hit)
         local inventory = ship:get(Economy.Inventory)
         local room = InventoryManager:getRoomFor(inventory, mining.itemId)
         mining.extracted = mining.extracted + self.rate * dt
@@ -197,60 +359,82 @@ function MiningSystem:updateRun(ship, mining, dt)
     end
 end
 
----The point on the rock's surface of the ore spot that faces `from` most, or nil when none faces it
----enough to be reached.
+---The point a little inside the rock along the run's spot, when the spot faces `from` enough for
+---the laser to reach it; nil when it is round the far side.
 ---@param rock Entity
 ---@param rockBody RigidBody
+---@param mining MiningComponent
 ---@param from Position
 ---@return Position|nil
-function MiningSystem:visibleSpot(rock, rockBody, from)
-    local yield = rock:get(Economy.Yield)
-    if not yield then return nil end
+function MiningSystem:visibleSpot(rock, rockBody, mining, from)
+    local spots = rock:get(Economy.Yield) and rock:get(Economy.Yield):getSpots() or {}
+    local local3 = mining.spot and spots[mining.spot]
+    if not local3 then return nil end
     local centre, radius = rockBody:getPos(), rockBody:getBoundingRadius()
+    local dir = self:worldDirection(rockBody, local3)
     local toShip = Vec3f(from.x - centre.x, from.y - centre.y, from.z - centre.z):normalize()
-    local best, bestCos = nil, self.minSpotCosine
-    for _, local3 in ipairs(yield:getSpots()) do
-        local dir = self:worldDirection(rockBody, local3)
-        local cosine = dir.x * toShip.x + dir.y * toShip.y + dir.z * toShip.z
-        if cosine > bestCos then best, bestCos = dir, cosine end
+    if dir.x * toShip.x + dir.y * toShip.y + dir.z * toShip.z < self.minSpotCosine then return nil end
+    -- Inside the hull: the ray toward it meets the surface on the way; a pulse's own point is off the
+    -- spot's line by its offset.
+    local depth, off = radius * 0.3, mining.pulseOffset or Vec3f(0, 0, 0)
+    return Position(centre.x + (dir.x + off.x) * depth, centre.y + (dir.y + off.y) * depth, centre.z + (dir.z + off.z) * depth)
+end
+
+---The ship's nose: ahead of its centre along where it faces, by most of its radius.
+---@param shipBody RigidBody
+---@param at Position
+---@param facing Quat
+---@return Position
+function MiningSystem:nosePoint(shipBody, at, facing)
+    local forward = facing:getForward()
+    local reach = shipBody:getBoundingRadius() * 0.8
+    return Position(at.x + forward.x * reach, at.y + forward.y * reach, at.z + forward.z * reach)
+end
+
+---Where the segment from the nose to `target` meets the rock's surface, or nil when it meets
+---something else first or nothing.
+---@param nose Position
+---@param target Position
+---@param rockBody RigidBody
+---@param shipBody RigidBody
+---@return Position|nil
+function MiningSystem:surfaceHit(nose, target, rockBody, shipBody)
+    local world = physicsWorld()
+    if not world then return target end
+    local hit = RaycastHelper:castSegment(world, nose, target, { ignoreBody = shipBody })
+    if not hit or not hit.position then return nil end
+    if hit.body ~= nil and hit.body ~= rockBody then
+        -- A ray through the rock's own body: compare by position, the handles may differ.
+        local c, p = rockBody:getPos(), hit.position
+        local dx, dy, dz = p.x - c.x, p.y - c.y, p.z - c.z
+        if math.sqrt(dx * dx + dy * dy + dz * dz) > rockBody:getBoundingRadius() * 1.05 then return nil end
     end
-    if not best then return nil end
-    -- A little inside the bounding sphere, where the rock's rough surface is.
-    local depth = radius * 0.9
-    return Position(centre.x + best.x * depth, centre.y + best.y * depth, centre.z + best.z * depth)
+    return Position(hit.position.x, hit.position.y, hit.position.z)
 end
 
----A direction in the body's axes, in world axes.
----@param body RigidBody
----@param local3 Vec3f
----@return Vec3f
-function MiningSystem:worldDirection(body, local3)
-    local rot = body:getRot()
-    local right, up, forward = rot:getRight(), rot:getUp(), rot:getForward()
-    return Vec3f(
-        right.x * local3.x + up.x * local3.y + forward.x * local3.z,
-        right.y * local3.x + up.y * local3.y + forward.y * local3.z,
-        right.z * local3.x + up.z * local3.y + forward.z * local3.z)
-end
-
----Points the laser at the spot, making it when it is off.
+---Points the laser from the nose to the hit, making it and its emitter when they are missing.
 ---@param ship Entity
 ---@param mining MiningComponent
----@param spot Position
-function MiningSystem:laserOn(ship, mining, spot)
+---@param nose Position
+---@param hit Position
+function MiningSystem:laserOn(ship, mining, nose, hit)
+    if not mining.emitter or not Registry:hasEntity(mining.emitter) then
+        mining.emitter = Entity.Create("MiningLaserEmitter", PhysicsComponents.Transform())
+    end
+    mining.emitter:get(PhysicsComponents.Transform):setPos(nose)
     if not mining.beam or not Registry:hasEntity(mining.beam) then
         mining.beam = ConstructEntities.Beam(mining.rock, {}, {
-            source = ship,
+            source = mining.emitter,
             target = alive(mining.rock),
             effect = MiningLaser.effect,
             visual = MiningLaser.effect.visual,
-            targetPoint = spot,
+            targetPoint = hit,
         })
     end
-    local beam = mining.beam:get(require("Modules.Constructs.Components").Beam)
-    beam.targetPoint, beam.baseTargetPoint = spot, spot
+    local beam = mining.beam:get(ConstructComponents.Beam)
+    beam.targetPoint, beam.baseTargetPoint = hit, hit
     -- The laser's light sits where it hits.
-    mining.beam:get(PhysicsComponents.Transform):setPos(spot)
+    mining.beam:get(PhysicsComponents.Transform):setPos(hit)
 end
 
 return MiningSystem()
