@@ -14,9 +14,9 @@ local CoreComponents     = require("Modules.Core.Components")
 
 local Items              = require("Shared.Registries.Items")
 require("Shared.Definitions.ItemDefs")
-local Tags                   = require("Shared.Registries.Tags")
 
 local MarketplaceSystem      = require("Modules.Economy.Systems.MarketplaceSystem")
+local InventoryManager       = require("Modules.Economy.Managers.InventoryManager")
 
 -- ANSI color codes
 local GREEN                  = "\27[32m"
@@ -36,12 +36,6 @@ function MarketplaceTest:onInit()
     -- Choose scenario
     self.selectedScenario = SELECTED_TEST_SCENARIO
 
-    -- Tag setup first
-    Tags:new("TradeType", { "BidOrder", "AskOrder", "Contract", "Auction", "Brokered" })
-    Tags:new("Goods", { "HighDemand", "LowDemand", "HighSupply", "LowSupply", "Volatile", "Luxury", "Consumable", "RawMaterial" })
-    Tags:new("Legality", { "Legal", "Restricted", "Contraband" })
-    Tags:new("Context", { "OrgTrade", "MissionTrade", "EventTrade" })
-
     -- Create marketplace
     local trader = CoreEntities.Player("Station Trader", true)
     local station = ConstructsEntities.SpaceStation(1)
@@ -52,28 +46,31 @@ function MarketplaceTest:onInit()
     self.traders = {}
     self.ships = {}
 
+    -- A trader is a player (its account) that owns a ship (its inventory); the ship trades.
+    self.shipOf = {}
     for i = 1, 5 do
         local player = CoreEntities.Player("Trader_" .. i, true)
         local ship = ConstructsEntities.Spaceship(i)
-        Registry:attachEntity(ship, player)
+        ship:add(EconomyComponents.Ownership(player.id))
+        player:get(EconomyComponents.PlayerBankAccount):setAccountBalance(5e9)
 
-        -- Give each trader credits and inventory
         local inv = ship:get(EconomyComponents.Inventory)
-        inv:addItem(EconomyEntities.Item(Items.Virtual.Credit, 5e6))
         self.gold = 1e8
         self.infowafers = 1e8
         self.iron = 1e8
-        inv:addItem(EconomyEntities.Item(Items.RefinedMaterials.Gold, self.gold))
-        inv:addItem(EconomyEntities.Item(Items.Data.InfoWafer, self.infowafers))
-        inv:addItem(EconomyEntities.Item(Items.RawMaterials.IronOre, self.iron))
+        InventoryManager:add(inv, Items.RefinedMaterials.Gold.id, self.gold)
+        InventoryManager:add(inv, Items.Data.InfoWafer.id, self.infowafers)
+        InventoryManager:add(inv, Items.RawMaterials.IronOre.id, self.iron)
 
         table.insert(self.traders, player)
         table.insert(self.ships, ship)
+        self.shipOf[player.id] = ship
     end
 
     -- Store marketplace for updates
+    self.station = station
     self.marketplace = marketplace
-    self.marketplaceId = tostring(marketplace)
+    self.tradesSeen = {}
 
     -- Test configuration
     self.orderExpiryTime = 600
@@ -134,24 +131,17 @@ MarketplaceTest.Scenarios.GoldSupplyDrop = function(self)
     Log.Info("[Scenario] Gold supply drop triggered")
     for _, ship in ipairs(self.ships) do
         local inv = ship:get(EconomyComponents.Inventory)
-        local goldStack = inv:getItems(Items.RefinedMaterials.Gold)
-        for goldItem in Iterator(goldStack) do
-            local qty = goldItem:get(EconomyComponents.Quantity):getQuantity()
-            goldItem:get(EconomyComponents.Quantity):setQuantity(math.floor(qty * 0.5))
-            if goldItem:get(EconomyComponents.Quantity):getQuantity() <= 0 then
-                inv:removeItem(goldItem)
-            end
-        end
+        local held = InventoryManager:count(inv, Items.RefinedMaterials.Gold.id)
+        InventoryManager:remove(inv, Items.RefinedMaterials.Gold.id, held - math.floor(held * 0.5))
     end
     local startPrice = Items:getDefinition(Items.RefinedMaterials.Gold.id).startEquilibriumPrice
     local highPrice = math.ceil(startPrice * 1.5)
     for i = 1, 3 do
         local trader = self.traders[i]
-        local order = EconomyEntities.Order(trader, Items.RefinedMaterials.Gold, 5, highPrice, TimeStamp.GetFuture(self.orderExpiryTime))
-        local tagComp = order:get(CoreComponents.Tag)
+        local order = self:post("ask", trader, Items.RefinedMaterials.Gold, 5, highPrice)
+        local tagComp = self:tagsOf(order)
         tagComp:addTag("AskOrder")
         tagComp:addTag("LowSupply")
-        self.marketplace:addAsk(order)
     end
 end
 
@@ -159,17 +149,16 @@ MarketplaceTest.Scenarios.InfoWaferFlood = function(self)
     Log.Info("[Scenario] InfoWafer oversupply triggered")
     for _, ship in ipairs(self.ships) do
         local inv = ship:get(EconomyComponents.Inventory)
-        inv:addItem(EconomyEntities.Item(Items.Data.InfoWafer, 2000))
+        InventoryManager:add(inv, Items.Data.InfoWafer.id, 2000)
     end
     local startPrice = Items:getDefinition(Items.Data.InfoWafer.id).startEquilibriumPrice
     local lowPrice = math.floor(startPrice * 0.2)
     for i = 1, 5 do
         local trader = self.traders[i]
-        local order = EconomyEntities.Order(trader, Items.Data.InfoWafer, 200, lowPrice, TimeStamp.GetFuture(self.orderExpiryTime))
-        local tagComp = order:get(CoreComponents.Tag)
+        local order = self:post("ask", trader, Items.Data.InfoWafer, 200, lowPrice)
+        local tagComp = self:tagsOf(order)
         tagComp:addTag("AskOrder")
         tagComp:addTag("HighSupply")
-        self.marketplace:addAsk(order)
     end
 end
 
@@ -182,15 +171,10 @@ MarketplaceTest.Scenarios.IronOreVolatility = function(self)
         local priceVariation = math.random(50, 200) / 100
         local price = math.floor(startPrice * priceVariation)
         local orderType = (i % 2 == 0) and "AskOrder" or "BidOrder"
-        local order = EconomyEntities.Order(trader, Items.RawMaterials.IronOre, qty, price, TimeStamp.GetFuture(self.orderExpiryTime))
-        local tagComp = order:get(CoreComponents.Tag)
+        local order = self:post(orderType == "BidOrder" and "bid" or "ask", trader, Items.RawMaterials.IronOre, qty, price)
+        local tagComp = self:tagsOf(order)
         tagComp:addTag(orderType)
         tagComp:addTag("Volatile")
-        if orderType == "BidOrder" then
-            self.marketplace:addBid(order)
-        else
-            self.marketplace:addAsk(order)
-        end
     end
 end
 
@@ -200,33 +184,25 @@ MarketplaceTest.Scenarios.PriceShockPullTest = function(self)
     local startPrice = Items:getDefinition(item.id).startEquilibriumPrice
     for _, ship in ipairs(self.ships) do
         local inv = ship:get(EconomyComponents.Inventory)
-        local goldStack = inv:getItems(item)
-        for goldItem in Iterator(goldStack) do
-            local qty = goldItem:get(EconomyComponents.Quantity):getQuantity()
-            goldItem:get(EconomyComponents.Quantity):setQuantity(math.floor(qty * 0.5))
-            if goldItem:get(EconomyComponents.Quantity):getQuantity() <= 0 then
-                inv:removeItem(goldItem)
-            end
-        end
+        local held = InventoryManager:count(inv, item.id)
+        InventoryManager:remove(inv, item.id, held - math.floor(held * 0.5))
     end
     local shockPrice = math.ceil(startPrice * 1.3)
     for i = 1, 5 do
         local trader = self.traders[i]
-        local order = EconomyEntities.Order(trader, item, 50, shockPrice, TimeStamp.GetFuture(self.orderExpiryTime))
-        local tagComp = order:get(CoreComponents.Tag)
+        local order = self:post("bid", trader, item, 50, shockPrice)
+        local tagComp = self:tagsOf(order)
         tagComp:addTag("BidOrder")
         tagComp:addTag("HighDemand")
         tagComp:addTag("LowSupply")
-        self.marketplace:addBid(order)
     end
     local askPrice = math.ceil(startPrice * 1.4)
     for i = 1, 2 do
         local trader = self.traders[(i % #self.traders) + 1]
-        local order = EconomyEntities.Order(trader, item, 10, askPrice, TimeStamp.GetFuture(self.orderExpiryTime))
-        local tagComp = order:get(CoreComponents.Tag)
+        local order = self:post("ask", trader, item, 10, askPrice)
+        local tagComp = self:tagsOf(order)
         tagComp:addTag("AskOrder")
         tagComp:addTag("LowSupply")
-        self.marketplace:addAsk(order)
     end
 end
 
@@ -237,34 +213,26 @@ MarketplaceTest.Scenarios.ControlledPriceShockTest = function(self)
     -- Moderate supply reduction (30%)
     for _, ship in ipairs(self.ships) do
         local inv = ship:get(EconomyComponents.Inventory)
-        local goldStack = inv:getItems(item)
-        for goldItem in Iterator(goldStack) do
-            local qty = goldItem:get(EconomyComponents.Quantity):getQuantity()
-            goldItem:get(EconomyComponents.Quantity):setQuantity(math.floor(qty * 0.7))
-            if goldItem:get(EconomyComponents.Quantity):getQuantity() <= 0 then
-                inv:removeItem(goldItem)
-            end
-        end
+        local held = InventoryManager:count(inv, item.id)
+        InventoryManager:remove(inv, item.id, held - math.floor(held * 0.7))
     end
     -- Moderate initial price shock
     local shockPrice = math.ceil(startPrice * 1.2) -- 240
     for i = 1, 5 do
         local trader = self.traders[i]
-        local order = EconomyEntities.Order(trader, item, 50, shockPrice, TimeStamp.GetFuture(self.orderExpiryTime))
-        local tagComp = order:get(CoreComponents.Tag)
+        local order = self:post("bid", trader, item, 50, shockPrice)
+        local tagComp = self:tagsOf(order)
         tagComp:addTag("BidOrder")
         tagComp:addTag("HighDemand")
         tagComp:addTag("LowSupply")
-        self.marketplace:addBid(order)
     end
     local askPrice = math.ceil(startPrice * 1.3) -- 260
     for i = 1, 2 do
         local trader = self.traders[(i % #self.traders) + 1]
-        local order = EconomyEntities.Order(trader, item, 10, askPrice, TimeStamp.GetFuture(self.orderExpiryTime))
-        local tagComp = order:get(CoreComponents.Tag)
+        local order = self:post("ask", trader, item, 10, askPrice)
+        local tagComp = self:tagsOf(order)
         tagComp:addTag("AskOrder")
         tagComp:addTag("LowSupply")
-        self.marketplace:addAsk(order)
     end
 end
 
@@ -276,6 +244,55 @@ function MarketplaceTest:runScenario(scenarioName)
     end
     Log.Info("[MarketplaceTest] Running scenario: %s", scenarioName)
     scenario(self)
+end
+
+---Posts an order for a trader's ship; the system takes the goods or credits into escrow.
+---@return Entity|nil order Nil when the ship can't cover it
+function MarketplaceTest:post(side, trader, item, quantity, price)
+    local ship = self.shipOf[trader.id]
+    if side == "bid" then
+        return MarketplaceSystem:postBid(self.station, ship, item.id, quantity, price, self.orderExpiryTime)
+    end
+    return MarketplaceSystem:postAsk(self.station, ship, item.id, quantity, price, self.orderExpiryTime)
+end
+
+local NO_TAGS = { addTag = function() end }
+
+---@param order Entity|nil
+function MarketplaceTest:tagsOf(order)
+    return order and order:get(CoreComponents.Tag) or NO_TAGS
+end
+
+---Reports the trades the market has recorded since the last call.
+function MarketplaceTest:collectTrades()
+    for _, item in ipairs(self.tradableItems) do
+        local history = self.marketplace:getHistory(item.id)
+        local last = self.tradesSeen[item.id]
+        -- The history drops its oldest trades: the new ones are those after the last one seen.
+        local first = #history + 1
+        while first > 1 and history[first - 1] ~= last do first = first - 1 end
+        for i = first, #history do
+            local trade = history[i]
+            self:onTransaction({ itemType = item.id, quantity = trade.quantity, price = trade.price })
+        end
+        self.tradesSeen[item.id] = history[#history]
+    end
+end
+
+---@param itemId integer
+---@return number|nil secondsRemaining Of the pull timeout, nil without one
+---@return number cooldownRemaining
+function MarketplaceTest:pullTimeoutState(itemId)
+    local timeout = self.marketplace:getPullTimeout(itemId)
+    if not timeout then return nil, 0 end
+    local now = MarketplaceSystem:now()
+    return MarketplaceSystem.pullTimeout - (now - timeout.startedAt), timeout.cooldownUntil - now
+end
+
+---@param itemId integer
+---@return number
+function MarketplaceTest:shiftingEquilibrium(itemId)
+    return self.marketplace:getShiftingEquilibrium(itemId) or Items:getDefinition(itemId).startEquilibriumPrice
 end
 
 function MarketplaceTest:onTransaction(event)
@@ -295,11 +312,8 @@ function MarketplaceTest:onTransaction(event)
         timestamp = math.abs(TimeStamp.Now():getDifference(self.startTime))
     })
     -- Check for pull timeout on trade
-    local marketplaceId = self.marketplaceId
-    local timeoutData = MarketplaceSystem.pullTimeoutData[marketplaceId] and
-        MarketplaceSystem.pullTimeoutData[marketplaceId][event.itemType]
-    if timeoutData and timeoutData.timestamp then
-        local secondsRemaining = MarketplaceSystem.pullTimeout - TimeStamp.Now():getDifference(timeoutData.timestamp)
+    local secondsRemaining = self:pullTimeoutState(event.itemType)
+    if secondsRemaining then
         if secondsRemaining > 0 then
             if not self.stats.timeoutHistory[itemName] then
                 self.stats.timeoutHistory[itemName] = {}
@@ -310,14 +324,7 @@ function MarketplaceTest:onTransaction(event)
             })
         end
     end
-    Log.Info("[Trade #%d] %s: %d x %s @ %d credits (buyer: %s, seller: %s)",
-        self.stats.tradesExecuted,
-        itemName,
-        event.quantity,
-        itemName,
-        event.price,
-        Entity(event.buyer),
-        Entity(event.seller))
+    Log.Debug("[Trade #%d] %d x %s @ %d credits", self.stats.tradesExecuted, event.quantity, itemName, event.price)
 end
 
 function MarketplaceTest:createRandomOrders(count)
@@ -328,9 +335,9 @@ function MarketplaceTest:createRandomOrders(count)
         local isBid = math.random() > 0.5
         local suggestedPrice
         if isBid then
-            suggestedPrice = MarketplaceSystem:getSuggestedBidPrice(self.marketplace, item.id)
+            suggestedPrice = MarketplaceSystem:getSuggestedBidPrice(self.station, item.id)
         else
-            suggestedPrice = MarketplaceSystem:getSuggestedAskPrice(self.marketplace, item.id)
+            suggestedPrice = MarketplaceSystem:getSuggestedAskPrice(self.station, item.id)
         end
         local qty = math.random(10, 100)
         local isGold = item == Items.RefinedMaterials.Gold
@@ -363,8 +370,8 @@ function MarketplaceTest:createRandomOrders(count)
         end
         local priceVariation = math.random(95, 105) / 100
         local price = math.max(1, math.floor(suggestedPrice * priceVariation))
-        local order = EconomyEntities.Order(trader, item, qty, price, TimeStamp.GetFuture(self.orderExpiryTime))
-        local tagComp = order:get(CoreComponents.Tag)
+        local order = self:post(isBid and "bid" or "ask", trader, item, qty, price)
+        local tagComp = self:tagsOf(order)
         tagComp:addTag(isBid and "BidOrder" or "AskOrder")
         if self.selectedScenario == "GoldSupplyDrop" and isGold then
             tagComp:addTag(isBid and "HighDemand" or "LowSupply")
@@ -374,11 +381,6 @@ function MarketplaceTest:createRandomOrders(count)
             tagComp:addTag("Volatile")
         elseif (self.selectedScenario == "PriceShockPullTest" or self.selectedScenario == "ControlledPriceShockTest") and isGold then
             tagComp:addTag(isBid and "HighDemand" or "LowSupply")
-        end
-        if isBid then
-            self.marketplace:addBid(order)
-        else
-            self.marketplace:addAsk(order)
         end
         ::continue::
     end
@@ -403,6 +405,7 @@ function MarketplaceTest:onPreRender(e)
         Log.Debug("\27[92m[MarketplaceTest] Elapsed time: %.1fs\27[0m", elapsed)
         Log.Debug("\27[92m[MarketplaceTest] Time left: %.1fs\27[0m", math.max(0, self.testDuration - elapsed))
     end
+    self:collectTrades()
     if elapsed >= self.testDuration then
         self.testComplete = true
         return
@@ -410,7 +413,7 @@ function MarketplaceTest:onPreRender(e)
     if (self.selectedScenario == "GoldSupplyDrop" or self.selectedScenario == "PriceShockPullTest" or self.selectedScenario == "ControlledPriceShockTest") and self.lastRestockTime:getDifference(now) >= self.supplyRestockInterval then
         for _, ship in ipairs(self.ships) do
             local inv = ship:get(EconomyComponents.Inventory)
-            inv:addItem(EconomyEntities.Item(Items.RefinedMaterials.Gold, math.random(10, 20)))
+            InventoryManager:add(inv, Items.RefinedMaterials.Gold.id, math.random(10, 20))
         end
         Log.Info("[MarketplaceTest] Restocked gold supply for traders")
         self.lastRestockTime = now
@@ -491,20 +494,14 @@ function MarketplaceTest:printInterimReport(elapsed)
         if #conditions.tags > 0 then
             Log.Info("    Active Tags: %s", table.concat(conditions.tags, ", "))
         end
-        local shiftingEq = MarketplaceSystem.shiftingEquilibrium[self.marketplaceId] and
-            MarketplaceSystem.shiftingEquilibrium[self.marketplaceId][item.id] or
-            Items:getDefinition(item.id).startEquilibriumPrice
+        local shiftingEq = self:shiftingEquilibrium(item.id)
         Log.Info("    Equilibria: Start=%d, Shifting=%.2f",
             Items:getDefinition(item.id).startEquilibriumPrice, shiftingEq)
-        local timeoutData = MarketplaceSystem.pullTimeoutData[self.marketplaceId] and
-            MarketplaceSystem.pullTimeoutData[self.marketplaceId][item.id]
-        if timeoutData and timeoutData.timestamp then
-            local secondsRemaining = MarketplaceSystem.pullTimeout - TimeStamp.Now():getDifference(timeoutData.timestamp)
+        local secondsRemaining, cooldownRemaining = self:pullTimeoutState(item.id)
+        if secondsRemaining then
             if secondsRemaining > 0 then
                 Log.Info("    Pull Timeout: Active (%.1fs remaining)", secondsRemaining)
             else
-                local cooldownRemaining = timeoutData.cooldownUntil and
-                    timeoutData.cooldownUntil:getDifference(TimeStamp.Now()) or 0
                 if cooldownRemaining > 0 then
                     Log.Info("    Pull Timeout: In cooldown (%.1fs remaining)", cooldownRemaining)
                 else
@@ -527,7 +524,7 @@ function MarketplaceTest:analyzeItemMarket(itemId)
     local totalSupply = 0
     local tags = {}
     for bid in Iterator(bids) do
-        if bid:get(EconomyComponents.ItemType):getItem() == itemId then
+        if bid:get(EconomyComponents.Item):getItem() == itemId then
             bidCount = bidCount + 1
             totalDemand = totalDemand + bid:get(EconomyComponents.Quantity):getQuantity()
             local tagComp = bid:get(CoreComponents.Tag)
@@ -549,7 +546,7 @@ function MarketplaceTest:analyzeItemMarket(itemId)
         end
     end
     for ask in Iterator(asks) do
-        if ask:get(EconomyComponents.ItemType):getItem() == itemId then
+        if ask:get(EconomyComponents.Item):getItem() == itemId then
             askCount = askCount + 1
             totalSupply = totalSupply + ask:get(EconomyComponents.Quantity):getQuantity()
             local tagComp = ask:get(CoreComponents.Tag)
@@ -681,9 +678,7 @@ function MarketplaceTest:printFinalReport()
             else
                 Log.Info("  Assessment: Stable market")
             end
-            local shiftingEq = MarketplaceSystem.shiftingEquilibrium[self.marketplaceId] and
-                MarketplaceSystem.shiftingEquilibrium[self.marketplaceId][item.id] or
-                Items:getDefinition(item.id).startEquilibriumPrice
+            local shiftingEq = self:shiftingEquilibrium(item.id)
             Log.Info("  Final Equilibria: Start=%d, Shifting=%.2f",
                 Items:getDefinition(item.id).startEquilibriumPrice, shiftingEq)
             local deviationStart = ((avg - Items:getDefinition(item.id).startEquilibriumPrice) / Items:getDefinition(item.id).startEquilibriumPrice) *

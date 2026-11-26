@@ -26,7 +26,7 @@ end
 ---@return integer availableQuantity
 function QuantityComponent:getAvailableQuantity()
     local availableQuantity = self.quantity
-    for owner, lockedQuantity in pairs(self.lockedQuantity) do
+    for _, lockedQuantity in pairs(self.lockedQuantity or {}) do
         availableQuantity = availableQuantity - lockedQuantity
     end
     return availableQuantity
@@ -40,13 +40,19 @@ function QuantityComponent:setLockedQuantity(owner, amount)
 end
 
 ---@param owner Entity|nil
+---@return integer locked The quantity `owner` has locked, or every owner's together when nil
 function QuantityComponent:getLockedQuantity(owner)
-    return self.lockedQuantity or self.lockedQuantity and self.lockedQuantity[owner]
+    if not self.lockedQuantity then return 0 end
+    if owner then return self.lockedQuantity[owner] or 0 end
+    local total = 0
+    for _, amount in pairs(self.lockedQuantity) do total = total + amount end
+    return total
 end
 
 ---@param owner Entity
 ---@param amount integer|nil
 function QuantityComponent:unlockQuantity(owner, amount)
+    if not self.lockedQuantity or not self.lockedQuantity[owner] then return end
     if not amount then
         self.lockedQuantity[owner] = nil
         return

@@ -1,6 +1,7 @@
 --! this can be split up better
 require("Shared.Definitions.FlightProfileDefs")
 require("Shared.Definitions.ZoneTagDefs")
+require("Shared.Definitions.MarketTagDefs")
 require("Shared.Definitions.CostProfileDefs")
 require("Shared.Definitions.ApproachSpecDefs")
 

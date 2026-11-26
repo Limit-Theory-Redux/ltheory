@@ -1,29 +1,37 @@
 local Component = require("Core.ECS.Component")
 
+---When something stops being valid, in seconds of the economy's simulated clock
+---(`MarketplaceSystem:now()`), so that a paused or sped-up game keeps its orders in step.
 ---@class ExpiryComponent: Component
----@overload fun(self: ExpiryComponent, expireAt: TimeStamp|nil): ExpiryComponent subclass internal
----@overload fun(expireAt: TimeStamp|nil): ExpiryComponent subclass external
+---@overload fun(self: ExpiryComponent, expireAt: number|nil): ExpiryComponent subclass internal
+---@overload fun(expireAt: number|nil): ExpiryComponent subclass external
 local ExpiryComponent = Subclass("ExpiryComponent", Component, function(self, expireAt)
     self:setComponentName("EconomyExpiry")
 
-    if expireAt then
-        self:setExpiry(expireAt)
-    end
+    self:setExpiry(expireAt)
 end)
 
----@param expireAt TimeStamp
+---@param expireAt number|nil Simulated seconds; nil never expires
 function ExpiryComponent:setExpiry(expireAt)
     self.expireAt = expireAt
 end
 
----@return TimeStamp expireAt
+---@return number|nil expireAt
 function ExpiryComponent:getExpiry()
     return self.expireAt
 end
 
----@return number secondsTillExpiry
-function ExpiryComponent:getSecondsUntilExpire()
-    return TimeStamp.Now():getDifference(self.expireAt)
+---@param now number Simulated seconds
+---@return number secondsUntilExpiry `math.huge` when it never expires
+function ExpiryComponent:getSecondsUntilExpire(now)
+    if not self.expireAt then return math.huge end
+    return self.expireAt - now
+end
+
+---@param now number Simulated seconds
+---@return boolean
+function ExpiryComponent:isExpired(now)
+    return self.expireAt ~= nil and now >= self.expireAt
 end
 
 return ExpiryComponent
