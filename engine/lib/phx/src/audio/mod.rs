@@ -1,4 +1,5 @@
 mod audio;
+mod convert;
 mod sound;
 mod sound_instance;
 

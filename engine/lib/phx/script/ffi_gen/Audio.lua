@@ -27,8 +27,8 @@ function Loader.defineType()
             Quat*          Audio_ListenerRot    (Audio const*);
             void           Audio_SetOriginPos   (Audio*, Position const* origin);
             Position       Audio_OriginPos      (Audio const*);
-            uint64         Audio_GetLoadedCount (Audio const*);
-            uint64         Audio_GetTotalCount  (Audio const*);
+            uint64         Audio_GetLoadedCount (Audio*);
+            uint64         Audio_GetTotalCount  (Audio*);
         ]]
     end
 
