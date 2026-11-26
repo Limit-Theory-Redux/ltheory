@@ -1,5 +1,6 @@
 ---Registry of cost profile definitions (id -> definition).
 ---Filled by Shared/Definitions/CostProfileDefs.lua; read through CostProfileComponent.
+-- Design: doc/script/nav/system-planner.md
 ---@class CostProfileRegistry
 local CostProfileRegistry = {
     _definitions = {},

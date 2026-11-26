@@ -1,3 +1,4 @@
+-- Design: doc/script/nav/navigation.md
 ---@alias NavTarget Entity|Position An entity to fly to or face, or a point in the world
 
 ---What an order names as a target: an entity (followed as it moves) or a point.

@@ -1,5 +1,6 @@
 ---Registry of approach spec definitions (id -> definition).
 ---Filled by Shared/Definitions/ApproachSpecDefs.lua; read through Shared/Helpers/ApproachSpecs.lua.
+-- Design: doc/script/nav/navigation.md
 ---@class ApproachSpecRegistry
 local ApproachSpecRegistry = {
     _definitions = {},

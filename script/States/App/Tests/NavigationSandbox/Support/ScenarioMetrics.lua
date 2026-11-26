@@ -245,11 +245,6 @@ end
 function ScenarioMetrics:planReceived(reply, simTime)
     local plan = reply.plan
     self.plansReceived = self.plansReceived + 1
-    if plan.error then
-        self.planFailures = self.planFailures + 1
-        self:log("%s: the planner worker failed: %s", reply.ship.label, plan.error)
-        return
-    end
     if plan.status ~= SystemPlanner.Status.Ok then self.planFailures = self.planFailures + 1 end
     local name = STATUS_NAMES[plan.status] or tostring(plan.status)
     self:log("%s planned: %s, %d waypoints, kernel %.3f ms, send to receipt %.2f ms, %.2f s simulated until it arrived",

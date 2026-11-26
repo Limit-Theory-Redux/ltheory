@@ -4,6 +4,7 @@
 ---target's own axes. Registers with ApproachSpecRegistry when it has an id;
 ---Shared/Definitions/ApproachSpecDefs.lua is the data source. A spec with no id is a plain value,
 ---for an order that carries its own.
+-- Design: doc/script/nav/navigation.md
 
 local ApproachSpecRegistry = require("Shared.Registries.ApproachSpecRegistry")
 local ScaleConfig          = require("Config.Gen.UniverseScaleConfig")

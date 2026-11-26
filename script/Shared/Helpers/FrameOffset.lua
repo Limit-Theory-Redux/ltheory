@@ -1,3 +1,4 @@
+-- Design: doc/script/nav/navigation.md
 local PhysicsComponents = require("Modules.Physics.Components")
 
 ---@alias FrameOffsetVector { x: gameunit, y: gameunit, z: gameunit } A world-axes offset from a frame body's centre

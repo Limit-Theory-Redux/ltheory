@@ -1,6 +1,6 @@
 //! Pure navigation algorithms: no FFI, no engine types, no game vocabulary.
 //!
-//! The crate is the Rust side of ship navigation. The engine wraps [`World`] for Lua; Lua kernels
+//! The crate is the Rust side of agent navigation. The engine wraps [`World`] for Lua; Lua kernels
 //! that have a Rust twin are checked against it from `tests/`. See `README.md` and
 //! `doc/engine/nav.md`.
 

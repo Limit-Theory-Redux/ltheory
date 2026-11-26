@@ -155,7 +155,7 @@ mod tests {
 
     #[test]
     fn stopping_distance_solves_the_braking_equation() {
-        // From speed v under deceleration a_b + k·v, a ship covers v/k − (a_b/k²)·ln(1 + k·v/a_b).
+        // From speed v under deceleration a_b + k·v, an agent covers v/k − (a_b/k²)·ln(1 + k·v/a_b).
         let speed = 80.0;
         let (drag, thrust) = (PROFILE.linear_drag, braking(&PROFILE));
         let expected = speed / drag - thrust / (drag * drag) * (1.0 + drag * speed / thrust).ln();
@@ -169,7 +169,7 @@ mod tests {
         let speed = 100.0;
         let drag_only = speed / PROFILE.linear_drag;
         let braked = stopping_distance(&PROFILE, speed);
-        // A tenth of the thrust that holds the top speed shortens the stop of a ship at it by a
+        // A tenth of the thrust that holds the top speed shortens the stop of an agent at it by a
         // fifth or more.
         assert!(braked < 0.8 * drag_only, "{braked} against {drag_only}");
     }

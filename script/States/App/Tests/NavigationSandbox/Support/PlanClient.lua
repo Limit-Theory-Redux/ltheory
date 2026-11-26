@@ -9,10 +9,7 @@ local CostZones            = require("Shared.Helpers.CostZones")
 local ConstructComponents  = require("Modules.Constructs.Components")
 local NavigationComponents = require("Modules.Navigation.Components")
 
--- How many times a leg may be split; the plan holds at most one waypoint per leg, and the goal.
-local DEPTH_LIMIT   = 5
-local CAPACITY      = 2 ^ DEPTH_LIMIT
-local TWO_PI        = 2 * math.pi
+local TWO_PI       = 2 * math.pi
 
 local Body          = SystemPlanner.Body
 local NO_PARENT     = -1
@@ -108,8 +105,8 @@ function PlanClient:request(ship, goal, goalFrame, speed, obstacles, simTime, ar
         speed = speed,
         accel = profile.thrustForward / profile.mass,
         drag = profile.linearDrag,
-        depth = DEPTH_LIMIT,
-        capacity = CAPACITY,
+        depth = PlannerClient.DEPTH_LIMIT,
+        capacity = PlannerClient.CAPACITY,
         arrivalRadius = arrivalRadius,
         zones = zones,
         zoneCount = zoneCount,

@@ -3,6 +3,7 @@
 ---multiplies the zone's path cost. Registers with CostProfileRegistry when it has an id;
 ---Shared/Definitions/CostProfileDefs.lua is the data source. A profile with no id is a plain
 ---value, for a ship that carries its own weights.
+-- Design: doc/script/nav/system-planner.md
 
 local CostProfileRegistry = require("Shared.Registries.CostProfileRegistry")
 local Tags                = require("Shared.Registries.Tags")

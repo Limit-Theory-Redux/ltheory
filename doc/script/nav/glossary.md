@@ -228,6 +228,8 @@ Docs: [navigation guide](guide.md), [navigation orders](navigation.md), [system 
 
 **Progress** (`Nav.progress`) — `distanceLeft`, `eta`, `nextWaypoint` and, for a Patrol, `waypointIndex`. [Queue and status](navigation.md#queue-and-status).
 
+**Pure pursuit** — how a plan's arc is flown: the ship steers at a point of the arc a short way ahead of it. [Consumers](system-planner.md#consumers).
+
 **Pursue** — the behaviour that settles at a stand-off beyond a target's hull on the line of sight. [Behaviours](../../engine/nav.md#behaviours).
 
 ## Q

@@ -35,13 +35,7 @@ function FollowOrderComponent:getLeaderEntityId() return self._leaderEntityId en
 ---@return { x: number, y: number, z: number } Game units: right, up, forward in the leader's axes
 function FollowOrderComponent:getOffset() return self._offset end
 
----The key of the plan for the slot: it rises by one when `slot` is farther than `range` from the slot
----the current key was made for, so a plan is made again only for a slot that has really moved.
----@param slot Position The slot now
----@param range gameunit
----@return integer
-function FollowOrderComponent:slotKey(slot, range)
-    return GoalDrift.key(self._drift, slot, range)
-end
+---@return GoalDriftState The drift of the slot, whose key names the plan made for it (`GoalDrift.key`)
+function FollowOrderComponent:getDrift() return self._drift end
 
 return FollowOrderComponent

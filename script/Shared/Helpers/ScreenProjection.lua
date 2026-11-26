@@ -1,3 +1,4 @@
+-- Design: doc/script/flight.md
 local CameraManager = require("Modules.Cameras.Managers.CameraManager")
 
 --- World-to-screen projection through a view and a projection matrix.

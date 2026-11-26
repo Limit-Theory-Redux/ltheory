@@ -1,6 +1,7 @@
 ---Which approach spec a ship follows to a target: the one an order names, else the default of the
 ---target's kind, else a stand-off of `NavConfig.genericGapM` from the hull. The kinds are found by their marker
 ---components (the specs themselves are data: Shared/Definitions/ApproachSpecDefs.lua).
+-- Design: doc/script/nav/navigation.md
 
 local CelestialComponents = require("Modules.CelestialObjects.Components")
 local ConstructComponents = require("Modules.Constructs.Components")

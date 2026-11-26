@@ -20,8 +20,7 @@ local WORKER_COUNT  = 1
 ---@field through boolean Whether the drive is kept on at the waypoint: the legs before and after it are one drive run
 
 ---@class Plan
----@field status integer|nil A `SystemPlanner.Status` value; nil when the worker failed
----@field error string|nil The worker's error message
+---@field status integer A `SystemPlanner.Status` value
 ---@field waypoints PlanWaypoint[] The path, the goal last
 ---@field times number[] Seconds from the snapshot to each waypoint
 ---@field kernelMs number Milliseconds the kernel took in the worker
@@ -51,6 +50,12 @@ local WORKER_COUNT  = 1
 
 ---@class PlanClient
 local PlanClient = {}
+
+---How many times a leg may be split: a request's `depth`.
+PlanClient.DEPTH_LIMIT = 5
+---The waypoints a plan of `DEPTH_LIMIT` can hold (at most one per leg, and the goal): a request's
+---`capacity`.
+PlanClient.CAPACITY = 2 ^ PlanClient.DEPTH_LIMIT
 
 local workerId = nil
 ---Replies that have come and not been taken, by task id.
@@ -101,6 +106,7 @@ local function unpackWaypoints(flat)
 end
 
 ---Collects the replies that have come since the last call. Not blocking. Call it before `take`.
+---A worker's error is raised here: a kernel that fails is a bug, not a refusal to plan.
 function PlanClient.poll()
     if not workerId then return end
     while true do
@@ -108,9 +114,8 @@ function PlanClient.poll()
         if not taskId then return end
         if discarded[taskId] then
             discarded[taskId] = nil
-        elseif err then
-            results[taskId] = { error = err, waypoints = {}, times = {}, kernelMs = 0 }
         else
+            assert(not err, "PlanClient: the planner worker failed: " .. tostring(err))
             local waypoints, times = unpackWaypoints(value.waypoints)
             results[taskId] = { status = value.status, waypoints = waypoints, times = times, kernelMs = value.kernelMs }
         end

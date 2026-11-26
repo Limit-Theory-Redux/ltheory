@@ -21,7 +21,7 @@ function NavWorld:slotCount() end
 -- Adds an agent steered from `body` and returns its id, its slot: the lowest one that no
 -- agent holds, so 0 for the first agent and then consecutive until an agent is removed.
 -- The drags are in 1/s; the thrusts (forward, right, up) and torques (pitch, yaw,
--- roll) are the forces and torques the ship applies along and about its own axes at full
+-- roll) are the forces and torques the agent applies along and about its own axes at full
 -- input. Accelerations follow from the body's mass and inertia at each step, and the top
 -- speed is the forward acceleration over the linear drag.
 --

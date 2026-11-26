@@ -12,6 +12,7 @@ local PlanFlight          = require("Shared.Helpers.PlanFlight")
 local ApproachSpecs       = require("Shared.Helpers.ApproachSpecs")
 local OrderGoals          = require("Shared.Helpers.OrderGoals")
 local PlannerSnapshot     = require("Shared.Helpers.PlannerSnapshot")
+local GoalDrift           = require("Shared.Helpers.GoalDrift")
 
 local Kind = Enums.NavOrderKind
 
@@ -157,7 +158,7 @@ local HANDLERS = {
             -- a share of its distance has left the place the plan ends at.
             local entity = goal.frameEntity
             if not entity or PlannerSnapshot.isBody(entity) then return nil end
-            return spec:driftKey(goal.targetPos, driftRange(shipPos, goal, goal.arrivalRadius))
+            return GoalDrift.key(spec:getDrift(), goal.targetPos, driftRange(shipPos, goal, goal.arrivalRadius))
         end,
         arrive = function() return true end,
     },
@@ -203,7 +204,8 @@ local HANDLERS = {
         end,
         key = function() return 1 end,
         drift = function(spec, goal, shipPos, ship)
-            return spec:slotKey(goal.targetPos, driftRange(shipPos, goal, followJoinRange(ship)))
+            -- The slot's key rises only when the slot has really moved, so a plan is made again for it.
+            return GoalDrift.key(spec:getDrift(), goal.targetPos, driftRange(shipPos, goal, followJoinRange(ship)))
         end,
         track = {
             start = startFollow,

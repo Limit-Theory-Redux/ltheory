@@ -14,10 +14,6 @@ local SystemPlanner        = require("Shared.Helpers.SystemPlanner")
 local TravelDriveMath      = require("Shared.Helpers.TravelDriveMath")
 local NavConfig            = require("Config.Navigation.NavConfig")
 
--- How many times a leg may be split; the plan holds at most one waypoint per leg, and the goal.
-local DEPTH_LIMIT = 5
-local CAPACITY    = 2 ^ DEPTH_LIMIT
-
 -- A corner is reached within the distance the ship covers at its top speed in this many seconds:
 -- longer than a frame's move, and well inside the corner's arc (whose radius is the planner's turn
 -- radius at the corner's speed, so a wider reach would put the ship off the arc's circle).
@@ -265,8 +261,8 @@ local function request(shipEntity, rb, profile, goal, frameEntity, driveMinLengt
         speed = profile.maxSpeed,
         accel = profile.thrustForward / profile.mass,
         drag = profile.linearDrag,
-        depth = DEPTH_LIMIT,
-        capacity = CAPACITY,
+        depth = PlanClient.DEPTH_LIMIT,
+        capacity = PlanClient.CAPACITY,
         drive = driveMinLength and driveBlock(shipEntity, driveMinLength) or nil,
         arrivalRadius = arrivalRadius,
         standOff = standOff,
@@ -356,8 +352,8 @@ function PlanFlight.fly(plan, spec)
     -- A new course: the detour held for the one before is not for it.
     spec.nav:refresh(spec.agent)
     if not FLYABLE[result.status] then
-        Log.Warn("PlanFlight: no usable plan (status %s%s), flying straight to the goal with no detours",
-            tostring(result.status), result.error and (", " .. result.error) or "")
+        Log.Warn("PlanFlight: no usable plan (status %s), flying straight to the goal with no detours",
+            tostring(result.status))
         plan.phase = Phase.Direct
         return
     end

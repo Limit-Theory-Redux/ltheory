@@ -9,7 +9,7 @@ use crate::math::*;
 use crate::physics::*;
 use crate::rf::Rf;
 
-/// What an agent's ship can do, as forces and torques along and about its own axes (forward, right,
+/// What an agent's body can do, as forces and torques along and about its own axes (forward, right,
 /// up; pitch, yaw, roll), with its drags per second.
 #[derive(Clone, Copy)]
 struct FlightLimits {
@@ -32,7 +32,7 @@ struct Tracking {
     offset: DVec3,
 }
 
-/// An agent: its id in `nav`, the body it is steered from and the limits of its ship.
+/// An agent: its id in `nav`, the body it is steered from and the limits of that body.
 struct Agent {
     id: AgentId,
     handles: BodyHandles,
@@ -182,6 +182,9 @@ fn add_to_queries(queries: &mut Vec<Ball>, ball: Ball) {
 /// The sensing mask that senses no body.
 const SENSING_OFF: CollisionMask = 0;
 
+/// An agent's id in a [`NavWorld`]: its slot.
+type AgentSlot = u32;
+
 impl NavWorld {
     fn handles_of(&self, body: &RigidBody, what: &str) -> BodyHandles {
         body.handles_in(&self.physics).unwrap_or_else(|| {
@@ -189,7 +192,7 @@ impl NavWorld {
         })
     }
 
-    fn agent_mut(&mut self, id: u32) -> &mut Agent {
+    fn agent_mut(&mut self, id: AgentSlot) -> &mut Agent {
         usize::try_from(id)
             .ok()
             .and_then(|index| self.agents.get_mut(index))
@@ -198,7 +201,7 @@ impl NavWorld {
     }
 
     /// Gives the agent a behaviour that names no body.
-    fn set_fixed(&mut self, id: u32, behaviour: Behaviour) {
+    fn set_fixed(&mut self, id: AgentSlot, behaviour: Behaviour) {
         let agent = self.agent_mut(id);
         agent.tracking = None;
         let agent = agent.id;
@@ -222,7 +225,7 @@ impl NavWorld {
     /// avoid `target`.
     fn set_tracking(
         &mut self,
-        id: u32,
+        id: AgentSlot,
         target: &RigidBody,
         leave_out: bool,
         offset: DVec3,
@@ -324,7 +327,8 @@ fn nav_body(state: &BodyState) -> Body {
     }
 }
 
-// Ids are `u32` and lengths are slices because the FFI generator maps types by their text.
+// Ids are `u32` (`AgentSlot`) and lengths are slices because the FFI generator maps types by their
+// text.
 #[luajit_ffi_gen::luajit_ffi]
 impl NavWorld {
     /// Creates an empty world that reads its bodies from `physics`.
@@ -356,7 +360,7 @@ impl NavWorld {
     /// Adds an agent steered from `body` and returns its id, its slot: the lowest one that no
     /// agent holds, so 0 for the first agent and then consecutive until an agent is removed.
     /// The drags are in 1/s; the thrusts (forward, right, up) and torques (pitch, yaw,
-    /// roll) are the forces and torques the ship applies along and about its own axes at full
+    /// roll) are the forces and torques the agent applies along and about its own axes at full
     /// input. Accelerations follow from the body's mass and inertia at each step, and the top
     /// speed is the forward acceleration over the linear drag.
     ///
