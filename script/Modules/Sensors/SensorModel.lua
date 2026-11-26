@@ -114,6 +114,11 @@ SensorModel.activityNames = { idle = "Idle", thrust = "Thrusting", firing = "Fir
 ---@field fixedEm number|nil EM given off, instead of its power draw's
 ---@field fixedHeat number|nil heat given off, instead of its power draw's
 ---@field glow number|nil light of its own (a star)
+---@field name string|nil what a T3 read shows, "[Manufacturer] [Model] (Year)" for vessels
+---@field details string|nil a second T3 line (faction, condition ...)
+---@field shield number|nil its shields, 0 to 1, as a T3 read shows them
+---@field standing string|nil hostile, neutral or friendly, as a T3 read shows it
+---@field contents string[]|nil what a T4 read shows (cargo, logs ...)
 
 ---@class SensorState
 ---@field dials SensorDials

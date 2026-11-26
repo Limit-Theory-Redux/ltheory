@@ -1,14 +1,10 @@
--- How sensor readings read as text: distances, classes and contact lines, in
--- the HUD's capitals. Works on the sensor model's plain tables (see
--- SensorModel).
-
-local SensorModel = require("Modules.Sensors.SensorModel")
+-- How sensor numbers read as text: distances, power draws, SNRs and class
+-- numerals.
 
 local SensorText = {}
 
+--- Class numerals: I support and drones, II industrial, III capital, IV station.
 SensorText.roman = { "I", "II", "III", "IV" }
---- Class icons: I support and drones, II industrial, III capital, IV station.
-SensorText.classSymbols = { "○", "Δ", "▼", "⬢" }
 
 local function thousands(n)
     local s = tostring(n)
@@ -51,39 +47,6 @@ function SensorText.number(x)
     end
     if x >= 100 then return thousands(math.floor(x + 0.5)) end
     return string.format(x >= 10 and "%.1f" or "%.2f", x)
-end
-
----@class SensorIdentity
----@field name string|nil what a T3 read shows, "[Manufacturer] [Model] (Year)" for vessels
----@field details string|nil a second T3 line (shields, faction ...)
----@field contents string[]|nil what a T4 read shows (cargo, logs ...)
-
---- The name a T3 read shows: the object's own, or its kind.
----@param o SensorObject|SensorIdentity
----@return string
-function SensorText.name(o)
-    return o.name or string.upper(SensorModel.kinds[o.kind].name)
-end
-
---- A contact as the contact list shows it, for its tier. The class icon is
---- not part of the text (`SensorText.classSymbols` has it).
----@param o SensorObject
----@param r SensorResult
----@return string
-function SensorText.contact(o, r)
-    local d = string.upper(SensorText.distance(SensorModel.distance(o)))
-    local class = SensorModel.shipClass(o)
-    if r.tier == 1 then
-        if r.count > 1 then return string.format("%d SIGNALS, ONE BLOB · %s", r.count, d) end
-        return "UNKNOWN SIGNAL · " .. d
-    end
-    if r.tier == 2 then
-        if class > 0 then return string.format("CLASS %s · %s", SensorText.roman[class], d) end
-        return string.upper(SensorModel.kinds[o.kind].name) .. " · " .. d
-    end
-    if r.tier == 3 then return SensorText.name(o) .. " · " .. d end
-    if r.tier >= 4 then return SensorText.name(o) .. " · FULL SCAN" end
-    return ""
 end
 
 return SensorText

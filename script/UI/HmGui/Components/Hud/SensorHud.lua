@@ -29,7 +29,7 @@
 --
 --   local hud = UIComponent.SensorHud { visible = function() return shown end }
 --   -- every frame, before rendering:
---   hud:update(SensorPicture.build(sensor, forward, right, "FRIGATE"), dt)
+--   hud:update(SensorPicture.build(sensor, forward, right), dt)
 --
 -- Places and sizes are pixels on a 1920 x 1080 screen and scale with the
 -- window height. The radar keeps its place relative to the bottom centre of
