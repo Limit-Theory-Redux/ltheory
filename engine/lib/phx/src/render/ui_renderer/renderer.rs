@@ -170,6 +170,29 @@ impl UIRenderer {
         self.push(UIRendererItem::Text(id));
     }
 
+    /// A renderer with nothing in it, not even its root layer.
+    #[cfg(test)]
+    pub(crate) fn empty() -> UIRenderer {
+        UIRenderer {
+            current_layer_id: None,
+            layers: Vec::new(),
+            images: Vec::new(),
+            panels: Vec::new(),
+            rects: Vec::new(),
+            shapes: Vec::new(),
+            texts: Vec::new(),
+        }
+    }
+
+    /// How many panels (widget backgrounds) the current layer has.
+    #[cfg(test)]
+    pub(crate) fn current_layer_panels(&self) -> usize {
+        self.current_layer_items()
+            .iter()
+            .filter(|item| matches!(item, UIRendererItem::Panel(_)))
+            .count()
+    }
+
     /// The items of the current layer, in drawing order.
     #[cfg(test)]
     pub(crate) fn current_layer_items(&self) -> &[UIRendererItem] {
@@ -185,21 +208,9 @@ impl UIRenderer {
 mod tests {
     use super::*;
 
-    fn empty() -> UIRenderer {
-        UIRenderer {
-            current_layer_id: None,
-            layers: Vec::new(),
-            images: Vec::new(),
-            panels: Vec::new(),
-            rects: Vec::new(),
-            shapes: Vec::new(),
-            texts: Vec::new(),
-        }
-    }
-
     #[test]
     fn items_keep_their_order_and_nested_layers_their_place() {
-        let mut ui = empty();
+        let mut ui = UIRenderer::empty();
         ui.begin_layer(Vec2::ZERO, Vec2::new(100.0, 100.0), true);
 
         // a container's background, then its children's layer, then a later sibling

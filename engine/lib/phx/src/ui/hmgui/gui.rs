@@ -1147,6 +1147,8 @@ impl HmGui {
         widget.border_color = *color;
     }
 
+    /// Set the last widget's background colour: a panel in that colour is
+    /// drawn behind its content. Fully transparent, the default, draws none.
     pub fn set_background_color(&self, color: &Color) {
         let last = self.last();
         let mut widget = last.as_mut();
@@ -1154,6 +1156,9 @@ impl HmGui {
         widget.background_color = *color;
     }
 
+    /// Set how opaque the inside of the last widget's background is, 0 to 1
+    /// (default 1); the background's shadow stays. Without a background
+    /// colour there is nothing to draw either way.
     pub fn set_opacity(&self, opacity: f32) {
         let last = self.last();
         let mut widget = last.as_mut();
