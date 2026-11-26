@@ -139,7 +139,7 @@ return {
     {
         id = "hiding",
         name = "Hiding",
-        hint = "Fighters hiding. Tab through them: the scan window says why one is no contact. "
+        hint = "Fighters hiding. Tab through them: the tuning panel (8) says why one is no contact. "
             .. "1 2 3 hull, 4 surroundings.",
         hull = "frigate",
         target = "Next to a rock",

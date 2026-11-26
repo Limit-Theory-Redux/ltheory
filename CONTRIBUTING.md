@@ -153,7 +153,7 @@ All top-level scripts are in the `script/States/App` directory.
 
 ### Scenarios
 
-New Game's Scenario list picks how a game starts: a star system (Single Planet With Belt, Standard Solar System, Binary, Trinary) or a test setup (the Weapon Testbed, the Ship, Station, Moon and Planet showcases, the Physics Test and the Camera Test). A scenario is a file in `script/Config/Scenarios` (the list and what a scenario can do are in its `__init__.lua`); the game builds it and runs it as a normal game, so the HUD, the cameras (C), the pause menu and the maps work in all of them.
+New Game's Scenario list picks how a game starts: a star system (Single Planet With Belt, Standard Solar System, Binary, Trinary) or a test setup (the Weapon Testbed, the Sensor Testbed, the Ship, Station, Moon and Planet showcases, the Physics Test and the Camera Test). A scenario is a file in `script/Config/Scenarios` (the list and what a scenario can do are in its `__init__.lua`); the game builds it and runs it as a normal game, so the HUD, the cameras (C), the pause menu and the maps work in all of them.
 
 To start straight into one, skipping the menu: `LTR_AUTOSTART=1 LTR_SCENARIO=<file name> ./bin/ltr.exe` (Windows) or `./bin/ltr` (macOS/Linux). The former test states (`Testbeds/WeaponSystem`, `PlanetTest`, `MoonTest`, `ShipTest`, `StationTest`, `PhysicsTest`, `CameraTest`, `SolarSystemPlayable`) are now shortcuts into their scenario: `./bin/ltr.exe PlanetTest` still works.
 

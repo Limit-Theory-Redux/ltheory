@@ -40,7 +40,7 @@ shows the setup's name, what to try, the settings and the keys.
 |---|---|
 | Reference scene | The sensor mock's scene: a station, a freighter, a fighter parked next to an asteroid, a second asteroid and a cold wreck. |
 | Fighter, frigate, capital ship | The same ships (class I, II, III and a station) at 1, 3, 10, 30 and 100 km: how far each hull hears, classes and identifies them. |
-| Hiding | Fighters in the open, next to a rock, behind one, cloaked, running cold, firing (in the open and in the star's glare), in front of the planet and behind it. |
+| Hiding | Fighters in the open, next to a rock, behind one, cloaked, running cold, firing (in the open and in the star's glare), in front of the planet and behind it. The tuning panel says why one is no contact. |
 | Passive against active | A nebula: listening only classes ships by their EM, a scan identifies them, a pulse finds the cold wreck. |
 | Resolution and merging | Five fighters 60 m apart at 15 km: one blob for a fighter's sensor, five for a frigate's, five classed for a capital ship's. |
 | Being heard | Five frigates with sensors of their own, 20 to 400 km away; the text says which hear you, while you listen, scan or pulse. |
@@ -107,7 +107,7 @@ Feed it a `SensorPicture` every frame:
 local hud = UIComponent.SensorHud {}
 -- every frame
 local body = ship:get(PhysicsComponents.RigidBody)
-hud:update(SensorPicture.build(sensor, body:getForward(), body:getRight(), "FRIGATE"), dt)
+hud:update(SensorPicture.build(sensor, body:getForward(), body:getRight()), dt)
 ```
 
 A scenario shows its own HUD components by listing them in its `hud` field
@@ -119,12 +119,13 @@ with the game's HUD while the scenario runs.
 - `SensorModel.lua`: the maths, on plain tables. Units are metres, megawatts,
   seconds and degrees; positions are relative to the sensor. It holds no engine
   types, so it runs without a scene.
-- `SensorText.lua`: distances, classes and contact lines as the HUD writes them.
+- `SensorText.lua`: distances, power draws and SNRs as the HUD and the tuning
+  panel write them.
 - `SensorTuning.lua`: the dials the tuning panel changes, with their ranges
   and steps.
 - `SensorPicture.lua`: what a sensor shows, ready to draw: every object with
-  its bearing and distance in the ship's frame, the contacts in list order,
-  the target and its scan.
+  its bearing and distance in the ship's frame, the target and its scan, and
+  how far the ship and its pulse are heard.
 - `Components/SensorSignatureComponent.lua`: on anything that can be sensed:
   kind, size (the entity's bounding radius unless given), power draw,
   activity, and what a T3 read (name, shields, standing) and a T4 read show.
