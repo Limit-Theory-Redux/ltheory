@@ -59,6 +59,7 @@ local SystemMap3D              = require('Modules.CelestialObjects.Systems.Syste
 local MemoryReporter           = require('Modules.Profiling.MemoryReporter')
 local ConstructManager         = require('Modules.Constructs.Managers.ConstructManager')
 local StationGenerator         = require('Modules.Constructs.Managers.Generators.StationGenerator')
+local SpawnerSystem            = require('Modules.Spawning.Systems.SpawnerSystem')
 local WeaponCombatSystem       = require('Modules.Constructs.Systems.WeaponCombatSystem')
 local ExplosionEffectSystem    = require('Modules.Constructs.Systems.ExplosionEffectSystem')
 
@@ -449,6 +450,12 @@ end
 function LimitTheoryRedux:buildScene()
     self.sceneEntities = {}
     self.sceneConstructs = {}
+    -- What the spawner makes (stations, ore fields, AI ships) is labelled like the scene's own things.
+    SpawnerSystem:attach(self.world, self.constructManager, {
+        onSpawned = function(entity, label)
+            if label then table.insert(self.labeledEntities, { entity = entity, label = label }) end
+        end,
+    })
     self:generateUniverse(self.scenario.ruleset or Scenarios.default.ruleset)
     self:spawnPlayerShip()
     if self.scenario.stations ~= false then
@@ -630,6 +637,8 @@ function LimitTheoryRedux:destroyScene(keepShip)
         self.navAttached = false
         AutoPilotSystem:update()
     end
+    -- The spawner's stations and ships go while their bodies are still in the physics world.
+    SpawnerSystem:clear()
     -- Beams, projectiles and effect lights, before the ships they came from
     if self.weaponCombat then
         self.weaponCombat:clear()

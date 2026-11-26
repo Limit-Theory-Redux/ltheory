@@ -64,6 +64,7 @@ local ids = {
     "StandardSolarSystem",
     "BinaryStarSystem",
     "TrinaryStarSystem",
+    "Economy",
     "WeaponTestbed",
     "ExplosionShowcase",
     "SpeedFeelTest",
