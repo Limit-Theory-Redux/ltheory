@@ -1,4 +1,5 @@
 return {
+    EconomyAgent = require('Modules.Economy.Components.EconomyAgentComponent'),
     Expiry = require('Modules.Economy.Components.ExpiryComponent'),
     Inventory = require('Modules.Economy.Components.InventoryComponent'),
     Marketplace = require('Modules.Economy.Components.MarketplaceComponent'),

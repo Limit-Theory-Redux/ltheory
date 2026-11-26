@@ -3,7 +3,7 @@ local NameComponent = require("Modules.Core.Components.NameComponent")
 local InventoryManager = require("Modules.Economy.Managers.InventoryManager")
 
 ---Gives entities their part in the economy: a station its production, market making, credits and
----stock; an asteroid a regrowing yield.
+---stock; an asteroid a regrowing yield; a ship an agent's role, hold and credits.
 ---@class EconomySetup
 local EconomySetup = {}
 
@@ -32,6 +32,28 @@ function EconomySetup.equipAsteroid(asteroid, item, quantity, regrowPerSecond)
     asteroid:add(Economy.Item(item.id))
     asteroid:add(Economy.Quantity(quantity))
     asteroid:add(Economy.Yield(quantity, regrowPerSecond))
+end
+
+---@class EconomyAgentSpec
+---@field role EconomyAgentRole
+---@field capacity number The hold's mass capacity
+---@field credits number|nil Of the ship's own account, when it has no owner
+---@field owner Entity|nil An entity with a `PlayerBankAccount` that pays for the ship
+---@field name string|nil
+
+---Makes a ship (one that takes navigation orders) an economic agent.
+---@param ship Entity
+---@param spec EconomyAgentSpec
+function EconomySetup.equipAgent(ship, spec)
+    if spec.name then ship:get(NameComponent):setName(spec.name) end
+    local inventory = ship:get(Economy.Inventory) or ship:add(Economy.Inventory())
+    inventory:setCapacity(spec.capacity)
+    if spec.owner then
+        ship:add(Economy.Ownership(spec.owner.id))
+    else
+        ship:add(Economy.PlayerBankAccount(spec.credits or 0))
+    end
+    ship:add(Economy.EconomyAgent(spec.role))
 end
 
 return EconomySetup
