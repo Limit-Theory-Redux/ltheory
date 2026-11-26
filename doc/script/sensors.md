@@ -32,8 +32,8 @@ or pick **Sensor Testbed** under New Game. The player's ship carries a
 frigate's sensor; around it are a station (12 km), a freighter (4 km), a
 fighter parked next to an asteroid (11 km), a nearer asteroid and a cold wreck
 (400 m), and the star system's star, planet and moon. Belt rocks that come
-close get a signature too. The text in the top left lists the contacts, the
-target and the scan.
+close get a signature too. The sensor HUD (below) shows what the sensor makes
+of it all; the text in the top left shows the settings and the keys.
 
 | Key | Action |
 |---|---|
@@ -51,12 +51,46 @@ Things to try: with the frigate the fighter hides in the asteroid's
 background, with the capital ship it shows; in a nebula the wreck only shows
 after a pulse; holding X on the freighter with the capital ship reads its T3.
 
+## The sensor HUD
+
+`UIComponent.SensorHud` (`script/UI/HmGui/Components/Hud/SensorHud.lua`)
+draws what a sensor shows, in two panels:
+
+- **Passive**, at the bottom: a radar disc tilted away from you, your ship in
+  the middle with its nose up, distance on a log scale (50 m at the centre,
+  100 km at the rim). A contact sits at its bearing and distance: a soft blob
+  at T1, a class icon at T2 (outline) and T3 (filled), amber at T4 (○ class I,
+  Δ II, ▼ III, ⬢ IV station; circles for planets, a star, diamonds for
+  asteroids). Rings show where the target would turn T1 to T4 in open space,
+  and the ring round the disc bulges where signals come from. Beside it the
+  contact list, and on its left your ship as others hear it: power draw,
+  heat, and who heard your last pulse.
+- **Active**, on the right: the scan window. The target's tier and echo,
+  whether a scan reads it from here, the scan's progress, and what scans
+  have read (T3 identity, T4 contents).
+
+Feed it a `SensorPicture` every frame:
+
+```lua
+local hud = UIComponent.SensorHud { scanHint = "HOLD X TO SCAN" }
+-- every frame
+local body = ship:get(PhysicsComponents.RigidBody)
+hud:update(SensorPicture.build(sensor, body:getForward(), body:getRight(), "FRIGATE"), dt)
+```
+
+A scenario shows its own HUD components by listing them in its `hud` field
+(see `script/Config/Scenarios/__init__.lua`); the In_Game view draws them
+with the game's HUD while the scenario runs.
+
 ## How it fits together
 
 - `SensorModel.lua`: the maths, on plain tables. Units are metres, megawatts,
   seconds and degrees; positions are relative to the sensor. It holds no engine
   types, so it runs without a scene.
 - `SensorText.lua`: distances, classes and contact lines as the HUD writes them.
+- `SensorPicture.lua`: what a sensor shows, ready to draw: every object with
+  its bearing and distance in the ship's frame, the contacts in list order,
+  the target and its scan.
 - `Components/SensorSignatureComponent.lua`: on anything that can be sensed:
   kind, size (the entity's bounding radius unless given), power draw,
   activity, and what a T3 and a T4 read show.
