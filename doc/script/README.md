@@ -11,5 +11,6 @@
    - [System planner](nav/system-planner.md)
    - [Navigation orders](nav/navigation.md)
 1. [System maps](system-map.md)
+1. [Economy](economy.md)
 1. [Docking](docking.md)
 1. [HmGui](../../script/UI/HmGui/README.md)
