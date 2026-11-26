@@ -1,0 +1,302 @@
+-- Navigation orders: what a ship is told to do, as an order entity linked to the ship. The issuer
+-- gets the order's entity, reads its status and progress, and releases it when it has ended.
+-- Design: doc/script/nav/navigation.md
+
+local Registry            = require("Core.ECS.Registry")
+local Entity              = require("Core.ECS.Entity")
+local PhysicsComponents   = require("Modules.Physics.Components")
+local ControlOwnerSystem  = require("Modules.Constructs.Systems.ControlOwnerSystem")
+local Components          = require("Modules.Navigation.Components")
+local Entities            = require("Modules.Navigation.Entities")
+local Systems             = require("Modules.Navigation.Systems")
+local EstimateRequest     = require("Shared.Helpers.EstimateRequest")
+local NavEstimate         = require("Shared.Helpers.NavEstimate")
+local NavEstimateClient   = require("Shared.Helpers.NavEstimateClient")
+local NearbyBodies        = require("Shared.Helpers.NearbyBodies")
+local PlanFlight          = require("Shared.Helpers.PlanFlight")
+local NavConfig           = require("Config.Navigation.NavConfig")
+
+local Kind = Enums.NavOrderKind
+
+-- The collision mask the navigation world senses obstacles with: every collision group.
+local SENSING_MASK = NearbyBodies.ALL_GROUPS
+
+---@class Nav
+local Nav = { Components = Components, Orders = {}, Priority = Enums.NavOrderPriority }
+
+---@type Entity|nil The entity that holds the navigation world
+local worldEntity = nil
+---@type NavOrderSystem|nil Created with the first world, and kept for the life of the game
+local system = nil
+
+---Creates the navigation world over `physics`, which steers the ships that have orders. The ship
+---bodies must stay in `physics` while their orders run. There is one world at a time.
+---@param physics Physics
+function Nav.attach(physics)
+    assert(not worldEntity, "Nav.attach: there is a navigation world already (Nav.detach it first)")
+    local component = Components.NavWorld(physics)
+    local nav = component:getNav()
+    nav:setSensing(SENSING_MASK)
+    local avoidance = NavConfig.avoidance
+    nav:setAvoidanceTuning(avoidance.horizonS, avoidance.clearanceRadii, avoidance.aimFactor)
+    worldEntity = Entity.Create("NavWorldEntity", component)
+    system = system or Systems.NavOrder()
+end
+
+---Cancels the orders that have not ended and destroys the navigation world. Call it before the
+---ships' bodies leave physics.
+function Nav.detach()
+    assert(worldEntity, "Nav.detach: there is no navigation world")
+    system:cancelAll(worldEntity:get(Components.NavWorld))
+    Registry:destroyEntity(worldEntity)
+    worldEntity = nil
+end
+
+---What the nose is to face while an order runs, apart from where the ship flies. While an order has
+---one, the ship flies without the travel drive.
+---@class NavFacing
+---@field target NavTarget An entity, which the nose follows, or a point
+
+---Flies to a target: an entity, which the ship stops at the approach of (its kind's own when none
+---is named), or a point.
+---@param spec { target: NavTarget, approach: ApproachSpecId|ApproachSpecConstructor|ApproachSpec|nil, frame: Entity|nil, facing: NavFacing|nil, priority: NavOrderPriorityId|nil } `approach`: for an entity target only; `frame`: for a point target only, an entity with a rigid body that the point keeps its offset from (as a place on a belt that goes round a planet); `priority`: an `Nav.Priority` level, `Routine` when nil. Every order takes `priority`
+---@return table
+function Nav.Orders.MoveTo(spec)
+    return { kind = Kind.MoveTo, target = spec.target, approach = spec.approach, frame = spec.frame,
+        facing = spec.facing, priority = spec.priority }
+end
+
+---Flies through points in turn.
+---@param spec { points: Position[], loop: boolean|nil, facing: NavFacing|nil, priority: NavOrderPriorityId|nil } `loop`: start over after the last point
+---@return table
+function Nav.Orders.Patrol(spec)
+    return { kind = Kind.Patrol, points = spec.points, loop = spec.loop, facing = spec.facing,
+        priority = spec.priority }
+end
+
+---Circles an entity, anticlockwise about a normal, and never ends: cancel it. The ship flies the system
+---plan to the circle first, then holds it as the entity moves.
+---@param spec { target: Entity, altitude: number|nil, normal: Vec3d|nil, facing: NavFacing|nil, priority: NavOrderPriorityId|nil } `altitude`: target radii from its centre, more than 1 (`NavConfig.standOffRadii` when nil); `normal`: the circle's plane (the plane the ship is in when it reaches the circle when nil)
+---@return table
+function Nav.Orders.Orbit(spec)
+    return { kind = Kind.Orbit, target = spec.target, altitude = spec.altitude, normal = spec.normal,
+        facing = spec.facing, priority = spec.priority }
+end
+
+---Keeps a slot at `offset` from a leader, in the leader's axes, matching its velocity, and never ends:
+---cancel it. The ship flies the system plan to the slot while it is far from it.
+---@param spec { target: Entity, offset: Vec3d, facing: NavFacing|nil, priority: NavOrderPriorityId|nil } `offset`: metres, right, up, forward
+---@return table
+function Nav.Orders.Follow(spec)
+    return { kind = Kind.Follow, target = spec.target, offset = spec.offset, facing = spec.facing,
+        priority = spec.priority }
+end
+
+---Keeps the ship where it is, and never ends: cancel it.
+---@param spec { facing: NavFacing|nil, priority: NavOrderPriorityId|nil }|nil
+---@return table
+function Nav.Orders.Hold(spec)
+    return { kind = Kind.Hold, facing = spec and spec.facing, priority = spec and spec.priority }
+end
+
+---Gives a ship an order: behind the orders of its priority or a higher one, and before the lower
+---ones. An order of a higher priority than the one the ship is flying displaces it, which resumes
+---when the order that displaced it has ended.
+---@param ship Entity
+---@param spec table From `Nav.Orders`
+---@return Entity order
+function Nav.order(ship, spec)
+    assert(worldEntity, "Nav.order: there is no navigation world (Nav.attach it)")
+    assert(ship:get(PhysicsComponents.RigidBody), "Nav.order: the ship has no rigid body")
+    local order = Entities.NavOrder(ship.id, spec)
+    local queue = ship:get(Components.OrderQueue)
+    if not queue then
+        queue = Components.OrderQueue()
+        ship:add(queue)
+    end
+    queue:push(order.id, order:get(Components.NavOrder):getPriority())
+    ControlOwnerSystem:setOrders(ship, true)
+    return order
+end
+
+---Takes the ship's controls for the caller, who writes its `ControlInputComponent` directly. The
+---ship's running order is suspended, and the ship's orders wait, until `Nav.unclaim`. The input is
+---reset when the claim begins. Manual input (the player's ship) still overrides a claim.
+---@param ship Entity
+function Nav.claim(ship)
+    ControlOwnerSystem:claim(ship)
+end
+
+---Gives back the controls taken with `Nav.claim`: the ship's orders resume, from where it is.
+---@param ship Entity
+function Nav.unclaim(ship)
+    ControlOwnerSystem:release(ship)
+end
+
+---Who owns the ship's control input now.
+---@param ship Entity
+---@return ControlOwnerId
+function Nav.controlOwner(ship)
+    return ControlOwnerSystem:ownerOf(ship)
+end
+
+---Estimates the flight from `from` to `to` without moving anything or planning waypoints: whether
+---the destination is reachable, and the time, the path's length and the risk (the cost zones'
+---cost along the straight line, under the cost profile). It uses the positions of this moment,
+---and, for an entity `to`, the stand-off of the entity's kind. Runs on the calling thread: score
+---many destinations with `Nav.estimateMany`.
+---@param from NavTarget The ship, or a point
+---@param to NavTarget An entity or a point
+---@param flightProfile FlightProfile|nil The ship's own when `from` is a ship
+---@param costProfile CostProfile|nil The ship's own when `from` is a ship and has one
+---@return NavEstimateResult
+function Nav.estimate(from, to, flightProfile, costProfile)
+    local request = EstimateRequest.build(from, { to }, flightProfile, costProfile)
+    return NavEstimate.many(request, request.ship, request.start, request.goals, request.goalCount)[1]
+end
+
+---Starts the estimates of the flights from `from` to each of `targets` on a worker; the calling
+---thread only builds the input. Collect them with `Nav.takeEstimates`.
+---@param from NavTarget
+---@param targets NavTarget[]
+---@param flightProfile FlightProfile|nil
+---@param costProfile CostProfile|nil
+---@return integer request
+function Nav.estimateMany(from, targets, flightProfile, costProfile)
+    return NavEstimateClient.request(EstimateRequest.build(from, targets, flightProfile, costProfile))
+end
+
+---The estimates of `Nav.estimateMany`, in the targets' order, once they have come.
+---@param request integer
+---@return NavEstimateResult[]|nil estimates Nil while they have not come; they are given once
+function Nav.takeEstimates(request)
+    NavEstimateClient.poll()
+    return NavEstimateClient.take(request)
+end
+
+---Drops the estimates of a request nobody waits for any more.
+---@param request integer
+function Nav.discardEstimates(request)
+    NavEstimateClient.discard(request)
+end
+
+---The entities whose bodies lie within `radius` of the ship's centre, nearest first: the same
+---bodies, found through the same physics query index, that avoidance senses. The ship itself is left
+---out, and so is a body with no entity. The positions are those of the last physics update.
+---@param ship Entity
+---@param radius gameunit
+---@param filter (fun(entity: Entity, distance: gameunit): boolean)|nil Keeps the neighbours it returns true for
+---@return NavNeighbour[]
+function Nav.neighbours(ship, radius, filter)
+    assert(worldEntity, "Nav.neighbours: there is no navigation world (Nav.attach it)")
+    assert(ship:get(PhysicsComponents.RigidBody), "Nav.neighbours: the ship has no rigid body")
+    return NearbyBodies.of(worldEntity:get(Components.NavWorld):getPhysics(), ship, radius, filter)
+end
+
+---Runs one update of the order system, for an app that steps the simulation itself; a game
+---that runs frames gets the update at PreSim, so it must not call this too.
+---@param dt number Seconds
+function Nav.update(dt)
+    system:update(dt)
+end
+
+---Asks for the order to end as cancelled; the system ends it at its next update.
+---@param order Entity
+function Nav.cancel(order)
+    order:get(Components.OrderStatus):requestCancel()
+end
+
+---Changes the target of a MoveTo order; the ship's path is planned again.
+---@param order Entity
+---@param target NavTarget
+---@param frame Entity|nil As the MoveTo spec's `frame`: a point target only
+function Nav.retarget(order, target, frame)
+    local moveTo = order:get(Components.MoveToOrder)
+    assert(moveTo, "Nav.retarget: not a MoveTo order")
+    moveTo:setTarget(target, frame)
+end
+
+---@param order Entity
+---@return NavOrderStatusId
+function Nav.status(order)
+    return order:get(Components.OrderStatus):getStatus()
+end
+
+---@param order Entity
+---@return NavOrderFailureId|nil Why the order failed; nil while it has not
+function Nav.failure(order)
+    return order:get(Components.OrderStatus):getFailure()
+end
+
+---@param order Entity
+---@return OrderProgressComponent
+function Nav.progress(order)
+    return order:get(Components.OrderProgress)
+end
+
+---The order's flight state while it flies a goal: nil for an order that is not flying one (not begun,
+---ended, or tracking a target).
+---@param order Entity
+---@return table|nil
+local function flyingGoal(order)
+    local flight = order:get(Components.OrderFlight)
+    if not flight or flight.tracking or order:get(Components.OrderStatus):hasEnded() then return nil end
+    return flight
+end
+
+---The path the ship has left to fly, as world points now: the plan's corners from the one flown to
+---and the goal, or the goal alone on the final approach and while the plan is out. Empty for an
+---order that is not flying a goal (not begun, ended, a Hold, or an Orbit or Follow that has joined).
+---The points may be shared with the plan: read them, don't change them.
+---@param order Entity
+---@param out Position[]|nil A table to fill, which is cleared first; a new one when nil
+---@return Position[]
+function Nav.route(order, out)
+    out = out or {}
+    for i = #out, 1, -1 do out[i] = nil end
+    local flight = flyingGoal(order)
+    if not flight then return out end
+    local plan = flight.plan
+    local follower = plan and plan.phase == PlanFlight.Phase.Plan and plan.follower
+    if follower and not follower.finished then
+        for i = follower.index, #follower.points do out[#out + 1] = follower:pointNow(follower.points[i]) end
+        out[#out + 1] = follower:pointNow(plan.goal)
+    else
+        local goal = order:get(Components.OrderProgress).nextWaypoint
+        if goal then out[1] = goal end
+    end
+    return out
+end
+
+---The path the ship has flown under the order's current plan, as world points now: where the ship was
+---when the plan was asked for, then the plan's corners it has passed (a corner that rides on a moving
+---body is read where the body is now). A new plan, made after a retarget or a refresh, starts it again.
+---Empty when `Nav.route` is, and for a flight that began within range of its goal (nothing was planned).
+---@param order Entity
+---@param out Position[]|nil A table to fill, which is cleared first; a new one when nil
+---@return Position[]
+function Nav.routeFlown(order, out)
+    out = out or {}
+    for i = #out, 1, -1 do out[i] = nil end
+    local flight = flyingGoal(order)
+    local plan = flight and flight.plan
+    local start = plan and plan.start
+    if not start then return out end
+    out[1] = Position(start.x, start.y, start.z)
+    local follower = plan.follower
+    if follower then
+        local passed = follower.finished and #follower.points or follower.index - 1
+        for i = 1, passed do out[#out + 1] = follower:pointNow(follower.points[i]) end
+    end
+    return out
+end
+
+---Destroys an order that has ended. The issuer calls it when it has read what it wants of the order.
+---@param order Entity
+function Nav.release(order)
+    local status = order:get(Components.OrderStatus)
+    assert(status and status:hasEnded(), "Nav.release: the order has not ended (cancel it first)")
+    Registry:destroyEntity(order)
+end
+
+return Nav

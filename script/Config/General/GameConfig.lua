@@ -1,4 +1,9 @@
 --! this can be split up better
+require("Shared.Definitions.FlightProfileDefs")
+require("Shared.Definitions.ZoneTagDefs")
+require("Shared.Definitions.CostProfileDefs")
+require("Shared.Definitions.ApproachSpecDefs")
+
 Config.game = {
     boostCost              = 20,
 
@@ -54,79 +59,49 @@ Config.game = {
 
     dockRange              = 50,
 
-    shipFlight = (function()
+    -- Ship flight limits are per-ship data: Shared/Definitions/FlightProfileDefs.lua.
+    -- The player's input settings:
+    playerFlight = {
+        invertYaw   = false,
+        invertPitch = false,
+    },
+
+    -- Physics tuning for ship-scale contacts, set by apps with ship flight.
+    physics = (function()
         local ScaleConfig = require("Config.Gen.UniverseScaleConfig")
 
-        -- Define desired real-world values
-        local maxSpeedReal    = 8800     -- m/s max speed (~8.8 km/s for fighter)
-        local accelTimeReal   = 8.0      -- seconds to reach max speed
-        local lateralRatio    = 0.5      -- lateral/vertical thrust vs forward
-        local verticalRatio   = 0.25     -- vertical thrust vs forward
-
-        -- Convert to game units using ScaleConfig
-        local maxSpeedGame = ScaleConfig:toGameUnits(maxSpeedReal, "starSystem")
-        local accelGame    = maxSpeedGame / accelTimeReal
-
-        -- Derive physics values
-        -- Mass from hull config (Solo = index 1)
-        local mass = 5000
-        local drag = 2.0
-        local thrust = maxSpeedGame * mass * drag
-
-        -- Torque from mass: gives ~10 rad/s² angular acceleration (responsive but not spinny)
-        -- Torque: tuned empirically. The equilibrium turn rate is:
-        --   ω_max = torque / (I × angularDrag)
-        -- where I = 2/5 × m × r² (tiny at small globalScale).
-        -- angularDrag dominates the feel; torque sets responsiveness.
-        local torque = 50
+        -- m: the physics engine scales its tolerances by this; about a ship's size
+        local lengthUnitReal = 100
+        -- s: a ship's soft-CCD distance covers this much travel at its speed cap
+        local ccdFrameTime = 1 / 60
 
         return {
-            -- Auto-computed from desired speed/acceleration
-            thrustForward  = thrust,
-            thrustRight    = thrust * lateralRatio,
-            thrustUp       = thrust * verticalRatio,
+            lengthUnit              = ScaleConfig:toGameUnits(lengthUnitReal, "starSystem"),
+            contactNaturalFrequency = 1920, -- Hz
 
-            -- Rotational torques (derived from mass × desired angular acceleration)
-            torquePitch    = torque,
-            torqueYaw      = torque,
-            torqueRoll     = torque * 0.6,
-
-            -- Auto-computed physics
-            linearDrag     = drag,
-            angularDrag    = 20.0,
-
-            -- Input inversion
-            invertYaw      = false,
-            invertPitch    = false,
-
-            -- Reference values for other systems
-            maxSpeedGame   = maxSpeedGame,
-            maxSpeedReal   = maxSpeedReal,
+            ---Soft-CCD prediction distance for a body whose speed is capped at `speedCap`.
+            ---@param speedCap number gameunits/s
+            ---@return number gameunits
+            softCcdDistance = function(speedCap) return speedCap * ccdFrameTime end,
         }
     end)(),
 
-    -- Ship hull classes (from legacy, indexed by Enums.ShipHulls)
+    -- Ship hull geometry (from legacy, indexed by Enums.ShipHulls)
     -- Solo=1, Small=2, Compact=3, Medium=4, Large=5, VeryLarge=6
     shipHulls = {
         -- Scaled for globalScale 0.0001 (1 game unit = 10km)
         -- Solo ~50m, Small ~100m, Compact ~150m, Medium ~200m, Large ~300m, VeryLarge ~500m
         scale  = { 0.005, 0.01, 0.015, 0.02, 0.03, 0.05 },
         radius = { 0.003, 0.005, 0.008, 0.012, 0.018, 0.025 },
-        mass   = { 5000, 10000, 18000, 30000, 50000, 100000 },
-        drag   = { 2.0, 2.0, 2.0, 2.0, 2.0, 2.0 },
-        -- Translation speed multiplier (smaller = less lateral/vertical for big ships)
-        tranM  = { 0.8, 0.2, 0.1, 0.06, 0.03, 0.0 },
-        -- Maneuverability multiplier (pitch/yaw/roll scaling)
-        manuM  = { 0.3, 0.5, 0.2, 0.1, 0.06, 1.5 },
     },
 
     travelDrive = {
         chargeRequired  = 3.0,     -- seconds holding T to activate
-        speedMultiplier = 40000,   -- adjusted for higher base thrust
         rampUpSpeed     = 0.3,
         rampDownSpeed   = 1.5,
 
-        -- Max speed multiplier per zone type
+        -- Max speed multiplier per zone type; `openSpace` is the drive's top multiplier
+        -- (adjusted for higher base thrust)
         maxSpeedByZone = {
             moon      = 200,
             planet    = 2000,
@@ -136,9 +111,9 @@ Config.game = {
     },
 
     autoPilot = {
-        arrivalRange      = 500,    -- distance to target to consider arrived
-        travelDriveDelay  = 5.0,    -- seconds before auto-engaging travel drive
         enableTravelDrive = true,   -- auto-engage travel drive during autopilot
+        -- The planner keeps the ship this many hull radii from a body of each kind
+        safeRadiusFactor  = { star = 2, planet = 1.5, moon = 1.5, station = 1.5 },
     },
 
     chaseCamera = {
@@ -146,6 +121,10 @@ Config.game = {
         maxRadius      = 8.0,    -- Max zoom
         defaultRadius  = 1.0,    -- Default zoom
         zoomSpeed      = 0.15,   -- Zoom per scroll tick
+        -- Speed trail: the camera pulls back by up to maxLag times the rest distance, on a log
+        -- curve from trailReferenceRatio times the ship's max speed up to the full travel drive
+        maxLag              = 1.5,
+        trailReferenceRatio = 0.1,
     },
 
     -- Orbit camera (chase view of the player ship)

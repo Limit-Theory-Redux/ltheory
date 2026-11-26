@@ -1,0 +1,257 @@
+use glam::DVec3;
+
+use crate::avoidance::Commitment;
+use crate::behaviour::{Behaviour, Wanted};
+use crate::obstacle::ObstacleKey;
+
+/// Number of control axes the controller writes per agent.
+pub const AXIS_COUNT: usize = 6;
+
+/// A control axis: its position in an agent's slice of [`World::axes`](crate::World::axes).
+/// Every value is normalised to `[-1, 1]`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(usize)]
+pub enum Axis {
+    /// Positive turns the nose up.
+    Pitch,
+    /// Positive turns the nose to the right.
+    Yaw,
+    /// Positive rolls clockwise seen from behind. The controller leaves it at 0.
+    Roll,
+    ThrustForward,
+    ThrustRight,
+    ThrustUp,
+}
+
+/// The slot of an agent in a [`World`](crate::World). It names the agent until the agent is
+/// removed, and then whichever agent takes the slot next.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct AgentId(usize);
+
+impl AgentId {
+    pub(crate) const fn new(index: usize) -> Self {
+        Self(index)
+    }
+
+    /// The agent's slot, from 0: the lowest free one when it was added
+    /// ([`World::add_agent`](crate::World::add_agent)).
+    pub fn index(self) -> usize {
+        self.0
+    }
+}
+
+/// An orthonormal frame: the unit directions an agent's thrust and turns are expressed in.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Frame {
+    pub forward: DVec3,
+    pub right: DVec3,
+    pub up: DVec3,
+}
+
+/// The state of an agent's body at the start of a step, in world axes.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Body {
+    /// Length units.
+    pub position: DVec3,
+    /// Length units per second.
+    pub velocity: DVec3,
+    /// Radians per second, about the world axes.
+    pub angular_velocity: DVec3,
+    pub frame: Frame,
+    /// Bounding radius, in length units.
+    pub radius: f64,
+}
+
+impl Body {
+    /// At the origin and at rest, facing along -z with +y up, with no extent.
+    pub const AT_REST: Self = Self {
+        position: DVec3::ZERO,
+        velocity: DVec3::ZERO,
+        angular_velocity: DVec3::ZERO,
+        frame: Frame {
+            forward: DVec3::NEG_Z,
+            right: DVec3::X,
+            up: DVec3::Y,
+        },
+        radius: 0.0,
+    };
+
+    /// The body as seen from a frame that moves at `frame_velocity`: the same state with that
+    /// velocity taken off. Drag, braking and closing speeds are judged in such a frame.
+    pub(crate) fn seen_from(self, frame_velocity: DVec3) -> Self {
+        Self {
+            velocity: self.velocity - frame_velocity,
+            ..self
+        }
+    }
+}
+
+/// An acceleration, in length units per second squared.
+pub type Acceleration = f64;
+
+/// An angular acceleration, in radians per second squared.
+pub type AngularAcceleration = f64;
+
+/// A drag rate `k` in `dv/dt = -k·v`, per second.
+pub type DragRate = f64;
+
+/// A speed, in length units per second. Relative to the agent's frame wherever an agent's own
+/// speed is meant.
+pub type Speed = f64;
+
+/// The speed cap of an agent that has none.
+pub const NO_SPEED_CAP: Speed = f64::INFINITY;
+
+/// What limits an agent's motion: the accelerations its thrusters and turning gear give at full
+/// input along each of its own axes, and the drag that slows it. A limit of 0 means the agent
+/// has no authority on that axis.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Profile {
+    /// The largest speed the behaviours and avoidance plan at, below the speed the thrust
+    /// settles at; [`NO_SPEED_CAP`] for none. It limits what the agent is asked to do and not
+    /// what it can do: the thrust limits below are unchanged, so an agent over its cap brakes at
+    /// full authority.
+    pub speed_cap: Speed,
+    pub linear_drag: DragRate,
+    pub angular_drag: DragRate,
+    /// Thrust along the nose; forward and reverse are equal.
+    pub accel_forward: Acceleration,
+    pub accel_right: Acceleration,
+    pub accel_up: Acceleration,
+    /// Turn about the right axis (pitch), the up axis (yaw) and the forward axis (roll).
+    pub turn_pitch: AngularAcceleration,
+    pub turn_yaw: AngularAcceleration,
+    pub turn_roll: AngularAcceleration,
+}
+
+#[cfg(test)]
+impl Profile {
+    /// A profile for unit tests: a top speed of 100 against a drag of 2, side thrust a quarter
+    /// of the forward thrust, and quick turns.
+    pub(crate) const TEST: Self = Self {
+        speed_cap: NO_SPEED_CAP,
+        linear_drag: 2.0,
+        angular_drag: 5.0,
+        accel_forward: 200.0,
+        accel_right: 50.0,
+        accel_up: 50.0,
+        turn_pitch: 20.0,
+        turn_yaw: 20.0,
+        turn_roll: 6.0,
+    };
+}
+
+impl Profile {
+    /// The top speed the agent is planned at, in length units per second: the speed at which
+    /// forward thrust balances linear drag (infinite without drag), or the speed cap if lower.
+    pub fn max_speed(&self) -> Speed {
+        let thrust_speed = if self.linear_drag > 0.0 {
+            self.accel_forward / self.linear_drag
+        } else {
+            f64::INFINITY
+        };
+        thrust_speed.min(self.speed_cap)
+    }
+}
+
+/// The smallest arrival radius an agent is held to, in agent radii. Agents whose goals lie
+/// closer together than their hulls can't all hold a place inside a smaller circle: they keep
+/// avoiding each other around the goals without any of them arriving.
+pub const MIN_ARRIVAL_RADII: f64 = 2.0;
+
+/// A body moving slower than this many of its own radii per second counts as at rest.
+pub(crate) const AT_REST_RADII_PER_S: f64 = 1.0;
+
+/// A point to fly to and stop at, or to meet if it moves.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Goal {
+    pub target: DVec3,
+    /// The velocity of the target point, in length units per second; zero for a fixed point. Only
+    /// Arrive matches it.
+    pub velocity: DVec3,
+    /// The agent has arrived when its centre is within this distance of the target, or within
+    /// [`MIN_ARRIVAL_RADII`] of its own radii if that is larger.
+    pub arrival_radius: f64,
+}
+
+impl Goal {
+    /// A goal that stays where it is.
+    pub fn fixed(target: DVec3, arrival_radius: f64) -> Self {
+        Self {
+            target,
+            velocity: DVec3::ZERO,
+            arrival_radius,
+        }
+    }
+
+    /// The goal as seen from a frame that moves at `frame_velocity`.
+    pub(crate) fn seen_from(self, frame_velocity: DVec3) -> Self {
+        Self {
+            velocity: self.velocity - frame_velocity,
+            ..self
+        }
+    }
+
+    /// The distance from the target within which an agent of `body_radius` has arrived.
+    pub fn effective_arrival_radius(&self, body_radius: f64) -> f64 {
+        self.arrival_radius.max(body_radius * MIN_ARRIVAL_RADII)
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct Agent {
+    pub body: Body,
+    pub profile: Profile,
+    /// The velocity the agent's surroundings carry it at, in length units per second: the part
+    /// of its velocity that drag does not act on.
+    pub frame_velocity: DVec3,
+    pub behaviour: Option<Behaviour>,
+    /// The obstacle the behaviour tracks, which the agent doesn't avoid.
+    pub tracked: Option<ObstacleKey>,
+    /// The side the agent passes the sphere it is avoiding on, kept between steps.
+    pub commitment: Option<Commitment>,
+    /// A world point the nose is to hold toward, instead of the behaviour's own facing.
+    pub facing: Option<DVec3>,
+    /// Seconds between the runs of the agent's avoidance; 0 runs it at every step.
+    pub avoidance_period: f64,
+    /// The world's clock at which the agent's avoidance next runs; unused with a period of 0.
+    pub next_avoidance: f64,
+    /// The wanted course the last run of avoidance chose, kept for the steps between runs; `None`
+    /// when that run left the course as the behaviour wanted it.
+    pub held: Option<Wanted>,
+}
+
+impl Agent {
+    /// Whether the agent's avoidance runs when the world's clock reads `clock`.
+    pub(crate) fn is_due(&self, clock: f64) -> bool {
+        self.avoidance_period == 0.0 || clock >= self.next_avoidance
+    }
+
+    /// Schedules the next run of avoidance after one at `clock`: a period after the last due
+    /// time, which keeps the agent's stagger, or after `clock` if the steps were longer than a
+    /// period.
+    pub(crate) fn scheduled_after_run(&mut self, clock: f64) {
+        let next = self.next_avoidance + self.avoidance_period;
+        self.next_avoidance = if next > clock {
+            next
+        } else {
+            clock + self.avoidance_period
+        };
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_arrival_radius_is_floored_at_two_agent_radii() {
+        let goal = |arrival_radius| Goal::fixed(DVec3::ZERO, arrival_radius);
+        assert_eq!(
+            goal(1.0).effective_arrival_radius(5.0),
+            5.0 * MIN_ARRIVAL_RADII
+        );
+        assert_eq!(goal(100.0).effective_arrival_radius(5.0), 100.0);
+        assert_eq!(goal(1.0).effective_arrival_radius(0.0), 1.0);
+    }
+}

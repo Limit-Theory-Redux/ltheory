@@ -129,8 +129,8 @@ function RigidBody:getVelocity(result) end
 ---@param result Vec3f [out]
 function RigidBody:getVelocityA(result) end
 
--- When disabled, the object will pass through others without colliding
--- and will not be returned from ray or shape casts.
+-- When disabled, the object will pass through others without colliding.
+-- Physics queries still return it.
 ---@param collidable boolean
 function RigidBody:setCollidable(collidable) end
 
@@ -157,6 +157,20 @@ function RigidBody:setRestitution(restitution) end
 ---@param angular number
 function RigidBody:setSleepThreshold(linear, angular) end
 
+-- How far ahead along its path, in game units, contacts are predicted (Rapier's soft
+-- CCD); 0 disables it. Larger distances enlarge the body's broad-phase box.
+---@param distance number
+function RigidBody:setSoftCcdPrediction(distance) end
+
+-- The id physics queries report for this body; 0 means none.
+---@return integer
+function RigidBody:getUserId() end
+
+-- Sets the id physics queries report for this body, such as the id of the entity
+-- that owns it; 0 means none.
+---@param id integer
+function RigidBody:setUserId(id) end
+
 ---@return number
 function RigidBody:getMass() end
 
@@ -174,6 +188,16 @@ function RigidBody:getPosLocal(result) end
 
 ---@param pos Position
 function RigidBody:setPos(pos) end
+
+-- Moves a kinematic body to `pos` and `rot` over the next physics step, so physics sees its
+-- velocity: contacts push dynamic bodies and `get_velocity` reports the motion. Unlike
+-- `set_position` and `set_rotation`, which teleport, the body stays where it is until then.
+--
+-- # Panics
+-- If the body is not kinematic, which Rapier would silently ignore.
+---@param pos Position
+---@param rot Quat
+function RigidBody:setKinematicTarget(pos, rot) end
 
 -- Local coordinates are relative to the parent *before* scaling. The
 -- given position will be multiplied by the parent's scale.

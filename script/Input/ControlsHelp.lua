@@ -21,7 +21,7 @@ local GROUP_ORDER = { "Flight", "Camera", "Map", "General", "Debug" }
 --- App-level keys that still live in the legacy ApplicationBindings (plain
 --- buttons, not ActionBindings). Listed by hand, only the ones that work in game.
 local LEGACY_KEYS = {
-    { label = "Pause menu", group = "General", buttons = { ApplicationBindings.Escape } },
+    { label = "Pause menu (in a map: pause)", group = "General", buttons = { ApplicationBindings.Escape } },
     { label = "Pause",      group = "General", buttons = { ApplicationBindings.Pause } },
     { label = "Toggle HUD", group = "General", buttons = { ApplicationBindings.ToggleHUD } },
     { label = "Screenshot", group = "General", buttons = { ApplicationBindings.Screenshot } },

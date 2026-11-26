@@ -51,11 +51,15 @@ function Loader.defineType()
             void             RigidBody_SetKinematic                      (RigidBody*, bool kinematic);
             void             RigidBody_SetRestitution                    (RigidBody*, float restitution);
             void             RigidBody_SetSleepThreshold                 (RigidBody*, float linear, float angular);
+            void             RigidBody_SetSoftCcdPrediction              (RigidBody*, double distance);
+            uint64           RigidBody_GetUserId                         (RigidBody const*);
+            void             RigidBody_SetUserId                         (RigidBody*, uint64 id);
             float            RigidBody_GetMass                           (RigidBody const*);
             void             RigidBody_SetMass                           (RigidBody*, float mass);
             void             RigidBody_GetPos                            (RigidBody const*, Position* out);
             void             RigidBody_GetPosLocal                       (RigidBody const*, Position* out);
             void             RigidBody_SetPos                            (RigidBody*, Position const* pos);
+            void             RigidBody_SetKinematicTarget                (RigidBody*, Position const* pos, Quat const* rot);
             void             RigidBody_SetPosLocal                       (RigidBody*, Position const* pos);
             void             RigidBody_GetRot                            (RigidBody const*, Quat* out);
             void             RigidBody_GetRotLocal                       (RigidBody const*, Quat* out);
@@ -140,11 +144,15 @@ function Loader.defineType()
                 setKinematic                = libphx.RigidBody_SetKinematic,
                 setRestitution              = libphx.RigidBody_SetRestitution,
                 setSleepThreshold           = libphx.RigidBody_SetSleepThreshold,
+                setSoftCcdPrediction        = libphx.RigidBody_SetSoftCcdPrediction,
+                getUserId                   = libphx.RigidBody_GetUserId,
+                setUserId                   = libphx.RigidBody_SetUserId,
                 getMass                     = libphx.RigidBody_GetMass,
                 setMass                     = libphx.RigidBody_SetMass,
                 getPos                      = libphx.RigidBody_GetPos,
                 getPosLocal                 = libphx.RigidBody_GetPosLocal,
                 setPos                      = libphx.RigidBody_SetPos,
+                setKinematicTarget          = libphx.RigidBody_SetKinematicTarget,
                 setPosLocal                 = libphx.RigidBody_SetPosLocal,
                 getRot                      = libphx.RigidBody_GetRot,
                 getRotLocal                 = libphx.RigidBody_GetRotLocal,

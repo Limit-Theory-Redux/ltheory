@@ -1,10 +1,16 @@
-local CoreComponents        = require("Modules.Core.Components")
-local PhysicsComponents     = require("Modules.Physics.Components")
-local SpatialComponents     = require("Modules.Spatial.Components")
-local CelestialComponents   = require("Modules.CelestialObjects.Components")
-local UniverseScaleConfig   = require("Config.Gen.UniverseScaleConfig")
-local DrawEx                = require("UI.DrawEx")
-local Pipelines             = require("Render.Pipelines")
+local CoreComponents           = require("Modules.Core.Components")
+local PhysicsComponents        = require("Modules.Physics.Components")
+local SpatialComponents        = require("Modules.Spatial.Components")
+local CelestialComponents      = require("Modules.CelestialObjects.Components")
+local UniverseScaleConfig      = require("Config.Gen.UniverseScaleConfig")
+local DrawEx                   = require("UI.DrawEx")
+local ConstructsComponents     = require("Modules.Constructs.Components")
+local Registry                 = require("Core.ECS.Registry")
+local EntityPosition           = require("Shared.Helpers.EntityPosition")
+local Pipelines                = require("Render.Pipelines")
+local RouteOverlayRenderSystem = require("Modules.UI.Systems.RouteOverlayRenderSystem")
+local GravityWellSystem        = require("Modules.Physics.Systems.GravityWellSystem")
+local PlannerSnapshot          = require("Shared.Helpers.PlannerSnapshot")
 
 -- Scratch color for the shapes below (the batcher copies it at the call).
 local shapeColor = Color(0, 0, 0, 0)
@@ -15,6 +21,102 @@ local dotParamsType
 
 local function formatDistance(gameUnits)
     return UniverseScaleConfig:formatDistance(gameUnits)
+end
+
+--- The map's top-down mapping for `RouteOverlayRenderSystem`: world x to screen x, world z to screen y.
+---@param mapping table { state, cx, cy }
+local function mapToScreen(mapping, pos)
+    local state = mapping.state
+    return mapping.cx + (pos.x + state.panX) * state.zoom, mapping.cy + (pos.z + state.panY) * state.zoom
+end
+
+-- The circles drawn under a body's point: its size, the distance the planner keeps a path outside of
+-- (`PlannerSnapshot.safeRadius`) and its gravity well. All are alpha-blended annuli.
+local BODY_DISC_ALPHA  = 0.3
+local RING_WIDTH_PX    = 3
+local MIN_CIRCLE_PX    = 2    -- a circle of a smaller radius is not drawn
+local ANNULUS_FEATHER  = 2    -- the annulus shader's soft edge, in pixels
+local ANNULUS_PAD_PX   = 4    -- the quad's margin around the circle, at least the feather
+local MAX_QUAD_SCREENS = 4    -- a circle whose quad is larger than this many screens is not drawn
+local MOON_HIDE_PX     = 20   -- a moon whose orbit is smaller on screen than this is hidden
+local SAFE_RING_COLOR  = { r = 1.0, g = 0.35, b = 0.3, a = 0.55 }
+local WELL_RING_COLOR  = { r = 0.3, g = 0.85, b = 1.0, a = 0.45 }
+local LEGEND_LINE_PX   = 14
+local SHIP_COLOR       = { 0.2, 1.0, 0.2 }
+local SHIP_POINT_PX    = 3
+local LEGEND = {
+    { text = "Disc: the body's size",                 color = { r = 0.8, g = 0.8, b = 0.8 } },
+    { text = "Red ring: the path keeps outside it",   color = SAFE_RING_COLOR },
+    { text = "Blue ring: gravity well",               color = WELL_RING_COLOR },
+}
+
+--- What the map draws, per kind marker. A belt and a ring share the belt drawing (annulus + dots).
+--- `bodyKind` is the planner's kind of a body (`Config.game.autoPilot.safeRadiusFactor`): its circles are drawn.
+local MAP_KINDS = {
+    { marker = CelestialComponents.Star,         label = "Star",          color = { 1.0, 0.9, 0.3 }, size = 8, bodyKind = "star" },
+    { marker = CelestialComponents.Planet,       label = "Planet",        color = { 0.3, 0.6, 1.0 }, size = 5, numbered = true, bodyKind = "planet" },
+    { marker = CelestialComponents.Moon,         label = "Moon",          color = { 0.6, 0.6, 0.6 }, size = 3, isMoon = true, bodyKind = "moon" },
+    { marker = ConstructsComponents.SpaceStation, label = "Station",      color = { 1.0, 0.5, 0.1 }, size = 4, bodyKind = "station" },
+    { marker = CelestialComponents.AsteroidBelt, label = "Asteroid Belt", color = { 0.7, 0.5, 0.3 }, size = 3, isBelt = true },
+    { marker = CelestialComponents.AsteroidRing, label = "Asteroid Ring", color = { 0.6, 0.5, 0.4 }, size = 3, isBelt = true },
+    { marker = CelestialComponents.Asteroid,     label = "Asteroid",      color = { 0.7, 0.5, 0.3 }, size = 2 },
+}
+
+--- Whether a moon is hidden at this zoom: its orbit is small on screen, so it sits on its planet.
+---@param state table
+---@param entry table
+---@return boolean
+local function isHiddenMoon(state, entry)
+    return entry.isMoon and entry.parentPos ~= nil and entry.orbitRadius * state.zoom < MOON_HIDE_PX
+end
+
+--- Draws an annulus of `innerR` to `outerR` pixels around `(px, py)` in `shapeColor`, on the map area
+--- `(x, y, sx, sy)`. Draws nothing, and returns true, when it is off the area. Returns false when its quad
+--- would be larger than `MAX_QUAD_SCREENS` screens (a quad that large costs fill rate), and draws nothing.
+local function drawAnnulus(px, py, innerR, outerR, x, y, sx, sy)
+    if px + outerR < x or px - outerR > x + sx or py + outerR < y or py - outerR > y + sy then return true end
+    local size = 2 * (outerR + ANNULUS_PAD_PX)
+    if size >= math.max(sx, sy) * MAX_QUAD_SCREENS then return false end
+    Imm.Shape(Shape.Annulus, px - size * 0.5, py - size * 0.5, size, size, shapeColor, innerR, outerR)
+    return true
+end
+
+--- Whether the whole map area `(x, y, sx, sy)` lies inside the circle of radius `r` around `(px, py)`.
+local function areaInsideCircle(px, py, r, x, y, sx, sy)
+    local dx = math.max(math.abs(px - x), math.abs(px - (x + sx)))
+    local dy = math.max(math.abs(py - y), math.abs(py - (y + sy)))
+    return dx * dx + dy * dy < r * r
+end
+
+--- Draws a ring `RING_WIDTH_PX` wide at pixel radius `r` in `color` (`{ r, g, b, a }`), unless `r` is too small.
+local function drawRing(px, py, r, color, x, y, sx, sy)
+    if r < MIN_CIRCLE_PX then return end
+    shapeColor.r, shapeColor.g, shapeColor.b, shapeColor.a = color.r, color.g, color.b, color.a
+    drawAnnulus(px, py, r - RING_WIDTH_PX * 0.5, r + RING_WIDTH_PX * 0.5, x, y, sx, sy)
+end
+
+--- Draws the circles of a body of the planner (`entry.bodyKind`) under its point: a translucent disc
+--- of its size, a ring at the distance the planner keeps a path outside of, and a ring at its gravity well.
+local function drawBodyCircles(state, entry, cx, cy, x, y, sx, sy)
+    local zoom = state.zoom
+    local px = cx + (entry.pos.x + state.panX) * zoom
+    local py = cy + (entry.pos.z + state.panY) * zoom
+
+    local bodyR = entry.scale * zoom
+    if bodyR >= MIN_CIRCLE_PX then
+        local c = entry.color
+        shapeColor.r, shapeColor.g, shapeColor.b, shapeColor.a = c[1], c[2], c[3], BODY_DISC_ALPHA
+        -- An inner radius of minus the feather fills the centre (the shader feathers around the radius).
+        local drawn = drawAnnulus(px, py, -ANNULUS_FEATHER, bodyR, x, y, sx, sy)
+        -- A body that fills the map area is too large for a quad: the area is its disc.
+        if not drawn and areaInsideCircle(px, py, bodyR, x, y, sx, sy) then
+            DrawEx.SimpleRect(x, y, sx, sy, Color(c[1], c[2], c[3], BODY_DISC_ALPHA))
+        end
+    end
+    drawRing(px, py, PlannerSnapshot.safeRadius(entry.scale, entry.bodyKind) * zoom, SAFE_RING_COLOR, x, y, sx, sy)
+    if entry.wellRadius then
+        drawRing(px, py, entry.wellRadius * zoom, WELL_RING_COLOR, x, y, sx, sy)
+    end
 end
 
 --- ECS System Map — top-down 2D view of the star system with mouse interaction.
@@ -38,24 +140,29 @@ function SystemMap:create(config)
         entities   = {},
         shipEntity = nil,
         selected   = nil,    -- currently selected entity entry
-        autopilotPos = nil,  -- current autopilot destination (Position or nil)
+        routeOverlay = nil,       -- a ship's target, route and progress for `RouteOverlayRenderSystem:draw`, or nil
+        extraRoutes  = nil,       -- other ships' routes, each for `RouteOverlayRenderSystem:drawRoute`, or nil
+        ships        = nil,       -- other ships to show, `{ entity, label, color }` (the label may change), or nil
         dragging   = false,
         lastMouseX = 0,
         lastMouseY = 0,
     }
 end
 
---- Collect all entities with positions from the star system hierarchy
+--- Collect all entities with positions, one registry view per kind
 ---@param state table
----@param rootEntity Entity
 ---@param shipEntity Entity|nil
-function SystemMap:collectEntities(state, rootEntity, shipEntity)
-    -- Full tree walk only on first call or explicit invalidation
+function SystemMap:collectEntities(state, shipEntity)
+    -- Full collection only on first call or explicit invalidation
     if not state._entityListBuilt then
         state.entities = {}
         state.shipEntity = shipEntity
         state._planetIdx = 0
-        self:_walk(state, rootEntity, nil)
+        state._wellRadii = {}
+        for _, zone in ipairs(GravityWellSystem.zones) do state._wellRadii[zone.zoneEntity.id] = zone.radius end
+        for _, kind in ipairs(MAP_KINDS) do
+            self:_collectKind(state, kind)
+        end
 
         -- Add ship
         if shipEntity then
@@ -72,11 +179,16 @@ function SystemMap:collectEntities(state, rootEntity, shipEntity)
                 })
             end
         end
+        self:_collectShips(state)
         state._entityListBuilt = true
     end
 
     -- Cheap per-frame position update (no tree walk)
     for _, entry in ipairs(state.entities) do
+        if entry.spec then
+            entry.label = entry.spec.label
+            entry.color = entry.spec.color or SHIP_COLOR
+        end
         local rbCmp = entry.entity:get(PhysicsComponents.RigidBody)
         if rbCmp and rbCmp:getRigidBody() then
             entry.pos = rbCmp:getRigidBody():getPos()
@@ -119,96 +231,88 @@ function SystemMap:collectEntities(state, rootEntity, shipEntity)
     end
 end
 
+--- Adds an entry for each of `state.ships`: a point whose label shows only while it is selected.
 ---@param state table
----@param entity Entity
----@param parentPos Position|nil
----@param parentPos Position|nil
-function SystemMap:_walk(state, entity, parentPos, parentEntity)
-    local name = tostring(entity)
-    local transform = entity:get(PhysicsComponents.Transform)
+function SystemMap:_collectShips(state)
+    for _, spec in ipairs(state.ships or {}) do
+        local rb = spec.entity:get(PhysicsComponents.RigidBody):getRigidBody()
+        table.insert(state.entities, {
+            entity = spec.entity,
+            spec = spec,
+            label = spec.label,
+            pos = rb:getPos(),
+            scale = rb:getBoundingRadius(),
+            color = spec.color or SHIP_COLOR,
+            size = SHIP_POINT_PX,
+            labelOnSelect = true,
+        })
+    end
+end
 
-    if transform then
-        local pos = transform:getPos()
-        local scale = transform:getScale()
-        local label, color, pointSize, isMoon, isBelt = nil, nil, nil, false, false
+--- Selects the entry of `entity` as a click on it would (nothing when it has none).
+---@param state table
+---@param entity Entity|nil
+function SystemMap:selectEntity(state, entity)
+    state.selected = nil
+    for _, entry in ipairs(state.entities) do
+        if entry.entity == entity then state.selected = entry; break end
+    end
+end
 
-        if name:find("StarEntity") then
-            label = "Star"
-            color = { 1.0, 0.9, 0.3 }
-            pointSize = 8
-        elseif name:find("PlanetEntity") then
-            state._planetIdx = state._planetIdx + 1
-            label = "Planet " .. state._planetIdx
-            color = { 0.3, 0.6, 1.0 }
-            pointSize = 5
-        elseif name:find("MoonEntity") then
-            label = "Moon"
-            color = { 0.6, 0.6, 0.6 }
-            pointSize = 3
-            isMoon = true
-        elseif name:find("SpaceStationEntity") then
-            label = "Station"
-            color = { 1.0, 0.5, 0.1 }
-            pointSize = 4
-        elseif name:find("AsteroidBeltEntity") then
-            label = "Asteroid Belt"
-            color = { 0.7, 0.5, 0.3 }
-            pointSize = 3
-            isBelt = true
-        elseif name:find("AsteroidRingEntity") then
-            label = "Asteroid Ring"
-            color = { 0.6, 0.5, 0.4 }
-            pointSize = 3
-            isBelt = true  -- reuse belt rendering logic (annulus + dots)
-        elseif name:find("AsteroidEntity") then
-            label = "Asteroid"
-            color = { 0.7, 0.5, 0.3 }
-            pointSize = 2
-        end
+--- Select the ship given to the last `collectEntities` call, as a click on it would.
+---@param state table
+function SystemMap:selectShip(state)
+    self:selectEntity(state, state.shipEntity)
+end
 
-        if label then
+---@param state table
+---@param kind table An entry of MAP_KINDS
+function SystemMap:_collectKind(state, kind)
+    for entity in Registry:view(kind.marker) do
+        local transform = entity:get(PhysicsComponents.Transform)
+        if transform then
+            local pos = transform:getPos()
+            local scale = transform:getScale()
             local rbCmp = entity:get(PhysicsComponents.RigidBody)
             if rbCmp and rbCmp:getRigidBody() then
                 pos = rbCmp:getRigidBody():getPos()
                 scale = rbCmp:getRigidBody():getBoundingRadius()
             end
 
+            local label = kind.label
+            if kind.numbered then
+                state._planetIdx = state._planetIdx + 1
+                label = label .. " " .. state._planetIdx
+            end
+
             local orbitCmp = entity:get(SpatialComponents.Orbit)
             local orbitRadius = orbitCmp and orbitCmp:getOrbitRadius() or 0
-            -- For rings without Orbit component, read from AsteroidBeltComponent
-            if orbitRadius == 0 and isBelt then
-                local beltCmp = entity:get(CelestialComponents.AsteroidBelt)
+            -- A ring has no Orbit component: its radius is in the belt data
+            if orbitRadius == 0 and kind.isBelt then
+                local beltCmp = entity:get(CelestialComponents.AsteroidBeltData)
                 if beltCmp then orbitRadius = beltCmp:getOrbitRadius() end
             end
 
+            local parentCmp = entity:get(CoreComponents.Parent)
+            local parentEntity = parentCmp and parentCmp:getParent()
+            local widthCmp = kind.isBelt and entity:get(SpatialComponents.Width)
+
             table.insert(state.entities, {
-                entity      = entity,
-                label       = label,
-                pos         = pos,
-                scale       = scale,
-                orbitRadius = orbitRadius,
-                color       = color,
-                size        = pointSize,
-                isMoon      = isMoon,
-                isBelt      = isBelt,
-                beltWidth   = isBelt and (entity:get(SpatialComponents.Width) and entity:get(SpatialComponents.Width):getWidth() or 0) or nil,
-                parentPos   = parentPos,
+                entity        = entity,
+                label         = label,
+                pos           = pos,
+                scale         = scale,
+                bodyKind      = kind.bodyKind,
+                wellRadius    = kind.bodyKind and state._wellRadii[entity.id] or nil,
+                orbitRadius   = orbitRadius,
+                color         = kind.color,
+                size          = kind.size,
+                isMoon        = kind.isMoon or false,
+                isBelt        = kind.isBelt or false,
+                beltWidth     = kind.isBelt and (widthCmp and widthCmp:getWidth() or 0) or nil,
+                parentPos     = parentEntity and EntityPosition.Get(parentEntity) or nil,
                 _parentEntity = parentEntity,
             })
-        end
-
-        local childrenCmp = entity:get(CoreComponents.Children)
-        if childrenCmp then
-            for child in childrenCmp:iterChildren() do
-                self:_walk(state, child, pos, entity)
-            end
-        end
-    else
-        local childrenCmp = entity:get(CoreComponents.Children)
-        if childrenCmp then
-            for child in childrenCmp:iterChildren() do
-                self:_walk(state, child, parentPos, parentEntity)
-            end
         end
     end
 end
@@ -307,7 +411,7 @@ function SystemMap:updateInput(state, dt)
 
             if entry.isBelt and entry.orbitRadius and entry.orbitRadius > 0 then
                 -- Check individual asteroid dots first (higher priority)
-                local beltCmp = entry.entity:get(CelestialComponents.AsteroidBelt)
+                local beltCmp = entry.entity:get(CelestialComponents.AsteroidBeltData)
                 local beltScreenR = entry.orbitRadius * state.zoom
                 -- Center on parent (planet for rings, star for belts)
                 local ocx, ocy
@@ -483,7 +587,7 @@ function SystemMap:draw(state, x, y, sx, sy)
             end
 
             -- Draw individual asteroid dots — only when ring is visible on screen
-            local beltCmp2 = entry.entity:get(CelestialComponents.AsteroidBelt)
+            local beltCmp2 = entry.entity:get(CelestialComponents.AsteroidBeltData)
             -- Rings: show dots like moons (orbit > 20px). Belts: only at very high zoom.
             local isRing = entry.parentPos ~= nil
             local dotThreshold = isRing and 20 or (math.min(sx, sy) * 2)
@@ -557,13 +661,17 @@ function SystemMap:draw(state, x, y, sx, sy)
         end
     end
 
+    -- Body circles, under every point and label
+    for _, entry in ipairs(state.entities) do
+        if entry.bodyKind and not isHiddenMoon(state, entry) then
+            drawBodyCircles(state, entry, cx, cy, x, y, sx, sy)
+        end
+    end
+
     -- Draw entities
     for _, entry in ipairs(state.entities) do
         -- Hide moons unless zoomed in close to their parent planet
-        if entry.isMoon and entry.parentPos then
-            local parentScreenDist = entry.orbitRadius * state.zoom
-            if parentScreenDist < 20 then goto next_map_entity end
-        end
+        if isHiddenMoon(state, entry) then goto next_map_entity end
 
         -- Belt entities: draw label at top of ring, not as a point
         if entry.isBelt and entry.orbitRadius and entry.orbitRadius > 0 then
@@ -608,42 +716,28 @@ function SystemMap:draw(state, x, y, sx, sy)
             end
 
             -- Draw label
-            DrawEx.TextAlpha('Unageo-Medium', entry.label, 10,
-                screenX + ps + 4, screenY - 6, 120, 14,
-                c[1], c[2], c[3], 0.9, 0.0, 0.5)
+            if not entry.labelOnSelect or (state.selected and state.selected.entity == entry.entity) then
+                DrawEx.TextAlpha('Unageo-Medium', entry.label, 10,
+                    screenX + ps + 4, screenY - 6, 120, 14,
+                    c[1], c[2], c[3], 0.9, 0.0, 0.5)
+            end
         end
         ::next_map_entity::
     end
 
-    -- Draw autopilot nav: target marker + intercept marker + lines
-    -- Target marker (yellow crosshair on actual target)
-    if state.autopilotTargetPos then
-        local tp = state.autopilotTargetPos
-        local tpx = cx + (tp.x + state.panX) * state.zoom
-        local tpy = cy + (tp.z + state.panY) * state.zoom
-        local ms = 6
-        DrawEx.SimpleRect(tpx - ms, tpy - 0.5, ms * 2, 1, Color(1.0, 0.8, 0.3, 0.9))
-        DrawEx.SimpleRect(tpx - 0.5, tpy - ms, 1, ms * 2, Color(1.0, 0.8, 0.3, 0.9))
-        DrawEx.TextAlpha('Unageo-Medium', "TARGET", 9,
-            tpx + ms + 2, tpy - 5, 80, 12, 1.0, 0.8, 0.3, 0.9, 0.0, 0.5)
+    -- Routes, in the map's top-down mapping: other ships' first, so the selected ship's lies on top;
+    -- then its target, next waypoint, route and distance/ETA
+    local mapping = state._mapping or {}
+    state._mapping = mapping
+    mapping.state, mapping.cx, mapping.cy = state, cx, cy
+    for _, route in ipairs(state.extraRoutes or {}) do
+        RouteOverlayRenderSystem:drawRoute(route, mapToScreen, mapping)
     end
-    -- Intercept marker (cyan, only if different from target)
-    if state.autopilotPos and state.autopilotTargetPos then
-        local ip = state.autopilotPos
-        local tp = state.autopilotTargetPos
-        local sep = math.sqrt((ip.x-tp.x)^2 + (ip.z-tp.z)^2) * state.zoom
-        if sep > 10 then
-            local ipx = cx + (ip.x + state.panX) * state.zoom
-            local ipy = cy + (ip.z + state.panY) * state.zoom
-            local ms = 4
-            DrawEx.SimpleRect(ipx - ms, ipy - 0.5, ms * 2, 1, Color(0.3, 0.8, 1.0, 0.7))
-            DrawEx.SimpleRect(ipx - 0.5, ipy - ms, 1, ms * 2, Color(0.3, 0.8, 1.0, 0.7))
-            DrawEx.TextAlpha('Unageo-Medium', "INTERCEPT", 8,
-                ipx + ms + 2, ipy - 5, 80, 10, 0.3, 0.8, 1.0, 0.7, 0.0, 0.5)
-        end
-    end
+    local overlay = state.routeOverlay
+    if overlay then RouteOverlayRenderSystem:draw(overlay, mapToScreen, mapping) end
+
     -- Selection marker (when no autopilot, just map selection)
-    if not state.autopilotTargetPos and state.selected and state.selected.clickPos then
+    if not (overlay and overlay.targetPos) and state.selected and state.selected.clickPos then
         local cp = state.selected.clickPos
         local cpx = cx + (cp.x + state.panX) * state.zoom
         local cpy = cy + (cp.z + state.panY) * state.zoom
@@ -654,65 +748,16 @@ function SystemMap:draw(state, x, y, sx, sy)
             cpx + ms + 2, cpy - 5, 80, 12, 1.0, 0.8, 0.3, 0.9, 0.0, 0.5)
     end
 
-    if state.autopilotPos and state.shipEntity then
-        local shipRb = state.shipEntity:get(PhysicsComponents.RigidBody)
-        if shipRb and shipRb:getRigidBody() then
-            local shipPos = shipRb:getRigidBody():getPos()
-            local shipSX = cx + (shipPos.x + state.panX) * state.zoom
-            local shipSY = cy + (shipPos.z + state.panY) * state.zoom
-
-            -- Yellow line: ship → actual target position
-            if state.autopilotTargetPos then
-                local tp = state.autopilotTargetPos
-                local tSX = cx + (tp.x + state.panX) * state.zoom
-                local tSY = cy + (tp.z + state.panY) * state.zoom
-                local tLen = math.sqrt((tSX-shipSX)^2 + (tSY-shipSY)^2)
-                if tLen > 5 then
-                    DrawEx.Line(shipSX, shipSY, tSX, tSY, Color(1.0, 0.8, 0.3, 0.2))
-                end
-            end
-
-            -- White line: ship → predicted intercept position
-            local ap = state.autopilotPos
-            local destSX = cx + (ap.x + state.panX) * state.zoom
-            local destSY = cy + (ap.z + state.panY) * state.zoom
-
-            local ldx = destSX - shipSX
-            local ldy = destSY - shipSY
-            local len = math.sqrt(ldx * ldx + ldy * ldy)
-            if len > 5 then
-                -- White flight path line
-                DrawEx.Line(shipSX, shipSY, destSX, destSY,
-                    Color(1.0, 1.0, 1.0, 0.6))
-
-                -- Distance + ETA label at midpoint
-                local midX = (shipSX + destSX) * 0.5
-                local midY = (shipSY + destSY) * 0.5
-                local worldDist = math.sqrt(
-                    (ap.x - shipPos.x)^2 + (ap.z - shipPos.z)^2)
-                local distStr = formatDistance(worldDist)
-                local speed = shipRb:getRigidBody():getSpeed()
-                local etaStr = ""
-                if speed > 1 then
-                    local eta = worldDist / speed
-                    if eta > 3600 then
-                        etaStr = string.format(" | ETA %.0fh%02.0fm", math.floor(eta/3600), (eta%3600)/60)
-                    elseif eta > 60 then
-                        etaStr = string.format(" | ETA %.0fm%02.0fs", math.floor(eta/60), eta%60)
-                    else
-                        etaStr = string.format(" | ETA %.0fs", eta)
-                    end
-                end
-                DrawEx.TextAlpha('Unageo-Medium', distStr .. etaStr, 10,
-                    midX - 60, midY - 14, 200, 12,
-                    1.0, 1.0, 1.0, 0.8, 0.5, 0.5)
-            end
-        end
-    end
-
     -- Draw selected entity info panel
     if state.selected then
         self:drawSelectedInfo(state, x + sx - 250, y + 40, 240)
+    end
+
+    -- Legend of the body circles
+    for i, line in ipairs(LEGEND) do
+        local c = line.color
+        DrawEx.TextAlpha('Unageo-Medium', line.text, 10,
+            x + 10, y + sy - 25 - LEGEND_LINE_PX * (#LEGEND - i + 1), 240, 14, c.r, c.g, c.b, 0.9, 0.0, 0.5)
     end
 
     -- Draw zoom level

@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" font-family="sans-serif" font-size="14">
+  <title>Obstacle reach, aim sphere and candidate courses</title>
+  <defs>
+    <marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2563eb"/></marker>
+    <marker id="g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker>
+    <marker id="k" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#111827"/></marker>
+  </defs>
+  <rect width="800" height="500" fill="#ffffff"/>
+  <!-- obstacle, reach, aim sphere -->
+  <circle cx="420" cy="250" r="135" fill="none" stroke="#d97706" stroke-width="2" stroke-dasharray="3 4"/>
+  <circle cx="420" cy="250" r="127" fill="#fee2e2" fill-opacity="0.5" stroke="#dc2626" stroke-width="2" stroke-dasharray="8 4"/>
+  <circle cx="420" cy="250" r="70" fill="#9ca3af" stroke="#6b7280" stroke-width="2"/>
+  <text x="420" y="255" fill="#ffffff" text-anchor="middle" font-weight="bold">obstacle</text>
+  <!-- agent -->
+  <circle cx="80" cy="250" r="12" fill="#2563eb"/>
+  <text x="80" y="285" fill="#2563eb" text-anchor="middle">agent</text>
+  <!-- wanted course -->
+  <line x1="92" y1="250" x2="330" y2="250" stroke="#2563eb" stroke-width="3" marker-end="url(#b)"/>
+  <text x="110" y="274" fill="#2563eb">wanted course</text>
+  <!-- candidate courses: tangent to the aim sphere -->
+  <line x1="88" y1="247" x2="441" y2="101" stroke="#16a34a" stroke-width="2.5" marker-end="url(#g)"/>
+  <line x1="88" y1="253" x2="441" y2="399" stroke="#16a34a" stroke-width="2.5" marker-end="url(#g)"/>
+  <text x="140" y="164" fill="#16a34a" transform="rotate(-22.7 140 164)">candidate on one side</text>
+  <text x="152" y="352" fill="#16a34a" transform="rotate(22.7 152 352)">candidate on the other side</text>
+  <!-- alpha -->
+  <path d="M170,250 A90,90 0 0 0 162.6,214.3" fill="none" stroke="#111827" stroke-width="1.5"/>
+  <text x="176" y="236" fill="#111827" font-weight="bold">α</text>
+  <!-- radial breakdown, downward from centre -->
+  <line x1="420" y1="250" x2="420" y2="320" stroke="#6b7280" stroke-width="5"/>
+  <line x1="420" y1="320" x2="420" y2="332" stroke="#2563eb" stroke-width="5"/>
+  <line x1="420" y1="332" x2="420" y2="377" stroke="#dc2626" stroke-width="5"/>
+  <line x1="420" y1="377" x2="420" y2="385" stroke="#d97706" stroke-width="5"/>
+  <text x="432" y="290" fill="#6b7280">obstacle radius</text>
+  <text x="432" y="330" fill="#2563eb">agent radius</text>
+  <text x="432" y="360" fill="#dc2626">clearance</text>
+  <text x="432" y="402" fill="#d97706">+ aim_factor margin</text>
+  <!-- legend -->
+  <text x="20" y="30" fill="#111827" font-weight="bold">Reach and aim sphere</text>
+  <line x1="20" y1="52" x2="60" y2="52" stroke="#dc2626" stroke-width="2" stroke-dasharray="8 4"/>
+  <text x="68" y="57" fill="#dc2626">reach = obstacle + agent + clearance: a course inside it is a threat</text>
+  <line x1="20" y1="76" x2="60" y2="76" stroke="#d97706" stroke-width="2" stroke-dasharray="3 4"/>
+  <text x="68" y="81" fill="#d97706">aim sphere: a little wider, so the new course is not on the threat boundary</text>
+  <text x="20" y="470" fill="#6b7280">A candidate course is the edge of the cone from the agent that just touches the aim sphere (half-angle α).</text>
+</svg>

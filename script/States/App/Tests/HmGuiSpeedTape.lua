@@ -4,6 +4,7 @@
 --- scale stays readable on a bright background.
 --- Run: `./bin/ltr.exe HmGuiSpeedTape` (capture with LTHEORY_CAPTURE).
 local Test = require('States.Application')
+local FlightProfileRegistry = require("Shared.Registries.FlightProfileRegistry")
 
 function Test:getTitle() return 'HmGui Speed Tape' end
 
@@ -16,7 +17,7 @@ local COLUMNS, ROWS = 3, 2
 function Test:onInit()
     self.titleFont = Cache.Font('Unageo-Medium', 16)
 
-    local max = Config.game.shipFlight.maxSpeedGame
+    local max = FlightProfileRegistry:get(Enums.FlightProfile.Solo).maxSpeed
     local zoneTop = Config.game.travelDrive.maxSpeedByZone.planet
     self.cells = {
         { title = 'Stopped', speed = 0 },

@@ -9,8 +9,6 @@ Config.orgInfo                   = {
     reddit = "https://www.reddit.com/r/LimitTheoryRedux/"
 }
 
-Config.gameTitle                 = "Limit Theory Redux"
-
 Config.userInitFilename          = "user"
 Config.userInitFiletype          = ".ini"
 

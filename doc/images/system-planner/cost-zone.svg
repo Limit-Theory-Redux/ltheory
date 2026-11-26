@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" font-family="sans-serif" font-size="14">
+  <title>A leg through a cost zone and the detour round it</title>
+  <rect width="800" height="500" fill="#ffffff"/>
+  <text x="20" y="28" fill="#111827" font-weight="bold">Cross the zone, or go round it</text>
+  <!-- zone -->
+  <circle cx="400" cy="270" r="110" fill="#fef3c7" fill-opacity="0.8" stroke="#d97706" stroke-width="2" stroke-dasharray="8 4"/>
+  <text x="400" y="318" fill="#b45309" text-anchor="middle">cost zone (Radius, Cost)</text>
+  <!-- straight leg and the length inside -->
+  <line x1="60" y1="250" x2="740" y2="250" stroke="#6b7280" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <line x1="292" y1="250" x2="508" y2="250" stroke="#dc2626" stroke-width="5"/>
+  <line x1="292" y1="236" x2="292" y2="264" stroke="#dc2626" stroke-width="1.5"/>
+  <line x1="508" y1="236" x2="508" y2="264" stroke="#dc2626" stroke-width="1.5"/>
+  <text x="400" y="228" fill="#dc2626" text-anchor="middle" font-weight="bold">L</text>
+  <text x="400" y="212" fill="#dc2626" text-anchor="middle">first entry to last exit</text>
+  <!-- endpoints -->
+  <circle cx="60" cy="250" r="7" fill="#2563eb"/>
+  <text x="60" y="276" fill="#2563eb" text-anchor="middle">a</text>
+  <circle cx="740" cy="250" r="7" fill="#2563eb"/>
+  <text x="740" y="276" fill="#2563eb" text-anchor="middle">b</text>
+  <!-- detour -->
+  <polyline points="60,250 400,128 740,250" fill="none" stroke="#2563eb" stroke-width="3.5"/>
+  <circle cx="400" cy="128" r="6" fill="#111827"/>
+  <text x="412" y="122" fill="#111827" font-weight="bold">w</text>
+  <!-- rule -->
+  <text x="20" y="400" fill="#dc2626">crossExtra = Cost · L</text>
+  <text x="20" y="424" fill="#2563eb">detourExtra = |a − w| + |w − b| − |a − b|</text>
+  <text x="20" y="452" fill="#111827" font-weight="bold">The leg goes round the zone when detourExtra &lt; crossExtra, and crosses it otherwise.</text>
+  <text x="20" y="476" fill="#6b7280">A zone with no detour point, or hit at the depth limit, is crossed.</text>
+</svg>

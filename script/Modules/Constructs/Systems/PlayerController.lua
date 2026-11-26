@@ -1,20 +1,38 @@
-local CameraEntity            = require("Modules.Cameras.Entities").Camera
-local CameraManager           = require("Modules.Cameras.Managers.CameraManager")
-local _                       = require("Modules.Cameras.Systems.CameraSystem") -- subscribes to Input + PreRender
-local CameraDataComponent     = require("Modules.Cameras.Components.CameraDataComponent")
-local ChaseCameraController   = require("Modules.Cameras.Managers.CameraControllers.ChaseCameraController")
-local OrbitCameraController   = require("Modules.Cameras.Managers.CameraControllers.OrbitCameraController")
+local CameraEntity                = require("Modules.Cameras.Entities").Camera
+local CameraManager               = require("Modules.Cameras.Managers.CameraManager")
+local _                           = require("Modules.Cameras.Systems.CameraSystem") -- subscribes to Input + PreRender
+local CameraDataComponent         = require("Modules.Cameras.Components.CameraDataComponent")
+local ChaseCameraController       = require("Modules.Cameras.Managers.CameraControllers.ChaseCameraController")
+local OrbitCameraController       = require("Modules.Cameras.Managers.CameraControllers.OrbitCameraController")
 local FirstPersonCameraController = require("Modules.Cameras.Managers.CameraControllers.FirstPersonCameraController")
-local FreeCameraController    = require("Modules.Cameras.Managers.CameraControllers.FreeCameraController")
-local RTSCameraController     = require("Modules.Cameras.Managers.CameraControllers.RTSCameraController")
-local PhysicsComponents       = require("Modules.Physics.Components")
-local ConstructComponents     = require("Modules.Constructs.Components")
-local RenderComp              = require("Modules.Rendering.Components").Render
-local ShipFlightSystem        = require("Modules.Constructs.Systems.ShipFlightSystem")
-local TravelDriveSystem       = require("Modules.Constructs.Systems.TravelDriveSystem")
-local AutoPilotSystem         = require("Modules.Constructs.Systems.AutoPilotSystem")
-local CursorManager           = require("Input.CursorManager")
-local GeneralActions           = require("Input.ActionBindings.GeneralActions")
+local FreeCameraController        = require("Modules.Cameras.Managers.CameraControllers.FreeCameraController")
+local RTSCameraController         = require("Modules.Cameras.Managers.CameraControllers.RTSCameraController")
+local PhysicsComponents           = require("Modules.Physics.Components")
+local ConstructComponents         = require("Modules.Constructs.Components")
+local RenderComp                  = require("Modules.Rendering.Components").Render
+local AutoPilotSystem             = require("Modules.Constructs.Systems.AutoPilotSystem")
+local ControlOwnerSystem          = require("Modules.Constructs.Systems.ControlOwnerSystem")
+local CursorManager               = require("Input.CursorManager")
+local GeneralActions              = require("Input.ActionBindings.GeneralActions")
+local ShipActions                 = require("Input.ActionBindings.ShipActions")
+local UserSettings                = require("Shared.UserSettings")
+
+-- Fire input above this stops the travel drive.
+local FIRE_THRESHOLD           = 0.5
+-- Thrust, roll and boost input beyond this takes the controls from the autopilot: a key gives 1,
+-- and the margin keeps a stick that rests off centre from taking them.
+local TAKEOVER_THRESHOLD       = 0.3
+-- Aiming dead zones, as fractions of the full axis.
+local AIM_DEAD_ZONE_YAW        = 0.004
+local AIM_DEAD_ZONE_PITCH      = 0.008
+-- First person: cursor movement as a fraction of the window accumulates into the aim
+-- target (limited to FPS_AIM_LIMIT), which decays toward centre at FPS_AIM_DECAY_RATE per second.
+local FPS_AIM_SENSITIVITY      = 1.0
+local FPS_AIM_LIMIT            = 0.8
+local FPS_AIM_DECAY_RATE       = 4.0
+-- Steering while the travel drive is active: window fraction moved to full axis.
+local DRIVE_STEER_SENSITIVITY  = 4.0
+local DRIVE_STEER_DEAD_ZONE    = 0.0001
 
 ---@class PlayerController
 ---@overload fun(shipEntity: Entity, config?: table): PlayerController
@@ -38,6 +56,9 @@ local PlayerController = Class("PlayerController", function(self, shipEntity, co
         Enums.CameraMode.Orbit,
         Enums.CameraMode.Free,
     }
+
+    -- The piloted ship is the player's: orders given to it wait.
+    ControlOwnerSystem:setManual(shipEntity, true)
 
     self:_createCameras(config)
     self:setMode(self.mode)
@@ -63,6 +84,9 @@ function PlayerController:_createCameras(config)
         minRadius = chaseCfg.minRadius or 0.5,
         maxRadius = chaseCfg.maxRadius or 8.0,
         zoomSpeed = chaseCfg.zoomSpeed or 0.15,
+        maxLag    = chaseCfg.maxLag,
+        trailReferenceRatio = chaseCfg.trailReferenceRatio,
+        trailTopSpeedRatio  = Config.game.travelDrive.maxSpeedByZone.openSpace,
     })
     camChase:get(CameraDataComponent):setController(self.controllers[Enums.CameraMode.Chase])
     self.controllers[Enums.CameraMode.Chase]:setTarget(self.ship)
@@ -219,21 +243,127 @@ function PlayerController:setInputBlocked(blocked)
     self.inputBlocked = blocked
 end
 
---- Update the player controller (call each frame from onSim)
+--- Request the travel drive: the toggle key engages an idle drive and stops a running
+--- one, and firing stops it. Applied by the drive system on its next update.
+---@param input ControlInputComponent
+function PlayerController:requestDrive(input)
+    local drive = self.ship:get(ConstructComponents.TravelDrive)
+    if not drive then return end
+
+    if ShipActions.TravelDrive:isPressed() then
+        input:setDriveRequest(drive:getState() == "idle"
+            and Enums.TravelDriveRequest.Engage
+            or Enums.TravelDriveRequest.Disengage)
+    end
+    if ShipActions.Fire:get() > FIRE_THRESHOLD then
+        input:setDriveRequest(Enums.TravelDriveRequest.Disengage)
+    end
+end
+
+--- Mouse steering while the drive is active: by cursor movement in every camera mode.
+---@return ControlAxis yaw, ControlAxis pitch
+local function driveSteerAxes()
+    local delta = Input:mouse():delta()
+    local yaw   = Math.Clamp(delta.x / Window:width() * DRIVE_STEER_SENSITIVITY, -1.0, 1.0)
+    local pitch = Math.Clamp(-delta.y / Window:height() * DRIVE_STEER_SENSITIVITY, -1.0, 1.0)
+    if math.abs(yaw)   < DRIVE_STEER_DEAD_ZONE then yaw   = 0 end
+    if math.abs(pitch) < DRIVE_STEER_DEAD_ZONE then pitch = 0 end
+    return yaw, pitch
+end
+
+--- First-person aiming: cursor movement accumulates into a target that decays back
+--- to centre when the mouse stops.
+---@param dt number
+---@param flightCtrl ShipFlightControlComponent|nil
+---@return ControlAxis yaw, ControlAxis pitch
+local function firstPersonAxes(dt, flightCtrl)
+    if not flightCtrl then return 0, 0 end
+
+    local delta = Input:mouse():delta()
+    local sensitivity = FPS_AIM_SENSITIVITY * UserSettings.mouseSensitivityFactor() -- Mouse Sensitivity setting
+    local yaw = Math.Clamp(
+        flightCtrl:getTargetYaw() + delta.x / Window:width() * sensitivity,
+        -FPS_AIM_LIMIT, FPS_AIM_LIMIT)
+    local pitch = Math.Clamp(
+        flightCtrl:getTargetPitch() - delta.y / Window:height() * sensitivity,
+        -FPS_AIM_LIMIT, FPS_AIM_LIMIT)
+
+    local decay = math.exp(-FPS_AIM_DECAY_RATE * dt)
+    flightCtrl:setTargetYaw(yaw * decay)
+    flightCtrl:setTargetPitch(pitch * decay)
+    return yaw, pitch
+end
+
+--- Write the manual flight axes from the player's input devices.
+---@param dt number
+---@param input ControlInputComponent
+function PlayerController:writeAxes(dt, input)
+    local drive = self.ship:get(ConstructComponents.TravelDrive)
+    local yaw, pitch
+    if drive and drive:isActive() then
+        yaw, pitch = driveSteerAxes()
+    else
+        if self.mode == Enums.CameraMode.FirstPerson then
+            yaw, pitch = firstPersonAxes(dt, self.ship:get(ConstructComponents.ShipFlightControl))
+        else
+            -- Chase: the cursor's position on screen steers.
+            yaw, pitch = ShipActions.Yaw:get(), ShipActions.Pitch:get()
+        end
+        if math.abs(yaw)   < AIM_DEAD_ZONE_YAW   then yaw   = 0 end
+        if math.abs(pitch) < AIM_DEAD_ZONE_PITCH then pitch = 0 end
+
+        local cfg = Config.game.playerFlight
+        if cfg.invertYaw   then yaw   = -yaw end
+        -- The Invert Vertical Look setting is read every frame, so changing it applies straight away.
+        if cfg.invertPitch or GameState.input.invertPitch then pitch = -pitch end
+    end
+
+    input:setThrustForward(ShipActions.ThrustZ:get())
+    input:setThrustRight(ShipActions.ThrustX:get())
+    input:setThrustUp(ShipActions.ThrustY:get())
+    input:setRoll(ShipActions.Roll:get())
+    input:setBoost(ShipActions.Boost:get())
+    input:setYaw(yaw)
+    input:setPitch(pitch)
+end
+
+--- Whether the player asks for the controls this frame: a thrust, roll, boost, fire or travel-drive
+--- key. The cursor doesn't count, since in the chase mode its position steers.
+---@return boolean
+local function takesTheControls()
+    for _, action in ipairs({ ShipActions.ThrustX, ShipActions.ThrustY, ShipActions.ThrustZ,
+                              ShipActions.Roll, ShipActions.Boost }) do
+        if math.abs(action:get()) > TAKEOVER_THRESHOLD then return true end
+    end
+    return ShipActions.Fire:get() > FIRE_THRESHOLD or ShipActions.TravelDrive:isPressed()
+end
+
+--- Update the player controller: writes the ship's control input while the player owns it (call
+--- each frame at PreSim, before the actuation systems)
 ---@param dt number Delta time
 function PlayerController:update(dt)
-    -- Travel drive always updates (even with map open — ship keeps moving)
-    local ShipActions = require("Input.ActionBindings.ShipActions")
     for _, binding in pairs(ShipActions) do
         binding:update(dt)
     end
-    TravelDriveSystem:update(dt, self.ship)
 
-    -- AutoPilot always updates (even with map open — ship keeps navigating)
-    AutoPilotSystem:update(dt, self.ship)
+    -- The autopilot's order flies the ship while it owns the controls (even with the map open);
+    -- the player's keys cancel it, and then fly the ship in this same frame.
+    AutoPilotSystem:update()
+    if AutoPilotSystem:isActive(self.ship) and self:isPiloting() and not self.inputBlocked
+        and takesTheControls() then
+        AutoPilotSystem:disengage(self.ship)
+    end
+    local input = self.ship:get(ConstructComponents.ControlInput)
+    local manual = input ~= nil and ControlOwnerSystem:ownerOf(self.ship) == Enums.ControlOwner.Manual
+
+    -- The drive is requested even with the map open: the ship keeps moving.
+    if manual then self:requestDrive(input) end
 
     -- Don't process other input when blocked (map open, menu, etc.)
-    if self.inputBlocked then return end
+    if self.inputBlocked then
+        if manual then input:clearAxes() end
+        return
+    end
 
     -- Handle camera mode cycling
     GeneralActions.CycleCamera:update(dt)
@@ -241,14 +371,12 @@ function PlayerController:update(dt)
         self:cycleMode()
     end
 
-    -- Manual flight only when piloting AND not on autopilot
-    if self:isPiloting() and not AutoPilotSystem:isActive(self.ship) then
-        local isFPS = (self.mode == Enums.CameraMode.FirstPerson)
-        local drive = self.ship:get(ConstructComponents.TravelDrive)
-        if drive and drive:isActive() then
-            ShipFlightSystem:updateSteeringOnly(dt, self.ship, isFPS)
+    -- Manual flight only when piloting AND the player owns the controls (not the autopilot)
+    if manual then
+        if self:isPiloting() then
+            self:writeAxes(dt, input)
         else
-            ShipFlightSystem:update(dt, self.ship, isFPS, isFPS)
+            input:clearAxes()
         end
     end
 end
@@ -262,7 +390,14 @@ end
 --- Set a new ship for the player to control
 ---@param shipEntity Entity
 function PlayerController:setShip(shipEntity)
+    -- The old ship must not keep flying on its last input: giving up its controls resets them.
+    if self.ship and self.ship:isValid() then
+        AutoPilotSystem:disengage(self.ship)
+        ControlOwnerSystem:setManual(self.ship, false)
+    end
+
     self.ship = shipEntity
+    ControlOwnerSystem:setManual(shipEntity, true)
 
     local chase = self.controllers[Enums.CameraMode.Chase]
     if chase then chase:setTarget(shipEntity) end

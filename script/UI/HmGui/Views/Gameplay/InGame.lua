@@ -8,6 +8,7 @@ local ShipFlightSystem    = require("Modules.Constructs.Systems.ShipFlightSystem
 local AutoPilotSystem     = require("Modules.Constructs.Systems.AutoPilotSystem")
 local GravityWellSystem   = require("Modules.Physics.Systems.GravityWellSystem")
 local ConstructComponents = require("Modules.Constructs.Components")
+local PhysicsComponents   = require("Modules.Physics.Components")
 local UniverseScaleConfig = require("Config.Gen.UniverseScaleConfig")
 
 -- NOTE: in-game input (pause, map, camera, autopilot) is owned by
@@ -24,11 +25,12 @@ InGame.hudShown = false
 InGame.overlayLines = nil
 
 local NO_LINES = {}
+local NO_AUTOPILOT = { title = "", distance = "", eta = "", next = "", hint = "" }
 
 --- What the HUD shows this frame; filled in by onUpdate, read by the components.
 local hud = {
     driveText = "", driveAlpha = 0,
-    autopilotText = "",
+    autopilot = NO_AUTOPILOT, -- the readouts of the autopilot's line
     zoneText = "",
     overlayLines = NO_LINES,
     cameraText = "", cameraAlpha = 0,
@@ -41,9 +43,9 @@ end
 ------------------------------------------------------------------------------
 -- Speed tape, curved around the reticle on its left (Components/Hud/SpeedTape).
 
--- ShipFlightSystem multiplies the thrust by 1 + 2 x boost; with linear drag the
--- top speed scales with the thrust, so boosting triples it.
-local BOOST_SPEED_FACTOR = 3
+-- ShipFlightSystem multiplies the thrust by 1 + BOOST_GAIN x boost; with linear drag the
+-- top speed scales with the thrust, so full boost multiplies it by the same factor.
+local BOOST_SPEED_FACTOR = 1 + ShipFlightSystem.BOOST_GAIN
 
 -- Sized like the rest of the HUD: to the window height, times the UI Scale setting.
 local speedTape = UIComponent.SpeedTape {
@@ -54,12 +56,13 @@ local speedTape = UIComponent.SpeedTape {
 local function updateSpeedTape(ship, dt)
     local drive = ship:get(ConstructComponents.TravelDrive)
     local state = drive and drive:getState()
-    local maxSpeed = Config.game.shipFlight.maxSpeedGame
+    local maxSpeed = ConstructComponents.FlightProfile.ProfileOf(ship).maxSpeed
+    local rb = ship:get(PhysicsComponents.RigidBody):getRigidBody()
     speedTape:update({
         speed = ShipFlightSystem:getSpeed(ship),
         maxSpeed = maxSpeed,
         boostSpeed = maxSpeed * BOOST_SPEED_FACTOR,
-        travelSpeed = maxSpeed * GravityWellSystem:getMaxDriveSpeed(),
+        travelSpeed = maxSpeed * GravityWellSystem:getMaxDriveSpeedAt(rb:getPos()),
         travel = state == "active" or state == "decelerating",
     }, dt)
 end
@@ -108,27 +111,44 @@ local function targetName(name)
     return (words:sub(1, 1) .. words:sub(2):lower())
 end
 
-local function etaText(seconds)
-    if seconds > 3600 then
-        return string.format("  ·  ETA %dh %02dm", math.floor(seconds / 3600), math.floor(seconds % 3600 / 60))
-    elseif seconds > 60 then
-        return string.format("  ·  ETA %dm %02ds", math.floor(seconds / 60), math.floor(seconds % 60))
-    elseif seconds > 0 then
-        return string.format("  ·  ETA %ds", math.floor(seconds))
-    end
-    return ""
-end
+-- The readouts change every frame, so they are taken a few times a second: digits that flicker can't
+-- be read. Each readout has a column of its own with a fixed width (`AUTOPILOT_COLUMNS`), so a value
+-- that changes its length moves nothing else.
+local READOUT_PERIOD_S = 0.25
 
-local function updateAutopilot(ship)
+local route = {} -- `AutoPilotSystem:getRoute`'s table, refilled at each reading
+local readoutLeft, readoutActive = 0, false
+
+local function updateAutopilot(ship, dt)
     if not AutoPilotSystem:isActive(ship) then
-        hud.autopilotText = ""
+        hud.autopilot, readoutActive = NO_AUTOPILOT, false
         return
     end
-    local cmp = ship:get(ConstructComponents.AutoPilot)
-    hud.autopilotText = string.format("AUTOPILOT  ›  %s  ·  %s%s  ·  N to cancel",
-        targetName(AutoPilotSystem:getTargetName(ship)),
-        UniverseScaleConfig:formatDistance(cmp and cmp.distance or 0),
-        etaText(cmp and cmp.eta or 0))
+    readoutLeft = readoutLeft - dt
+    if readoutActive and readoutLeft > 0 then return end
+    readoutActive, readoutLeft = true, READOUT_PERIOD_S
+
+    local progress = AutoPilotSystem:getProgress(ship)
+    local reading = {
+        title = "AUTOPILOT  ›  " .. targetName(AutoPilotSystem:getTargetName(ship)),
+        distance = "", eta = "", next = "", hint = "N to cancel",
+    }
+    if AutoPilotSystem:isPlanning(ship) then
+        reading.eta = "planning…"
+    elseif progress and progress.distanceLeft then
+        reading.distance = "·  " .. UniverseScaleConfig:formatDistance(progress.distanceLeft)
+        if progress.eta and progress.eta > 0 then
+            reading.eta = "·  ETA " .. UniverseScaleConfig:formatDuration(progress.eta)
+        end
+    end
+    -- The next waypoint, when the plan has corners left: how far it is and how many are to go.
+    local corners = AutoPilotSystem:getRoute(ship, route)
+    if corners and #corners >= 2 then
+        local shipPos = ship:get(PhysicsComponents.RigidBody):getRigidBody():getPos()
+        reading.next = string.format("·  next %s  ·  %d to go",
+            UniverseScaleConfig:formatDistance(shipPos:distance(corners[1])), #corners - 1)
+    end
+    hud.autopilot = reading
 end
 
 ------------------------------------------------------------------------------
@@ -144,10 +164,12 @@ local function thousands(n)
     return (grouped:gsub("^,", ""))
 end
 
-local function updateZone()
-    local wells = GravityWellSystem
+local function updateZone(ship)
+    local well = ship:get(PhysicsComponents.GravityWell)
+    local zoneType = well and well:getZoneType() or PhysicsComponents.GravityWell.OPEN_SPACE
+    local rb = ship:get(PhysicsComponents.RigidBody):getRigidBody()
     hud.zoneText = string.format("Zone: %s  ·  Travel cap ×%s",
-        ZONE_NAMES[wells.currentZoneType] or wells.currentZoneType, thousands(wells:getMaxDriveSpeed()))
+        ZONE_NAMES[zoneType] or zoneType, thousands(GravityWellSystem:getMaxDriveSpeedAt(rb:getPos())))
 end
 
 ------------------------------------------------------------------------------
@@ -216,8 +238,8 @@ function InGame:onUpdate()
 
     updateSpeedTape(ship, dt)
     updateDrive(ship, dt)
-    updateAutopilot(ship)
-    updateZone()
+    updateAutopilot(ship, dt)
+    updateZone(ship)
     hud.overlayLines = self.overlayLines and self.overlayLines() or NO_LINES
     updateCamera(player, dt)
 end
@@ -243,6 +265,37 @@ end
 local AUTOPILOT_COLOR = Color(0.51, 0.92, 1.00, 1.0)
 local ZONE_COLOR = Color(0.35, 0.70, 1.00, 1.0)
 
+-- The autopilot line: one column per readout, each as wide as its longest text (HUD pixels, at size 24).
+local AUTOPILOT_COLUMNS = {
+    { field = "title", width = 330 },
+    { field = "distance", width = 150 },
+    { field = "eta", width = 190 },
+    { field = "next", width = 330 },
+    { field = "hint", width = 130 },
+}
+local AUTOPILOT_LINE_HEIGHT = 34
+
+local autopilotColumns = {}
+for i, column in ipairs(AUTOPILOT_COLUMNS) do
+    autopilotColumns[i] = UIComponent.Text {
+        text = function() return hud.autopilot[column.field] end,
+        font = "Unageo-Medium",
+        size = 24,
+        width = column.width,
+        height = AUTOPILOT_LINE_HEIGHT,
+        align = { AlignHorizontal.Left, AlignVertical.Default },
+        color = AUTOPILOT_COLOR,
+        outline = true,
+    }
+end
+
+local autopilotRow = UIComponent.Container {
+    width = "fit",
+    height = AUTOPILOT_LINE_HEIGHT,
+    layoutType = GuiLayoutType.Horizontal,
+    contents = autopilotColumns,
+}
+
 -- Centre, slightly above: autopilot status over the travel drive text. The
 -- autopilot line keeps a fixed height, so the drive text never moves.
 local travelBlock = UIComponent.Container {
@@ -254,14 +307,7 @@ local travelBlock = UIComponent.Container {
     -- 30 % of the window height down to the drive text (padding is in HUD pixels)
     padding = function() return { 0, Window:height() * 0.30 / hudScale() - 34 - 28 } end,
     contents = {
-        UIComponent.Text {
-            text = function() return hud.autopilotText end,
-            font = "Unageo-Medium",
-            size = 24,
-            height = 34,
-            color = AUTOPILOT_COLOR,
-            outline = true,
-        },
+        autopilotRow,
         UIComponent.Text {
             visible = function() return hud.driveText ~= "" end,
             text = function() return hud.driveText end,

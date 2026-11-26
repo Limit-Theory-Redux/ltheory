@@ -63,9 +63,12 @@ impl ApplicationHandler for MainLoop {
                 panic!("Error calling InitSystem: {e}");
             });
 
-            engine.call_lua("AppInit").unwrap_or_else(|e| {
-                panic!("Error calling AppInit: {e}");
-            });
+            // A failed InitSystem requests an exit; the app was never set up.
+            if !engine.exit_request.is_requested() {
+                engine.call_lua("AppInit").unwrap_or_else(|e| {
+                    panic!("Error calling AppInit: {e}");
+                });
+            }
         }
     }
 
@@ -73,11 +76,6 @@ impl ApplicationHandler for MainLoop {
         let Some(engine) = self.engine.as_mut() else {
             return;
         };
-
-        // If exit_app is true, then exit the event loop.
-        if engine.exit_app {
-            event_loop.exit();
-        }
 
         match event {
             WindowEvent::Resized(size) => {
@@ -288,10 +286,17 @@ impl ApplicationHandler for MainLoop {
         engine.window.state = Some(WindowState::Suspended);
     }
 
-    fn about_to_wait(&mut self, _: &ActiveEventLoop) {
+    fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
         let Some(engine) = self.engine.as_mut() else {
             return;
         };
+
+        // After an exit request no frame Lua runs: a request made by a failed
+        // Lua call leaves the app in an unknown state. `exiting` still closes it.
+        if engine.exit_request.is_requested() {
+            event_loop.exit();
+            return;
+        }
 
         // If the window is hidden, we can now show it.
         if !engine
@@ -333,7 +338,7 @@ impl ApplicationHandler for MainLoop {
 
         debug!("Stopping main loop!");
         engine.call_lua("AppClose").unwrap_or_else(|e| {
-            panic!("Error calling AppInit: {e}");
+            panic!("Error calling AppClose: {e}");
         });
     }
 

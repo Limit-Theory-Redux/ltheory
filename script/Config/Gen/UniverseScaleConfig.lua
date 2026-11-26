@@ -2,6 +2,9 @@
 
 ---@class gameunit ---engine units (m)
 
+local SECONDS_PER_MINUTE = 60
+local SECONDS_PER_HOUR = 60 * SECONDS_PER_MINUTE
+
 ---@class UniverseScaleConfig
 local UniverseScaleConfig = {
     -- Global scale factor (1.0 = real scale, smaller = compressed universe)
@@ -177,6 +180,20 @@ function UniverseScaleConfig:formatDistance(gameUnits)
     else
         return string.format("%.0f m", realMeters)
     end
+end
+
+--- Format a time span as hours and minutes, minutes and seconds, or seconds, whole units
+---@param seconds number
+---@return string
+function UniverseScaleConfig:formatDuration(seconds)
+    seconds = math.max(0, math.floor(seconds))
+    if seconds >= SECONDS_PER_HOUR then
+        return string.format("%dh %02dm", math.floor(seconds / SECONDS_PER_HOUR),
+            math.floor(seconds % SECONDS_PER_HOUR / SECONDS_PER_MINUTE))
+    elseif seconds >= SECONDS_PER_MINUTE then
+        return string.format("%dm %02ds", math.floor(seconds / SECONDS_PER_MINUTE), seconds % SECONDS_PER_MINUTE)
+    end
+    return string.format("%ds", seconds)
 end
 
 --- Format a game-unit speed as a human-readable real-world string

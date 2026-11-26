@@ -13,7 +13,16 @@ return {
     Temperature = require("Modules.CelestialObjects.Components.TemperatureComponent"),
     TidalLock = require("Modules.CelestialObjects.Components.TidalLockComponent"),
     Thickness = require("Modules.CelestialObjects.Components.ThicknessComponent"),
+    AsteroidBeltData = require("Modules.CelestialObjects.Components.AsteroidBeltDataComponent"),
+
+    -- Kind markers: no data, one per kind of entity that systems view.
+    Star = require("Modules.CelestialObjects.Components.StarComponent"),
+    StarSystem = require("Modules.CelestialObjects.Components.StarSystemComponent"),
+    Planet = require("Modules.CelestialObjects.Components.PlanetComponent"),
+    Moon = require("Modules.CelestialObjects.Components.MoonComponent"),
+    Asteroid = require("Modules.CelestialObjects.Components.AsteroidComponent"),
     AsteroidBelt = require("Modules.CelestialObjects.Components.AsteroidBeltComponent"),
+    AsteroidRing = require("Modules.CelestialObjects.Components.AsteroidRingComponent"),
 
     Gen = {
         Planet = require("Modules.CelestialObjects.Components.Gen.PlanetGenComponent"),

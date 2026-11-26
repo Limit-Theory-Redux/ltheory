@@ -92,7 +92,7 @@ time; "hitch" means a one-off stall at load or spawn.
 | 7 | Planet cube (~365 ms), nebula, IR map `Nebula1.lua`, `GenUtil.ShaderToTexCube` | **GPU** | – | Uses the GPU | Not workers. Optimise on the GPU (G1) or spread over frames | Load hitch |
 | 8 | Universe/system generation `UniverseManager.lua:43-215`, `UniverseGenerationSystem.lua:24-150` | Dozens of entities *(est. ≤ a few ms)*; creates ECS entities (game state) | – | Logic is pure, but its output *is* the registry | No | None |
 | 9 | Economy and AI | **Not active**: `LTheoryRedux.lua` loads no economy or AI system; only `Tests/Economy/*` and Legacy | – | – | Future: Rust, or snapshot-based worker jobs with coarse ticks | None today |
-| 10 | Pathfinding/autopilot `AutoPilotSystem.lua:136` | Direct steering, no search | – | – | No | None |
+| 10 | Pathfinding/autopilot `PlanFlight.lua`, `NavOrderSystem.lua` | Direct steering, no search | – | – | No | None |
 | 11 | Save/load | Does not exist | – | – | Rust (serde) when it does | – |
 | 12 | Planet terrain chunks (the "landable planets" plan; no such doc is in this repo) | Future, per-chunk meshing with heavy noise | In: chunk key and seed. Out: vertex buffers | Pure | **Rust workers** (rayon or a dedicated pool), output written straight into GPU-upload buffers. Lua workers are wrong here: the marshalling cost and no shared noise code | Streaming without frame drops |
 | – | SolarSystemPlayable gameplay Lua | 0.74 ms/frame (measured) | – | – | Nothing worth offloading | – |

@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" font-family="sans-serif" font-size="14">
+  <title>A corner rounded by an arc tangent to both legs</title>
+  <rect width="800" height="500" fill="#ffffff"/>
+  <text x="20" y="28" fill="#111827" font-weight="bold">Corner rounded into an arc</text>
+  <!-- the sharp path -->
+  <polyline points="60,420 420,200 760,380" fill="none" stroke="#6b7280" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <!-- the legs up to the arc, and after it -->
+  <line x1="60" y1="420" x2="323" y2="259" stroke="#2563eb" stroke-width="3.5"/>
+  <line x1="520" y1="253" x2="760" y2="380" stroke="#2563eb" stroke-width="3.5"/>
+  <!-- the arc -->
+  <path d="M 323 259 A 200 200 0 0 1 520 253" fill="none" stroke="#2563eb" stroke-width="3.5"/>
+  <!-- radii to the entry and the exit -->
+  <line x1="428" y1="430" x2="323" y2="259" stroke="#d97706" stroke-width="1.5" stroke-dasharray="3 3"/>
+  <line x1="428" y1="430" x2="520" y2="253" stroke="#d97706" stroke-width="1.5" stroke-dasharray="3 3"/>
+  <text x="352" y="356" fill="#d97706" text-anchor="end">radius</text>
+  <!-- tangent lengths -->
+  <line x1="323" y1="259" x2="420" y2="200" stroke="#dc2626" stroke-width="2.5"/>
+  <line x1="420" y1="200" x2="520" y2="253" stroke="#dc2626" stroke-width="2.5"/>
+  <text x="545" y="226" fill="#dc2626">tangent length:</text>
+  <text x="545" y="244" fill="#dc2626">radius · tan(turn / 2)</text>
+  <!-- points -->
+  <circle cx="60" cy="420" r="7" fill="#2563eb"/>
+  <text x="60" y="446" fill="#2563eb" text-anchor="middle">previous point</text>
+  <circle cx="760" cy="380" r="7" fill="#2563eb"/>
+  <text x="760" y="406" fill="#2563eb" text-anchor="end">next point</text>
+  <circle cx="420" cy="200" r="6" fill="#111827"/>
+  <text x="420" y="176" fill="#111827" text-anchor="middle" font-weight="bold">corner</text>
+  <circle cx="323" cy="259" r="6" fill="#dc2626"/>
+  <text x="340" y="290" fill="#dc2626">entry</text>
+  <circle cx="520" cy="253" r="6" fill="#dc2626"/>
+  <text x="506" y="290" fill="#dc2626" text-anchor="end">exit</text>
+  <circle cx="428" cy="430" r="6" fill="#d97706"/>
+  <text x="442" y="446" fill="#d97706">centre: across the first leg, toward the second</text>
+  <!-- legend -->
+  <line x1="20" y1="52" x2="60" y2="52" stroke="#dc2626" stroke-width="1.5"/>
+  <text x="68" y="57" fill="#dc2626">the sharp path</text>
+  <line x1="190" y1="52" x2="230" y2="52" stroke="#2563eb" stroke-width="3.5"/>
+  <text x="238" y="57" fill="#2563eb">the path the ship flies; the arc is passed at the corner's Speed</text>
+</svg>

@@ -18,9 +18,9 @@ local CameraManager = require("Modules.Cameras.Managers.CameraManager")
 ---
 ---Whoever drives the dust (SpeedFeelSystem) sets, every frame, each layer's
 ---opacity, brightness, streak and offset, and the bubble. The offset is how
----far the dust has fallen behind the camera's real motion: 0 keeps the dust
----static in the world; a driver that caps the dust's speed (travel mode is far
----too fast for specks to be seen) adds the difference to it.
+---far the dust has moved in the world: unchanged keeps it static there. A
+---driver adds to it to carry the dust with a moving frame, or to cap its speed
+---past the camera (travel mode is far too fast for specks to be seen).
 
 ---@class SpaceDustLayer
 ---@field cell number cube size (game units)
@@ -32,7 +32,7 @@ local CameraManager = require("Modules.Cameras.Managers.CameraManager")
 ---@field streakX number the streak (game units, camera-relative), set every frame
 ---@field streakY number
 ---@field streakZ number
----@field offsetX number how far the dust lags the camera (game units)
+---@field offsetX number how far the dust has moved in the world (game units)
 ---@field offsetY number
 ---@field offsetZ number
 ---@field mesh Mesh

@@ -2,6 +2,13 @@ local PhysicsComponents   = require("Modules.Physics.Components")
 local CameraManager       = require("Modules.Cameras.Managers.CameraManager")
 local UniverseScaleConfig = require("Config.Gen.UniverseScaleConfig")
 local DrawEx              = require("UI.DrawEx")
+local ScreenProjection    = require("Shared.Helpers.ScreenProjection")
+
+-- A label this far outside the window is still drawn, so one that straddles the edge doesn't pop.
+local LABEL_MARGIN_PX = 100
+
+-- Reused each frame.
+local labelProjector = {}
 
 --- WorldLabelRenderSystem — projects 3D entity labels onto the screen.
 ---@class WorldLabelRenderSystem
@@ -20,8 +27,7 @@ function WorldLabelRenderSystem:draw(labeledEntities, moonDistThreshold)
     if not camTransform then return end
     local camPos = camTransform:getPos()
 
-    local resX = Window:width()
-    local resY = Window:height()
+    local projector = ScreenProjection.active(labelProjector)
 
     for _, entry in ipairs(labeledEntities) do
         -- Hide moon labels unless camera is near the parent planet
@@ -40,34 +46,15 @@ function WorldLabelRenderSystem:draw(labeledEntities, moonDistThreshold)
         if not transform then goto next_label end
         local pos = transform:getPos()
 
-        -- Compute relative position from camera
-        local rel = Vec3f(pos.x - camPos.x, pos.y - camPos.y, pos.z - camPos.z)
-        local dist = rel:length()
+        local dx, dy, dz = pos.x - camPos.x, pos.y - camPos.y, pos.z - camPos.z
+        local dist = math.sqrt(dx * dx + dy * dy + dz * dz)
 
-        -- Get camera axes
-        local camRot = CameraManager:getViewRot()
-        local camFwd = camRot:getForward()
-        local camRight = camRot:getRight()
-        local camUp = camRot:getUp()
-
-        -- Skip if behind camera
-        local dot = rel.x * camFwd.x + rel.y * camFwd.y + rel.z * camFwd.z
-        if dot < 0 then goto next_label end
-
-        -- Project onto screen axes
-        local fovRad = math.rad(CameraManager:getFov())
-        local tanHalfFov = math.tan(fovRad / 2)
-        local aspect = resX / resY
-
-        local screenX = (rel.x * camRight.x + rel.y * camRight.y + rel.z * camRight.z) / (dot * tanHalfFov * aspect)
-        local screenY = (rel.x * camUp.x + rel.y * camUp.y + rel.z * camUp.z) / (dot * tanHalfFov)
-
-        -- Convert from [-1,1] to screen pixels
-        local px = (screenX + 1) * 0.5 * resX
-        local py = (1 - screenY) * 0.5 * resY
+        -- nil when the point is behind the camera
+        local px, py = ScreenProjection.relativeToScreen(projector, dx, dy, dz)
+        if not px then goto next_label end
 
         -- Only draw if on screen
-        if px >= -100 and px <= resX + 100 and py >= -50 and py <= resY + 50 then
+        if ScreenProjection.inViewport(projector, px, py, LABEL_MARGIN_PX) then
             local distStr = " [" .. UniverseScaleConfig:formatDistance(dist) .. "]"
             local text = label .. distStr
             DrawEx.TextAdditive('Unageo-Medium', text, 12, px - 50, py - 8, 200, 16,
@@ -79,7 +66,7 @@ function WorldLabelRenderSystem:draw(labeledEntities, moonDistThreshold)
 end
 
 --- Draw labels for nearby asteroids from belt components
----@param beltEntities table Array of entities with AsteroidBeltComponent
+---@param beltEntities table Array of entities with AsteroidBeltDataComponent
 ---@param maxDist number|nil Maximum distance to show labels (default 500000)
 function WorldLabelRenderSystem:drawAsteroidMarkers(beltEntities, maxDist)
     if not beltEntities then return end
@@ -90,21 +77,12 @@ function WorldLabelRenderSystem:drawAsteroidMarkers(beltEntities, maxDist)
     local camTransform = camEntity:get(PhysicsComponents.Transform)
     if not camTransform then return end
     local camPos = camTransform:getPos()
-    local camRot = CameraManager:getViewRot()
-    local camFwd = camRot:getForward()
-    local camRight = camRot:getRight()
-    local camUp = camRot:getUp()
-
-    local resX = Window:width()
-    local resY = Window:height()
-    local fovRad = math.rad(CameraManager:getFov())
-    local tanHalfFov = math.tan(fovRad / 2)
-    local aspect = resX / resY
+    local projector = ScreenProjection.active(labelProjector)
 
     local CelestialComponents = require("Modules.CelestialObjects.Components")
 
     for _, beltEntity in ipairs(beltEntities) do
-        local beltCmp = beltEntity:get(CelestialComponents.AsteroidBelt)
+        local beltCmp = beltEntity:get(CelestialComponents.AsteroidBeltData)
         if not beltCmp then goto next_belt end
 
         local asteroids = beltCmp:getAsteroidData()
@@ -116,17 +94,11 @@ function WorldLabelRenderSystem:drawAsteroidMarkers(beltEntities, maxDist)
 
             if dist > maxDist then goto next_asteroid end
 
-            -- Behind camera check
-            local dot = rx * camFwd.x + ry * camFwd.y + rz * camFwd.z
-            if dot < 0 then goto next_asteroid end
+            -- nil when the point is behind the camera
+            local px, py = ScreenProjection.relativeToScreen(projector, rx, ry, rz)
+            if not px then goto next_asteroid end
 
-            -- Project to screen
-            local sx = (rx * camRight.x + ry * camRight.y + rz * camRight.z) / (dot * tanHalfFov * aspect)
-            local sy = (rx * camUp.x + ry * camUp.y + rz * camUp.z) / (dot * tanHalfFov)
-            local px = (sx + 1) * 0.5 * resX
-            local py = (1 - sy) * 0.5 * resY
-
-            if px >= -100 and px <= resX + 100 and py >= -50 and py <= resY + 50 then
+            if ScreenProjection.inViewport(projector, px, py, LABEL_MARGIN_PX) then
                 local distStr = " [" .. UniverseScaleConfig:formatDistance(dist) .. "]"
                 local text = "Asteroid " .. idx .. distStr
                 DrawEx.TextAdditive('Unageo-Medium', text, 10, px - 40, py - 6, 200, 14,

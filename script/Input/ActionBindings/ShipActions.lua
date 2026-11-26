@@ -113,7 +113,7 @@ local ShipActions = {
     }),
 }
 
--- Invert Vertical Look (GameState.input.invertPitch) is applied by ShipFlightSystem
+-- Invert Vertical Look (GameState.input.invertPitch) is applied by PlayerController
 -- every frame, so it covers mouse and gamepad and changes without a restart.
 
 return ShipActions

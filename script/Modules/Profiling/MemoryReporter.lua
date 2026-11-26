@@ -72,8 +72,8 @@ function MemoryReporter.sample()
     -- (the pcall swallow hid a broken binding).
     local mrGlobal = _G.MemoryReport
     local mrGen = Core and Core.FFI and Core.FFI.Gen and Core.FFI.Gen.MemoryReport
-    Log.Info('MemoryReporter: sampling, _G.MemoryReport=%s Core.FFI.Gen.MemoryReport=%s',
-        tostring(mrGlobal), tostring(mrGen))
+    -- Log.Info('MemoryReporter: sampling, _G.MemoryReport=%s Core.FFI.Gen.MemoryReport=%s',
+    --     tostring(mrGlobal), tostring(mrGen))
 
     local byClass, rigidBodies, renders, transforms, meshes = censusEntities()
 
