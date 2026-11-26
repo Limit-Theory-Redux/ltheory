@@ -38,6 +38,7 @@ local DEG = math.pi / 180
 ---@field objects SensorContact[] every object, contact or not
 ---@field contacts SensorContact[] tier 1 and up: strongest tier first, then nearest
 ---@field target SensorTargetScan|nil
+---@field caption { title: string, hint: string|nil }|nil what the HUD shows above it (set by the caller)
 
 local function dot(a, b)
     return a.x * b.x + a.y * b.y + a.z * b.z

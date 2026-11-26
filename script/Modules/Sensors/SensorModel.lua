@@ -625,6 +625,16 @@ function SensorModel.stepObjectHeat(o, dt)
     o.hot = clamp((o.hot or 0) + rate * dt, 0, 1)
 end
 
+--- What a ship's own sensor adds to its signature: others hear its power
+--- draw, plus the scan's power while it scans (everyone in earshot hears a
+--- scan), and the heat scanning builds.
+---@param state SensorState
+---@return { mw: number, hot: number }
+function SensorModel.ownEmission(state)
+    local dials = state.dials
+    return { mw = dials.ownMw + (state.scanning and dials.power or 0), hot = state.heat }
+end
+
 --- An all-round pulse: whatever echoes back strongly enough shows on the
 --- contacts for a while, and every ship and station within earshot hears
 --- where the sensor is.

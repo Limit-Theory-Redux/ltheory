@@ -13,6 +13,8 @@
 -- a scan can read it from here, the scan's progress, and what scans have read
 -- (T3 identity, T4 contents).
 --
+-- A picture's `caption` (a title and a hint) shows above the passive panel.
+--
 --   local hud = UIComponent.SensorHud { visible = function() return shown end, scanHint = "HOLD X TO SCAN" }
 --   -- every frame, before rendering:
 --   hud:update(SensorPicture.build(sensor, forward, right, "FRIGATE"), dt)
@@ -40,6 +42,7 @@ local DEG = math.pi / 180
 local RADAR = { x = 880, y = 935, r = 118, tilt = 40 * DEG, depth = 7 } -- depth: perspective, in radii
 local LIST = { x = 1050, y = 846, row = 21, max = 7 }
 local YOU = { x = 560, y = 858, row = 21 }
+local CAPTION = { x = 560, bottom = 804, row = 20, chars = 105 } -- the hint wraps at about 820 px
 local SCAN = { x = 1440, y = 540, w = 452, h = 510, pad = 18, row = 21 }
 local RADAR_MIN, RADAR_MAX = 50, 1e5 -- metres at the radar's centre and at its rim
 local SIGNAL_RING = 1.1              -- the signal ring's radius, in radar radii
@@ -86,6 +89,21 @@ local function wrapDegrees(a) return (a + 540) % 360 - 180 end
 local function color(c, alpha) return Color(c[1], c[2], c[3], math.max(0, alpha or 1)) end
 
 --- Where a distance sits on the radar, 0 (centre) to 1 (rim).
+--- Words of `str` in lines of at most `chars` characters.
+local function wrap(str, chars)
+    local lines, line = {}, ""
+    for word in str:gmatch("%S+") do
+        if line ~= "" and #line + 1 + #word > chars then
+            lines[#lines + 1] = line
+            line = word
+        else
+            line = line == "" and word or line .. " " .. word
+        end
+    end
+    if line ~= "" then lines[#lines + 1] = line end
+    return lines
+end
+
 local function radarRadius(d)
     local lo, hi = math.log10(RADAR_MIN), math.log10(RADAR_MAX)
     return clamp((math.log10(math.max(1, d)) - lo) / (hi - lo), 0, 1)
@@ -463,6 +481,17 @@ local function new(_, args)
         if #picture.contacts > LIST.max then
             text(string.format("+%d MORE", #picture.contacts - LIST.max), LIST.x + 42,
                 LIST.y + LIST.row * (LIST.max + 1), 13, style.hud, 0.6)
+        end
+
+        ------------------------------------------------------------------
+        -- The caption: a title, and a hint under it, ending just above the panel
+        if picture.caption then
+            local hint = picture.caption.hint and wrap(picture.caption.hint, CAPTION.chars) or {}
+            local y = CAPTION.bottom - CAPTION.row * #hint
+            text(picture.caption.title, CAPTION.x, y, 14, style.core, 0.95)
+            for i, line in ipairs(hint) do
+                text(line, CAPTION.x, y + CAPTION.row * i, 13, style.pale, 0.75)
+            end
         end
 
         ------------------------------------------------------------------
