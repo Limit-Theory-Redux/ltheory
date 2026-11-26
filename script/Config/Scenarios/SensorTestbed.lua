@@ -15,7 +15,8 @@
 -- one again; both clear what the sensor learned.
 --
 -- Objects smaller than a pixel or so at their distance get no mesh, only their
--- signature: they would not show on screen anyway.
+-- signature, until the ship comes close enough to see them. The player's ship
+-- takes the size of its hull's class, so things around it keep their scale.
 
 local Entity = require("Core.ECS.Entity")
 local CoreComponents = require("Modules.Core.Components")
@@ -39,8 +40,11 @@ local Setups = require("Config.Scenarios.SensorTestbedSetups")
 local STAR_REFERENCE = { dist = 6e7, em = 1e7, heat = 1e10, glow = 3e10 }
 local PLANET_HEAT = 50
 -- Radius over distance below which an object gets no mesh (about a pixel on
--- a 1080p screen)
+-- a 1080p screen); it gets one once the ship comes closer than that
 local MESH_MIN_SIZE = 0.001
+-- The player's ship's radius (m) for each hull, the size of the setups' ships
+-- of its class: the camera and the ship's own signature follow it
+local HULL_RADIUS = { fighter = 8, frigate = 30, capital = 150 }
 local PULSE_HEARD_TIME = 4 -- seconds the text says who heard a pulse
 local HINT_CHARS = 110     -- the setup's hint wraps at about this many characters
 -- Holding left or right on the tuning panel steps its dial again after this
@@ -97,17 +101,11 @@ local function fitRadius(entity, radius)
     end
 end
 
---- An object's entity (and its construct handle, for ships): a mesh of its
---- size, or a bare place in space when it is too small to see from `dist`.
+--- A mesh of an object's size at `position`: its entity, and its construct
+--- handle for ships.
 ---@return Entity, table|nil
-local function newObject(game, spec, position, dist)
+local function newModel(game, spec, position)
     local seed = game.rng:get31()
-    if spec.radius / math.max(1, dist) < MESH_MIN_SIZE then
-        local entity = Entity.Create("SensorMarker", PhysicsComponents.Transform())
-        entity:get(PhysicsComponents.Transform):setPos(position)
-        game:addSceneEntity(entity)
-        return entity, nil
-    end
     if spec.mesh == "station" then
         local station = StationGenerator:createStation(seed, { position = position, scale = 1, isKinematic = true })
         fitRadius(station, spec.radius)
@@ -129,9 +127,46 @@ local function newObject(game, spec, position, dist)
     return handle.root, handle
 end
 
+--- An object's entity (and its construct handle, for ships): its mesh, or a
+--- bare place in space (a marker) while it is too small to see from `dist`.
+---@return Entity, table|nil, boolean marker
+local function newObject(game, spec, position, dist)
+    if spec.radius / math.max(1, dist) < MESH_MIN_SIZE then
+        local entity = Entity.Create("SensorMarker", PhysicsComponents.Transform())
+        entity:get(PhysicsComponents.Transform):setPos(position)
+        game:addSceneEntity(entity)
+        return entity, nil, true
+    end
+    local entity, handle = newModel(game, spec, position)
+    return entity, handle, false
+end
+
 local function distanceBetween(a, b)
     local dx, dy, dz = b.x - a.x, b.y - a.y, b.z - a.z
     return math.sqrt(dx * dx + dy * dy + dz * dz)
+end
+
+--- Gives a marker its mesh once the ship is close enough to see it. The mesh
+--- is a separate entity at the marker's place, for the eye only: the marker
+--- keeps the signature, so the sensor's views of it stay as they are.
+local function growModels(game)
+    local shipPos = SensorSystem:positionOf(game.playerShip)
+    for _, object in ipairs(game.scenarioData.objects) do
+        if object.marker and not object.model and object.entity:isValid() then
+            local pos = object.entity:get(PhysicsComponents.Transform):getPos()
+            local dist = distanceBetween(shipPos, pos) / G
+            if object.spec.radius / math.max(1, dist) >= MESH_MIN_SIZE then
+                object.model, object.modelHandle = newModel(game, object.spec, pos)
+            end
+        end
+    end
+end
+
+--- Sizes the player's ship for a hull, and its signature with it.
+local function fitPlayerShip(game, hull)
+    fitRadius(game.playerShip, HULL_RADIUS[hull])
+    local signature = game.playerShip:get(SensorComponents.SensorSignature)
+    if signature then signature:setRadius(HULL_RADIUS[hull]) end
 end
 
 --- `v` turned `degrees` round the unit axis `k` (Rodrigues' formula).
@@ -217,12 +252,16 @@ local function signBeltRocks()
 end
 
 local function clearSetup(game)
-    for _, object in ipairs(game.scenarioData.objects or {}) do
-        if object.handle then
-            game:removeSceneConstruct(object.handle)
-        elseif object.entity:isValid() then
-            game:removeSceneEntity(object.entity)
+    local function remove(entity, handle)
+        if handle then
+            game:removeSceneConstruct(handle)
+        elseif entity and entity:isValid() then
+            game:removeSceneEntity(entity)
         end
+    end
+    for _, object in ipairs(game.scenarioData.objects or {}) do
+        remove(object.entity, object.handle)
+        remove(object.model, object.modelHandle)
     end
     game.scenarioData.objects = {}
 end
@@ -235,6 +274,7 @@ local function buildSetup(game, index)
     data.setupIndex = index
     local setup = Setups[index]
     data.hull = setup.hull
+    fitPlayerShip(game, setup.hull)
 
     local sensor = sensorOf(game)
     sensor:setDials(SensorModel.hulls[setup.hull])
@@ -248,7 +288,7 @@ local function buildSetup(game, index)
     data.wantTarget = nil
     for _, spec in ipairs(setup.objects) do
         local position, dist = placeObject(game, spec, pos, forward, right, up)
-        local entity, handle = newObject(game, spec, position, dist)
+        local entity, handle, marker = newObject(game, spec, position, dist)
         local signature = SensorComponents.SensorSignature {
             kind = spec.kind, label = spec.label, radius = spec.radius, mw = spec.mw, activity = spec.activity,
             name = spec.name, details = spec.details, contents = spec.contents,
@@ -259,7 +299,7 @@ local function buildSetup(game, index)
         if spec.listener then
             entity:add(SensorComponents.Sensor(SensorModel.hulls.frigate))
         end
-        data.objects[#data.objects + 1] = { entity = entity, handle = handle, spec = spec }
+        data.objects[#data.objects + 1] = { entity = entity, handle = handle, marker = marker, spec = spec }
         if spec.label == setup.target and not data.wantTarget then data.wantTarget = entity end
     end
 end
@@ -406,6 +446,7 @@ return {
         local sensor = sensorOf(game)
         if not sensor then return end
         signBeltRocks()
+        growModels(game)
         updateOwnSignature(game, sensor)
         SensorSystem:update(dt)
         -- The target is an object of the sensor's: pick the wanted entity's
@@ -446,6 +487,7 @@ return {
             if Input:isPressed(key) then
                 data.hull = SensorModel.hullOrder[i]
                 sensor:setDials(SensorModel.hulls[data.hull])
+                fitPlayerShip(game, data.hull)
             end
         end
         if Input:isPressed(Button.KeyboardKey4) then

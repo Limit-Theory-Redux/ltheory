@@ -29,7 +29,9 @@ cargo run -p ltr -- Testbeds/Sensor
 ```
 
 or pick **Sensor Testbed** under New Game. The player's ship carries a sensor
-and a signature of its own (its power draw, louder and hotter while it scans).
+and a signature of its own (its power draw, louder and hotter while it scans),
+and takes its hull's size: 8 m for the fighter, 30 m for the frigate, 150 m
+for the capital ship.
 Around it is one setup at a time, each showing one thing; B builds the next
 one around the ship, R the same one again. The star system's star, planet and
 moon have signatures, and belt rocks that come close get one too. The sensor
@@ -65,7 +67,8 @@ shows the setup's name, what to try, the settings and the keys.
 The setups are in `script/Config/Scenarios/SensorTestbedSetups.lua`: plain
 tables of objects, each with its sensor values and its place (distance and
 bearing from the ship, or on the line to the planet or the star). Objects
-smaller than a pixel or so at their distance get no mesh, only a signature.
+smaller than a pixel or so at their distance get no mesh, only a signature,
+until the ship comes close enough to see them.
 
 ## The sensor HUD
 
