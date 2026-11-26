@@ -28,12 +28,22 @@ Sensor Testbed so far; ships in the normal game have no sensors yet.
 cargo run -p ltr -- Testbeds/Sensor
 ```
 
-or pick **Sensor Testbed** under New Game. The player's ship carries a
-frigate's sensor; around it are a station (12 km), a freighter (4 km), a
-fighter parked next to an asteroid (11 km), a nearer asteroid and a cold wreck
-(400 m), and the star system's star, planet and moon. Belt rocks that come
-close get a signature too. The sensor HUD (below) shows what the sensor makes
-of it all; the text in the top left shows the settings and the keys.
+or pick **Sensor Testbed** under New Game. The player's ship carries a sensor
+and a signature of its own (its power draw, louder and hotter while it scans).
+Around it is one setup at a time, each showing one thing; B builds the next
+one around the ship, R the same one again. The star system's star, planet and
+moon have signatures, and belt rocks that come close get one too. The sensor
+HUD (below) shows what the sensor makes of it all, with the setup's name and
+what to try; the text in the top left shows the settings and the keys.
+
+| Setup | What it shows |
+|---|---|
+| Reference scene | The sensor mock's scene: a station, a freighter, a fighter parked next to an asteroid, a second asteroid and a cold wreck. |
+| Fighter, frigate, capital ship | The same ships (class I, II, III and a station) at 1, 3, 10, 30 and 100 km: how far each hull hears, classes and identifies them. |
+| Hiding | Fighters in the open, next to a rock, behind one, cloaked, running cold, firing (in the open and in the star's glare), in front of the planet and behind it. |
+| Passive against active | A nebula: listening only classes ships by their EM, a scan identifies them, a pulse finds the cold wreck. |
+| Resolution and merging | Five fighters 60 m apart at 15 km: one blob for a fighter's sensor, five for a frigate's, five classed for a capital ship's. |
+| Being heard | Five frigates with sensors of their own, 20 to 400 km away; the text says which hear you, while you listen, scan or pulse. |
 
 | Key | Action |
 |---|---|
@@ -42,14 +52,16 @@ of it all; the text in the top left shows the settings and the keys.
 | Tab | Next target (nearest first) |
 | 1 2 3 | Hull: fighter, frigate, capital ship |
 | 4 | Surroundings: open space, nebula, debris field, radiation belt |
-| 5 | The fighter's activity: idle, thrusting, firing, cloaked |
+| 5 | The target's activity, if it is a ship: idle, thrusting, firing, cloaked |
 | 6 | Resolution rule: background in the cell, dims the target |
 | 7 | Merge unresolved signals in one cell on or off |
-| B | Put everything back around the ship; clear what the sensor learned |
+| B | Next setup (rebuilt around the ship; clears what the sensor learned) |
+| R | Start this setup again |
 
-Things to try: with the frigate the fighter hides in the asteroid's
-background, with the capital ship it shows; in a nebula the wreck only shows
-after a pulse; holding X on the freighter with the capital ship reads its T3.
+The setups are in `script/Config/Scenarios/SensorTestbedSetups.lua`: plain
+tables of objects, each with its sensor values and its place (distance and
+bearing from the ship, or on the line to the planet or the star). Objects
+smaller than a pixel or so at their distance get no mesh, only a signature.
 
 ## The sensor HUD
 
@@ -135,3 +147,14 @@ cargo run -p ltr -- SensorModelTest
 
 It exits 0 and logs `SensorModelTest: passed`. After changing a constant on
 purpose, update the reference values in the test with it.
+
+`SensorSetupsTest` goes through every setup of the testbed with every hull and
+checks the readings that make each one's point (and a pulse, a scan and who
+hears you):
+
+```sh
+cargo run -p ltr -- SensorSetupsTest
+```
+
+It exits 0 and logs `SensorSetupsTest: passed`. When a setup or the model
+changes on purpose, update its expectations at the top of the test.
