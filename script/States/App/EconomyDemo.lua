@@ -119,6 +119,8 @@ function EconomyDemo:createCamera()
     })
     camera:get(CameraDataComponent):setController(self.camera)
     CameraManager:setActiveCamera(CAMERA_NAME)
+    -- A controller starts disabled: it takes the mouse and moves the camera once enabled.
+    self.camera:enable()
 end
 
 ---@param index integer Into `selectable`, wrapping
