@@ -8,6 +8,7 @@ local SensorModel = require("Modules.Sensors.SensorModel")
 local SensorPicture = {}
 
 local DEG = math.pi / 180
+local PULSE_HEARD_TIME = 4 -- seconds the HUD shows who heard a pulse
 
 ---@class SensorContact
 ---@field object SensorObject
@@ -16,6 +17,7 @@ local DEG = math.pi / 180
 ---@field distance number metres
 ---@field index integer its place in the sensor's object list (stable per object)
 ---@field echo number seconds of pulse echo left (0 = none)
+---@field heardPulse boolean a ship or station within earshot of the last pulse, while it's recent
 
 ---@class SensorTargetScan
 ---@field contact SensorContact
@@ -38,7 +40,6 @@ local DEG = math.pi / 180
 ---@field objects SensorContact[] every object, contact or not
 ---@field contacts SensorContact[] tier 1 and up: strongest tier first, then nearest
 ---@field target SensorTargetScan|nil
----@field caption { title: string, hint: string|nil }|nil what the HUD shows above it (set by the caller)
 
 local function dot(a, b)
     return a.x * b.x + a.y * b.y + a.z * b.z
@@ -56,6 +57,8 @@ function SensorPicture.build(sensor, forward, right, title)
     local dials = state.dials
 
     local objects, contacts, targetContact = {}, {}, nil
+    local pulseHeardWithin = SensorModel.heardWithin(dials.power)
+    local pulseRecent = state.pulseAge < PULSE_HEARD_TIME
     for i, o in ipairs(state.objects) do
         local r = readings[o]
         if r then
@@ -67,6 +70,8 @@ function SensorPicture.build(sensor, forward, right, title)
                 index = i,
                 echo = state.echoes[o] or 0,
             }
+            c.heardPulse = pulseRecent and (o.kind == "ship" or o.kind == "station")
+                and c.distance <= pulseHeardWithin
             objects[#objects + 1] = c
             if r.tier >= 1 then contacts[#contacts + 1] = c end
             if o == state.target then targetContact = c end

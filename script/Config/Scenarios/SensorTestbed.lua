@@ -8,9 +8,9 @@
 -- that come close get one too.
 --
 -- Passive contacts update all the time; X (held) scans the target, Z sends a
--- pulse. The sensor HUD (UIComponent.SensorHud) shows the radar, the contacts,
--- the scan and the setup; the text shows the settings and the keys, which
--- change the hull, the surroundings, a ship's activity and the model's rules.
+-- pulse. The sensor HUD (UIComponent.SensorHud) shows the radar and the
+-- target; the text shows the setup, the settings and the keys, which change
+-- the hull, the surroundings, a ship's activity and the model's rules.
 -- Regenerate (B) builds the next setup around the ship as it is now, R the same
 -- one again; both clear what the sensor learned.
 --
@@ -41,10 +41,11 @@ local PLANET_HEAT = 50
 -- a 1080p screen)
 local MESH_MIN_SIZE = 0.001
 local PULSE_HEARD_TIME = 4 -- seconds the text says who heard a pulse
+local HINT_CHARS = 110     -- the setup's hint wraps at about this many characters
 
 local G = UniverseScaleConfig.globalScale -- game units per real metre
 
-local sensorHud -- the HUD component, below (it reads the running setup)
+local sensorHud -- the HUD component, below
 
 ---@param game table
 ---@return SensorComponent|nil
@@ -244,6 +245,7 @@ local function buildSetup(game, index)
         local signature = SensorComponents.SensorSignature {
             kind = spec.kind, label = spec.label, radius = spec.radius, mw = spec.mw, activity = spec.activity,
             name = spec.name, details = spec.details, contents = spec.contents,
+            shield = spec.shield, standing = spec.standing,
         }
         signature:getObject().hot = spec.hot or 0
         entity:add(signature)
@@ -291,6 +293,21 @@ local function nextOf(list, current)
     return list[1]
 end
 
+--- Words of `str` in lines of at most `chars` characters.
+local function wrap(str, chars)
+    local lines, line = {}, ""
+    for word in str:gmatch("%S+") do
+        if line ~= "" and #line + 1 + #word > chars then
+            lines[#lines + 1] = line
+            line = word
+        else
+            line = line == "" and word or line .. " " .. word
+        end
+    end
+    if line ~= "" then lines[#lines + 1] = line end
+    return lines
+end
+
 --- One line per object with a sensor of its own: whether it hears you, and
 --- whether it heard your last pulse.
 local function listenerLines(game, sensor)
@@ -322,7 +339,6 @@ end
 sensorHud = UIComponent.SensorHud {
     -- The HUD's size: the window height, times the UI Scale setting
     scale = function() return Window:height() / 1080 * GameState.ui.hudScale end,
-    scanHint = "HOLD X TO SCAN",
 }
 
 return {
@@ -372,13 +388,8 @@ return {
             end
         end
         local body = game.playerShip:get(PhysicsComponents.RigidBody)
-        local picture = SensorPicture.build(sensor, body:getForward(), body:getRight(), SensorModel.hullNames[data.hull])
-        local setup = currentSetup(game)
-        picture.caption = {
-            title = string.format("SETUP %d / %d · %s", data.setupIndex, #Setups, string.upper(setup.name)),
-            hint = setup.hint,
-        }
-        sensorHud:update(picture, dt)
+        sensorHud:update(SensorPicture.build(sensor, body:getForward(), body:getRight(),
+            SensorModel.hullNames[data.hull]), dt)
     end,
 
     hud = { sensorHud },
@@ -441,7 +452,13 @@ return {
         local sensor = sensorOf(game)
         if not sensor then return { "Sensor Testbed" } end
         local target = sensor:getTarget()
+        local setup = currentSetup(game)
         local lines = {
+            string.format("SETUP %d / %d · %s", data.setupIndex, #Setups, string.upper(setup.name)),
+        }
+        for _, line in ipairs(wrap(setup.hint or "", HINT_CHARS)) do lines[#lines + 1] = line end
+        lines[#lines + 1] = ""
+        for _, line in ipairs({
             string.format("SENSOR TESTBED · %s · %s · %s RULE · MERGE %s%s",
                 string.upper(SensorModel.hullNames[data.hull]),
                 string.upper(SensorModel.surroundingsNames[sensor:getSurroundings()]),
@@ -451,7 +468,7 @@ return {
                     and " · TARGET " .. string.upper(SensorModel.activityNames[target.activity]) or ""),
             "X scan (hold) · Z pulse · Tab target · 1 2 3 hull · 4 surroundings · 5 activity · 6 rule · 7 merge"
                 .. " · B next setup · R again",
-        }
+        }) do lines[#lines + 1] = line end
         for _, line in ipairs(listenerLines(game, sensor)) do lines[#lines + 1] = line end
         return lines
     end,

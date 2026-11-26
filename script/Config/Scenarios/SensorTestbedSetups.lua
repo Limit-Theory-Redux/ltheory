@@ -2,14 +2,15 @@
 -- showing one thing about sensors. Regenerate (B) moves to the next one.
 --
 -- A setup:
---   id, name, hint      what it is and what to try (shown by the HUD)
+--   id, name, hint      what it is and what to try (shown in the testbed's text)
 --   hull                the sensor it starts with (a key of SensorModel.hulls)
 --   surroundings        the surroundings it starts in (default: open space)
 --   target              the label of the object the scan starts on
 --   objects             what it places around the ship (below)
 --
 -- An object has its sensor values (kind, label, radius in metres, mw,
--- activity, hot, and what a T3 and a T4 read show: name, details, contents),
+-- activity, hot, and what a T3 and a T4 read show: name, details, shield,
+-- standing, contents),
 -- what builds its mesh (`mesh`: "ship" with `shipType` and `hull`, an index
 -- into Config.game.shipHulls; "station"; "asteroid"), and where it goes:
 --   dist, bearing       metres from the ship, degrees clockwise from its nose,
@@ -23,17 +24,17 @@
 -- What scans read of the kinds of ship the setups use, and their sizes
 local FIGHTER = {
     kind = "ship", radius = 8, mw = 8, mesh = "ship", shipType = "Fighter", hull = 1,
-    name = "VEGA DART (Y151)", details = "SHIELDS 100%",
+    name = "VEGA DART (Y151)", details = "SHIELDS 100%", shield = 1, standing = "hostile",
     contents = { "LOADOUT: 2 PULSE CANNONS", "LOGS: PATROL ROUTE, 4 WAYPOINTS" },
 }
 local FREIGHTER = {
     kind = "ship", radius = 20, mw = 50, mesh = "ship", shipType = "Basic", hull = 3,
-    name = "LIMTECH FREIGHTER (Y142)", details = "SHIELDS 78%",
+    name = "LIMTECH FREIGHTER (Y142)", details = "SHIELDS 78%", shield = 0.78,
     contents = { "CARGO: 40 T IRON ORE", "LOGS: 3 CONTRACTS, LAST DOCK 2 H AGO" },
 }
 local CAPITAL = {
     kind = "ship", radius = 150, mw = 500, mesh = "ship", shipType = "Basic", hull = 6,
-    name = "ORION BULWARK (Y133)", details = "SHIELDS 92%",
+    name = "ORION BULWARK (Y133)", details = "SHIELDS 92%", shield = 0.92,
     contents = { "HANGAR: 12 FIGHTERS", "LOGS: FLEET ORDERS, SEALED" },
 }
 local STATION = {

@@ -33,8 +33,8 @@ and a signature of its own (its power draw, louder and hotter while it scans).
 Around it is one setup at a time, each showing one thing; B builds the next
 one around the ship, R the same one again. The star system's star, planet and
 moon have signatures, and belt rocks that come close get one too. The sensor
-HUD (below) shows what the sensor makes of it all, with the setup's name and
-what to try; the text in the top left shows the settings and the keys.
+HUD (below) shows what the sensor makes of it all; the text in the top left
+shows the setup's name, what to try, the settings and the keys.
 
 | Setup | What it shows |
 |---|---|
@@ -66,25 +66,41 @@ smaller than a pixel or so at their distance get no mesh, only a signature.
 ## The sensor HUD
 
 `UIComponent.SensorHud` (`script/UI/HmGui/Components/Hud/SensorHud.lua`)
-draws what a sensor shows, in two panels:
+draws what a sensor shows with shapes, and words only where nothing else can
+say it: a target's name and distance, and what a full scan read.
 
-- **Passive**, at the bottom: a radar disc tilted away from you, your ship in
-  the middle with its nose up, distance on a log scale (50 m at the centre,
-  100 km at the rim). A contact sits at its bearing and distance: a soft blob
-  at T1, a class icon at T2 (outline) and T3 (filled), amber at T4 (○ class I,
-  Δ II, ▼ III, ⬢ IV station; circles for planets, a star, diamonds for
-  asteroids). Rings show where the target would turn T1 to T4 in open space,
-  and the ring round the disc bulges where signals come from. Beside it the
-  contact list, and on its left your ship as others hear it: power draw,
-  heat, and who heard your last pulse.
-- **Active**, on the right: the scan window. The target's tier and echo,
-  whether a scan reads it from here, the scan's progress, and what scans
-  have read (T3 identity, T4 contents).
+- **The radar**, at the bottom centre: a disc tilted away from you, your ship
+  in the middle with its nose up, distance on a log scale (50 m at the centre,
+  100 km at the rim). A contact sits at its bearing and distance.
+- **The target panel**, at the bottom right: a hologram circle that fills in
+  as the sensor learns more about the target. Static without a contact, a blob
+  at T1, its icon at T2, a wireframe of it at T3 (a stand-in for the
+  hologram) with its power draw (bars), what it's doing (an icon) and its
+  shields (how strongly the ring glows), brighter at T4 with what the full
+  scan read beside it. A scan's progress runs round the rim, and its echo
+  fills a meter under the panel with a notch where it reads T3 and one for T4;
+  chevrons mean the echo is too weak to read more from here.
+
+How a contact looks:
+
+| | |
+|---|---|
+| Shape: what it is | ships and stations by class: ○ I, Δ II, ▼ III, ⬢ IV; an asteroid a dot; a planet or moon ◎; a star ✦; a wreck its class icon, broken |
+| Fill: how much is known | T1 a soft blob (no shape yet), T2 an outline, T3 filled, T4 filled with a bright core |
+| Colour: whose side | pale until T3, then red for hostile |
+
+Amber means "look here" and nothing else: your own scan and pulse, your
+thermal bloom. On the radar, rings show where the target would turn T1 to T4
+in open space, each marked with that tier's icon, and the ring round the disc
+bulges where signals come from. A dashed ring shows how far your power draw
+is heard (an amber one further out while you scan or just after a pulse), an
+arc round your ship your heat, and ripples over a contact that it heard your
+last pulse.
 
 Feed it a `SensorPicture` every frame:
 
 ```lua
-local hud = UIComponent.SensorHud { scanHint = "HOLD X TO SCAN" }
+local hud = UIComponent.SensorHud {}
 -- every frame
 local body = ship:get(PhysicsComponents.RigidBody)
 hud:update(SensorPicture.build(sensor, body:getForward(), body:getRight(), "FRIGATE"), dt)
@@ -105,7 +121,7 @@ with the game's HUD while the scenario runs.
   the target and its scan.
 - `Components/SensorSignatureComponent.lua`: on anything that can be sensed:
   kind, size (the entity's bounding radius unless given), power draw,
-  activity, and what a T3 and a T4 read show.
+  activity, and what a T3 read (name, shields, standing) and a T4 read show.
 - `Components/SensorComponent.lua`: on a ship: the dials and the sensor's
   state (scan target and progress, reads, pulse echoes, its own heat), and the
   last readings.
