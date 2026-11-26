@@ -27,6 +27,10 @@ local LEG_STATES = { [State.DockingToBuy] = true, [State.DockingToSell] = true, 
 -- The economy clock's time this update, for the states' start times.
 local currentNow = 0
 
+-- The claims of this update: a job's claims count at once, so that agents planning in the same
+-- update don't take the same lot or crowd one rock.
+local liveClaims = {}
+
 ---Runs the economic agents (`EconomyAgentComponent`): ships that pick a job from the markets and
 ---fly it. A trader buys an item at the station that asks least for it and sells it to one that
 ---bids more; a miner flies to an asteroid that yields an item some station bids for, fills its hold
@@ -53,9 +57,10 @@ function EconomyAgentSystem:registerVars()
     self.estimateCandidates = 4
     -- Seconds added to a job's time for each docking.
     self.dockOverheadS = 40
-    -- A miner's run lasts at most `maxMiningS`; it flies to `mineGapM` off the rock's hull first.
-    self.maxMiningS = 120
-    self.mineGapM = 250
+    -- A miner's run lasts at most `maxMiningS`; it flies to `mineGapM` off the rock's hull first,
+    -- and the mining run's glide takes it onto its circle from there.
+    self.maxMiningS = 600
+    self.mineGapM = 1500
     self.maxMinersPerAsteroid = 2
     -- A trade may pay this much over the planned buy price, or take this much under the planned sell price.
     self.priceSlack = 0.1
@@ -116,6 +121,7 @@ end
 ---@param agents table[]
 function EconomyAgentSystem:collectClaims(agents)
     self.claims = {}
+    liveClaims = self.claims
     for _, entry in ipairs(agents) do
         local job = entry[2].job
         for _, claim in ipairs(job and job.claims or {}) do
@@ -135,6 +141,7 @@ end
 ---@param quantity integer
 local function claim(job, key, quantity)
     job.claims[#job.claims + 1] = { key = key, quantity = quantity }
+    liveClaims[key] = (liveClaims[key] or 0) + quantity
 end
 
 ---@param job EconomyJob
@@ -478,6 +485,25 @@ function EconomyAgentSystem:startStage(ship, agent, now)
     end
 end
 
+---The agent's next job: selling its cargo, else what its role does.
+---@param ship Entity
+---@param agent EconomyAgentComponent
+---@param inventory InventoryComponent
+---@return EconomyJob|nil
+function EconomyAgentSystem:planWork(ship, agent, inventory)
+    local job = self:planSale(ship, agent, inventory)
+    if job then
+        job.stage = "sell"
+    elseif agent.role == Enums.EconomyAgentRole.Miner then
+        job = self:planMining(ship, agent, inventory)
+        if job then job.stage = "mine" end
+    else
+        job = self:planTrade(ship, inventory)
+        if job then job.stage = "buy" end
+    end
+    return job
+end
+
 ---@param ship Entity
 ---@param agent EconomyAgentComponent
 ---@param now number
@@ -494,16 +520,7 @@ function EconomyAgentSystem:step(ship, agent, now, dt)
     end
 
     if state == State.Idle then
-        local job = self:planSale(ship, agent, inventory)
-        if job then
-            job.stage = "sell"
-        elseif agent.role == Enums.EconomyAgentRole.Miner then
-            job = self:planMining(ship, agent, inventory)
-            if job then job.stage = "mine" end
-        else
-            job = self:planTrade(ship, inventory)
-            if job then job.stage = "buy" end
-        end
+        local job = self:planWork(ship, agent, inventory)
         if not job then
             -- Nothing pays: a ship out in space docks to wait; a docked one waits where it is.
             job = DockingSystem:phaseOf(ship) == nil and self:planPark(ship) or nil
@@ -521,6 +538,17 @@ function EconomyAgentSystem:step(ship, agent, now, dt)
         end
     elseif state == State.DockingToBuy or state == State.DockingToSell then
         local phase = DockingSystem:phaseOf(ship)
+        -- A ship on its way to park keeps looking for work, and takes it as soon as there is some.
+        if agent.job and agent.job.stage == "park" and phase == Phase.Approaching
+            and now >= (agent.nextLookAt or 0) then
+            agent.nextLookAt = now + self.idleRetryS
+            local job = self:planWork(ship, agent, inventory)
+            if job then
+                DockingSystem:release(ship)
+                agent.job = job
+                return self:startStage(ship, agent, now)
+            end
+        end
         if phase == Phase.Docked then
             self:startStage(ship, agent, now)
         elseif phase == Phase.Failed or phase == nil then
