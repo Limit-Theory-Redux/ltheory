@@ -12,6 +12,7 @@ local CelestialComponents   = require("Modules.CelestialObjects.Components")
 local ConstructComponents   = require("Modules.Constructs.Components")
 local GravityWellSystem     = require("Modules.Physics.Systems.GravityWellSystem")
 local TravelDriveSystem     = require("Modules.Constructs.Systems.TravelDriveSystem")
+local ShipFlightSystem      = require("Modules.Constructs.Systems.ShipFlightSystem")
 local FlightProfileRegistry = require("Shared.Registries.FlightProfileRegistry")
 local FlightProfileHelper   = require("Shared.Helpers.FlightProfileHelper")
 
@@ -194,13 +195,6 @@ function GravityWellTest:stepPlanetTo(moved)
     self:step()
 end
 
----The ships' speed relative to the frame they are carried at, in game units per second.
-local function relativeSpeed(ship)
-    local v = ship.rb:getVelocity()
-    local cx, cy, cz = ship.well:getCarriedVelocity()
-    return math.sqrt((v.x - cx) ^ 2 + (v.y - cy) ^ 2 + (v.z - cz) ^ 2)
-end
-
 function GravityWellTest:checkCarry()
     local atRest = self:spawnShip(IN_PLANET_X, true, true)
     local inMoon = self:spawnShip(IN_MOON_X, true, true)
@@ -211,8 +205,10 @@ function GravityWellTest:checkCarry()
     self:stepPlanetTo(moved)
     self:check(near(atRest.rb:getPos().x, x0 + PLANET_MOVE), "a ship in a well moves with the body",
         tostring(atRest.rb:getPos().x))
-    self:check(relativeSpeed(atRest) <= VELOCITY_TOLERANCE, "a ship carried by a well has no speed relative to it",
-        tostring(relativeSpeed(atRest)))
+    local worldSpeed, speed = atRest.rb:getSpeed(), ShipFlightSystem:getSpeed(atRest.entity)
+    self:check(worldSpeed > VELOCITY_TOLERANCE and speed <= VELOCITY_TOLERANCE,
+        "a ship carried by a well moves in the world and has no speed relative to it",
+        worldSpeed .. " and " .. speed)
     self:check(near(inMoon.rb:getPos().x, moonX0), "a ship is carried only by the body of its own well")
 
     -- A ship that enters a well is not moved by what the body moved before.

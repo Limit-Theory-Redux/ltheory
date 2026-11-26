@@ -6,7 +6,7 @@ use super::{
     Alignment, FocusType, HmGui, HmGuiContainer, HmGuiImage, HmGuiShape, HmGuiText, IDENT, TEXT_CTX,
 };
 use crate::input::Input;
-use crate::render::{Color, Renderer};
+use crate::render::{Color, Renderer, UIRenderer};
 use crate::rf::Rf;
 use crate::ui::hmgui::HmGuiImageLayout;
 
@@ -422,7 +422,7 @@ impl HmGuiWidget {
             let pos = self.inner_pos;
 
             // background, border, then content: in that order on screen
-            self.draw_background(hmgui, pos, size);
+            self.draw_background(&mut hmgui.renderer, pos, size);
 
             if self.border_width > 0.0 || self.border_color.is_opaque() {
                 hmgui.renderer.rect(
@@ -478,11 +478,16 @@ impl HmGuiWidget {
         }
     }
 
-    fn draw_background(&self, hmgui: &mut HmGui, pos: Vec2, size: Vec2) {
-        if self.background_color.is_opaque() || self.opacity > 0.0 {
-            hmgui
-                .renderer
-                .panel(pos, size, self.background_color, 0.0, self.opacity);
+    /// The background: a panel in the background colour behind the content,
+    /// its inside as opaque as `opacity` (its shadow stays). A panel's alpha
+    /// is its colour's alpha times the rest, so with a transparent colour (the
+    /// default) it shows nothing and is not drawn. Drawing it anyway would
+    /// cost a draw call per widget, since a panel between two shapes ends
+    /// their batch, and overdraw, since a panel covers its widget grown by
+    /// 64 px on every side.
+    fn draw_background(&self, renderer: &mut UIRenderer, pos: Vec2, size: Vec2) {
+        if self.background_color.is_opaque() {
+            renderer.panel(pos, size, self.background_color, 0.0, self.opacity);
         }
     }
 
@@ -533,4 +538,34 @@ impl HmGuiWidget {
 #[inline]
 fn contains_point(pos: Vec2, size: Vec2, point: Vec2) -> bool {
     pos.x <= point.x && pos.y <= point.y && point.x <= pos.x + size.x && point.y <= pos.y + size.y
+}
+
+#[cfg(test)]
+mod tests {
+    use glam::Vec2;
+
+    use super::*;
+
+    /// How many background panels `widget` draws.
+    fn backgrounds(widget: &HmGuiWidget) -> usize {
+        let mut ui = UIRenderer::empty();
+        ui.begin_layer(Vec2::ZERO, Vec2::splat(100.0), false);
+        widget.draw_background(&mut ui, Vec2::ZERO, Vec2::splat(10.0));
+        ui.current_layer_panels()
+    }
+
+    #[test]
+    fn only_a_visible_background_colour_draws_a_panel() {
+        let mut widget = HmGuiWidget::new(None, WidgetItem::Rect);
+        // Transparent by default, at full opacity: nothing to see
+        assert_eq!(backgrounds(&widget), 0);
+        widget.set_opacity(0.5);
+        assert_eq!(backgrounds(&widget), 0);
+
+        widget.set_background_color(&Color::new(0.1, 0.2, 0.3, 0.8));
+        assert_eq!(backgrounds(&widget), 1);
+        // A clear inside still has its shadow
+        widget.set_opacity(0.0);
+        assert_eq!(backgrounds(&widget), 1);
+    }
 }

@@ -164,7 +164,7 @@ After changing the UI or anything the menus use (settings, `GameState`, the rend
 - Windows: `./bin/ltr.exe MenuSmokeTest`
 - macOS/Linux: `./bin/ltr MenuSmokeTest`
 
-It starts the game, opens every menu screen (each Settings tab, the HUD, the pause menu and the Controls screen) for a few frames, starts every scenario from the main menu and regenerates it once (B), and exits with code 0 and `MenuSmokeTest: passed`. A screen that throws a script error stops it with exit code 1; the last `MenuSmokeTest: checking` line in the log names the screen. It uses its own settings folder, so your settings are left alone. It needs a GPU and a window, so CI does not run it.
+It starts the game, opens every menu screen (each Settings tab, the HUD, the pause menu, the Controls screen and the game over screen) for a few frames, starts every scenario from the main menu and regenerates it once (B), and exits with code 0 and `MenuSmokeTest: passed`. A screen that throws a script error stops it with exit code 1; the last `MenuSmokeTest: checking` line in the log names the screen. It uses its own settings folder, so your settings are left alone. It needs a GPU and a window, so CI does not run it.
 
 ## Quickly iterate on engine changes
 

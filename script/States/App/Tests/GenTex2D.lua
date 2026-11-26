@@ -163,7 +163,8 @@ function GenTex2D:onInit()
     self:onGenerate()
 end
 
-function GenTex2D:onUpdate(dt)
+function GenTex2D:onSim(data)
+    local dt = data:deltaTime()
     if Input:isDown(Button.KeyboardControlLeft) and Input:isPressed(Button.KeyboardW) then self:quit() end
     if Input:isPressed(Button.KeyboardSpace) then self:onGenerate() end
     if Input:isDown(Button.MouseLeft) then

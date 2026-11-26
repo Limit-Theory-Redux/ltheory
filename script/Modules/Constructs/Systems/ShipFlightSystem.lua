@@ -77,19 +77,27 @@ function ShipFlightSystem:update()
     end
 end
 
---- The ship's speed relative to the body whose gravity well carries it (its world speed in open space).
+--- The ship's velocity relative to the body whose gravity well carries it (its world velocity in
+--- open space). Zero for a ship without a rigid body.
+---@param shipEntity Entity
+---@return gameunit vx, gameunit vy, gameunit vz Game units per second
+function ShipFlightSystem:getRelativeVelocity(shipEntity)
+    local rbCmp = shipEntity:get(PhysicsComponents.RigidBody)
+    local rb = rbCmp and rbCmp:getRigidBody()
+    if not rb then return 0, 0, 0 end
+    local v = rb:getVelocity()
+    local well = shipEntity:get(PhysicsComponents.GravityWell)
+    if not well then return v.x, v.y, v.z end
+    local cx, cy, cz = well:getCarriedVelocity()
+    return v.x - cx, v.y - cy, v.z - cz
+end
+
+--- The length of `getRelativeVelocity`.
 ---@param shipEntity Entity
 ---@return number
 function ShipFlightSystem:getSpeed(shipEntity)
-    local rbCmp = shipEntity:get(PhysicsComponents.RigidBody)
-    if not rbCmp then return 0 end
-    local rb = rbCmp:getRigidBody()
-    if not rb then return 0 end
-    local well = shipEntity:get(PhysicsComponents.GravityWell)
-    if not well then return rb:getSpeed() end
-    local v = rb:getVelocity()
-    local cx, cy, cz = well:getCarriedVelocity()
-    return math.sqrt((v.x - cx) ^ 2 + (v.y - cy) ^ 2 + (v.z - cz) ^ 2)
+    local vx, vy, vz = self:getRelativeVelocity(shipEntity)
+    return math.sqrt(vx * vx + vy * vy + vz * vz)
 end
 
 return ShipFlightSystem

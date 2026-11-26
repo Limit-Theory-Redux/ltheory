@@ -40,7 +40,6 @@ end
 function Application:onInit() end
 function Application:onDraw() end
 function Application:onResize(sx, sy) end
-function Application:onUpdate(dt) end
 function Application:onExit() end
 
 -- Ends the run after this frame; the process exits with `code`.
@@ -78,7 +77,13 @@ function Application:eventLoop()
 
     local eventData, payload = EventBus:nextEvent()
     while eventData ~= nil do
-        EventTunnels[eventData:tunnelId()](eventData, payload)
+        -- EventBus:unsubscribe drops the Lua handler at once, but the bus only
+        -- removes the subscriber at the next startEventIteration: the rest of
+        -- this frame can still deliver events for a tunnel that has no handler.
+        local tunnel = EventTunnels[eventData:tunnelId()]
+        if tunnel then
+            tunnel(eventData, payload)
+        end
         eventData, payload = EventBus:nextEvent()
     end
 end
