@@ -101,6 +101,10 @@ pub fn gpu_label(id: u32) -> String {
 /// One timed GPU pass: label id and begin/end in nanoseconds on the GPU clock.
 pub type GpuSample = (u32, u64, u64);
 
+/// The longest pass a sample may time, in nanoseconds. A longer one is a timestamp the GPU never
+/// wrote (an unresolved query reads as zero or garbage), and is left out of the timings.
+const MAX_SAMPLE_NS: u64 = 1_000_000_000;
+
 /// Per-executor accumulation of [`GpuSample`]s into [`GpuTimings`].
 pub struct GpuTimingState {
     /// Local label cache (the global table is only locked for new labels).
@@ -156,10 +160,17 @@ impl GpuTimingState {
         let (mut first, mut last, mut busy) = (u64::MAX, 0u64, 0u64);
         for &(id, b, e) in samples {
             let d = e.saturating_sub(b);
-            self.sum_ns[id as usize] += d;
-            busy += d;
+            if e < b || d > MAX_SAMPLE_NS {
+                continue;
+            }
+            let sum = &mut self.sum_ns[id as usize];
+            *sum = sum.saturating_add(d);
+            busy = busy.saturating_add(d);
             first = first.min(b);
             last = last.max(e);
+        }
+        if first > last {
+            return;
         }
         let r = &mut self.result;
         r.measured_frames += 1;
@@ -248,5 +259,22 @@ mod tests {
         assert_eq!(t.total_us, 14_000);
         assert_eq!(t.busy_us, 14_000);
         assert_eq!(gpu_label(a), "gt-a");
+    }
+
+    #[test]
+    fn skips_samples_the_gpu_never_wrote() {
+        let mut s = GpuTimingState::new(true);
+        let a = s.label_id(&Arc::from("gt-skip"));
+        s.finish_frame(&[
+            (a, 1_000_000, 3_000_000),
+            (a, 0, u64::MAX),
+            (a, 5_000_000, 4_000_000),
+        ]);
+        let t = s.timings();
+        assert_eq!(t.total_us, 2_000);
+        assert_eq!(t.busy_us, 2_000);
+        // Garbage alone leaves the last frame's timings as they were.
+        s.finish_frame(&[(a, 0, u64::MAX), (a, 5_000_000, 4_000_000)]);
+        assert_eq!(s.timings().total_us, 2_000);
     }
 }
