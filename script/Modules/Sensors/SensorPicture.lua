@@ -1,6 +1,7 @@
--- What a sensor shows, ready to draw: every object with its bearing and
--- distance in the ship's frame and its reading, the target with its scan,
--- and the sensor's own state. Built from a
+-- What a sensor shows, ready to draw: every object with its bearing, height
+-- and distance in the ship's frame, its reading and what the sensor remembers
+-- of it, the target with its scan, and the sensor's own state. A contact the
+-- sensor has lost but had classed shows as a ghost where it was last seen. Built from a
 -- `SensorComponent` once per frame; plain tables only.
 
 local SensorModel = require("Modules.Sensors.SensorModel")
@@ -14,7 +15,14 @@ local PULSE_HEARD_TIME = 4 -- seconds the HUD shows who heard a pulse
 ---@field object SensorObject
 ---@field reading SensorResult
 ---@field bearing number degrees clockwise from the ship's nose, in its plane
+---@field elevation number degrees above the ship's plane (negative: below)
 ---@field distance number metres
+---@field world table|nil where it is in the world (game units); for a ghost, where it was last seen
+---@field known integer the best tier the sensor has had of it (0 = none)
+---@field age number seconds since it last had that tier
+---@field stale boolean a contact now, but it senses less of it than it knows: the details are as last seen
+---@field ghost boolean out of contact, shown where it was last seen
+---@field lost number seconds since it was last a contact
 ---@field index integer its place in the sensor's object list (stable per object)
 ---@field echo number seconds of pulse echo left (0 = none)
 ---@field heardPulse boolean a ship or station within earshot of the last pulse, while it's recent
@@ -42,12 +50,21 @@ local function dot(a, b)
     return a.x * b.x + a.y * b.y + a.z * b.z
 end
 
+--- Bearing and elevation (degrees) and distance (m) of a sensor-relative
+--- position, in the ship's frame.
+local function place(pos, forward, right, up)
+    local f, r, u = dot(pos, forward), dot(pos, right), dot(pos, up)
+    local flat = math.sqrt(f * f + r * r)
+    return math.atan2(r, f) / DEG, math.atan2(u, flat) / DEG, math.sqrt(f * f + r * r + u * u)
+end
+
 --- The picture of a sensor now.
 ---@param sensor SensorComponent
 ---@param forward Vec3f|SensorVec the ship's nose (unit length)
 ---@param right Vec3f|SensorVec the ship's right (unit length)
+---@param up Vec3f|SensorVec the ship's up (unit length)
 ---@return SensorPictureData
-function SensorPicture.build(sensor, forward, right)
+function SensorPicture.build(sensor, forward, right, up)
     local state = sensor:getState()
     local readings = sensor:getReadings()
     local dials = state.dials
@@ -58,15 +75,25 @@ function SensorPicture.build(sensor, forward, right)
     for i, o in ipairs(state.objects) do
         local r = readings[o]
         if r then
+            local m = state.memory[o]
+            local ghost = r.tier == 0 and m ~= nil and m.tier >= 2 and o.lastPos ~= nil
+            local bearing, elevation, distance = place(ghost and o.lastPos or o.pos, forward, right, up)
             local c = {
                 object = o,
                 reading = r,
-                bearing = math.atan2(dot(o.pos, right), dot(o.pos, forward)) / DEG,
-                distance = SensorModel.distance(o),
+                bearing = bearing,
+                elevation = elevation,
+                distance = distance,
+                world = ghost and o.seenAt or o.world,
                 index = i,
                 echo = state.echoes[o] or 0,
+                known = m and m.tier or 0,
+                age = m and m.age or 0,
+                stale = r.tier >= 1 and m ~= nil and m.tier > r.sensed and m.age > 0,
+                ghost = ghost,
+                lost = m and m.lost or 0,
             }
-            c.heardPulse = pulseRecent and (o.kind == "ship" or o.kind == "station")
+            c.heardPulse = not ghost and pulseRecent and (o.kind == "ship" or o.kind == "station")
                 and c.distance <= pulseHeardWithin
             objects[#objects + 1] = c
             if o == state.target then targetContact = c end

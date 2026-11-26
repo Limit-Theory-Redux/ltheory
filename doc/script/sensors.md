@@ -78,7 +78,9 @@ say it: a target's name and distance, and what a full scan read.
 
 - **The radar**, at the bottom centre: a disc tilted away from you, your ship
   in the middle with its nose up, distance on a log scale (50 m at the centre,
-  100 km at the rim). A contact sits at its bearing and distance.
+  100 km at the rim). A contact's foot sits on the disc at its bearing, with a
+  stick up to it when it's above your plane and a dashed one down when it's
+  below.
 - **The target panel**, at the bottom right: a hologram circle that fills in
   as the sensor learns more about the target. Static without a contact, a blob
   at T1, its icon at T2, a wireframe of it at T3 (a stand-in for the
@@ -96,13 +98,31 @@ How a contact looks:
 | Fill: how much is known | T1 a soft blob (no shape yet), T2 an outline, T3 filled, T4 filled with a bright core |
 | Colour: whose side | pale until T3, then red for hostile |
 
+In your view, each contact's icon is drawn where it is on the screen (except
+planets and stars, and anything already big on screen), the target in
+brackets with its distance; when the target is off screen, an amber arrow at
+the edge points toward it.
+
 Amber means "look here" and nothing else: your own scan and pulse, your
-thermal bloom. On the radar, rings show where the target would turn T1 to T4
-in open space, each marked with that tier's icon, and the ring round the disc
-bulges where signals come from. A dashed ring shows how far your power draw
-is heard (an amber one further out while you scan or just after a pulse), an
-arc round your ship your heat, and ripples over a contact that it heard your
-last pulse.
+thermal bloom, the arrow to the target. On the radar, rings show where the
+target would turn T1 to T4 in open space, each marked with that tier's icon,
+and the ring round the disc bulges where signals come from. A dashed ring
+shows how far your power draw is heard (an amber one further out while you
+scan or just after a pulse), an arc round your ship your heat, and ripples
+over a contact that it heard your last pulse.
+
+### What the sensor remembers
+
+A sensor keeps the best tier it has had of every object, whether it saw it or
+a scan read it (`SensorState.memory`). What it knows stays when the object
+fades: a fighter it identified stays a red fighter on the radar and in the
+target panel, even once it is only heard. While it senses less than it knows,
+the details are as last seen: the icon's fill fades, an arc round it closes
+over two minutes as the knowledge ages, and the target panel greys the
+shields, power and activity. Once the object is not heard at all, a ghost (a
+dashed icon) stays where it was last seen, fading for a ship, and the target
+panel shows the memory grey with scan lines. Objects it has classed don't
+merge into anonymous blobs.
 
 Feed it a `SensorPicture` every frame:
 
@@ -110,7 +130,7 @@ Feed it a `SensorPicture` every frame:
 local hud = UIComponent.SensorHud {}
 -- every frame
 local body = ship:get(PhysicsComponents.RigidBody)
-hud:update(SensorPicture.build(sensor, body:getForward(), body:getRight()), dt)
+hud:update(SensorPicture.build(sensor, body:getForward(), body:getRight(), body:getUp()), dt)
 ```
 
 A scenario shows its own HUD components by listing them in its `hud` field
@@ -127,8 +147,9 @@ with the game's HUD while the scenario runs.
 - `SensorTuning.lua`: the dials the tuning panel changes, with their ranges
   and steps.
 - `SensorPicture.lua`: what a sensor shows, ready to draw: every object with
-  its bearing and distance in the ship's frame, the target and its scan, and
-  how far the ship and its pulse are heard.
+  its bearing, height and distance in the ship's frame and what the sensor
+  remembers of it (lost ones where they were last seen), the target and its
+  scan, and how far the ship and its pulse are heard.
 - `Components/SensorSignatureComponent.lua`: on anything that can be sensed:
   kind, size (the entity's bounding radius unless given), power draw,
   activity, and what a T3 read (name, shields, standing) and a T4 read show.
@@ -137,7 +158,8 @@ with the game's HUD while the scenario runs.
   last readings.
 - `Systems/SensorSystem.lua`: `SensorSystem:update(dt)` places every signature
   relative to every sensor (in real metres), fires requested pulses, evaluates
-  the model and moves each sensor's state on.
+  the model, moves each sensor's state on, and keeps where each contact was
+  last seen.
 
 Giving an entity a signature and a ship a sensor:
 
