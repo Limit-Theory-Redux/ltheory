@@ -214,7 +214,7 @@ mine = {}
 | M | The 2D map, then the 3D map, then the flight view |
 | Right mouse, wheel | Turn and zoom the orbit camera; in a map, its own controls |
 
-The label in the corner tells the selected ship's scenario, its role, the kind and status of its order, the distance left and the ETA, the last failure, and the time to the next swap.
+The label in the corner tells the selected ship's scenario, its role, the kind and status of its order, the distance left and the ETA, "Holding" while a chaser waits for its leader to move out of reach, the last failure, and the time to the next swap.
 
 ### Scenarios
 
@@ -232,7 +232,7 @@ A *scenario* is a group of ships that fly one order or behaviour. It gives the p
 | Hold | 3 | `Hold` in a planet's well, which carries the ships along |
 | Traffic | 6 | `MoveTo` back and forth: head-on and crossing streams |
 
-A scenario with a `leader` has one ship the others follow or chase. To add a scenario, add a table to the list at the end of `Scenarios.lua` with a `name`, `orders` (a line for the label), `count`, `spawn(ctx, slot)` and `order(ctx, ship)`, and a colour in `SCENARIO_COLORS` in `NavigationDemo.lua`. A scenario whose orders fly to bodies can list them in `targets(ctx)`, and `Navigation.DemoTest` then expects each to be reached.
+A scenario with a `leader` has one ship the others follow or chase. To add a scenario, add a table to the list at the end of `Scenarios.lua` with a `name`, `orders` (a line for the label), `count`, `spawn(ctx, slot)` and `order(ctx, ship)`, and a colour in `SCENARIO_COLORS` in `NavigationDemo.lua`. A scenario whose orders fly to bodies can list them in `targets(ctx)`, and `Navigation.DemoTest` then expects each to be reached. A scenario can have `ready(ctx, ship)`: the ship's next order is given only when it says yes, and the ship holds without an order until then (the chases use it, so that a chaser that has reached its leader is not given a `MoveTo` that is done at once, again and again).
 
 ### Swaps
 
@@ -246,7 +246,7 @@ M opens the 2D map, then the 3D map ([system maps](../system-map.md)). Each ship
 
 ### Test
 
-`cargo run -p ltr -- Navigation.DemoTest` ([DemoTest.lua](../../../script/States/App/Tests/Navigation/DemoTest.lua)) runs the demo faster, with frequent swaps (a frame advances several steps of at most 0.05 s, so a sped-up run steps the ships as finely as a real-time one, and every step is checked), and ends when it has seen the work: every ship's order begins, every ship of the scenarios whose orders end ("Far crossing", "Bodies" and "Traffic") finishes one, each body of "Bodies" is reached, ships swap, their new orders begin, and both maps draw every ship and route and take a ship picked in them. During the whole run it checks that no order fails, no leader moves, and no ship's bounding sphere touches a body, a rock or another ship's (the [sandbox's](navigation-sandbox.md) collision rule).
+`cargo run -p ltr -- Navigation.DemoTest` ([DemoTest.lua](../../../script/States/App/Tests/Navigation/DemoTest.lua)) runs the demo faster, with frequent swaps (a frame advances several steps of at most 0.05 s, so a sped-up run steps the ships as finely as a real-time one, and every step is checked), and ends when it has seen the work: every ship's order begins, every chaser flies (it is 10 km from where it started), every ship of the scenarios whose orders end ("Far crossing", "Bodies" and "Traffic") finishes one, each body of "Bodies" is reached, ships swap, their new orders begin, and both maps draw every ship and route and take a ship picked in them. During the whole run it checks that no order fails, no leader moves, a `MoveTo` to a ship is not done within a few frames of its start (all but a tenth of them), and no ship's bounding sphere touches a body, a rock or another ship's (the [sandbox's](navigation-sandbox.md) collision rule).
 
 ## Pitfalls
 

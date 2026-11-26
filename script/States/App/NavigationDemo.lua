@@ -41,6 +41,7 @@ local Scenarios               = require("States.App.NavigationDemo.Scenarios")
 ---@field order Entity|nil The ship's current order
 ---@field failure string|nil Why the last order that failed did
 ---@field retryAt number|nil Simulated time the next order is given at, after a failure
+---@field held true|nil Whether the ship waits without an order until its scenario's `ready` allows the next
 ---@field joined boolean|nil Whether the ship has been swapped into its scenario (it did not start there)
 ---@field mapSpec table The ship's entry for the maps: `{ entity, label, color }`, kept current
 ---@field overlay table The ship's route for the maps: `{ shipPos, route, flown, color, ... }`, reused
@@ -226,10 +227,17 @@ function NavigationDemo:leaderOf(ship)
     return self.groups[ship.scenario][leaderSlot]
 end
 
----Gives the ship the order of its current step.
+---Gives the ship the order of its current step, or holds it without one while its scenario's `ready`
+---says no; the frame's start tries again.
 ---@param ship NavigationDemoShip
 function NavigationDemo:giveOrder(ship)
-    local order = Nav.order(ship.entity, Scenarios[ship.scenario].order(self.context, ship))
+    local scenario = Scenarios[ship.scenario]
+    ship.held = scenario.ready ~= nil and not scenario.ready(self.context, ship) or nil
+    if ship.held then
+        ship.order, ship.retryAt = nil, nil
+        return
+    end
+    local order = Nav.order(ship.entity, scenario.order(self.context, ship))
     ship.order = order
     ship.retryAt = nil
     self.orderShip[order.id] = ship
@@ -283,7 +291,7 @@ function NavigationDemo:leave(ship)
         end
         ship.order = nil
     end
-    ship.failure, ship.retryAt = nil, nil
+    ship.failure, ship.retryAt, ship.held = nil, nil, nil
 end
 
 ---Two ships that are not leaders, from different scenarios, change scenarios: each leaves its orders,
@@ -403,7 +411,7 @@ function NavigationDemo:onPreSim(data)
         return
     end
     for _, ship in ipairs(self.ships) do
-        if ship.retryAt and self.simSeconds >= ship.retryAt then self:giveOrder(ship) end
+        if ship.held or (ship.retryAt and self.simSeconds >= ship.retryAt) then self:giveOrder(ship) end
     end
     if self.simSeconds >= self.nextSwapAt then
         self:swapShips()
@@ -509,6 +517,7 @@ function NavigationDemo:labelLines()
             lines[#lines + 1] = string.format("Distance %s%s", ScaleConfig:formatDistance(progress.distanceLeft), eta)
         end
     end
+    if ship.held then lines[#lines + 1] = "Holding: the leader is within reach" end
     if ship.failure then lines[#lines + 1] = "Last failure: " .. ship.failure end
     if self.started then
         lines[#lines + 1] = string.format("Next swap in %d s", math.max(0, math.ceil(self.nextSwapAt - self.simSeconds)))

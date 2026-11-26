@@ -16,6 +16,7 @@ local Nav                  = require("Modules.Navigation")
 local NavConfig            = require("Config.Navigation.NavConfig")
 local CostProfileRegistry  = require("Shared.Registries.CostProfileRegistry")
 local PlanFlight           = require("Shared.Helpers.PlanFlight")
+local ApproachSpecs        = require("Shared.Helpers.ApproachSpecs")
 local TravelDriveMath      = require("Shared.Helpers.TravelDriveMath")
 local FlightScene          = require("States.App.Tests.Support.FlightScene")
 
@@ -138,12 +139,15 @@ function EstimateTest:caseEntityTarget()
     self.world:update(1 / 60)
     local profile = ConstructComponents.FlightProfile.ProfileOf(ship.entity)
 
-    local standOff = PlanFlight.standOff(BODY_RADIUS, nil, NavConfig.standOffRadii)
+    local spec = ApproachSpecs.For(body.entity, nil)
+    local standOff = PlanFlight.standOff(BODY_RADIUS, spec:getGap(), spec:getRadii())
     local result = Nav.estimate(ship.entity, body.entity)
     self:check(result.reachable and same(result.distance, (BODY_AT - standOff) * NavConfig.estimateDetourFactor),
         name .. "the path ends at the stand-off", tostring(result.distance))
-    self:check(same(result.time, lawTime(profile, BODY_AT - standOff, PlanFlight.arrivalRadius(BODY_RADIUS, nil,
-        NavConfig.standOffRadii), false)), name .. "and counts the stand-off's arrival radius", tostring(result.time))
+    local length = BODY_AT - standOff
+    local driveUsed = length * NavConfig.estimateDetourFactor > PlanFlight.driveMinLength(profile)
+    self:check(same(result.time, lawTime(profile, length, PlanFlight.arrivalRadius(BODY_RADIUS,
+        spec:getGap(), spec:getRadii()), driveUsed)), name .. "and counts the stand-off's arrival radius", tostring(result.time))
 
     local inside = Nav.estimate(Position(BODY_AT - standOff / 2, 0, 0), body.entity, profile)
     self:check(inside.reachable and inside.time == 0, name .. "a ship already inside the stand-off has arrived")

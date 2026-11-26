@@ -3,11 +3,13 @@
 -- the order it flies at each step; the demo gives the next order when one is done, so a scenario runs
 -- for as long as the app does. Distances are metres, converted with `Scene.toGame`.
 
-local Nav                = require("Modules.Navigation")
-local PhysicsComponents  = require("Modules.Physics.Components")
+local Nav                 = require("Modules.Navigation")
+local PhysicsComponents   = require("Modules.Physics.Components")
 local CelestialComponents = require("Modules.CelestialObjects.Components")
-local EntityPosition     = require("Shared.Helpers.EntityPosition")
-local Scene              = require("States.App.NavigationDemo.Scene")
+local EntityPosition      = require("Shared.Helpers.EntityPosition")
+local ApproachSpecs       = require("Shared.Helpers.ApproachSpecs")
+local PlanFlight          = require("Shared.Helpers.PlanFlight")
+local Scene               = require("States.App.NavigationDemo.Scene")
 
 local toGame = Scene.toGame
 
@@ -120,6 +122,7 @@ end
 ---@field targets (fun(ctx: NavigationDemoContext): Entity[])|nil The bodies its orders fly to, each of which a test expects to see reached
 ---@field spawn fun(ctx: NavigationDemoContext, slot: integer): Position Where the ship of a slot starts
 ---@field order fun(ctx: NavigationDemoContext, ship: NavigationDemoShip): table The order of the ship's current step
+---@field ready (fun(ctx: NavigationDemoContext, ship: NavigationDemoShip): boolean)|nil Whether the ship's next order may be given now; the ship holds without an order until it can. Always when nil
 ---@type NavigationDemoScenario[]
 local Scenarios = {}
 
@@ -157,9 +160,25 @@ local bodies = {
     end,
 }
 
+---A chaser's next `MoveTo` is worth giving only when its leader is outside the reach of the last one:
+---the target's stand-off plus the arrival radius. Within it the order would be done in its first
+---update, and the ship would be given the same order again every frame.
+---@param ctx NavigationDemoContext
+---@param ship NavigationDemoShip
+---@return boolean
+local function leaderOutOfReach(ctx, ship)
+    local leader = ctx.leaderOf(ship)
+    if leader == ship then return true end
+    local spec = ApproachSpecs.For(leader.entity, nil)
+    local radius = PlanFlight.targetRadius(leader.entity)
+    local reach = PlanFlight.standOff(radius, spec:getGap(), spec:getRadii())
+        + PlanFlight.arrivalRadius(radius, spec:getGap(), spec:getRadii())
+    return EntityPosition.Get(ship.entity):distance(EntityPosition.Get(leader.entity)) > reach
+end
+
 local chase = {
     name = "Chase", orders = "MoveTo a moving ship; the leader patrols",
-    count = 4, leader = 1,
+    count = 4, leader = 1, ready = leaderOutOfReach,
     spawn = function(_, slot) return shift(CHASE_BASE, -(slot - 1) * CHASE_GAP_M) end,
     order = function(ctx, ship)
         if ship.slot == 1 then
@@ -179,7 +198,7 @@ local chase = {
 local chaseInField
 chaseInField = {
     name = "Chase through the rocks", orders = "MoveTo a moving ship through the rock cluster; the leader patrols it",
-    count = 3, leader = 1,
+    count = 3, leader = 1, ready = leaderOutOfReach,
     spawn = function(ctx, slot)
         local start = Scene.aroundField(ctx.scene, FIELD_START_ANGLE_DEG, FIELD_START_FACTOR)
         return shift(start, -(slot - 1) * CHASE_GAP_M)

@@ -1,5 +1,5 @@
 ---Which approach spec a ship follows to a target: the one an order names, else the default of the
----target's kind, else a stand-off of `NavConfig.standOffRadii`. The kinds are found by their marker
+---target's kind, else a stand-off of `NavConfig.genericGapM` from the hull. The kinds are found by their marker
 ---components (the specs themselves are data: Shared/Definitions/ApproachSpecDefs.lua).
 
 local CelestialComponents = require("Modules.CelestialObjects.Components")
@@ -30,7 +30,7 @@ function ApproachSpecs.For(target, named)
         if target:get(default.marker) then return ApproachSpec.Of(default.spec) end
     end
     generic = generic or ApproachSpec.new { name = "generic", kind = Enums.ApproachKind.StandOff,
-        radii = NavConfig.standOffRadii }
+        gapM = NavConfig.genericGapM }
     return generic
 end
 

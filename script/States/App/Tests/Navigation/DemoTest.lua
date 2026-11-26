@@ -1,6 +1,7 @@
 -- Runs the navigation demo (`States/App/NavigationDemo.lua`) on its own and checks its work:
 --   * every ship's order begins; every ship of the scenarios that finish orders finishes one, and the
 --     bodies the "Bodies" scenario flies to (moons, station, planet, rock) are each reached;
+--   * every ship that chases another flies, and a `MoveTo` to a ship is done only after the ship has flown;
 --   * ships swap scenarios, leaders stay, and a swapped ship's new order begins;
 --   * the 2D and the 3D map show every ship and its route, and picking a ship in a map selects it;
 --   * across the whole run, no order fails and no ship's bounding sphere touches a body, a rock or another
@@ -11,6 +12,7 @@
 local Registry           = require("Core.ECS.Registry")
 local Nav                = require("Modules.Navigation")
 local PhysicsComponents  = require("Modules.Physics.Components")
+local EntityPosition     = require("Shared.Helpers.EntityPosition")
 local NavigationDemo     = require("States.App.NavigationDemo")
 local Scenarios          = require("States.App.NavigationDemo.Scenarios")
 local Scene              = require("States.App.NavigationDemo.Scene")
@@ -37,6 +39,12 @@ local FINISHING = { "Far crossing", "Bodies", "Traffic" }
 local OVERLAP_TOLERANCE = 0.75
 -- The first few of a kind of violation are told in detail.
 local DETAILS_SHOWN = 20
+-- A `MoveTo` to a ship that ends in fewer frames than this has not flown: its ship was already within
+-- reach of the target. No more than this share of them may.
+local MIN_CHASE_ORDER_FRAMES = 3
+local MAX_QUICK_CHASE_SHARE = 0.1
+-- A ship that chases another has flown when it has been this far from where it started, in metres.
+local CHASER_MOVED_M = 10e3
 
 ---@param gameUnits gameunit
 ---@return number
@@ -97,8 +105,55 @@ function DemoTest:onInit()
     for index, scenario in ipairs(Scenarios) do
         if scenario.leader then self.leaders[index] = self.groups[index][scenario.leader].entity end
     end
+    self.frames, self.bornFrame, self.chaseOrders, self.quickChaseOrders = 0, {}, 0, 0
+    -- The ships that chase another, with where each starts.
+    self.chasers = {}
+    for _, ship in ipairs(self.ships) do
+        local scenario = Scenarios[ship.scenario]
+        if scenario.ready and scenario.leader ~= ship.slot then
+            table.insert(self.chasers, { ship = ship, from = EntityPosition.Get(ship.entity) })
+        end
+    end
     self:collectSolids()
     self.cases = coroutine.create(function() self:runCases() end)
+end
+
+---Gives the order, and notes the frame it was given in.
+---@param ship NavigationDemoShip
+function DemoTest:giveOrder(ship)
+    NavigationDemo.giveOrder(self, ship)
+    if ship.order then self.bornFrame[ship.order.id] = self.frames end
+end
+
+---Counts a done `MoveTo` to a ship, and whether it ended within `MIN_CHASE_ORDER_FRAMES` of its start.
+---@param id integer The order's entity id
+---@param targetId integer The id of the entity it flew to
+function DemoTest:noteChaseOrder(id, targetId)
+    if not self.shipByEntity[targetId] or not self.bornFrame[id] then return end
+    local lived = self.frames - self.bornFrame[id]
+    self.chaseOrders = self.chaseOrders + 1
+    if lived < MIN_CHASE_ORDER_FRAMES then self.quickChaseOrders = self.quickChaseOrders + 1 end
+end
+
+---A `MoveTo` to a ship ends only after the ship has flown to it: orders to a ship already within reach
+---end in a frame or two, and a ship given those again every frame never moves. A leader that slows
+---down as a chaser comes in can end one early, so a few are allowed.
+function DemoTest:checkChaseOrders()
+    self:check(self.chaseOrders > 0, "chasers finish orders", tostring(self.chaseOrders))
+    self:check(self.quickChaseOrders <= self.chaseOrders * MAX_QUICK_CHASE_SHARE,
+        "a MoveTo to a ship ends only after the ship has flown to it",
+        string.format("%d of %d ended within %d frames", self.quickChaseOrders, self.chaseOrders,
+            MIN_CHASE_ORDER_FRAMES))
+end
+
+---@return boolean Whether every chaser has been `CHASER_MOVED_M` from where it started
+function DemoTest:chasersMoved()
+    for _, chaser in ipairs(self.chasers) do
+        if EntityPosition.Get(chaser.ship.entity):distance(chaser.from) < Scene.toGame(CHASER_MOVED_M) then
+            return false
+        end
+    end
+    return true
 end
 
 ---The bodies and rocks no ship may touch, and the ships.
@@ -199,7 +254,10 @@ function DemoTest:onOrderEnded(name, id)
         self.finished[ship.scenario] = true
         self.finishedShips[ship] = true
         local moveTo = Registry:getEntityById(id):get(Nav.Components.MoveToOrder)
-        if moveTo and moveTo:getTargetEntityId() then self.reached[moveTo:getTargetEntityId()] = true end
+        if moveTo and moveTo:getTargetEntityId() then
+            self.reached[moveTo:getTargetEntityId()] = true
+            self:noteChaseOrder(id, moveTo:getTargetEntityId())
+        end
         -- An order that starts within reach of its goal is done in its first update: it began, though
         -- no frame saw it `Active`.
         ship.began = true
@@ -315,6 +373,8 @@ function DemoTest:runCases()
     local function reached(what) Log.Info("NavigationDemoTest: %s at %.0f s", what, self.simSeconds) end
     self:waitUntil(function() return self:everyShipBegan() end, "every ship's order begins")
     reached("every ship's order has begun")
+    self:waitUntil(function() return self:chasersMoved() end, "every ship that chases another flies")
+    reached("every chaser has flown")
     if not self:waitUntil(function() return self:everyFinishingScenarioDone() end,
         "every ship of the scenarios that end an order finishes one, and every body is reached") then
         Log.Warn("NavigationDemoTest: still missing: %s", table.concat(self:missingFinishes(), ", "))
@@ -326,14 +386,16 @@ function DemoTest:runCases()
     self:caseMap(MapMode.Space, "3D map: ", SystemMap3D)
     self:check(self.violations.solid == 0, "no ship overlaps a body or a rock", tostring(self.violations.solid))
     self:check(self.violations.ship == 0, "no two ships overlap", tostring(self.violations.ship))
-    Log.Info("NavigationDemoTest: %.0f s of simulated time, %d swaps, %d grazes, %d checks passed, %d failed",
-        self.simSeconds, self.swapCount, self.grazes, self.passed, self.failed)
+    self:checkChaseOrders()
+    Log.Info("NavigationDemoTest: %.0f s of simulated time, %d swaps, %d grazes, %d of %d chase orders short, %d checks passed, %d failed",
+        self.simSeconds, self.swapCount, self.grazes, self.quickChaseOrders, self.chaseOrders, self.passed, self.failed)
     self:quit(self.failed == 0 and Core.ExitCode.Success or Core.ExitCode.Failure)
 end
 
 ---The frame's start: the demo's, then the case code, after the events of the last frame have arrived.
 ---@param data EventData
 function DemoTest:onPreSim(data)
+    self.frames = self.frames + 1
     NavigationDemo.onPreSim(self, data)
     self:noteBegun()
     local ok, err = coroutine.resume(self.cases)

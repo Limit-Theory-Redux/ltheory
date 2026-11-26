@@ -7,8 +7,11 @@ local ScaleConfig = require("Config.Gen.UniverseScaleConfig")
 local NavConfig = {
     -- m: a ship has arrived at a point (a position target, a patrol point) within this distance of it.
     pointArrivalM = 100,
-    -- The distance from a target's centre at which a ship stops, in target radii, when nothing says otherwise.
+    -- The distance from a planet's, a moon's or an asteroid's centre at which a ship stops, in target radii.
     standOffRadii = 1.5,
+    -- m: the distance from the hull at which a ship stops at a target of no kind (a ship), when nothing
+    -- says otherwise.
+    genericGapM = 1000,
     -- m: a stand-off given in target radii is at least this far from the target's centre.
     minStandOffM = 500000,
     -- How much longer a planned path is than the straight line, for estimates, which plan nothing.

@@ -315,6 +315,7 @@ end
 ---@param markers Component[]|nil Added to the body, to make it a kind of target
 ---@return number dist
 ---@return gameunit arrival The arrival radius of the stand-off
+---@return ApproachSpec spec The spec the order flew by
 function OrdersTest:standOffTo(approach, markers)
     local ship = self:ship(Position(0, 0, 0))
     local body = FlightScene.spawnBody(self.world, Position(LEG * FAR_BODY_LEGS, 0, 0), FAR_BODY_RADIUS)
@@ -327,8 +328,8 @@ function OrdersTest:standOffTo(approach, markers)
         string.format("status %s, %.1f from the body", tostring(Nav.status(order)), dist))
     if not reached then Nav.cancel(order); self:step() end
     self:finish({ order }, { ship, body })
-    local radii = approach and ApproachSpec.Of(approach):getRadii() or NavConfig.standOffRadii
-    return dist, PlanFlight.arrivalRadius(FAR_BODY_RADIUS, nil, radii)
+    local spec = ApproachSpecs.For(body.entity, approach and ApproachSpec.Of(approach) or nil)
+    return dist, PlanFlight.arrivalRadius(FAR_BODY_RADIUS, spec:getGap(), spec:getRadii()), spec
 end
 
 ---Stand-off approaches: the default of a target with no kind, a named spec and an inline one, and wider
@@ -336,20 +337,22 @@ end
 function OrdersTest:caseApproachStandOff()
     local name = "a stand-off approach: "
     local default = ApproachSpecs.For(Registry:createEntity(), nil)
-    self:check(not default:isPoint() and default:getRadii() == NavConfig.standOffRadii,
-        name .. "a target of no kind gets the generic stand-off")
+    self:check(not default:isPoint() and default:getRadii() == nil
+            and default:getGap() == ScaleConfig:toGameUnits(NavConfig.genericGapM, "starSystem"),
+        name .. "a target of no kind gets a stand-off of a gap from its hull")
 
     local dist, arrival = self:standOffTo(nil)
-    local want = PlanFlight.standOff(FAR_BODY_RADIUS, nil, NavConfig.standOffRadii)
+    local want = PlanFlight.standOff(FAR_BODY_RADIUS, default:getGap(), nil)
     self:check(math.abs(dist - want) <= arrival * ARRIVED_SLACK, name .. "without an approach, the default stand-off",
         string.format("%.1f of %.1f", dist, want))
 
+    local defaultStop = dist
     dist, arrival = self:standOffTo(Enums.ApproachSpec.PlanetStandOff)
+    want = PlanFlight.standOff(FAR_BODY_RADIUS, nil, NavConfig.standOffRadii)
     self:check(math.abs(dist - want) <= arrival * ARRIVED_SLACK, name .. "a named spec stops at its stand-off",
         string.format("%.1f of %.1f", dist, want))
 
     local wide = { kind = Enums.ApproachKind.StandOff, radii = WIDE_RADII }
-    local defaultStop = dist
     dist, arrival = self:standOffTo(wide)
     want = PlanFlight.standOff(FAR_BODY_RADIUS, nil, WIDE_RADII)
     self:check(math.abs(dist - want) <= arrival * ARRIVED_SLACK, name .. "an inline spec stops at its stand-off",

@@ -13,6 +13,7 @@ local Application           = require("States.Application")
 local Registry              = require("Core.ECS.Registry")
 local PhysicsComponents     = require("Modules.Physics.Components")
 local ConstructComponents   = require("Modules.Constructs.Components")
+local CelestialComponents   = require("Modules.CelestialObjects.Components")
 local OrbitalSystem         = require("Modules.CelestialObjects.Systems.OrbitalSystem")
 local GravityWellSystem     = require("Modules.Physics.Systems.GravityWellSystem")
 local AutoPilotSystem       = require("Modules.Constructs.Systems.AutoPilotSystem")
@@ -320,9 +321,17 @@ function AutoPilotTest:despawnWell(well)
     FlightScene.despawnWell(self.world, well)
 end
 
----A fixed sphere of `radius`, the target of a body scenario.
+---A fixed sphere of `radius`, a rock or the target of a body scenario.
 function AutoPilotTest:spawnBody(position, radius)
     return FlightScene.spawnBody(self.world, position, radius)
+end
+
+---The target of a body scenario: a planet's kind, so that its stand-off is in radii of this large
+---body, not the gap of a ship's.
+function AutoPilotTest:spawnTargetBody(position, radius)
+    local body = self:spawnBody(position, radius)
+    body.entity:add(CelestialComponents.Planet())
+    return body
 end
 
 ---The smallest gap between the ship's hull and a rock's surface, or infinity without rocks.
@@ -532,7 +541,7 @@ function AutoPilotTest:fly(scenario, kind)
     local input = ship.entity:get(ConstructComponents.ControlInput)
     local drive = ship.entity:get(ConstructComponents.TravelDrive)
     local flyer = kind.make(ship, self.world)
-    local body = well and well.planetBody or (scenario.radius and self:spawnBody(targetPos, scenario.radius))
+    local body = well and well.planetBody or (scenario.radius and self:spawnTargetBody(targetPos, scenario.radius))
     -- Where the target is now: it moves in a moving well.
     local function aim() return body and body.rb:getPos() or targetPos end
     local rocks = self:spawnRocks(scenario.rocks or {}, {
