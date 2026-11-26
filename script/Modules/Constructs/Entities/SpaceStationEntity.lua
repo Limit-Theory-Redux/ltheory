@@ -4,6 +4,7 @@ local Rendering = require("Modules.Rendering.Components")
 local Constructs = require("Modules.Constructs.Components")
 local Economy = require("Modules.Economy.Components")
 local Core = require("Modules.Core.Components")
+local Docking = require("Modules.Docking.Components")
 
 ---@class StationStats
 ---@field maxHealth number
@@ -27,5 +28,6 @@ return function(seed, meshes, stats)
             stats and stats.defense.shieldRegen
         ),
         Economy.Inventory(),
-        Economy.Marketplace())
+        Economy.Marketplace(),
+        Docking.DockingPorts())
 end
