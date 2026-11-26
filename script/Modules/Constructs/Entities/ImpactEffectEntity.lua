@@ -4,6 +4,7 @@ local Physics = require("Modules.Physics.Components")
 local Rendering = require("Modules.Rendering.Components")
 local CameraManager = require("Modules.Cameras.Managers.CameraManager")
 local Pipelines = require("Render.Pipelines")
+local Primitive = require("Legacy.Systems.Gen.Primitive")
 
 local impactMesh
 local impactShader
@@ -24,7 +25,7 @@ local function render(entity, blendMode)
     end
 
     if not impactMesh then
-        impactMesh = Gen.Primitive.Billboard(-1, -1, 1, 1)
+        impactMesh = Primitive.Billboard(-1, -1, 1, 1)
         impactShader = Cache.Shader("billboard/quad_draw", "effect/pulsehead_draw")
         DrawBlock = impactShader:blockType("DrawBlock")
     end
