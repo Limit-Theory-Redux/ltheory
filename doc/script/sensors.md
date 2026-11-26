@@ -57,6 +57,10 @@ shows the setup's name, what to try, the settings and the keys.
 | 7 | Merge unresolved signals in one cell on or off |
 | B | Next setup (rebuilt around the ship; clears what the sensor learned) |
 | R | Start this setup again |
+| 8 | Tuning panel (below) on or off |
+| Up, Down | Tuning panel: pick a dial |
+| Left, Right | Tuning panel: change the dial (hold to keep changing it) |
+| Backspace | Tuning panel: put the hull's dial values back |
 
 The setups are in `script/Config/Scenarios/SensorTestbedSetups.lua`: plain
 tables of objects, each with its sensor values and its place (distance and
@@ -116,6 +120,8 @@ with the game's HUD while the scenario runs.
   seconds and degrees; positions are relative to the sensor. It holds no engine
   types, so it runs without a scene.
 - `SensorText.lua`: distances, classes and contact lines as the HUD writes them.
+- `SensorTuning.lua`: the dials the tuning panel changes, with their ranges
+  and steps.
 - `SensorPicture.lua`: what a sensor shows, ready to draw: every object with
   its bearing and distance in the ship's frame, the contacts in list order,
   the target and its scan.
@@ -147,6 +153,26 @@ end
 ```
 
 ## Tuning
+
+In the testbed, 8 shows the tuning panel
+(`script/UI/HmGui/Components/Hud/SensorTuningPanel.lua`), at the bottom left.
+It is a developer's view of the numbers behind the target's reading:
+
+- EM, heat and light: what reaches the sensor of each, as an SNR against the
+  "heard" line (SNR 1), the strongest one bright.
+- Noise: how much the background in the target's cell raises it, and what the
+  background is (with the "dim" rule: how much of the signal counts).
+- Cells: how many resolution cells the target fills, against the T2 and T3
+  marks.
+- Scan and pulse: the echo a scan would get, against the T3 and T4 marks, and
+  a pulse's echo against "found" (SNR 1).
+- The tiers the target has reached, and why.
+
+Under them are the dials. Up and Down pick one, Left and Right change it,
+Backspace puts the hull's values back; each slider has ticks where the
+fighter, frigate and capital ship have it. Their ranges and steps are in
+`script/Modules/Sensors/SensorTuning.lua`. Changes last until the next hull
+key or setup.
 
 The constants (`SensorModel.constants`), object kinds and hull presets are at
 the top of `SensorModel.lua`. They are tuned so a frigate against a 20 m ship

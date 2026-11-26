@@ -7,6 +7,7 @@
 -- Keys:   X (hold) scan the target | Z pulse | Tab next target
 --         1 2 3 hull (fighter, frigate, capital ship) | 4 surroundings
 --         5 the target's activity | 6 resolution rule | 7 merging on/off
+--         8 tuning panel (Up/Down dial, Left/Right change, Backspace hull values)
 --         B next setup | R this setup again | Escape pause menu
 local Game = require('States.App.LTheoryRedux')
 

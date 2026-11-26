@@ -30,6 +30,7 @@ local SensorComponents = require("Modules.Sensors.Components")
 local SensorSystem = require("Modules.Sensors.Systems.SensorSystem")
 local SensorModel = require("Modules.Sensors.SensorModel")
 local SensorPicture = require("Modules.Sensors.SensorPicture")
+local SensorTuning = require("Modules.Sensors.SensorTuning")
 local Setups = require("Config.Scenarios.SensorTestbedSetups")
 
 -- A star is seen across its whole system: its signature is scaled so that at
@@ -42,10 +43,16 @@ local PLANET_HEAT = 50
 local MESH_MIN_SIZE = 0.001
 local PULSE_HEARD_TIME = 4 -- seconds the text says who heard a pulse
 local HINT_CHARS = 110     -- the setup's hint wraps at about this many characters
+-- Holding left or right on the tuning panel steps its dial again after this
+-- long, then this often (seconds)
+local REPEAT_AFTER, REPEAT_EVERY = 0.4, 0.06
 
 local G = UniverseScaleConfig.globalScale -- game units per real metre
 
-local sensorHud -- the HUD component, below
+-- The HUD's size: the window height, times the UI Scale setting
+local function hudScale() return Window:height() / 1080 * GameState.ui.hudScale end
+local sensorHud = UIComponent.SensorHud { scale = hudScale }
+local tuningPanel = UIComponent.SensorTuningPanel { scale = hudScale }
 
 ---@param game table
 ---@return SensorComponent|nil
@@ -336,10 +343,33 @@ local function listenerLines(game, sensor)
     return lines
 end
 
-sensorHud = UIComponent.SensorHud {
-    -- The HUD's size: the window height, times the UI Scale setting
-    scale = function() return Window:height() / 1080 * GameState.ui.hudScale end,
-}
+--- The tuning panel's keys: up and down pick a dial, left and right change
+--- it (again and again while held), Backspace puts the hull's values back.
+local function tuningInput(game, sensor, dt)
+    local data, tuning = game.scenarioData, game.scenarioData.tuning
+    local count = #SensorTuning.dials
+    if Input:isPressed(Button.KeyboardUp) then tuning.selected = (tuning.selected - 2) % count + 1 end
+    if Input:isPressed(Button.KeyboardDown) then tuning.selected = tuning.selected % count + 1 end
+    if Input:isPressed(Button.KeyboardBackspace) then sensor:setDials(SensorModel.hulls[data.hull]) end
+
+    local direction = (Input:isDown(Button.KeyboardRight) and 1 or 0) - (Input:isDown(Button.KeyboardLeft) and 1 or 0)
+    if direction == 0 then return end
+    local spec = SensorTuning.dials[tuning.selected]
+    local step = Input:isPressed(Button.KeyboardRight) or Input:isPressed(Button.KeyboardLeft)
+    if step then
+        tuning.repeatIn = REPEAT_AFTER
+    elseif not spec.toggle then
+        tuning.repeatIn = tuning.repeatIn - dt
+        if tuning.repeatIn <= 0 then
+            step, tuning.repeatIn = true, REPEAT_EVERY
+        end
+    end
+    if step then
+        local dials = SensorModel.copyDials(sensor:getDials())
+        dials[spec.key] = SensorTuning.step(spec, dials[spec.key], direction)
+        sensor:setDials(dials)
+    end
+end
 
 return {
     name = "Sensor Testbed",
@@ -365,8 +395,10 @@ return {
         signCelestials(game)
         game.playerShip:add(SensorComponents.Sensor(SensorModel.hulls.frigate))
         game.playerShip:add(SensorComponents.SensorSignature { kind = "ship", label = "You" })
+        game.scenarioData.tuning = { shown = false, selected = 1, repeatIn = 0 }
         buildSetup(game, 1)
         sensorHud:update(nil)
+        tuningPanel:update(nil)
     end,
 
     update = function(game, dt)
@@ -390,9 +422,11 @@ return {
         local body = game.playerShip:get(PhysicsComponents.RigidBody)
         sensorHud:update(SensorPicture.build(sensor, body:getForward(), body:getRight(),
             SensorModel.hullNames[data.hull]), dt)
+        tuningPanel:update(data.tuning.shown
+            and { sensor = sensor, hull = data.hull, selected = data.tuning.selected } or nil)
     end,
 
-    hud = { sensorHud },
+    hud = { sensorHud, tuningPanel },
 
     regenerate = function(game)
         buildSetup(game, game.scenarioData.setupIndex % #Setups + 1)
@@ -432,6 +466,8 @@ return {
         if Input:isPressed(Button.KeyboardKey7) then
             sensor:setMerging(not sensor:isMerging())
         end
+        if Input:isPressed(Button.KeyboardKey8) then data.tuning.shown = not data.tuning.shown end
+        if data.tuning.shown then tuningInput(game, sensor, dt) end
     end,
 
     controls = {
@@ -445,6 +481,10 @@ return {
         { keys = "7", action = "Merge signals in one cell on / off" },
         { keys = "B", action = "Next setup (rebuilt around the ship; clears the sensor)" },
         { keys = "R", action = "Start this setup again" },
+        { keys = "8", action = "Tuning panel: the numbers behind the target's reading, and the dials" },
+        { keys = "Up Down", action = "Tuning panel: pick a dial" },
+        { keys = "Left Right", action = "Tuning panel: change the dial (hold to keep changing it)" },
+        { keys = "Backspace", action = "Tuning panel: put the hull's dial values back" },
     },
 
     overlayLines = function(game)
@@ -467,7 +507,7 @@ return {
                 target and target.kind == "ship" and target.activity and target.activity ~= "idle"
                     and " · TARGET " .. string.upper(SensorModel.activityNames[target.activity]) or ""),
             "X scan (hold) · Z pulse · Tab target · 1 2 3 hull · 4 surroundings · 5 activity · 6 rule · 7 merge"
-                .. " · B next setup · R again",
+                .. " · 8 tuning · B next setup · R again",
         }) do lines[#lines + 1] = line end
         for _, line in ipairs(listenerLines(game, sensor)) do lines[#lines + 1] = line end
         return lines
