@@ -44,13 +44,13 @@ local OBJECTS = {
     {
         kind = "ship", label = "Freighter", dist = 4e3, bearing = -28, radius = 20, mw = 50,
         mesh = "ship", shipType = "Basic", hull = 3,
-        name = "LIMTECH FREIGHTER (Y142)", details = "SHIELDS 78%",
+        name = "LIMTECH FREIGHTER (Y142)", details = "SHIELDS 78%", shield = 0.78,
         contents = { "CARGO: 40 T IRON ORE", "LOGS: 3 CONTRACTS, LAST DOCK 2 H AGO" },
     },
     {
         kind = "ship", label = "Fighter", dist = 1.06e4, bearing = 73.5, radius = 8, mw = 8,
         mesh = "ship", shipType = "Fighter", hull = 1,
-        name = "VEGA DART (Y151)", details = "SHIELDS 100%",
+        name = "VEGA DART (Y151)", details = "SHIELDS 100%", shield = 1, standing = "hostile",
         contents = { "LOADOUT: 2 PULSE CANNONS", "LOGS: PATROL ROUTE, 4 WAYPOINTS" },
     },
     {
@@ -83,7 +83,6 @@ local PLANET_HEAT = 50
 local sensorHud = UIComponent.SensorHud {
     -- The HUD's size: the window height, times the UI Scale setting
     scale = function() return Window:height() / 1080 * GameState.ui.hudScale end,
-    scanHint = "HOLD X TO SCAN",
 }
 
 ---@param game table
@@ -295,6 +294,7 @@ return {
             entity:add(SensorComponents.SensorSignature {
                 kind = spec.kind, label = spec.label, radius = spec.radius, mw = spec.mw,
                 name = spec.name, details = spec.details, contents = spec.contents,
+                shield = spec.shield, standing = spec.standing,
             })
             data.objects[i] = entity
         end
