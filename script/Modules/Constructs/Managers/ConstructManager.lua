@@ -1,4 +1,4 @@
----Factory and lifetime manager for constructs (ships and targets).
+---Factory and lifetime manager for constructs (ships, stations and targets).
 ---Each create runs inside a ConstructionScope: on success it commits a
 ---handle (root entity, rigid body, generated mesh, structural sockets, plus
 ---health/size data for targets) that ShipArmamentManager and the weapon
@@ -10,6 +10,7 @@ local ConstructComponents = require("Modules.Constructs.Components")
 local ConstructionScope = require("Modules.Constructs.Managers.ConstructionScope")
 local ShipGenerator = require("Modules.Constructs.Managers.Generators.ShipGenerator")
 local TargetGenerator = require("Modules.Constructs.Managers.Generators.TargetGenerator")
+local StationGenerator = require("Modules.Constructs.Managers.Generators.StationGenerator")
 
 ---@class ConstructManager
 ---@overload fun(registry?: Registry, physicsWorld?: table): ConstructManager
@@ -51,6 +52,37 @@ function ConstructManager:createShip(args)
             generatedMesh = shipData:getGeneratedMesh(),
             structuralSockets = shipData:getGeneratedMountSockets(),
             shipType = args.shipType,
+            seed = args.seed,
+        })
+    end, debug.traceback)
+    if not ok then
+        scope:rollback()
+        error(result, 0)
+    end
+    table.insert(self.handles, result)
+    return result
+end
+
+---A station, its body in the physics world. `config` is `StationGenerator:createStation`'s
+---(position, scale, isKinematic...); a station is kinematic unless it says otherwise.
+---@param args { seed: integer, config: table|nil, stats: table|nil }
+---@return table ConstructHandle
+function ConstructManager:createStation(args)
+    assert(type(args) == "table", "station construction requires an argument table")
+    assert(args.seed ~= nil, "station construction requires a seed")
+    local config = args.config or {}
+    if config.isKinematic == nil then config.isKinematic = true end
+    local scope = ConstructionScope(self.registry, self.physicsWorld)
+    local ok, result = xpcall(function()
+        local root = StationGenerator:createStation(args.seed, config, args.stats)
+        local bodyComponent = root:get(PhysicsComponents.RigidBody)
+        assert(bodyComponent and bodyComponent:getRigidBody(), "station generator produced no rigid body")
+        scope:trackEntity(root, true)
+        scope:addRigidBody(bodyComponent:getRigidBody())
+        return scope:commit({
+            root = root,
+            bodyComponent = bodyComponent,
+            rigidBody = bodyComponent:getRigidBody(),
             seed = args.seed,
         })
     end, debug.traceback)
