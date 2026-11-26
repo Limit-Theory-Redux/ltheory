@@ -262,6 +262,14 @@ local function new(_, args)
             Gui:setPosition(X(x) - r * s, Y(y) - r * s)
         end
 
+        --- An unresolved signal: a soft blob, brightest in the middle (two
+        --- soft-edged discs and a glowing core on top of each other).
+        local function blob(c, alpha, x, y, r)
+            round("circle", c, 0.25 * alpha, x, y, r)
+            round("circle", c, 0.4 * alpha, x, y, 0.55 * r)
+            round("circle", c, 0.9 * alpha, x, y, 0.25 * r, true)
+        end
+
         local function arc(c, alpha, width, x, y, r, start, sweep)
             Gui:arc(color(c, alpha), width * s, start, sweep)
             Gui:setFixedSize(2 * r * s, 2 * r * s)
@@ -410,7 +418,7 @@ local function new(_, args)
                 local fade = r.passive.snr >= 1 and 1 or clamp(c.echo / ECHO_FADE_TIME, 0.25, 1)
                 local bx = x + 2.5 * math.sin(clock * 1.7 + c.index * 2.1)
                 local by = y + 1.5 * math.cos(clock * 1.3 + c.index)
-                round("point", style.cyan, 0.6 * fade, bx, by, r.count > 1 and MERGED_BLOB_RADIUS or BLOB_RADIUS, true)
+                blob(style.cyan, fade, bx, by, r.count > 1 and MERGED_BLOB_RADIUS or BLOB_RADIUS)
             elseif r.tier >= 2 then
                 glyph(c.object, x, y, GLYPH_SIZE, tierColor(r.tier), r.tier >= 3)
             end
@@ -444,7 +452,7 @@ local function new(_, args)
             local y = LIST.y + LIST.row * i
             local col = tierColor(r.tier)
             if r.tier == 1 then
-                round("point", style.cyan, 0.6, LIST.x + 5, y - 5, 8, true)
+                blob(style.cyan, 1, LIST.x + 5, y - 5, 8)
             else
                 glyph(o, LIST.x + 5, y - 5, LIST_GLYPH_SIZE, col, r.tier >= 3)
             end
