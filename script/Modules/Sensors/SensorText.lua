@@ -17,16 +17,18 @@ local function thousands(n)
 end
 
 --- A distance in metres: whole metres below 1 km, one decimal below 10 km,
---- whole kilometres above.
+--- whole kilometres above. The ranges go by the rounded value, so 999.6 m
+--- reads 1.0 km and 9.96 km reads 10 km.
 ---@param d number metres
 ---@return string
 function SensorText.distance(d)
     if not (d > 0) then return "—" end
     if d == math.huge then return "any distance" end
-    if d < 1000 then return string.format("%d m", math.floor(d + 0.5)) end
-    local km = d / 1000
-    if km < 10 then return string.format("%.1f km", km) end
-    return thousands(math.floor(km + 0.5)) .. " km"
+    local metres = math.floor(d + 0.5)
+    if metres < 1000 then return string.format("%d m", metres) end
+    local tenths = math.floor(d / 100 + 0.5)
+    if tenths < 100 then return string.format("%.1f km", tenths / 10) end
+    return thousands(math.floor(d / 1000 + 0.5)) .. " km"
 end
 
 --- A power draw: one decimal below 10 MW.
