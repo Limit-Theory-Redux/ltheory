@@ -26,7 +26,9 @@ function DockingSystem:registerVars()
     -- How fast a ship glides in and out of a port, and the bounds of a glide's duration.
     self.glideSpeed = ScaleConfig:toGameUnits(250, "starSystem")
     self.minGlideS = 3
-    self.maxGlideS = 20
+    self.maxGlideS = 60
+    -- Navigation flies a docking ship to this gap off the station's hull, in metres.
+    self.approachGapM = 1500
 end
 
 function DockingSystem:registerEvents()
@@ -51,12 +53,6 @@ end
 local function bodyOf(entity)
     local rbCmp = entity:get(PhysicsComponents.RigidBody)
     return rbCmp and rbCmp:getRigidBody() or nil
-end
-
----@param offset ApproachOffset
----@return ApproachSpec
-local function pointSpec(offset)
-    return ApproachSpec.Of { kind = Enums.ApproachKind.Point, offsetRadii = offset }
 end
 
 ---Whether a port is held: by a ship that exists and is docking at this port of this station. A
@@ -109,7 +105,11 @@ function DockingSystem:requestDock(ship, station)
     local port = ports:getPort(index)
     port.occupant = ship.id
     local docking = ship:add(Docking.Docking(station.id, index))
-    docking.order = Nav.order(ship, Nav.Orders.MoveTo { target = station, approach = pointSpec(port.approachRadii) })
+    -- Navigation brings the ship near; the glide does the precise part (see `beginGlide`).
+    docking.order = Nav.order(ship, Nav.Orders.MoveTo {
+        target = station,
+        approach = ApproachSpec.Of { kind = Enums.ApproachKind.StandOff, gapM = self.approachGapM },
+    })
     return true
 end
 
@@ -186,8 +186,21 @@ end
 ---@param ship Entity
 function DockingSystem:freeBody(ship)
     local body = bodyOf(ship)
-    if body then body:setKinematic(false) end
+    if body then
+        body:setKinematic(false)
+        body:setCollidable(true)
+    end
     Nav.unclaim(ship)
+end
+
+---Takes the ship's body out of physics for the glide: kinematic, and out of collisions, as a ship
+---held against a hull would make contacts with it every step.
+---@param ship Entity
+function DockingSystem:holdBody(ship)
+    Nav.claim(ship)
+    local body = bodyOf(ship)
+    body:setKinematic(true)
+    body:setCollidable(false)
 end
 
 ---The station's axes, and the place of an offset in station radii along them.
@@ -245,7 +258,100 @@ local function portFacing(port)
     return Quat.FromLook(Vec3f(o.right / length, o.up / length, o.forward / length), Vec3f(0, 1, 0))
 end
 
----Starts a glide from where the ship is: into the port (`Entering`) or out to the approach point (`Leaving`).
+---@param v { right: number, up: number, forward: number }
+---@return number
+local function length(v)
+    return math.sqrt(v.right * v.right + v.up * v.up + v.forward * v.forward)
+end
+
+---@param v { right: number, up: number, forward: number }
+---@param k number
+local function times(v, k)
+    return { right = v.right * k, up = v.up * k, forward = v.forward * k }
+end
+
+---The direction a share `t` of the way from unit `a` to unit `b`, on the great circle between them
+---(about the station's up axis when they are opposite).
+local function slerpDirection(a, b, t)
+    local dot = math.max(-1, math.min(1, a.right * b.right + a.up * b.up + a.forward * b.forward))
+    local angle = math.acos(dot)
+    if angle < 1e-4 then return b end
+    if math.pi - angle < 1e-3 then
+        -- Opposite: turn about the up axis, through the direction a quarter turn from `a`.
+        local side = { right = -a.forward, up = 0, forward = a.right }
+        if length(side) < 1e-6 then side = { right = 1, up = 0, forward = 0 } end
+        side = times(side, 1 / length(side))
+        local phi = t * math.pi
+        return {
+            right = a.right * math.cos(phi) + side.right * math.sin(phi),
+            up = a.up * math.cos(phi) + side.up * math.sin(phi),
+            forward = a.forward * math.cos(phi) + side.forward * math.sin(phi),
+        }
+    end
+    local wa, wb = math.sin((1 - t) * angle) / math.sin(angle), math.sin(t * angle) / math.sin(angle)
+    return {
+        right = a.right * wa + b.right * wb,
+        up = a.up * wa + b.up * wb,
+        forward = a.forward * wa + b.forward * wb,
+    }
+end
+
+---A glide's path in the station's axes, in game units: a list of legs, each a straight `line`
+---from `a` to `b` or an `arc` at radius `r` from direction `a` to direction `b`, with its length.
+---@param from table Where the ship is
+---@param port DockingPort
+---@param radius number The station's
+---@param phase DockingPhase Entering: out or in to the approach ring, round it to the port and into
+---the port; Leaving: from the port straight out to the ring
+---@return table[] legs, number total
+local function gliderPath(from, port, radius, phase)
+    local inPort = scaled(port.offsetRadii, radius)
+    local ring = length(scaled(port.approachRadii, radius))
+    local portDir = times(inPort, 1 / length(inPort))
+    local legs = {}
+    if phase == Enums.DockingPhase.Leaving then
+        legs[1] = { kind = "line", a = from, b = times(portDir, ring) }
+    else
+        local fromLength = length(from)
+        local fromDir = fromLength > 1e-9 and times(from, 1 / fromLength) or portDir
+        local onRing = times(fromDir, ring)
+        local dot = math.max(-1, math.min(1, fromDir.right * portDir.right + fromDir.up * portDir.up + fromDir.forward * portDir.forward))
+        legs[1] = { kind = "line", a = from, b = onRing }
+        legs[2] = { kind = "arc", a = fromDir, b = portDir, r = ring, length = ring * math.acos(dot) }
+        legs[3] = { kind = "line", a = times(portDir, ring), b = inPort }
+    end
+    local total = 0
+    for _, leg in ipairs(legs) do
+        if leg.kind == "line" then
+            leg.length = length({ right = leg.b.right - leg.a.right, up = leg.b.up - leg.a.up, forward = leg.b.forward - leg.a.forward })
+        end
+        total = total + leg.length
+    end
+    return legs, total
+end
+
+---The point `distance` along the path.
+---@param legs table[]
+---@param distance number
+---@return { right: number, up: number, forward: number }
+local function pointOnPath(legs, distance)
+    for i, leg in ipairs(legs) do
+        if distance <= leg.length or i == #legs then
+            local t = leg.length > 1e-12 and math.min(1, math.max(0, distance / leg.length)) or 1
+            if leg.kind == "arc" then return times(slerpDirection(leg.a, leg.b, t), leg.r) end
+            return {
+                right = leg.a.right + (leg.b.right - leg.a.right) * t,
+                up = leg.a.up + (leg.b.up - leg.a.up) * t,
+                forward = leg.a.forward + (leg.b.forward - leg.a.forward) * t,
+            }
+        end
+        distance = distance - leg.length
+    end
+    return legs[#legs].b
+end
+
+---Starts a glide from where the ship is: into the port (`Entering`), out to the approach ring round
+---the station to the port's side first, or out of the port to the ring (`Leaving`).
 ---@param ship Entity
 ---@param docking DockingComponent
 ---@param station Entity
@@ -257,9 +363,8 @@ function DockingSystem:beginGlide(ship, docking, station, phase)
     docking.fromRot = rot:inverse():mul(body:getRot())
     docking:setPhase(phase)
     local port = station:get(Docking.DockingPorts):getPort(docking:getPort())
-    local goal = scaled(phase == Enums.DockingPhase.Entering and port.offsetRadii or port.approachRadii, radius)
-    local dx, dy, dz = goal.right - docking.from.right, goal.up - docking.from.up, goal.forward - docking.from.forward
-    docking.duration = math.max(self.minGlideS, math.min(self.maxGlideS, math.sqrt(dx * dx + dy * dy + dz * dz) / self.glideSpeed))
+    docking.path, docking.pathLength = gliderPath(docking.from, port, radius, phase)
+    docking.duration = math.max(self.minGlideS, math.min(self.maxGlideS, docking.pathLength / self.glideSpeed))
 end
 
 ---@param dt number Seconds
@@ -312,8 +417,7 @@ function DockingSystem:updateDocking(ship, docking, dt)
         if status == Enums.NavOrderStatus.Done then
             Nav.release(docking.order)
             docking.order = nil
-            Nav.claim(ship)
-            bodyOf(ship):setKinematic(true)
+            self:holdBody(ship)
             self:beginGlide(ship, docking, station, Enums.DockingPhase.Entering)
         elseif status == Enums.NavOrderStatus.Failed or status == Enums.NavOrderStatus.Cancelled then
             Nav.release(docking.order)
@@ -337,13 +441,7 @@ function DockingSystem:updateDocking(ship, docking, dt)
 
     docking.progress = math.min(1, docking.progress + dt / docking.duration)
     local s = smoothstep(docking.progress)
-    local goal = phase == Enums.DockingPhase.Entering and inPort or scaled(port.approachRadii, radius)
-    local from = docking.from
-    local at = {
-        right = from.right + (goal.right - from.right) * s,
-        up = from.up + (goal.up - from.up) * s,
-        forward = from.forward + (goal.forward - from.forward) * s,
-    }
+    local at = pointOnPath(docking.path, s * docking.pathLength)
     local relative = phase == Enums.DockingPhase.Entering and docking.fromRot:slerp(facing, s) or facing
     bodyOf(ship):setKinematicTarget(toWorld(pos, rot, at), rot:mul(relative))
 
