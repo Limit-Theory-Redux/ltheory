@@ -79,12 +79,6 @@ local FIRST_TARGET = 2 -- the freighter
 local STAR_REFERENCE = { dist = 6e7, em = 1e7, heat = 1e10, glow = 3e10 }
 local PLANET_HEAT = 50
 
--- Mesh scale per metre of sensor radius (game units): ships are about two
--- radii long, a station's scale is its size, an asteroid's its radius.
-local SHIP_SCALE_PER_M = 2 * UniverseScaleConfig.globalScale
-local STATION_SCALE_PER_M = 2 * UniverseScaleConfig.globalScale
-local ASTEROID_SCALE_PER_M = UniverseScaleConfig.globalScale
-
 local MAX_CONTACT_LINES = 6
 
 ---@param game table
@@ -131,27 +125,40 @@ local function newAsteroid(game, seed, position, scale)
     return entity
 end
 
+--- Scales an entity's rigid body (and so its mesh) to a bounding radius of
+--- `radius` metres. Generated ships and stations come in sizes of their own,
+--- which their scale multiplies.
+local function fitRadius(entity, radius)
+    local rb = entity:get(PhysicsComponents.RigidBody):getRigidBody()
+    local have = rb:getBoundingRadiusCompound()
+    if have and have > 0 then
+        rb:setScale(rb:getScale() * radius * UniverseScaleConfig.globalScale / have)
+    end
+end
+
 local function newObject(game, spec, position)
     local seed = game.rng:get31()
     if spec.mesh == "station" then
         local station = StationGenerator:createStation(seed, {
             position = position,
-            scale = spec.radius * STATION_SCALE_PER_M,
+            scale = 1,
             isKinematic = true,
         })
+        fitRadius(station, spec.radius)
         game:addSceneEntity(station, { addBody = true })
         return station
     elseif spec.mesh == "asteroid" then
-        return newAsteroid(game, seed, position, spec.radius * ASTEROID_SCALE_PER_M)
+        -- An asteroid mesh has radius 1 (as the belt's rocks)
+        return newAsteroid(game, seed, position, spec.radius * UniverseScaleConfig.globalScale)
     end
     local handle = game.constructManager:createTarget({
         seed = seed,
         shipType = Enums.ShipType[spec.shipType],
         hull = spec.hull,
         position = position,
-        scale = spec.radius * SHIP_SCALE_PER_M,
         isKinematic = true,
     })
+    fitRadius(handle.root, spec.radius)
     game:addSceneConstruct(handle)
     return handle.root
 end
