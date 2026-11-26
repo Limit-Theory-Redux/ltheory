@@ -1,19 +1,19 @@
 -- objects
-local Joint        = require('Legacy.Systems.Gen.ShapeLib.Joint')
-local JointField   = require('Legacy.Systems.Gen.ShapeLib.JointField')
-local Shape        = require('Legacy.Systems.Gen.ShapeLib.Shape')
-local Style        = require('Legacy.Systems.Gen.ShapeLib.Style')
+local Joint        = require('Shared.Generation.Meshes.ShapeLib.Joint')
+local JointField   = require('Shared.Generation.Meshes.ShapeLib.JointField')
+local Shape        = require('Shared.Generation.Meshes.ShapeLib.Shape')
+local Style        = require('Shared.Generation.Meshes.ShapeLib.Style')
 -- shapes
-local BasicShapes  = require('Legacy.Systems.Gen.ShapeLib.BasicShapes')
-local Cluster      = require('Legacy.Systems.Gen.ShapeLib.Cluster')
-local Scaffolding  = require('Legacy.Systems.Gen.ShapeLib.Scaffolding')
-local Module       = require('Legacy.Systems.Gen.ShapeLib.Module')
-local RandomShapes = require('Legacy.Systems.Gen.ShapeLib.RandomShapes')
--- local ShipWarps    = require('Legacy.Systems.Gen.ShipWarps')
-require('Legacy.Systems.Gen.ShapeLib.Warp')
+local BasicShapes  = require('Shared.Generation.Meshes.ShapeLib.BasicShapes')
+local Cluster      = require('Shared.Generation.Meshes.ShapeLib.Cluster')
+local Scaffolding  = require('Shared.Generation.Meshes.ShapeLib.Scaffolding')
+local Module       = require('Shared.Generation.Meshes.ShapeLib.Module')
+local RandomShapes = require('Shared.Generation.Meshes.ShapeLib.RandomShapes')
+-- local ShipWarps    = require('Shared.Generation.Meshes.ShipWarps')
+require('Shared.Generation.Meshes.ShapeLib.Warp')
 -- util
-local MathUtil    = require('Legacy.Systems.Gen.MathUtil')
-local Parametric  = require('Legacy.Systems.Gen.ShapeLib.Parametric')
+local MathUtil    = require('Shared.Generation.Meshes.MathUtil')
+local Parametric  = require('Shared.Generation.Meshes.ShapeLib.Parametric')
 
 local ShipFighter = {}
 

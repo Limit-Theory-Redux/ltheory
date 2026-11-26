@@ -5,7 +5,7 @@ local Rendering = require("Modules.Rendering.Components")
 local Constructs = require("Modules.Constructs.Components")
 local CameraManager = require("Modules.Cameras.Managers.CameraManager")
 local Pipelines = require("Render.Pipelines")
-local Primitive = require("Legacy.Systems.Gen.Primitive")
+local Primitive = require("Shared.Generation.Meshes.Primitive")
 
 local ffi = require("ffi")
 

@@ -7,7 +7,7 @@ local Pipelines     = require("Render.Pipelines")
 
 local ExplosionEffectComponent =
     require("Modules.Constructs.Components.ExplosionEffectComponent")
-local Primitive = require("Legacy.Systems.Gen.Primitive")
+local Primitive = require("Shared.Generation.Meshes.Primitive")
 
 ---Volumetric fireball: procedural raymarch on a view-aligned billboard
 ---(vertex/billboard/explosion_draw.glsl x fragment/effect/explosion_volume_draw.glsl).

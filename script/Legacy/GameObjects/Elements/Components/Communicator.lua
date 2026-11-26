@@ -1,5 +1,5 @@
 local Entity       = require('Legacy.GameObjects.Entity')
-local BasicShapes  = require('Legacy.Systems.Gen.ShapeLib.BasicShapes')
+local BasicShapes  = require('Shared.Generation.Meshes.ShapeLib.BasicShapes')
 local SocketType   = require('Legacy.GameObjects.Entities.Ship.SocketType')
 
 local shared

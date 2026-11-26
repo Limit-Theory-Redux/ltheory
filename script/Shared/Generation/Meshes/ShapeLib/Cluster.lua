@@ -1,12 +1,12 @@
-local RandomShapes = require('Legacy.Systems.Gen.ShapeLib.RandomShapes')
-local BasicShapes  = require('Legacy.Systems.Gen.ShapeLib.BasicShapes')
-local MathUtil     = require('Legacy.Systems.Gen.MathUtil')
-local Joint        = require('Legacy.Systems.Gen.ShapeLib.Joint')
-local JointField   = require('Legacy.Systems.Gen.ShapeLib.JointField')
-local Shape        = require('Legacy.Systems.Gen.ShapeLib.Shape')
-local Parametric   = require('Legacy.Systems.Gen.ShapeLib.Parametric')
-local Style        = require('Legacy.Systems.Gen.ShapeLib.Style')
-require('Legacy.Systems.Gen.ShapeLib.Warp')
+local RandomShapes = require('Shared.Generation.Meshes.ShapeLib.RandomShapes')
+local BasicShapes  = require('Shared.Generation.Meshes.ShapeLib.BasicShapes')
+local MathUtil     = require('Shared.Generation.Meshes.MathUtil')
+local Joint        = require('Shared.Generation.Meshes.ShapeLib.Joint')
+local JointField   = require('Shared.Generation.Meshes.ShapeLib.JointField')
+local Shape        = require('Shared.Generation.Meshes.ShapeLib.Shape')
+local Parametric   = require('Shared.Generation.Meshes.ShapeLib.Parametric')
+local Style        = require('Shared.Generation.Meshes.ShapeLib.Style')
+require('Shared.Generation.Meshes.ShapeLib.Warp')
 
 local Cluster = {}
 

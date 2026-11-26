@@ -1,4 +1,4 @@
-local MathUtil = require('Legacy.Systems.Gen.MathUtil')
+local MathUtil = require('Shared.Generation.Meshes.MathUtil')
 
 local Joint = {}
 Joint.__index = Joint

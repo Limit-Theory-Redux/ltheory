@@ -1,6 +1,6 @@
-local Shape       = require('Legacy.Systems.Gen.ShapeLib.Shape')
-local BasicShapes = require('Legacy.Systems.Gen.ShapeLib.BasicShapes')
-require('Legacy.Systems.Gen.ShapeLib.Warp')
+local Shape       = require('Shared.Generation.Meshes.ShapeLib.Shape')
+local BasicShapes = require('Shared.Generation.Meshes.ShapeLib.BasicShapes')
+require('Shared.Generation.Meshes.ShapeLib.Warp')
 local Scaffolding = {}
 
 -- BasicScaffoldingBlock (int resolution [optional],

@@ -4,7 +4,7 @@ local Physics = require("Modules.Physics.Components")
 local Rendering = require("Modules.Rendering.Components")
 local CameraManager = require("Modules.Cameras.Managers.CameraManager")
 local Pipelines = require("Render.Pipelines")
-local Primitive = require("Legacy.Systems.Gen.Primitive")
+local Primitive = require("Shared.Generation.Meshes.Primitive")
 
 local impactMesh
 local impactShader

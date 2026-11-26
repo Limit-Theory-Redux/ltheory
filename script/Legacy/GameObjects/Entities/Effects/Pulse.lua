@@ -3,7 +3,7 @@ local ffi = require('ffi')
 local Entity = require('Legacy.GameObjects.Entity')
 -- Required here, not the Gen global: that is only there once the game state
 -- has loaded the Legacy namespace, and the menu loads this file for every app.
-local Primitive = require('Legacy.Systems.Gen.Primitive')
+local Primitive = require('Shared.Generation.Meshes.Primitive')
 
 local Pulse = CType.Struct('Pulse')
 Pulse:add(CType.Int32, 'source')

@@ -1,4 +1,4 @@
-local GenUtil = require('Legacy.Systems.Gen.GenUtil')
+local GenUtil = require('Shared.Generation.Meshes.GenUtil')
 
 local function generateAsteroid(seed)
     Profiler.Begin('Asteroid.Generate')

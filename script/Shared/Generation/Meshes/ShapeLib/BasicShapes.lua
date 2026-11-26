@@ -1,9 +1,9 @@
-local MeshUtil = require('Legacy.Systems.Gen.MeshUtil')
-local Shape    = require('Legacy.Systems.Gen.ShapeLib.Shape')
-require('Legacy.Systems.Gen.ShapeLib.Warp')
-local Parametric  = require('Legacy.Systems.Gen.ShapeLib.Parametric')
-local MathUtil    = require('Legacy.Systems.Gen.MathUtil')
-local Warp        = require('Legacy.Systems.Gen.ShapeLib.Warp')
+local MeshUtil = require('Shared.Generation.Meshes.MeshUtil')
+local Shape    = require('Shared.Generation.Meshes.ShapeLib.Shape')
+require('Shared.Generation.Meshes.ShapeLib.Warp')
+local Parametric  = require('Shared.Generation.Meshes.ShapeLib.Parametric')
+local MathUtil    = require('Shared.Generation.Meshes.MathUtil')
+local Warp        = require('Shared.Generation.Meshes.ShapeLib.Warp')
 
 local BasicShapes = {}
 

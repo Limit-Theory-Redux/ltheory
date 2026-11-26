@@ -1,19 +1,19 @@
 -- objects
-local Shape        = require('Legacy.Systems.Gen.ShapeLib.Shape')
+local Shape        = require('Shared.Generation.Meshes.ShapeLib.Shape')
 -- shapes
-local BasicShapes  = require('Legacy.Systems.Gen.ShapeLib.BasicShapes')
-local RandomShapes = require('Legacy.Systems.Gen.ShapeLib.RandomShapes')
+local BasicShapes  = require('Shared.Generation.Meshes.ShapeLib.BasicShapes')
+local RandomShapes = require('Shared.Generation.Meshes.ShapeLib.RandomShapes')
 -- ships
-local ShipWarps    = require('Legacy.Systems.Gen.ShipLib.ShipWarps')
-local ShipDetail   = require('Legacy.Systems.Gen.ShipLib.ShipDetail')
-require('Legacy.Systems.Gen.ShapeLib.Warp')
+local ShipWarps    = require('Shared.Generation.Meshes.ShipLib.ShipWarps')
+local ShipDetail   = require('Shared.Generation.Meshes.ShipLib.ShipDetail')
+require('Shared.Generation.Meshes.ShapeLib.Warp')
 -- util
-local MathUtil        = require('Legacy.Systems.Gen.MathUtil')
-local Parametric      = require('Legacy.Systems.Gen.ShapeLib.Parametric')
+local MathUtil      = require('Shared.Generation.Meshes.MathUtil')
+local Parametric    = require('Shared.Generation.Meshes.ShapeLib.Parametric')
 
-local ShipCapitalHull = {}
+local ShipBasicHull = {}
 
-function ShipCapitalHull.Hull(rng, hull)
+function ShipBasicHull.Hull(rng, hull)
     local shape
 
     -- settings
@@ -34,10 +34,12 @@ function ShipCapitalHull.Hull(rng, hull)
     baseDist:add(2, 0.5)
     baseShape = baseDist:sample(rng)
 
-    if baseShape == 1 then
+    -- if baseShape == 1 then
         shape = BasicShapes.Box(0)
+        shape:scale(0.5, 0.1, 1)
+    --[[
     elseif baseShape == 2 then
-        local sides = rng:choose({ 3, 5, 6, 8, 20, 30 })
+        local sides = rng:choose({ 3, 5, 6, 8, 12, 30 })
         shape = BasicShapes.Prism(2, sides)
         shape:scale(2, 2, 2)
         shape:rotate(0, math.pi / 2.0, 0)
@@ -46,10 +48,13 @@ function ShipCapitalHull.Hull(rng, hull)
         end
     end
 
-    local segments = rng:getInt(1, 3)
+    local segments = 0
+    -- local segments = rng:getInt(1, 3)
     for i = 0, segments do
-        local dir = rng:choose({ 1, -1 })
-        local pi = shape:getPolyWithNormal(Vec3d(0, 0, dir))
+        local dir = 1
+        -- local dir = rng:choose({1, -1})
+        local pi = shape:getPolyWithNormal(Vec3d(0, -1, 0))
+        -- local pi = shape:getPolyWithNormal(Vec3d(0, 0, dir))
         local extrusionLength = rng:getUniformRange(0.2, 3.0)
         local extrusionSize = Vec3d(
             rng:getUniformRange(minX, maxX),
@@ -57,6 +62,7 @@ function ShipCapitalHull.Hull(rng, hull)
             1.0
         )
         local extrusionAngle = rng:getUniformRange(minT, maxT)
+        Log.Debug("@@@ ShipBasicHull.Tube - dir = %s, exLength = %s, exAngle = %s", dir, extrusionLength, extrusionAngle)
         shape:extrudePoly(pi, extrusionLength, extrusionSize, Vec3d(0, sin(extrusionAngle), -dir * cos(extrusionAngle)))
     end
 
@@ -71,8 +77,9 @@ function ShipCapitalHull.Hull(rng, hull)
     if rng:chance(0.5) then
         shape = ShipDetail.AddDetail(shape, rng)
     end
+    --]]
 
     return shape
 end
 
-return ShipCapitalHull
+return ShipBasicHull

@@ -1,7 +1,7 @@
 local GenTex2D = require('States.Application')
 
 -- Pure-Lua helper; `Gen` is the global of the Legacy generator namespace, which this state does not load.
-local MathUtil = require('Legacy.Systems.Gen.MathUtil')
+local MathUtil = require('Shared.Generation.Meshes.MathUtil')
 local Pipelines = require('Render.Pipelines')
 
 local kTexSize = 1024

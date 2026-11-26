@@ -33,7 +33,7 @@ local DrawEx              = require("UI.DrawEx")
 local CameraManager       = require("Modules.Cameras.Managers.CameraManager")
 
 ---! still using legacy
-local Primitive           = require("Legacy.Systems.Gen.Primitive")
+local Primitive           = require("Shared.Generation.Meshes.Primitive")
 local GenUtil             = require("Core.ECS.Mesh.Util.GenUtil")
 local Material            = require("Legacy.GameObjects.Material")
 local Generator           = require("Shared.Generation.Generator")

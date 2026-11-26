@@ -1,7 +1,7 @@
 local Production = require('Legacy.Systems.Economy.Production')
 local Item = require('Legacy.Systems.Economy.Item')
 local Actions = requireAll('Legacy.GameObjects.Actions')
-local Words = require('Legacy.Systems.Gen.Words')
+local Words = require('Shared.Generation.Words')
 local rng = RNG.FromTime()
 
 local UniverseEconomy = Class("UniverseEconomy", function(self) end)

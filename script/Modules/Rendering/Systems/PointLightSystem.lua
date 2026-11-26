@@ -9,6 +9,7 @@ local Rendering = require("Modules.Rendering.Components")
 local CameraManager = require("Modules.Cameras.Managers.CameraManager")
 local LightManager = require("Modules.Rendering.Managers.LightManager")
 local Pipelines = require("Render.Pipelines")
+local Primitive = require("Shared.Generation.Meshes.Primitive")
 
 local pointLightMarkerMesh
 local pointLightMarkerShader
@@ -166,7 +167,7 @@ function PointLightSystem:renderDiagnostics(blendMode, eye)
     end
 
     if not pointLightMarkerMesh then
-        pointLightMarkerMesh = Gen.Primitive.Billboard(-1, -1, 1, 1)
+        pointLightMarkerMesh = Primitive.Billboard(-1, -1, 1, 1)
         pointLightMarkerShader = Cache.Shader("billboard/quad_draw", "effect/pulsehead_draw")
         DrawBlock = pointLightMarkerShader:blockType("DrawBlock")
     end

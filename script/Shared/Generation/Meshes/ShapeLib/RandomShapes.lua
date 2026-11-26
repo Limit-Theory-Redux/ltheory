@@ -1,8 +1,8 @@
-local BasicShapes = require('Legacy.Systems.Gen.ShapeLib.BasicShapes')
-local MathUtil    = require('Legacy.Systems.Gen.MathUtil')
-local Parametric  = require('Legacy.Systems.Gen.ShapeLib.Parametric')
-local Shape       = require('Legacy.Systems.Gen.ShapeLib.Shape')
-require('Legacy.Systems.Gen.ShapeLib.Warp')
+local BasicShapes = require('Shared.Generation.Meshes.ShapeLib.BasicShapes')
+local MathUtil    = require('Shared.Generation.Meshes.MathUtil')
+local Parametric  = require('Shared.Generation.Meshes.ShapeLib.Parametric')
+local Shape       = require('Shared.Generation.Meshes.ShapeLib.Shape')
+require('Shared.Generation.Meshes.ShapeLib.Warp')
 
 local RandomShapes = {}
 

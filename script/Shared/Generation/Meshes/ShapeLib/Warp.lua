@@ -1,4 +1,4 @@
-local Shape = require('Legacy.Systems.Gen.ShapeLib.Shape')
+local Shape = require('Shared.Generation.Meshes.ShapeLib.Shape')
 local wrap  = Math.Wrap
 
 -- BAD INPUT PROTECTION POLICY

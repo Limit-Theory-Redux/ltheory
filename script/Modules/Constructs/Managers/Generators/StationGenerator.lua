@@ -4,7 +4,7 @@ local StationComponents = require("Modules.Constructs.Components")
 local Physics = require("Modules.Physics.Components")
 
 -- Legacy Generator Imports
-local GenerateStationOld = require('Legacy.Systems.Gen.StationOld')
+local GenerateStationOld = require('Shared.Generation.Meshes.StationOld')
 
 local Materials = require("Shared.Registries.Materials")
 

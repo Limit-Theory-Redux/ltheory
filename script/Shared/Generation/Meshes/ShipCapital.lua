@@ -1,17 +1,17 @@
 -- objects
-local Shape        = require('Legacy.Systems.Gen.ShapeLib.Shape')
+local Shape        = require('Shared.Generation.Meshes.ShapeLib.Shape')
 -- shapes
-local BasicShapes  = require('Legacy.Systems.Gen.ShapeLib.BasicShapes')
-local RandomShapes = require('Legacy.Systems.Gen.ShapeLib.RandomShapes')
+local BasicShapes  = require('Shared.Generation.Meshes.ShapeLib.BasicShapes')
+local RandomShapes = require('Shared.Generation.Meshes.ShapeLib.RandomShapes')
 -- ships
-local ShipWarps    = require('Legacy.Systems.Gen.ShipLib.ShipWarps')
-local ShipDetail   = require('Legacy.Systems.Gen.ShipLib.ShipDetail')
-local ShipHull     = require('Legacy.Systems.Gen.ShipLib.ShipCapitalHull')
-local ShipCockpit  = require('Legacy.Systems.Gen.ShipLib.ShipCapitalCockpit')
-require('Legacy.Systems.Gen.ShapeLib.Warp')
+local ShipWarps    = require('Shared.Generation.Meshes.ShipLib.ShipWarps')
+local ShipDetail   = require('Shared.Generation.Meshes.ShipLib.ShipDetail')
+local ShipHull     = require('Shared.Generation.Meshes.ShipLib.ShipCapitalHull')
+local ShipCockpit  = require('Shared.Generation.Meshes.ShipLib.ShipCapitalCockpit')
+require('Shared.Generation.Meshes.ShapeLib.Warp')
 -- util
-local MathUtil    = require('Legacy.Systems.Gen.MathUtil')
-local Parametric  = require('Legacy.Systems.Gen.ShapeLib.Parametric')
+local MathUtil    = require('Shared.Generation.Meshes.MathUtil')
+local Parametric  = require('Shared.Generation.Meshes.ShapeLib.Parametric')
 
 local ShipCapital = {}
 

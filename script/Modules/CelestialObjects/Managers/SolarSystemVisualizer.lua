@@ -8,7 +8,7 @@ local CelestialEntities   = require("Modules.CelestialObjects.Entities")
 local RenderComp          = require("Modules.Rendering.Components").Render
 local Materials           = require("Shared.Registries.Materials")
 
-local Primitive           = require("Legacy.Systems.Gen.Primitive")
+local Primitive           = require("Shared.Generation.Meshes.Primitive")
 local GenUtil             = require("Core.ECS.Mesh.Util.GenUtil")
 local AsteroidBeltRenderer = require("Modules.CelestialObjects.Systems.AsteroidBeltRenderer")
 local AsteroidMeshPool    = require("Modules.CelestialObjects.Systems.AsteroidMeshPool")

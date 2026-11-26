@@ -10,9 +10,9 @@ local ShipComponents = require("Modules.Constructs.Components")
 local Physics        = require("Modules.Physics.Components")
 
 -- Legacy Generator Imports
-local ShipBasic            = require('Legacy.Systems.Gen.ShipBasic')
-local ShipCapital          = require('Legacy.Systems.Gen.ShipCapital')
-local ShipFighter          = require('Legacy.Systems.Gen.ShipFighter')
+local ShipBasic            = require('Shared.Generation.Meshes.ShipBasic')
+local ShipCapital          = require('Shared.Generation.Meshes.ShipCapital')
+local ShipFighter          = require('Shared.Generation.Meshes.ShipFighter')
 local CapitalHullGenerator = require("Modules.Constructs.Managers.Generators.CapitalHullGenerator")
 
 local Materials             = require("Shared.Registries.Materials")

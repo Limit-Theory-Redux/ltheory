@@ -9,7 +9,7 @@ local Production = require('Legacy.Systems.Economy.Production')
 local Item = require('Legacy.Systems.Economy.Item')
 local Dust = require('Legacy.GameObjects.Entities.Effects.Dust')
 local Nebula = require('Legacy.GameObjects.Entities.Objects.Nebula')
-local Words = require('Legacy.Systems.Gen.Words')
+local Words = require('Shared.Generation.Words')
 local HUD = require('Legacy.Systems.Overlay.HUD')
 local Camera = require('Legacy.Systems.Camera.Camera')
 

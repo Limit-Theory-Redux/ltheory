@@ -1,6 +1,6 @@
-local ShipBasic   = require('Legacy.Systems.Gen.ShipBasic')
-local ShipCapital = require('Legacy.Systems.Gen.ShipCapital')
-local ShipFighter = require('Legacy.Systems.Gen.ShipFighter')
+local ShipBasic   = require('Shared.Generation.Meshes.ShipBasic')
+local ShipCapital = require('Shared.Generation.Meshes.ShipCapital')
+local ShipFighter = require('Shared.Generation.Meshes.ShipFighter')
 
 local Ship        = {}
 

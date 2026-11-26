@@ -1,11 +1,11 @@
 -- objects
-local Shape        = require('Legacy.Systems.Gen.ShapeLib.Shape')
+local Shape        = require('Shared.Generation.Meshes.ShapeLib.Shape')
 -- shapes
-local BasicShapes  = require('Legacy.Systems.Gen.ShapeLib.BasicShapes')
-local RandomShapes = require('Legacy.Systems.Gen.ShapeLib.RandomShapes')
-require('Legacy.Systems.Gen.ShapeLib.Warp')
+local BasicShapes  = require('Shared.Generation.Meshes.ShapeLib.BasicShapes')
+local RandomShapes = require('Shared.Generation.Meshes.ShapeLib.RandomShapes')
+require('Shared.Generation.Meshes.ShapeLib.Warp')
 -- util
-local MathUtil = require('Legacy.Systems.Gen.MathUtil')
+local MathUtil = require('Shared.Generation.Meshes.MathUtil')
 
 Settings.addFloat('genship.global.curveZ', 'Curve Z', 0.0, -3.0, 3.0)
 Settings.addFloat('genship.global.curveY', 'Curve Y', 0.0, -3.0, 3.0)

@@ -1,6 +1,6 @@
-local Shape = require('Legacy.Systems.Gen.ShapeLib.Shape')
-local Joint = require('Legacy.Systems.Gen.ShapeLib.Joint')
-require('Legacy.Systems.Gen.ShapeLib.Warp')
+local Shape = require('Shared.Generation.Meshes.ShapeLib.Shape')
+local Joint = require('Shared.Generation.Meshes.ShapeLib.Joint')
+require('Shared.Generation.Meshes.ShapeLib.Warp')
 
 -- JointFields are lists of joints
 -- with helper functions to generate them.

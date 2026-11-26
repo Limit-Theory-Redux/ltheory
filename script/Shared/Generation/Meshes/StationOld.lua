@@ -1,6 +1,6 @@
-local Gen       = require('Legacy.Systems.Gen.GenUtil')
-local Boxes     = require('Legacy.Systems.Gen.Boxes')
-local MeshUtil  = require('Legacy.Systems.Gen.MeshUtil')
+local Gen       = require('Shared.Generation.Meshes.GenUtil')
+local Boxes     = require('Shared.Generation.Meshes.Boxes')
+local MeshUtil  = require('Shared.Generation.Meshes.MeshUtil')
 
 local GenMesh   = {}
 GenMesh.__index = GenMesh

@@ -2,7 +2,7 @@ local Player = require('Legacy.GameObjects.Entities.Player')
 local System = require('Legacy.GameObjects.Entities.StarSystem')
 local DebugControl = require('Legacy.Systems.Controls.Controls.DebugControl')
 local Actions = requireAll('Legacy.GameObjects.Actions')
-local Words = require('Legacy.Systems.Gen.Words')
+local Words = require('Shared.Generation.Words')
 local SoundManager = require("Legacy.Systems.SFX.SoundManager")
 
 local BattleTest = require('States.Application')

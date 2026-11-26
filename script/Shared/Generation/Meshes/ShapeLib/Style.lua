@@ -1,12 +1,12 @@
 -- objects
-local Shape        = require('Legacy.Systems.Gen.ShapeLib.Shape')
+local Shape        = require('Shared.Generation.Meshes.ShapeLib.Shape')
 -- shapes
-local BasicShapes  = require('Legacy.Systems.Gen.ShapeLib.BasicShapes')
-local RandomShapes = require('Legacy.Systems.Gen.ShapeLib.RandomShapes')
-local Parametric   = require('Legacy.Systems.Gen.ShapeLib.Parametric')
-local Scaffolding  = require('Legacy.Systems.Gen.ShapeLib.Scaffolding')
+local BasicShapes  = require('Shared.Generation.Meshes.ShapeLib.BasicShapes')
+local RandomShapes = require('Shared.Generation.Meshes.ShapeLib.RandomShapes')
+local Parametric   = require('Shared.Generation.Meshes.ShapeLib.Parametric')
+local Scaffolding  = require('Shared.Generation.Meshes.ShapeLib.Scaffolding')
 -- warps
-require('Legacy.Systems.Gen.ShapeLib.Warp')
+require('Shared.Generation.Meshes.ShapeLib.Warp')
 
 local Style = {}
 Style.__index = Style

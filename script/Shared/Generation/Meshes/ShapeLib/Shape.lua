@@ -1,5 +1,5 @@
-local MathUtil = require('Legacy.Systems.Gen.MathUtil')
-local Joint    = require('Legacy.Systems.Gen.ShapeLib.Joint')
+local MathUtil = require('Shared.Generation.Meshes.MathUtil')
+local Joint    = require('Shared.Generation.Meshes.ShapeLib.Joint')
 local wrap     = Math.Wrap
 
 -- BAD MESH PROTECTION POLICY
@@ -787,7 +787,7 @@ function Shape:finalize()
     -- Compute missing information
     mesh:splitNormals(0.99)
     if Config.gen.uvMapping then
-        mesh = require('Legacy.Systems.Gen.UVMap')(mesh, Config.gen.uvMapRes)
+        mesh = require('Shared.Generation.Meshes.UVMap')(mesh, Config.gen.uvMapRes)
     else
         mesh:computeAO(0.6 * mesh:getRadius())
     end

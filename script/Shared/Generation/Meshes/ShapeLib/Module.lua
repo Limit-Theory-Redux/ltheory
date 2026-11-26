@@ -1,14 +1,14 @@
 -- objects
-local Joint       = require('Legacy.Systems.Gen.ShapeLib.Joint')
-local Shape       = require('Legacy.Systems.Gen.ShapeLib.Shape')
-local Style       = require('Legacy.Systems.Gen.ShapeLib.Style')
+local Joint       = require('Shared.Generation.Meshes.ShapeLib.Joint')
+local Shape       = require('Shared.Generation.Meshes.ShapeLib.Shape')
+local Style       = require('Shared.Generation.Meshes.ShapeLib.Style')
 -- shapes
-local BasicShapes = require('Legacy.Systems.Gen.ShapeLib.BasicShapes')
-local Cluster     = require('Legacy.Systems.Gen.ShapeLib.Cluster')
+local BasicShapes = require('Shared.Generation.Meshes.ShapeLib.BasicShapes')
+local Cluster     = require('Shared.Generation.Meshes.ShapeLib.Cluster')
 -- warps
-require('Legacy.Systems.Gen.ShapeLib.Warp')
+require('Shared.Generation.Meshes.ShapeLib.Warp')
 -- util
-local Parametric = require('Legacy.Systems.Gen.ShapeLib.Parametric')
+local Parametric = require('Shared.Generation.Meshes.ShapeLib.Parametric')
 
 local Module     = {}
 
