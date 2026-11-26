@@ -119,6 +119,9 @@ SensorModel.activityNames = { idle = "Idle", thrust = "Thrusting", firing = "Fir
 ---@field shield number|nil its shields, 0 to 1, as a T3 read shows them
 ---@field standing string|nil hostile, neutral or friendly, as a T3 read shows it
 ---@field contents string[]|nil what a T4 read shows (cargo, logs ...)
+---@field world table|nil a sensor's view: where it is in the world, game units
+---@field seenAt table|nil a sensor's view: where it last had it as a contact, game units
+---@field lastPos SensorVec|nil a sensor's view: that place relative to the sensor, metres
 
 ---@class SensorState
 ---@field dials SensorDials
@@ -134,6 +137,16 @@ SensorModel.activityNames = { idle = "Idle", thrust = "Thrusting", firing = "Fir
 ---@field heat number own heat from scanning, 0 to 1
 ---@field pulseAge number seconds since the last pulse
 ---@field pulseHeardBy number ships and stations within earshot of the last pulse
+---@field memory table<SensorObject, SensorMemory> what the sensor has learned of each object
+
+--- What a sensor remembers of an object it has had as a contact: the best
+--- tier it reached (passive or by scan), and how old that is. It keeps what it
+--- learned when the object fades or goes out of contact: a fighter it
+--- identified stays a fighter.
+---@class SensorMemory
+---@field tier integer the best tier it has had: 1 heard, 2 classed, 3 identified, 4 read in full
+---@field age number seconds since it last sensed that much of it (or a scan could read that much)
+---@field lost number seconds since it last heard the object at all (0 while it does)
 
 --- A sensor with these dials and nothing around it yet.
 ---@param dials SensorDials
@@ -153,6 +166,7 @@ function SensorModel.newState(dials)
         heat = 0,
         pulseAge = math.huge,
         pulseHeardBy = 0,
+        memory = {},
     }
 end
 
@@ -453,6 +467,7 @@ end
 ---@field why string
 ---@field count integer signals merged into this contact (1 for one object)
 ---@field passive SensorPassive
+---@field sensed integer the tier it senses now, before what scans have read
 
 --- The passive tier of an object, with the reason for it.
 ---@param state SensorState
@@ -490,7 +505,9 @@ local function mergeUnresolved(state, results)
     for _, o in ipairs(state.objects) do
         local r = results[o]
         local p = r.passive
-        if not p.surroundings.blocked and p.cells < M.classCells and p.snr > 0.02 and r.tier <= 1 then
+        -- Something it has classed before it keeps apart: it knows which signal is which
+        local known = state.memory[o] and state.memory[o].tier >= 2
+        if not p.surroundings.blocked and p.cells < M.classCells and p.snr > 0.02 and r.tier <= 1 and not known then
             candidates[#candidates + 1] = o
         end
     end
@@ -546,6 +563,7 @@ function SensorModel.evaluate(state)
     end
     for _, o in ipairs(state.objects) do
         local r, read = results[o], state.reads[o]
+        r.sensed = r.tier
         if r.tier > 0 and read and read > r.tier then
             r.tier = read
             r.why = read == 4 and "full scan read" or "scan identified it"
@@ -662,13 +680,34 @@ function SensorModel.firePulse(state)
 end
 
 --- Moves the sensor on by `dt`: pulse echoes fade, own heat builds while
---- scanning and cools after, and a scan on a contact reads its next tier once
---- it has run for the scan time and its echo is strong enough.
+--- scanning and cools after, a scan on a contact reads its next tier once it
+--- has run for the scan time and its echo is strong enough, and the memory of
+--- every contact keeps its best tier and ages.
 ---@param state SensorState
 ---@param results table<SensorObject, SensorResult> this frame's `evaluate`
 ---@param dt number seconds
 function SensorModel.step(state, results, dt)
     state.pulseAge = state.pulseAge + dt
+    for o, r in pairs(results) do
+        local m = state.memory[o]
+        if r.tier >= 1 then
+            if not m then
+                m = { tier = r.tier, age = 0, lost = 0 }
+                state.memory[o] = m
+            end
+            if r.tier > m.tier then m.tier = r.tier end
+            -- What it knows is current while it senses that much now, or a scan
+            -- on it could read that much; older than that, it ages
+            local now = r.sensed
+            if o == state.target and state.scanning then
+                now = math.max(now, SensorModel.scanEcho(state, r.passive).level)
+            end
+            if now >= m.tier then m.age = 0 else m.age = m.age + dt end
+            m.lost = 0
+        elseif m then
+            m.age, m.lost = m.age + dt, m.lost + dt
+        end
+    end
     for o, left in pairs(state.echoes) do
         state.echoes[o] = left > dt and left - dt or nil
     end
@@ -690,11 +729,12 @@ function SensorModel.step(state, results, dt)
     end
 end
 
---- Forgets everything an object left behind: echoes, reads, scan progress.
+--- Forgets everything an object left behind: echoes, reads, scan progress,
+--- the memory of it.
 ---@param state SensorState
 ---@param o SensorObject
 function SensorModel.forget(state, o)
-    state.echoes[o], state.reads[o], state.progress[o] = nil, nil, nil
+    state.echoes[o], state.reads[o], state.progress[o], state.memory[o] = nil, nil, nil, nil
     if state.target == o then state.target = nil end
 end
 

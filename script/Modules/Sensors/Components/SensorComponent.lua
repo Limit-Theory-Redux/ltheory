@@ -135,10 +135,10 @@ function SensorComponent:setMerging(merge)
 end
 
 --- Forgets everything this sensor learned: echoes, reads, scan progress, its
---- heat and its target.
+--- memory of contacts, its heat and its target.
 function SensorComponent:reset()
     local state = self.state
-    state.echoes, state.reads, state.progress = {}, {}, {}
+    state.echoes, state.reads, state.progress, state.memory = {}, {}, {}, {}
     state.target, state.scanning, state.heat = nil, false, 0
     state.pulseAge, state.pulseHeardBy = math.huge, 0
     self.pulseRequested = false
