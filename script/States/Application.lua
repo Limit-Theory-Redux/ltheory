@@ -92,7 +92,7 @@ function Application:eventLoop()
     end
 
     EventBus:startEventIteration()
-    SubscriberProfile.frame()
+    SubscriberProfile:frame()
     self:jitProfileFrame()
 
     local eventData, payload = EventBus:nextEvent()
@@ -103,7 +103,7 @@ function Application:eventLoop()
         local tunnel = EventTunnels[eventData:tunnelId()]
         if tunnel then
             if SubscriberProfile.enabled then
-                SubscriberProfile.call(eventData:tunnelId(), tunnel, eventData, payload)
+                SubscriberProfile:call(eventData:tunnelId(), tunnel, eventData, payload)
             else
                 tunnel(eventData, payload)
             end

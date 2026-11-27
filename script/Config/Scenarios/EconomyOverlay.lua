@@ -60,13 +60,13 @@ return function()
             lines[#lines + 1] = string.format("... and %d more ships", #agents - MAX_SHIPS)
             break
         end
-        local agent = Registry:hasEntity(ship.entity) and PeopleManager.commandOf(ship.entity, Economy.EconomyAgent)
+        local agent = Registry:hasEntity(ship.entity) and PeopleManager:commandOf(ship.entity, Economy.EconomyAgent)
         if agent then
             -- Who commands it; an independent's captain owns it and keeps its own credits, while a
             -- faction's ship shares its leader's account, so what it earned tells it apart.
-            local captain = PeopleManager.commanderOf(ship.entity)
+            local captain = PeopleManager:commanderOf(ship.entity)
             local captainName = captain and captain:get(NameComponent):getName() or "nobody"
-            local independent = captain and PeopleManager.employerOf(captain) == nil
+            local independent = captain and PeopleManager:employerOf(captain) == nil
             local credits = independent and string.format("independent, %d cr", AccountManager:balanceOf(ship.entity))
                 or string.format("earned %d", agent.earned)
             lines[#lines + 1] = string.format("%s (Capt. %s): %s | %s | %s", ship.name, captainName, agent:getActivity(),

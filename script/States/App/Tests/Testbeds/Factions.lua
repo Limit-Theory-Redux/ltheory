@@ -169,18 +169,18 @@ end
 function FactionsTestbed:statusLines()
     local lines = {}
     for _, ship in ipairs(SpawnerSystem:getAgents()) do
-        local agent = Registry:hasEntity(ship.entity) and PeopleManager.commandOf(ship.entity, Economy.EconomyAgent)
+        local agent = Registry:hasEntity(ship.entity) and PeopleManager:commandOf(ship.entity, Economy.EconomyAgent)
         local earned = {}
         for kind, credits in pairs(agent and agent.earnedBy or {}) do earned[#earned + 1] = string.format("%s %d", kind, credits) end
         table.sort(earned)
-        lines[#lines + 1] = string.format("%s (%s%s): %s%s", ship.name, FactionManager.factionOf(ship.entity) == self.factions[2] and "marauder, " or "",
+        lines[#lines + 1] = string.format("%s (%s%s): %s%s", ship.name, FactionManager:factionOf(ship.entity) == self.factions[2] and "marauder, " or "",
             ship.battery and "armed" or "unarmed", agent and agent:getActivity() or "gone",
             #earned > 0 and (" | " .. table.concat(earned, ", ")) or "")
     end
     local a, b = self.factions[1], self.factions[2]
     local threats = require("Modules.Factions.Systems.ThreatSystem")
     lines[#lines + 1] = string.format("%s vs %s: %.2f | threat at Power Plant %.1f, Outpost %.1f", a:get(Factions.Faction):getName(),
-        b:get(Factions.Faction):getName(), FactionManager.relation(a, b), threats:threatOf(self.power), threats:threatOf(self.outpost))
+        b:get(Factions.Faction):getName(), FactionManager:relation(a, b), threats:threatOf(self.power), threats:threatOf(self.outpost))
     return lines
 end
 

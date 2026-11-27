@@ -2,7 +2,7 @@
 ---their opinion of the event's subject (who paid them, who commanded the ship they lost, whose faction
 ---attacked them). Each event is also kept in the person's memory, so later decisions (by their
 ---traits, their career, their crewmates) can weigh what they lived through. Events are data: a new
----kind is an entry here, reported through `PeopleManager.experience`.
+---kind is an entry here, reported through `PeopleManager:experience`.
 
 ---@class LifeEventDefinition
 ---@field id string

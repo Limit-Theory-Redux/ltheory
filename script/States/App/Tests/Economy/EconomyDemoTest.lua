@@ -106,7 +106,7 @@ end
 ---@return boolean
 function DemoTest:someoneEarned(jobKind)
     for _, ship in ipairs(self.ships) do
-        local agent = PeopleManager.commandOf(ship.entity, Economy.EconomyAgent)
+        local agent = PeopleManager:commandOf(ship.entity, Economy.EconomyAgent)
         if agent and (agent.earnedBy[jobKind] or 0) > 0 then return true end
     end
     return false
@@ -119,7 +119,7 @@ function DemoTest:shipsMissing(set)
     local parts = {}
     for _, ship in ipairs(self.ships) do
         if not set[ship.entity.id] then
-            local agent = PeopleManager.commandOf(ship.entity, Economy.EconomyAgent)
+            local agent = PeopleManager:commandOf(ship.entity, Economy.EconomyAgent)
             local phase = DockingSystem:phaseOf(ship.entity)
             parts[#parts + 1] = string.format("%s (%s, state %s, docking phase %s)", ship.name,
                 agent and agent:getActivity() or "no agent", agent and tostring(agent:getState()) or "-", tostring(phase))
@@ -171,7 +171,7 @@ function DemoTest:runCases()
     self:check(idle == nil, "every station trades and produces", idle)
 
     for _, ship in ipairs(self.ships) do
-        local agent = PeopleManager.commandOf(ship.entity, Economy.EconomyAgent)
+        local agent = PeopleManager:commandOf(ship.entity, Economy.EconomyAgent)
         local trips, earned, spent = agent:getStats()
         Log.Info("EconomyDemoTest: %s: %d trips, earned %.0f, spent %.0f, balance %.0f", ship.name, trips, earned,
             spent, AccountManager:balanceOf(ship.entity))

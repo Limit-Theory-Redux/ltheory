@@ -24,7 +24,7 @@ local JobSnapshot = require("Modules.Economy.Managers.JobSnapshot")
 local FrameScheduler = require("Shared.Tools.FrameScheduler")
 
 -- The agent is the decision-making of a ship's commander: it lives on the person and moves with command.
-PeopleManager.registerCommandComponent(Economy.EconomyAgent)
+PeopleManager:registerCommandComponent(Economy.EconomyAgent)
 
 -- Design: doc/script/economy.md
 
@@ -126,7 +126,7 @@ function EconomyAgentSystem:update(dt)
     local agents = {}
     -- The agents are people who command a ship; the ship is what they decide for.
     for commander, agent in Registry:view(Economy.EconomyAgent) do
-        local ship = PeopleManager.postOf(commander)
+        local ship = PeopleManager:postOf(commander)
         if ship then agents[#agents + 1] = { ship, agent } end
     end
     self:collectClaims(agents)
@@ -308,7 +308,7 @@ function EconomyAgentSystem:applyThoughts(values)
         local entry = self.awaiting[shipId]
         self.awaiting[shipId] = nil
         local ship, agent = entry and entry.ship, entry and entry.agent
-        if ship and Registry:hasEntity(ship) and PeopleManager.commandOf(ship, Economy.EconomyAgent) == agent then
+        if ship and Registry:hasEntity(ship) and PeopleManager:commandOf(ship, Economy.EconomyAgent) == agent then
             local job = self:jobOf(values, base)
             if job and (job.kind ~= "park" or agent.state == State.Idle) then
                 commitClaims(job)
@@ -586,7 +586,7 @@ function EconomyAgentSystem:endFight(ship, agent)
         local paid = math.min(job.payout, AccountManager:balanceOf(station))
         if paid > 0 and AccountManager:transfer(AccountManager:accountOf(station), AccountManager:accountOf(ship), paid) then
             agent:addEarnings("patrol", paid)
-            PeopleManager.reportEarnings(ship, "patrol", paid)
+            PeopleManager:reportEarnings(ship, "patrol", paid)
         end
     end
     agent.trips = agent.trips + 1
@@ -623,7 +623,7 @@ function EconomyAgentSystem:sell(ship, agent)
             math.max(1, math.floor(job.sellPrice * (1 - self.priceSlack))))
         local activity = job.kind == "mining" and "mining" or (job.kind == "sale" and "sale" or "trade")
         agent:addEarnings(activity, earned)
-        PeopleManager.reportEarnings(ship, activity, earned)
+        PeopleManager:reportEarnings(ship, activity, earned)
         if sold > 0 then
             agent.trips = agent.trips + 1
             Log.Debug("[EconomyAgent] %s sold %d %s at %s for %d", tostring(ship), sold, itemName(job.itemId),

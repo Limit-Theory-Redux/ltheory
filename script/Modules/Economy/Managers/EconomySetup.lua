@@ -64,7 +64,7 @@ end
 
 ---Makes a ship (one that takes navigation orders) an economic agent, with the equipment the jobs it
 ---can choose depend on: its hold and, maybe, a mining laser (its weapons, if any, are its own). The
----ship must be manned (`PeopleManager.man`): its commander gets the agent and decides for it.
+---ship must be manned (`PeopleManager:man`): its commander gets the agent and decides for it.
 ---@param ship Entity
 ---@param spec EconomyAgentSpec
 function EconomySetup.equipAgent(ship, spec)
@@ -77,7 +77,7 @@ function EconomySetup.equipAgent(ship, spec)
     else
         ship:add(Economy.PlayerBankAccount(spec.credits or 0))
     end
-    local commander = PeopleManager.commanderOf(ship)
+    local commander = PeopleManager:commanderOf(ship)
     assert(commander, "EconomySetup.equipAgent: the ship has no commander; man it first")
     commander:add(Economy.EconomyAgent(spec.kind))
 end

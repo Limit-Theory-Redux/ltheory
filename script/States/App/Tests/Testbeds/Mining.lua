@@ -147,7 +147,7 @@ end
 function MiningTestbed:debugLine()
     local ship = self.miners[self.selected]
     if not Registry:hasEntity(ship) then return "gone" end
-    local agent = PeopleManager.commandOf(ship, Economy.EconomyAgent)
+    local agent = PeopleManager:commandOf(ship, Economy.EconomyAgent)
     local queue = ship:get(Nav.Components.OrderQueue)
     local head = queue and queue:head()
     local order = head and Registry:getEntityById(head)

@@ -9,7 +9,7 @@ local FactionManager = require("Modules.Factions.Managers.FactionManager")
 
 ---Keeps the factions' relations: they drift back to their baselines over time, and a faction whose
 ---member is hit by another faction's weapons turns against it. It gives the weapons the factions'
----hostility rule (`FactionManager.teamsHostile`). Runs at PreSim.
+---hostility rule (`FactionManager:teamsHostile`). Runs at PreSim.
 ---@class FactionSystem
 local FactionSystem = Class("FactionSystem", function(self)
     self:registerVars()
@@ -31,7 +31,7 @@ end
 function FactionSystem:registerEvents()
     EventBus:subscribe(Event.PreSim, self, self.onPreSim)
     DamageEvents.subscribe(function(victim, attacker) self:onHit(victim, attacker) end)
-    WeaponCombatSystem.setHostility(FactionManager.teamsHostile)
+    WeaponCombatSystem.setHostility(function(own, other) return FactionManager:teamsHostile(own, other) end)
 end
 
 ---@param e EventData
@@ -61,13 +61,13 @@ end
 ---@param victim Entity
 ---@param attacker Entity|nil
 function FactionSystem:onHit(victim, attacker)
-    local victimFaction = FactionManager.factionOf(victim)
-    local attackerFaction = attacker and FactionManager.factionOf(attacker)
+    local victimFaction = FactionManager:factionOf(victim)
+    local attackerFaction = attacker and FactionManager:factionOf(attacker)
     if not victimFaction or not attackerFaction or victimFaction.id == attackerFaction.id then return end
     local key = victimFaction.id .. ":" .. attackerFaction.id
     if self.lastHit[key] and self.time - self.lastHit[key] < self.hitCooldownS then return end
     self.lastHit[key] = self.time
-    FactionManager.adjust(victimFaction, attackerFaction, -self.hitPenalty)
+    FactionManager:adjust(victimFaction, attackerFaction, -self.hitPenalty)
 end
 
 return FactionSystem()

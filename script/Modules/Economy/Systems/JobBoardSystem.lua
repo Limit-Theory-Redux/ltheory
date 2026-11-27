@@ -187,8 +187,8 @@ function JobBoardSystem:countRaidTargets(faction)
     local count = 0
     local PeopleManager = require("Modules.People.Managers.PeopleManager")
     for commander in Registry:view(Economy.EconomyAgent) do
-        local ship = PeopleManager.postOf(commander)
-        if ship and not ship:get(WeaponControl) and FactionManager.isHostile(faction, FactionManager.factionOf(ship)) then
+        local ship = PeopleManager:postOf(commander)
+        if ship and not ship:get(WeaponControl) and FactionManager:isHostile(faction, FactionManager:factionOf(ship)) then
             count = count + 1
         end
     end

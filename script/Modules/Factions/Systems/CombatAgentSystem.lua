@@ -145,7 +145,7 @@ end
 ---@param ship Entity
 ---@return number
 local function seniority(ship)
-    local captain = PeopleManager.commanderOf(ship)
+    local captain = PeopleManager:commanderOf(ship)
     local career = captain and captain:get(People.Career)
     if not career then return 0 end
     return career:getExperience("patrol") * 2 + career:getExperience("trade") + career:getExperience("mining")
@@ -197,7 +197,7 @@ end
 ---@param now number
 function CombatAgentSystem:decide(ship, agent, now)
     local pos = positionOf(ship)
-    local own = FactionManager.factionOf(ship)
+    local own = FactionManager:factionOf(ship)
     local target = alive(agent.target)
 
     -- Keep a target while it lives and stays within reach; else look for one.
@@ -210,7 +210,7 @@ function CombatAgentSystem:decide(ship, agent, now)
         local guard = nearest(pos, self.raidRange * 2, function(other)
             local combat = other:get(Factions.CombatAgent)
             return combat ~= nil and combat:getTask() == Enums.CombatTask.Patrol
-                and FactionManager.isHostile(own, FactionManager.factionOf(other))
+                and FactionManager:isHostile(own, FactionManager:factionOf(other))
         end)
         if guard then
             agent.cooldownUntil, target = now + self.pirateCooldownS, nil
@@ -218,9 +218,9 @@ function CombatAgentSystem:decide(ship, agent, now)
         elseif not target and now >= (agent.cooldownUntil or 0) then
             -- Prey: an unarmed agent of a hostile faction, out of port; one with cargo first.
             local function prey(other, laden)
-                local economic = PeopleManager.commandOf(other, Economy.EconomyAgent)
+                local economic = PeopleManager:commandOf(other, Economy.EconomyAgent)
                 if not economic or other:get(ConstructComponents.WeaponControl) then return false end
-                if not FactionManager.isHostile(own, FactionManager.factionOf(other)) then return false end
+                if not FactionManager:isHostile(own, FactionManager:factionOf(other)) then return false end
                 local phase = DockingSystem:phaseOf(other)
                 if phase ~= nil and phase ~= Enums.DockingPhase.Approaching then return false end
                 local cargo = other:get(Economy.Inventory)
@@ -232,7 +232,7 @@ function CombatAgentSystem:decide(ship, agent, now)
     else
         if not target then
             target = nearest(pos, self.guardRange, function(other)
-                return other ~= ship and FactionManager.isHostile(own, FactionManager.factionOf(other))
+                return other ~= ship and FactionManager:isHostile(own, FactionManager:factionOf(other))
             end)
         end
     end
@@ -296,8 +296,8 @@ function CombatAgentSystem:raid(ship, agent, now)
         end
     end
     agent.raids = agent.raids + taken
-    local victimFaction, own = FactionManager.factionOf(victim), FactionManager.factionOf(ship)
-    if victimFaction and own then FactionManager.adjust(victimFaction, own, -self.raidPenalty) end
+    local victimFaction, own = FactionManager:factionOf(victim), FactionManager:factionOf(ship)
+    if victimFaction and own then FactionManager:adjust(victimFaction, own, -self.raidPenalty) end
     require("Modules.Factions.Systems.ThreatSystem"):reportRaid(victim)
     -- The loot is fenced at once for a share of its start price; the raider keeps the rest aboard.
     local fenced = 0
@@ -307,9 +307,9 @@ function CombatAgentSystem:raid(ship, agent, now)
     agent.lastLoot = nil
     if fenced > 0 then
         AccountManager:deposit(AccountManager:accountOf(ship), math.floor(fenced))
-        local economic = PeopleManager.commandOf(ship, Economy.EconomyAgent)
+        local economic = PeopleManager:commandOf(ship, Economy.EconomyAgent)
         if economic then economic:addEarnings("raid", math.floor(fenced)) end
-        PeopleManager.reportEarnings(ship, "raid", math.floor(fenced))
+        PeopleManager:reportEarnings(ship, "raid", math.floor(fenced))
     end
     Log.Debug("[CombatAgent] %s raided %s for %d units", tostring(ship), tostring(victim), taken)
     agent.cooldownUntil, agent.target, agent.closeSince = now + self.pirateCooldownS, nil, nil

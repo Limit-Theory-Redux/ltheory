@@ -84,7 +84,7 @@ function FrameScheduler:run()
         local task = tasks[self.cursor]
         local t = os.clock()
         local ok, value = coroutine.resume(task.co)
-        SubscriberProfile.mark("scheduler: " .. task.name, t)
+        SubscriberProfile:mark("scheduler: " .. task.name, t)
         if not ok then
             task.done, task.failed = true, tostring(value)
             Log.Error("FrameScheduler: %s failed: %s\n%s", task.name, tostring(value), debug.traceback(task.co))

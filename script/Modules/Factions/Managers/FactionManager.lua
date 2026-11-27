@@ -28,10 +28,12 @@ local SUFFIXED = { [Enums.FactionType.Corporation] = true, [Enums.FactionType.Tr
 ---An independent (a ship its own captain owns, who belongs to no faction) has no faction: it is
 ---neutral to the factions and hostile to marauders, and its weapons' team is `INDEPENDENT_TEAM`.
 ---@class FactionManager
-local FactionManager = {}
-
--- The weapons' team of everything owned outside the factions.
-FactionManager.INDEPENDENT_TEAM = "independent"
+---@overload fun(self: FactionManager): FactionManager class internal
+---@overload fun(): FactionManager class external
+local FactionManager = Class("FactionManager", function(self)
+    -- The weapons' team of everything owned outside the factions.
+    self.INDEPENDENT_TEAM = "independent"
+end)
 
 ---@param entityOrId Entity|integer|nil
 ---@return Entity|nil
@@ -42,7 +44,7 @@ local function alive(entityOrId)
 end
 
 ---@return Entity[] factions Every faction there is
-function FactionManager.all()
+function FactionManager:all()
     local list = {}
     for entity in Registry:view(Factions.Faction) do list[#list + 1] = entity end
     table.sort(list, function(a, b) return a.id < b.id end)
@@ -53,7 +55,7 @@ end
 ---@param factionType integer
 ---@param rng RNG
 ---@return string
-function FactionManager.nameFor(factionType, rng)
+function FactionManager:nameFor(factionType, rng)
     local base = Words.getCoolName(rng)
     local kind = Enums.FactionTypeNames[factionType]
     if not kind then return base end
@@ -65,18 +67,18 @@ end
 ---when either is marauders).
 ---@param spec { type: integer, name: string|nil, color: Color|nil, treasury: number|nil, seed: integer|nil }
 ---@return Entity faction
-function FactionManager.create(spec)
+function FactionManager:create(spec)
     local rng = RNG.Create(spec.seed or RNG.FromTime():get31())
-    local existing = FactionManager.all()
+    local existing = FactionManager:all()
     local marauders = spec.type == Enums.FactionType.Marauders
     local color = spec.color or (marauders and MARAUDER_COLOR) or COLORS[#existing % #COLORS + 1]
-    local faction = FactionEntity(spec.name or FactionManager.nameFor(spec.type, rng), spec.type, color, spec.treasury)
+    local faction = FactionEntity(spec.name or FactionManager:nameFor(spec.type, rng), spec.type, color, spec.treasury)
     faction:get(Factions.Faction):setTeam("faction:" .. faction.id)
     for _, other in ipairs(existing) do
         local otherMarauders = other:get(Factions.Faction):getType() == Enums.FactionType.Marauders
         local baseline = (marauders or otherMarauders) and -1 or 0
-        FactionManager.setBaseline(faction, other, baseline)
-        FactionManager.setRelation(faction, other, baseline)
+        FactionManager:setBaseline(faction, other, baseline)
+        FactionManager:setRelation(faction, other, baseline)
     end
     return faction
 end
@@ -86,7 +88,7 @@ end
 ---@param name string
 ---@param credits number|nil
 ---@return Entity player
-function FactionManager.createMember(faction, name, credits)
+function FactionManager:createMember(faction, name, credits)
     local player = CoreEntities.Player(name, true)
     player:get(Economy.PlayerBankAccount):setAccountBalance(credits or 0)
     player:add(Factions.FactionMembership(faction.id))
@@ -97,7 +99,7 @@ end
 ---for an owned ship or station.
 ---@param entityOrId Entity|integer|nil
 ---@return Entity|nil faction
-function FactionManager.factionOf(entityOrId)
+function FactionManager:factionOf(entityOrId)
     local entity = alive(entityOrId)
     for _ = 1, 3 do
         if not entity then return nil end
@@ -113,7 +115,7 @@ end
 ---@param a Entity
 ---@param b Entity
 ---@return number disposition Of `a` toward `b`; 1 for a faction toward itself
-function FactionManager.relation(a, b)
+function FactionManager:relation(a, b)
     if a.id == b.id then return 1 end
     return a:get(Factions.FactionRelations):getDisposition(b.id)
 end
@@ -121,7 +123,7 @@ end
 ---@param a Entity
 ---@param b Entity
 ---@param disposition number
-function FactionManager.setRelation(a, b, disposition)
+function FactionManager:setRelation(a, b, disposition)
     if a.id == b.id then return end
     a:get(Factions.FactionRelations):setDisposition(b.id, disposition)
     b:get(Factions.FactionRelations):setDisposition(a.id, disposition)
@@ -131,14 +133,14 @@ end
 ---@param a Entity
 ---@param b Entity
 ---@param delta number
-function FactionManager.adjust(a, b, delta)
-    FactionManager.setRelation(a, b, FactionManager.relation(a, b) + delta)
+function FactionManager:adjust(a, b, delta)
+    FactionManager:setRelation(a, b, FactionManager:relation(a, b) + delta)
 end
 
 ---@param a Entity
 ---@param b Entity
 ---@param baseline number
-function FactionManager.setBaseline(a, b, baseline)
+function FactionManager:setBaseline(a, b, baseline)
     if a.id == b.id then return end
     a:get(Factions.FactionRelations):setBaseline(b.id, baseline)
     b:get(Factions.FactionRelations):setBaseline(a.id, baseline)
@@ -147,19 +149,19 @@ end
 ---@param a Entity|nil
 ---@param b Entity|nil
 ---@return boolean
-function FactionManager.isHostile(a, b)
+function FactionManager:isHostile(a, b)
     -- Without a faction (an independent): only marauders are enemies.
     if not a or not b then
         local other = a or b
-        return other ~= nil and FactionManager.isMarauders(other)
+        return other ~= nil and FactionManager:isMarauders(other)
     end
     if a.id == b.id then return false end
-    return FactionManager.relation(a, b) <= Config.game.dispoHostileThreshold
+    return FactionManager:relation(a, b) <= Config.game.dispoHostileThreshold
 end
 
 ---@param faction Entity|nil
 ---@return boolean
-function FactionManager.isMarauders(faction)
+function FactionManager:isMarauders(faction)
     local component = faction and faction:get(Factions.Faction)
     return component ~= nil and component:getType() == Enums.FactionType.Marauders
 end
@@ -167,8 +169,8 @@ end
 ---@param entityOrId Entity|integer|nil
 ---@return string|nil team The weapons' team of the entity's faction; `INDEPENDENT_TEAM` for one owned
 ---outside the factions; nil for an unowned one
-function FactionManager.teamOf(entityOrId)
-    local faction = FactionManager.factionOf(entityOrId)
+function FactionManager:teamOf(entityOrId)
+    local faction = FactionManager:factionOf(entityOrId)
     if faction then return faction:get(Factions.Faction):getTeam() end
     local entity = alive(entityOrId)
     local ownership = entity and entity:get(Economy.Ownership)
@@ -178,8 +180,8 @@ end
 
 ---Makes the ship (or station) a target the weapons know by its faction's team.
 ---@param entity Entity
-function FactionManager.enlist(entity)
-    local team = FactionManager.teamOf(entity)
+function FactionManager:enlist(entity)
+    local team = FactionManager:teamOf(entity)
     if not team then return end
     local targetable = entity:get(ConstructComponents.Targetable)
     if targetable then targetable:setTeam(team) else entity:add(ConstructComponents.Targetable(team, "small")) end
@@ -191,17 +193,17 @@ end
 ---@param own string|nil
 ---@param other string|nil
 ---@return boolean
-function FactionManager.teamsHostile(own, other)
+function FactionManager:teamsHostile(own, other)
     local ownId = own and tonumber(own:match("^faction:(%d+)$"))
     local otherId = other and tonumber(other:match("^faction:(%d+)$"))
-    if ownId and otherId then return FactionManager.isHostile(alive(ownId), alive(otherId)) end
+    if ownId and otherId then return FactionManager:isHostile(alive(ownId), alive(otherId)) end
     local independent = FactionManager.INDEPENDENT_TEAM
     if own == independent or other == independent then
         if own == other then return false end
         local factionId = ownId or otherId
-        return factionId ~= nil and FactionManager.isMarauders(alive(factionId))
+        return factionId ~= nil and FactionManager:isMarauders(alive(factionId))
     end
     return own == nil or other ~= own
 end
 
-return FactionManager
+return FactionManager()

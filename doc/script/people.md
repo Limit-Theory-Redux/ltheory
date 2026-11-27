@@ -27,11 +27,11 @@ Roles are data (`Shared/Definitions/CrewRoleDefs.lua`): a name, whether the role
 roles aboard (`ShipKindDefs.crew`): a hauler a captain, a mate and a hand; a fighter a captain alone.
 
 The **commander decides**. The component types registered with
-`PeopleManager.registerCommandComponent` live on the commander, not on the post: the economy's AI
+`PeopleManager:registerCommandComponent` live on the commander, not on the post: the economy's AI
 (`EconomyAgentComponent`) is one, so `EconomyAgentSystem` runs the people who command ships, each
 choosing jobs for the ship they command. When command passes (`setCommander`: a promotion, the
 commander leaving or dying, later a mutiny), those components move to the new commander, and the
-crew learn of it. Code that wants a ship's AI asks `PeopleManager.commandOf(ship, componentType)`.
+crew learn of it. Code that wants a ship's AI asks `PeopleManager:commandOf(ship, componentType)`.
 Navigation orders, dockings and a ship's fight controller (`CombatAgentComponent`) stay on the ship:
 they are how it is flown, not who decides.
 
@@ -39,10 +39,10 @@ they are how it is flown, not who decides.
 
 - A **faction's ship** is owned by the faction's leader, whose account it trades from. Its crew are
   the leader's employees: each is paid their role's share of what the ship earns
-  (`PeopleManager.reportEarnings`, which also adds experience). When a faction buys a ship
+  (`PeopleManager:reportEarnings`, which also adds experience). When a faction buys a ship
   (`SpawnerSystem`), it first hires people it has on its books but on no post, such as the crew of a
   lost ship, and makes new ones only for the roles left.
-- An **independent** ship is owned by its captain (`PeopleManager.manIndependent`): it trades from
+- An **independent** ship is owned by its captain (`PeopleManager:manIndependent`): it trades from
   the captain's wallet, and the captain employs and pays the rest of the crew. An independent has no
   faction: it is neutral to the factions, hostile to marauders, and its weapons' team is
   `FactionManager.INDEPENDENT_TEAM`. Star systems plan a few (`EconomyDefaults.independents`).
@@ -51,7 +51,7 @@ they are how it is flown, not who decides.
 
 Events are data (`Shared/Definitions/LifeEventDefs.lua`): each moves a person's morale and their
 opinion of the event's subject, and the ones that count are remembered.
-`PeopleManager.experience` reports one; `CrewSystem` reports what the world does to them:
+`PeopleManager:experience` reports one; `CrewSystem` reports what the world does to them:
 
 - a ship destroyed: its crew survive, lose it (`ShipLost`, toward their employer) and are free for a
   new post with the same employer;

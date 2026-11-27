@@ -39,7 +39,7 @@ end
 ---@param entity Entity
 ---@return integer 0 for none
 local function factionId(entity)
-    local faction = FactionManager.factionOf(entity)
+    local faction = FactionManager:factionOf(entity)
     return faction and faction.id or 0
 end
 
@@ -137,12 +137,12 @@ function JobSnapshot.build(ships, board, claims, params)
 
     -- The factions: hostile pairs, the marauders and their prey.
     local hostile, marauders, victims = {}, {}, {}
-    local factions = FactionManager.all()
+    local factions = FactionManager:all()
     for i, a in ipairs(factions) do
         for j = i + 1, #factions do
-            if FactionManager.isHostile(a, factions[j]) then push(hostile, L.Hostile, { A = a.id, B = factions[j].id }) end
+            if FactionManager:isHostile(a, factions[j]) then push(hostile, L.Hostile, { A = a.id, B = factions[j].id }) end
         end
-        if FactionManager.isMarauders(a) then
+        if FactionManager:isMarauders(a) then
             marauders[#marauders + 1] = a.id
             push(victims, L.Victims, { Faction = a.id, Count = board:countRaidTargets(a) })
         end
@@ -159,11 +159,11 @@ function JobSnapshot.build(ships, board, claims, params)
         local inventory = ship:get(Economy.Inventory)
         local free = InventoryManager:getFreeMass(inventory)
         local capacity = inventory:getCapacity()
-        local own = FactionManager.factionOf(ship)
+        local own = FactionManager:factionOf(ship)
         local flags = 0
         if ship:get(Economy.MiningLaser) then flags = flags + Flag.Laser end
         if ship:get(ConstructComponents.WeaponControl) then flags = flags + Flag.Armed end
-        if FactionManager.isMarauders(own) then flags = flags + Flag.Marauder end
+        if FactionManager:isMarauders(own) then flags = flags + Flag.Marauder end
         if capacity == nil or capacity > 0 then flags = flags + Flag.Hold end
         if require("Modules.Docking.Systems.DockingSystem"):phaseOf(ship) == nil then flags = flags + Flag.InSpace end
         local driven = driveOn and ship:get(ConstructComponents.TravelDrive) ~= nil

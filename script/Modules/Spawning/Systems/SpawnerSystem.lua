@@ -177,9 +177,9 @@ end
 ---@param spec { type: integer, name: string|nil, seed: integer|nil, credits: number|nil }
 ---@return Entity faction, Entity leader
 function SpawnerSystem:spawnFaction(spec)
-    local faction = FactionManager.create({ type = spec.type, name = spec.name, seed = spec.seed, treasury = 0 })
+    local faction = FactionManager:create({ type = spec.type, name = spec.name, seed = spec.seed, treasury = 0 })
     local name = faction:get(Factions.Faction):getName()
-    local leader = FactionManager.createMember(faction, name .. " Command", spec.credits or 60000)
+    local leader = FactionManager:createMember(faction, name .. " Command", spec.credits or 60000)
     self.factions[#self.factions + 1] = { entity = faction, leader = leader, stations = {} }
     return faction, leader
 end
@@ -211,7 +211,7 @@ function SpawnerSystem:spawnStation(spec)
     EconomySetup.equipStation(handle.root, definition, name)
     if spec.owner then
         handle.root:add(Economy.Ownership(spec.owner.id))
-        FactionManager.enlist(handle.root)
+        FactionManager:enlist(handle.root)
         local entry = self:factionEntryOf(spec.owner)
         if entry then entry.stations[#entry.stations + 1] = handle.root end
     end
@@ -261,7 +261,7 @@ function SpawnerSystem:buildHull(kind, spec, name)
         if ok and construction then
             local WeaponBattery = require("Modules.Constructs.Systems.WeaponBattery")
             local battery = weaponCombat:addBattery(WeaponBattery(construction, {
-                name = name, aiActive = true, team = spec.owner and FactionManager.teamOf(spec.owner) or FactionManager.INDEPENDENT_TEAM,
+                name = name, aiActive = true, team = spec.owner and FactionManager:teamOf(spec.owner) or FactionManager.INDEPENDENT_TEAM,
             }))
             return construction.shipHandle, battery
         end
@@ -327,22 +327,22 @@ function SpawnerSystem:spawnAgent(spec)
     ship:get(NameComponent):setName(name)
     local owner = spec.owner
     if owner then
-        PeopleManager.man(ship, {
-            roles = kind.crew, rng = self.rng, employer = owner, faction = FactionManager.factionOf(owner),
-            hire = function() return PeopleManager.unassigned(owner)[1] end,
+        PeopleManager:man(ship, {
+            roles = kind.crew, rng = self.rng, employer = owner, faction = FactionManager:factionOf(owner),
+            hire = function() return PeopleManager:unassigned(owner)[1] end,
         })
     else
         -- An independent: the captain owns the ship and pays the others.
-        owner = PeopleManager.manIndependent(ship, { roles = kind.crew, rng = self.rng, credits = spec.credits or kind.credits })
+        owner = PeopleManager:manIndependent(ship, { roles = kind.crew, rng = self.rng, credits = spec.credits or kind.credits })
     end
-    for _, member in ipairs(PeopleManager.membersOf(ship)) do
+    for _, member in ipairs(PeopleManager:membersOf(ship)) do
         if not self.known[member.person.id] then
             self.known[member.person.id] = true
             self.people[#self.people + 1] = member.person
         end
     end
     ship:add(Economy.Ownership(owner.id))
-    FactionManager.enlist(ship)
+    FactionManager:enlist(ship)
     self.agents[#self.agents + 1] = { entity = ship, handle = handle, name = name, kind = spec.kind, battery = battery }
     self.pending[#self.pending + 1] = { entity = ship, kind = spec.kind, name = name, owner = owner }
     self:announce(ship, name, "ship")
@@ -540,7 +540,7 @@ function SpawnerSystem:upkeepFleets()
     for _, entry in ipairs(self.factions) do
         local fleet = {}
         for _, ship in ipairs(self.agents) do
-            if Registry:hasEntity(ship.entity) and FactionManager.factionOf(ship.entity) == entry.entity then
+            if Registry:hasEntity(ship.entity) and FactionManager:factionOf(ship.entity) == entry.entity then
                 fleet[ship.kind] = (fleet[ship.kind] or 0) + 1
             end
         end
@@ -564,7 +564,7 @@ function SpawnerSystem:upkeepFleets()
         local origin = home and self:besideStation(home, #self.agents + 1)
         if not origin and marauders then
             for _, ship in ipairs(self.agents) do
-                if Registry:hasEntity(ship.entity) and FactionManager.factionOf(ship.entity) == entry.entity then
+                if Registry:hasEntity(ship.entity) and FactionManager:factionOf(ship.entity) == entry.entity then
                     local p = ship.entity:get(PhysicsComponents.RigidBody):getRigidBody():getPos()
                     origin = Position(p.x, p.y + 0.3, p.z)
                     break

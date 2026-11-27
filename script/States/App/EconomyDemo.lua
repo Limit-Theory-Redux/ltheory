@@ -154,7 +154,7 @@ function EconomyDemo:onPreSim(data)
     for _, ship in ipairs(self.ships) do
         local kind = ShipKinds[ship.group.kind]
         -- Each ship is an independent's: its captain owns it and decides for it.
-        local captain = PeopleManager.manIndependent(ship.entity, { roles = kind.crew, rng = self.peopleRng, credits = kind.credits })
+        local captain = PeopleManager:manIndependent(ship.entity, { roles = kind.crew, rng = self.peopleRng, credits = kind.credits })
         EconomySetup.equipAgent(ship.entity, {
             kind = ship.group.kind, capacity = kind.capacity, miningLaser = kind.miningLaser, owner = captain,
             name = ship.name,
@@ -262,7 +262,7 @@ function EconomyDemo:hudLines()
     end
     lines[#lines + 1] = "Ships"
     for _, ship in ipairs(self.ships) do
-        local agent = PeopleManager.commandOf(ship.entity, Economy.EconomyAgent)
+        local agent = PeopleManager:commandOf(ship.entity, Economy.EconomyAgent)
         if agent then
             local trips = agent:getStats()
             lines[#lines + 1] = string.format("  %s: %s | %d cr | %d trips | %s", ship.name, agent:getActivity(),

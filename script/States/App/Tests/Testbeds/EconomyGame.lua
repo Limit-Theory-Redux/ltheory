@@ -57,7 +57,7 @@ function EconomyGame.overlay()
             local parts = {}
             for j, b in ipairs(factions) do
                 if j ~= i and Registry:hasEntity(b.entity) then
-                    parts[#parts + 1] = string.format("%s %.2f", b.entity:get(Factions.Faction):getName(), FactionManager.relation(a.entity, b.entity))
+                    parts[#parts + 1] = string.format("%s %.2f", b.entity:get(Factions.Faction):getName(), FactionManager:relation(a.entity, b.entity))
                 end
             end
             lines[#lines + 1] = string.format("%s: %s", a.entity:get(Factions.Faction):getName(), table.concat(parts, ", "))

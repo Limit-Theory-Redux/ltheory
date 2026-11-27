@@ -319,10 +319,9 @@ function WeaponCombatSystem:preUpdate(dt)
             battery:destroy()
         end
     end
-    local mark = SubscriberProfile.mark
-    local t = os.clock()
+        local t = os.clock()
     local live = self:refreshTargets(dt)
-    mark("weapons: refresh targets", t)
+    SubscriberProfile:mark("weapons: refresh targets", t)
     hostileMemo = {}
     -- The live targets in a grid of the longest engagement range, built when a battery chooses.
     local grid, size = nil, 0
@@ -337,9 +336,9 @@ function WeaponCombatSystem:preUpdate(dt)
             t = os.clock()
             grid = grid or buildGrid(live, math.max(size, 1e-6))
             selectCandidates(battery, grid, math.max(size, 1e-6))
-            mark("weapons: candidates", t) t = os.clock()
+            SubscriberProfile:mark("weapons: candidates", t) t = os.clock()
             battery:assignTargets()
-            mark("weapons: assign", t)
+            SubscriberProfile:mark("weapons: assign", t)
         end
     end
 end
@@ -352,21 +351,20 @@ function WeaponCombatSystem:update(dt)
     if dt <= 0 then
         return
     end
-    local mark = SubscriberProfile.mark
-    for _, battery in ipairs(self.batteries) do
+        for _, battery in ipairs(self.batteries) do
         local t = os.clock()
         battery:syncTurretTransforms()
-        mark("weapons: turret sync", t) t = os.clock()
+        SubscriberProfile:mark("weapons: turret sync", t) t = os.clock()
         AIWeaponSystem:update(battery, dt)
-        mark("weapons: AI", t) t = os.clock()
+        SubscriberProfile:mark("weapons: AI", t) t = os.clock()
         WeaponTrackingSystem:update(battery, dt)
-        mark("weapons: tracking", t) t = os.clock()
+        SubscriberProfile:mark("weapons: tracking", t) t = os.clock()
         WeaponSystem:update(battery, dt)
-        mark("weapons: firing", t)
+        SubscriberProfile:mark("weapons: firing", t)
     end
     local t = os.clock()
     self:explodeDestroyedTargets()
-    mark("weapons: explosions", t)
+    SubscriberProfile:mark("weapons: explosions", t)
 end
 
 ---Post-sim step: shots in flight, beams, expired effect lights.

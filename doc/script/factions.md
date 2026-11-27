@@ -25,7 +25,7 @@ stations, their relations, the threat at their stations, and the fighting their 
 - **Raids** turn the victim's faction against the raider's (`CombatAgentSystem.raidPenalty`).
 
 The weapons engage by the factions' hostility: `FactionSystem` gives `WeaponCombatSystem` the rule
-`FactionManager.teamsHostile`, so allied and neutral factions' ships don't fire at each other, while a
+`FactionManager:teamsHostile`, so allied and neutral factions' ships don't fire at each other, while a
 team that is no faction's is an enemy of every other team as before.
 
 ## Threat and fighting jobs

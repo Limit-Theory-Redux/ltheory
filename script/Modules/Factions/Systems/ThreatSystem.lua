@@ -48,14 +48,14 @@ end
 ---@param victim Entity
 ---@param amount number Threat to add
 function ThreatSystem:onIncident(victim, amount)
-    local faction = FactionManager.factionOf(victim)
+    local faction = FactionManager:factionOf(victim)
     local rbCmp = victim:get(PhysicsComponents.RigidBody)
     local body = rbCmp and rbCmp:getRigidBody()
     if not faction or not body or amount <= 0 then return end
     local at = body:getPos()
     for station in Registry:view(Economy.Marketplace) do
         local stationBody = station:get(PhysicsComponents.RigidBody) and station:get(PhysicsComponents.RigidBody):getRigidBody()
-        if stationBody and FactionManager.factionOf(station) == faction then
+        if stationBody and FactionManager:factionOf(station) == faction then
             local p = stationBody:getPos()
             local dx, dy, dz = p.x - at.x, p.y - at.y, p.z - at.z
             if math.sqrt(dx * dx + dy * dy + dz * dz) <= self.radius then

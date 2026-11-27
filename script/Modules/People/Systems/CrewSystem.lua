@@ -43,9 +43,9 @@ function CrewSystem:update()
         if not Registry:hasEntity(Entity(assignment:getPost())) then adrift[#adrift + 1] = person end
     end
     for _, person in ipairs(adrift) do
-        local employer = PeopleManager.employerOf(person)
-        PeopleManager.experience(person, "ShipLost", employer and employer.id or nil)
-        PeopleManager.unassign(person)
+        local employer = PeopleManager:employerOf(person)
+        PeopleManager:experience(person, "ShipLost", employer and employer.id or nil)
+        PeopleManager:unassign(person)
     end
 
     local leaderless = {}
@@ -54,8 +54,8 @@ function CrewSystem:update()
         if not commander or not Registry:hasEntity(Entity(commander)) then leaderless[#leaderless + 1] = post end
     end
     for _, post in ipairs(leaderless) do
-        local first = PeopleManager.membersOf(post)[1]
-        if first then PeopleManager.setCommander(post, first.person) end
+        local first = PeopleManager:membersOf(post)[1]
+        if first then PeopleManager:setCommander(post, first.person) end
     end
     self.profiler:stop()
 end
@@ -65,8 +65,8 @@ end
 function CrewSystem:onHit(victim, attacker)
     local post = DamageEvents.rootOf(victim)
     if not post or not post:get(People.Crew) or not attacker then return end
-    local faction = FactionManager.factionOf(attacker)
-    PeopleManager.experienceAll(post, "Attacked", (faction or attacker).id)
+    local faction = FactionManager:factionOf(attacker)
+    PeopleManager:experienceAll(post, "Attacked", (faction or attacker).id)
 end
 
 return CrewSystem()

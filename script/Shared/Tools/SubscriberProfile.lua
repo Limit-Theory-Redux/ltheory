@@ -4,9 +4,12 @@
 -- (`EventTunnelNames`, kept by `EventBus:subscribe`). For measuring what the simulation costs at a
 -- scale (`Testbeds/EconomyGame` with LTHEORY_ECONOMY_SHIPS), apart from the renderer's GPU time.
 
-local SubscriberProfile = {
-    enabled = os.getenv("LTHEORY_PROFILE_SUBSCRIBERS") ~= nil,
-}
+---@class SubscriberProfile
+---@overload fun(self: SubscriberProfile): SubscriberProfile class internal
+---@overload fun(): SubscriberProfile class external
+local SubscriberProfile = Class("SubscriberProfile", function(self)
+    self.enabled = os.getenv("LTHEORY_PROFILE_SUBSCRIBERS") ~= nil
+end)
 
 local REPORT_S = 5
 local TOP = 22
@@ -18,24 +21,24 @@ local sections = {}
 ---Calls the tunnel and adds its time to its subscriber.
 ---@param tunnelId integer
 ---@param tunnel function
-function SubscriberProfile.call(tunnelId, tunnel, ...)
+function SubscriberProfile:call(tunnelId, tunnel, ...)
     local start = os.clock()
     tunnel(...)
     spent[tunnelId] = (spent[tunnelId] or 0) + (os.clock() - start)
 end
 
 ---Adds the time since `t0` (an `os.clock()`) to the named section; nothing while disabled. A caller
----times a part of its work: `local t = os.clock() ... SubscriberProfile.mark("physics", t)`.
+---times a part of its work: `local t = os.clock() ... SubscriberProfile:mark("physics", t)`.
 ---@param name string
 ---@param t0 number
-function SubscriberProfile.mark(name, t0)
-    if not SubscriberProfile.enabled then return end
+function SubscriberProfile:mark(name, t0)
+    if not self.enabled then return end
     sections[name] = (sections[name] or 0) + (os.clock() - t0)
 end
 
 ---Counts a frame, and logs the report when it is due.
-function SubscriberProfile.frame()
-    if not SubscriberProfile.enabled then return end
+function SubscriberProfile:frame()
+    if not self.enabled then return end
     frames = frames + 1
     local now = os.clock()
     since = since or now
@@ -64,4 +67,4 @@ function SubscriberProfile.frame()
     spent, sections, frames, since = {}, {}, 0, now
 end
 
-return SubscriberProfile
+return SubscriberProfile()
