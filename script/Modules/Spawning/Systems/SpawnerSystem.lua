@@ -270,7 +270,8 @@ function SpawnerSystem:buildHull(kind, spec, name)
     return self.constructs:createShip({ seed = seed, shipType = Enums.ShipType.Fighter, config = config }), nil
 end
 
----The armament of a fighter: a mirrored pair of small burst-laser turrets on the top of its fore hull.
+---The armament of a fighter: a mirrored pair of small burst-laser turrets on the top of its fore hull,
+---and the laser capacitor they fire from.
 ---@param seed integer
 ---@param config table The hull's config
 ---@return table recipe For `ArmedShipBuilder:build`
@@ -305,6 +306,16 @@ function SpawnerSystem:fighterRecipe(seed, config)
         },
         defaultWeapon = { generatedKey = Weapon.ProceduralKey.BurstLaser },
         requireLoadoutForAllMounts = false,
+        -- The energy its lasers fire from: without a bank, no shot is ever paid for.
+        capacitors = {
+            banks = {
+                {
+                    id = "laser", groupId = Weapon.CapacitorGroup.Laser,
+                    supportedSizeClasses = { Weapon.MountSizeClass.SM, Weapon.MountSizeClass.M },
+                    maxCharge = 30.0, chargeRate = 20.0,
+                },
+            },
+        },
     }
 end
 
