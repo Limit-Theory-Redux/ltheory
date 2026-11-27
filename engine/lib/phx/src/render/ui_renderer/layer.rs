@@ -9,7 +9,7 @@ use super::{
     UIRendererImageId, UIRendererLayerId, UIRendererPanelId, UIRendererRectId, UIRendererShapeId,
     UIRendererTextId,
 };
-use crate::render::{ClipRect, Color, Renderer, Samplers, Shape};
+use crate::render::{ClipRect, Renderer, Samplers, Shape};
 
 /// One thing a layer draws, in the order it was added: what is added later is
 /// drawn over what came before (painter's order, as in the widget tree).
