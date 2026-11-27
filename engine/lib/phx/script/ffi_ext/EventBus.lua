@@ -26,6 +26,10 @@ function onDef_EventBus_t(t, mt)
 
         local tunnelId = libphx.EventBus_Subscribe(self, event, entityIdPtr)
         EventTunnels[tunnelId] = function(...) callback(ctxTable, ...) end
+        -- Who listens, for the subscriber profile (`Shared/Tools/SubscriberProfile.lua`).
+        local who = ctxTable and type(ctxTable) or "-"
+        if who == "table" then who = rawget(ctxTable, "__name") or (getmetatable(ctxTable) and getmetatable(ctxTable).__name) or "App" end
+        EventTunnelNames[tunnelId] = string.format("%s:%s", tostring(who), tostring(event))
         return tunnelId
     end
 

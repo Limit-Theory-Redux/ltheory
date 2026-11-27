@@ -3,6 +3,7 @@ local ShaderHotReload = require('Render.ShaderHotReload')
 local ShaderErrorOverlay = require('Shared.Tools.ShaderErrorOverlay')
 local RenderInfoOverlay = require('Shared.Tools.RenderInfoOverlay')
 local GeneralActions = require('Input.ActionBindings.GeneralActions')
+local SubscriberProfile = require("Shared.Tools.SubscriberProfile")
 
 ---@class Application
 local Application = Class("Application", function(self) end)
@@ -45,7 +46,23 @@ function Application:onExit() end
 -- Ends the run after this frame; the process exits with `code`.
 ---@param code integer|nil process exit code, `Core.ExitCode.Success` by default
 function Application:quit(code)
+    if self.jitProfiling then
+        require("jit.p").stop()
+        self.jitProfiling = false
+    end
     Engine:exitWithCode(code or Core.ExitCode.Success)
+end
+
+-- LTHEORY_JIT_PROFILE=<file>: LuaJIT's sampling profiler (jit.p) writes where the Lua time went to
+-- the file when the app quits, from frame LTHEORY_JIT_PROFILE_FROM on (0 by default), with the
+-- options of LTHEORY_JIT_PROFILE_MODE ("Fm1": functions with their module, at least 1% shown).
+function Application:jitProfileFrame()
+    local path = os.getenv("LTHEORY_JIT_PROFILE")
+    if not path or self.jitProfiling ~= nil then return end
+    self.jitProfileFrames = (self.jitProfileFrames or 0) + 1
+    if self.jitProfileFrames < (tonumber(os.getenv("LTHEORY_JIT_PROFILE_FROM")) or 0) then return end
+    require("jit.p").start(os.getenv("LTHEORY_JIT_PROFILE_MODE") or "Fm1", path)
+    self.jitProfiling = true
 end
 
 function Application:toggleFullscreen()
@@ -74,6 +91,8 @@ function Application:eventLoop()
     end
 
     EventBus:startEventIteration()
+    SubscriberProfile.frame()
+    self:jitProfileFrame()
 
     local eventData, payload = EventBus:nextEvent()
     while eventData ~= nil do
@@ -82,7 +101,11 @@ function Application:eventLoop()
         -- this frame can still deliver events for a tunnel that has no handler.
         local tunnel = EventTunnels[eventData:tunnelId()]
         if tunnel then
-            tunnel(eventData, payload)
+            if SubscriberProfile.enabled then
+                SubscriberProfile.call(eventData:tunnelId(), tunnel, eventData, payload)
+            else
+                tunnel(eventData, payload)
+            end
         end
         eventData, payload = EventBus:nextEvent()
     end

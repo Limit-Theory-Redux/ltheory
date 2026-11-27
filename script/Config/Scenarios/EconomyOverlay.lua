@@ -12,6 +12,9 @@ local AccountManager    = require("Modules.Economy.Managers.AccountManager")
 local SpawnerSystem     = require("Modules.Spawning.Systems.SpawnerSystem")
 local MarketplaceSystem = require("Modules.Economy.Systems.MarketplaceSystem")
 
+-- The ships listed; the rest are counted.
+local MAX_SHIPS = 10
+
 ---"Item count" for each item the inventory holds, with "(+n on sale)" for what the holder's asks on
 ---its own market hold of it (goods out of the inventory until they sell or come back).
 ---@param inventory InventoryComponent
@@ -51,7 +54,12 @@ return function()
                 stockText(station.entity:get(Economy.Inventory), station.entity))
         end
     end
-    for _, ship in ipairs(SpawnerSystem:getAgents()) do
+    local agents = SpawnerSystem:getAgents()
+    for index, ship in ipairs(agents) do
+        if index > MAX_SHIPS then
+            lines[#lines + 1] = string.format("... and %d more ships", #agents - MAX_SHIPS)
+            break
+        end
         local agent = Registry:hasEntity(ship.entity) and PeopleManager.commandOf(ship.entity, Economy.EconomyAgent)
         if agent then
             -- Who commands it; an independent's captain owns it and keeps its own credits, while a

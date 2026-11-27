@@ -14,5 +14,7 @@ UIComponent = {}
 AppInit = {}
 AppEventLoop = {}
 EventTunnels = {}
+-- Tunnel id -> "Subscriber:Event", for the subscriber profile (Shared/Tools/SubscriberProfile.lua).
+EventTunnelNames = {}
 AppClose = {}
 LimitTheoryRedux = {}

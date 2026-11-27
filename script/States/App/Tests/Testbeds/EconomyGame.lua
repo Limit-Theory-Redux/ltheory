@@ -12,6 +12,8 @@
 --   LTHEORY_ECONOMY_TIMESCALE simulated seconds per second (default 4)
 --   LTHEORY_ECONOMY_VISIT     frames the camera stays with each station or ship (default 300)
 --   LTHEORY_ECONOMY_FOCUS     a name to keep the camera on (a station's or a ship's, e.g. "Fighter 2")
+--   LTHEORY_ECONOMY_SHIPS     more ships to spawn at the start, dealt round the factions' stations (for
+--                             measuring the simulation at a scale, with LTHEORY_PROFILE_SUBSCRIBERS)
 -- Design: doc/script/spawning.md
 
 local Registry        = require('Core.ECS.Registry')
@@ -32,6 +34,9 @@ local EconomyGame = Subclass("EconomyGameTestbed", Game)
 local TIME_SCALE = tonumber(os.getenv('LTHEORY_ECONOMY_TIMESCALE')) or 4
 local VISIT_FRAMES = tonumber(os.getenv('LTHEORY_ECONOMY_VISIT')) or 300
 local FOCUS = os.getenv('LTHEORY_ECONOMY_FOCUS')
+local EXTRA_SHIPS = tonumber(os.getenv('LTHEORY_ECONOMY_SHIPS')) or 0
+-- The kinds of the extra ships, in turn: half haulers, three tenths miners, a fifth fighters.
+local EXTRA_KINDS = { "Hauler", "Miner", "Hauler", "Fighter", "Hauler", "Miner", "Hauler", "Fighter", "Hauler", "Miner" }
 local LOG_FRAMES = 300
 
 -- The default scenario, with the economy at the Normal density and its state in the HUD.
@@ -89,6 +94,7 @@ function EconomyGame:onPreSim(data)
     self.directorFrames = (self.directorFrames or 0) + 1
     local frame = self.directorFrames
 
+    if frame == 2 and EXTRA_SHIPS > 0 then self:spawnExtraShips() end
     local list = sights()
     if #list > 0 and (frame == 2 or frame % VISIT_FRAMES == 0) then
         local target = list[(math.floor(frame / VISIT_FRAMES)) % #list + 1]
@@ -107,6 +113,28 @@ function EconomyGame:onPreSim(data)
         self:logCamera()
         for _, line in ipairs(EconomyGame.overlay()) do Log.Info("EconomyGame: %s", line) end
     end
+end
+
+---Spawns `EXTRA_SHIPS` agents, dealt round the trading factions and their stations.
+function EconomyGame:spawnExtraShips()
+    local owners = {}
+    for _, faction in ipairs(SpawnerSystem:getFactions()) do
+        if faction.entity:get(Factions.Faction):getType() ~= Enums.FactionType.Marauders and #faction.stations > 0 then
+            owners[#owners + 1] = faction
+        end
+    end
+    if #owners == 0 then return end
+    for i = 1, EXTRA_SHIPS do
+        local faction = owners[(i - 1) % #owners + 1]
+        local station = faction.stations[(math.floor((i - 1) / #owners)) % #faction.stations + 1]
+        if Registry:hasEntity(station) then
+            -- Round the station, and stacked in height, so that no two start inside each other.
+            local at = SpawnerSystem:besideStation(station, 40 + i)
+            at = Position(at.x, at.y + ((i % 30) - 15) * 0.04, at.z)
+            SpawnerSystem:spawnAgent({ kind = EXTRA_KINDS[(i - 1) % #EXTRA_KINDS + 1], owner = faction.leader, position = at })
+        end
+    end
+    Log.Info("EconomyGame: %d more ships spawned, %d agents in all", EXTRA_SHIPS, #SpawnerSystem:getAgents())
 end
 
 ---Where the camera is and what it follows, for checking the director against the screenshots.

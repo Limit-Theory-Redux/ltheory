@@ -71,6 +71,7 @@ require('Shared.Generation.Nebula2')
 
 -- How a game starts (New Game's Scenario list)
 local Scenarios = require('Config.Scenarios')
+local SubscriberProfile = require("Shared.Tools.SubscriberProfile")
 
 local rng = RNG.FromTime()
 
@@ -1163,20 +1164,30 @@ function LimitTheoryRedux:onSim(data)
     -- Static star system: skip orbital motion so bodies stay at their
     -- generated positions (deterministic scene while orbital mechanics
     -- are still being developed). Asteroid fields still follow parents.
+    local mark = SubscriberProfile.mark
+    local t = os.clock()
     if not self.staticStarSystem then
         OrbitalSystem:update(self.orbiters, dt, self.followers)
     end
+    mark("orbits", t) t = os.clock()
     AsteroidFieldSystem:updatePositions()
+    mark("asteroid positions", t) t = os.clock()
     GravityWellSystem:update(dt, self.world:getSolverSubsteps())
+    mark("gravity wells", t) t = os.clock()
 
     TravelDriveSystem:update(dt)
+    mark("travel drive", t) t = os.clock()
     ShipFlightSystem:update()
+    mark("ship flight", t) t = os.clock()
     if self.scenario.update then self.scenario.update(self, dt) end
     -- Weapons: targets and turrets before the physics step, AI, aim and
     -- firing right after it (shots in flight: onPostSim)
     self.weaponCombat:preUpdate(dt)
+    mark("weapons before", t) t = os.clock()
     self.world:update(dt)
+    mark("physics", t) t = os.clock()
     self.weaponCombat:update(dt)
+    mark("weapons after", t)
     if self.scenario.postUpdate then self.scenario.postUpdate(self, dt) end
 end
 
