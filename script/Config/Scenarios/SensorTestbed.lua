@@ -461,7 +461,7 @@ return {
             end
         end
         local body = game.playerShip:get(PhysicsComponents.RigidBody)
-        sensorHud:update(SensorPicture.build(sensor, body:getForward(), body:getRight()), dt)
+        sensorHud:update(SensorPicture.build(sensor, body:getForward(), body:getRight(), body:getUp()), dt)
         tuningPanel:update(data.tuning.shown
             and { sensor = sensor, hull = data.hull, selected = data.tuning.selected } or nil)
     end,

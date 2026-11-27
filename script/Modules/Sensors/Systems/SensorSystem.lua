@@ -13,8 +13,13 @@ local UniverseScaleConfig = require("Config.Gen.UniverseScaleConfig")
 ---
 --- A sensor sees each signature through a view of its own (its `pos` and the
 --- signature's `entity`), kept for as long as the signature exists, so pulse
---- echoes and scan reads stay with it from one update to the next. A
---- signature that is gone is forgotten.
+--- echoes, scan reads and the memory of it stay with it from one update to the
+--- next. A signature that is gone is forgotten.
+---
+--- A view also keeps where the object is in the world (`world`, game units),
+--- where the sensor last had it as a contact (`seenAt`), and that place
+--- relative to the sensor now (`lastPos`, metres): a contact it loses stays
+--- where it was last seen.
 ---@class SensorSystem
 local SensorSystem = {}
 
@@ -85,6 +90,7 @@ function SensorSystem:updateSensor(entity, sensor, signatures, dt)
             view.pos.x = (s.pos.x - origin.x) * toMetres
             view.pos.y = (s.pos.y - origin.y) * toMetres
             view.pos.z = (s.pos.z - origin.z) * toMetres
+            view.world = s.pos
             objects[#objects + 1] = view
             seen[view] = true
         end
@@ -104,6 +110,19 @@ function SensorSystem:updateSensor(entity, sensor, signatures, dt)
     local readings = SensorModel.evaluate(state)
     SensorModel.step(state, readings, dt)
     sensor:setReadings(readings)
+
+    for _, view in ipairs(objects) do
+        if readings[view].tier >= 1 then
+            view.seenAt = view.seenAt or {}
+            view.seenAt.x, view.seenAt.y, view.seenAt.z = view.world.x, view.world.y, view.world.z
+        end
+        if view.seenAt then
+            view.lastPos = view.lastPos or {}
+            view.lastPos.x = (view.seenAt.x - origin.x) * toMetres
+            view.lastPos.y = (view.seenAt.y - origin.y) * toMetres
+            view.lastPos.z = (view.seenAt.z - origin.z) * toMetres
+        end
+    end
 end
 
 return SensorSystem

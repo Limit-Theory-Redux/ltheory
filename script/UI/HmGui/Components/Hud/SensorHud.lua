@@ -3,8 +3,10 @@
 --
 -- The radar, at the bottom centre: a disc tilted away from the viewer with the
 -- ship in the middle, nose up, distance on a log scale (50 m at the centre,
--- 100 km at the rim). A contact's shape says what it is, its fill how much is
--- known, its colour whose side it's on:
+-- 100 km at the rim). A contact's foot sits on the disc at its bearing, on a
+-- stick up to it above the ship's plane or a dashed one down below it. Its
+-- shape says what it is, its fill how much is known, its colour whose side
+-- it's on:
 --   shape   ships and stations by their class icon (I circle, II triangle,
 --           III triangle down, IV hexagon); asteroids a dot; planets a ring in
 --           a ring; stars a four-pointed star; wrecks their class icon, broken
@@ -15,8 +17,14 @@
 -- that tier's icon. A ring round the disc bulges where signals come from. How
 -- far the ship is heard is a dashed ring (amber, further out, while it scans or
 -- pulses); its heat an arc round it (amber from the thermal bloom); ripples over
--- a contact mean it heard the last pulse. Amber means "look here" and nothing
--- else.
+-- a contact mean it heard the last pulse. What the sensor knew of a contact
+-- stays: while it senses less, the fill fades and an arc round it closes as
+-- the knowledge ages; lost, a dashed ghost stays where it was last seen.
+-- Amber means "look here" and nothing else.
+--
+-- In the view: each contact's icon where it is on the screen, the target in
+-- brackets with its distance, an amber arrow at the edge toward it when it's
+-- off screen.
 --
 -- The target panel, at the bottom right: a hologram circle that fills in as
 -- the sensor learns more, like the HUD vision's target panel. Static without a
@@ -29,7 +37,7 @@
 --
 --   local hud = UIComponent.SensorHud { visible = function() return shown end }
 --   -- every frame, before rendering:
---   hud:update(SensorPicture.build(sensor, forward, right), dt)
+--   hud:update(SensorPicture.build(sensor, forward, right, up), dt)
 --
 -- Places and sizes are pixels on a 1920 x 1080 screen and scale with the
 -- window height. The radar keeps its place relative to the bottom centre of
@@ -37,6 +45,9 @@
 
 local SensorModel = require("Modules.Sensors.SensorModel")
 local SensorText = require("Modules.Sensors.SensorText")
+local CameraManager = require("Modules.Cameras.Managers.CameraManager")
+local PhysicsComponents = require("Modules.Physics.Components")
+local UniverseScaleConfig = require("Config.Gen.UniverseScaleConfig")
 
 ---@class UIComponentSensorHud: UIComponent
 ---@field state UIComponentState
@@ -61,9 +72,14 @@ local SWEEP_STEPS, SWEEP_STEP = 14, 0.06
 local PULSE_RING_TIME = 1.2          -- seconds the pulse ring takes to reach the rim and fade
 local PULSE_SHOUT_TIME = 4           -- seconds the pulse's footprint stays up
 local ECHO_FADE_TIME = 5             -- a blob seen by its pulse echo alone fades over its last seconds
+local STALE_FULL = 120               -- seconds until a remembered contact's age arc closes
+local GHOST_FADE = 120               -- seconds a lost ship's ghost takes to fade to its faintest
 -- Strokes per closed curve on the radar; each is bent to follow the curve
 local SEGMENTS = { rim = 24, tier = 20, signal = 60, heat = 16 }
 local GLYPH_SIZE = 5.5
+-- Markers in the view: no icon once the object itself is this big on screen
+-- (1080p pixels, radius); edge arrows keep this far from the window's edge
+local MARKER_MAX_SIZE, MARKER_EDGE = 24, 70
 local BLOB_RADIUS, MERGED_BLOB_RADIUS = 13, 17
 local ECHO_METER = { from = 158.4, sweep = 43.2, gap = 16 } -- the echo meter's arc under the panel (degrees, 0 = up)
 local FONT, FONT_MIN = "UbuntuBold", 9
@@ -105,11 +121,13 @@ local function radarRadius(d)
     return clamp((math.log10(math.max(1, d)) - lo) / (hi - lo), 0, 1)
 end
 
---- A point on the radar's plane (x right, y ahead, in radar radii) in screen
---- pixels at 1080p, through the disc's tilt and perspective.
-local function onRadar(x, y)
+--- A point in the radar's space (x right, y ahead, h up from the disc, in
+--- radar radii) in screen pixels at 1080p, through the disc's tilt and
+--- perspective.
+local function onRadar(x, y, h)
+    h = h or 0
     local ct, st = math.cos(RADAR.tilt), math.sin(RADAR.tilt)
-    local Y, Z = y * ct, -y * st
+    local Y, Z = y * ct + h * st, -y * st + h * ct
     local p = RADAR.depth / (RADAR.depth - Z)
     return RADAR.x + RADAR.r * x * p, RADAR.y - RADAR.r * Y * p
 end
@@ -413,24 +431,38 @@ local function new(_, args)
 
         --- A contact: its shape, filled by how much is known, coloured by its
         --- standing once that's known (T3).
-        local function glyph(o, x, y, size, tier)
+        --- `mode`: nil while it's a contact as known as it ever was; "stale"
+        --- when it knew more of it before (the fill fades, no core); "ghost"
+        --- when it's out of contact (a dashed outline only).
+        local function glyph(o, x, y, size, tier, mode, alpha)
+            alpha = alpha or 1
             local kind, broken = glyphKind(o)
             local c = (tier >= 3 and o.standing == "hostile") and style.hostile or style.pale
             local fill = tier >= 3 and (broken and 0.3 or 0.55) or 0
-            local dash = broken and { 2.5, 2 } or nil
+            if mode == "stale" then fill = fill * 0.45 elseif mode == "ghost" then fill = 0 end
+            fill = fill * alpha
+            local a = 0.95 * alpha
+            local dash = (broken or mode == "ghost") and { 2.5, 2 } or nil
             if kind == "asteroid" then
-                round("circle", c, tier >= 3 and 0.9 or 0.6, x, y, size * 0.45)
+                round("circle", c, (tier >= 3 and mode == nil and 0.9 or 0.6) * alpha, x, y, size * 0.45)
             elseif kind == "planet" then
-                if tier >= 3 then round("circle", c, 0.5, x, y, size * 0.5) end
-                round("ring", c, 0.95, x, y, size * 1.1)
-                round("ring", c, 0.95, x, y, size * 0.5)
+                if fill > 0 then round("circle", c, 0.5 * alpha, x, y, size * 0.5) end
+                round("ring", c, a, x, y, size * 1.1)
+                round("ring", c, a, x, y, size * 0.5)
             elseif kind == "class1" then
                 if fill > 0 then round("circle", c, fill, x, y, size * 0.9) end
-                if dash then arc(c, 0.95, 1.4, x, y, size * 0.9, 0, 360, "line", dash) else round("ring", c, 0.95, x, y, size * 0.9) end
+                if dash then arc(c, a, 1.4, x, y, size * 0.9, 0, 360, "line", dash) else round("ring", c, a, x, y, size * 0.9) end
             else
-                shape(GLYPH_SHAPES[kind], x, y, size, c, 0.95, 1.4, fill, "line", dash)
+                shape(GLYPH_SHAPES[kind], x, y, size, c, a, 1.4, fill, "line", dash)
             end
-            if tier >= 4 then round("circle", style.core, 1, x, y, size * 0.3, true) end
+            if tier >= 4 and mode == nil then round("circle", style.core, alpha, x, y, size * 0.3, true) end
+        end
+
+        --- How strongly a lost contact's ghost still shows: a ship's fades as
+        --- it could have moved on; anything else stays where it was.
+        local function ghostAlpha(c)
+            if c.object.kind ~= "ship" then return 0.6 end
+            return math.max(0.25, 0.75 - 0.5 * c.lost / GHOST_FADE)
         end
 
         --- A tier's own look, for the range rings and the echo meter's notches.
@@ -455,6 +487,81 @@ local function new(_, args)
         -- A full-window layer; everything in it is placed in window pixels.
         Gui:beginStackContainer()
         Gui:setClipping(false)
+
+        ------------------------------------------------------------------
+        -- Markers in your view: each contact's radar icon where it is on the
+        -- screen, brackets and its distance on the target, an arrow at the edge
+        -- toward the target when it's off screen. Planets and stars need none.
+        do
+            local cam = CameraManager:getActiveCameraEntity()
+            local camTransform = cam and cam:get(PhysicsComponents.Transform)
+            if camTransform then
+                ax, ay = 0, 0 -- places below are window pixels / s
+                local camPos = camTransform:getPos()
+                local rot = CameraManager:getViewRot()
+                local fwd, rgt, upv = rot:getForward(), rot:getRight(), rot:getUp()
+                local tanHalf = math.tan(math.rad(CameraManager:getFov()) / 2)
+                local G = UniverseScaleConfig.globalScale
+                local cx, cy = W / 2 / s, H / 2 / s
+
+                for _, c in ipairs(picture.objects) do
+                    local o, r = c.object, c.reading
+                    local isTarget = o == targetObject
+                    if c.world and (r.tier >= 1 or c.ghost) and (isTarget or not c.ghost) then
+                        local dx, dy, dz = c.world.x - camPos.x, c.world.y - camPos.y, c.world.z - camPos.z
+                        local depth = dx * fwd.x + dy * fwd.y + dz * fwd.z
+                        local side = dx * rgt.x + dy * rgt.y + dz * rgt.z
+                        local lift = dx * upv.x + dy * upv.y + dz * upv.z
+                        local px, py, size
+                        if depth > 0 then
+                            px = cx + side / (depth * tanHalf) * cy -- the same scale both ways: square pixels
+                            py = cy - lift / (depth * tanHalf) * cy
+                            size = (o.radius or 0) * G / (depth * tanHalf) * cy
+                        end
+                        local onScreen = px and px > MARKER_EDGE / 2 and px < 2 * cx - MARKER_EDGE / 2
+                            and py > MARKER_EDGE / 2 and py < 2 * cy - MARKER_EDGE / 2
+                        local alpha = c.ghost and ghostAlpha(c) or 1
+                        local shown = math.max(r.tier, c.known)
+                        if onScreen then
+                            if size < MARKER_MAX_SIZE and o.kind ~= "planet" and o.kind ~= "star" then
+                                if c.ghost then
+                                    glyph(o, px, py, GLYPH_SIZE, shown, "ghost", alpha)
+                                elseif shown <= 1 then
+                                    blob(style.cyan, 0.9, px, py, BLOB_RADIUS * 0.7)
+                                else
+                                    glyph(o, px, py, GLYPH_SIZE, shown, c.stale and "stale" or nil)
+                                end
+                            end
+                            if isTarget then
+                                local half, len = math.max(16, size + 8), 6
+                                for _, sgn in ipairs({ { -1, -1 }, { 1, -1 }, { 1, 1 }, { -1, 1 } }) do
+                                    local sx, sy = sgn[1], sgn[2]
+                                    polyline(style.cyan, 0.95 * alpha, 1.6, {
+                                        { px + sx * half, py + sy * (half - len) },
+                                        { px + sx * half, py + sy * half },
+                                        { px + sx * (half - len), py + sy * half },
+                                    })
+                                end
+                                text(SensorText.distance(c.distance), px, py + half + 14, 12, style.pale, 0.85 * alpha, "center")
+                            end
+                        elseif isTarget then
+                            -- toward it on the screen: from the middle out to its place, or
+                            -- (behind you) the side it is on; straight down when it's dead behind
+                            local ux, uy
+                            if depth > 0 then ux, uy = px - cx, py - cy else ux, uy = side, -lift end
+                            local len = math.sqrt(ux * ux + uy * uy)
+                            if len < 1e-9 then ux, uy, len = 0, 1, 1 end
+                            ux, uy = ux / len, uy / len
+                            local t = math.min((cx - MARKER_EDGE) / math.max(1e-9, math.abs(ux)),
+                                (cy - MARKER_EDGE) / math.max(1e-9, math.abs(uy)))
+                            local ex, ey = cx + ux * t, cy + uy * t
+                            triangle(style.amber, 0.9 * alpha, ex + ux * 11, ey + uy * 11,
+                                ex - ux * 5 - uy * 8, ey - uy * 5 + ux * 8, ex - ux * 5 + uy * 8, ey - uy * 5 - ux * 8)
+                        end
+                    end
+                end
+            end
+        end
 
         ------------------------------------------------------------------
         -- The radar
@@ -547,34 +654,54 @@ local function new(_, args)
             radarCurve(style.cyan, 0.7, 1.2, radiusAt, SEGMENTS.signal, "neon")
         end
 
-        -- Contacts, who heard your pulse, and the target's corners and beam
+        -- Contacts on their sticks, who heard your pulse, and the target's corners and beam.
+        -- A contact sits where its direction, scaled to its distance on the log
+        -- scale, puts it: its foot on the disc at its bearing, a stick up to it
+        -- when it's above your plane, a dashed one down when it's below.
         for _, c in ipairs(picture.objects) do
             local r = c.reading
-            local x, y = polar(radarRadius(c.distance), c.bearing)
-            if r.tier == 1 then
-                -- heard: full; only a pulse echo: fading out over its last seconds
-                local fade = r.passive.snr >= 1 and 1 or clamp(c.echo / ECHO_FADE_TIME, 0.25, 1)
-                blob(style.cyan, fade, x + 2.5 * math.sin(clock * 1.7 + c.index * 2.1),
-                    y + 1.5 * math.cos(clock * 1.3 + c.index), r.count > 1 and MERGED_BLOB_RADIUS or BLOB_RADIUS)
-            elseif r.tier >= 2 then
-                glyph(c.object, x, y, GLYPH_SIZE, r.tier)
-            end
-            if c.heardPulse then
-                icon("ping", x, y - 15, 9, style.amber, 0.95 * math.min(1, PULSE_SHOUT_TIME - picture.pulseAge))
-            end
-            if c.object == targetObject then
-                local half, len = 11, 4
-                for _, sgn in ipairs({ { -1, -1 }, { 1, -1 }, { 1, 1 }, { -1, 1 } }) do
-                    local sx, sy = sgn[1], sgn[2]
-                    polyline(style.cyan, r.tier >= 1 and 0.95 or 0.35, 1.6, {
-                        { x + sx * half, y + sy * (half - len) },
-                        { x + sx * half, y + sy * half },
-                        { x + sx * (half - len), y + sy * half },
-                    })
+            if r.tier >= 1 or c.ghost then
+                local shown = math.max(r.tier, c.known)
+                local alpha = c.ghost and ghostAlpha(c) or 1
+                local rr, el, b = radarRadius(c.distance), c.elevation * DEG, c.bearing * DEG
+                local flat, h = rr * math.cos(el), rr * math.sin(el)
+                local fx, fy = onRadar(flat * math.sin(b), flat * math.cos(b))
+                local x, y = onRadar(flat * math.sin(b), flat * math.cos(b), h)
+                if math.abs(y - fy) > 3 then
+                    line(style.pale, 0.55 * alpha, 1.1, fx, fy, x, y, "line", 0, h < 0 and { 2.5, 3 } or nil)
                 end
-                if picture.scanning and r.tier >= 1 then
-                    local cx, cy = onRadar(0, 0)
-                    line(style.amber, 0.8, 1.4, cx, cy, x, y, "line", 0, { 3, 5, -clock * 30 })
+                round("circle", style.pale, 0.7 * alpha, fx, fy, 1.6)
+
+                if c.ghost then
+                    glyph(c.object, x, y, GLYPH_SIZE, shown, "ghost", alpha)
+                elseif shown <= 1 then
+                    -- heard: full; only a pulse echo: fading out over its last seconds
+                    local fade = r.passive.snr >= 1 and 1 or clamp(c.echo / ECHO_FADE_TIME, 0.25, 1)
+                    blob(style.cyan, fade, x + 2.5 * math.sin(clock * 1.7 + c.index * 2.1),
+                        y + 1.5 * math.cos(clock * 1.3 + c.index), r.count > 1 and MERGED_BLOB_RADIUS or BLOB_RADIUS)
+                else
+                    glyph(c.object, x, y, GLYPH_SIZE, shown, c.stale and "stale" or nil)
+                end
+                if c.stale or c.ghost then -- how old what it knows is: the arc closes as it ages
+                    arc(style.pale, 0.6 * alpha, 1.2, x, y, GLYPH_SIZE + 4.5, 0, 360 * math.min(1, c.age / STALE_FULL))
+                end
+                if c.heardPulse then
+                    icon("ping", x, y - 15, 9, style.amber, 0.95 * math.min(1, PULSE_SHOUT_TIME - picture.pulseAge))
+                end
+                if c.object == targetObject then
+                    local half, len = 11, 4
+                    for _, sgn in ipairs({ { -1, -1 }, { 1, -1 }, { 1, 1 }, { -1, 1 } }) do
+                        local sx, sy = sgn[1], sgn[2]
+                        polyline(style.cyan, 0.95 * alpha, 1.6, {
+                            { x + sx * half, y + sy * (half - len) },
+                            { x + sx * half, y + sy * half },
+                            { x + sx * (half - len), y + sy * half },
+                        })
+                    end
+                    if picture.scanning and r.tier >= 1 then
+                        local cx, cy = onRadar(0, 0)
+                        line(style.amber, 0.8, 1.4, cx, cy, x, y, "line", 0, { 3, 5, -clock * 30 })
+                    end
                 end
             end
         end
@@ -587,10 +714,18 @@ local function new(_, args)
             local contact = target and target.contact
             local tier = contact and contact.reading.tier or 0
             local o = contact and contact.object
-            local read = target and math.max(target.read, tier >= 3 and 3 or 0) or 0
+            -- What it shows is the most the sensor has known of it. When it senses
+            -- less now, what it is stays (shape, colour, name) but the details are
+            -- as last seen: grey, with their age running round inside the ring.
+            -- Lost, all of it is a memory: grey, with scan lines, a dashed ring.
+            local known = contact and contact.known or 0
+            local ghost = known >= 2 and tier < 1
+            local stale = ghost or (contact ~= nil and contact.stale)
+            local shown = math.max(tier, known)
+            local read = target and math.max(target.read, shown >= 3 and 3 or 0) or 0
             round("circle", style.hud, 0.06, x, y, R)
 
-            if tier < 1 then
+            if shown < 1 then
                 -- no contact (or no target): static, and a dashed ring that
                 -- flashes while a scan has nothing to aim at
                 local scanningNothing = picture.scanning and target ~= nil
@@ -600,7 +735,12 @@ local function new(_, args)
             else
                 -- the ring: once its shields are known, it glows as strongly as they are
                 local shield = read >= 3 and o.shield or nil
-                if shield then
+                if stale then
+                    arc(style.pale, 0.5, 2, x, y, R - 7, 0, 360 * math.min(1, contact.age / STALE_FULL))
+                end
+                if ghost then
+                    arc(style.pale, 0.6, 1.3, x, y, R, 0, 360, "line", { 5, 4 })
+                elseif shield and not stale then
                     arc(style.cyan, 0.18 + 0.82 * shield ^ 1.1, 1.2 + 0.8 * shield, x, y, R, 0, 360, "neon")
                     Gui:setStrokeLookParam("glow", 0.25 + 0.6 * shield)
                     Gui:setStrokeLookParam("glowWidth", (4 + 14 * shield) * s)
@@ -609,18 +749,18 @@ local function new(_, args)
                 end
 
                 -- what it is, as far as it's known
-                if tier == 1 then
+                if shown == 1 then
                     staticDots(x, y, R, 24, 0.35)
                     blob(style.cyan, 1, x + 3 * math.sin(clock * 1.7), y + 2 * math.cos(clock * 1.3),
                         contact.reading.count > 1 and 46 or 36)
                 elseif read < 3 then
-                    glyph(o, x, y, 34, 2)
+                    glyph(o, x, y, 34, 2, stale and "stale" or nil, ghost and 0.7 or 1)
                 else
                     -- the hologram's stand-in: a wireframe of what it is, brighter at T4
                     local kind = glyphKind(o)
                     local sil = SILHOUETTES[o.kind] or SILHOUETTES[kind] or SILHOUETTES.class2
-                    local col = (o.standing == "hostile") and style.hostile or style.cyan
-                    local size, bright = R * 0.62, read >= 4 and 1 or 0.85
+                    local col = ghost and style.pale or (o.standing == "hostile") and style.hostile or style.cyan
+                    local size, bright = R * 0.62, ghost and 0.5 or stale and 0.7 or read >= 4 and 1 or 0.85
                     if sil.round then
                         round("circle", col, 0.16 * bright, x, y, sil.round * size)
                         round("ring", col, bright, x, y, sil.round * size)
@@ -636,26 +776,35 @@ local function new(_, args)
                                 x + math.cos(a) * 0.95 * size, y + math.sin(a) * 0.95 * size)
                         end
                     end
-                    if read >= 4 then round("circle", style.core, 0.9, x, y, 5, true) end
+                    if read >= 4 and not stale then round("circle", style.core, 0.9, x, y, 5, true) end
 
                     -- its power draw: five bars on a log scale (1 MW to 10 GW), or a struck-out bolt with none
                     local bx, by = x - 22, y + R - 26
                     if (o.mw or 0) > 0 then
-                        icon("bolt", bx - 12, by - 4, 6, style.pale, 0.9)
+                        icon("bolt", bx - 12, by - 4, 6, style.pale, stale and 0.5 or 0.9)
                         local lit = clamp(math.floor(math.log10(o.mw) * 1.25 + 0.5), 1, 5)
                         for i = 0, 4 do
-                            rect(i < lit and style.cyan or style.hud, i < lit and 0.9 or 0.2, bx + i * 9, by - 3 - i * 2, 6, 6 + i * 2)
+                            rect(i < lit and (stale and style.pale or style.cyan) or style.hud,
+                                i < lit and (stale and 0.45 or 0.9) or 0.2, bx + i * 9, by - 3 - i * 2, 6, 6 + i * 2)
                         end
                     elseif o.kind == "ship" or o.kind == "wreck" then
                         icon("bolt", bx - 12, by - 4, 6, style.pale, 0.55)
                         line(style.pale, 0.7, 1.4, bx - 19, by + 3, bx - 5, by - 11)
                     end
                     local act = o.kind == "ship" and ({ thrust = "flame", firing = "aim", cloak = "eyeOff" })[o.activity]
-                    if act then icon(act, x + R * 0.62, y - R * 0.62, 8, style.amber, 0.95) end
+                    -- what it was doing: amber only while it's seen doing it
+                    if act then icon(act, x + R * 0.62, y - R * 0.62, 8, stale and style.pale or style.amber, stale and 0.5 or 0.95) end
+                end
+                if ghost then -- scan lines over the remembered picture
+                    for k = -4, 4 do
+                        local dy = k * R * 0.2
+                        local half = math.sqrt(R * R - dy * dy) * 0.92
+                        line(style.pale, 0.1, 1, x - half, y + dy, x + half, y + dy)
+                    end
                 end
 
                 -- the name (once it's known) and the distance, where the HUD vision's panel has its title
-                if read >= 3 and o.name then text(o.name, x, y - R - 40, 13, style.core, 0.95, "center") end
+                if read >= 3 and o.name then text(o.name, x, y - R - 40, 13, style.core, ghost and 0.6 or 0.95, "center") end
                 text(SensorText.distance(contact.distance), x, y - R - 22, 12, style.pale, 0.8, "center")
 
                 -- the scan: progress round the rim, the echo in a meter under it (a notch for T3 and one for T4)
@@ -678,7 +827,7 @@ local function new(_, args)
                     icon("chevrons", x, y + MR + 24, 9, style.amber, 0.5 + 0.45 * math.sin(clock * 6))
                 end
                 -- the target hears the scan
-                if picture.scanning and (o.kind == "ship" or o.kind == "station") then
+                if picture.scanning and tier >= 1 and (o.kind == "ship" or o.kind == "station") then
                     for k = 0, 1 do
                         local ph = (clock * 0.8 + k * 0.5) % 1
                         arc(style.amber, 0.5 * (1 - ph), 1.2, x, y, R + 22 + ph * 26, -54, 108)
@@ -691,8 +840,8 @@ local function new(_, args)
                         local kind = contentIcon(contentLine)
                         local words = kind and contentLine:gsub("^[^:]*:%s*", "") or contentLine
                         local ly, lx = y - 18 + (i - 1) * 24, x - R - 22
-                        if kind then icon(kind, lx, ly - 4, 7, style.pale, 0.95) end
-                        text(words, lx - 14, ly, 13, style.pale, 0.95, "right")
+                        if kind then icon(kind, lx, ly - 4, 7, style.pale, stale and 0.6 or 0.95) end
+                        text(words, lx - 14, ly, 13, style.pale, stale and 0.6 or 0.95, "right")
                     end
                 end
             end
