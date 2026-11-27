@@ -82,7 +82,7 @@ function MiningTestbed:onInit()
     local inventory = refinery:get(Economy.Inventory)
     local ironOre = Items.RawMaterials.IronOre.id
     InventoryManager:remove(inventory, ironOre, InventoryManager:count(inventory, ironOre))
-    self.miners = SpawnerSystem:spawnAgentsAround(refinery, { [Enums.EconomyAgentRole.Miner] = MINERS })
+    self.miners = SpawnerSystem:spawnAgentsAround(refinery, { Miner = MINERS })
 
     self:createCamera()
     self.selected = 1

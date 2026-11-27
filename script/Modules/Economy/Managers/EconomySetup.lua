@@ -3,7 +3,7 @@ local NameComponent = require("Modules.Core.Components.NameComponent")
 local InventoryManager = require("Modules.Economy.Managers.InventoryManager")
 
 ---Gives entities their part in the economy: a station its production, market making, credits and
----stock; an asteroid a regrowing yield; a ship an agent's role, hold and credits.
+---stock; an asteroid a regrowing yield; a ship an agent's equipment and credits.
 ---@class EconomySetup
 local EconomySetup = {}
 
@@ -53,25 +53,28 @@ function EconomySetup.equipAsteroid(asteroid, item, quantity, regrowPerSecond, s
 end
 
 ---@class EconomyAgentSpec
----@field role EconomyAgentRole
+---@field kind string|nil The ship's kind, for display (a key of `ShipKindDefs`)
 ---@field capacity number The hold's mass capacity
+---@field miningLaser boolean|nil Whether the ship carries a mining laser
 ---@field credits number|nil Of the ship's own account, when it has no owner
 ---@field owner Entity|nil An entity with a `PlayerBankAccount` that pays for the ship
 ---@field name string|nil
 
----Makes a ship (one that takes navigation orders) an economic agent.
+---Makes a ship (one that takes navigation orders) an economic agent, with the equipment the jobs it
+---can choose depend on: its hold and, maybe, a mining laser (its weapons, if any, are its own).
 ---@param ship Entity
 ---@param spec EconomyAgentSpec
 function EconomySetup.equipAgent(ship, spec)
     if spec.name then ship:get(NameComponent):setName(spec.name) end
     local inventory = ship:get(Economy.Inventory) or ship:add(Economy.Inventory())
     inventory:setCapacity(spec.capacity)
+    if spec.miningLaser and not ship:get(Economy.MiningLaser) then ship:add(Economy.MiningLaser()) end
     if spec.owner then
-        ship:add(Economy.Ownership(spec.owner.id))
+        if not ship:get(Economy.Ownership) then ship:add(Economy.Ownership(spec.owner.id)) end
     else
         ship:add(Economy.PlayerBankAccount(spec.credits or 0))
     end
-    ship:add(Economy.EconomyAgent(spec.role))
+    ship:add(Economy.EconomyAgent(spec.kind))
 end
 
 return EconomySetup

@@ -63,14 +63,24 @@ station's own quotes. A station that can't pay for every bid scales them down al
 
 ## Agents
 
-`EconomyAgentSystem` runs each agent as a state machine:
+An agent (`EconomyAgentComponent`) has no fixed role. Its ship's equipment decides the jobs it can do,
+and each time it is free `EconomyAgentSystem` chooses the best of them by profit per second:
+
+| Job | Needs | Pays |
+|---|---|---|
+| Sale | cargo | what the best-paying station within reach bids for it |
+| Trade | a hold | the margin between a station's ask and another's bid |
+| Mining | a mining laser | the bid for the ore at a station |
+| Patrol | weapons | what the threatened station pays (see [factions](factions.md)) |
+| Raid | weapons, a marauder faction | what the fence pays for the loot |
 
 ```mermaid
 stateDiagram-v2
     [*] --> Idle
-    Idle --> DockingToBuy: trader job
-    Idle --> FlyingToMine: miner job
-    Idle --> DockingToSell: cargo to sell
+    Idle --> DockingToBuy: trade
+    Idle --> FlyingToMine: mining
+    Idle --> DockingToSell: sale or park
+    Idle --> Fighting: patrol or raid
     Idle --> Waiting: no job
     Waiting --> Idle
     DockingToBuy --> Buying: docked
@@ -80,22 +90,24 @@ stateDiagram-v2
     Undocking --> DockingToSell
     DockingToSell --> Selling: docked
     Selling --> Idle
+    Fighting --> Idle: job ends
 ```
 
-- **Jobs.** A ship with cargo first sells it at the station that bids best for it per second of
-  flight. Else a trader looks for an item a station asks less for than another bids, and a miner for
-  an asteroid whose item a station bids for. Quantities are limited by the hold, the credits, the
-  offer and the demand. The most profitable candidates are timed with `Nav.estimate` (with a docking
-  overhead), and the best by profit per second is taken.
-- **Claims.** A job holds the quantities it plans to buy, sell and mine against the other agents'
-  plans, and at most `maxMinersPerAsteroid` miners work a rock.
+- **The job board.** `JobBoardSystem` gathers the system's work every `refreshS` seconds: trade
+  routes, mining runs, the bids an agent with cargo can sell to, and security jobs at threatened
+  stations. An agent weighs the most profitable of them for itself (its place, hold and credits),
+  timed with `Nav.estimate`, and doesn't deal at stations of factions hostile to its own.
+- **Claims.** A job holds the quantities it plans to buy, sell and mine, and its patrol slot, against
+  the other agents' plans at once, so agents planning in the same update don't take one lot; at most
+  `maxMinersPerAsteroid` miners work a rock. What is left is the board's unfilled work, which the
+  spawner buys ships for.
 - **Flights.** Docking legs use `DockingSystem:requestDock`; a ship docked elsewhere undocks first. A
   miner flies a `MoveTo` with a stand-off of `mineGapM` from the rock and hands over to
-  `MiningSystem` (see [Mining](#mining)). A leg that hasn't ended after `maxLegS` is given up with its
-  job; a ship with nothing to do docks at the nearest station to wait, and keeps looking for work on
-  the way.
+  `MiningSystem`; a fighting job hands the ship to `CombatAgentSystem` for its length. A leg that
+  hasn't ended after `maxLegS` is given up with its job; a ship with nothing to do docks at the
+  nearest station to wait, and keeps looking for work on the way.
 - **Trades** happen docked, after `serviceS`, at once, within `priceSlack` of the planned price.
-  What didn't sell is sold by the next job.
+  What didn't sell is sold by the next job. Earnings are kept per kind of job.
 
 ## Mining
 
@@ -118,3 +130,5 @@ out, grows back as it regrows, and tumbles slowly.
 
 `Testbeds/Mining` is a light scene to watch it in: an ore field, a refinery and three miners, no
 player ship, the orbit camera on the miner that starts mining first (Left and Right pick another).
+The laser fires in pulses round its spot until its capacitor is empty, then recharges while the ship
+circles and moves on to the spot that faces it.

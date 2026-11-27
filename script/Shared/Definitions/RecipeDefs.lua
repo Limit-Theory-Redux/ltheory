@@ -34,6 +34,13 @@ local Recipes = {
         outputs = { { item = Items.RefinedMaterials.Steel, count = 2 } },
         duration = 20,
     },
+    OutpostUpkeep = {
+        name = "Outpost Upkeep",
+        inputs = { { item = Items.Miscellaneous.EnergyCell, count = 3 } },
+        outputs = {},
+        duration = 15,
+        income = 150,
+    },
     Colony = {
         name = "Colony",
         inputs = { { item = Items.RefinedMaterials.Steel, count = 2 }, { item = Items.Miscellaneous.EnergyCell, count = 4 } },

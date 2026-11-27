@@ -1,6 +1,6 @@
 -- Runs the economy demo (`States/App/EconomyDemo.lua`) on its own and checks its work:
 --   * every ship docks at a station (a ship without a job docks to wait), and ships leave their ports;
---   * a trader buys at one station and sells at another; a miner sells ore it has mined;
+--   * a trade run buys at one station and sells at another; ore that was mined is sold;
 --   * every station's market trades, and every station's production finishes cycles;
 --   * credits are kept: the stations' and ships' balances and the credits held in open bids add up
 --     to the start's plus the income the colonies were paid.
@@ -99,12 +99,12 @@ function DemoTest:noteDockings()
     end
 end
 
----@param role EconomyAgentRole
+---@param jobKind string "trade" or "mining"
 ---@return boolean
-function DemoTest:someoneSold(role)
+function DemoTest:someoneEarned(jobKind)
     for _, ship in ipairs(self.ships) do
         local agent = ship.entity:get(Economy.EconomyAgent)
-        if agent and agent:getRole() == role and agent.earned > 0 then return true end
+        if agent and (agent.earnedBy[jobKind] or 0) > 0 then return true end
     end
     return false
 end
@@ -153,8 +153,8 @@ function DemoTest:runCases()
     -- The income paid before now (the long first frames run whole cycles) is in the start's credits.
     self.startCredits, self.startIncome = self:totalCredits(), self:incomePaid()
     self:waitUntil(function() return next(self.docked) ~= nil end, "a ship docks")
-    self:waitUntil(function() return self:someoneSold(Enums.EconomyAgentRole.Trader) end, "a trader sells")
-    self:waitUntil(function() return self:someoneSold(Enums.EconomyAgentRole.Miner) end, "a miner sells ore")
+    self:waitUntil(function() return self:someoneEarned("trade") end, "a trade run sells")
+    self:waitUntil(function() return self:someoneEarned("mining") end, "mined ore sells")
     self:waitUntil(function() return self:idleStation() == nil end, "every station trades and produces")
     self:waitUntil(function() return self:everyShip(self.docked) end, "every ship docks",
         function() return self:shipsMissing(self.docked) end)

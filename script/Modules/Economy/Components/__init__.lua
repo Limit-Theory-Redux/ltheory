@@ -5,6 +5,7 @@ return {
     Marketplace = require('Modules.Economy.Components.MarketplaceComponent'),
     MarketMaker = require('Modules.Economy.Components.MarketMakerComponent'),
     Mining = require('Modules.Economy.Components.MiningComponent'),
+    MiningLaser = require('Modules.Economy.Components.MiningLaserComponent'),
     Item = require('Modules.Economy.Components.ItemComponent'),
     OrderStatus = require('Modules.Economy.Components.OrderStatusComponent'),
     Ownership = require('Modules.Economy.Components.OwnershipComponent'),

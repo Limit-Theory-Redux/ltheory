@@ -1,6 +1,6 @@
 -- Economy: stations around the planet that produce, consume and trade (a colony, a power plant, a
--- refinery and a foundry), an ore field above the planet's ring, and AI traders and miners that
--- fly and dock between them. The HUD lists every station's credits and stock and what every ship
+-- refinery and a foundry), an ore field above the planet's ring, and AI haulers and miners that
+-- choose their jobs and fly and dock between them. The HUD lists every station's credits and stock and what every ship
 -- is doing. Design: doc/script/economy.md
 
 local Rulesets          = require("Config.Gen.Rulesets")
@@ -41,11 +41,11 @@ end
 
 return {
     name = "Economy",
-    description = "Stations produce and trade around the planet; AI traders and miners dock between them.",
+    description = "Stations produce and trade around the planet; AI haulers and miners dock between them.",
     ruleset = Rulesets.SinglePlanetWithBelt,
     stations = false,
-    -- How many agents of each role the scenario spawns.
-    traders = 4,
+    -- How many ships of each kind the scenario spawns.
+    haulers = 4,
     miners = 3,
 
     spawnShip = function(game)
@@ -64,10 +64,7 @@ return {
         local ore = { centre = aroundPlanet(game, ORE_AT.angleDeg, ORE_AT.radii) }
         for key, value in pairs(ORE) do ore[key] = value end
         SpawnerSystem:spawnOreField(ore)
-        SpawnerSystem:spawnAgentsAround(colony, {
-            [Enums.EconomyAgentRole.Trader] = game.scenario.traders,
-            [Enums.EconomyAgentRole.Miner] = game.scenario.miners,
-        })
+        SpawnerSystem:spawnAgentsAround(colony, { Hauler = game.scenario.haulers, Miner = game.scenario.miners })
     end,
     overlayLines = EconomyOverlay,
 }

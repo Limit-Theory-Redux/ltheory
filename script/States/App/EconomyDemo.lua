@@ -1,6 +1,6 @@
 -- A star system where the economy runs on its own, for a person to watch: stations produce and
--- consume goods and keep orders on their markets, traders carry goods between them, and miners take
--- iron ore from a field of rocks and sell it. Ships fly with navigation orders and dock at the
+-- consume goods and keep orders on their markets, haulers carry goods between them, and miners take
+-- iron ore from a field of rocks and sell it (or haul, when there is nothing to mine). Ships fly with navigation orders and dock at the
 -- stations' ports. Left and Right pick the station or ship the orbit camera follows; the corner text
 -- tells what it holds and does, and the state of every station and ship.
 -- Design: doc/script/economy.md
@@ -24,6 +24,7 @@ local CameraDataComponent     = require("Modules.Cameras.Components.CameraDataCo
 local _                       = require("Modules.Cameras.Systems.CameraSystem")
 local Skybox                  = require("Shared.Generation.Skybox")
 local Items                   = require("Shared.Registries.Items")
+local ShipKinds               = require("Shared.Definitions.ShipKindDefs")
 local Economy                 = require("Modules.Economy.Components")
 local PhysicsComponents       = require("Modules.Physics.Components")
 local EconomySetup            = require("Modules.Economy.Managers.EconomySetup")
@@ -54,10 +55,10 @@ local CAMERA_ZOOM_RATIO = 0.15
 local CAMERA_PITCH = 0.4
 local CAMERA_SENSITIVITY = 0.01
 
--- The economic agents: how many of each role, their hold's mass capacity and their starting credits.
+-- The AI ships: how many of each kind (`ShipKindDefs`); their equipment decides what jobs they take.
 local AGENTS = {
-    { role = Enums.EconomyAgentRole.Trader, label = "Trader", count = 4, capacity = 600, credits = 8000 },
-    { role = Enums.EconomyAgentRole.Miner, label = "Miner", count = 3, capacity = 480, credits = 500 },
+    { kind = "Hauler", count = 4 },
+    { kind = "Miner", count = 3 },
 }
 -- The agents start around the colony, this far from it and from each other, in metres.
 local SPAWN_DISTANCE_M, SPAWN_SPACING_M = 30e3, 2e3
@@ -104,7 +105,7 @@ function EconomyDemo:spawnShips()
             local angle = index * 360 / 7
             local position = Scene.around(colony, angle, SPAWN_DISTANCE_M + index * SPAWN_SPACING_M)
             local entity = Scene.spawnShip(self.world, rng:get31(), position, colony)
-            self.ships[#self.ships + 1] = { entity = entity, group = group, name = string.format("%s %d", group.label, n) }
+            self.ships[#self.ships + 1] = { entity = entity, group = group, name = string.format("%s %d", group.kind, n) }
         end
     end
     Log.Info("EconomyDemo: %d stations, %d ships, %d ore rocks", #self.scene.stations, #self.ships, #self.scene.oreRocks)
@@ -145,8 +146,10 @@ function EconomyDemo:onPreSim(data)
     if self.started or self.simSteps < 1 then return end
     self.started = true
     for _, ship in ipairs(self.ships) do
+        local kind = ShipKinds[ship.group.kind]
         EconomySetup.equipAgent(ship.entity, {
-            role = ship.group.role, capacity = ship.group.capacity, credits = ship.group.credits, name = ship.name,
+            kind = ship.group.kind, capacity = kind.capacity, miningLaser = kind.miningLaser, credits = kind.credits,
+            name = ship.name,
         })
     end
 end

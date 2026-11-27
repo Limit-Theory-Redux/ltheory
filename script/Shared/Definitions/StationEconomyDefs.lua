@@ -29,6 +29,12 @@ local StationEconomies = {
         credits = 40000,
         stock = { { item = Items.RefinedMaterials.Iron, count = 12 }, { item = Items.Miscellaneous.EnergyCell, count = 10 } },
     },
+    Outpost = {
+        name = "Outpost",
+        recipes = { Recipes.OutpostUpkeep },
+        credits = 20000,
+        stock = { { item = Items.Miscellaneous.EnergyCell, count = 6 } },
+    },
     Colony = {
         name = "Colony",
         recipes = { Recipes.Colony },
