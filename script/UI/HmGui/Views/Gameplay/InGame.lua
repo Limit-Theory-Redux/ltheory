@@ -48,8 +48,16 @@ end
 local BOOST_SPEED_FACTOR = 1 + ShipFlightSystem.BOOST_GAIN
 
 -- Sized like the rest of the HUD: to the window height, times the UI Scale setting.
+-- It reads the player's ship, so it shows only while the camera is on that ship: flying it, or the
+-- orbit camera following it (not a station or another ship the orbit camera was pointed at).
+local function speedTapeVisible()
+    if not hudVisible() then return false end
+    local player = InGame.player
+    return player:isPiloting() or player:getOrbitTarget() == player:getShip()
+end
+
 local speedTape = UIComponent.SpeedTape {
-    visible = hudVisible,
+    visible = speedTapeVisible,
     scale = function() return Window:height() / 1080 * GameState.ui.hudScale end,
 }
 
