@@ -52,7 +52,23 @@ fn build_event_loop() -> EventLoop<()> {
         .expect("Failed to build event loop")
 }
 
-#[cfg(not(target_os = "windows"))]
+/// Whether the app runs in the background (`LTHEORY_BACKGROUND` set): its window opens without
+/// taking the focus or coming to the front, and the engine never asks for the focus, so a run
+/// (a capture, a test) doesn't interrupt what the user is doing.
+pub(crate) fn run_in_background() -> bool {
+    std::env::var_os("LTHEORY_BACKGROUND").is_some()
+}
+
+#[cfg(target_os = "macos")]
+fn build_event_loop() -> EventLoop<()> {
+    use winit::platform::macos::EventLoopBuilderExtMacOS;
+    EventLoop::builder()
+        .with_activate_ignoring_other_apps(!run_in_background())
+        .build()
+        .expect("Failed to build event loop")
+}
+
+#[cfg(not(any(target_os = "windows", target_os = "macos")))]
 fn build_event_loop() -> EventLoop<()> {
     EventLoop::builder()
         .build()
@@ -348,7 +364,7 @@ impl Engine {
         }
 
         if self.window.cursor.grab_mode != self.cache.window.cursor.grab_mode {
-            if !self.winit_window.window().has_focus() {
+            if !self.winit_window.window().has_focus() && !run_in_background() {
                 self.winit_window.window().focus_window();
             }
             attempt_grab(self.winit_window.window(), self.window.cursor.grab_mode);
@@ -455,7 +471,7 @@ impl Engine {
         }
 
         // === Focus ===
-        if self.window.focused != self.cache.window.focused && self.window.focused {
+        if self.window.focused != self.cache.window.focused && self.window.focused && !run_in_background() {
             self.winit_window.window().focus_window();
         }
 
