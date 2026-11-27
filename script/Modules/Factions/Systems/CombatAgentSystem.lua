@@ -34,7 +34,8 @@ function CombatAgentSystem:registerVars()
     self.profiler = QuickProfiler("CombatAgentSystem", false, false)
     self.scanS = 2
     self.guardRange = ScaleConfig:toGameUnits(40e3, "starSystem")
-    self.huntRange = ScaleConfig:toGameUnits(400e3, "starSystem")
+    -- Raiders hunt across the star system (the travel drive closes the distance).
+    self.huntRange = ScaleConfig:toGameUnits(1e11, "starSystem")
     self.raidRange = ScaleConfig:toGameUnits(3e3, "starSystem")
     self.raidS = 10
     -- The share of each cargo a raid takes, and how far a raid turns the victim's faction.

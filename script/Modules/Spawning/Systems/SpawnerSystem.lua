@@ -468,7 +468,8 @@ local KIND_FOR_WORK = { trade = "Hauler", mining = "Miner", patrol = "Fighter" }
 ---Buys ships for the factions the spawner made, where there is work for them: the most valuable
 ---unfilled work of the job board (trade, mining, security) at a value of at least `fleetDemand`, a
 ---ship of the kind it calls for, while the faction has fewer than `maxFleetPerKind` of that kind and
----its leader can pay `shipCost`. Marauders buy fighters while they have prey and the loot to pay.
+---its leader can pay `shipCost`. Marauders buy a fighter only out of loot to spare (twice its cost),
+---while there is twice as much prey as their fighters.
 ---Lost ships are replaced the same way.
 function SpawnerSystem:upkeepFleets()
     if #self.factions == 0 then return end
@@ -492,7 +493,10 @@ function SpawnerSystem:upkeepFleets()
         local marauders = entry.entity:get(Factions.Faction):getType() == Enums.FactionType.Marauders
         local work = nil
         if marauders then
-            if board:countRaidTargets(entry.entity) > 0 then work = "patrol" end
+            -- Marauders buy a raider only out of loot to spare, while there is prey for more of them.
+            local prey = board:countRaidTargets(entry.entity)
+            local balance = AccountManager:balanceOf(entry.leader)
+            if prey >= 2 * ((fleet.Fighter or 0) + 1) and balance >= 2 * self.shipCost then work = "patrol" end
         else
             for kindOfWork, value in pairs(demand) do
                 if value >= self.fleetDemand and (not work or value > demand[work]) then work = kindOfWork end
