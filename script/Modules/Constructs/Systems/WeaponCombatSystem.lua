@@ -247,13 +247,16 @@ function WeaponCombatSystem:preUpdate(dt)
     end
 end
 
----Right after the physics step: target choice and trigger, aim, firing.
+---Right after the physics step: the turrets onto where their ship moved, target choice and
+---trigger, aim, firing. (Turrets are out of the physics world: without this a fast ship's turrets
+---trail it by the step's move.)
 ---@param dt number
 function WeaponCombatSystem:update(dt)
     if dt <= 0 then
         return
     end
     for _, battery in ipairs(self.batteries) do
+        battery:syncTurretTransforms()
         AIWeaponSystem:update(battery, dt)
         WeaponTrackingSystem:update(battery, dt)
         WeaponSystem:update(battery, dt)
