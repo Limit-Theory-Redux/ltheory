@@ -9,7 +9,8 @@ local PeopleManager = require("Modules.People.Managers.PeopleManager")
 ---Keeps posts and their people in step as things happen: the people of a post that is gone (a ship
 ---destroyed) survive it, lose it (`ShipLost`, toward their employer) and are free for a new post; a
 ---post whose commander is gone gets the highest rank aboard as commander; everyone on a post that is
----hit learns who attacked them (`Attacked`, toward the attacker's faction, else the attacker). Runs
+---hit learns who attacked them (`Attacked`, toward the attacker's faction, else the attacker; once in
+---`attackMemoryS` for the same attacker). Runs
 ---every `intervalS` at PreSim.
 ---@class CrewSystem
 local CrewSystem = Class("CrewSystem", function(self)
@@ -21,6 +22,12 @@ function CrewSystem:registerVars()
     self.profiler = QuickProfiler("CrewSystem", false, false)
     self.intervalS = 0.5
     self.untilNext = 0
+    -- A crew remembers being attacked by the same enemy once in this many seconds (a beam or a
+    -- burst hits many times a second; one attack is one event).
+    self.attackMemoryS = 10
+    ---@type table<string, number> "post:attacker" -> when it was last told
+    self.lastAttacked = {}
+    self.clock = 0
 end
 
 function CrewSystem:registerEvents()
@@ -30,6 +37,7 @@ end
 
 ---@param e EventData
 function CrewSystem:onPreSim(e)
+    self.clock = self.clock + e:deltaTime()
     self.untilNext = self.untilNext - e:deltaTime()
     if self.untilNext > 0 then return end
     self.untilNext = self.intervalS
@@ -66,7 +74,11 @@ function CrewSystem:onHit(victim, attacker)
     local post = DamageEvents.rootOf(victim)
     if not post or not post:get(People.Crew) or not attacker then return end
     local faction = FactionManager:factionOf(attacker)
-    PeopleManager:experienceAll(post, "Attacked", (faction or attacker).id)
+    local subject = (faction or attacker).id
+    local key = post.id .. ":" .. subject
+    if self.clock < (self.lastAttacked[key] or -math.huge) + self.attackMemoryS then return end
+    self.lastAttacked[key] = self.clock
+    PeopleManager:experienceAll(post, "Attacked", subject)
 end
 
 return CrewSystem()

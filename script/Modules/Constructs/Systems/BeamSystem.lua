@@ -186,13 +186,15 @@ end
 ---@param sourcePosition Vec3f
 ---@param targetPosition Vec3f
 ---@return boolean, string, Vec3f|nil
-function BeamSystem:validateHit(world, sourceBody, targetBody, sourcePosition, targetPosition)
+---@param ignoreBody RigidBody|nil A body the beam passes through (a small ship's own hull); the
+---source's own body when nil
+function BeamSystem:validateHit(world, sourceBody, targetBody, sourcePosition, targetPosition, ignoreBody)
     assert(world and sourceBody and targetBody and sourcePosition and targetPosition)
     local hit = RaycastHelper:castSegment(
         world,
         sourcePosition,
         targetPosition,
-        { ignoreBody = sourceBody })
+        { ignoreBody = ignoreBody or sourceBody })
     local hitBody = hit and hit.body
     if hitBody == nil or hitBody == NULL_RIGID_BODY then
         return false, "none", hit and hit.position
@@ -223,8 +225,13 @@ local function validateBeam(state, sourceBody, targetBody, sourcePosition, targe
         sourceBody,
         targetBody,
         sourcePosition,
-        targetPoint)
+        targetPoint,
+        state.losIgnoreBody)
 end
+
+-- How long a beam's hit check is taken as known (seconds of the beam's own time): a ray a step for
+-- every beam was a large share of a battle. The hit point is not kept: it follows the target.
+local VALIDATE_PERIOD_S = 0.1
 
 ---@param state table
 ---@param dt number
@@ -275,12 +282,23 @@ function BeamSystem:update(state, dt)
         -- Damage validation raycasts to the TRUE hull point; sway only
         -- offsets the visual endpoint so beams don't "miss" a target they
         -- are locked onto.
-        local hitValidated, hitReason, hitPosition = validateBeam(
-            state,
-            sourceBody,
-            targetBody,
-            sourcePosition,
-            baseTargetPoint or targetPoint)
+        local hitValidated, hitReason, hitPosition
+        local known = beam.validation
+        if known and known.target == targetBody and swayTime < known.untilTime then
+            hitValidated, hitReason = known.hitValidated, known.hitReason
+            hitPosition = hitValidated and (baseTargetPoint or targetPoint) or known.hitPosition
+        else
+            hitValidated, hitReason, hitPosition = validateBeam(
+                state,
+                sourceBody,
+                targetBody,
+                sourcePosition,
+                baseTargetPoint or targetPoint)
+            beam.validation = {
+                target = targetBody, untilTime = swayTime + VALIDATE_PERIOD_S,
+                hitValidated = hitValidated, hitReason = hitReason, hitPosition = hitPosition,
+            }
+        end
         component.hitValidated = hitValidated
         component.hitReason = hitReason
         beam.hitValidated = hitValidated
@@ -304,6 +322,14 @@ function BeamSystem:update(state, dt)
             local hullDamage = rawDamage - absorbed
             if hullDamage > 0 then
                 targetHealth:setCurrentHealth(targetHealth:getCurrentHealth() - hullDamage)
+            end
+            -- Who hit whom (`DamageEvents`), once a damage tick: what the beam did since the last one.
+            beam.unreported = (beam.unreported or 0) + rawDamage
+            local tick = component.effect and component.effect.tickInterval or 0.25
+            beam.reportIn = (beam.reportIn or 0) - damageDuration
+            if beam.reportIn <= 0 or targetHealth:isDestroyed() then
+                require("Shared.Helpers.DamageEvents").report(targetHealth:getEntityId(), component:getSource(), beam.unreported)
+                beam.unreported, beam.reportIn = 0, tick
             end
             -- Impact flash keyed by shield vs hull, from the beam def.
             local tickInterval = component.effect and component.effect.tickInterval
