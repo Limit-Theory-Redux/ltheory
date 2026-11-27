@@ -365,10 +365,50 @@ fn a_follower_on_station_faces_where_its_leader_faces() {
     };
     let on_station = facing_at(&follow(leader), DVec3::new(0.0, 0.0, 3.0));
     assert_eq!(on_station, Some(DVec3::X));
+    let settling = facing_at(&follow(leader), DVec3::new(0.0, 0.0, 15.0));
+    assert_eq!(
+        settling,
+        Some(DVec3::X),
+        "near its slot a follower already flies parallel to its leader"
+    );
     let far = facing_at(&follow(leader), DVec3::new(0.0, 0.0, 30.0));
     assert_eq!(
         far, None,
-        "outside the arrival radius the nose follows the course"
+        "beyond FOLLOW_FACING_RADII arrival radii the nose follows the course"
+    );
+}
+
+#[test]
+fn a_turning_leaders_slot_moves_with_the_turn() {
+    // A leader at the origin turning about +y; the slot is 10 to its right (+x for a -z facing).
+    let leader = Body {
+        velocity: DVec3::new(0.0, 0.0, -4.0),
+        angular_velocity: DVec3::new(0.0, 0.5, 0.0),
+        ..body_at(DVec3::ZERO)
+    };
+    let behaviour = Behaviour::Follow {
+        leader,
+        offset: FrameOffset {
+            right: 10.0,
+            up: 0.0,
+            forward: 0.0,
+        },
+        arrival_radius: 1.0,
+    };
+    let (_, goal) = steer(&behaviour, &body_at(DVec3::new(10.0, 0.0, 0.0)), &PROFILE);
+    // (0, 0.5, 0) x (10, 0, 0) = (0, 0, -5): the outer slot moves 5 faster along the turn.
+    assert!((goal.velocity - DVec3::new(0.0, 0.0, -9.0)).length() < 1e-9);
+}
+
+#[test]
+fn a_follower_near_its_slot_closes_on_it_gently() {
+    let behaviour = follow(body_at(DVec3::ZERO));
+    let (wanted, _) = steer(&behaviour, &body_at(DVec3::new(0.0, 0.0, 2.0)), &PROFILE);
+    let speed = wanted.velocity.length();
+    assert!(speed > 0.0, "it still closes");
+    assert!(
+        speed <= 2.0 / FOLLOW_CLOSING_TIME_S + 1e-9,
+        "no faster than its distance over the closing time, got {speed}"
     );
 }
 
@@ -523,4 +563,31 @@ fn a_zero_normal_leaves_the_agent_with_the_centres_velocity() {
     };
     let (wanted, _) = orbit_wanted(DVec3::new(50.0, 0.0, 0.0), &centre, DVec3::ZERO);
     assert_eq!(wanted.velocity, centre.velocity);
+}
+
+#[test]
+fn a_banking_leader_does_not_swing_its_slots() {
+    // A leader flying -z, rolled a quarter turn about its nose, and rolling fast.
+    let leader = Body {
+        frame: Frame {
+            forward: DVec3::NEG_Z,
+            right: DVec3::NEG_Y,
+            up: DVec3::X,
+        },
+        angular_velocity: DVec3::new(0.0, 0.0, 3.0),
+        ..body_at(DVec3::ZERO)
+    };
+    let behaviour = Behaviour::Follow {
+        leader,
+        offset: FrameOffset {
+            right: 10.0,
+            up: 0.0,
+            forward: 0.0,
+        },
+        arrival_radius: 1.0,
+    };
+    let (_, goal) = steer(&behaviour, &body_at(DVec3::new(10.0, 0.0, 0.0)), &PROFILE);
+    // Level right of a -z nose is +x, whatever the roll; the roll moves nothing.
+    assert!((goal.target - DVec3::new(10.0, 0.0, 0.0)).length() < 1e-9);
+    assert!(goal.velocity.length() < 1e-9);
 }

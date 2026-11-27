@@ -54,8 +54,11 @@ pub enum Behaviour {
         stand_off: f64,
         arrival_radius: f64,
     },
-    /// Hold a slot in the leader's frame, matching the leader's velocity. The leader's turning is
-    /// not fed forward.
+    /// Hold a slot in the leader's level frame (its nose, with the system's up: its banking
+    /// doesn't swing the slot). The follower flies predictively: it steers by where the
+    /// slot and it will be `FOLLOW_LEAD_TIME_S` ahead, from the leader's velocity and turning,
+    /// matching the slot's velocity then, and closes on it gently (`FOLLOW_CLOSING_TIME_S`), so it
+    /// turns with its leader instead of after.
     Follow {
         leader: Body,
         offset: FrameOffset,
@@ -154,6 +157,18 @@ pub(crate) fn arrive_at(
     point: DVec3,
     point_velocity: DVec3,
 ) -> Wanted {
+    arrive_closing_at_most(body, profile, point, point_velocity, f64::INFINITY)
+}
+
+/// `arrive_at`, closing on the point no faster than `max_closing` (length units per second, over
+/// the point's own velocity).
+fn arrive_closing_at_most(
+    body: &Body,
+    profile: &Profile,
+    point: DVec3,
+    point_velocity: DVec3,
+    max_closing: f64,
+) -> Wanted {
     let to_point = point - body.position;
     let distance_sq = to_point.length_squared();
     if distance_sq < TINY_SQ {
@@ -176,7 +191,34 @@ pub(crate) fn arrive_at(
         let room = -along + (along * along + top * top - point_speed_sq).sqrt();
         room.min(stopping)
     };
-    wanted_of(point_velocity + direction * closing, direction)
+    wanted_of(
+        point_velocity + direction * closing.min(max_closing),
+        direction,
+    )
+}
+
+/// A follower closes on its slot at no more than its distance from it over this many seconds: a
+/// gentle approach that settles on the slot instead of the braking curve's steep end, which snaps a
+/// follower back and forth across a slot that moves.
+pub const FOLLOW_CLOSING_TIME_S: f64 = 1.0;
+
+/// A follower takes its leader's heading within this many arrival radii of its slot, not only on
+/// it, so that a wing flies parallel while its ships settle into their slots.
+pub const FOLLOW_FACING_RADII: f64 = 4.0;
+
+/// How far ahead, in seconds, a follower predicts its leader, its slot and itself: about the time a
+/// ship takes to answer its controls, so that it acts on where the slot is going.
+pub const FOLLOW_LEAD_TIME_S: f64 = 0.5;
+
+/// The slot `t` seconds ahead and its velocity then: the leader carried on at its velocity, and the
+/// offset turned with the leader's level turning (to first order in `t`).
+fn predicted_slot(leader: &Body, offset: &FrameOffset, t: f64) -> (DVec3, DVec3) {
+    let turning = level_turning(leader);
+    let arm = slot_point(leader, offset) - leader.position;
+    let arm_ahead = arm + turning.cross(arm) * t;
+    let position = leader.position + leader.velocity * t;
+    let velocity = leader.velocity + turning.cross(arm_ahead);
+    (position + arm_ahead, velocity)
 }
 
 /// The speed a Seek flies at, `distance` from where it is to pass: top speed, lowered by the
@@ -216,12 +258,30 @@ fn stand_off_point(body: &Body, target: &Body, stand_off: f64) -> DVec3 {
     target.position + outward * (target.radius + body.radius + stand_off)
 }
 
-/// The slot `offset` away from the leader along its own axes.
+/// The leader's level frame: its forward, with up taken from the system's up (+y) rather than the
+/// leader's own, so a leader that banks or rolls doesn't swing its slots about its nose. A leader
+/// that points straight up or down keeps its own right.
+fn level_axes(leader: &Body) -> (DVec3, DVec3, DVec3) {
+    let forward = leader.frame.forward;
+    let right = forward.cross(DVec3::Y);
+    let right = if right.length_squared() < 1e-12 {
+        leader.frame.right
+    } else {
+        right.normalize()
+    };
+    (right, right.cross(forward), forward)
+}
+
+/// The leader's turning without its roll about its nose, which the level frame leaves out.
+fn level_turning(leader: &Body) -> DVec3 {
+    let forward = leader.frame.forward;
+    leader.angular_velocity - forward * leader.angular_velocity.dot(forward)
+}
+
+/// The slot `offset` away from the leader along its level axes (`level_axes`).
 fn slot_point(leader: &Body, offset: &FrameOffset) -> DVec3 {
-    leader.position
-        + leader.frame.right * offset.right
-        + leader.frame.up * offset.up
-        + leader.frame.forward * offset.forward
+    let (right, up, forward) = level_axes(leader);
+    leader.position + right * offset.right + up * offset.up + forward * offset.forward
 }
 
 /// The speed at which `share` (0 to 1) of the forward thrust holds a circle of `radius` against
@@ -329,12 +389,32 @@ pub(crate) fn steer(behaviour: &Behaviour, body: &Body, profile: &Profile) -> (W
             offset,
             arrival_radius,
         } => {
+            // Now: the slot moves with the leader and swings with its turning.
+            let slot = slot_point(&leader, &offset);
+            let velocity = leader.velocity + level_turning(&leader).cross(slot - leader.position);
             let goal = Goal {
-                target: slot_point(&leader, &offset),
-                velocity: leader.velocity,
+                target: slot,
+                velocity,
                 arrival_radius,
             };
-            (arrive_at(body, profile, goal.target, leader.velocity), goal)
+            // Ahead: the leader, the slot and the follower `FOLLOW_LEAD_TIME_S` on, so the follower
+            // answers what the leader is doing, not what it did.
+            let (slot_ahead, velocity_ahead) = predicted_slot(&leader, &offset, FOLLOW_LEAD_TIME_S);
+            let body_ahead = Body {
+                position: body.position + body.velocity * FOLLOW_LEAD_TIME_S,
+                ..*body
+            };
+            let max_closing = body_ahead.position.distance(slot_ahead) / FOLLOW_CLOSING_TIME_S;
+            (
+                arrive_closing_at_most(
+                    &body_ahead,
+                    profile,
+                    slot_ahead,
+                    velocity_ahead,
+                    max_closing,
+                ),
+                goal,
+            )
         }
         Behaviour::Orbit {
             centre,
@@ -355,13 +435,18 @@ pub(crate) fn steer(behaviour: &Behaviour, body: &Body, profile: &Profile) -> (W
 }
 
 /// The unit direction the nose is to hold while `body` is on station, or `None` when the
-/// behaviour has no such direction or `body` is still outside its goal's arrival radius (then
-/// the nose follows the course). A follower faces where its leader faces, a pursuer where a
+/// behaviour has no such direction or `body` is still outside its goal's arrival radius (a
+/// follower: `FOLLOW_FACING_RADII` of it; then the nose follows the course). A follower faces
+/// where its leader faces, a pursuer where a
 /// moving target heads, and an agent that holds a point or pursues a resting target keeps its
 /// own heading. `goal` is the one `steer` returned for `behaviour`.
 pub(crate) fn rest_facing(behaviour: &Behaviour, body: &Body, goal: &Goal) -> Option<DVec3> {
-    let on_station =
-        body.position.distance(goal.target) <= goal.effective_arrival_radius(body.radius);
+    let station_radii = match behaviour {
+        Behaviour::Follow { .. } => FOLLOW_FACING_RADII,
+        _ => 1.0,
+    };
+    let on_station = body.position.distance(goal.target)
+        <= goal.effective_arrival_radius(body.radius) * station_radii;
     if !on_station {
         return None;
     }

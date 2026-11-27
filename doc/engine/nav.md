@@ -47,7 +47,7 @@ A goal is a point with a velocity (`Goal`: target, velocity, arrival radius). Ar
 
 **Pursue** aims at the point `stand_off` beyond the target's hull and the agent's own along the line of sight, so it settles beside the target at the target's velocity.
 
-**Follow** holds a slot, an offset in the leader's frame (`FrameOffset`: right, up, forward), moving with the leader.
+**Follow** holds a slot, an offset (`FrameOffset`: right, up, forward) in the leader's *level* frame: the leader's forward, with up taken from the system's up (+y), so a leader that banks or rolls into a turn doesn't swing its slots about its nose. The slot's velocity is the leader's plus its level turning (its angular velocity less the roll) crossed with the slot's arm, so an outer slot goes round a turn as fast as it really moves. The follower flies predictively: it steers by where it and the slot will be `FOLLOW_LEAD_TIME_S` (0.5 s) ahead, the leader carried on at its velocity and turning, and matches the slot's velocity then, so it answers what the leader is doing rather than what it did. It closes on the slot no faster than its distance over `FOLLOW_CLOSING_TIME_S` (1 s), a gentle approach that settles instead of riding the braking curve's steep end, and it takes the leader's heading within `FOLLOW_FACING_RADII` (4) arrival radii of the slot, so a wing flies parallel while its ships settle.
 
 ![Pursue settles stand_off beyond the target's hull on the line of sight; Follow holds a slot in the leader's frame](../images/nav/pursue-follow.svg)
 
