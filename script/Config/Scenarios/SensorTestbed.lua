@@ -9,7 +9,7 @@
 --
 -- Passive contacts update all the time; X (held) scans the target, Z sends a
 -- pulse. The sensor HUD (UIComponent.SensorHud) shows the radar and the
--- target; the text shows the setup, the settings and the keys, which change
+-- target, and the key above Tab focuses the radar (bigger, contacts as icons); the text shows the setup, the settings and the keys, which change
 -- the hull, the surroundings, a ship's activity and the model's rules.
 -- Regenerate (B) builds the next setup around the ship as it is now, R the same
 -- one again; both clear what the sensor learned.
@@ -55,7 +55,10 @@ local G = UniverseScaleConfig.globalScale -- game units per real metre
 
 -- The HUD's size: the window height, times the UI Scale setting
 local function hudScale() return Window:height() / 1080 * GameState.ui.hudScale end
-local sensorHud = UIComponent.SensorHud { scale = hudScale }
+-- The radar's focus toggles on the key above Tab (a physical key: the same
+-- place on every layout)
+local FOCUS_KEY, FOCUS_KEY_NAME = Button.KeyboardBackquote, "`"
+local sensorHud = UIComponent.SensorHud { scale = hudScale, focusKey = FOCUS_KEY_NAME }
 local tuningPanel = UIComponent.SensorTuningPanel { scale = hudScale }
 
 ---@param game table
@@ -480,6 +483,7 @@ return {
         sensor:setScanning(Input:isDown(Button.KeyboardX))
         if Input:isPressed(Button.KeyboardZ) then sensor:requestPulse() end
         if Input:isPressed(Button.KeyboardTab) then nextTarget(sensor) end
+        if Input:isPressed(FOCUS_KEY) then sensorHud:toggleFocus() end
         if Input:isPressed(Button.KeyboardR) then buildSetup(game, data.setupIndex) end
 
         local hullKeys = { Button.KeyboardKey1, Button.KeyboardKey2, Button.KeyboardKey3 }
@@ -515,6 +519,7 @@ return {
         { keys = "X (hold)", action = "Scan the target" },
         { keys = "Z", action = "Pulse" },
         { keys = "Tab", action = "Next target (nearest first)" },
+        { keys = "` (above Tab)", action = "Focus the radar: bigger, near top-down, contacts as icons; again to put it back" },
         { keys = "1 2 3", action = "Hull: fighter, frigate, capital ship" },
         { keys = "4", action = "Surroundings: open space, nebula, debris field, radiation belt" },
         { keys = "5", action = "The target's activity, if it is a ship: idle, thrusting, firing, cloaked" },
@@ -547,7 +552,7 @@ return {
                 sensor:isMerging() and "ON" or "OFF",
                 target and target.kind == "ship" and target.activity and target.activity ~= "idle"
                     and " · TARGET " .. string.upper(SensorModel.activityNames[target.activity]) or ""),
-            "X scan (hold) · Z pulse · Tab target · 1 2 3 hull · 4 surroundings · 5 activity · 6 rule · 7 merge"
+            "X scan (hold) · Z pulse · Tab target · ` focus radar · 1 2 3 hull · 4 surroundings · 5 activity · 6 rule · 7 merge"
                 .. " · 8 tuning · B next setup · R again",
         }) do lines[#lines + 1] = line end
         for _, line in ipairs(listenerLines(game, sensor)) do lines[#lines + 1] = line end
