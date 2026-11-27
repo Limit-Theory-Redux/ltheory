@@ -220,6 +220,41 @@ function MarketplaceSystem:getOrdersOf(market, holder)
     return orders
 end
 
+---The credits an issuer's open bids on the market hold: its own money, out of its account until the
+---bids fill or come back.
+---@param market Entity|MarketplaceComponent
+---@param holder Entity
+---@return integer credits
+function MarketplaceSystem:creditsHeldBy(market, holder)
+    local marketplace = marketplaceOf(market)
+    local held = 0
+    if not marketplace then return held end
+    for _, order in ipairs(marketplace:getBids()) do
+        if order:get(Economy.Ownership):getOwner() == holder.id then
+            held = held + order:get(Economy.Quantity):getQuantity() * order:get(Economy.Price):getPrice()
+        end
+    end
+    return held
+end
+
+---The goods of an item an issuer's open asks on the market hold: its own, out of its inventory until
+---the asks fill or come back.
+---@param market Entity|MarketplaceComponent
+---@param holder Entity
+---@param itemId integer
+---@return integer quantity
+function MarketplaceSystem:goodsHeldBy(market, holder, itemId)
+    local marketplace = marketplaceOf(market)
+    local held = 0
+    if not marketplace then return held end
+    for _, order in ipairs(marketplace:getAsks()) do
+        if order:get(Economy.Ownership):getOwner() == holder.id and order:get(Economy.Item):getItem() == itemId then
+            held = held + order:get(Economy.Quantity):getQuantity()
+        end
+    end
+    return held
+end
+
 ---Buys at once from the market's asks: up to `quantity` units at `maxPrice` or less, as far as the
 ---buyer can pay and has room. The trades are settled before it returns.
 ---@param market Entity|MarketplaceComponent

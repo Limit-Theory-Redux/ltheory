@@ -51,7 +51,9 @@ and `equipAgent(ship, { role, capacity, credits | owner, name })`.
 
 `ProductionSystem` starts a line's cycle when the inventory holds the recipe's inputs and has room
 for its outputs, and after the recipe's duration adds the outputs and pays the recipe's `income`, the
-economy's only source of new credits (a colony's earnings). It also regrows yields.
+economy's only source of new credits (a colony's earnings). A line idles while the station already
+holds `stockCapCycles` cycles' worth of every output (its asks on its own market included), so a
+plant nobody buys from stops piling up stock. It also regrows yields.
 
 `MarketMakerSystem` reposts a station's orders every few seconds: it takes them back (their escrow
 returns), then bids for each input up to a stock target and asks for all it holds of each output.

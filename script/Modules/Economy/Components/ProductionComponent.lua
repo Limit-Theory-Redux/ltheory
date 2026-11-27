@@ -10,10 +10,14 @@ local Component = require("Core.ECS.Component")
 ---entity's inventory into it. `ProductionSystem` runs them.
 ---@class ProductionComponent: Component
 ---@field lines ProductionLine[]
----@overload fun(self: ProductionComponent, recipes: RecipeDefinition[]|nil): ProductionComponent subclass internal
----@overload fun(recipes: RecipeDefinition[]|nil): ProductionComponent subclass external
-local ProductionComponent = Subclass("ProductionComponent", Component, function(self, recipes)
+---@overload fun(self: ProductionComponent, recipes: RecipeDefinition[]|nil, stockCapCycles: number|nil): ProductionComponent subclass internal
+---@overload fun(recipes: RecipeDefinition[]|nil, stockCapCycles: number|nil): ProductionComponent subclass external
+local ProductionComponent = Subclass("ProductionComponent", Component, function(self, recipes, stockCapCycles)
     self:setComponentName("EconomyProduction")
+
+    -- A line idles while the entity holds this many cycles' worth of each output its lines make, in
+    -- its inventory and its asks on its own market: nobody is buying.
+    self.stockCapCycles = stockCapCycles or 16
 
     self.lines = {}
     for _, recipe in ipairs(recipes or {}) do self:addRecipe(recipe) end
@@ -22,6 +26,11 @@ end)
 ---@param recipe RecipeDefinition
 function ProductionComponent:addRecipe(recipe)
     self.lines[#self.lines + 1] = { recipe = recipe, running = false, progress = 0, cycles = 0 }
+end
+
+---@return number cycles
+function ProductionComponent:getStockCapCycles()
+    return self.stockCapCycles
 end
 
 ---@return ProductionLine[]
