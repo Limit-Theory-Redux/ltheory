@@ -19,7 +19,8 @@ local InventoryManager = require("Modules.Economy.Managers.InventoryManager")
 ---of its own round the rock: in a plane through that spot, at a radius that clears the rock and the
 ---ship, flown one way or the other at a speed of its own. It glides onto the circle and flies it,
 ---nose to where its laser hits. The laser leaves the ship's nose and stops where a ray toward the
----spot meets the rock's surface; it is on while the spot faces the ship, and ore is taken while
+---spot meets the rock's surface (cast once a pulse, then kept on the rock); it is on while the spot
+---faces the ship, and ore is taken while
 ---it is, at `rate` units a second. The run ends when the hold is full, the run's quantity is
 ---taken, the rock is empty or gone, or time is up; the body and controls go back to the ship's
 ---orders then and the run is marked done (`isDone`, `finish`). Runs at PreSim.
@@ -116,6 +117,29 @@ function MiningSystem:worldDirection(body, local3)
         right.x * local3.x + up.x * local3.y + forward.x * local3.z,
         right.y * local3.x + up.y * local3.y + forward.y * local3.z,
         right.z * local3.x + up.z * local3.y + forward.z * local3.z)
+end
+
+---A world point in the rock body's own frame (from its centre, along its axes), and back: a laser's
+---hit is kept on the rock this way, so it rides the rock's turning between rays.
+---@param body RigidBody
+---@param p Position
+---@return Vec3d
+function MiningSystem:toLocal(body, p)
+    local c, rot = body:getPos(), body:getRot()
+    local right, up, forward = rot:getRight(), rot:getUp(), rot:getForward()
+    local dx, dy, dz = p.x - c.x, p.y - c.y, p.z - c.z
+    return Vec3d(dx * right.x + dy * right.y + dz * right.z, dx * up.x + dy * up.y + dz * up.z,
+        dx * forward.x + dy * forward.y + dz * forward.z)
+end
+
+---@param body RigidBody
+---@param l Vec3d
+---@return Position
+function MiningSystem:toWorld(body, l)
+    local c, rot = body:getPos(), body:getRot()
+    local right, up, forward = rot:getRight(), rot:getUp(), rot:getForward()
+    return Position(c.x + right.x * l.x + up.x * l.y + forward.x * l.z, c.y + right.y * l.x + up.y * l.y + forward.y * l.z,
+        c.z + right.z * l.x + up.z * l.y + forward.z * l.z)
 end
 
 ---The spot of the rock's deposit for a new run: one nobody works, nearest the ship; else any.
@@ -342,6 +366,8 @@ function MiningSystem:updateRun(ship, mining, dt)
                 local spread = self.pulseSpread
                 mining.pulseOffset = Vec3f(self.rng:getUniformRange(-spread, spread), self.rng:getUniformRange(-spread, spread),
                     self.rng:getUniformRange(-spread, spread))
+                -- A new pulse finds its point on the surface again.
+                mining.hitLocal = nil
             elseif mining.charge <= 1e-6 then
                 mining.charge, mining.recharging = 0, true
             end
@@ -358,9 +384,18 @@ function MiningSystem:updateRun(ship, mining, dt)
     mining.facing = mining.facing and mining.facing:slerp(facing, math.min(1, dt * 2)) or facing
     shipBody:setKinematicTarget(at, s < 1 and mining.fromRot:slerp(mining.facing, s) or mining.facing)
 
-    -- The laser, from the nose to where a ray toward the spot meets the rock.
+    -- The laser, from the nose to where a ray toward the spot meets the rock. The ray is cast once a
+    -- pulse; its hit is kept in the rock's frame and stays on that point of the surface while the
+    -- pulse lasts (a ray a frame for every miner is what mining cost most).
     local nose = self:nosePoint(shipBody, at, mining.facing)
-    local hit = spotPoint and self:surfaceHit(nose, spotPoint, rockBody, shipBody) or nil
+    local hit = nil
+    if spotPoint then
+        if mining.hitLocal == nil then
+            local surface = self:surfaceHit(nose, spotPoint, rockBody, shipBody)
+            mining.hitLocal = surface and self:toLocal(rockBody, surface) or false
+        end
+        hit = mining.hitLocal and self:toWorld(rockBody, mining.hitLocal) or nil
+    end
     mining.lasing = hit ~= nil
     if hit then
         self:laserOn(ship, mining, nose, hit)
