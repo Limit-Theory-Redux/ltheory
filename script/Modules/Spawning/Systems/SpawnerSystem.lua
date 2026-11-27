@@ -323,8 +323,10 @@ end
 ---after the next physics step: its commander then chooses its jobs by what it carries. With an
 ---`owner` (a faction's leader) the crew are the owner's employees, people it has on its books but on
 ---no ship first (a lost ship's crew), new ones else. Without one it is an independent: its captain
----owns it, starts with `credits` (its kind's by default) and employs the rest of the crew.
----@param spec { kind: string, position: Position, name: string|nil, owner: Entity|nil, seed: integer|nil, credits: number|nil }
+---owns it, starts with `credits` (its kind's by default) and employs the rest of the crew. With
+---`economy = false` it stays crewed and enlisted but never becomes an economic agent: whoever spawned
+---it gives it its work (a fighting job, say).
+---@param spec { kind: string, position: Position, name: string|nil, owner: Entity|nil, seed: integer|nil, credits: number|nil, economy: boolean|nil }
 ---@return Entity ship
 function SpawnerSystem:spawnAgent(spec)
     assert(self.world, "SpawnerSystem:spawnAgent: no scene attached")
@@ -355,7 +357,9 @@ function SpawnerSystem:spawnAgent(spec)
     ship:add(Economy.Ownership(owner.id))
     FactionManager:enlist(ship)
     self.agents[#self.agents + 1] = { entity = ship, handle = handle, name = name, kind = spec.kind, battery = battery }
-    self.pending[#self.pending + 1] = { entity = ship, kind = spec.kind, name = name, owner = owner }
+    if spec.economy ~= false then
+        self.pending[#self.pending + 1] = { entity = ship, kind = spec.kind, name = name, owner = owner }
+    end
     self:announce(ship, name, "ship")
     return ship
 end
