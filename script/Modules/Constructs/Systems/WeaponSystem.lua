@@ -275,6 +275,10 @@ end
 ---@param targetPosition Vec3f
 ---@param obstacles table[]|nil
 ---@return boolean, string, Vec3f|nil
+-- A hull hit nearer the mount than this share of the hull's radius is the mount sitting inside its
+-- own hull's collision shape, not the hull in the way.
+local START_INSIDE_SHARE = 0.02
+
 -- How long a mount's line of sight to its target is taken as known (seconds of the battery's time):
 -- a ray a frame for every mount was a large share of firing.
 local LINE_OF_SIGHT_PERIOD_S = 0.15
@@ -346,6 +350,21 @@ function WeaponSystem:hasLineOfSight(world, sourceBody, targetBody, sourcePositi
                     or (obstacleBody.getPos and obstacleBody:getPos())
                 local radius = obstacle.radius
                     or (obstacleBody.getBoundingRadius and obstacleBody:getBoundingRadius())
+                -- A hit at the ray's very start: the mount sits inside its own hull's collision shape
+                -- (a convex decomposition bulges past the mesh), which blocks nothing it fires at;
+                -- the line goes on from the mount without its own hull.
+                if hit.position and radius then
+                    local hx, hy, hz = hit.position.x - sourcePosition.x, hit.position.y - sourcePosition.y,
+                        hit.position.z - sourcePosition.z
+                    if hx * hx + hy * hy + hz * hz <= (radius * START_INSIDE_SHARE) ^ 2 then
+                        local onward = RaycastHelper:castSegment(world, sourcePosition, targetPosition,
+                            { ignoredBodies = { sourceBody, obstacleBody } })
+                        if not onward or onward.body == targetBody then
+                            return true, "target", onward and onward.position or targetPosition
+                        end
+                        return false, "other", getRayHitPosition(onward, onward.body)
+                    end
+                end
                 if center and radius then
                     local sourceOffsetX = sourcePosition.x - center.x
                     local sourceOffsetY = sourcePosition.y - center.y
