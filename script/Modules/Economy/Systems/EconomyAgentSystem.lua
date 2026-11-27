@@ -675,17 +675,19 @@ end
 function EconomyAgentSystem:beginFight(ship, agent, station, now)
     local job = agent.job
     local CombatAgent = require("Modules.Factions.Components").CombatAgent
-    local centre, radius, task
+    local centre, radius, task, postId, points = nil, nil, nil, nil, 4
     if job.kind == "patrol" then
         if not station then return self:endJob(agent) end
         local body = station:get(PhysicsComponents.RigidBody):getRigidBody()
         centre, radius, task = body:getPos(), body:getBoundingRadius() * 8, Enums.CombatTask.Patrol
+        -- The guards of a station fly its route as a wing: many points, so its turns are gentle.
+        postId, points = station.id, 16
         agent.activity = "patrolling at " .. nameOf(station.id)
     else
         centre, radius, task = EntityPosition.Get(ship), self.raidPatrolRadius, Enums.CombatTask.Raid
         agent.activity = "raiding"
     end
-    if not ship:get(CombatAgent) then ship:add(CombatAgent(task, circleRound(centre, radius, 4))) end
+    if not ship:get(CombatAgent) then ship:add(CombatAgent(task, circleRound(centre, radius, points), postId)) end
     agent.waitUntil = now + job.duration
     enter(agent, State.Fighting, agent.activity)
 end

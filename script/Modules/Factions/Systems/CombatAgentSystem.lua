@@ -13,6 +13,8 @@ local AccountManager = require("Modules.Economy.Managers.AccountManager")
 local Factions = require("Modules.Factions.Components")
 local FactionManager = require("Modules.Factions.Managers.FactionManager")
 local PeopleManager = require("Modules.People.Managers.PeopleManager")
+local FormationSystem = require("Modules.Formations.Systems.FormationSystem")
+local People = require("Modules.People.Components")
 
 -- Design: doc/script/factions.md
 
@@ -24,7 +26,9 @@ local PeopleManager = require("Modules.People.Managers.PeopleManager")
 ---value into the raider's account, raises the threat at the victim's stations, turns the victim's
 ---faction against the raider, and sends it off to find another. A raider that a hostile patrol comes
 ---close to breaks off. The decisions are made every `scanS`; the flights are navigation
----orders (Patrol, Follow). Runs at PreSim.
+---orders (Patrol, Follow). The ships that patrol one station fly it as a wing (`FormationSystem`): the
+---most experienced captain leads and flies the route, the others hold their slots, and an engagement
+---(a Combat order) takes a wingman out of its slot until it ends. Runs at PreSim.
 ---@class CombatAgentSystem
 local CombatAgentSystem = Class("CombatAgentSystem", function(self)
     self:registerVars()
@@ -133,7 +137,42 @@ function CombatAgentSystem:release(ship)
     local agent = ship:get(Factions.CombatAgent)
     if not agent then return end
     self:dropOrder(agent)
+    FormationSystem:leave(ship)
     ship:remove(Factions.CombatAgent)
+end
+
+---How senior a ship's commander is, to lead a wing: the patrols and other jobs they have done.
+---@param ship Entity
+---@return number
+local function seniority(ship)
+    local captain = PeopleManager.commanderOf(ship)
+    local career = captain and captain:get(People.Career)
+    if not career then return 0 end
+    return career:getExperience("patrol") * 2 + career:getExperience("trade") + career:getExperience("mining")
+end
+
+---Puts a patrolling ship in the wing of the station it guards: it starts the wing, or takes the
+---first slot behind the leader whose captain is less senior than its own (the leader keeps the lead).
+---@param ship Entity
+---@param agent CombatAgentComponent
+function CombatAgentSystem:joinWing(ship, agent)
+    self.wings = self.wings or {}
+    local wing = self.wings[agent.postId]
+    if wing and not Registry:hasEntity(wing) then wing = nil end
+    if wing and FormationSystem:formationOf(ship) == wing then return end
+    if not wing then
+        self.wings[agent.postId] = FormationSystem:create("Wedge", { ship })
+        Log.Debug("[CombatAgent] %s leads the wing guarding %d", tostring(ship), agent.postId)
+        return
+    end
+    local members = wing:get(require("Modules.Formations.Components").Formation):getMembers()
+    local mine, slot = seniority(ship), #members + 1
+    for i = 2, #members do
+        local other = alive(members[i])
+        if other and seniority(other) < mine then slot = i break end
+    end
+    FormationSystem:join(wing, ship, slot)
+    Log.Debug("[CombatAgent] %s joins the wing guarding %d in slot %d", tostring(ship), agent.postId, slot)
 end
 
 ---The nearest ship to `from` that `accept` takes, within `range`.
@@ -202,7 +241,9 @@ function CombatAgentSystem:decide(ship, agent, now)
         if agent.target ~= target.id or agent.orderKind ~= "follow" then
             self:dropOrder(agent)
             agent.target, agent.closeSince = target.id, nil
-            agent.order = Nav.order(ship, Nav.Orders.Follow { target = target, offset = Vec3d(0, 0, -self.followGapM) })
+            -- A Combat order: it takes over from a wing's slot-keeping, which goes on after.
+            agent.order = Nav.order(ship, Nav.Orders.Follow { target = target, offset = Vec3d(0, 0, -self.followGapM),
+                priority = Nav.Priority.Combat })
             agent.orderKind = "follow"
         end
         local name = target:get(require("Modules.Core.Components.NameComponent"))
@@ -210,7 +251,14 @@ function CombatAgentSystem:decide(ship, agent, now)
             .. (name and name:getName() or tostring(target))
     else
         agent.target = nil
-        if agent.orderKind ~= "patrol" and #agent.patrol >= 2 then
+        if agent.task == Enums.CombatTask.Patrol and agent.postId then self:joinWing(ship, agent) end
+        if FormationSystem:isWingman(ship) then
+            -- The wing flies it: no route of its own.
+            if agent.orderKind ~= "wing" then
+                self:dropOrder(agent)
+                agent.orderKind = "wing"
+            end
+        elseif agent.orderKind ~= "patrol" and #agent.patrol >= 2 then
             self:dropOrder(agent)
             agent.order = Nav.order(ship, Nav.Orders.Patrol { points = agent.patrol, loop = true })
             agent.orderKind = "patrol"

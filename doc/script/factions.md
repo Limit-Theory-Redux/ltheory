@@ -43,6 +43,11 @@ team that is no faction's is an enemy of every other team as before.
     followed; staying within `raidRange` for `raidS` takes `raidShare` of its cargo, fences part of
     its value into the raider's account, raises the threat at the victim's stations and sends the
     raider off for `pirateCooldownS`. A hostile patrol close by drives a raider off.
+- The ships patrolling one station fly its route as a **wing** ([Formations](formations.md)): the
+  ship whose captain is most senior (patrol experience counting double) leads and flies the route of
+  16 points; later guards take the first slot behind a less senior one. An engagement is a Combat
+  order, which takes a wingman out of its slot; it takes its slot again when the fight ends. A
+  wingman whose leader leaves leads in its place.
 
 So raids make threat, threat makes paid security work, and the factions buy fighters for it.
 

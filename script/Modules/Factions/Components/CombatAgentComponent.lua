@@ -5,19 +5,21 @@ local Component = require("Core.ECS.Component")
 ---@class CombatAgentComponent: Component
 ---@field task CombatTask
 ---@field patrol Position[] The points it patrols when it engages nothing
+---@field postId integer|nil The station a patrol guards: the ships guarding one fly as a wing
 ---@field target integer|nil Entity id of the ship it engages
 ---@field order Entity|nil Its navigation order
 ---@field orderKind string|nil "patrol" or "follow"
 ---@field closeSince number|nil Simulated seconds it has been within raid range of its target since
 ---@field raids integer Cargo taken by raids, in units
 ---@field activity string What it does now, for display
----@overload fun(self: CombatAgentComponent, task: CombatTask, patrol: Position[]): CombatAgentComponent subclass internal
----@overload fun(task: CombatTask, patrol: Position[]): CombatAgentComponent subclass external
-local CombatAgentComponent = Subclass("CombatAgentComponent", Component, function(self, task, patrol)
+---@overload fun(self: CombatAgentComponent, task: CombatTask, patrol: Position[], postId: integer|nil): CombatAgentComponent subclass internal
+---@overload fun(task: CombatTask, patrol: Position[], postId: integer|nil): CombatAgentComponent subclass external
+local CombatAgentComponent = Subclass("CombatAgentComponent", Component, function(self, task, patrol, postId)
     self:setComponentName("CombatAgent")
 
     self.task = task
     self.patrol = patrol or {}
+    self.postId = postId
     self.target = nil
     self.order = nil
     self.orderKind = nil
