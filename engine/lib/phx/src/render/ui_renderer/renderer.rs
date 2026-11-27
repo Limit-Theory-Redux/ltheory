@@ -111,9 +111,17 @@ impl UIRenderer {
         self.layers[*current_layer_id].items.push(item);
     }
 
-    pub fn image(&mut self, image: Tex2D, pos: Vec2, size: Vec2) {
+    /// An image, its texels multiplied by `color`; `smooth` samples it
+    /// bilinearly between mip levels instead of taking the nearest texel.
+    pub fn image(&mut self, image: Tex2D, pos: Vec2, size: Vec2, color: Color, smooth: bool) {
         let id = self.images.len().into();
-        self.images.push(UIRendererImage { pos, size, image });
+        self.images.push(UIRendererImage {
+            pos,
+            size,
+            image,
+            color,
+            smooth,
+        });
         self.push(UIRendererItem::Image(id));
     }
 

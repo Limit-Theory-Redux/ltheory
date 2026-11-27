@@ -13,7 +13,7 @@ local Component = require("Core.ECS.Component")
 ---@field details string|nil a second T3 line
 ---@field contents string[]|nil what a T4 read shows
 ---@field shield number|nil its shields, 0 to 1, as a T3 read shows them; nil for none
----@field standing string|nil hostile, neutral (default) or friendly, as a T3 read shows it
+---@field standing string|nil owned, friendly, neutral (default) or hostile; known once the object is classed (T2)
 
 --- What sensors can pick up of an entity: the sensor model's three facts
 --- (what it gives off, what it reflects, its size) and what a scan reads.

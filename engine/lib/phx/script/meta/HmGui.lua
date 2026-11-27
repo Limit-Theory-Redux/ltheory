@@ -93,8 +93,22 @@ function HmGui:containerScale() end
 ---@param offset Vec2f
 function HmGui:updateElementOffset(offset) end
 
+-- Add an image, stretched to fill the widget.
 ---@param image Tex2D
 function HmGui:image(image) end
+
+-- Multiply the last image's texels by `color`: a white image takes the
+-- colour as its own, and the colour's alpha fades it. White (the
+-- default) draws the image as it is.
+---@param color Color
+function HmGui:setImageColor(color) end
+
+-- Sample the last image bilinearly between mip levels instead of
+-- taking the nearest texel, for an image drawn smaller or larger than
+-- its texture (an icon). Smaller only looks smooth when the texture
+-- has mip levels (`Tex2D:genMipmap` on a texture created with them).
+---@param smooth boolean
+function HmGui:setImageSmooth(smooth) end
 
 function HmGui:rect() end
 

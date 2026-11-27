@@ -9,7 +9,7 @@ use super::{
     UIRendererImageId, UIRendererLayerId, UIRendererPanelId, UIRendererRectId, UIRendererShapeId,
     UIRendererTextId,
 };
-use crate::render::{ClipRect, Color, Renderer, Samplers, Shape};
+use crate::render::{ClipRect, Renderer, Samplers, Shape};
 
 /// One thing a layer draws, in the order it was added: what is added later is
 /// drawn over what came before (painter's order, as in the widget tree).
@@ -93,15 +93,21 @@ impl UIRendererLayer {
     }
 
     fn draw_image(r: &mut Renderer, image: &UIRendererImage) {
-        // UI images were sampled with the texture's own state: nearest
-        // filtering, clamped (`Tex2D::load`).
+        // Images keep the nearest texel by default (pixel-exact at their own
+        // size, like `Tex2D::load`'s textures always were); smooth ones are
+        // drawn at other sizes, where nearest texels shimmer and alias.
+        let sampler = if image.smooth {
+            Samplers::LinearMipClamp
+        } else {
+            Samplers::Point
+        };
         r.imm_textured(
             Shape::Image,
             image.image.view(),
-            Samplers::Point.id(),
+            sampler.id(),
             [image.pos.x, image.pos.y, image.size.x, image.size.y],
             [0.0, 0.0, 1.0, 1.0],
-            &Color::WHITE,
+            &image.color,
         );
     }
 

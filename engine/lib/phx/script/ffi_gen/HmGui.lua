@@ -38,6 +38,8 @@ function Loader.defineType()
             float HmGui_ContainerScale                 (HmGui const*);
             void  HmGui_UpdateElementOffset            (HmGui*, Vec2f offset);
             void  HmGui_Image                          (HmGui*, Tex2D* image);
+            void  HmGui_SetImageColor                  (HmGui const*, Color const* color);
+            void  HmGui_SetImageSmooth                 (HmGui const*, bool smooth);
             void  HmGui_Rect                           (HmGui*);
             void  HmGui_Annulus                        (HmGui*, Color const* color, float thickness, bool glow);
             void  HmGui_Circle                         (HmGui*, Color const* color, bool glow);
@@ -141,6 +143,8 @@ function Loader.defineType()
                 containerScale                 = libphx.HmGui_ContainerScale,
                 updateElementOffset            = libphx.HmGui_UpdateElementOffset,
                 image                          = libphx.HmGui_Image,
+                setImageColor                  = libphx.HmGui_SetImageColor,
+                setImageSmooth                 = libphx.HmGui_SetImageSmooth,
                 rect                           = libphx.HmGui_Rect,
                 annulus                        = libphx.HmGui_Annulus,
                 circle                         = libphx.HmGui_Circle,

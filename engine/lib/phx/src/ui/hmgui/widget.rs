@@ -398,10 +398,7 @@ impl HmGuiWidget {
                         focused,
                         &mut clipboard,
                     )
-                    .map(|tex_ref| HmGuiImage {
-                        image: tex_ref.clone(),
-                        layout: HmGuiImageLayout::TopLeft,
-                    });
+                    .map(|tex_ref| HmGuiImage::new(tex_ref.clone(), HmGuiImageLayout::TopLeft));
 
                 if !clipboard.is_empty() {
                     hmgui.clipboard_set_text(clipboard);
