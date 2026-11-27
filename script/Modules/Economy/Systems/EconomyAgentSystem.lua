@@ -584,7 +584,7 @@ function EconomyAgentSystem:endFight(ship, agent)
     local station = job and job.kind == "patrol" and alive(job.destination)
     if station then
         local paid = math.min(job.payout, AccountManager:balanceOf(station))
-        if paid > 0 and AccountManager:transfer(AccountManager:accountOf(station), AccountManager:accountOf(ship), paid) then
+        if paid > 0 and AccountManager:transfer(AccountManager:accountOf(station), AccountManager:accountOf(ship), paid, "patrol") then
             agent:addEarnings("patrol", paid)
             PeopleManager:reportEarnings(ship, "patrol", paid)
         end

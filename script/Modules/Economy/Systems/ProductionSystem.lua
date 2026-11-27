@@ -111,7 +111,7 @@ function ProductionSystem:updateLine(entity, inventory, line, dt)
         InventoryManager:add(inventory, stack.item.id, stack.count)
     end
     if recipe.income then
-        AccountManager:deposit(AccountManager:accountOf(entity), recipe.income)
+        AccountManager:deposit(AccountManager:accountOf(entity), recipe.income, "income")
     end
     line.running, line.progress = false, 0
     line.cycles = line.cycles + 1

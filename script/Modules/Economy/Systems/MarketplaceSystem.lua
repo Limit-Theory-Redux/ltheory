@@ -424,8 +424,10 @@ end
 ---@param price integer
 function MarketplaceSystem:settle(marketplace, bid, ask, buyer, seller, buyerInventory, itemType, quantity, price)
     InventoryManager:add(buyerInventory, itemType, quantity)
-    AccountManager:deposit(AccountManager:accountOf(seller), price * quantity)
+    AccountManager:deposit(AccountManager:accountOf(seller), price * quantity, "sales")
     AccountManager:deposit(AccountManager:accountOf(buyer), (bid:get(Economy.Price):getPrice() - price) * quantity)
+    -- What the buyer paid, out of its bid's escrow: a purchase in the ledger.
+    AccountManager:book(AccountManager:accountOf(buyer), "purchases", -price * quantity)
 
     for _, order in ipairs({ bid, ask }) do
         local quantityComponent = order:get(Economy.Quantity)

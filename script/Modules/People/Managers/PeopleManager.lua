@@ -307,7 +307,7 @@ function PeopleManager:reportEarnings(post, activity, credits)
         local wallet = person:get(Economy.PlayerBankAccount)
         if employer and role and credits > 0 and wallet ~= ownerAccount then
             local share = math.floor(credits * role.share)
-            if share > 0 and AccountManager:transfer(ownerAccount, wallet, share) then
+            if share > 0 and AccountManager:transfer(ownerAccount, wallet, share, "wages") then
                 career:addEarned(share)
                 PeopleManager:experience(person, "Paid", employer.id)
             end

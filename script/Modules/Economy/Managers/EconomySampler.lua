@@ -7,6 +7,7 @@ local MarketplaceSystem = require("Modules.Economy.Systems.MarketplaceSystem")
 local SpawnerSystem = require("Modules.Spawning.Systems.SpawnerSystem")
 local PeopleManager = require("Modules.People.Managers.PeopleManager")
 local Factions = require("Modules.Factions.Components")
+local People = require("Modules.People.Components")
 
 -- Design: doc/script/economy-sim.md
 
@@ -30,6 +31,10 @@ local EconomySampler = Class("EconomySampler", function(self, options)
     self.times = {}
     self.first = nil
     self.last = nil
+    ---@type table<string, table<string, number>> Label -> category -> credits, over the whole run
+    self.flows = {}
+    -- What came before the first sample isn't the run's.
+    AccountManager:takeLedger()
     if options.csvPath then
         self.file = io.open(options.csvPath, "w")
         if self.file then
@@ -148,6 +153,30 @@ function EconomySampler:sample(now)
     for _, account in Registry:view(Economy.PlayerBankAccount) do allCredits = allCredits + account:getAccountBalance() end
     totals.allCredits = allCredits
 
+    -- Where credits came from and went since the last sample, by owner and category.
+    local labels = {}
+    for _, station in ipairs(SpawnerSystem:getStations()) do labels[station.entity.id] = station.name end
+    for _, faction in ipairs(SpawnerSystem:getFactions()) do
+        if Registry:hasEntity(faction.entity) then labels[faction.leader.id] = faction.entity:get(Factions.Faction):getName() end
+    end
+    local period = {}
+    for entityId, categories in pairs(AccountManager:takeLedger()) do
+        local label = labels[entityId]
+        if not label then
+            local entity = Registry:getEntityById(entityId)
+            label = entity and entity:get(People.Person) and "crews" or "other"
+        end
+        period[label] = period[label] or {}
+        self.flows[label] = self.flows[label] or {}
+        for category, amount in pairs(categories) do
+            period[label][category] = (period[label][category] or 0) + amount
+            self.flows[label][category] = (self.flows[label][category] or 0) + amount
+        end
+    end
+    for label, categories in pairs(period) do
+        for category, amount in pairs(categories) do self:row(now, "ledger", label, category, amount) end
+    end
+
     for state, count in pairs(totals.states) do self:row(now, "agents", "state", state, count) end
     self:row(now, "total", "economy", "agents", totals.agents)
     self:row(now, "total", "economy", "trips", totals.trips)
@@ -190,6 +219,22 @@ function EconomySampler:summary()
         local after = last.priceSum[name] / last.priceCount[name]
         lines[#lines + 1] = string.format("%s: price %s -> %.1f, stock %d -> %d", name,
             before and string.format("%.1f", before) or "-", after, first.stock[name] or 0, last.stock[name] or 0)
+    end
+    -- Where the credits came from and went, by owner.
+    local labels = {}
+    for label in pairs(self.flows) do labels[#labels + 1] = label end
+    table.sort(labels)
+    for _, label in ipairs(labels) do
+        local parts, net = {}, 0
+        local categories = {}
+        for category in pairs(self.flows[label]) do categories[#categories + 1] = category end
+        table.sort(categories)
+        for _, category in ipairs(categories) do
+            local amount = self.flows[label][category]
+            net = net + amount
+            parts[#parts + 1] = string.format("%s %+.0f", category, amount)
+        end
+        lines[#lines + 1] = string.format("ledger %s: %s (net %+.0f)", label, table.concat(parts, ", "), net)
     end
     return lines
 end

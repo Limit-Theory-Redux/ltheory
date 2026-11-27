@@ -306,7 +306,7 @@ function CombatAgentSystem:raid(ship, agent, now)
     end
     agent.lastLoot = nil
     if fenced > 0 then
-        AccountManager:deposit(AccountManager:accountOf(ship), math.floor(fenced))
+        AccountManager:deposit(AccountManager:accountOf(ship), math.floor(fenced), "loot")
         local economic = PeopleManager:commandOf(ship, Economy.EconomyAgent)
         if economic then economic:addEarnings("raid", math.floor(fenced)) end
         PeopleManager:reportEarnings(ship, "raid", math.floor(fenced))

@@ -583,7 +583,7 @@ function SpawnerSystem:upkeepFleets()
             end
         end
         if kind and origin and (fleet[kind] or 0) < self.maxFleetPerKind
-            and AccountManager:withdraw(AccountManager:accountOf(entry.leader), self.shipCost) then
+            and AccountManager:withdraw(AccountManager:accountOf(entry.leader), self.shipCost, "ships") then
             local ship = self:spawnAgent({ kind = kind, position = origin, owner = entry.leader })
             Log.Debug("[Spawner] %s bought %s for %d", tostring(entry.entity), tostring(ship), self.shipCost)
             if work and demand[work] then demand[work] = demand[work] - self.fleetDemand end
