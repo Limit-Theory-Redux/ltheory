@@ -455,6 +455,7 @@ function ProjectileSystem:applyDamage(projectile, health, amount)
         return true
     end
     health:setCurrentHealth(health:getCurrentHealth() - damage)
+    require("Shared.Helpers.DamageEvents").report(health:getEntityId(), projectile:getSource(), damage)
     return true
 end
 

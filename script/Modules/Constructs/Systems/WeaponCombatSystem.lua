@@ -15,7 +15,8 @@
 ---                  render entity
 ---
 ---A battery engages the Targetable contacts within its engagement range,
----except its own ship and contacts of its own team. Ships without a
+---except its own ship and the contacts the hostility rule spares (by default
+---those of its own team; see `setHostility`). Ships without a
 ---Targetable component (the player's ship, for now) are never shot at.
 ---Batteries whose ship was destroyed are dropped on the next preUpdate.
 ---A contact that dies explodes where it was (Config.weapons.deathExplosion,
@@ -183,6 +184,24 @@ function WeaponCombatSystem:refreshTargets(dt)
     return live
 end
 
+---Whether a battery of team `own` engages a contact of team `other`. By default every other team is
+---an enemy and a battery without a team engages everything; a game with factions replaces this with
+---`WeaponCombatSystem.setHostility`.
+---@param own string|nil
+---@param other string|nil
+---@return boolean
+local function differentTeams(own, other)
+    return own == nil or other ~= own
+end
+
+local isHostile = differentTeams
+
+---Replaces the rule that decides whom a battery engages (nil restores the default: other teams).
+---@param rule (fun(own: string|nil, other: string|nil): boolean)|nil
+function WeaponCombatSystem.setHostility(rule)
+    isHostile = rule or differentTeams
+end
+
 ---The contacts one battery may engage.
 ---@param battery WeaponBattery
 ---@param live table[]
@@ -195,7 +214,7 @@ local function selectCandidates(battery, live)
     local rangeSquared = battery.engagementRange * battery.engagementRange
     local shipId = battery.ship.id
     for _, record in ipairs(live) do
-        if record.id ~= shipId and (battery.team == nil or record.team ~= battery.team) then
+        if record.id ~= shipId and isHostile(battery.team, record.team) then
             local dx = record.position.x - origin.x
             local dy = record.position.y - origin.y
             local dz = record.position.z - origin.z

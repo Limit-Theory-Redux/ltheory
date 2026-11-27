@@ -378,6 +378,8 @@ function BeamSystem:applyDamage(beam, health)
     end
 
     health:setCurrentHealth(health:getCurrentHealth() - beam.component.damagePerSecond)
+    require("Shared.Helpers.DamageEvents").report(health:getEntityId(), beam.component:getSource(),
+        beam.component.damagePerSecond)
     return true
 end
 
