@@ -27,6 +27,8 @@ impl ApplicationHandler for MainLoop {
             // Poll + NoVsync = truly unbounded FPS; Vsync apps still cap via
             // the swap interval blocking on the render thread.
             event_loop.set_control_flow(ControlFlow::Poll);
+            // The Dock's icon for a run without an app bundle (macOS).
+            super::app_icon::set_app_icon();
             // We need the Engine type to have a stable pointer, so we construct it within `MainLoop` right away.
             self.engine = Some(Engine::new(event_loop, self.settings));
             let engine = self.engine.as_mut().unwrap();

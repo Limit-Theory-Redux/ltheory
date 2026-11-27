@@ -1,3 +1,4 @@
+mod app_icon;
 mod engine;
 mod event_bus;
 mod exit_request;
