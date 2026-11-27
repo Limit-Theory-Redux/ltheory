@@ -1,20 +1,22 @@
 -- Sensor Testbed: the sensor model (Modules/Sensors) in a scene. The player's
--- ship carries a sensor with a hull's dials (fighter, frigate, capital ship).
--- Around it, top down from its nose: a station at 12 km, a freighter at 4 km,
--- a fighter parked next to an asteroid at 11 km, a nearer asteroid and a cold
--- wreck at 400 m; further off, the star system's star, planet and moon. Belt
--- rocks that come close get a signature too.
+-- ship carries a sensor with a hull's dials (fighter, frigate, capital ship)
+-- and a signature of its own (its power draw, louder and hotter while it
+-- scans). Around it, one setup at a time (SensorTestbedSetups): small scenes
+-- that each show one thing, such as how the hulls differ, how ships hide, what
+-- passive and active sensing give, how resolution merges signals and who hears
+-- you. The star system's star, planet and moon have signatures, and belt rocks
+-- that come close get one too.
 --
 -- Passive contacts update all the time; X (held) scans the target, Z sends a
--- pulse. The sensor HUD (UIComponent.SensorHud) shows the radar, the contacts
--- and the scan; the text shows the settings and the keys, which change the
--- hull, the surroundings, the fighter's activity and the model's rules.
--- Regenerate (B) puts everything back around the ship as it is now and clears
--- what the sensor learned.
+-- pulse. The sensor HUD (UIComponent.SensorHud) shows the radar and the
+-- target; the text shows the setup, the settings and the keys, which change
+-- the hull, the surroundings, a ship's activity and the model's rules.
+-- Regenerate (B) builds the next setup around the ship as it is now, R the same
+-- one again; both clear what the sensor learned.
 --
--- The objects' sensor values (size, power draw, what a scan reads) are the
--- sensor model's reference scene, so they read as in the model's own test.
--- Their meshes are scaled to roughly that size.
+-- Objects smaller than a pixel or so at their distance get no mesh, only their
+-- signature, until the ship comes close enough to see them. The player's ship
+-- takes the size of its hull's class, so things around it keep their scale.
 
 local Entity = require("Core.ECS.Entity")
 local CoreComponents = require("Modules.Core.Components")
@@ -29,61 +31,32 @@ local SensorComponents = require("Modules.Sensors.Components")
 local SensorSystem = require("Modules.Sensors.Systems.SensorSystem")
 local SensorModel = require("Modules.Sensors.SensorModel")
 local SensorPicture = require("Modules.Sensors.SensorPicture")
-
--- The scene around the ship: distance (m) and bearing (degrees clockwise from
--- the nose, in the ship's plane), the sensor values, and what a T3 and a T4
--- read show. `mesh` is how it is built (`hull`: an index into
--- Config.game.shipHulls).
-local OBJECTS = {
-    {
-        kind = "station", label = "Station", dist = 1.2e4, bearing = 150, radius = 316, mw = 500,
-        mesh = "station",
-        name = "COMMERCIAL NEXUS", details = "FACTION: LIMTECH",
-        contents = { "TRADE DATA: 14 MARKETS", "DOCKING LOG: 31 SHIPS TODAY" },
-    },
-    {
-        kind = "ship", label = "Freighter", dist = 4e3, bearing = -28, radius = 20, mw = 50,
-        mesh = "ship", shipType = "Basic", hull = 3,
-        name = "LIMTECH FREIGHTER (Y142)", details = "SHIELDS 78%", shield = 0.78,
-        contents = { "CARGO: 40 T IRON ORE", "LOGS: 3 CONTRACTS, LAST DOCK 2 H AGO" },
-    },
-    {
-        kind = "ship", label = "Fighter", dist = 1.06e4, bearing = 73.5, radius = 8, mw = 8,
-        mesh = "ship", shipType = "Fighter", hull = 1,
-        name = "VEGA DART (Y151)", details = "SHIELDS 100%", shield = 1, standing = "hostile",
-        contents = { "LOADOUT: 2 PULSE CANNONS", "LOGS: PATROL ROUTE, 4 WAYPOINTS" },
-    },
-    {
-        kind = "asteroid", label = "Asteroid", dist = 6e3, bearing = 64, radius = 500,
-        mesh = "asteroid",
-        name = "ASTEROID, 1 KM ACROSS",
-        contents = { "IRON-RICH, YIELD HIGH", "NO SIGNS OF MINING" },
-    },
-    {
-        kind = "asteroid", label = "Asteroid", dist = 1.1e4, bearing = 71, radius = 500,
-        mesh = "asteroid",
-        name = "ASTEROID, 1 KM ACROSS",
-        contents = { "IRON-RICH, YIELD HIGH", "NO SIGNS OF MINING" },
-    },
-    {
-        kind = "wreck", label = "Wreck", dist = 400, bearing = 4, radius = 30,
-        mesh = "ship", shipType = "Basic", hull = 3,
-        name = "DERELICT LIMTECH FALCON (Y98)", details = "NO POWER",
-        contents = { "BLACKBOX: LAST ORDERS, 6 DAYS OLD", "BLUEPRINT FRAGMENT: 'FALCON' 4/6" },
-    },
-}
-local FIGHTER = 3 -- the ship whose activity the keys change
-local FIRST_TARGET = 2 -- the freighter
+local SensorTuning = require("Modules.Sensors.SensorTuning")
+local Setups = require("Config.Scenarios.SensorTestbedSetups")
 
 -- A star is seen across its whole system: its signature is scaled so that at
--- its distance it reads as a star does at this distance in the reference scene.
+-- its distance it reads as a star does at this distance in the sensor model's
+-- reference scene.
 local STAR_REFERENCE = { dist = 6e7, em = 1e7, heat = 1e10, glow = 3e10 }
 local PLANET_HEAT = 50
+-- Radius over distance below which an object gets no mesh (about a pixel on
+-- a 1080p screen); it gets one once the ship comes closer than that
+local MESH_MIN_SIZE = 0.001
+-- The player's ship's radius (m) for each hull, the size of the setups' ships
+-- of its class: the camera and the ship's own signature follow it
+local HULL_RADIUS = { fighter = 8, frigate = 30, capital = 150 }
+local PULSE_HEARD_TIME = 4 -- seconds the text says who heard a pulse
+local HINT_CHARS = 110     -- the setup's hint wraps at about this many characters
+-- Holding left or right on the tuning panel steps its dial again after this
+-- long, then this often (seconds)
+local REPEAT_AFTER, REPEAT_EVERY = 0.4, 0.06
 
-local sensorHud = UIComponent.SensorHud {
-    -- The HUD's size: the window height, times the UI Scale setting
-    scale = function() return Window:height() / 1080 * GameState.ui.hudScale end,
-}
+local G = UniverseScaleConfig.globalScale -- game units per real metre
+
+-- The HUD's size: the window height, times the UI Scale setting
+local function hudScale() return Window:height() / 1080 * GameState.ui.hudScale end
+local sensorHud = UIComponent.SensorHud { scale = hudScale }
+local tuningPanel = UIComponent.SensorTuningPanel { scale = hudScale }
 
 ---@param game table
 ---@return SensorComponent|nil
@@ -91,20 +64,8 @@ local function sensorOf(game)
     return game.playerShip and game.playerShip:get(SensorComponents.Sensor)
 end
 
---- Where each object goes: around the ship as it is now, in its plane.
-local function placements(game)
-    local body = game.playerShip:get(PhysicsComponents.RigidBody)
-    local pos, forward, right = body:getPos(), body:getForward(), body:getRight()
-    local result = {}
-    for i, spec in ipairs(OBJECTS) do
-        local b = math.rad(spec.bearing)
-        local d = spec.dist * UniverseScaleConfig.globalScale
-        local dx = forward.x * math.cos(b) + right.x * math.sin(b)
-        local dy = forward.y * math.cos(b) + right.y * math.sin(b)
-        local dz = forward.z * math.cos(b) + right.z * math.sin(b)
-        result[i] = Position(pos.x + dx * d, pos.y + dy * d, pos.z + dz * d)
-    end
-    return result
+local function currentSetup(game)
+    return Setups[game.scenarioData.setupIndex or 1]
 end
 
 local function newAsteroid(game, seed, position, scale)
@@ -136,24 +97,23 @@ local function fitRadius(entity, radius)
     local rb = entity:get(PhysicsComponents.RigidBody):getRigidBody()
     local have = rb:getBoundingRadiusCompound()
     if have and have > 0 then
-        rb:setScale(rb:getScale() * radius * UniverseScaleConfig.globalScale / have)
+        rb:setScale(rb:getScale() * radius * G / have)
     end
 end
 
-local function newObject(game, spec, position)
+--- A mesh of an object's size at `position`: its entity, and its construct
+--- handle for ships.
+---@return Entity, table|nil
+local function newModel(game, spec, position)
     local seed = game.rng:get31()
     if spec.mesh == "station" then
-        local station = StationGenerator:createStation(seed, {
-            position = position,
-            scale = 1,
-            isKinematic = true,
-        })
+        local station = StationGenerator:createStation(seed, { position = position, scale = 1, isKinematic = true })
         fitRadius(station, spec.radius)
         game:addSceneEntity(station, { addBody = true })
-        return station
+        return station, nil
     elseif spec.mesh == "asteroid" then
         -- An asteroid mesh has radius 1 (as the belt's rocks)
-        return newAsteroid(game, seed, position, spec.radius * UniverseScaleConfig.globalScale)
+        return newAsteroid(game, seed, position, spec.radius * G), nil
     end
     local handle = game.constructManager:createTarget({
         seed = seed,
@@ -164,28 +124,99 @@ local function newObject(game, spec, position)
     })
     fitRadius(handle.root, spec.radius)
     game:addSceneConstruct(handle)
-    return handle.root
+    return handle.root, handle
 end
 
-local function moveTo(entity, position)
-    local rbCmp = entity:get(PhysicsComponents.RigidBody)
-    local rb = rbCmp and rbCmp:getRigidBody()
-    if rb then rb:setPos(position) end
-    local transform = entity:get(PhysicsComponents.Transform)
-    if transform then transform:setPos(position) end
+--- An object's entity (and its construct handle, for ships): its mesh, or a
+--- bare place in space (a marker) while it is too small to see from `dist`.
+---@return Entity, table|nil, boolean marker
+local function newObject(game, spec, position, dist)
+    if spec.radius / math.max(1, dist) < MESH_MIN_SIZE then
+        local entity = Entity.Create("SensorMarker", PhysicsComponents.Transform())
+        entity:get(PhysicsComponents.Transform):setPos(position)
+        game:addSceneEntity(entity)
+        return entity, nil, true
+    end
+    local entity, handle = newModel(game, spec, position)
+    return entity, handle, false
 end
 
-local function distanceTo(game, entity)
-    local a = SensorSystem:positionOf(game.playerShip)
-    local b = SensorSystem:positionOf(entity)
+local function distanceBetween(a, b)
     local dx, dy, dz = b.x - a.x, b.y - a.y, b.z - a.z
-    return math.sqrt(dx * dx + dy * dy + dz * dz) / UniverseScaleConfig.globalScale
+    return math.sqrt(dx * dx + dy * dy + dz * dz)
+end
+
+--- Gives a marker its mesh once the ship is close enough to see it. The mesh
+--- is a separate entity at the marker's place, for the eye only: the marker
+--- keeps the signature, so the sensor's views of it stay as they are.
+local function growModels(game)
+    local shipPos = SensorSystem:positionOf(game.playerShip)
+    for _, object in ipairs(game.scenarioData.objects) do
+        if object.marker and not object.model and object.entity:isValid() then
+            local pos = object.entity:get(PhysicsComponents.Transform):getPos()
+            local dist = distanceBetween(shipPos, pos) / G
+            if object.spec.radius / math.max(1, dist) >= MESH_MIN_SIZE then
+                object.model, object.modelHandle = newModel(game, object.spec, pos)
+            end
+        end
+    end
+end
+
+--- Sizes the player's ship for a hull, and its signature with it.
+local function fitPlayerShip(game, hull)
+    fitRadius(game.playerShip, HULL_RADIUS[hull])
+    local signature = game.playerShip:get(SensorComponents.SensorSignature)
+    if signature then signature:setRadius(HULL_RADIUS[hull]) end
+end
+
+--- `v` turned `degrees` round the unit axis `k` (Rodrigues' formula).
+local function turned(v, k, degrees)
+    local a = math.rad(degrees)
+    local c, s = math.cos(a), math.sin(a)
+    local kv = k.x * v.x + k.y * v.y + k.z * v.z
+    local cx, cy, cz = k.y * v.z - k.z * v.y, k.z * v.x - k.x * v.z, k.x * v.y - k.y * v.x
+    return {
+        x = v.x * c + cx * s + k.x * kv * (1 - c),
+        y = v.y * c + cy * s + k.y * kv * (1 - c),
+        z = v.z * c + cz * s + k.z * kv * (1 - c),
+    }
+end
+
+--- Where an object goes, around the ship at `pos` (game units) facing
+--- `forward` with `right` to its right and `up` above; and its distance in
+--- metres.
+---@return Position, number
+local function placeObject(game, spec, pos, forward, right, up)
+    local bodyName = spec.toward or spec.beyond
+    local body = bodyName == "star" and game.starEntity or bodyName == "planet" and game.planets and game.planets[1]
+    if body then
+        local transform = body:get(PhysicsComponents.Transform)
+        local c = transform:getPos()
+        local len = distanceBetween(pos, c)
+        local dx, dy, dz = (c.x - pos.x) / len, (c.y - pos.y) / len, (c.z - pos.z) / len
+        if spec.toward then
+            local dir = turned({ x = dx, y = dy, z = dz }, up, spec.offset or 0)
+            local d = spec.dist * G
+            return Position(pos.x + dir.x * d, pos.y + dir.y * d, pos.z + dir.z * d), spec.dist
+        end
+        local out = transform:getScale() + spec.gap * G
+        local p = Position(c.x + dx * out, c.y + dy * out, c.z + dz * out)
+        return p, distanceBetween(pos, p) / G
+    end
+    local b = math.rad(spec.bearing or 0)
+    local dist = spec.dist or 11000
+    local d = dist * G
+    local dx = forward.x * math.cos(b) + right.x * math.sin(b)
+    local dy = forward.y * math.cos(b) + right.y * math.sin(b)
+    local dz = forward.z * math.cos(b) + right.z * math.sin(b)
+    return Position(pos.x + dx * d, pos.y + dy * d, pos.z + dz * d), dist
 end
 
 --- Signatures for the star system's own bodies.
 local function signCelestials(game)
+    local shipPos = SensorSystem:positionOf(game.playerShip)
     if game.starEntity then
-        local k = (distanceTo(game, game.starEntity) / STAR_REFERENCE.dist) ^ 2
+        local k = (distanceBetween(shipPos, SensorSystem:positionOf(game.starEntity)) / G / STAR_REFERENCE.dist) ^ 2
         game.starEntity:add(SensorComponents.SensorSignature {
             kind = "star", label = "Star",
             fixedEm = STAR_REFERENCE.em * k, fixedHeat = STAR_REFERENCE.heat * k, glow = STAR_REFERENCE.glow * k,
@@ -220,6 +251,69 @@ local function signBeltRocks()
     end
 end
 
+local function clearSetup(game)
+    local function remove(entity, handle)
+        if handle then
+            game:removeSceneConstruct(handle)
+        elseif entity and entity:isValid() then
+            game:removeSceneEntity(entity)
+        end
+    end
+    for _, object in ipairs(game.scenarioData.objects or {}) do
+        remove(object.entity, object.handle)
+        remove(object.model, object.modelHandle)
+    end
+    game.scenarioData.objects = {}
+end
+
+--- Builds setup `index` around the ship as it is now, with its hull and
+--- surroundings, and clears what the sensor learned.
+local function buildSetup(game, index)
+    local data = game.scenarioData
+    clearSetup(game)
+    data.setupIndex = index
+    local setup = Setups[index]
+    data.hull = setup.hull
+    fitPlayerShip(game, setup.hull)
+
+    local sensor = sensorOf(game)
+    sensor:setDials(SensorModel.hulls[setup.hull])
+    sensor:setSurroundings(setup.surroundings or "open")
+    sensor:setResolutionRule("background")
+    sensor:setMerging(true)
+    sensor:reset()
+
+    local body = game.playerShip:get(PhysicsComponents.RigidBody)
+    local pos, forward, right, up = body:getPos(), body:getForward(), body:getRight(), body:getUp()
+    data.wantTarget = nil
+    for _, spec in ipairs(setup.objects) do
+        local position, dist = placeObject(game, spec, pos, forward, right, up)
+        local entity, handle, marker = newObject(game, spec, position, dist)
+        local signature = SensorComponents.SensorSignature {
+            kind = spec.kind, label = spec.label, radius = spec.radius, mw = spec.mw, activity = spec.activity,
+            name = spec.name, details = spec.details, contents = spec.contents,
+            shield = spec.shield, standing = spec.standing,
+        }
+        signature:getObject().hot = spec.hot or 0
+        entity:add(signature)
+        if spec.listener then
+            entity:add(SensorComponents.Sensor(SensorModel.hulls.frigate))
+        end
+        data.objects[#data.objects + 1] = { entity = entity, handle = handle, marker = marker, spec = spec }
+        if spec.label == setup.target and not data.wantTarget then data.wantTarget = entity end
+    end
+end
+
+--- Your ship as others hear it: its power draw, plus the scan's power while
+--- it scans, and the heat scanning builds.
+local function updateOwnSignature(game, sensor)
+    local signature = game.playerShip:get(SensorComponents.SensorSignature)
+    if not signature then return end
+    local own = SensorModel.ownEmission(sensor:getState())
+    signature:setPowerDraw(own.mw)
+    signature:getObject().hot = own.hot
+end
+
 --- Everything the sensor sees, nearest first: what Tab cycles through.
 local function byDistance(sensor)
     local list = {}
@@ -246,31 +340,84 @@ local function nextOf(list, current)
     return list[1]
 end
 
-local function place(game)
-    local data = game.scenarioData
-    for i, position in ipairs(placements(game)) do
-        moveTo(data.objects[i], position)
+--- Words of `str` in lines of at most `chars` characters.
+local function wrap(str, chars)
+    local lines, line = {}, ""
+    for word in str:gmatch("%S+") do
+        if line ~= "" and #line + 1 + #word > chars then
+            lines[#lines + 1] = line
+            line = word
+        else
+            line = line == "" and word or line .. " " .. word
+        end
     end
+    if line ~= "" then lines[#lines + 1] = line end
+    return lines
 end
 
-local function reset(game)
-    local data = game.scenarioData
-    place(game)
-    local fighter = data.objects[FIGHTER]:get(SensorComponents.SensorSignature)
-    fighter:setActivity("idle")
-    fighter:getObject().hot = 0
-    local sensor = sensorOf(game)
-    sensor:reset()
-    data.wantTarget = data.objects[FIRST_TARGET]
+--- One line per object with a sensor of its own: whether it hears you, and
+--- whether it heard your last pulse.
+local function listenerLines(game, sensor)
+    local lines = {}
+    local state = sensor:getState()
+    local pulseHeard = state.pulseAge < PULSE_HEARD_TIME
+    local shipPos = SensorSystem:positionOf(game.playerShip)
+    for _, object in ipairs(game.scenarioData.objects) do
+        local listener = object.entity:isValid() and object.entity:get(SensorComponents.Sensor)
+        if listener then
+            local reading
+            for _, view in ipairs(listener:getObjects()) do
+                if view.entity.id == game.playerShip.id then reading = listener:getReadings()[view] end
+            end
+            local heard = reading and reading.tier >= 1
+            local line = string.format("%s: %s", string.upper(object.spec.label),
+                heard and string.format("HEARS YOU, T%d (%s)", reading.tier, string.upper(reading.why))
+                or "DOESN'T HEAR YOU" .. (reading and " (" .. string.upper(reading.why) .. ")" or ""))
+            local dist = distanceBetween(shipPos, SensorSystem:positionOf(object.entity)) / G
+            if pulseHeard and dist <= SensorModel.heardWithin(state.dials.power) then
+                line = line .. " · HEARD YOUR PULSE"
+            end
+            lines[#lines + 1] = line
+        end
+    end
+    return lines
+end
+
+--- The tuning panel's keys: up and down pick a dial, left and right change
+--- it (again and again while held), Backspace puts the hull's values back.
+local function tuningInput(game, sensor, dt)
+    local data, tuning = game.scenarioData, game.scenarioData.tuning
+    local count = #SensorTuning.dials
+    if Input:isPressed(Button.KeyboardUp) then tuning.selected = (tuning.selected - 2) % count + 1 end
+    if Input:isPressed(Button.KeyboardDown) then tuning.selected = tuning.selected % count + 1 end
+    if Input:isPressed(Button.KeyboardBackspace) then sensor:setDials(SensorModel.hulls[data.hull]) end
+
+    local direction = (Input:isDown(Button.KeyboardRight) and 1 or 0) - (Input:isDown(Button.KeyboardLeft) and 1 or 0)
+    if direction == 0 then return end
+    local spec = SensorTuning.dials[tuning.selected]
+    local step = Input:isPressed(Button.KeyboardRight) or Input:isPressed(Button.KeyboardLeft)
+    if step then
+        tuning.repeatIn = REPEAT_AFTER
+    elseif not spec.toggle then
+        tuning.repeatIn = tuning.repeatIn - dt
+        if tuning.repeatIn <= 0 then
+            step, tuning.repeatIn = true, REPEAT_EVERY
+        end
+    end
+    if step then
+        local dials = SensorModel.copyDials(sensor:getDials())
+        dials[spec.key] = SensorTuning.step(spec, dials[spec.key], direction)
+        sensor:setDials(dials)
+    end
 end
 
 return {
     name = "Sensor Testbed",
-    description = "Passive and active sensors on your ship; X scans, Z pulses, 1 2 3 pick a hull.",
+    description = "Passive and active sensors on your ship, in six setups (B for the next); X scans, Z pulses.",
 
     -- Halfway between the first planet's surface and the belt rock nearest to
     -- it (where the game starts the ship otherwise): clear of the belt, so the
-    -- scene's own objects are what the sensor sees close by.
+    -- setups' own objects are what the sensor sees close by.
     spawnShip = function(game)
         local spawn = game:defaultShipSpawn()
         local planet = game.planets and game.planets[1]
@@ -285,23 +432,13 @@ return {
     end,
 
     setup = function(game)
-        local data = game.scenarioData
-        data.hull = "frigate"
-        data.objects = {}
-        for i, position in ipairs(placements(game)) do
-            local spec = OBJECTS[i]
-            local entity = newObject(game, spec, position)
-            entity:add(SensorComponents.SensorSignature {
-                kind = spec.kind, label = spec.label, radius = spec.radius, mw = spec.mw,
-                name = spec.name, details = spec.details, contents = spec.contents,
-                shield = spec.shield, standing = spec.standing,
-            })
-            data.objects[i] = entity
-        end
         signCelestials(game)
-        game.playerShip:add(SensorComponents.Sensor(SensorModel.hulls[data.hull]))
-        data.wantTarget = data.objects[FIRST_TARGET]
+        game.playerShip:add(SensorComponents.Sensor(SensorModel.hulls.frigate))
+        game.playerShip:add(SensorComponents.SensorSignature { kind = "ship", label = "You" })
+        game.scenarioData.tuning = { shown = false, selected = 1, repeatIn = 0 }
+        buildSetup(game, 1)
         sensorHud:update(nil)
+        tuningPanel:update(nil)
     end,
 
     update = function(game, dt)
@@ -309,6 +446,8 @@ return {
         local sensor = sensorOf(game)
         if not sensor then return end
         signBeltRocks()
+        growModels(game)
+        updateOwnSignature(game, sensor)
         SensorSystem:update(dt)
         -- The target is an object of the sensor's: pick the wanted entity's
         -- once the sensor has seen it
@@ -322,13 +461,16 @@ return {
             end
         end
         local body = game.playerShip:get(PhysicsComponents.RigidBody)
-        sensorHud:update(SensorPicture.build(sensor, body:getForward(), body:getRight(),
-            SensorModel.hullNames[data.hull]), dt)
+        sensorHud:update(SensorPicture.build(sensor, body:getForward(), body:getRight()), dt)
+        tuningPanel:update(data.tuning.shown
+            and { sensor = sensor, hull = data.hull, selected = data.tuning.selected } or nil)
     end,
 
-    hud = { sensorHud },
+    hud = { sensorHud, tuningPanel },
 
-    regenerate = reset,
+    regenerate = function(game)
+        buildSetup(game, game.scenarioData.setupIndex % #Setups + 1)
+    end,
 
     onInput = function(game, dt)
         local data = game.scenarioData
@@ -338,20 +480,26 @@ return {
         sensor:setScanning(Input:isDown(Button.KeyboardX))
         if Input:isPressed(Button.KeyboardZ) then sensor:requestPulse() end
         if Input:isPressed(Button.KeyboardTab) then nextTarget(sensor) end
+        if Input:isPressed(Button.KeyboardR) then buildSetup(game, data.setupIndex) end
 
         local hullKeys = { Button.KeyboardKey1, Button.KeyboardKey2, Button.KeyboardKey3 }
         for i, key in ipairs(hullKeys) do
             if Input:isPressed(key) then
                 data.hull = SensorModel.hullOrder[i]
                 sensor:setDials(SensorModel.hulls[data.hull])
+                fitPlayerShip(game, data.hull)
             end
         end
         if Input:isPressed(Button.KeyboardKey4) then
             sensor:setSurroundings(nextOf(SensorModel.surroundingsOrder, sensor:getSurroundings()))
         end
         if Input:isPressed(Button.KeyboardKey5) then
-            local fighter = data.objects[FIGHTER]:get(SensorComponents.SensorSignature)
-            fighter:setActivity(nextOf(SensorModel.activities, fighter:getActivity()))
+            local target = sensor:getTarget()
+            local signature = target and target.kind == "ship" and target.entity:isValid()
+                and target.entity:get(SensorComponents.SensorSignature)
+            if signature then
+                signature:setActivity(nextOf(SensorModel.activities, signature:getActivity()))
+            end
         end
         if Input:isPressed(Button.KeyboardKey6) then
             sensor:setResolutionRule(nextOf(SensorModel.resolutionRules, sensor:getResolutionRule()))
@@ -359,6 +507,8 @@ return {
         if Input:isPressed(Button.KeyboardKey7) then
             sensor:setMerging(not sensor:isMerging())
         end
+        if Input:isPressed(Button.KeyboardKey8) then data.tuning.shown = not data.tuning.shown end
+        if data.tuning.shown then tuningInput(game, sensor, dt) end
     end,
 
     controls = {
@@ -367,25 +517,40 @@ return {
         { keys = "Tab", action = "Next target (nearest first)" },
         { keys = "1 2 3", action = "Hull: fighter, frigate, capital ship" },
         { keys = "4", action = "Surroundings: open space, nebula, debris field, radiation belt" },
-        { keys = "5", action = "The fighter's activity: idle, thrusting, firing, cloaked" },
+        { keys = "5", action = "The target's activity, if it is a ship: idle, thrusting, firing, cloaked" },
         { keys = "6", action = "Resolution rule: background in the cell, dims the target" },
         { keys = "7", action = "Merge signals in one cell on / off" },
-        { keys = "B", action = "Put everything back around the ship; clear the sensor" },
+        { keys = "B", action = "Next setup (rebuilt around the ship; clears the sensor)" },
+        { keys = "R", action = "Start this setup again" },
+        { keys = "8", action = "Tuning panel: the numbers behind the target's reading, and the dials" },
+        { keys = "Up Down", action = "Tuning panel: pick a dial" },
+        { keys = "Left Right", action = "Tuning panel: change the dial (hold to keep changing it)" },
+        { keys = "Backspace", action = "Tuning panel: put the hull's dial values back" },
     },
 
     overlayLines = function(game)
         local data = game.scenarioData
         local sensor = sensorOf(game)
         if not sensor then return { "Sensor Testbed" } end
-        local fighter = data.objects[FIGHTER]:get(SensorComponents.SensorSignature)
-        return {
-            string.format("SENSOR TESTBED · %s · %s · %s RULE · MERGE %s · FIGHTER %s",
+        local target = sensor:getTarget()
+        local setup = currentSetup(game)
+        local lines = {
+            string.format("SETUP %d / %d · %s", data.setupIndex, #Setups, string.upper(setup.name)),
+        }
+        for _, line in ipairs(wrap(setup.hint or "", HINT_CHARS)) do lines[#lines + 1] = line end
+        lines[#lines + 1] = ""
+        for _, line in ipairs({
+            string.format("SENSOR TESTBED · %s · %s · %s RULE · MERGE %s%s",
                 string.upper(SensorModel.hullNames[data.hull]),
                 string.upper(SensorModel.surroundingsNames[sensor:getSurroundings()]),
                 string.upper(sensor:getResolutionRule()),
                 sensor:isMerging() and "ON" or "OFF",
-                string.upper(SensorModel.activityNames[fighter:getActivity()])),
-            "X scan (hold) · Z pulse · Tab target · 1 2 3 hull · 4 surroundings · 5 fighter · 6 rule · 7 merge · B reset",
-        }
+                target and target.kind == "ship" and target.activity and target.activity ~= "idle"
+                    and " · TARGET " .. string.upper(SensorModel.activityNames[target.activity]) or ""),
+            "X scan (hold) · Z pulse · Tab target · 1 2 3 hull · 4 surroundings · 5 activity · 6 rule · 7 merge"
+                .. " · 8 tuning · B next setup · R again",
+        }) do lines[#lines + 1] = line end
+        for _, line in ipairs(listenerLines(game, sensor)) do lines[#lines + 1] = line end
+        return lines
     end,
 }

@@ -37,7 +37,7 @@ local DEG = math.pi / 180
 -- finds it, pulse heard, you're heard.
 local HULL_TABLE = {
     fighter = { "35 km", "2.3 km", "458 m", "632 m", "63 m", "28 km", "100 km", "22 km" },
-    frigate = { "50 km", "10.0 km", "2.0 km", "2.0 km", "200 m", "50 km", "224 km", "50 km" },
+    frigate = { "50 km", "10 km", "2.0 km", "2.0 km", "200 m", "50 km", "224 km", "50 km" },
     capital = { "100 km", "57 km", "6.3 km", "8.9 km", "894 m", "106 km", "500 km", "158 km" },
 }
 

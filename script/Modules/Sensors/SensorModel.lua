@@ -114,6 +114,11 @@ SensorModel.activityNames = { idle = "Idle", thrust = "Thrusting", firing = "Fir
 ---@field fixedEm number|nil EM given off, instead of its power draw's
 ---@field fixedHeat number|nil heat given off, instead of its power draw's
 ---@field glow number|nil light of its own (a star)
+---@field name string|nil what a T3 read shows, "[Manufacturer] [Model] (Year)" for vessels
+---@field details string|nil a second T3 line (faction, condition ...)
+---@field shield number|nil its shields, 0 to 1, as a T3 read shows them
+---@field standing string|nil hostile, neutral or friendly, as a T3 read shows it
+---@field contents string[]|nil what a T4 read shows (cargo, logs ...)
 
 ---@class SensorState
 ---@field dials SensorDials
@@ -623,6 +628,16 @@ function SensorModel.stepObjectHeat(o, dt)
     local a = o.activity
     local rate = (a == "thrust" or a == "firing" or a == "cloak") and M.shipHeatUp or -M.shipHeatDown
     o.hot = clamp((o.hot or 0) + rate * dt, 0, 1)
+end
+
+--- What a ship's own sensor adds to its signature: others hear its power
+--- draw, plus the scan's power while it scans (everyone in earshot hears a
+--- scan), and the heat scanning builds.
+---@param state SensorState
+---@return { mw: number, hot: number }
+function SensorModel.ownEmission(state)
+    local dials = state.dials
+    return { mw = dials.ownMw + (state.scanning and dials.power or 0), hot = state.heat }
 end
 
 --- An all-round pulse: whatever echoes back strongly enough shows on the

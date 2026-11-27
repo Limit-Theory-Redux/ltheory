@@ -28,12 +28,24 @@ Sensor Testbed so far; ships in the normal game have no sensors yet.
 cargo run -p ltr -- Testbeds/Sensor
 ```
 
-or pick **Sensor Testbed** under New Game. The player's ship carries a
-frigate's sensor; around it are a station (12 km), a freighter (4 km), a
-fighter parked next to an asteroid (11 km), a nearer asteroid and a cold wreck
-(400 m), and the star system's star, planet and moon. Belt rocks that come
-close get a signature too. The sensor HUD (below) shows what the sensor makes
-of it all; the text in the top left shows the settings and the keys.
+or pick **Sensor Testbed** under New Game. The player's ship carries a sensor
+and a signature of its own (its power draw, louder and hotter while it scans),
+and takes its hull's size: 8 m for the fighter, 30 m for the frigate, 150 m
+for the capital ship.
+Around it is one setup at a time, each showing one thing; B builds the next
+one around the ship, R the same one again. The star system's star, planet and
+moon have signatures, and belt rocks that come close get one too. The sensor
+HUD (below) shows what the sensor makes of it all; the text in the top left
+shows the setup's name, what to try, the settings and the keys.
+
+| Setup | What it shows |
+|---|---|
+| Reference scene | The sensor mock's scene: a station, a freighter, a fighter parked next to an asteroid, a second asteroid and a cold wreck. |
+| Fighter, frigate, capital ship | The same ships (class I, II, III and a station) at 1, 3, 10, 30 and 100 km: how far each hull hears, classes and identifies them. |
+| Hiding | Fighters in the open, next to a rock, behind one, cloaked, running cold, firing (in the open and in the star's glare), in front of the planet and behind it. The tuning panel says why one is no contact. |
+| Passive against active | A nebula: listening only classes ships by their EM, a scan identifies them, a pulse finds the cold wreck. |
+| Resolution and merging | Five fighters 60 m apart at 15 km: one blob for a fighter's sensor, five for a frigate's, five classed for a capital ship's. |
+| Being heard | Five frigates with sensors of their own, 20 to 400 km away; the text says which hear you, while you listen, scan or pulse. |
 
 | Key | Action |
 |---|---|
@@ -42,14 +54,21 @@ of it all; the text in the top left shows the settings and the keys.
 | Tab | Next target (nearest first) |
 | 1 2 3 | Hull: fighter, frigate, capital ship |
 | 4 | Surroundings: open space, nebula, debris field, radiation belt |
-| 5 | The fighter's activity: idle, thrusting, firing, cloaked |
+| 5 | The target's activity, if it is a ship: idle, thrusting, firing, cloaked |
 | 6 | Resolution rule: background in the cell, dims the target |
 | 7 | Merge unresolved signals in one cell on or off |
-| B | Put everything back around the ship; clear what the sensor learned |
+| B | Next setup (rebuilt around the ship; clears what the sensor learned) |
+| R | Start this setup again |
+| 8 | Tuning panel (below) on or off |
+| Up, Down | Tuning panel: pick a dial |
+| Left, Right | Tuning panel: change the dial (hold to keep changing it) |
+| Backspace | Tuning panel: put the hull's dial values back |
 
-Things to try: with the frigate the fighter hides in the asteroid's
-background, with the capital ship it shows; in a nebula the wreck only shows
-after a pulse; holding X on the freighter with the capital ship reads its T3.
+The setups are in `script/Config/Scenarios/SensorTestbedSetups.lua`: plain
+tables of objects, each with its sensor values and its place (distance and
+bearing from the ship, or on the line to the planet or the star). Objects
+smaller than a pixel or so at their distance get no mesh, only a signature,
+until the ship comes close enough to see them.
 
 ## The sensor HUD
 
@@ -91,7 +110,7 @@ Feed it a `SensorPicture` every frame:
 local hud = UIComponent.SensorHud {}
 -- every frame
 local body = ship:get(PhysicsComponents.RigidBody)
-hud:update(SensorPicture.build(sensor, body:getForward(), body:getRight(), "FRIGATE"), dt)
+hud:update(SensorPicture.build(sensor, body:getForward(), body:getRight()), dt)
 ```
 
 A scenario shows its own HUD components by listing them in its `hud` field
@@ -103,10 +122,13 @@ with the game's HUD while the scenario runs.
 - `SensorModel.lua`: the maths, on plain tables. Units are metres, megawatts,
   seconds and degrees; positions are relative to the sensor. It holds no engine
   types, so it runs without a scene.
-- `SensorText.lua`: distances, classes and contact lines as the HUD writes them.
+- `SensorText.lua`: distances, power draws and SNRs as the HUD and the tuning
+  panel write them.
+- `SensorTuning.lua`: the dials the tuning panel changes, with their ranges
+  and steps.
 - `SensorPicture.lua`: what a sensor shows, ready to draw: every object with
-  its bearing and distance in the ship's frame, the contacts in list order,
-  the target and its scan.
+  its bearing and distance in the ship's frame, the target and its scan, and
+  how far the ship and its pulse are heard.
 - `Components/SensorSignatureComponent.lua`: on anything that can be sensed:
   kind, size (the entity's bounding radius unless given), power draw,
   activity, and what a T3 read (name, shields, standing) and a T4 read show.
@@ -136,6 +158,26 @@ end
 
 ## Tuning
 
+In the testbed, 8 shows the tuning panel
+(`script/UI/HmGui/Components/Hud/SensorTuningPanel.lua`), at the bottom left.
+It is a developer's view of the numbers behind the target's reading:
+
+- EM, heat and light: what reaches the sensor of each, as an SNR against the
+  "heard" line (SNR 1), the strongest one bright.
+- Noise: how much the background in the target's cell raises it, and what the
+  background is (with the "dim" rule: how much of the signal counts).
+- Cells: how many resolution cells the target fills, against the T2 and T3
+  marks.
+- Scan and pulse: the echo a scan would get, against the T3 and T4 marks, and
+  a pulse's echo against "found" (SNR 1).
+- The tiers the target has reached, and why.
+
+Under them are the dials. Up and Down pick one, Left and Right change it,
+Backspace puts the hull's values back; each slider has ticks where the
+fighter, frigate and capital ship have it. Their ranges and steps are in
+`script/Modules/Sensors/SensorTuning.lua`. Changes last until the next hull
+key or setup.
+
 The constants (`SensorModel.constants`), object kinds and hull presets are at
 the top of `SensorModel.lua`. They are tuned so a frigate against a 20 m ship
 drawing 50 MW, in open space, hears it at 50 km (T1), classes it at 10 km (T2),
@@ -151,3 +193,14 @@ cargo run -p ltr -- SensorModelTest
 
 It exits 0 and logs `SensorModelTest: passed`. After changing a constant on
 purpose, update the reference values in the test with it.
+
+`SensorSetupsTest` goes through every setup of the testbed with every hull and
+checks the readings that make each one's point (and a pulse, a scan and who
+hears you):
+
+```sh
+cargo run -p ltr -- SensorSetupsTest
+```
+
+It exits 0 and logs `SensorSetupsTest: passed`. When a setup or the model
+changes on purpose, update its expectations at the top of the test.
