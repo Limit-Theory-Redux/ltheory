@@ -229,10 +229,32 @@ local function hostileTeams(own, other)
     return value
 end
 
----The contacts one battery may engage.
----@param battery WeaponBattery
+---The live targets by cell of a grid of `size` game units: grid[ix][iy][iz] is a list of records.
 ---@param live table[]
-local function selectCandidates(battery, live)
+---@param size number
+---@return table grid
+local function buildGrid(live, size)
+    local grid = {}
+    for _, record in ipairs(live) do
+        local p = record.position
+        local ix, iy, iz = math.floor(p.x / size), math.floor(p.y / size), math.floor(p.z / size)
+        local plane = grid[ix]
+        if not plane then plane = {} grid[ix] = plane end
+        local row = plane[iy]
+        if not row then row = {} plane[iy] = row end
+        local cell = row[iz]
+        if not cell then cell = {} row[iz] = cell end
+        cell[#cell + 1] = record
+    end
+    return grid
+end
+
+---The contacts one battery may engage: the hostile live targets within its engagement range, looked
+---up in the cells of `grid` (cells of `size`, at least that range) round its ship.
+---@param battery WeaponBattery
+---@param grid table
+---@param size number
+local function selectCandidates(battery, grid, size)
     local candidates = battery.targetCandidates
     for index = #candidates, 1, -1 do
         candidates[index] = nil
@@ -240,13 +262,29 @@ local function selectCandidates(battery, live)
     local origin = battery.shipBody:getPos()
     local rangeSquared = battery.engagementRange * battery.engagementRange
     local shipId = battery.ship.id
-    for _, record in ipairs(live) do
-        if record.id ~= shipId and hostileTeams(battery.team, record.team) then
-            local dx = record.position.x - origin.x
-            local dy = record.position.y - origin.y
-            local dz = record.position.z - origin.z
-            if dx * dx + dy * dy + dz * dz <= rangeSquared then
-                candidates[#candidates + 1] = record
+    local cx, cy, cz = math.floor(origin.x / size), math.floor(origin.y / size), math.floor(origin.z / size)
+    for ix = cx - 1, cx + 1 do
+        local plane = grid[ix]
+        if plane then
+            for iy = cy - 1, cy + 1 do
+                local row = plane[iy]
+                if row then
+                    for iz = cz - 1, cz + 1 do
+                        local cell = row[iz]
+                        if cell then
+                            for _, record in ipairs(cell) do
+                                if record.id ~= shipId and hostileTeams(battery.team, record.team) then
+                                    local dx = record.position.x - origin.x
+                                    local dy = record.position.y - origin.y
+                                    local dz = record.position.z - origin.z
+                                    if dx * dx + dy * dy + dz * dz <= rangeSquared then
+                                        candidates[#candidates + 1] = record
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
             end
         end
     end
@@ -265,7 +303,9 @@ function WeaponCombatSystem:holdsLostTarget(battery)
     return false
 end
 
----Before the physics step: target candidates, per-mount targets, turrets.
+---Before the physics step: target candidates and per-mount targets. (The turrets are put on their
+---ships after the step, `update`, which is what aiming and drawing read; target choice reads the
+---mounts where the last step left them.)
 ---@param dt number
 function WeaponCombatSystem:preUpdate(dt)
     if dt <= 0 or #self.batteries == 0 then
@@ -284,6 +324,9 @@ function WeaponCombatSystem:preUpdate(dt)
     local live = self:refreshTargets(dt)
     mark("weapons: refresh targets", t)
     hostileMemo = {}
+    -- The live targets in a grid of the longest engagement range, built when a battery chooses.
+    local grid, size = nil, 0
+    for _, battery in ipairs(self.batteries) do size = math.max(size, battery.engagementRange) end
     for index, battery in ipairs(self.batteries) do
         -- Candidates and targets are chosen again every `ASSIGN_PERIOD_S`, the batteries staggered
         -- over it, and at once when a target it holds is gone; tracking and firing go on every frame
@@ -292,14 +335,12 @@ function WeaponCombatSystem:preUpdate(dt)
         if battery.assignIn <= 0 or self:holdsLostTarget(battery) then
             battery.assignIn = ASSIGN_PERIOD_S
             t = os.clock()
-            selectCandidates(battery, live)
+            grid = grid or buildGrid(live, math.max(size, 1e-6))
+            selectCandidates(battery, grid, math.max(size, 1e-6))
             mark("weapons: candidates", t) t = os.clock()
             battery:assignTargets()
             mark("weapons: assign", t)
         end
-        t = os.clock()
-        battery:syncTurretTransforms()
-        mark("weapons: turret sync", t)
     end
 end
 
