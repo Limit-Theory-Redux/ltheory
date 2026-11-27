@@ -43,3 +43,17 @@ what they earned and spent; each faction's treasury; and the credits of every ac
 each sample is rows of `time,kind,name,key,value` (`kind` is `station`, `stock`, `price`, `agents`,
 `faction` or `total`), easy to load into a spreadsheet or a script. At the end the summary (prices,
 stock and credits from the first sample to the last) goes to the log and, as `#` lines, to the CSV.
+
+## Speed
+
+Most of a step is the navigation world (the `nav` crate), which a debug build compiles without
+optimisation. For long runs, build it optimised while the rest stays a debug build:
+
+```
+cargo build --config 'profile.dev.package.nav.opt-level=3'
+```
+
+With it, and the mining effects switched off (the testbed does that: nothing sees them), the default
+star system runs at 8 to 18 times real time on an Apple M1, depending on how much flies at once.
+Every `ltr` run for testing should also set `LTHEORY_BACKGROUND=1`: the window stays behind, the game
+is silent and doesn't write the player's `user.ini`.
