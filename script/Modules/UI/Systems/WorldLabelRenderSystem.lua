@@ -6,6 +6,8 @@ local ScreenProjection    = require("Shared.Helpers.ScreenProjection")
 
 -- A label this far outside the window is still drawn, so one that straddles the edge doesn't pop.
 local LABEL_MARGIN_PX = 100
+-- Two labels closer than this on screen overlap: only the nearer one is drawn.
+local OVERLAP_X_PX, OVERLAP_Y_PX = 110, 14
 
 -- Reused each frame.
 local labelProjector = {}
@@ -28,6 +30,7 @@ function WorldLabelRenderSystem:draw(labeledEntities, moonDistThreshold)
     local camPos = camTransform:getPos()
 
     local projector = ScreenProjection.active(labelProjector)
+    local shown = {}
 
     for _, entry in ipairs(labeledEntities) do
         -- Hide moon labels unless camera is near the parent planet
@@ -56,13 +59,29 @@ function WorldLabelRenderSystem:draw(labeledEntities, moonDistThreshold)
 
         -- Only draw if on screen
         if ScreenProjection.inViewport(projector, px, py, LABEL_MARGIN_PX) then
-            local distStr = " [" .. UniverseScaleConfig:formatDistance(dist) .. "]"
-            local text = label .. distStr
-            DrawEx.TextAdditive('Unageo-Medium', text, 12, px - 50, py - 8, 200, 16,
-                1.0, 1.0, 0.5, 0.9, 0.5, 0.5)
+            shown[#shown + 1] = { text = label .. " [" .. UniverseScaleConfig:formatDistance(dist) .. "]", x = px, y = py, dist = dist }
         end
 
         ::next_label::
+    end
+
+    -- Nearest first; a label that would cover one already drawn is left out (ships at one station,
+    -- miners in one field), so what is drawn stays readable.
+    table.sort(shown, function(a, b) return a.dist < b.dist end)
+    local drawn = {}
+    for _, item in ipairs(shown) do
+        local free = true
+        for _, other in ipairs(drawn) do
+            if math.abs(item.x - other.x) < OVERLAP_X_PX and math.abs(item.y - other.y) < OVERLAP_Y_PX then
+                free = false
+                break
+            end
+        end
+        if free then
+            drawn[#drawn + 1] = item
+            DrawEx.TextAdditive('Unageo-Medium', item.text, 12, item.x - 50, item.y - 8, 200, 16,
+                1.0, 1.0, 0.5, 0.9, 0.5, 0.5)
+        end
     end
 end
 
