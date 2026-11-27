@@ -195,6 +195,26 @@ Gui:setFixedWidth(25)
 Gui:endContainer()
 ```
 
+## Images
+
+`Gui:image(tex)` draws a texture stretched over its widget. By default it is
+drawn as it is, texel for texel. Two settings change the last image:
+
+- `Gui:setImageColor(color)` multiplies its texels by a colour, so one white
+  icon can be drawn in any colour, and the colour's alpha fades it.
+- `Gui:setImageSmooth(true)` samples it bilinearly between mip levels, for an
+  image drawn at another size than its texture. Drawn smaller, it only stays
+  smooth when the texture has mip levels: create it with
+  `Tex2D.Create(w, h, format, { mips = true })` and call `genMipmap()` after
+  filling it (`Tex2D.Load` gives a single level).
+
+```lua
+Gui:image(icon) -- a white icon
+Gui:setImageColor(Color(1, 0.27, 0.27, 0.9))
+Gui:setImageSmooth(true)
+Gui:setFixedSize(18, 18)
+```
+
 ## Text editing
 
 HmGui provides text view component that can be single or multiline, and editable or read-only.

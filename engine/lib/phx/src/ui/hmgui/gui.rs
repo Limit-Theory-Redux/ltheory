@@ -212,6 +212,18 @@ impl HmGui {
         }
     }
 
+    /// Change the last widget if it is an image (`what` names the caller in
+    /// the warning when it is not).
+    fn with_last_image(&self, what: &str, f: impl FnOnce(&mut HmGuiImage)) {
+        let last = self.last();
+        let mut widget = last.as_mut();
+
+        match &mut widget.item {
+            WidgetItem::Image(image) => f(image),
+            _ => warn!("{what}: the last widget is not an image"),
+        }
+    }
+
     /// Change the last widget if it is a text (`what` names the caller in the
     /// warning when it is not).
     fn with_last_text(&self, what: &str, f: impl FnOnce(&mut HmGuiText)) {
@@ -523,13 +535,26 @@ impl HmGui {
         data.offset -= offset;
     }
 
+    /// Add an image, stretched to fill the widget.
     pub fn image(&mut self, image: &mut Tex2D) {
-        let image_item = HmGuiImage {
-            image: image.clone(),
-            layout: HmGuiImageLayout::Fit,
-        };
+        let image_item = HmGuiImage::new(image.clone(), HmGuiImageLayout::Fit);
 
         let _ = self.init_widget(WidgetItem::Image(image_item));
+    }
+
+    /// Multiply the last image's texels by `color`: a white image takes the
+    /// colour as its own, and the colour's alpha fades it. White (the
+    /// default) draws the image as it is.
+    pub fn set_image_color(&self, color: &Color) {
+        self.with_last_image("setImageColor", |image| image.color = *color);
+    }
+
+    /// Sample the last image bilinearly between mip levels instead of
+    /// taking the nearest texel, for an image drawn smaller or larger than
+    /// its texture (an icon). Smaller only looks smooth when the texture
+    /// has mip levels (`Tex2D:genMipmap` on a texture created with them).
+    pub fn set_image_smooth(&self, smooth: bool) {
+        self.with_last_image("setImageSmooth", |image| image.smooth = smooth);
     }
 
     pub fn rect(&mut self) {

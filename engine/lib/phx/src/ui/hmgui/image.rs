@@ -1,7 +1,7 @@
 use glam::Vec2;
 
 use super::HmGui;
-use crate::render::Tex2D;
+use crate::render::{Color, Tex2D};
 
 #[derive(Default, Clone, Copy, PartialEq)]
 pub enum HmGuiImageLayout {
@@ -15,6 +15,21 @@ pub enum HmGuiImageLayout {
 pub struct HmGuiImage {
     pub image: Tex2D,
     pub layout: HmGuiImageLayout,
+    /// Multiplies every texel (`HmGui::set_image_color`).
+    pub color: Color,
+    /// Sampled smoothly (`HmGui::set_image_smooth`).
+    pub smooth: bool,
+}
+
+impl HmGuiImage {
+    pub fn new(image: Tex2D, layout: HmGuiImageLayout) -> Self {
+        Self {
+            image,
+            layout,
+            color: Color::WHITE,
+            smooth: false,
+        }
+    }
 }
 
 impl HmGuiImage {
@@ -22,7 +37,9 @@ impl HmGuiImage {
         let image = self.image.clone();
 
         if self.layout == HmGuiImageLayout::Fit {
-            hmgui.renderer.image(image, pos, size);
+            hmgui
+                .renderer
+                .image(image, pos, size, self.color, self.smooth);
         } else {
             let tex_size = image.get_size().as_vec2();
 
@@ -32,7 +49,9 @@ impl HmGuiImage {
                 pos += (size - tex_size) / 2.0;
             }
 
-            hmgui.renderer.image(image, pos, tex_size);
+            hmgui
+                .renderer
+                .image(image, pos, tex_size, self.color, self.smooth);
 
             hmgui.renderer.end_layer();
         }
