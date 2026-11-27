@@ -1,5 +1,5 @@
 -- The HUD lines of a scenario with an economy: a line for each station the spawner made (credits,
--- stock) and each of its agents (what it does, credits, cargo).
+-- stock) and each of its ships (what it does, its credits or earnings, cargo).
 
 local Registry          = require("Core.ECS.Registry")
 local Items             = require("Shared.Registries.Items")
@@ -34,8 +34,11 @@ return function()
     for _, ship in ipairs(SpawnerSystem:getAgents()) do
         local agent = Registry:hasEntity(ship.entity) and ship.entity:get(Economy.EconomyAgent)
         if agent then
-            lines[#lines + 1] = string.format("%s: %s | %d cr | %s", ship.name, agent:getActivity(),
-                AccountManager:balanceOf(ship.entity), stockText(ship.entity:get(Economy.Inventory)))
+            -- A ship its faction pays for shares its leader's account: what it earned tells it apart.
+            local credits = ship.entity:get(Economy.Ownership) and string.format("earned %d", agent.earned)
+                or string.format("%d cr", AccountManager:balanceOf(ship.entity))
+            lines[#lines + 1] = string.format("%s: %s | %s | %s", ship.name, agent:getActivity(), credits,
+                stockText(ship.entity:get(Economy.Inventory)))
         end
     end
     return lines

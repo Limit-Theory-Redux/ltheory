@@ -60,6 +60,7 @@ local MemoryReporter           = require('Modules.Profiling.MemoryReporter')
 local ConstructManager         = require('Modules.Constructs.Managers.ConstructManager')
 local StationGenerator         = require('Modules.Constructs.Managers.Generators.StationGenerator')
 local SpawnerSystem            = require('Modules.Spawning.Systems.SpawnerSystem')
+local DockingSystem            = require('Modules.Docking.Systems.DockingSystem')
 local WeaponCombatSystem       = require('Modules.Constructs.Systems.WeaponCombatSystem')
 local ExplosionEffectSystem    = require('Modules.Constructs.Systems.ExplosionEffectSystem')
 
@@ -453,8 +454,14 @@ function LimitTheoryRedux:buildScene()
     -- What the spawner makes (stations, ore fields, AI ships) is labelled like the scene's own things.
     SpawnerSystem:attach(self.world, self.constructManager, {
         weaponCombat = self.weaponCombat,
-        onSpawned = function(entity, label)
-            if label then table.insert(self.labeledEntities, { entity = entity, label = label }) end
+        onSpawned = function(entity, label, kind)
+            if not label then return end
+            -- A ship docked at a station would cover the station's label with its own.
+            local visible = kind == "ship" and function()
+                local phase = DockingSystem:phaseOf(entity)
+                return phase ~= Enums.DockingPhase.Docked and phase ~= Enums.DockingPhase.Entering
+            end or nil
+            table.insert(self.labeledEntities, { entity = entity, label = label, visible = visible })
         end,
     })
     self:generateUniverse(self.scenario.ruleset or Scenarios.default.ruleset)

@@ -15,7 +15,7 @@ local labelProjector = {}
 local WorldLabelRenderSystem = {}
 
 --- Draw labels for a list of labeled entities
----@param labeledEntities table Array of { entity, label, isMoon, parentPos }
+---@param labeledEntities table Array of { entity, label, isMoon, parentPos, visible }; `visible`, a function, hides the label while it returns false
 ---@param moonDistThreshold number|nil Max camera distance to parent for moon labels (default 100000)
 function WorldLabelRenderSystem:draw(labeledEntities, moonDistThreshold)
     if not labeledEntities then return end
@@ -39,6 +39,7 @@ function WorldLabelRenderSystem:draw(labeledEntities, moonDistThreshold)
             if distToParent > moonDistThreshold then goto next_label end
         end
 
+        if entry.visible and not entry.visible() then goto next_label end
         local entity = entry.entity
         local label = entry.label
 
