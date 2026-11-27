@@ -98,6 +98,14 @@ local function goalsOf(start, targets, profile)
     return goals
 end
 
+---The scene of an estimate now (the bodies and cost zones where they are), for code that estimates
+---many flights itself, on a worker (`JobPlanner`).
+---@param costProfile CostProfile|nil None weighs each zone at its own cost
+---@return NavEstimateScene
+function EstimateRequest.scene(costProfile)
+    return sceneOf(PlannerSnapshot.take(costProfile))
+end
+
 ---The request for the estimates of flights from `from` to each target.
 ---@param from NavTarget The start: a ship (its flight and cost profile and drive are the defaults) or a point
 ---@param targets NavTarget[]

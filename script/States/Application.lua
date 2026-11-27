@@ -4,6 +4,7 @@ local ShaderErrorOverlay = require('Shared.Tools.ShaderErrorOverlay')
 local RenderInfoOverlay = require('Shared.Tools.RenderInfoOverlay')
 local GeneralActions = require('Input.ActionBindings.GeneralActions')
 local SubscriberProfile = require("Shared.Tools.SubscriberProfile")
+local FrameScheduler = require("Shared.Tools.FrameScheduler")
 
 ---@class Application
 local Application = Class("Application", function(self) end)
@@ -109,6 +110,8 @@ function Application:eventLoop()
         end
         eventData, payload = EventBus:nextEvent()
     end
+    -- Work spread over frames, within its budget, after the frame's own.
+    FrameScheduler:run()
 end
 
 function Application:appInit()

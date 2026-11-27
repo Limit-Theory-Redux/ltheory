@@ -7,7 +7,6 @@ local ScaleConfig = require("Config.Gen.UniverseScaleConfig")
 local EntityPosition = require("Shared.Helpers.EntityPosition")
 local Nav = require("Modules.Navigation")
 local PhysicsComponents = require("Modules.Physics.Components")
-local FlightProfile = require("Modules.Constructs.Components.FlightProfileComponent")
 local DockingSystem = require("Modules.Docking.Systems.DockingSystem")
 local MiningSystem = require("Modules.Economy.Systems.MiningSystem")
 local JobBoardSystem = require("Modules.Economy.Systems.JobBoardSystem")
@@ -20,6 +19,9 @@ local MarketplaceSystem = require("Modules.Economy.Systems.MarketplaceSystem")
 local NameComponent = require("Modules.Core.Components.NameComponent")
 local DockingComponents = require("Modules.Docking.Components")
 local PeopleManager = require("Modules.People.Managers.PeopleManager")
+local JobPlanner = require("Shared.Economy.JobPlanner")
+local JobSnapshot = require("Modules.Economy.Managers.JobSnapshot")
+local FrameScheduler = require("Shared.Tools.FrameScheduler")
 
 -- The agent is the decision-making of a ship's commander: it lives on the person and moves with command.
 PeopleManager.registerCommandComponent(Economy.EconomyAgent)
@@ -46,6 +48,8 @@ local liveClaims = {}
 ---and sells there. A ship with cargo first sells it where it is bid for best. Jobs are scored by
 ---profit over the time they take, from navigation estimates of the legs; the quantities a job
 ---plans to buy, sell or mine are held against the other agents, so two agents don't chase one lot.
+---The choosing is the captains' thinking: the captains that need work think together, off the main
+---thread (`JobPlanner` on a worker, from a `JobSnapshot`), and their answers are applied when they come.
 ---The flights are navigation orders and dockings (`DockingSystem`); trades happen docked, at once
 ---(`MarketplaceSystem:buyNow`/`sellNow`), after a service time.
 ---@class EconomyAgentSystem
@@ -62,8 +66,11 @@ function EconomyAgentSystem:registerVars()
     self.idleRetryS = 8
     -- The least profit a job is taken for, in credits.
     self.minProfit = 30
-    -- How many of the most profitable jobs are timed with navigation estimates.
-    self.estimateCandidates = 4
+    -- The captains that need work think together every `thinkPeriodS`: one snapshot of the job board
+    -- goes to the thinking worker (`JobPlannerWorker.lua`), or with `thinkInWorker` off, to the
+    -- planner on the main thread, spread over frames (`FrameScheduler`; LTHEORY_THINK_INLINE sets it).
+    self.thinkPeriodS = 0.5
+    self.thinkInWorker = os.getenv("LTHEORY_THINK_INLINE") == nil
     -- Seconds added to a job's time for each docking.
     self.dockOverheadS = 40
     -- A miner's run lasts at most `maxMiningS`; it flies to `mineGapM` off the rock's hull first,
@@ -86,6 +93,13 @@ function EconomyAgentSystem:registerVars()
     self.raidPatrolRadius = ScaleConfig:toGameUnits(40e3, "starSystem")
     ---@type Entity[] Navigation orders cancelled and not yet ended, released once they have
     self.cancelled = {}
+    ---@type table<integer, { ship: Entity, agent: EconomyAgentComponent }> Captains waiting for a thought, by ship id
+    self.awaiting = {}
+    self.nextThinkAt = 0
+    self.thinkTaskId = nil
+    ---@type FrameTask|nil The thinking on the main thread, while it runs
+    self.thinkTask = nil
+    self.thinkWorker = nil
 end
 
 function EconomyAgentSystem:registerEvents()
@@ -124,6 +138,7 @@ function EconomyAgentSystem:update(dt)
             self:step(ship, agent, now, dt)
         end
     end
+    self:think(now)
     self.profiler:stop()
 end
 
@@ -218,200 +233,141 @@ end
 
 -- Estimates --------------------------------------------------------------------------------------
 
----A point just outside an entity, from which a flight onward can be estimated (its centre is
----inside its hull).
----@param entity Entity
----@return Position
-local function departurePoint(entity)
-    local pos = EntityPosition.Get(entity)
-    local rbCmp = entity:get(PhysicsComponents.RigidBody)
-    local radius = rbCmp and rbCmp:getRigidBody() and rbCmp:getRigidBody():getBoundingRadius() or 0
-    return Position(pos.x, pos.y + radius * 2, pos.z)
-end
+-- Thinking ---------------------------------------------------------------------------------------
 
----Seconds the flight takes, from the navigation estimate, or from the straight distance at top
----speed when the estimate finds no way.
----@param ship Entity
----@param from Entity|Position
----@param to Entity
----@return number
-function EconomyAgentSystem:flightTime(ship, from, to)
-    local profile = FlightProfile.ProfileOf(ship)
-    local estimate = Nav.estimate(from, to, profile)
-    if estimate and estimate.reachable and estimate.time then return estimate.time end
-    local a = rawtype(from) == "table" and EntityPosition.Get(from) or from
-    local b = EntityPosition.Get(to)
-    local dx, dy, dz = b.x - a.x, b.y - a.y, b.z - a.z
-    return math.sqrt(dx * dx + dy * dy + dz * dz) / math.max(profile.maxSpeed, 1e-6)
-end
-
--- Planning ---------------------------------------------------------------------------------------
-
----@return Entity[] stations The entities with a market and a body
-local function markets()
-    local stations = {}
-    for entity in Registry:view(Economy.Marketplace) do
-        local rbCmp = entity:get(PhysicsComponents.RigidBody)
-        if rbCmp and rbCmp:getRigidBody() then stations[#stations + 1] = entity end
-    end
-    return stations
-end
-
----Whether the ship may deal at the station: not when their factions are hostile.
----@param ship Entity
----@param station Entity
----@return boolean
-local function welcome(ship, station)
-    return not FactionManager.isHostile(FactionManager.factionOf(ship), FactionManager.factionOf(station))
-end
-
+---A captain needs work: its ship waits for the next thought (`think`).
 ---@param ship Entity
 ---@param agent EconomyAgentComponent
----@param inventory InventoryComponent
----@return EconomyJob|nil
-function EconomyAgentSystem:planSale(ship, agent, inventory)
-    local best, bestScore = nil, 0
-    for itemId in pairs(inventory:getInventory()) do
-        local held = InventoryManager:count(inventory, itemId)
-        if held > 0 then
-            for _, bid in ipairs(JobBoardSystem:getBids(itemId)) do
-                local station = bid.station
-                local open = bid.demand - self:claimed(claimKey("bid", station.id, itemId))
-                if open > 0 and Registry:hasEntity(station) and welcome(ship, station) then
-                    local quantity = math.min(held, open)
-                    local score = bid.price * quantity / (self:flightTime(ship, ship, station) + self.dockOverheadS)
-                    if score > bestScore then
-                        best, bestScore = {
-                            itemId = itemId, quantity = quantity, destination = station.id,
-                            sellPrice = bid.price, claims = {},
-                        }, score
-                    end
+function EconomyAgentSystem:awaitThought(ship, agent)
+    self.awaiting[ship.id] = { ship = ship, agent = agent }
+end
+
+---Gives out the answers that have come, and sends the captains waiting for one off to think when
+---none is under way and `thinkPeriodS` has passed.
+---@param now number
+function EconomyAgentSystem:think(now)
+    self:collectThoughts()
+    if self.thinkTaskId or self.thinkTask or now < self.nextThinkAt or not next(self.awaiting) then return end
+    self.nextThinkAt = now + self.thinkPeriodS
+
+    local ships = {}
+    for id, entry in pairs(self.awaiting) do
+        if Registry:hasEntity(entry.ship) and entry.ship:get(Economy.Inventory) then
+            ships[#ships + 1] = entry
+        else
+            self.awaiting[id] = nil
+        end
+    end
+    if #ships == 0 then return end
+    table.sort(ships, function(a, b) return a.ship.id < b.ship.id end)
+    local snapshot = JobSnapshot.build(ships, JobBoardSystem, self.claims or {}, {
+        now = now, dockOverheadS = self.dockOverheadS, minProfit = self.minProfit,
+        miningRate = MiningSystem:expectedRate(), miningRunS = self.miningRunS,
+        maxMinersPerAsteroid = self.maxMinersPerAsteroid, raidS = self.raidS, raidValue = self.raidValue,
+    })
+    if self.thinkInWorker then
+        if not self.thinkWorker then
+            self.thinkWorker = TaskQueue:startWorker("JobPlanner", "script/Shared/Economy/JobPlannerWorker.lua", 1)
+            assert(self.thinkWorker, "EconomyAgentSystem: the thinking worker did not start")
+        end
+        self.thinkTaskId = TaskQueue:sendTask(self.thinkWorker, snapshot)
+    else
+        self.thinkTask = FrameScheduler:spawn("captains think", JobPlanner.planAll, snapshot,
+            function() FrameScheduler:checkpoint() end)
+    end
+end
+
+---Takes the answers of the thinking under way, when they have come.
+function EconomyAgentSystem:collectThoughts()
+    local values = nil
+    if self.thinkTaskId then
+        while true do
+            local taskId, payload, err = TaskQueue:nextTaskResult(self.thinkWorker)
+            if not taskId then break end
+            if taskId == self.thinkTaskId then
+                assert(not err, "EconomyAgentSystem: the thinking worker failed: " .. tostring(err))
+                values = payload.values or {}
+                self.thinkTaskId = nil
+            end
+        end
+    elseif self.thinkTask and self.thinkTask:isDone() then
+        values = self.thinkTask:getResult() or {}
+        self.thinkTask = nil
+    end
+    if values then self:applyThoughts(values) end
+end
+
+---Turns each answer into its captain's job: its shares are claimed, and its ship sets off. An
+---answer whose places are gone since is dropped, and its captain thinks again.
+---@param values number[] `JobPlanner.Layout.Result` records
+function EconomyAgentSystem:applyThoughts(values)
+    local R, Kind = JobPlanner.Layout.Result, JobPlanner.Kind
+    local now = currentNow
+    for base = 1, #values, R.Stride do
+        local shipId = values[base + R.Agent]
+        local entry = self.awaiting[shipId]
+        self.awaiting[shipId] = nil
+        local ship, agent = entry and entry.ship, entry and entry.agent
+        if ship and Registry:hasEntity(ship) and PeopleManager.commandOf(ship, Economy.EconomyAgent) == agent then
+            local job = self:jobOf(values, base)
+            if job and (job.kind ~= "park" or agent.state == State.Idle) then
+                commitClaims(job)
+                if agent.state == State.Idle then
+                    agent.job = job
+                    self:startStage(ship, agent, now)
+                elseif job.kind ~= "park" and agent.job and agent.job.stage == "park" then
+                    -- Work for a ship on its way to wait: it takes it at once.
+                    DockingSystem:release(ship)
+                    agent.job = job
+                    self:startStage(ship, agent, now)
                 end
+            elseif agent.state == State.Idle then
+                self:wait(agent, now, self.idleRetryS, false)
             end
         end
     end
-    if best then
-        best.kind, best.stage, best.score = "sale", "sell", bestScore
-        plan(best, claimKey("bid", best.destination, best.itemId), best.quantity)
-    end
-    return best
 end
 
----Times the most profitable candidates and returns the best by profit per second.
----@param candidates table[] `{ profit, job, time = fun(): number }`
+---The job an answer describes, with the shares it plans to hold; nil for no job or one whose places
+---are gone.
+---@param values number[]
+---@param base integer
 ---@return EconomyJob|nil
-function EconomyAgentSystem:bestCandidate(candidates)
-    table.sort(candidates, function(a, b) return a.profit > b.profit end)
-    local best, bestScore = nil, 0
-    for i = 1, math.min(#candidates, self.estimateCandidates) do
-        local candidate = candidates[i]
-        local score = candidate.profit / math.max(1, candidate.time())
-        if score > bestScore then best, bestScore = candidate.job, score end
-    end
-    if best then best.score = bestScore end
-    return best
-end
-
----The best trade route of the job board for this ship: what is left of each after the other
----agents' claims, within its hold and credits, at stations it is welcome at.
----@param ship Entity
----@param inventory InventoryComponent
----@return EconomyJob|nil
-function EconomyAgentSystem:planTrade(ship, inventory)
-    local balance = AccountManager:balanceOf(ship)
-    local candidates = {}
-    for _, offer in ipairs(JobBoardSystem:getTrades()) do
-        local source, destination, itemId = offer.source, offer.destination, offer.itemId
-        if Registry:hasEntity(source) and Registry:hasEntity(destination) and welcome(ship, source) and welcome(ship, destination) then
-            local supply = offer.supply - self:claimed(claimKey("ask", source.id, itemId))
-            local demand = offer.demand - self:claimed(claimKey("bid", destination.id, itemId))
-            local quantity = math.min(supply, demand, InventoryManager:getRoomFor(inventory, itemId),
-                math.floor(balance / offer.buyPrice))
-            local profit = (offer.sellPrice - offer.buyPrice) * quantity
-            if quantity > 0 and profit >= self.minProfit then
-                candidates[#candidates + 1] = {
-                    profit = profit,
-                    job = {
-                        itemId = itemId, quantity = quantity, source = source.id, destination = destination.id,
-                        buyPrice = offer.buyPrice, sellPrice = offer.sellPrice, claims = {},
-                    },
-                    time = function()
-                        return self:flightTime(ship, ship, source) + self:flightTime(ship, departurePoint(source), destination)
-                            + 2 * self.dockOverheadS
-                    end,
-                }
-            end
-        end
-    end
-    local job = self:bestCandidate(candidates)
-    if job then
+function EconomyAgentSystem:jobOf(values, base)
+    local R, Kind = JobPlanner.Layout.Result, JobPlanner.Kind
+    local kind = values[base + R.Kind]
+    local item, quantity = values[base + R.Item], values[base + R.Quantity]
+    local source, destination = values[base + R.Source], values[base + R.Destination]
+    local job = { claims = {}, score = values[base + R.Score] }
+    if kind == Kind.Sale then
+        job.kind, job.stage = "sale", "sell"
+        job.itemId, job.quantity, job.destination, job.sellPrice = item, quantity, destination, values[base + R.Sell]
+        plan(job, claimKey("bid", destination, item), quantity)
+    elseif kind == Kind.Trade then
         job.kind, job.stage = "trade", "buy"
-        plan(job, claimKey("ask", job.source, job.itemId), job.quantity)
-        plan(job, claimKey("bid", job.destination, job.itemId), job.quantity)
-    end
-    return job
-end
-
----The best mining run of the job board for this ship: rocks with ore left after the claims and
----fewer than `maxMinersPerAsteroid` miners, the miner hasn't given up on lately, sold at a
----station it is welcome at.
----@param ship Entity
----@param agent EconomyAgentComponent
----@param inventory InventoryComponent
----@return EconomyJob|nil
-function EconomyAgentSystem:planMining(ship, agent, inventory)
-    local candidates = {}
-    for _, offer in ipairs(JobBoardSystem:getMining()) do
-        local rock, station, itemId = offer.rock, offer.station, offer.itemId
-        local miners = self.claims and self.claims["miners:" .. rock.id] or 0
-        local avoidUntil = agent.badRocks and agent.badRocks[rock.id]
-        if Registry:hasEntity(rock) and Registry:hasEntity(station) and miners < self.maxMinersPerAsteroid
-            and not (avoidUntil and currentNow < avoidUntil) and welcome(ship, station) then
-            local left = offer.left - self:claimed(claimKey("rock", rock.id, itemId))
-            -- A run takes minutes, and the station's production uses the item meanwhile: what it
-            -- will use before a full hold could come counts as demand too.
-            local rate = MiningSystem:expectedRate()
-            local load = math.min(InventoryManager:getRoomFor(inventory, itemId), math.max(1, math.floor(rate * self.miningRunS)))
-            local flightS = self:flightTime(ship, ship, rock) + self:flightTime(ship, departurePoint(rock), station)
-            local runS = flightS + load / rate
-            local demand = offer.demand + math.floor(offer.useRate * runS) - self:claimed(claimKey("bid", station.id, itemId))
-            local amount = math.min(left, demand, load)
-            local value = offer.sellPrice * amount
-            if amount > 0 and value >= self.minProfit then
-                candidates[#candidates + 1] = {
-                    profit = value,
-                    job = {
-                        itemId = itemId, quantity = amount, source = rock.id, destination = station.id,
-                        sellPrice = offer.sellPrice, claims = {},
-                    },
-                    time = function() return flightS + amount / rate + self.dockOverheadS end,
-                }
-            end
-        end
-    end
-    local job = self:bestCandidate(candidates)
-    if job then
+        job.itemId, job.quantity, job.source, job.destination = item, quantity, source, destination
+        job.buyPrice, job.sellPrice = values[base + R.Buy], values[base + R.Sell]
+        plan(job, claimKey("ask", source, item), quantity)
+        plan(job, claimKey("bid", destination, item), quantity)
+    elseif kind == Kind.Mining then
         job.kind, job.stage = "mining", "mine"
-        plan(job, claimKey("rock", job.source, job.itemId), job.quantity)
-        plan(job, "miners:" .. job.source, 1)
-        plan(job, claimKey("bid", job.destination, job.itemId), job.quantity)
+        job.itemId, job.quantity, job.source, job.destination, job.sellPrice = item, quantity, source, destination, values[base + R.Sell]
+        plan(job, claimKey("rock", source, item), quantity)
+        plan(job, "miners:" .. source, 1)
+        plan(job, claimKey("bid", destination, item), quantity)
+    elseif kind == Kind.Patrol then
+        job.kind, job.stage = "patrol", "fight"
+        job.destination, job.payout, job.duration = destination, values[base + R.Payout], values[base + R.Duration]
+        plan(job, "patrol:" .. destination, 1)
+    elseif kind == Kind.Raid then
+        job.kind, job.stage, job.duration = "raid", "fight", values[base + R.Duration]
+    elseif kind == Kind.Park then
+        job.kind, job.stage, job.destination, job.score = "park", "park", destination, 0
+    else
+        return nil
     end
+    if (job.source and not alive(job.source)) or (job.destination and not alive(job.destination)) then return nil end
     return job
-end
-
----A job without trade for an agent that has none: dock at the nearest market with a free port, to
----wait there.
----@param ship Entity
----@return EconomyJob|nil
-function EconomyAgentSystem:planPark(ship)
-    local best, bestTime = nil, math.huge
-    for _, station in ipairs(markets()) do
-        if DockingSystem:countPorts(station) > 0 then
-            local time = self:flightTime(ship, ship, station)
-            if time < bestTime then best, bestTime = station, time end
-        end
-    end
-    return best and { kind = "park", stage = "park", destination = best.id, claims = {}, score = 0 } or nil
 end
 
 -- Steps ------------------------------------------------------------------------------------------
@@ -522,69 +478,6 @@ function EconomyAgentSystem:startStage(ship, agent, now)
     end
 end
 
----The agent's next job: selling its cargo, else what its role does.
----@param ship Entity
----@param agent EconomyAgentComponent
----@param inventory InventoryComponent
----@return EconomyJob|nil
-function EconomyAgentSystem:planWork(ship, agent, inventory)
-    local candidates = { self:planSale(ship, agent, inventory) }
-    local capacity = inventory:getCapacity()
-    if capacity == nil or capacity > 0 then candidates[#candidates + 1] = self:planTrade(ship, inventory) end
-    if ship:get(Economy.MiningLaser) then candidates[#candidates + 1] = self:planMining(ship, agent, inventory) end
-    if ship:get(ConstructComponents.WeaponControl) then
-        local own = FactionManager.factionOf(ship)
-        local marauder = own and own:get(require("Modules.Factions.Components").Faction):getType() == Enums.FactionType.Marauders
-        candidates[#candidates + 1] = marauder and self:planRaid(ship, own) or self:planPatrol(ship, own)
-    end
-    local best = nil
-    for _, job in pairs(candidates) do
-        if job and (not best or job.score > best.score) then best = job end
-    end
-    if best then commitClaims(best) end
-    return best
-end
-
----The best security job of the job board for an armed ship: a patrol at a threatened station of its
----own faction, while fewer ships patrol there than its threat calls for. Paid by the station when the
----patrol ends.
----@param ship Entity
----@param own Entity|nil The ship's faction
----@return EconomyJob|nil
-function EconomyAgentSystem:planPatrol(ship, own)
-    if not own then return nil end
-    local best = nil
-    for _, offer in ipairs(JobBoardSystem:getPatrols()) do
-        local station = offer.station
-        local key = "patrol:" .. station.id
-        if Registry:hasEntity(station) and FactionManager.factionOf(station) == own and self:claimed(key) < offer.slots then
-            local score = offer.payout / (self:flightTime(ship, ship, station) + offer.duration)
-            if not best or score > best.score then
-                best = {
-                    kind = "patrol", stage = "fight", destination = station.id, payout = offer.payout,
-                    duration = offer.duration, score = score, claims = {},
-                }
-                best.planned = { { key = key, quantity = 1 } }
-            end
-        end
-    end
-    return best
-end
-
----A raid for an armed ship of a marauder faction, while there is hostile traffic to hunt. Its pay is
----what the fence gives for the loot.
----@param ship Entity
----@param own Entity
----@return EconomyJob|nil
-function EconomyAgentSystem:planRaid(ship, own)
-    local victims = JobBoardSystem:countRaidTargets(own)
-    if victims <= 0 then return nil end
-    return {
-        kind = "raid", stage = "fight", duration = self.raidS, score = self.raidValue * math.min(1, victims / 3) / self.raidS,
-        claims = {},
-    }
-end
-
 ---@param ship Entity
 ---@param agent EconomyAgentComponent
 ---@param now number
@@ -601,14 +494,9 @@ function EconomyAgentSystem:step(ship, agent, now, dt)
     end
 
     if state == State.Idle then
-        local job = self:planWork(ship, agent, inventory)
-        if not job then
-            -- Nothing pays: a ship out in space docks to wait; a docked one waits where it is.
-            job = DockingSystem:phaseOf(ship) == nil and self:planPark(ship) or nil
-            if not job then return self:wait(agent, now, self.idleRetryS, false) end
-        end
-        agent.job = job
-        self:startStage(ship, agent, now)
+        -- Its captain thinks with the others (`think`); the answer sets the ship off, or, when
+        -- nothing pays, a ship out in space docks to wait and a docked one waits where it is.
+        if not self.awaiting[ship.id] then self:awaitThought(ship, agent) end
     elseif state == State.Waiting then
         if now >= agent.waitUntil then
             if agent.resume and agent.job then self:startStage(ship, agent, now) else self:endJob(agent) end
@@ -621,14 +509,9 @@ function EconomyAgentSystem:step(ship, agent, now, dt)
         local phase = DockingSystem:phaseOf(ship)
         -- A ship on its way to park keeps looking for work, and takes it as soon as there is some.
         if agent.job and agent.job.stage == "park" and phase == Phase.Approaching
-            and now >= (agent.nextLookAt or 0) then
+            and now >= (agent.nextLookAt or 0) and not self.awaiting[ship.id] then
             agent.nextLookAt = now + self.idleRetryS
-            local job = self:planWork(ship, agent, inventory)
-            if job then
-                DockingSystem:release(ship)
-                agent.job = job
-                return self:startStage(ship, agent, now)
-            end
+            self:awaitThought(ship, agent)
         end
         if phase == Phase.Docked then
             self:startStage(ship, agent, now)

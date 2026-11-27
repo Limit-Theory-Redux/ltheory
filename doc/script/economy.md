@@ -113,6 +113,24 @@ stateDiagram-v2
 - **Trades** happen docked, after `serviceS`, at once, within `priceSlack` of the planned price.
   What didn't sell is sold by the next job. Earnings are kept per kind of job.
 
+## Thinking
+
+A captain whose ship needs work (an idle agent, or one on its way to dock and wait) doesn't choose
+on the spot. The captains that need work think together every `thinkPeriodS` (0.5 s):
+`JobSnapshot` takes what they think from, in flat arrays of numbers (the job board's bids, trade
+routes, mining runs and patrols; the stations and rocks; the agents' claims; the factions'
+hostilities; the navigation scene; each thinking ship's position, flight numbers, hold, cargo,
+credits and equipment), and `JobPlanner` chooses each one's job by profit per second, the claims of
+the earlier ones counting for the later ones. Its flight times are the scene's navigation
+estimates (`NavEstimate`), as `Nav.estimate` gives them.
+
+`JobPlanner` is pure: it runs on a worker thread (`Shared/Economy/JobPlannerWorker.lua`), so the
+thinking costs the frame only the snapshot, and the answers are applied when they come, a frame or
+a few later. With `LTHEORY_THINK_INLINE` it runs on the main thread instead, spread over frames by
+the `FrameScheduler` (`Shared/Tools/FrameScheduler.lua`): one budget a frame for main-thread work
+that may take longer than a frame. An answer whose stations or rock are gone since is dropped, and
+its captain thinks again; one for a ship that is parking takes it out of the dock queue at once.
+
 ## Mining
 
 `MiningSystem` runs a miner's run at its rock (`MiningComponent` on the ship, from `begin` to
