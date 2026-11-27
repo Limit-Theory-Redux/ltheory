@@ -33,7 +33,9 @@ team that is no faction's is an enemy of every other team as before.
 - `ThreatSystem` keeps a threat per station: it rises when a ship of the station's faction is hit
   within `radius` of it or raided there, and halves every `halfLifeS`.
 - The job board posts a **security job** at each station with a threat of `minThreat` or more, paid by
-  the station by its threat, for as many ships as the threat calls for. Marauders' armed ships see
+  the station by its threat (at most `securityShare`, a quarter, of what the station earns over the
+  patrol, `AccountManager:earningRate`, split over its patrols: a station that earns little can
+  afford little protection), for as many ships as the threat calls for. Marauders' armed ships see
   **raid jobs** while there is unarmed hostile traffic.
 - No ship has a fixed role: an armed ship's AI weighs these jobs against trade and mining (see
   [economy](economy.md#agents)). While it is on one, `CombatAgentSystem` flies it:

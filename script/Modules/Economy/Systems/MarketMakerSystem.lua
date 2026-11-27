@@ -101,8 +101,11 @@ function MarketMakerSystem:repost(entity, maker)
     local inputRates = production:getRates()
     local ttl = maker:getInterval() * 2
 
+    -- A station whose outputs sit unsold, its lines idle, buys no more inputs until they move: it
+    -- would only tie its credits up in stock.
+    local stocked = require("Modules.Economy.Systems.ProductionSystem"):isStocked(entity, production, inventory)
     local wanted, cost = {}, 0
-    for itemId, perCycle in pairs(inputs) do
+    for itemId, perCycle in pairs(stocked and {} or inputs) do
         local target = math.max(perCycle * maker:getStockCycles(), math.ceil(inputRates[itemId] * maker:getResupplyS()))
         local stock = InventoryManager:count(inventory, itemId)
         if stock < target then

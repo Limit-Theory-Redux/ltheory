@@ -57,6 +57,8 @@ plant nobody buys from stops piling up stock. It also regrows yields.
 
 `MarketMakerSystem` reposts a station's orders every few seconds: it takes them back (their escrow
 returns), then bids for each input up to a stock target and asks for all it holds of each output.
+A station whose lines idle on unsold output (`ProductionSystem:isStocked`) bids for no inputs until
+it sells: more input would only tie its credits up in stock.
 The target is what the lines consume or make over `stockCycles` cycles; an input's target also
 covers what the lines consume over `resupplyS` seconds, since a miner or hauler takes minutes to
 bring it and brings only what is bid for. A price is the market's
@@ -112,6 +114,14 @@ stateDiagram-v2
   nearest station to wait, and keeps looking for work on the way.
 - **Trades** happen docked, after `serviceS`, at once, within `priceSlack` of the planned price.
   What didn't sell is sold by the next job. Earnings are kept per kind of job.
+
+## The ledger
+
+Credit moves name a category (`AccountManager:deposit`, `withdraw`, `transfer`): `income` (a
+recipe's), `sales` and `purchases` (booked at settlement, out of escrow), `patrol`, `ships`, `wages`
+and `loot`. Moves into and out of escrow name none. The ledger adds each to its owner and category
+until it is taken (`takeLedger`, by `EconomySampler`), and sales and income feed each owner's
+earning rate (`earningRate`, averaged over half an hour), which prices what a station can afford.
 
 ## Thinking
 

@@ -50,7 +50,9 @@ local Recipes = {
         inputs = { { item = Items.RefinedMaterials.Steel, count = 2 }, { item = Items.Miscellaneous.EnergyCell, count = 4 } },
         outputs = {},
         duration = 30,
-        income = 600,
+        -- About a quarter over what its steel and energy cost: a colony that earns much more piles
+        -- the economy's new credits up in its account instead of passing them on.
+        income = 330,
     },
 }
 

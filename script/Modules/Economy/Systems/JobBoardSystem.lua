@@ -3,6 +3,7 @@ local QuickProfiler = require("Shared.Tools.QuickProfiler")
 local PhysicsComponents = require("Modules.Physics.Components")
 local Economy = require("Modules.Economy.Components")
 local MarketplaceSystem = require("Modules.Economy.Systems.MarketplaceSystem")
+local AccountManager = require("Modules.Economy.Managers.AccountManager")
 
 -- Design: doc/script/economy.md
 
@@ -69,6 +70,10 @@ function JobBoardSystem:registerVars()
     self.maxPayout = 3000
     self.patrolS = 150
     self.threatPerSlot = 3
+    -- A station spends at most this share of what it earns (`AccountManager:earningRate`) on
+    -- security: a patrol pays no more than the share of its earnings over the patrol, split over the
+    -- patrols it posts. A station that earns little can afford little protection.
+    self.securityShare = 0.25
 end
 
 function JobBoardSystem:registerEvents()
@@ -152,10 +157,14 @@ function JobBoardSystem:refresh()
     for _, station in ipairs(stations) do
         local threat = threats:threatOf(station)
         if threat >= self.minThreat then
-            patrols[#patrols + 1] = {
-                station = station, threat = threat, payout = math.min(self.maxPayout, threat * self.payPerThreat),
-                duration = self.patrolS, slots = math.max(1, math.ceil(threat / self.threatPerSlot)),
-            }
+            local slots = math.max(1, math.ceil(threat / self.threatPerSlot))
+            local budget = self.securityShare * AccountManager:earningRate(station) * self.patrolS / slots
+            local payout = math.floor(math.min(self.maxPayout, threat * self.payPerThreat, budget))
+            if payout > 0 then
+                patrols[#patrols + 1] = {
+                    station = station, threat = threat, payout = payout, duration = self.patrolS, slots = slots,
+                }
+            end
         end
     end
 
