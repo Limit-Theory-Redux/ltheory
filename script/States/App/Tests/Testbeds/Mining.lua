@@ -30,6 +30,7 @@ local Skybox                  = require("Shared.Generation.Skybox")
 local ScaleConfig             = require("Config.Gen.UniverseScaleConfig")
 local Items                   = require("Shared.Registries.Items")
 local Economy                 = require("Modules.Economy.Components")
+local PeopleManager           = require("Modules.People.Managers.PeopleManager")
 local InventoryManager        = require("Modules.Economy.Managers.InventoryManager")
 local MiningSystem            = require("Modules.Economy.Systems.MiningSystem")
 local DockingSystem           = require("Modules.Docking.Systems.DockingSystem")
@@ -146,7 +147,7 @@ end
 function MiningTestbed:debugLine()
     local ship = self.miners[self.selected]
     if not Registry:hasEntity(ship) then return "gone" end
-    local agent = ship:get(Economy.EconomyAgent)
+    local agent = PeopleManager.commandOf(ship, Economy.EconomyAgent)
     local queue = ship:get(Nav.Components.OrderQueue)
     local head = queue and queue:head()
     local order = head and Registry:getEntityById(head)

@@ -19,6 +19,10 @@ local AccountManager = require("Modules.Economy.Managers.AccountManager")
 local MarketplaceSystem = require("Modules.Economy.Systems.MarketplaceSystem")
 local NameComponent = require("Modules.Core.Components.NameComponent")
 local DockingComponents = require("Modules.Docking.Components")
+local PeopleManager = require("Modules.People.Managers.PeopleManager")
+
+-- The agent is the decision-making of a ship's commander: it lives on the person and moves with command.
+PeopleManager.registerCommandComponent(Economy.EconomyAgent)
 
 -- Design: doc/script/economy.md
 
@@ -35,8 +39,9 @@ local currentNow = 0
 -- update don't take the same lot or crowd one rock.
 local liveClaims = {}
 
----Runs the economic agents (`EconomyAgentComponent`): ships that pick a job from the markets and
----fly it. A trader buys an item at the station that asks least for it and sells it to one that
+---Runs the economic agents (`EconomyAgentComponent`): the commanders of ships, people who pick a job
+---for the ship they command from the markets and fly it (the agent lives on the person and passes
+---with command, `PeopleManager`). A trader buys an item at the station that asks least for it and sells it to one that
 ---bids more; a miner flies to an asteroid that yields an item some station bids for, fills its hold
 ---and sells there. A ship with cargo first sells it where it is bid for best. Jobs are scored by
 ---profit over the time they take, from navigation estimates of the legs; the quantities a job
@@ -105,7 +110,11 @@ function EconomyAgentSystem:update(dt)
     self.profiler:start()
     self:releaseCancelled()
     local agents = {}
-    for ship, agent in Registry:view(Economy.EconomyAgent) do agents[#agents + 1] = { ship, agent } end
+    -- The agents are people who command a ship; the ship is what they decide for.
+    for commander, agent in Registry:view(Economy.EconomyAgent) do
+        local ship = PeopleManager.postOf(commander)
+        if ship then agents[#agents + 1] = { ship, agent } end
+    end
     self:collectClaims(agents)
     local now = MarketplaceSystem:now()
     currentNow = now
@@ -692,6 +701,7 @@ function EconomyAgentSystem:endFight(ship, agent)
         local paid = math.min(job.payout, AccountManager:balanceOf(station))
         if paid > 0 and AccountManager:transfer(AccountManager:accountOf(station), AccountManager:accountOf(ship), paid) then
             agent:addEarnings("patrol", paid)
+            PeopleManager.reportEarnings(ship, "patrol", paid)
         end
     end
     agent.trips = agent.trips + 1
@@ -726,7 +736,9 @@ function EconomyAgentSystem:sell(ship, agent)
         local held = InventoryManager:count(ship:get(Economy.Inventory), job.itemId)
         local sold, earned = MarketplaceSystem:sellNow(station, ship, job.itemId, held,
             math.max(1, math.floor(job.sellPrice * (1 - self.priceSlack))))
-        agent:addEarnings(job.kind == "mining" and "mining" or (job.kind == "sale" and "sale" or "trade"), earned)
+        local activity = job.kind == "mining" and "mining" or (job.kind == "sale" and "sale" or "trade")
+        agent:addEarnings(activity, earned)
+        PeopleManager.reportEarnings(ship, activity, earned)
         if sold > 0 then
             agent.trips = agent.trips + 1
             Log.Debug("[EconomyAgent] %s sold %d %s at %s for %d", tostring(ship), sold, itemName(job.itemId),

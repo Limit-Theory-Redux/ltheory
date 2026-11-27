@@ -161,6 +161,12 @@ function EconomyPlanner.plan(economy, seed, planetCount, context)
             place = { planet = rng:getInt(1, planetCount), angleDeg = rng:getUniformRange(0, 360), radii = 6, heightRadii = 2 },
         }
     end
+
+    -- Independents, drawn last so the rest of the plan stays as it was for a seed.
+    layout.independents = {}
+    for i = 1, evaluate(rng, rules.independents, context, 0) do
+        layout.independents[i] = { kind = evaluate(rng, rules.independentKind, context, "Hauler"), seed = rng:get31() }
+    end
     return layout
 end
 

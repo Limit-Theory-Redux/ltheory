@@ -13,6 +13,8 @@ local Economy           = require("Modules.Economy.Components")
 local AccountManager    = require("Modules.Economy.Managers.AccountManager")
 local MarketplaceSystem = require("Modules.Economy.Systems.MarketplaceSystem")
 local DockingSystem     = require("Modules.Docking.Systems.DockingSystem")
+local PeopleManager     = require("Modules.People.Managers.PeopleManager")
+local People            = require("Modules.People.Components")
 
 ---@class EconomyDemoTest: EconomyDemo
 local DemoTest = Subclass("EconomyDemoTest", EconomyDemo)
@@ -53,12 +55,13 @@ function DemoTest:waitUntil(done, what, detail)
     return true
 end
 
----Every credit in the economy: the balances of the stations and ships, and the credits open bids hold.
+---Every credit in the economy: the balances of the stations and of every person (a ship's account is
+---its owner-captain's wallet; its crew's wallets hold their pay), and the credits open bids hold.
 ---@return number
 function DemoTest:totalCredits()
     local total = 0
     for _, station in ipairs(self.scene.stations) do total = total + AccountManager:balanceOf(station.entity) end
-    for _, ship in ipairs(self.ships) do total = total + AccountManager:balanceOf(ship.entity) end
+    for person in Registry:view(People.Person) do total = total + AccountManager:balanceOf(person) end
     for _, market in Registry:view(Economy.Marketplace) do
         for _, bid in ipairs(market:getBids()) do
             if Registry:hasEntity(bid) then
@@ -103,7 +106,7 @@ end
 ---@return boolean
 function DemoTest:someoneEarned(jobKind)
     for _, ship in ipairs(self.ships) do
-        local agent = ship.entity:get(Economy.EconomyAgent)
+        local agent = PeopleManager.commandOf(ship.entity, Economy.EconomyAgent)
         if agent and (agent.earnedBy[jobKind] or 0) > 0 then return true end
     end
     return false
@@ -116,7 +119,7 @@ function DemoTest:shipsMissing(set)
     local parts = {}
     for _, ship in ipairs(self.ships) do
         if not set[ship.entity.id] then
-            local agent = ship.entity:get(Economy.EconomyAgent)
+            local agent = PeopleManager.commandOf(ship.entity, Economy.EconomyAgent)
             local phase = DockingSystem:phaseOf(ship.entity)
             parts[#parts + 1] = string.format("%s (%s, state %s, docking phase %s)", ship.name,
                 agent and agent:getActivity() or "no agent", agent and tostring(agent:getState()) or "-", tostring(phase))
@@ -168,7 +171,7 @@ function DemoTest:runCases()
     self:check(idle == nil, "every station trades and produces", idle)
 
     for _, ship in ipairs(self.ships) do
-        local agent = ship.entity:get(Economy.EconomyAgent)
+        local agent = PeopleManager.commandOf(ship.entity, Economy.EconomyAgent)
         local trips, earned, spent = agent:getStats()
         Log.Info("EconomyDemoTest: %s: %d trips, earned %.0f, spent %.0f, balance %.0f", ship.name, trips, earned,
             spent, AccountManager:balanceOf(ship.entity))

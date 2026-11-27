@@ -24,6 +24,7 @@ local Component = require("Core.ECS.Component")
 ---@field factions LayoutFaction[]
 ---@field oreFields LayoutOreField[]
 ---@field marauders { pirates: integer, place: LayoutPlace }|nil
+---@field independents { kind: string, seed: integer }[]|nil Ships their own captains own, of no faction
 
 ---A star system's economy as its generation planned it (`EconomyPlanner`): data only, built into the
 ---scene by `SpawnerSystem:populate`.

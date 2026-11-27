@@ -14,5 +14,6 @@
 1. [Economy](economy.md)
 1. [Docking](docking.md)
 1. [Factions](factions.md)
+1. [People](people.md)
 1. [Spawning](spawning.md)
 1. [HmGui](../../script/UI/HmGui/README.md)

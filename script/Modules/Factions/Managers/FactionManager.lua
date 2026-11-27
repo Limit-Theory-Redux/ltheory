@@ -24,8 +24,14 @@ local SUFFIXED = { [Enums.FactionType.Corporation] = true, [Enums.FactionType.Tr
 ---per pair of factions, kept the same both ways: a disposition from -1 to 1 and a baseline it drifts
 ---back to (`FactionSystem`). Two factions are hostile at or below `Config.game.dispoHostileThreshold`.
 ---Marauders are everyone's enemy: their baseline with every faction is -1.
+---
+---An independent (a ship its own captain owns, who belongs to no faction) has no faction: it is
+---neutral to the factions and hostile to marauders, and its weapons' team is `INDEPENDENT_TEAM`.
 ---@class FactionManager
 local FactionManager = {}
+
+-- The weapons' team of everything owned outside the factions.
+FactionManager.INDEPENDENT_TEAM = "independent"
 
 ---@param entityOrId Entity|integer|nil
 ---@return Entity|nil
@@ -142,15 +148,32 @@ end
 ---@param b Entity|nil
 ---@return boolean
 function FactionManager.isHostile(a, b)
-    if not a or not b or a.id == b.id then return false end
+    -- Without a faction (an independent): only marauders are enemies.
+    if not a or not b then
+        local other = a or b
+        return other ~= nil and FactionManager.isMarauders(other)
+    end
+    if a.id == b.id then return false end
     return FactionManager.relation(a, b) <= Config.game.dispoHostileThreshold
 end
 
+---@param faction Entity|nil
+---@return boolean
+function FactionManager.isMarauders(faction)
+    local component = faction and faction:get(Factions.Faction)
+    return component ~= nil and component:getType() == Enums.FactionType.Marauders
+end
+
 ---@param entityOrId Entity|integer|nil
----@return string|nil team The weapons' team of the entity's faction
+---@return string|nil team The weapons' team of the entity's faction; `INDEPENDENT_TEAM` for one owned
+---outside the factions; nil for an unowned one
 function FactionManager.teamOf(entityOrId)
     local faction = FactionManager.factionOf(entityOrId)
-    return faction and faction:get(Factions.Faction):getTeam() or nil
+    if faction then return faction:get(Factions.Faction):getTeam() end
+    local entity = alive(entityOrId)
+    local ownership = entity and entity:get(Economy.Ownership)
+    if ownership and alive(ownership:getOwner()) then return FactionManager.INDEPENDENT_TEAM end
+    return nil
 end
 
 ---Makes the ship (or station) a target the weapons know by its faction's team.
@@ -162,8 +185,9 @@ function FactionManager.enlist(entity)
     if targetable then targetable:setTeam(team) else entity:add(ConstructComponents.Targetable(team, "small")) end
 end
 
----The weapons' rule: a faction team engages the teams of factions it is hostile to; a team that is
----no faction's engages and is engaged as any other team (a different team is an enemy).
+---The weapons' rule: a faction team engages the teams of factions it is hostile to; independents and
+---marauders engage each other, and independents no one else; a team that is no faction's engages
+---and is engaged as any other team (a different team is an enemy).
 ---@param own string|nil
 ---@param other string|nil
 ---@return boolean
@@ -171,6 +195,12 @@ function FactionManager.teamsHostile(own, other)
     local ownId = own and tonumber(own:match("^faction:(%d+)$"))
     local otherId = other and tonumber(other:match("^faction:(%d+)$"))
     if ownId and otherId then return FactionManager.isHostile(alive(ownId), alive(otherId)) end
+    local independent = FactionManager.INDEPENDENT_TEAM
+    if own == independent or other == independent then
+        if own == other then return false end
+        local factionId = ownId or otherId
+        return factionId ~= nil and FactionManager.isMarauders(alive(factionId))
+    end
     return own == nil or other ~= own
 end
 

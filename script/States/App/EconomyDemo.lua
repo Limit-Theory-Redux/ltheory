@@ -26,6 +26,7 @@ local Skybox                  = require("Shared.Generation.Skybox")
 local Items                   = require("Shared.Registries.Items")
 local ShipKinds               = require("Shared.Definitions.ShipKindDefs")
 local Economy                 = require("Modules.Economy.Components")
+local PeopleManager           = require("Modules.People.Managers.PeopleManager")
 local PhysicsComponents       = require("Modules.Physics.Components")
 local EconomySetup            = require("Modules.Economy.Managers.EconomySetup")
 local InventoryManager        = require("Modules.Economy.Managers.InventoryManager")
@@ -36,6 +37,10 @@ local _                       = require("Modules.Economy.Systems")
 local DockingSystem           = require("Modules.Docking.Systems.DockingSystem")
 local Actions                 = require("Input.ActionBindings.EconomyDemoActions")
 local Scene                   = require("States.App.EconomyDemo.Scene")
+local _                       = require("Modules.People.Systems")
+
+-- The seed the crews' names are drawn from.
+local PEOPLE_SEED = 1871
 
 ---@class EconomyDemo: Application
 ---@field maxStepS number The most simulated time a frame advances, in seconds
@@ -145,10 +150,13 @@ end
 function EconomyDemo:onPreSim(data)
     if self.started or self.simSteps < 1 then return end
     self.started = true
+    self.peopleRng = RNG.Create(PEOPLE_SEED)
     for _, ship in ipairs(self.ships) do
         local kind = ShipKinds[ship.group.kind]
+        -- Each ship is an independent's: its captain owns it and decides for it.
+        local captain = PeopleManager.manIndependent(ship.entity, { roles = kind.crew, rng = self.peopleRng, credits = kind.credits })
         EconomySetup.equipAgent(ship.entity, {
-            kind = ship.group.kind, capacity = kind.capacity, miningLaser = kind.miningLaser, credits = kind.credits,
+            kind = ship.group.kind, capacity = kind.capacity, miningLaser = kind.miningLaser, owner = captain,
             name = ship.name,
         })
     end
@@ -254,7 +262,7 @@ function EconomyDemo:hudLines()
     end
     lines[#lines + 1] = "Ships"
     for _, ship in ipairs(self.ships) do
-        local agent = ship.entity:get(Economy.EconomyAgent)
+        local agent = PeopleManager.commandOf(ship.entity, Economy.EconomyAgent)
         if agent then
             local trips = agent:getStats()
             lines[#lines + 1] = string.format("  %s: %s | %d cr | %d trips | %s", ship.name, agent:getActivity(),

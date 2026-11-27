@@ -18,6 +18,8 @@ local SpawningComponents  = require("Modules.Spawning.Components")
 local EconomySystems      = require("Modules.Economy.Systems")
 local _                   = require("Modules.Docking.Systems")
 local _                   = require("Modules.Factions.Systems")
+local PeopleManager       = require("Modules.People.Managers.PeopleManager")
+local _                   = require("Modules.People.Systems")
 
 -- Design: doc/script/spawning.md
 
@@ -88,6 +90,9 @@ function SpawnerSystem:reset()
     self.pending = {}
     self.counts = {}
     self.nextFleetAt = nil
+    ---@type Entity[] The people who man the ships it spawned, while they live
+    self.people = {}
+    self.known = {}
     -- The hull design of each faction's ships of a kind: a seed, keyed "<faction leader id>:<kind>".
     self.designs = {}
 end
@@ -145,6 +150,9 @@ function SpawnerSystem:clear()
         for _, entity in ipairs({ faction.leader, faction.entity }) do
             if Registry:hasEntity(entity) then Registry:destroyEntity(entity) end
         end
+    end
+    for _, person in ipairs(self.people) do
+        if Registry:hasEntity(person) then Registry:destroyEntity(person) end
     end
     self:reset()
 end
@@ -253,7 +261,7 @@ function SpawnerSystem:buildHull(kind, spec, name)
         if ok and construction then
             local WeaponBattery = require("Modules.Constructs.Systems.WeaponBattery")
             local battery = weaponCombat:addBattery(WeaponBattery(construction, {
-                name = name, aiActive = true, team = spec.owner and FactionManager.teamOf(spec.owner) or nil,
+                name = name, aiActive = true, team = spec.owner and FactionManager.teamOf(spec.owner) or FactionManager.INDEPENDENT_TEAM,
             }))
             return construction.shipHandle, battery
         end
@@ -300,9 +308,12 @@ function SpawnerSystem:fighterRecipe(seed, config)
     }
 end
 
----An AI ship of a kind (`ShipKindDefs`), which becomes an agent after the next physics step: its
----AI then chooses its jobs by what it carries.
----@param spec { kind: string, position: Position, name: string|nil, owner: Entity|nil, seed: integer|nil }
+---An AI ship of a kind (`ShipKindDefs`), manned by a crew of its kind's roles, which becomes an agent
+---after the next physics step: its commander then chooses its jobs by what it carries. With an
+---`owner` (a faction's leader) the crew are the owner's employees, people it has on its books but on
+---no ship first (a lost ship's crew), new ones else. Without one it is an independent: its captain
+---owns it, starts with `credits` (its kind's by default) and employs the rest of the crew.
+---@param spec { kind: string, position: Position, name: string|nil, owner: Entity|nil, seed: integer|nil, credits: number|nil }
 ---@return Entity ship
 function SpawnerSystem:spawnAgent(spec)
     assert(self.world, "SpawnerSystem:spawnAgent: no scene attached")
@@ -314,10 +325,26 @@ function SpawnerSystem:spawnAgent(spec)
     if not ship:get(ConstructComponents.ControlInput) then ship:add(ConstructComponents.ControlInput()) end
     ship:add(PhysicsComponents.GravityWell(ConstructComponents.FlightProfile.ProfileOf(ship).linearDrag))
     ship:get(NameComponent):setName(name)
-    if spec.owner then ship:add(Economy.Ownership(spec.owner.id)) end
+    local owner = spec.owner
+    if owner then
+        PeopleManager.man(ship, {
+            roles = kind.crew, rng = self.rng, employer = owner, faction = FactionManager.factionOf(owner),
+            hire = function() return PeopleManager.unassigned(owner)[1] end,
+        })
+    else
+        -- An independent: the captain owns the ship and pays the others.
+        owner = PeopleManager.manIndependent(ship, { roles = kind.crew, rng = self.rng, credits = spec.credits or kind.credits })
+    end
+    for _, member in ipairs(PeopleManager.membersOf(ship)) do
+        if not self.known[member.person.id] then
+            self.known[member.person.id] = true
+            self.people[#self.people + 1] = member.person
+        end
+    end
+    ship:add(Economy.Ownership(owner.id))
     FactionManager.enlist(ship)
     self.agents[#self.agents + 1] = { entity = ship, handle = handle, name = name, kind = spec.kind, battery = battery }
-    self.pending[#self.pending + 1] = { entity = ship, kind = spec.kind, name = name, owner = spec.owner }
+    self.pending[#self.pending + 1] = { entity = ship, kind = spec.kind, name = name, owner = owner }
     self:announce(ship, name, "ship")
     return ship
 end
@@ -473,6 +500,15 @@ function SpawnerSystem:populate(planets, density)
             local angle = i * 2 * math.pi / plan.pirates
             self:spawnAgent({ kind = "Fighter", owner = boss,
                 position = Position(den.x + math.cos(angle) * spread, den.y, den.z + math.sin(angle) * spread) })
+        end
+    end
+    -- Independents start by the stations in turn.
+    local index = 0
+    for _, independent in ipairs(layout.independents or {}) do
+        if #self.stations > 0 then
+            index = index + 1
+            local station = self.stations[(index - 1) % #self.stations + 1].entity
+            self:spawnAgent({ kind = independent.kind, position = self:besideStation(station, 20 + index), seed = independent.seed })
         end
     end
     return true

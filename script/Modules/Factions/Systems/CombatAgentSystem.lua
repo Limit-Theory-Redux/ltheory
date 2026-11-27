@@ -12,6 +12,7 @@ local MarketplaceSystem = require("Modules.Economy.Systems.MarketplaceSystem")
 local AccountManager = require("Modules.Economy.Managers.AccountManager")
 local Factions = require("Modules.Factions.Components")
 local FactionManager = require("Modules.Factions.Managers.FactionManager")
+local PeopleManager = require("Modules.People.Managers.PeopleManager")
 
 -- Design: doc/script/factions.md
 
@@ -178,7 +179,7 @@ function CombatAgentSystem:decide(ship, agent, now)
         elseif not target and now >= (agent.cooldownUntil or 0) then
             -- Prey: an unarmed agent of a hostile faction, out of port; one with cargo first.
             local function prey(other, laden)
-                local economic = other:get(Economy.EconomyAgent)
+                local economic = PeopleManager.commandOf(other, Economy.EconomyAgent)
                 if not economic or other:get(ConstructComponents.WeaponControl) then return false end
                 if not FactionManager.isHostile(own, FactionManager.factionOf(other)) then return false end
                 local phase = DockingSystem:phaseOf(other)
@@ -258,8 +259,9 @@ function CombatAgentSystem:raid(ship, agent, now)
     agent.lastLoot = nil
     if fenced > 0 then
         AccountManager:deposit(AccountManager:accountOf(ship), math.floor(fenced))
-        local economic = ship:get(Economy.EconomyAgent)
+        local economic = PeopleManager.commandOf(ship, Economy.EconomyAgent)
         if economic then economic:addEarnings("raid", math.floor(fenced)) end
+        PeopleManager.reportEarnings(ship, "raid", math.floor(fenced))
     end
     Log.Debug("[CombatAgent] %s raided %s for %d units", tostring(ship), tostring(victim), taken)
     agent.cooldownUntil, agent.target, agent.closeSince = now + self.pirateCooldownS, nil, nil

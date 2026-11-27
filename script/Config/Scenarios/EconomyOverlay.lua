@@ -5,6 +5,8 @@
 local Registry          = require("Core.ECS.Registry")
 local Items             = require("Shared.Registries.Items")
 local Economy           = require("Modules.Economy.Components")
+local PeopleManager     = require("Modules.People.Managers.PeopleManager")
+local NameComponent     = require("Modules.Core.Components.NameComponent")
 local InventoryManager  = require("Modules.Economy.Managers.InventoryManager")
 local AccountManager    = require("Modules.Economy.Managers.AccountManager")
 local SpawnerSystem     = require("Modules.Spawning.Systems.SpawnerSystem")
@@ -50,13 +52,17 @@ return function()
         end
     end
     for _, ship in ipairs(SpawnerSystem:getAgents()) do
-        local agent = Registry:hasEntity(ship.entity) and ship.entity:get(Economy.EconomyAgent)
+        local agent = Registry:hasEntity(ship.entity) and PeopleManager.commandOf(ship.entity, Economy.EconomyAgent)
         if agent then
-            -- A ship its faction pays for shares its leader's account: what it earned tells it apart.
-            local credits = ship.entity:get(Economy.Ownership) and string.format("earned %d", agent.earned)
-                or string.format("%d cr", AccountManager:balanceOf(ship.entity))
-            lines[#lines + 1] = string.format("%s: %s | %s | %s", ship.name, agent:getActivity(), credits,
-                stockText(ship.entity:get(Economy.Inventory)))
+            -- Who commands it; an independent's captain owns it and keeps its own credits, while a
+            -- faction's ship shares its leader's account, so what it earned tells it apart.
+            local captain = PeopleManager.commanderOf(ship.entity)
+            local captainName = captain and captain:get(NameComponent):getName() or "nobody"
+            local independent = captain and PeopleManager.employerOf(captain) == nil
+            local credits = independent and string.format("independent, %d cr", AccountManager:balanceOf(ship.entity))
+                or string.format("earned %d", agent.earned)
+            lines[#lines + 1] = string.format("%s (Capt. %s): %s | %s | %s", ship.name, captainName, agent:getActivity(),
+                credits, stockText(ship.entity:get(Economy.Inventory)))
         end
     end
     return lines

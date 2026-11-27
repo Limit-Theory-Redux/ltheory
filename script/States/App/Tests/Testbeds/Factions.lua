@@ -36,6 +36,7 @@ local Skybox                  = require("Shared.Generation.Skybox")
 local ScaleConfig             = require("Config.Gen.UniverseScaleConfig")
 local NameComponent           = require("Modules.Core.Components.NameComponent")
 local Economy                 = require("Modules.Economy.Components")
+local PeopleManager           = require("Modules.People.Managers.PeopleManager")
 local Factions                = require("Modules.Factions.Components")
 local FactionManager          = require("Modules.Factions.Managers.FactionManager")
 local SpawnerSystem           = require("Modules.Spawning.Systems.SpawnerSystem")
@@ -168,7 +169,7 @@ end
 function FactionsTestbed:statusLines()
     local lines = {}
     for _, ship in ipairs(SpawnerSystem:getAgents()) do
-        local agent = Registry:hasEntity(ship.entity) and ship.entity:get(Economy.EconomyAgent)
+        local agent = Registry:hasEntity(ship.entity) and PeopleManager.commandOf(ship.entity, Economy.EconomyAgent)
         local earned = {}
         for kind, credits in pairs(agent and agent.earnedBy or {}) do earned[#earned + 1] = string.format("%s %d", kind, credits) end
         table.sort(earned)

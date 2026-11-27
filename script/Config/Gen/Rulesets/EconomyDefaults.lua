@@ -1,6 +1,7 @@
 -- The economy of a star system, for the rulesets that don't name their own: how many trading
 -- factions there are and of which kinds, how many stations and ships of each kind (haulers, miners,
--- armed fighters) each has, how many ore fields there are, and whether marauders raid the system.
+-- armed fighters) each has, how many ore fields there are, whether marauders raid the system, and
+-- how many independents (ships their own captains own, of no faction) work it and of which kinds.
 -- The ships' AI chooses their jobs by what they carry. UniverseManager evaluates it with
 -- the system's seed (EconomyPlanner); the spawner builds it, scaled by the New Game density.
 local Rule = Enums.Gen.Rule
@@ -23,4 +24,9 @@ return {
     oreFields = { type = Rule.Count, min = 1, max = 2 },
     marauders = { type = Rule.Chance, value = 0.6 },
     pirates = { type = Rule.Count, min = 2, max = 4 },
+    independents = { type = Rule.Count, min = 1, max = 3 },
+    independentKind = {
+        type = Rule.Weighted,
+        values = { { value = "Hauler", weight = 3 }, { value = "Miner", weight = 2 } },
+    },
 }

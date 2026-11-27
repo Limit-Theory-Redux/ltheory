@@ -14,9 +14,10 @@ local Component = require("Core.ECS.Component")
 ---@field score number Profit per second, which the AI chose the job by
 ---@field claims table[] The market, asteroid and patrol shares it holds against other agents
 
----An AI ship that earns its living in the economy. It has no fixed role: its equipment (its hold, a
----mining laser, weapons) decides which jobs it can do, and `EconomyAgentSystem` chooses among them
----by profit per second each time it is free. `kind` is the ship's kind, for display.
+---The economic decision-making of a ship's commander (a person: it lives on them and moves with
+---command), earning the ship's living. The ship has no fixed role: its equipment (its hold, a mining
+---laser, weapons) decides which jobs it can do, and `EconomyAgentSystem` chooses among them by profit
+---per second each time it is free. `kind` is the ship's kind, for display.
 ---@class EconomyAgentComponent: Component
 ---@field kind string A key of `ShipKindDefs`, or any name
 ---@field state EconomyAgentState

@@ -1,6 +1,7 @@
 local Economy = require("Modules.Economy.Components")
 local NameComponent = require("Modules.Core.Components.NameComponent")
 local InventoryManager = require("Modules.Economy.Managers.InventoryManager")
+local PeopleManager = require("Modules.People.Managers.PeopleManager")
 
 ---Gives entities their part in the economy: a station its production, market making, credits and
 ---stock; an asteroid a regrowing yield; a ship an agent's equipment and credits.
@@ -56,12 +57,14 @@ end
 ---@field kind string|nil The ship's kind, for display (a key of `ShipKindDefs`)
 ---@field capacity number The hold's mass capacity
 ---@field miningLaser boolean|nil Whether the ship carries a mining laser
----@field credits number|nil Of the ship's own account, when it has no owner
----@field owner Entity|nil An entity with a `PlayerBankAccount` that pays for the ship
+---@field credits number|nil Of the ship's own account, when it has no owner and no crew owns it
+---@field owner Entity|nil An entity with a `PlayerBankAccount` that pays for the ship (a faction's
+---leader, or an independent captain who owns it)
 ---@field name string|nil
 
 ---Makes a ship (one that takes navigation orders) an economic agent, with the equipment the jobs it
----can choose depend on: its hold and, maybe, a mining laser (its weapons, if any, are its own).
+---can choose depend on: its hold and, maybe, a mining laser (its weapons, if any, are its own). The
+---ship must be manned (`PeopleManager.man`): its commander gets the agent and decides for it.
 ---@param ship Entity
 ---@param spec EconomyAgentSpec
 function EconomySetup.equipAgent(ship, spec)
@@ -74,7 +77,9 @@ function EconomySetup.equipAgent(ship, spec)
     else
         ship:add(Economy.PlayerBankAccount(spec.credits or 0))
     end
-    ship:add(Economy.EconomyAgent(spec.kind))
+    local commander = PeopleManager.commanderOf(ship)
+    assert(commander, "EconomySetup.equipAgent: the ship has no commander; man it first")
+    commander:add(Economy.EconomyAgent(spec.kind))
 end
 
 return EconomySetup
