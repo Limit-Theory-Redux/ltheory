@@ -17,5 +17,6 @@
 1. [People](people.md)
 1. [Formations](formations.md)
 1. [Economy simulation](economy-sim.md)
+1. [The economy: legacy and now](economy-legacy.md)
 1. [Spawning](spawning.md)
 1. [HmGui](../../script/UI/HmGui/README.md)
