@@ -8,6 +8,11 @@
 
 local Ship = require('Legacy.GameObjects.Entities.Ship.Ship')
 local SocketType = require('Legacy.GameObjects.Entities.Ship.SocketType')
+-- The mesh generators this file uses.
+local Gen = {
+    GenUtil = require("Shared.Generation.Meshes.GenUtil"),
+}
+
 
 local ShipType = Class("ShipType", function(self, seed, generator, hull)
     local scale         = 4 -- TODO: determine scale based on hull type

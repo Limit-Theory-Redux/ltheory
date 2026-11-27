@@ -2,6 +2,13 @@ local ShaderLocations = require('Legacy.Util.ShaderLocations')
 local Entity = require('Legacy.GameObjects.Entity')
 local SocketType = require('Legacy.GameObjects.Entities.Ship.SocketType')
 local Material = require('Legacy.GameObjects.Material')
+-- The mesh generators this file uses.
+local Gen = {
+    Primitive = require("Shared.Generation.Meshes.Primitive"),
+    ShipBasic = require("Shared.Generation.Meshes.ShipBasic"),
+    ShipFighter = require("Shared.Generation.Meshes.ShipFighter"),
+}
+
 
 -- TODO : Constraints
 

@@ -1,6 +1,11 @@
 local Entity = require('Legacy.GameObjects.Entity')
 local Material = require('Legacy.GameObjects.Material')
 local AsteroidInstancedRenderer = require('Legacy.Systems.Overlay.AsteroidInstancedRenderer')
+-- The mesh generators this file uses.
+local Gen = {
+    Asteroid = require("Shared.Generation.Meshes.Asteroid"),
+}
+
 
 -- Route the per-entity render through the instanced collector instead of
 -- the legacy per-draw path: asteroids share the 16-mesh pool, so they are

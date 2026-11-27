@@ -1,6 +1,14 @@
 local Entity = require('Legacy.GameObjects.Entity')
 local SocketType = require('Legacy.GameObjects.Entities.Ship.SocketType')
 local Material = require('Legacy.GameObjects.Material')
+-- The mesh generators this file uses.
+local Gen = {
+    Primitive = require("Shared.Generation.Meshes.Primitive"),
+    ShipBasic = require("Shared.Generation.Meshes.ShipBasic"),
+    ShipCapital = require("Shared.Generation.Meshes.ShipCapital"),
+    ShipFighter = require("Shared.Generation.Meshes.ShipFighter"),
+}
+
 
 local mesh
 local material

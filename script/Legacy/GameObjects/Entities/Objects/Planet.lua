@@ -3,6 +3,12 @@ local SocketType = require('Legacy.GameObjects.Entities.Ship.SocketType')
 local RenderComponent = require('Modules.Rendering.Components.RenderComponent')
 local RigidBodyComponent = require('Modules.Physics.Components.RigidBodyComponent')
 local PlanetComponent = require('Modules.Core.Components.EmptyComponent')
+-- The mesh generators this file uses.
+local Gen = {
+    GenUtil = require("Shared.Generation.Meshes.GenUtil"),
+    Primitive = require("Shared.Generation.Meshes.Primitive"),
+}
+
 
 local genColor = function(rng)
     local h = rng:getUniformRange(0, 0.5)

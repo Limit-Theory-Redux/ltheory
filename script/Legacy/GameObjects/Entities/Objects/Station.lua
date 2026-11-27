@@ -2,6 +2,12 @@ local Entity = require('Legacy.GameObjects.Entity')
 local Material = require('Legacy.GameObjects.Material')
 local Components = requireAll('Legacy.GameObjects.Elements.Components')
 local SocketType = require('Legacy.GameObjects.Entities.Ship.SocketType')
+-- The mesh generators this file uses.
+local Gen = {
+    GenUtil = require("Shared.Generation.Meshes.GenUtil"),
+    StationOld = require("Shared.Generation.Meshes.StationOld"),
+}
+
 
 local function wasDamaged(self, event)
     local shipEntry = self:findInDamageList(event.source)

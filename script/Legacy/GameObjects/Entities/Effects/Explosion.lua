@@ -1,5 +1,10 @@
 local Pipelines = require('Render.Pipelines')
 local Entity = require('Legacy.GameObjects.Entity')
+-- The mesh generators this file uses.
+local Gen = {
+    Primitive = require("Shared.Generation.Meshes.Primitive"),
+}
+
 
 local rng = RNG.Create(50123)
 
