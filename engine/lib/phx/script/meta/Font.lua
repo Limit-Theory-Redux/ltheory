@@ -32,7 +32,8 @@ function Font:draw(r, text, x, y, color) end
 -- the halo alone); a halo alpha of 1 is the halo's full strength, about
 -- 0.95 opaque next to the glyphs. The text's alpha fades outline and
 -- halo with it. With both left out the text looks exactly as `draw`
--- draws it.
+-- draws it. (The same atlas holds a glow: see
+-- [`Self::draw_with_outline`].)
 ---@param r Renderer
 ---@param text string
 ---@param x number

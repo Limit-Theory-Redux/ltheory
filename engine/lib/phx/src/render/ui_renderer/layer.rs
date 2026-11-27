@@ -152,7 +152,7 @@ impl UIRendererLayer {
         let font = unsafe { &*text.font };
         let (x, y) = (text.pos.x, text.pos.y);
         match &text.outline {
-            Some(o) => font.draw_outlined(r, &text.text, x, y, &text.color, &o.outline, &o.halo),
+            Some(o) => font.draw_with_outline(r, &text.text, x, y, &text.color, o),
             None => font.draw(r, &text.text, x, y, &text.color),
         }
     }

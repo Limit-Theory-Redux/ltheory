@@ -231,7 +231,7 @@ end
 -- fills its parent by default) that places its text with alignment and
 -- padding. Every text here is outlined (a halo, plus a 1 px outline from 24 px),
 -- so it stays readable in front of a sun or a bright nebula. (The speed tape
--- draws its own text, its tag on a dark ground.)
+-- places its own texts, outlined the same way.)
 
 --- The HUD's UI scale (each container's `scale`): its sizes are for a 1080p
 --- window and grow and shrink with the window height, within 0.7 and 1.3,

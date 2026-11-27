@@ -327,6 +327,13 @@ function HmGui:setTextWrap(wrap) end
 ---@param align AlignHorizontal
 function HmGui:setTextAlign(align) end
 
+-- Give the last text a soft glow in `color` round its glyphs, reaching
+-- about 8 px. It lies under the text's halo (see `textOutlined`), so it
+-- shows past the halo's dark rim and the text stays readable. Alpha 1
+-- is full strength, 0 none. Like the halo it spills past the widget.
+---@param color Color
+function HmGui:setTextGlow(color) end
+
 -- Add multiline styled text element.
 ---@param textData TextData
 ---@param editable boolean

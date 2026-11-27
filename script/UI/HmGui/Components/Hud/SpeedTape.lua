@@ -8,9 +8,10 @@
 --   max to boost:   dashed, compressed
 --   boost to the travel-mode top speed of the current zone: dotted, log scale
 -- with a cap tick at each boundary and the names "BOOST" and "TRAVEL MODE"
--- beside their parts. The tag's colour (and glow) follows the speed state:
--- stopped, normal flight (deep blue at low speed to light blue at max),
--- boosting, travel mode; it blends between states.
+-- beside their parts. The tag is the speed just outside the arc, ended with
+-- a pointer glyph towards it (`167 m/s >`), all one text. Its colour follows
+-- the speed state: stopped, normal flight (deep blue at low speed to light
+-- blue at max), boosting, travel mode; it blends between states.
 --
 --   local tape = UIComponent.SpeedTape { visible = function() return shown end }
 --   -- every frame, before rendering:
@@ -64,18 +65,21 @@ local DOT_GAP = 5            -- travel part: dots this far apart
 local MINOR_TICK = { length = 8, width = 1.6 }
 local CAP_TICK = { length = 18, width = 2 }
 local TICKS_PER_MAX = 4      -- minor ticks at quarters of max speed
-local TAG_HEIGHT = 34
-local TAG_POINT = 17         -- how far the point sticks out on the left
-local TAG_TIP_GAP = 3        -- between the line and the point's tip
-local TAG_PADDING = 12       -- each side of the widest speed text
-local TAG_WIDEST_TEXT = "000.0 km/s"
-local TAG_OUTLINE = 3        -- the glowing outline under the fill (which covers its inner half)
-local TAG_CORE = 2           -- the outline's core line, on top of the fill
-local TAG_FONT, TAG_FONT_SIZE = "UbuntuBold", 22
+-- Ticks give way to the tag: within `hidden` of it, along the arc, only
+-- their inner half shows, from `shown` on all of them.
+local TICK_CLEAR = { hidden = 8, shown = 16 }
+local TAG_TIP_GAP = 4        -- between the line and the tag's right edge, outside the arc
+local TAG_POINTER = ">"      -- the tag's last glyph, pointing at the line
+local TAG_WIDEST_TEXT = "0000.0 Mm/s " .. TAG_POINTER -- the tag's box; the text sits at its right edge
+local TAG_HEIGHT = 24
+local TAG_FONT, TAG_FONT_SIZE = "Ubuntu", 14
 local LABEL_FONT, LABEL_FONT_SIZE, LABEL_FONT_MIN = "UbuntuBold", 14, 11
 local LABEL_GAP = 16         -- between a label's right edge and the line
 local LABEL_WIDTH = 220      -- a label's box; the text sits at its right edge
 local LABEL_HEIGHT = 24
+-- The labels share the arc's outside with the speed: within `hidden` of the
+-- tag, along the arc, they are gone, from `shown` on fully drawn.
+local LABEL_CLEAR = { hidden = 14, shown = 36 }
 
 local COLOR_BLEND_TIME = 0.1     -- seconds; time constant of the tag's colour blend (~0.3 s to settle)
 local TRAVEL_TOP_BLEND_TIME = 0.5 -- seconds; the travel part rescales smoothly when the zone changes
@@ -86,10 +90,7 @@ local TRAVEL_TOP_BLEND_TIME = 0.5 -- seconds; the travel part rescales smoothly 
 --- (`tape`: core and glow only add light), which washes out over bright
 --- nebulae and stars; its core line is drawn again on top in `tapeCore`,
 --- which covers what's behind (`shade = 1`), so the scale stays recognizable
---- there without a dark halo. The tag's outline (`tag`) is neon too, but
---- alpha blended: its five strokes overlap at the corners, and added light
---- would make bright dots there. Its glow and brightness come from the speed
---- state (`tag.glow`, `tag.brightness`), not from the look.
+--- there without a dark halo.
 local STYLE = {
     -- The scale ("HUD blue").
     normal = Color(26 / 255, 153 / 255, 1.0, 1.0),  -- 0 to max speed, and the ticks at its quarters
@@ -103,24 +104,25 @@ local STYLE = {
     boostLabelAlpha = 0.8,  -- the labels are small and dim
     travelLabelAlpha = 0.55,
 
-    -- The tag per speed state: outline colour, and its glow and brightness
-    -- (stopped, normal flight, boosting, travel mode).
+    -- The tag's colour per speed state (stopped, normal flight, boosting,
+    -- travel mode).
     tag = {
         stopped = Color(0.69, 0.71, 0.75, 1.0), -- dim grey-white
         slow = Color(0.12, 0.41, 0.84, 1.0),    -- normal flight: deep blue at low speed ...
         atMax = Color(0.43, 0.80, 1.00, 1.0),   -- ... to light blue at max speed
         boost = Color(0.16, 0.94, 1.00, 1.0),   -- full cyan
         travel = Color(0.96, 0.98, 1.00, 1.0),  -- bright white
-        glow = { stopped = 0.25, normal = 0.5, boost = 0.7, travel = 0.8 },
-        brightness = { stopped = 0.9, normal = 1.6, boost = 1.7, travel = 1.3 },
-        fill = Color(0.0, 0.0, 0.0, 0.9),
-        textTint = 0.35, -- the text: the state colour mixed this much towards white, readable in every state
+        textTint = 0.55, -- the state colour mixed this much towards white, readable in every state
+        -- How strongly the text glows in the state colour: none when
+        -- stopped, growing with speed to `atMax` at max speed, then
+        -- boosting and travel mode. The glow lies under the text's dark
+        -- halo, so the text stays readable.
+        glow = { atMax = 0.35, boost = 0.6, travel = 0.8 },
     },
 
     looks = {
         tape = { core = 0.5, coreWidth = 1, glow = 0.4, glowWidth = 10 / 3, boost = 2, shade = 0 },
         tapeCore = { core = 1, coreWidth = 0.6, glow = 0, boost = 1.6, shade = 1 },
-        tag = { core = 0.9, coreWidth = 0.8, glowWidth = 6, shade = 1 },
     },
 }
 local SCALED_LOOK_PARAMS = { coreWidth = true, glowWidth = true, haloWidth = true }
@@ -170,12 +172,13 @@ end
 
 ---@param input SpeedTapeInput
 ---@param tag table the style's `tag` section
----@return number[] colour, string state
+---@return number[] colour, number glow
 local function stateOf(input, tag)
-    if input.travel then return rgb(tag.travel), "travel" end
-    if input.speed > input.maxSpeed * 1.02 then return rgb(tag.boost), "boost" end
-    if input.speed / UniverseScaleConfig.globalScale < 1 then return rgb(tag.stopped), "stopped" end -- below 1 m/s
-    return mix(rgb(tag.slow), rgb(tag.atMax), math.min(1, input.speed / input.maxSpeed)), "normal"
+    if input.travel then return rgb(tag.travel), tag.glow.travel end
+    if input.speed > input.maxSpeed * 1.02 then return rgb(tag.boost), tag.glow.boost end
+    if input.speed / UniverseScaleConfig.globalScale < 1 then return rgb(tag.stopped), 0 end -- below 1 m/s
+    local t = math.min(1, input.speed / input.maxSpeed)
+    return mix(rgb(tag.slow), rgb(tag.atMax), t), tag.glow.atMax * t
 end
 
 ---@param args UIComponentSpeedTapeConstructor
@@ -225,7 +228,7 @@ local function new(_, args)
 
     ---@type SpeedTapeInput|nil
     local input
-    local color, glow, brightness, logTravelTop -- blended
+    local color, glow, logTravelTop -- blended
 
     ---@param newInput SpeedTapeInput
     ---@param dt number|nil
@@ -246,13 +249,10 @@ local function new(_, args)
             travel = newInput.travel == true,
         }
 
-        local tag = currentStyle().tag
-        local targetColor, state = stateOf(input, tag)
+        local targetColor, targetGlow = stateOf(input, currentStyle().tag)
         local blend = (dt and color) and (1 - math.exp(-dt / COLOR_BLEND_TIME)) or 1
-        local function towards(current, target) return (current or target) + (target - (current or target)) * blend end
         color = mix(color or targetColor, targetColor, blend)
-        glow = towards(glow, tag.glow[state])
-        brightness = towards(brightness, tag.brightness[state])
+        glow = (glow or targetGlow) + (targetGlow - (glow or targetGlow)) * blend
 
         local blendTop = (dt and logTravelTop) and (1 - math.exp(-dt / TRAVEL_TOP_BLEND_TIME)) or 1
         local targetTop = math.log(travelSpeed)
@@ -294,12 +294,14 @@ local function new(_, args)
         Gui:beginStackContainer()
         Gui:setClipping(false)
 
-        --- An arc on the tape's circle, from `from` to `to` (pixels along).
-        local function arc(color, width, from, to, look)
+        --- An arc on the tape's circle, from `from` to `to` (pixels along);
+        --- `inset` pixels inside it if given.
+        local function arc(color, width, from, to, look, inset)
+            local radius = r - (inset or 0) * scale
             local start = angleAt(from)
             Gui:arc(color, width * scale, start, angleAt(to) - start)
-            Gui:setFixedSize(2 * r, 2 * r)
-            Gui:setPosition(cx - r, cy - r)
+            Gui:setFixedSize(2 * radius, 2 * radius)
+            Gui:setPosition(cx - radius, cy - radius)
             Gui:setShapeFade(270, fadeVisible, fadeGone)
             Gui:setStrokeLook(look)
         end
@@ -318,9 +320,20 @@ local function new(_, args)
             { color = style.travel, width = DOT_WIDTH, from = boostAt, to = topAt, dash = { 0, DOT_GAP },
                 roundCaps = true, travel = true },
         }
+        --- A tick across the line. Near the tag it gives way: it fades to
+        --- its inner half (the two cross-fade, so the inner half keeps its
+        --- brightness), and nothing crosses the tag outside the line.
         local function tick(at, size, color, travel)
-            pieces[#pieces + 1] = { color = color, width = size.length,
-                from = at - 0.5 * size.width, to = at + 0.5 * size.width, corner = 0.5 * size.width, travel = travel }
+            local away = (math.abs(at - here) - TICK_CLEAR.hidden) / (TICK_CLEAR.shown - TICK_CLEAR.hidden)
+            away = math.max(0, math.min(1, away))
+            local function add(alpha, width, inset)
+                if alpha <= 0 then return end
+                pieces[#pieces + 1] = { color = Color(color.r, color.g, color.b, color.a * alpha), width = width,
+                    inset = inset, from = at - 0.5 * size.width, to = at + 0.5 * size.width,
+                    corner = 0.5 * size.width, travel = travel }
+            end
+            add(away, size.length)
+            add(1 - away, 0.5 * size.length, 0.25 * size.length)
         end
         for i = 1, TICKS_PER_MAX - 1 do
             tick(maxAt * i / TICKS_PER_MAX, MINOR_TICK, style.normal)
@@ -331,7 +344,7 @@ local function new(_, args)
         tick(topAt, CAP_TICK, style.travel, true)
 
         local function draw(piece, look)
-            arc(piece.color, piece.width, piece.from, piece.to, lookNames[look])
+            arc(piece.color, piece.width, piece.from, piece.to, lookNames[look], piece.inset)
             if piece.dash then
                 Gui:setStrokeDash(piece.dash[1] * scale, piece.dash[2] * scale, 0)
             end
@@ -345,6 +358,49 @@ local function new(_, args)
                 Gui:setStrokeLookParam('boost', style.travelCoreBrightness)
             end
         end
+        -- The texts come first and the scale over them: the texts' dark
+        -- halos never cover the line or a tick passing the tag.
+
+        --- A text right-aligned in a box of `width` x `height` whose right
+        --- edge is at `right`, centred on `y`; outlined, so it reads on
+        --- any background, and glowing in `glowColor` if given.
+        local function textAt(text, font, fontSize, color, right, y, width, height, glowColor)
+            Gui:beginStackContainer()
+            Gui:setClipping(false) -- halo and glow reach past the box
+            Gui:setFixedSize(width, height)
+            Gui:setPosition(right - width, y - 0.5 * height)
+            UIComponent.Text.addOutlined(text, font, fontSize, color, glowColor)
+            Gui:setAlignment(AlignHorizontal.Right, AlignVertical.Center)
+            Gui:endContainer()
+        end
+
+        -- Names beside their parts, scrolling and fading with them, and
+        -- stepping aside near the tag, which is outside the arc too.
+        local labelSize = math.max(LABEL_FONT_MIN, math.floor(LABEL_FONT_SIZE * scale + 0.5))
+        local labelFont = Cache.Font(LABEL_FONT, labelSize)
+        local function label(text, at, color, alpha)
+            local distance = math.abs(at - here)
+            local clear = (distance - LABEL_CLEAR.hidden) / (LABEL_CLEAR.shown - LABEL_CLEAR.hidden)
+            local fade = fadeAt(distance, FADE_VISIBLE, FADE_GONE) * math.max(0, math.min(1, clear))
+            if fade <= 0 then return end
+            local a = math.rad(angleAt(at))
+            local x = cx + r * math.sin(a) - LABEL_GAP * scale
+            local y = cy - r * math.cos(a)
+            textAt(text, labelFont, labelSize, Color(color.r, color.g, color.b, color.a * alpha * fade),
+                x, y, LABEL_WIDTH * scale, LABEL_HEIGHT * scale)
+        end
+        label("BOOST", 0.5 * (maxAt + boostAt), style.boost, style.boostLabelAlpha)
+        label("TRAVEL MODE", 0.5 * (boostAt + topAt), style.travel, style.travelLabelAlpha)
+
+        -- The tag `167 m/s >`: one text just outside the line, its pointer a
+        -- glyph of it, so it has the text's size, weight, halo and glow.
+        local tagSize = math.max(LABEL_FONT_MIN, math.floor(TAG_FONT_SIZE * scale + 0.5))
+        local tagFont = Cache.Font(TAG_FONT, tagSize)
+        local tint = mix(color, { 1, 1, 1 }, style.tag.textTint)
+        textAt(UniverseScaleConfig:formatSpeed(input.speed) .. " " .. TAG_POINTER, tagFont, tagSize,
+            Color(tint[1], tint[2], tint[3], 1.0), cx - r - TAG_TIP_GAP * scale, cy,
+            tagFont:getSize2(TAG_WIDEST_TEXT).x, TAG_HEIGHT * scale, Color(color[1], color[2], color[3], glow))
+
         -- All the neon first, then every core line on top of it (see STYLE).
         for _, piece in ipairs(pieces) do
             draw(piece, "tape")
@@ -352,76 +408,6 @@ local function new(_, args)
         for _, piece in ipairs(pieces) do
             draw(piece, "tapeCore")
         end
-
-        -- Names beside their parts, scrolling and fading with them.
-        local labelFont = Cache.Font(LABEL_FONT, math.max(LABEL_FONT_MIN, math.floor(LABEL_FONT_SIZE * scale + 0.5)))
-        local function label(text, at, color, alpha)
-            local fade = fadeAt(at - here, FADE_VISIBLE, FADE_GONE)
-            if fade <= 0 then return end
-            local a = math.rad(angleAt(at))
-            local x = cx + r * math.sin(a) - LABEL_GAP * scale
-            local y = cy - r * math.cos(a)
-            Gui:beginStackContainer()
-            Gui:setFixedSize(LABEL_WIDTH * scale, LABEL_HEIGHT * scale)
-            Gui:setPosition(x - LABEL_WIDTH * scale, y - 0.5 * LABEL_HEIGHT * scale)
-            Gui:text(text, labelFont, Color(color.r, color.g, color.b, color.a * alpha * fade))
-            Gui:setAlignment(AlignHorizontal.Right, AlignVertical.Center)
-            Gui:endContainer()
-        end
-        label("BOOST", 0.5 * (maxAt + boostAt), style.boost, style.boostLabelAlpha)
-        label("TRAVEL MODE", 0.5 * (boostAt + topAt), style.travel, style.travelLabelAlpha)
-
-        -- The tag `< 167 m/s |`: pointed on the left with its tip just right
-        -- of the line, straight on the right; dark fill, neon outline.
-        local tagFont = Cache.Font(TAG_FONT, math.max(LABEL_FONT_MIN, math.floor(TAG_FONT_SIZE * scale + 0.5)))
-        local h = TAG_HEIGHT * scale
-        local point = TAG_POINT * scale
-        local body = tagFont:getSize2(TAG_WIDEST_TEXT).x + 2 * TAG_PADDING * scale
-        local left = cx - r + TAG_TIP_GAP * scale
-        local top = cy - 0.5 * h
-        local width = point + body
-        local tagColor = Color(color[1], color[2], color[3], 1.0)
-
-        -- Outline: five straight strokes with round caps, so the corners join.
-        -- Its glow is drawn under the fill, so it shows outside only and the
-        -- text stays on a dark ground in every state; the crisp core line is
-        -- drawn again on top of the fill.
-        local p = point / width
-        local corners = { { 0, 0.5 }, { p, 0 }, { 1, 0 }, { 1, 1 }, { p, 1 }, { 0, 0.5 } }
-        local function outline(thickness, outlineGlow)
-            for i = 1, #corners - 1 do
-                local a, b = corners[i], corners[i + 1]
-                Gui:strokeBetween(tagColor, a[1], a[2], b[1], b[2], 0, thickness * scale)
-                Gui:setFixedSize(width, h)
-                Gui:setPosition(left, top)
-                Gui:setStrokeLook(lookNames.tag)
-                Gui:setStrokeLookParam('glow', outlineGlow)
-                Gui:setStrokeLookParam('boost', brightness)
-                Gui:setStrokeRoundCaps(true)
-            end
-        end
-        outline(TAG_OUTLINE, glow)
-
-        -- Fill: the point (reaching 1 px under the body, so no seam shows)
-        -- and the body.
-        local fill = style.tag.fill
-        Gui:triangle(fill, 0, 0.5, 1, 0, 1, 1, false)
-        Gui:setFixedSize(point + scale, h)
-        Gui:setPosition(left, top)
-        Gui:rect()
-        Gui:setBackgroundColor(fill)
-        Gui:setFixedSize(body, h)
-        Gui:setPosition(left + point, top)
-        outline(TAG_CORE, 0)
-
-        -- The speed, centred in the body.
-        local tint = mix(color, { 1, 1, 1 }, style.tag.textTint)
-        Gui:beginStackContainer()
-        Gui:setFixedSize(body, h)
-        Gui:setPosition(left + point, top)
-        Gui:text(UniverseScaleConfig:formatSpeed(input.speed), tagFont, Color(tint[1], tint[2], tint[3], 1.0))
-        Gui:setAlignment(AlignHorizontal.Center, AlignVertical.Center)
-        Gui:endContainer()
 
         Gui:endContainer()
         Gui:setPosition(0, 0)
