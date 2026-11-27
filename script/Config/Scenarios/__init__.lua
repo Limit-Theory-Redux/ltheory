@@ -27,6 +27,9 @@
 --   overlayLines(game)     the scenario's text (what it shows, its keys): a list
 --                          of lines, shown by the HUD under its zone line;
 --                          called every frame
+--   hud          UI components the HUD draws with its own while the scenario
+--                runs (each with its own `visible`); the scenario feeds them,
+--                e.g. from `update`
 --   controls     the scenario's own keys for the Controls screen (pause menu):
 --                { { keys = "B", action = "New planet" }, ... }
 --   teardown(game)         undo what setup changed outside the scene (things
@@ -56,6 +59,7 @@
 ---@field onInput fun(game: table, dt: number)|nil
 ---@field regenerate fun(game: table)|nil
 ---@field overlayLines fun(game: table): string[]|nil
+---@field hud UIComponent[]|nil
 ---@field controls { keys: string, action: string }[]|nil
 ---@field teardown fun(game: table)|nil
 

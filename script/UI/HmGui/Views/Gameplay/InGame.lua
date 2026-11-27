@@ -22,6 +22,9 @@ InGame.hudShown = false
 -- Set by LimitTheoryRedux: the running scenario's text (Scenario.overlayLines).
 ---@type (fun(): string[]|nil)|nil
 InGame.overlayLines = nil
+-- Set by LimitTheoryRedux: the running scenario's own HUD components (Scenario.hud).
+---@type UIComponent[]|nil
+InGame.scenarioHud = nil
 
 local NO_LINES = {}
 
@@ -199,6 +202,11 @@ function InGame:setOverlayLines(overlayLines)
     hud.overlayLines = NO_LINES
 end
 
+---@param components UIComponent[]|nil the scenario's own HUD components; nil = none
+function InGame:setScenarioHud(components)
+    self.scenarioHud = components
+end
+
 function InGame:onInput() end
 
 -- Views get no frame time from the UI router, so the HUD keeps its own clock.
@@ -354,7 +362,23 @@ local pausedText = UIComponent.Container {
     },
 }
 
+-- The running scenario's own HUD (Scenario.hud), drawn after the speed tape:
+-- each of its components draws while it is visible.
+local scenarioHud = {
+    state = UICore.ComponentState {
+        visible = function() return hudVisible() and InGame.scenarioHud ~= nil end,
+    },
+}
+function scenarioHud:render()
+    for _, component in ipairs(InGame.scenarioHud) do
+        if not (component.state.visible and not component.state.visible()) then
+            component:render()
+        end
+    end
+end
+
 InGame:addContent(speedTape)
+InGame:addContent(scenarioHud)
 InGame:addContent(travelBlock)
 InGame:addContent(zoneLine)
 InGame:addContent(scenarioText)

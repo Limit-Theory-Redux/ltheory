@@ -356,6 +356,7 @@ function LimitTheoryRedux:returnToMainMenu()
     self.rebuildInFrames = nil
     UIViewInGame:setPlayer(nil)
     UIViewInGame:setOverlayLines(nil)
+    UIViewInGame:setScenarioHud(nil)
     self.mapMode = 0
 
     -- The menu needs a free cursor (closePauseMenu re-applied the gameplay
@@ -468,6 +469,8 @@ function LimitTheoryRedux:setupScenario()
     -- The scenario's text, which the HUD shows under its zone line
     local overlayLines = self.scenario.overlayLines
     UIViewInGame:setOverlayLines(overlayLines and function() return overlayLines(self) end or nil)
+    -- The scenario's own HUD components, which the HUD draws with its own
+    UIViewInGame:setScenarioHud(self.scenario.hud)
 end
 
 --- Orbits, gravity wells and the maps' entity lists, after the scene changed.
