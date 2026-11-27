@@ -76,15 +76,24 @@ until the ship comes close enough to see them.
 draws what a sensor shows with shapes, and words only where nothing else can
 say it: a target's name and distance, and what a full scan read.
 
-- **The radar**, at the bottom centre: a disc tilted away from you, your ship
-  in the middle with its nose up, distance on a log scale (50 m at the centre,
-  100 km at the rim). A contact's foot sits on the disc at its bearing, with a
-  stick up to it when it's above your plane and a dashed one down when it's
-  below.
+- **The radar**, at the bottom centre: a small disc tilted well away from
+  you, your ship in the middle with its nose up, distance on a log scale (50 m
+  at the centre, 100 km at the rim), and a faint wedge for about what's in
+  your view. A contact's foot sits on the disc at its bearing, with a stick up
+  to it when it's above your plane and a dashed one down when it's below. On
+  the radar a contact is a dot: a ship's as big as its class, a station a ring
+  round a dot, a planet a ring, a yellow blob while it's only heard.
+- **Your view**: each contact's icon where it is on the screen (except
+  planets and stars, and anything already big on screen), and the target in
+  brackets with its icon, its distance under them and, once it's identified,
+  its name over them. Off screen, the screen's edge glows toward contacts that
+  are unknown (yellow, softly) or hostile (red, with a quicker pulse), a
+  chevron with its icon points to every classed contact, and a white arrow
+  with its distance points to the target.
 - **The target panel**, at the bottom right: a hologram circle that fills in
-  as the sensor learns more about the target. Static without a contact, a blob
-  at T1, its icon at T2, a wireframe of it at T3 (a stand-in for the
-  hologram) with its power draw (bars), what it's doing (an icon) and its
+  as the sensor learns more about the target. Static without a contact, a
+  yellow blob at T1, its icon at T2, a wireframe of it at T3 (a stand-in for
+  the hologram) with its power draw (bars), what it's doing (an icon) and its
   shields (how strongly the ring glows), brighter at T4 with what the full
   scan read beside it. A scan's progress runs round the rim, and its echo
   fills a meter under the panel with a notch where it reads T3 and one for T4;
@@ -94,22 +103,19 @@ How a contact looks:
 
 | | |
 |---|---|
-| Shape: what it is | ships and stations by class: ○ I, Δ II, ▼ III, ⬢ IV; an asteroid a dot; a planet or moon ◎; a star ✦; a wreck its class icon, broken |
-| Fill: how much is known | T1 a soft blob (no shape yet), T2 an outline, T3 filled, T4 filled with a bright core |
-| Colour: whose side | pale until T3, then red for hostile |
+| Icon: what it is | the game map icons (`res/tex2d/map-icon`): ships by class (I a fighter, II a corvette, III a capital ship), a station, an asteroid, a planet, a star; a wreck its class's icon |
+| Colour: whose side | yellow while it's only heard (T1: unknown, possibly a threat); from T2 on, when it's classed, its standing: green owned, cyan friendly, grey neutral and wrecks, red hostile |
 
-In your view, each contact's icon is drawn where it is on the screen (except
-planets and stars, and anything already big on screen), the target in
-brackets with its distance; when the target is off screen, an amber arrow at
-the edge points toward it.
+White is yours: your scan and pulse, the ring round your target on the radar,
+the arrow toward it, your thermal bloom. The HUD itself is blue. On the radar,
+dashed rings show where the target would turn T2, T3 and T4 in open space (T1
+is as far as the signal ring hears), and the ring round the disc bulges where
+signals come from. A dashed ring shows how far your power draw is heard (a
+white one further out while you scan or just after a pulse), an arc round your
+ship your heat, and ripples over a contact that it heard your last pulse.
 
-Amber means "look here" and nothing else: your own scan and pulse, your
-thermal bloom, the arrow to the target. On the radar, rings show where the
-target would turn T1 to T4 in open space, each marked with that tier's icon,
-and the ring round the disc bulges where signals come from. A dashed ring
-shows how far your power draw is heard (an amber one further out while you
-scan or just after a pulse), an arc round your ship your heat, and ripples
-over a contact that it heard your last pulse.
+The icons are made from the game map icons' SVG by `tools/ui-icons` (see its
+README); the HUD draws them as tinted images (`Gui:setImageColor`).
 
 ### What the sensor remembers
 
@@ -117,10 +123,10 @@ A sensor keeps the best tier it has had of every object, whether it saw it or
 a scan read it (`SensorState.memory`). What it knows stays when the object
 fades: a fighter it identified stays a red fighter on the radar and in the
 target panel, even once it is only heard. While it senses less than it knows,
-the details are as last seen: the icon's fill fades, an arc round it closes
-over two minutes as the knowledge ages, and the target panel greys the
+the details are as last seen: its dot and icon fade, an arc round the dot
+closes over two minutes as the knowledge ages, and the target panel greys the
 shields, power and activity. Once the object is not heard at all, a ghost (a
-dashed icon) stays where it was last seen, fading for a ship, and the target
+dashed ring) stays where it was last seen, fading for a ship, and the target
 panel shows the memory grey with scan lines. Objects it has classed don't
 merge into anonymous blobs.
 
@@ -152,7 +158,8 @@ with the game's HUD while the scenario runs.
   scan, and how far the ship and its pulse are heard.
 - `Components/SensorSignatureComponent.lua`: on anything that can be sensed:
   kind, size (the entity's bounding radius unless given), power draw,
-  activity, and what a T3 read (name, shields, standing) and a T4 read show.
+  activity, standing (the HUD shows it from T2), and what a T3 read (name,
+  shields) and a T4 read show.
 - `Components/SensorComponent.lua`: on a ship: the dials and the sensor's
   state (scan target and progress, reads, pulse echoes, its own heat), and the
   last readings.

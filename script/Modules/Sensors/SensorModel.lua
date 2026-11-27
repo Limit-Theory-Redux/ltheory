@@ -117,7 +117,7 @@ SensorModel.activityNames = { idle = "Idle", thrust = "Thrusting", firing = "Fir
 ---@field name string|nil what a T3 read shows, "[Manufacturer] [Model] (Year)" for vessels
 ---@field details string|nil a second T3 line (faction, condition ...)
 ---@field shield number|nil its shields, 0 to 1, as a T3 read shows them
----@field standing string|nil hostile, neutral or friendly, as a T3 read shows it
+---@field standing string|nil owned, friendly, neutral or hostile; known once the object is classed (T2)
 ---@field contents string[]|nil what a T4 read shows (cargo, logs ...)
 ---@field world table|nil a sensor's view: where it is in the world, game units
 ---@field seenAt table|nil a sensor's view: where it last had it as a contact, game units
