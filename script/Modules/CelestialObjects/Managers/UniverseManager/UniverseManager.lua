@@ -208,6 +208,12 @@ function UniverseManager:_generateStarSystem(rng, cfg, context, systemIndex)
         end
     end
 
+    -- The system's economy: planned from a seed of its own, drawn last, so that it leaves the bodies'
+    -- draws as they were. The spawner builds it into a scene (SpawnerSystem:populate).
+    local EconomyPlanner = require("Modules.Spawning.Managers.EconomyPlanner")
+    local layout = EconomyPlanner.plan(cfg.economy, ssRNG:get31(), planetCount or 0, context)
+    if layout then starSystem:add(require("Modules.Spawning.Components").EconomyLayout(layout)) end
+
     self:_applyOverrides(ssRNG, starSystem, cfg.overrides and cfg.overrides.starSystem)
     return starSystem
 end

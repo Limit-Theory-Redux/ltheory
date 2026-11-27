@@ -452,16 +452,18 @@ function LimitTheoryRedux:buildScene()
     self.sceneConstructs = {}
     -- What the spawner makes (stations, ore fields, AI ships) is labelled like the scene's own things.
     SpawnerSystem:attach(self.world, self.constructManager, {
+        weaponCombat = self.weaponCombat,
         onSpawned = function(entity, label)
             if label then table.insert(self.labeledEntities, { entity = entity, label = label }) end
         end,
     })
     self:generateUniverse(self.scenario.ruleset or Scenarios.default.ruleset)
     self:spawnPlayerShip()
+    self.stations = {}
     if self.scenario.stations ~= false then
-        self:spawnStations()
-    else
-        self.stations = {}
+        -- The system's planned economy, at the New Game density; plain stations when it has none.
+        local density = self.scenario.economyDensity or GameState.gen.economyDensity or 0
+        if not SpawnerSystem:populate(self.planets, density) then self:spawnStations() end
     end
 end
 

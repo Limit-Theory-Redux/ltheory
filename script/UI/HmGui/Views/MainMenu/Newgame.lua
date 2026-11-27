@@ -253,6 +253,23 @@ NewgameView:addContent(UIComponent.MenuScreen {
                     text = "Starts with this test seed. Pick None to use your own.",
                     visible = usingTestSeed
                 },
+                UIComponent.MenuLabel { x = 100, y = 480, h = 40, text = "Economy" },
+                UIComponent.MenuDropdown {
+                    x = 305, y = 480, w = FIELD_W,
+                    toolTip = "How much of the star system's economy spawns: its factions' stations,\ntraders, miners, security and pirates. Off spawns none.",
+                    selections = (function()
+                        local names = {}
+                        for i, density in ipairs(Config.gen.economyDensities) do names[i] = density.name end
+                        return names
+                    end)(),
+                    getIndex = function()
+                        for i, density in ipairs(Config.gen.economyDensities) do
+                            if density.value == GameState.gen.economyDensity then return i end
+                        end
+                        return 1
+                    end,
+                    setIndex = function(index) GameState.gen.economyDensity = Config.gen.economyDensities[index].value end
+                },
                 UIComponent.MenuSlider {
                     x = 100, y = 410, label = "Nebula Brightness",
                     toolTip = "1 = low brightness, 10 = high brightness.",

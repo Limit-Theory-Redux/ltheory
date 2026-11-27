@@ -29,6 +29,11 @@ Config.gen = {
     nDustClouds                      = 8,
     nStars                           = function(rng) return 30000 * (1.0 + 0.5 * rng:getExp()) end,
     nebulaBrightnessScale            = 4.0,
+    -- The share of a star system's planned economy (its ruleset's economy section) a game spawns:
+    -- 0 none, 1 as planned. The New Game screen offers the `economyDensities`.
+    economyDensity                   = 1.0,
+    economyDensities                 = { { name = "Off", value = 0 }, { name = "Light", value = 0.5 },
+                                         { name = "Normal", value = 1.0 }, { name = "Busy", value = 2.0 } },
 
     uniqueShips                      = true,
     shipRes                          = 8,

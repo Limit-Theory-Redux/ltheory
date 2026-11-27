@@ -151,7 +151,8 @@ GameState.gen = {
     nPirateNPCs           = Config.gen.nPirateNPCs,
     randomizePirateNPCs   = Config.gen.randomizePirateNPCs,
     uniqueShips           = Config.gen.uniqueShips,
-    nebulaBrightnessScale = Config.gen.nebulaBrightnessScale
+    nebulaBrightnessScale = Config.gen.nebulaBrightnessScale,
+    economyDensity        = Config.gen.economyDensity
 }
 
 function GameState:SetState(state)
