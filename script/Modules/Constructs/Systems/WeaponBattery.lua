@@ -21,6 +21,11 @@ local ConstructEntities = require("Modules.Constructs.Entities")
 local WeaponSystem = require("Modules.Constructs.Systems.WeaponSystem")
 local WeaponRegistry = require("Shared.Registries.WeaponRegistry")
 local Pulse = require("Legacy.GameObjects.Entities.Effects.Pulse")
+local ScaleConfig = require("Config.Gen.UniverseScaleConfig")
+
+-- Ships at least this big (bounding radius, metres) test their own hull in their batteries' line of
+-- sight; smaller ones leave it out and rely on their turrets' arcs.
+local SELF_OCCLUSION_MIN_RADIUS_M = 400
 
 -- Where surface target points wander and how far they may face away from the
 -- shooter (see WeaponSystem:sampleTargetPoint).
@@ -104,10 +109,18 @@ local WeaponBattery = Class("WeaponBattery", function(self, construction, option
     self.aiConfig = options.aiConfig
     self.aiTargetRotationInterval = options.aiTargetRotationInterval
     self.targetPointOptions = options.targetPoint or DEFAULT_TARGET_POINT
-    self.losObstacles = {
-        -- No fixed position: the hull test follows the ship's body.
-        { body = construction.shipBody, kind = "hull", radius = self.radius },
-    }
+    -- A large ship's own hull can stand between a battery and its target (a superstructure, a
+    -- turret on the far side), so its line of sight tests the hull. A small ship's can't, past what
+    -- its turrets' arcs already forbid: its line of sight leaves the ship out, one ray in the engine.
+    if self.radius >= ScaleConfig:toGameUnits(SELF_OCCLUSION_MIN_RADIUS_M, "starSystem") then
+        self.losObstacles = {
+            -- No fixed position: the hull test follows the ship's body.
+            { body = construction.shipBody, kind = "hull", radius = self.radius },
+        }
+    else
+        self.losObstacles = {}
+        self.losIgnoreBody = construction.shipBody
+    end
     self.projectiles = {}
     self.beams = {}
     self.lightEffects = {}

@@ -295,7 +295,7 @@ function WeaponSystem:cachedLineOfSight(state, turret, sourceBody, targetBody, s
         return cache.hasSight, cache.reason, cache.hitPosition
     end
     local hasSight, reason, hitPosition = self:hasLineOfSight(state.world, sourceBody, targetBody, sourcePosition,
-        targetPosition, state.losObstacles)
+        targetPosition, state.losObstacles, state.losIgnoreBody)
     turret.lineOfSightCache = {
         target = targetBody, untilTime = now + LINE_OF_SIGHT_PERIOD_S,
         hasSight = hasSight, reason = reason, hitPosition = hitPosition,
@@ -303,7 +303,9 @@ function WeaponSystem:cachedLineOfSight(state, turret, sourceBody, targetBody, s
     return hasSight, reason, hitPosition
 end
 
-function WeaponSystem:hasLineOfSight(world, sourceBody, targetBody, sourcePosition, targetPosition, obstacles)
+---@param ignoreBody RigidBody|nil A body the line passes through (the shooter's own ship, for a small
+---ship); the source's own body when nil
+function WeaponSystem:hasLineOfSight(world, sourceBody, targetBody, sourcePosition, targetPosition, obstacles, ignoreBody)
     assert(world and sourceBody and targetBody and sourcePosition and targetPosition)
 
     local dx = targetPosition.x - sourcePosition.x
@@ -325,7 +327,7 @@ function WeaponSystem:hasLineOfSight(world, sourceBody, targetBody, sourcePositi
         sourcePosition,
         targetPosition,
         {
-            ignoreBody = sourceBody,
+            ignoreBody = ignoreBody or sourceBody,
         })
     local hitBody = hit and hit.body
     if hitBody == nil or hitBody == NULL_RIGID_BODY then
