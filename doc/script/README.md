@@ -16,5 +16,6 @@
 1. [Factions](factions.md)
 1. [People](people.md)
 1. [Formations](formations.md)
+1. [Economy simulation](economy-sim.md)
 1. [Spawning](spawning.md)
 1. [HmGui](../../script/UI/HmGui/README.md)

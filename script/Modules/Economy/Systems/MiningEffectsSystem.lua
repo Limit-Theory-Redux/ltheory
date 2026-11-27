@@ -26,6 +26,8 @@ end)
 function MiningEffectsSystem:registerVars()
     self.profiler = QuickProfiler("MiningEffectsSystem", false, false)
     self.rng = RNG.FromTime()
+    -- Off where nobody sees them (a simulation without rendering): the effects cost the frame only.
+    self.enabled = true
     self.time = 0
     -- Sparks: one every `sparkEveryS` at the spot, each a short flash.
     self.sparkEveryS = 0.15
@@ -64,7 +66,7 @@ end
 
 ---@param dt number
 function MiningEffectsSystem:update(dt)
-    if dt <= 0 then return end
+    if dt <= 0 or not self.enabled then return end
     self.time = self.time + dt
     self.profiler:start()
     for ship, mining in Registry:view(Economy.Mining) do
