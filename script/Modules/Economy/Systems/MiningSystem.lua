@@ -43,6 +43,15 @@ function MiningSystem:registerVars()
     self.pulseSpread = 0.15
     self.pulsesPerCharge = 5
     self.rechargeS = 6
+    -- About this share of each lap the spot faces the ship (the laser's on only then): for the
+    -- expected rate before any run has ended.
+    self.facingShare = 0.5
+    -- A run's rate counts this much in the rate observed so far (`expectedRate`); runs this short
+    -- don't count.
+    self.observedWeight = 0.3
+    self.minObservedS = 10
+    ---@type number|nil Units a second taken over whole runs, settling and pauses included
+    self.observedRate = nil
     -- The circle: this far off the rock's surface plus a few ship radii, with up to `radiusSpread`
     -- of the rock's radius more, flown at `circleSpeed` (each run within `speedSpread` of it).
     self.clearance = ScaleConfig:toGameUnits(150, "starSystem")
@@ -143,6 +152,7 @@ function MiningSystem:begin(ship, rock, quantity, maxSeconds, now)
     if not shipBody or not rockBody then return false end
 
     local mining = ship:add(Economy.Mining(rock.id, rock:get(Economy.Item):getItem(), quantity, now + maxSeconds))
+    mining.startedAt = now
     local pos, centre = shipBody:getPos(), rockBody:getPos()
     mining.from = pos
     mining.fromRot = shipBody:getRot()
@@ -244,6 +254,23 @@ function MiningSystem:stop(ship, mining)
     Nav.unclaim(ship)
     mining.lasing = false
     mining.done = true
+
+    local elapsed = require("Modules.Economy.Systems.MarketplaceSystem"):now() - (mining.startedAt or 0)
+    if mining.startedAt and elapsed >= self.minObservedS then
+        local rate = mining.taken / elapsed
+        self.observedRate = self.observedRate and (self.observedWeight * rate + (1 - self.observedWeight) * self.observedRate) or rate
+    end
+end
+
+---Units of ore a run takes a second on average, settling, pulse pauses, recharges and the spot
+---turned away included: what runs have taken so far, or before any has ended, an estimate from the
+---pulses. Far below `rate`, the rate while the laser is on the rock.
+---@return number
+function MiningSystem:expectedRate()
+    if self.observedRate and self.observedRate > 0 then return self.observedRate end
+    local pulses = self.pulsesPerCharge
+    local duty = pulses * self.pulseOnS / (pulses * (self.pulseOnS + self.pulseOffS) + self.rechargeS)
+    return self.rate * duty * self.facingShare
 end
 
 ---@param mining MiningComponent

@@ -7,6 +7,7 @@ local Component = require("Core.ECS.Component")
 ---@field itemId integer
 ---@field quantity integer The most the run takes
 ---@field untilTime number Simulated seconds the run ends at, at the latest
+---@field startedAt number|nil Simulated seconds the run began at
 ---@field taken integer Units taken in this run
 ---@field extracted number The part of a unit extracted since the last whole one
 ---@field radius number The circle's radius, in game units

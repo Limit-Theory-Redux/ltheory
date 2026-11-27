@@ -22,6 +22,7 @@ local MarketplaceSystem = require("Modules.Economy.Systems.MarketplaceSystem")
 ---@field sellPrice integer
 ---@field left integer What the rock holds
 ---@field demand integer What the station bids for in all
+---@field useRate number What the station's production uses of the item per simulated second
 
 ---@class PatrolOffer
 ---@field station Entity A threatened station, which pays for its security
@@ -136,9 +137,11 @@ function JobBoardSystem:refresh()
         local left = quantity:getQuantity()
         if left > 0 then
             for _, bid in ipairs(bids[item:getItem()] or {}) do
+                local production = bid.station:get(Economy.Production)
+                local useRate = production and production:getRates()[item:getItem()] or 0
                 mining[#mining + 1] = {
                     rock = rock, station = bid.station, itemId = item:getItem(), sellPrice = bid.price,
-                    left = left, demand = bid.demand,
+                    left = left, demand = bid.demand, useRate = useRate,
                 }
             end
         end

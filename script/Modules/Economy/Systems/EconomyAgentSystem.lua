@@ -64,6 +64,9 @@ function EconomyAgentSystem:registerVars()
     -- A miner's run lasts at most `maxMiningS`; it flies to `mineGapM` off the rock's hull first,
     -- and the mining run's glide takes it onto its circle from there.
     self.maxMiningS = 600
+    -- A run is planned to take about `miningRunS` at the rate miners make (`MiningSystem:expectedRate`),
+    -- so a station's demand goes to several miners at once rather than one hold that takes many minutes.
+    self.miningRunS = 180
     self.mineGapM = 1500
     self.maxMinersPerAsteroid = 2
     -- A trade may pay this much over the planned buy price, or take this much under the planned sell price.
@@ -356,8 +359,14 @@ function EconomyAgentSystem:planMining(ship, agent, inventory)
         if Registry:hasEntity(rock) and Registry:hasEntity(station) and miners < self.maxMinersPerAsteroid
             and not (avoidUntil and currentNow < avoidUntil) and welcome(ship, station) then
             local left = offer.left - self:claimed(claimKey("rock", rock.id, itemId))
-            local demand = offer.demand - self:claimed(claimKey("bid", station.id, itemId))
-            local amount = math.min(left, demand, InventoryManager:getRoomFor(inventory, itemId))
+            -- A run takes minutes, and the station's production uses the item meanwhile: what it
+            -- will use before a full hold could come counts as demand too.
+            local rate = MiningSystem:expectedRate()
+            local load = math.min(InventoryManager:getRoomFor(inventory, itemId), math.max(1, math.floor(rate * self.miningRunS)))
+            local flightS = self:flightTime(ship, ship, rock) + self:flightTime(ship, departurePoint(rock), station)
+            local runS = flightS + load / rate
+            local demand = offer.demand + math.floor(offer.useRate * runS) - self:claimed(claimKey("bid", station.id, itemId))
+            local amount = math.min(left, demand, load)
             local value = offer.sellPrice * amount
             if amount > 0 and value >= self.minProfit then
                 candidates[#candidates + 1] = {
@@ -366,10 +375,7 @@ function EconomyAgentSystem:planMining(ship, agent, inventory)
                         itemId = itemId, quantity = amount, source = rock.id, destination = station.id,
                         sellPrice = offer.sellPrice, claims = {},
                     },
-                    time = function()
-                        return self:flightTime(ship, ship, rock) + self:flightTime(ship, departurePoint(rock), station)
-                            + amount / MiningSystem.rate + self.dockOverheadS
-                    end,
+                    time = function() return flightS + amount / rate + self.dockOverheadS end,
                 }
             end
         end
