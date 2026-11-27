@@ -6,6 +6,24 @@ local GeneralActions = require('Input.ActionBindings.GeneralActions')
 local SubscriberProfile = require("Shared.Tools.SubscriberProfile")
 local FrameScheduler = require("Shared.Tools.FrameScheduler")
 
+-- The frame stages a fixed step (`Application.fixedSimStepS`) applies to and runs again (made on first
+-- use: the engine's `FrameStage` is there by then).
+local SIM_STAGES = nil
+
+---An event of a simulation stage under a fixed step: what an `EventData` answers, with the step as
+---its time.
+---@class FixedStepEvent
+---@overload fun(self: FixedStepEvent, dt: number, stage: integer, tunnelId: integer): FixedStepEvent class internal
+---@overload fun(dt: number, stage: integer, tunnelId: integer): FixedStepEvent class external
+local FixedStepEvent = Class("FixedStepEvent", function(self, dt, stage, tunnelId)
+    self.dt, self.stage, self.tunnel = dt, stage, tunnelId
+end)
+
+function FixedStepEvent:deltaTime() return self.dt end
+function FixedStepEvent:frameStage() return self.stage end
+function FixedStepEvent:tunnelId() return self.tunnel end
+function FixedStepEvent:payload() return nil end
+
 ---@class Application
 local Application = Class("Application", function(self) end)
 
@@ -95,23 +113,56 @@ function Application:eventLoop()
     SubscriberProfile:frame()
     self:jitProfileFrame()
 
+    -- With a fixed step (`fixedSimStepS`), the simulation's stages see that step instead of the
+    -- frame's time, and run `simStepsPerFrame` times a frame: the frame's stage subscriptions are
+    -- noted and run again after it. Events dispatched with a payload (a navigation order's end, say)
+    -- are delivered once, as the bus gives them.
+    local step = self.fixedSimStepS
+    local replay = step and {} or nil
+    if step and not SIM_STAGES then
+        SIM_STAGES = { [FrameStage.PreSim] = true, [FrameStage.Sim] = true, [FrameStage.PostSim] = true }
+    end
     local eventData, payload = EventBus:nextEvent()
     while eventData ~= nil do
         -- EventBus:unsubscribe drops the Lua handler at once, but the bus only
         -- removes the subscriber at the next startEventIteration: the rest of
         -- this frame can still deliver events for a tunnel that has no handler.
-        local tunnel = EventTunnels[eventData:tunnelId()]
+        local tunnelId = eventData:tunnelId()
+        local tunnel = EventTunnels[tunnelId]
         if tunnel then
-            if SubscriberProfile.enabled then
-                SubscriberProfile:call(eventData:tunnelId(), tunnel, eventData, payload)
+            local stage = eventData:frameStage()
+            if step and SIM_STAGES[stage] then
+                if payload == nil then replay[#replay + 1] = { tunnelId = tunnelId, stage = stage } end
+                self:callTunnel(tunnelId, tunnel, FixedStepEvent(step, stage, tunnelId), payload)
             else
-                tunnel(eventData, payload)
+                self:callTunnel(tunnelId, tunnel, eventData, payload)
             end
         end
         eventData, payload = EventBus:nextEvent()
     end
+    if replay then
+        for _ = 2, self.simStepsPerFrame or 1 do
+            for _, entry in ipairs(replay) do
+                local tunnel = EventTunnels[entry.tunnelId]
+                if tunnel then
+                    self:callTunnel(entry.tunnelId, tunnel, FixedStepEvent(step, entry.stage, entry.tunnelId), nil)
+                end
+            end
+        end
+    end
     -- Work spread over frames, within its budget, after the frame's own.
     FrameScheduler:run()
+end
+
+---Calls an event's Lua handler, timed when the subscriber profile is on.
+---@param tunnelId integer
+---@param tunnel function
+function Application:callTunnel(tunnelId, tunnel, eventData, payload)
+    if SubscriberProfile.enabled then
+        SubscriberProfile:call(tunnelId, tunnel, eventData, payload)
+    else
+        tunnel(eventData, payload)
+    end
 end
 
 function Application:appInit()
