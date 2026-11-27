@@ -704,12 +704,15 @@ function LimitTheoryRedux:collectEntities()
     self.beltEntities = {}
     self.starEntity = nil
 
+    -- Numbered in registry order, as the system map numbers them.
     for entity in Registry:view(CelestialComponents.Planet) do
         table.insert(self.planets, entity)
-        table.insert(self.labeledEntities, { entity = entity, label = tostring(entity) })
+        table.insert(self.labeledEntities, { entity = entity, label = "Planet " .. #self.planets })
     end
+    local moons = 0
     for entity in Registry:view(CelestialComponents.Moon) do
-        table.insert(self.labeledEntities, { entity = entity, label = tostring(entity) })
+        moons = moons + 1
+        table.insert(self.labeledEntities, { entity = entity, label = "Moon " .. moons })
     end
     for entity in Registry:view(CelestialComponents.Star) do
         self.starEntity = entity
