@@ -1,5 +1,9 @@
 ---Production recipes: what a station's production consumes and makes in one cycle. `income` is the
 ---credits a cycle pays the station (a colony's earnings), the economy's source of new credits.
+---
+---At the items' start prices each stage makes more than its inputs cost (the refinery and the foundry
+---about a fifth), so a station that sells near the market price doesn't lose credits on every cycle;
+---the colonies' income pays for the chain.
 local Items = require("Shared.Registries.Items")
 require("Shared.Definitions.ItemDefs")
 
@@ -24,13 +28,13 @@ local Recipes = {
     },
     IronRefinery = {
         name = "Iron Refinery",
-        inputs = { { item = Items.RawMaterials.IronOre, count = 8 }, { item = Items.Miscellaneous.EnergyCell, count = 2 } },
+        inputs = { { item = Items.RawMaterials.IronOre, count = 5 }, { item = Items.Miscellaneous.EnergyCell, count = 1 } },
         outputs = { { item = Items.RefinedMaterials.Iron, count = 4 } },
         duration = 15,
     },
     SteelFoundry = {
         name = "Steel Foundry",
-        inputs = { { item = Items.RefinedMaterials.Iron, count = 3 }, { item = Items.Miscellaneous.EnergyCell, count = 2 } },
+        inputs = { { item = Items.RefinedMaterials.Iron, count = 2 }, { item = Items.Miscellaneous.EnergyCell, count = 1 } },
         outputs = { { item = Items.RefinedMaterials.Steel, count = 2 } },
         duration = 20,
     },
