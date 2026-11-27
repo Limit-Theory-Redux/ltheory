@@ -39,6 +39,13 @@ local ExplosionEffectEntity = require("Modules.Constructs.Entities.ExplosionEffe
 local Pulse = require("Legacy.GameObjects.Entities.Effects.Pulse")
 local SubscriberProfile = require("Shared.Tools.SubscriberProfile")
 
+-- The sections' clock: read only while subscribers are profiled (a clock read a battery a section
+-- is a real cost in a large battle).
+local PROFILING = SubscriberProfile.enabled
+local function clock()
+    return PROFILING and os.clock() or 0
+end
+
 ---@class WeaponCombatSystem
 ---@field world Physics
 ---@field batteries WeaponBattery[]
@@ -319,7 +326,7 @@ function WeaponCombatSystem:preUpdate(dt)
             battery:destroy()
         end
     end
-        local t = os.clock()
+        local t = clock()
     local live = self:refreshTargets(dt)
     SubscriberProfile:mark("weapons: refresh targets", t)
     hostileMemo = {}
@@ -333,10 +340,10 @@ function WeaponCombatSystem:preUpdate(dt)
         battery.assignIn = (battery.assignIn or (index % ASSIGN_STAGGER) * ASSIGN_PERIOD_S / ASSIGN_STAGGER) - dt
         if battery.assignIn <= 0 or self:holdsLostTarget(battery) then
             battery.assignIn = ASSIGN_PERIOD_S
-            t = os.clock()
+            t = clock()
             grid = grid or buildGrid(live, math.max(size, 1e-6))
             selectCandidates(battery, grid, math.max(size, 1e-6))
-            SubscriberProfile:mark("weapons: candidates", t) t = os.clock()
+            SubscriberProfile:mark("weapons: candidates", t) t = clock()
             battery:assignTargets()
             SubscriberProfile:mark("weapons: assign", t)
         end
@@ -352,17 +359,17 @@ function WeaponCombatSystem:update(dt)
         return
     end
         for _, battery in ipairs(self.batteries) do
-        local t = os.clock()
+        local t = clock()
         battery:syncTurretTransforms()
-        SubscriberProfile:mark("weapons: turret sync", t) t = os.clock()
+        SubscriberProfile:mark("weapons: turret sync", t) t = clock()
         AIWeaponSystem:update(battery, dt)
-        SubscriberProfile:mark("weapons: AI", t) t = os.clock()
+        SubscriberProfile:mark("weapons: AI", t) t = clock()
         WeaponTrackingSystem:update(battery, dt)
-        SubscriberProfile:mark("weapons: tracking", t) t = os.clock()
+        SubscriberProfile:mark("weapons: tracking", t) t = clock()
         WeaponSystem:update(battery, dt)
         SubscriberProfile:mark("weapons: firing", t)
     end
-    local t = os.clock()
+    local t = clock()
     self:explodeDestroyedTargets()
     SubscriberProfile:mark("weapons: explosions", t)
 end

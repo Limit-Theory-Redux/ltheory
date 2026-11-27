@@ -139,47 +139,88 @@ end
 -- about 25 degrees): a point on a face turned a little away still lies on the hull.
 local PICK_VIEW_COS = 0.9
 
+-- Draws of a triangle by area before a pick walks the surface for the ones facing the view.
+local PICK_DRAWS = 16
+
+---The surface's running sum of triangle areas, kept on it: a draw by area is a binary search.
+---@param surface table[]
+---@return number[] cumulative
+local function cumulativeAreas(surface)
+    local cumulative = surface.cumulative
+    if cumulative then return cumulative end
+    cumulative = {}
+    local sum = 0
+    for index, triangle in ipairs(surface) do
+        sum = sum + (triangle.area or 1)
+        cumulative[index] = sum
+    end
+    surface.cumulative = cumulative
+    return cumulative
+end
+
+---A triangle of the surface by area: the index of the first running sum at or above `pick`.
+---@param cumulative number[]
+---@param pick number
+---@return integer
+local function triangleAt(cumulative, pick)
+    local low, high = 1, #cumulative
+    while low < high do
+        local middle = math.floor((low + high) / 2)
+        if cumulative[middle] < pick then low = middle + 1 else high = middle end
+    end
+    return low
+end
+
 ---Picks a triangle of the surface facing `viewDirection` (by area) and the random numbers that place
----the point on it: the costly part of a sample, a walk of every triangle.
+---the point on it. A triangle is drawn by area and kept if it faces the view, up to `PICK_DRAWS`
+---draws (about half a hull faces a shooter, so a couple do); only a view that almost no triangle
+---faces walks the surface for the facing ones.
 ---@param surface table[]
 ---@param seed integer
 ---@param viewDirection Vec3f|nil
 ---@param minFacingDot number
 ---@return table pick {selected, selectedIndex, first, second, phase}
 local function pickTargetTriangle(surface, seed, viewDirection, minFacingDot)
-    local candidates = surface
     local sampleRng = RNG.Create(seed or 0)
     assert(sampleRng, "target surface sampling could not create an RNG")
-    if viewDirection then
-        local facingCandidates = {}
+    local cumulative = cumulativeAreas(surface)
+    local totalArea = cumulative[#cumulative]
+    assert(totalArea > 0, "target surface triangles must have positive area")
+
+    local selected, selectedIndex = nil, nil
+    for _ = 1, viewDirection and PICK_DRAWS or 1 do
+        local index = triangleAt(cumulative, sampleRng:getUniform() * totalArea)
+        local triangle = surface[index]
+        local facing = not viewDirection or triangle.normal.x * viewDirection.x
+            + triangle.normal.y * viewDirection.y + triangle.normal.z * viewDirection.z >= minFacingDot
+        if facing then
+            selected, selectedIndex = triangle, index
+            break
+        end
+    end
+
+    if not selected then
+        -- Few triangles face the view: walk for them (all of them when none does).
+        local candidates, facingArea = {}, 0
         for _, triangle in ipairs(surface) do
             local dot = triangle.normal.x * viewDirection.x
                 + triangle.normal.y * viewDirection.y
                 + triangle.normal.z * viewDirection.z
             if dot >= minFacingDot then
-                facingCandidates[#facingCandidates + 1] = triangle
+                candidates[#candidates + 1] = triangle
+                facingArea = facingArea + (triangle.area or 1)
             end
         end
-        if #facingCandidates > 0 then
-            candidates = facingCandidates
-        end
-    end
-
-    local totalArea = 0
-    for _, triangle in ipairs(candidates) do
-        totalArea = totalArea + (triangle.area or 1)
-    end
-    assert(totalArea > 0, "target surface triangles must have positive area")
-    local pick = sampleRng:getUniform() * totalArea
-    local selected = candidates[#candidates]
-    local selectedIndex = #candidates
-    local accumulated = 0
-    for index, triangle in ipairs(candidates) do
-        accumulated = accumulated + (triangle.area or 1)
-        if pick <= accumulated then
-            selected = triangle
-            selectedIndex = index
-            break
+        if #candidates == 0 then candidates, facingArea = surface, totalArea end
+        local pick = sampleRng:getUniform() * facingArea
+        selected, selectedIndex = candidates[#candidates], #candidates
+        local accumulated = 0
+        for index, triangle in ipairs(candidates) do
+            accumulated = accumulated + (triangle.area or 1)
+            if pick <= accumulated then
+                selected, selectedIndex = triangle, index
+                break
+            end
         end
     end
     return {

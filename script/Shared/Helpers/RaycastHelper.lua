@@ -19,46 +19,28 @@ local function isNullBody(body)
     return body == nil or body == NULL_RIGID_BODY
 end
 
+-- A physics query's result (`RayCastResult`, its fields flat) or a table with `position` and `normal`.
+-- The fields are read directly: an error caught for a missing field costs more than the cast.
+local RAY_CAST_RESULT = ffi.typeof("RayCastResult")
+
 local function readHitPosition(result)
     if not result then
         return nil
     end
-
-    local hasPosition, position = pcall(function()
-        return result.position
-    end)
-    if hasPosition and position then
-        return position
+    if ffi.istype(RAY_CAST_RESULT, result) then
+        return Position(result.posx, result.posy, result.posz)
     end
-
-    local hasCoordinates, px, py, pz = pcall(function()
-        return result.posx, result.posy, result.posz
-    end)
-    if hasCoordinates and px ~= nil and py ~= nil and pz ~= nil then
-        return Position(px, py, pz)
-    end
-    return nil
+    return result.position
 end
 
 local function readHitNormal(result)
     if not result then
         return nil
     end
-
-    local hasNormal, normal = pcall(function()
-        return result.normal
-    end)
-    if hasNormal and normal then
-        return normal
+    if ffi.istype(RAY_CAST_RESULT, result) then
+        return Vec3f(result.normx, result.normy, result.normz)
     end
-
-    local hasCoordinates, nx, ny, nz = pcall(function()
-        return result.normx, result.normy, result.normz
-    end)
-    if hasCoordinates and nx ~= nil and ny ~= nil and nz ~= nil then
-        return Vec3f(nx, ny, nz)
-    end
-    return nil
+    return result.normal
 end
 
 local function isIgnoredBody(body, options)
