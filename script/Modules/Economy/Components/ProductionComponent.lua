@@ -44,4 +44,20 @@ function ProductionComponent:getFlows()
     return inputs, outputs
 end
 
+---What the lines consume and make of each item per simulated second, all running.
+---@return table<integer, number> inputs, table<integer, number> outputs Item id -> units per second
+function ProductionComponent:getRates()
+    local inputs, outputs = {}, {}
+    for _, line in ipairs(self.lines) do
+        local recipe = line.recipe
+        for _, stack in ipairs(recipe.inputs) do
+            inputs[stack.item.id] = (inputs[stack.item.id] or 0) + stack.count / recipe.duration
+        end
+        for _, stack in ipairs(recipe.outputs) do
+            outputs[stack.item.id] = (outputs[stack.item.id] or 0) + stack.count / recipe.duration
+        end
+    end
+    return inputs, outputs
+end
+
 return ProductionComponent

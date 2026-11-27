@@ -55,7 +55,9 @@ economy's only source of new credits (a colony's earnings). It also regrows yiel
 
 `MarketMakerSystem` reposts a station's orders every few seconds: it takes them back (their escrow
 returns), then bids for each input up to a stock target and asks for all it holds of each output.
-The target is what the lines consume or make over `stockCycles` cycles. A price is the market's
+The target is what the lines consume or make over `stockCycles` cycles; an input's target also
+covers what the lines consume over `resupplyS` seconds, since a miner or hauler takes minutes to
+bring it and brings only what is bid for. A price is the market's
 shifting equilibrium for the item, bounded to a range around the start price, times a factor: a bid
 pays more the emptier the stock is, an ask asks more the less the station has. The equilibrium only
 follows trades, so prices find their level through what is traded without running away on the

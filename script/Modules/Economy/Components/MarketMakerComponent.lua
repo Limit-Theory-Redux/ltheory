@@ -4,13 +4,16 @@ local Component = require("Core.ECS.Component")
 ---of its recipes, asks for their outputs. `MarketMakerSystem` posts them again every `interval`
 ---seconds, priced by how the stock of each item compares to its target.
 ---@class MarketMakerComponent: Component
----@overload fun(self: MarketMakerComponent, stockCycles: number|nil, interval: number|nil): MarketMakerComponent subclass internal
----@overload fun(stockCycles: number|nil, interval: number|nil): MarketMakerComponent subclass external
-local MarketMakerComponent = Subclass("MarketMakerComponent", Component, function(self, stockCycles, interval)
+---@overload fun(self: MarketMakerComponent, stockCycles: number|nil, interval: number|nil, resupplyS: number|nil): MarketMakerComponent subclass internal
+---@overload fun(stockCycles: number|nil, interval: number|nil, resupplyS: number|nil): MarketMakerComponent subclass external
+local MarketMakerComponent = Subclass("MarketMakerComponent", Component, function(self, stockCycles, interval, resupplyS)
     self:setComponentName("EconomyMarketMaker")
 
     -- The stock of an item the station aims at, in cycles of what its lines consume or make of it.
     self.stockCycles = stockCycles or 8
+    -- An input's stock also lasts this long at full production: what ships bring takes minutes to
+    -- come (a miner's run, say), and a ship only brings what the station bids for.
+    self.resupplyS = resupplyS or 240
     self.interval = interval or 6
     self.nextRepostAt = nil
 end)
@@ -18,6 +21,11 @@ end)
 ---@return number cycles
 function MarketMakerComponent:getStockCycles()
     return self.stockCycles
+end
+
+---@return number seconds Simulated seconds
+function MarketMakerComponent:getResupplyS()
+    return self.resupplyS
 end
 
 ---@return number seconds

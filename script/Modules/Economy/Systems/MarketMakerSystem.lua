@@ -10,7 +10,8 @@ local MarketplaceSystem = require("Modules.Economy.Systems.MarketplaceSystem")
 ---an ask for all it holds of each output. A price is the market's shifting equilibrium for the item
 ---(which follows the trades made there), raised for an input the station is short of and an output
 ---it has little of, and lowered for a glut. The stock targets are the station's consumption or
----making of the item over `stockCycles` cycles.
+---making of the item over `stockCycles` cycles; an input's target also covers its consumption over
+---`resupplyS` seconds, so a slow supply (ore that miners take minutes to bring) is bid for early.
 ---@class MarketMakerSystem
 local MarketMakerSystem = Class("MarketMakerSystem", function(self)
     self:registerVars()
@@ -97,11 +98,12 @@ function MarketMakerSystem:repost(entity, maker)
     -- Taking the orders back first returns their escrow, so the stock and balance below are whole.
     MarketplaceSystem:cancelOrdersOf(entity, entity)
     local inputs, outputs = production:getFlows()
+    local inputRates = production:getRates()
     local ttl = maker:getInterval() * 2
 
     local wanted, cost = {}, 0
     for itemId, perCycle in pairs(inputs) do
-        local target = perCycle * maker:getStockCycles()
+        local target = math.max(perCycle * maker:getStockCycles(), math.ceil(inputRates[itemId] * maker:getResupplyS()))
         local stock = InventoryManager:count(inventory, itemId)
         if stock < target then
             local price = self:bidPrice(self:referencePrice(marketplace, itemId), stock / target)
