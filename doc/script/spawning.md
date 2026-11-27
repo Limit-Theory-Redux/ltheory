@@ -12,7 +12,10 @@ seed of its own drawn last (the bodies' draws stay as they were), and keeps the 
 as an `EconomyLayoutComponent`.
 
 The plan always trades: with four stations or more it has a power plant, a refinery, a foundry and
-a colony before any more; with fewer, a power plant and outposts that live on its energy. Stations
+a colony before any more. Each further station makes what the stations so far run shortest of, by
+their recipes' rates (ore aside: the miners bring it), or, when nothing runs short, is another
+consumer, a colony most often, that the stations after it then supply. With fewer than four, a power
+plant and outposts that live on its energy. Stations
 are dealt round the factions and placed round the planets, clear of the rings.
 
 ## Built into the scene

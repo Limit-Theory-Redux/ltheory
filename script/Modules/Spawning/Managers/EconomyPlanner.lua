@@ -1,5 +1,7 @@
 local RuleEvaluator = require("Modules.CelestialObjects.Managers.UniverseManager.RuleEvaluator")
 local EconomyDefaults = require("Config.Gen.Rulesets.EconomyDefaults")
+local StationEconomies = require("Shared.Definitions.StationEconomyDefs")
+local Items = require("Shared.Registries.Items")
 
 -- Design: doc/script/spawning.md
 
@@ -8,18 +10,63 @@ local EconomyDefaults = require("Config.Gen.Rulesets.EconomyDefaults")
 ---the ore fields, and the marauders. The plan is data (`EconomyLayout`); the spawner builds it.
 ---
 ---The stations of all factions together always make up a chain that trades: with four or more, a
----power plant, a refinery, a foundry and a colony first, then more of them (more power plants and
----colonies than the rest); with fewer, a power plant and outposts that live on its energy. They are
+---power plant, a refinery, a foundry and a colony first; each further station then makes what the
+---stations so far run shortest of, by their recipes' rates, or when nothing runs short is another
+---consumer (a colony, most often) that the next ones supply. With fewer, a power plant and outposts
+---that live on its energy. They are
 ---dealt round the factions in turn, and placed round the planets, clear of the rings above their
 ---equatorial planes.
 ---@class EconomyPlanner
 local EconomyPlanner = {}
 
--- The chain every system with four stations or more has, then what further stations are, by weight.
+-- The chain every system with four stations or more has; its kinds also make up the producers a
+-- further station is chosen from.
 local CHAIN = { "PowerPlant", "Refinery", "Foundry", "Colony" }
-local EXTRA = { { value = "PowerPlant", weight = 3 }, { value = "Colony", weight = 2 }, { value = "Refinery", weight = 1 }, { value = "Foundry", weight = 1 } }
+-- A further station when nothing runs short, by weight.
+local CONSUMERS = { { value = "Colony", weight = 3 }, { value = "Foundry", weight = 1 }, { value = "Refinery", weight = 1 } }
+-- Items no station makes (the miners bring the ore), so no station is added for them.
+local MINED = { [Items.RawMaterials.IronOre.id] = true }
 -- Stations are placed this many planet radii from the planet's centre, give or take, at this height.
 local STATION_RADII, STATION_RADII_SPREAD, HEIGHT_RADII = 3.0, 0.6, 1.2
+
+---Adds a station kind's rates to `net`: per item, what it makes less what it uses, per second.
+---@param net table<integer, number>
+---@param kind string
+local function addRates(net, kind)
+    for _, recipe in ipairs(StationEconomies[kind].recipes) do
+        for _, stack in ipairs(recipe.inputs) do
+            net[stack.item.id] = (net[stack.item.id] or 0) - stack.count / recipe.duration
+        end
+        for _, stack in ipairs(recipe.outputs) do
+            net[stack.item.id] = (net[stack.item.id] or 0) + stack.count / recipe.duration
+        end
+    end
+end
+
+---The chain's kind that makes this item.
+---@param itemId integer
+---@return string|nil
+local function producerOf(itemId)
+    for _, kind in ipairs(CHAIN) do
+        for _, recipe in ipairs(StationEconomies[kind].recipes) do
+            for _, stack in ipairs(recipe.outputs) do
+                if stack.item.id == itemId then return kind end
+            end
+        end
+    end
+end
+
+---The next station's kind: the maker of what `net` runs shortest of, else a consumer.
+---@param rng RNG
+---@param net table<integer, number>
+---@return string
+local function nextKind(rng, net)
+    local shortest, shortfall = nil, 0
+    for itemId, rate in pairs(net) do
+        if not MINED[itemId] and rate < shortfall then shortest, shortfall = itemId, rate end
+    end
+    return shortest and producerOf(shortest) or RuleEvaluator.evaluateWeighted(rng, CONSUMERS)
+end
 
 ---@param rng RNG
 ---@param rule table|nil
@@ -65,8 +112,16 @@ function EconomyPlanner.plan(economy, seed, planetCount, context)
     -- The kinds, so that together they trade.
     local kinds = {}
     if stationCount >= #CHAIN then
-        for _, kind in ipairs(CHAIN) do kinds[#kinds + 1] = kind end
-        while #kinds < stationCount do kinds[#kinds + 1] = RuleEvaluator.evaluateWeighted(rng, EXTRA) end
+        local net = {}
+        for _, kind in ipairs(CHAIN) do
+            kinds[#kinds + 1] = kind
+            addRates(net, kind)
+        end
+        while #kinds < stationCount do
+            local kind = nextKind(rng, net)
+            kinds[#kinds + 1] = kind
+            addRates(net, kind)
+        end
     else
         kinds[1] = "PowerPlant"
         while #kinds < stationCount do kinds[#kinds + 1] = "Outpost" end
