@@ -92,7 +92,11 @@ local function getBodyAngularVelocity(body)
     return Vec3f(0, 0, 0)
 end
 
-local function getTrackingConfig(weapon, turret, component)
+-- A turret's merged tracking config, while its weapon, its own module stats and its component's
+-- stay the same tables: merging them anew for every mount each frame was a large share of tracking.
+local configCache = setmetatable({}, { __mode = "k" })
+
+local function buildTrackingConfig(weapon, turret, component)
     local config = {}
     for key, value in pairs(weapon.tracking or {}) do
         config[key] = value
@@ -122,6 +126,20 @@ local function getTrackingConfig(weapon, turret, component)
     config.turnRateFloor = config.turnRateFloor or 0.0005
     config.turnRateLimit = config.turnRateLimit or 8.0
     config.predictionDamping = config.predictionDamping or 0.35
+    return config
+end
+
+local function getTrackingConfig(weapon, turret, component)
+    local cached = configCache[turret]
+    if cached and cached.weapon == weapon and cached.component == component and cached.moduleStats == component.moduleStats
+            and cached.turretStats == turret.trackingModuleStats and cached.module == turret.trackingModule then
+        return cached.config
+    end
+    local config = buildTrackingConfig(weapon, turret, component)
+    configCache[turret] = {
+        weapon = weapon, component = component, moduleStats = component.moduleStats,
+        turretStats = turret.trackingModuleStats, module = turret.trackingModule, config = config,
+    }
     return config
 end
 
@@ -425,7 +443,8 @@ function WeaponTrackingSystem:solveIntercept(
     }
 end
 
-function WeaponTrackingSystem:getTargetPoint(state, sourcePosition, targetPosition, targetBody, seed, time, surfaceOverride)
+---@param cache table|nil the mount's own table, where the pick of the target's triangles is kept
+function WeaponTrackingSystem:getTargetPoint(state, sourcePosition, targetPosition, targetBody, seed, time, surfaceOverride, cache)
     local surface = surfaceOverride or state.targetSurface
     if not surface then
         -- No known surface: aim at body center.
@@ -446,9 +465,24 @@ function WeaponTrackingSystem:getTargetPoint(state, sourcePosition, targetPositi
         surface,
         seed,
         time,
-        sampledOptions)
+        sampledOptions,
+        cache)
     local worldPoint = WeaponSystem:targetPointToWorld(sample, targetBody)
     return worldPoint, Vec3f(sample.position.x, sample.position.y, sample.position.z), sample
+end
+
+---The table where a mount keeps its pick of the target's triangles (`WeaponSystem:sampleTargetPoint`).
+---@param state table
+---@param mountId string
+---@return table
+function WeaponTrackingSystem:pickCacheOf(state, mountId)
+    state.trackingPickByMount = state.trackingPickByMount or {}
+    local cache = state.trackingPickByMount[mountId]
+    if not cache then
+        cache = {}
+        state.trackingPickByMount[mountId] = cache
+    end
+    return cache
 end
 
 function WeaponTrackingSystem:update(state, dt)
@@ -532,7 +566,8 @@ function WeaponTrackingSystem:update(state, dt)
             mountTargetBody,
             targetPointRng:get64() + (pointSeed % 1000),
             state.targetPointTime,
-            mountSurface)
+            mountSurface,
+            self:pickCacheOf(state, mount.mountId))
         if targetPointSample then
             targetPointByMount[mount.mountId] = {
                 position = targetPoint,

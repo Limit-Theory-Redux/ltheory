@@ -37,6 +37,7 @@ local ProjectileSystem = require("Modules.Constructs.Systems.ProjectileSystem")
 local BeamSystem = require("Modules.Constructs.Systems.BeamSystem")
 local ExplosionEffectEntity = require("Modules.Constructs.Entities.ExplosionEffectEntity")
 local Pulse = require("Legacy.GameObjects.Entities.Effects.Pulse")
+local SubscriberProfile = require("Shared.Tools.SubscriberProfile")
 
 ---@class WeaponCombatSystem
 ---@field world Physics
@@ -194,12 +195,38 @@ local function differentTeams(own, other)
     return own == nil or other ~= own
 end
 
+-- How often a battery chooses its candidates and targets again, and over how many groups of
+-- batteries the choosing is spread.
+local ASSIGN_PERIOD_S, ASSIGN_STAGGER = 0.2, 6
+
 local isHostile = differentTeams
+-- The hostility of each pair of teams this frame: there are few teams and many pairs of ships, and
+-- the rule may be costly (a faction rule reads relations). Cleared each frame, as relations change.
+local hostileMemo = {}
 
 ---Replaces the rule that decides whom a battery engages (nil restores the default: other teams).
 ---@param rule (fun(own: string|nil, other: string|nil): boolean)|nil
 function WeaponCombatSystem.setHostility(rule)
     isHostile = rule or differentTeams
+    hostileMemo = {}
+end
+
+---@param own string|nil
+---@param other string|nil
+---@return boolean
+local function hostileTeams(own, other)
+    local row = hostileMemo[own or false]
+    if not row then
+        row = {}
+        hostileMemo[own or false] = row
+    end
+    local key = other or false
+    local value = row[key]
+    if value == nil then
+        value = isHostile(own, other) and true or false
+        row[key] = value
+    end
+    return value
 end
 
 ---The contacts one battery may engage.
@@ -214,7 +241,7 @@ local function selectCandidates(battery, live)
     local rangeSquared = battery.engagementRange * battery.engagementRange
     local shipId = battery.ship.id
     for _, record in ipairs(live) do
-        if record.id ~= shipId and isHostile(battery.team, record.team) then
+        if record.id ~= shipId and hostileTeams(battery.team, record.team) then
             local dx = record.position.x - origin.x
             local dy = record.position.y - origin.y
             local dz = record.position.z - origin.z
@@ -223,6 +250,19 @@ local function selectCandidates(battery, live)
             end
         end
     end
+end
+
+---Whether a target the battery's mounts are on has left the live targets this frame.
+---@param battery WeaponBattery
+---@return boolean
+function WeaponCombatSystem:holdsLostTarget(battery)
+    local byMount, records = battery.mountTargetByMount, battery.mountTargetEntities
+    if not byMount or not records then return false end
+    for _, body in pairs(byMount) do
+        local record = records[body]
+        if not record or record.frame ~= self.frame then return true end
+    end
+    return false
 end
 
 ---Before the physics step: target candidates, per-mount targets, turrets.
@@ -239,11 +279,27 @@ function WeaponCombatSystem:preUpdate(dt)
             battery:destroy()
         end
     end
+    local mark = SubscriberProfile.mark
+    local t = os.clock()
     local live = self:refreshTargets(dt)
-    for _, battery in ipairs(self.batteries) do
-        selectCandidates(battery, live)
-        battery:assignTargets()
+    mark("weapons: refresh targets", t)
+    hostileMemo = {}
+    for index, battery in ipairs(self.batteries) do
+        -- Candidates and targets are chosen again every `ASSIGN_PERIOD_S`, the batteries staggered
+        -- over it, and at once when a target it holds is gone; tracking and firing go on every frame
+        -- on the targets chosen (their records' positions are fresh each frame).
+        battery.assignIn = (battery.assignIn or (index % ASSIGN_STAGGER) * ASSIGN_PERIOD_S / ASSIGN_STAGGER) - dt
+        if battery.assignIn <= 0 or self:holdsLostTarget(battery) then
+            battery.assignIn = ASSIGN_PERIOD_S
+            t = os.clock()
+            selectCandidates(battery, live)
+            mark("weapons: candidates", t) t = os.clock()
+            battery:assignTargets()
+            mark("weapons: assign", t)
+        end
+        t = os.clock()
         battery:syncTurretTransforms()
+        mark("weapons: turret sync", t)
     end
 end
 
@@ -255,13 +311,21 @@ function WeaponCombatSystem:update(dt)
     if dt <= 0 then
         return
     end
+    local mark = SubscriberProfile.mark
     for _, battery in ipairs(self.batteries) do
+        local t = os.clock()
         battery:syncTurretTransforms()
+        mark("weapons: turret sync", t) t = os.clock()
         AIWeaponSystem:update(battery, dt)
+        mark("weapons: AI", t) t = os.clock()
         WeaponTrackingSystem:update(battery, dt)
+        mark("weapons: tracking", t) t = os.clock()
         WeaponSystem:update(battery, dt)
+        mark("weapons: firing", t)
     end
+    local t = os.clock()
     self:explodeDestroyedTargets()
+    mark("weapons: explosions", t)
 end
 
 ---Post-sim step: shots in flight, beams, expired effect lights.

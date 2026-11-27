@@ -135,28 +135,29 @@ function WeaponSystem:buildTargetSurface(mesh)
     return surface
 end
 
----@param surface table[] target surface triangles
----@param seed integer deterministic mount seed
----@param time number smooth sample time
----@param options table|nil {motionAmplitude, motionFrequency}
----@return table {position, normal, triangleIndex, barycentric}
-function WeaponSystem:sampleTargetPoint(surface, seed, time, options)
-    assert(type(surface) == "table" and #surface > 0, "target surface needs triangles")
-    options = options or {}
-    time = time or 0
+-- A cached pick is kept while the shooter's view of the target turns by less than this (the cosine,
+-- about 25 degrees): a point on a face turned a little away still lies on the hull.
+local PICK_VIEW_COS = 0.9
+
+---Picks a triangle of the surface facing `viewDirection` (by area) and the random numbers that place
+---the point on it: the costly part of a sample, a walk of every triangle.
+---@param surface table[]
+---@param seed integer
+---@param viewDirection Vec3f|nil
+---@param minFacingDot number
+---@return table pick {selected, selectedIndex, first, second, phase}
+local function pickTargetTriangle(surface, seed, viewDirection, minFacingDot)
     local candidates = surface
     local sampleRng = RNG.Create(seed or 0)
     assert(sampleRng, "target surface sampling could not create an RNG")
-    local viewDirection = options.viewDirection
     if viewDirection then
-        local minFacingDot = options.minFacingDot or 0
         local facingCandidates = {}
         for _, triangle in ipairs(surface) do
             local dot = triangle.normal.x * viewDirection.x
                 + triangle.normal.y * viewDirection.y
                 + triangle.normal.z * viewDirection.z
             if dot >= minFacingDot then
-                table.insert(facingCandidates, triangle)
+                facingCandidates[#facingCandidates + 1] = triangle
             end
         end
         if #facingCandidates > 0 then
@@ -181,15 +182,53 @@ function WeaponSystem:sampleTargetPoint(surface, seed, time, options)
             break
         end
     end
-    local first = sampleRng:getUniform()
-    local second = sampleRng:getUniform()
-    local root = math.sqrt(first)
-    local w0 = 1 - root
-    local w1 = root * (1 - second)
-    local w2 = root * second
+    return {
+        selected = selected,
+        selectedIndex = selectedIndex,
+        first = sampleRng:getUniform(),
+        second = sampleRng:getUniform(),
+        phase = sampleRng:getUniform() * math.pi * 2,
+    }
+end
+
+---@param surface table[] target surface triangles
+---@param seed integer deterministic mount seed
+---@param time number smooth sample time
+---@param options table|nil {motionAmplitude, motionFrequency, minFacingDot, viewDirection}
+---@param cache table|nil the caller's own table for this mount: the triangle picked is kept in it
+---and used again while the surface, the seed and the view (within `PICK_VIEW_COS`) stay, so a
+---mount walks the target's triangles when its view of it turns, not every frame
+---@return table {position, normal, triangleIndex, barycentric}
+function WeaponSystem:sampleTargetPoint(surface, seed, time, options, cache)
+    assert(type(surface) == "table" and #surface > 0, "target surface needs triangles")
+    options = options or {}
+    time = time or 0
+    local viewDirection = options.viewDirection
+    local minFacingDot = options.minFacingDot or 0
+
+    local chosen = nil
+    if cache and cache.pick and cache.surface == surface and cache.seed == seed then
+        local view = cache.view
+        if (view == nil and viewDirection == nil) or (view and viewDirection
+                and view.x * viewDirection.x + view.y * viewDirection.y + view.z * viewDirection.z >= PICK_VIEW_COS) then
+            chosen = cache.pick
+        end
+    end
+    if not chosen then
+        chosen = pickTargetTriangle(surface, seed, viewDirection, minFacingDot)
+        if cache then
+            cache.pick, cache.surface, cache.seed = chosen, surface, seed
+            cache.view = viewDirection and Vec3f(viewDirection.x, viewDirection.y, viewDirection.z) or nil
+        end
+    end
+
+    local selected, selectedIndex = chosen.selected, chosen.selectedIndex
+    local root = math.sqrt(chosen.first)
+    local w1 = root * (1 - chosen.second)
+    local w2 = root * chosen.second
     local amplitude = clamp(options.motionAmplitude or 0.05, 0, 0.25)
     local frequency = options.motionFrequency or 0.5
-    local phase = sampleRng:getUniform() * math.pi * 2
+    local phase = chosen.phase
     w1 = clamp(w1 + amplitude * math.sin(time * frequency * math.pi * 2 + phase), 0.02, 0.94)
     w2 = clamp(w2 + amplitude * math.cos(time * frequency * math.pi * 1.82 + phase * 1.37), 0.02, 0.94)
     if w1 + w2 > 0.96 then
@@ -197,7 +236,7 @@ function WeaponSystem:sampleTargetPoint(surface, seed, time, options)
         w1 = w1 * scale
         w2 = w2 * scale
     end
-    w0 = 1 - w1 - w2
+    local w0 = 1 - w1 - w2
     local position = Vec3f(
         selected.p0.x * w0 + selected.p1.x * w1 + selected.p2.x * w2,
         selected.p0.y * w0 + selected.p1.y * w1 + selected.p2.y * w2,
@@ -236,6 +275,30 @@ end
 ---@param targetPosition Vec3f
 ---@param obstacles table[]|nil
 ---@return boolean, string, Vec3f|nil
+-- How long a mount's line of sight to its target is taken as known (seconds of the battery's time):
+-- a ray a frame for every mount was a large share of firing.
+local LINE_OF_SIGHT_PERIOD_S = 0.15
+
+---`hasLineOfSight` for a mount, kept on its turret component for `LINE_OF_SIGHT_PERIOD_S` while it
+---aims at the same target.
+---@param state table The battery
+---@param turret table The mount's turret component
+---@return boolean hasSight, string|nil reason, Position|nil hitPosition
+function WeaponSystem:cachedLineOfSight(state, turret, sourceBody, targetBody, sourcePosition, targetPosition)
+    local now = state.targetPointTime or 0
+    local cache = turret.lineOfSightCache
+    if cache and cache.target == targetBody and now < cache.untilTime then
+        return cache.hasSight, cache.reason, cache.hitPosition
+    end
+    local hasSight, reason, hitPosition = self:hasLineOfSight(state.world, sourceBody, targetBody, sourcePosition,
+        targetPosition, state.losObstacles)
+    turret.lineOfSightCache = {
+        target = targetBody, untilTime = now + LINE_OF_SIGHT_PERIOD_S,
+        hasSight = hasSight, reason = reason, hitPosition = hitPosition,
+    }
+    return hasSight, reason, hitPosition
+end
+
 function WeaponSystem:hasLineOfSight(world, sourceBody, targetBody, sourcePosition, targetPosition, obstacles)
     assert(world and sourceBody and targetBody and sourcePosition and targetPosition)
 
@@ -1555,17 +1618,19 @@ function WeaponSystem:updateFromTracking(state)
         local hasSight = false
         local sightReason = solution and "none" or "no_solution"
         local sightHitPosition
-        if solution then
+        if solution and inRange then
             -- LOS validates against THIS mount's engaged contact; role
             -- groups engaging different contacts don't block each other.
             local mountTargetBody = tracking.targetBody or targetBody
-            hasSight, sightReason, sightHitPosition = self:hasLineOfSight(
-                state.world,
+            hasSight, sightReason, sightHitPosition = self:cachedLineOfSight(
+                state,
+                turret,
                 mount.body,
                 mountTargetBody,
                 sourcePosition,
-                targetPoint,
-                state.losObstacles)
+                targetPoint)
+        elseif solution then
+            sightReason = "out_of_range"
         end
         if sightHitPosition and not state.sightHitPosition then
             state.sightHitPosition = sightHitPosition
@@ -1846,11 +1911,14 @@ function WeaponSystem:update(state, dt)
                     toSourceY / toSourceLength,
                     toSourceZ / toSourceLength)
             end
+            state.firingPickByMount = state.firingPickByMount or {}
+            state.firingPickByMount[mount.mountId] = state.firingPickByMount[mount.mountId] or {}
             local targetPointSample = self:sampleTargetPoint(
                 state.targetSurface,
                 targetPointRng:get64(),
                 state.targetPointTime,
-                sampledOptions)
+                sampledOptions,
+                state.firingPickByMount[mount.mountId])
             targetPoint = self:targetPointToWorld(targetPointSample, targetBody)
             targetPointLocal = Vec3f(
                 targetPointSample.position.x,
@@ -1944,14 +2012,16 @@ function WeaponSystem:update(state, dt)
         local hasSight = false
         local sightReason = solution and "none" or "no_solution"
         local sightHitPosition = nil
-        if solution ~= nil then
-            hasSight, sightReason, sightHitPosition = self:hasLineOfSight(
-                state.world,
+        if solution ~= nil and inRange then
+            hasSight, sightReason, sightHitPosition = self:cachedLineOfSight(
+                state,
+                turret,
                 body,
                 targetBody,
                 sourcePosition,
-                targetPoint,
-                state.losObstacles)
+                targetPoint)
+        elseif solution ~= nil then
+            sightReason = "out_of_range"
         end
         if not sightReason then
             sightReason = solution and "none" or "no_solution"

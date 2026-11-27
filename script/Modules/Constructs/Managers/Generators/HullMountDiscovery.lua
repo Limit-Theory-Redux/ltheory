@@ -453,12 +453,70 @@ local function deriveMountSpecs(structuralSockets)
     return mountSpecs
 end
 
+-- Discoveries made so far, by hull mesh (weak: a mesh no ship uses goes) and then by the seed, the
+-- specifications and the options. Ships of one design share a mesh, and discovery walks the mesh
+-- with many rays, so a faction's second fighter of a design gets its mounts at no cost.
+local discoveries = setmetatable({}, { __mode = "k" })
+
+local ffi = require("ffi")
+
+---A copy of a discovery's mounts that the caller may change (cdata values are copied too).
+---@param value any
+---@return any
+local function copyDeep(value)
+    if rawtype(value) == "table" then
+        local copy = {}
+        for key, inner in pairs(value) do copy[key] = copyDeep(inner) end
+        return setmetatable(copy, getmetatable(value))
+    elseif rawtype(value) == "cdata" then
+        return ffi.new(ffi.typeof(value), value)
+    end
+    return value
+end
+
+---@param mountSpecs table[]|nil
+---@param seed integer
+---@param options table
+---@return string
+local function discoveryKey(mountSpecs, seed, options)
+    local parts = { tostring(seed) }
+    for _, spec in ipairs(mountSpecs or {}) do
+        parts[#parts + 1] = table.concat({ tostring(spec.mountId), tostring(spec.zone), tostring(spec.side),
+            tostring(spec.surfaceBand), tostring(spec.mountSizeClass), tostring(spec.mountRole), tostring(spec.pairId) }, ",")
+    end
+    for _, name in ipairs({ "maxAttempts", "minSpacing", "minNormalDot", "requireStructuralSockets", "enforceZoneSide",
+        "minimumFootprintRadius", "mirrorTolerance", "socketTolerance", "minimumForwardClearance" }) do
+        parts[#parts + 1] = tostring(options[name])
+    end
+    parts[#parts + 1] = tostring(options.structuralSockets)
+    return table.concat(parts, "|")
+end
+
 ---@param mesh Mesh Generated hull mesh in local coordinates
 ---@param seed integer Deterministic discovery seed
 ---@param mountSpecs table[] Ordered mount descriptors: {mountId, zone, side, normal?, facing?}
 ---@param options table|nil {maxAttempts, minSpacing, minNormalDot, structuralSockets, requireStructuralSockets, enforceZoneSide}
----@return table[] mounts
+---@return table[] mounts A copy of the discovery for this mesh, seed, specifications and options, made
+---once (discovery is deterministic in them)
 function HullMountDiscovery:discover(mesh, seed, mountSpecs, options)
+    assert(mesh, "hull mount discovery requires a generated mesh")
+    local byKey = discoveries[mesh]
+    if not byKey then
+        byKey = {}
+        discoveries[mesh] = byKey
+    end
+    local key = discoveryKey(mountSpecs, seed, options or {})
+    if not byKey[key] then byKey[key] = self:discoverUncached(mesh, seed, mountSpecs, options) end
+    return copyDeep(byKey[key])
+end
+
+---`discover` without the cache.
+---@param mesh Mesh
+---@param seed integer
+---@param mountSpecs table[]
+---@param options table|nil
+---@return table[] mounts
+function HullMountDiscovery:discoverUncached(mesh, seed, mountSpecs, options)
     assert(mesh, "hull mount discovery requires a generated mesh")
     assert(seed ~= nil, "hull mount discovery requires a seed")
 
