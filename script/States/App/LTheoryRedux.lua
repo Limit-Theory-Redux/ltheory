@@ -139,6 +139,15 @@ function LimitTheoryRedux:onInit()
     -- against. The tracks get the saved volumes in loadMusic below.
     MusicPlayer:init()
     InitFiles:readUserInits()
+    -- A test run (LTHEORY_MUTE, or LTHEORY_BACKGROUND, a run nobody watches) makes no sound, and
+    -- leaves the player's settings as it found them: it doesn't write user.ini when it ends.
+    if os.getenv("LTHEORY_MUTE") or os.getenv("LTHEORY_BACKGROUND") then
+        self.testRun = true
+        GameState.audio.soundEnabled = false
+        GameState.audio.masterVolume = 0
+        MusicPlayer.volume = MusicPlayer:getEffectiveVolume()
+        MusicPlayer:setGlobalVolume()
+    end
 
     Window:setSize(GameState.render.resX, GameState.render.resY)
     Window:setCenteredPosition()
@@ -1248,8 +1257,9 @@ end
 function LimitTheoryRedux:exit()
     -- Update Session vars ; temporary until we have a save state
     GameState.player.startupCamera = GameState.player.currentCamera
-    -- Write player-specific game variables to preserve them across gameplay sessions
-    InitFiles:writeUserInits()
+    -- Write player-specific game variables to preserve them across gameplay sessions (not a test
+    -- run's: it changed them for itself)
+    if not self.testRun then InitFiles:writeUserInits() end
 
     Engine:exit()
 end
