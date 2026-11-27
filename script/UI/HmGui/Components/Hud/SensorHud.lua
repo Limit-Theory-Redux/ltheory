@@ -22,6 +22,11 @@
 -- senses less, the dot fades and an arc round it closes as the knowledge
 -- ages; lost, a dashed ring stays where it was last seen.
 --
+-- Focused (`hud:setFocused`, `hud:toggleFocus`), the radar grows and tilts
+-- toward top-down, and its contacts show as their map icons; given a
+-- `focusKey`, a small button beside the rim shows that key, lit while it's
+-- focused. It moves between the two over a fraction of a second.
+--
 -- In the view: each contact's icon where it is on the screen, the target in
 -- brackets with its distance (and its name once it's identified). Off screen:
 -- the screen's edge glows toward unknown and hostile contacts, a chevron with
@@ -40,6 +45,8 @@
 --   local hud = UIComponent.SensorHud { visible = function() return shown end }
 --   -- every frame, before rendering:
 --   hud:update(SensorPicture.build(sensor, forward, right, up), dt)
+--   -- on the focus key:
+--   hud:toggleFocus()
 --
 -- Places and sizes are pixels on a 1920 x 1080 screen and scale with the
 -- window height. The radar keeps its place relative to the bottom centre of
@@ -55,16 +62,42 @@ local UniverseScaleConfig = require("Config.Gen.UniverseScaleConfig")
 ---@field state UIComponentState
 ---@field update fun(self: UIComponentSensorHud, picture: SensorPictureData|nil, dt: number|nil) takes this frame's picture; nil hides the HUD
 ---@field render fun(self: UIComponentSensorHud) renders the markers, the radar and the target panel
+---@field setFocused fun(self: UIComponentSensorHud, focused: boolean) the radar focused (big, near top-down, icons) or compact
+---@field toggleFocus fun(self: UIComponentSensorHud) focuses the radar, or puts it back
+---@field isFocused fun(self: UIComponentSensorHud): boolean whether the radar is focused (or on its way)
 
 ---@class UIComponentSensorHudConstructor
 ---@field visible boolean|(fun(): boolean)|nil
 ---@field scale number|(fun(): number)|nil sizes relative to 1080p; default window height / 1080
+---@field focusKey string|nil the focus key's name, shown on the button beside the radar; nil: no button
 
 local DEG = math.pi / 180
 
 -- Geometry, in pixels on a 1920 x 1080 screen.
-local RADAR = { x = 960, y = 978, r = 80, tilt = 62 * DEG, depth = 7 } -- depth: perspective, in radii
-local PANEL = { x = 1720, y = 858, r = 128 }                            -- the HUD vision's target panel
+-- The radar compact and focused: its centre, radius and tilt (0 = top-down).
+-- Focused, its signal ring (bulges and all) stays clear of the crosshair
+-- above it and of the screen's bottom edge below it.
+local RADAR = {
+    compact = { x = 960, y = 978, r = 80, tilt = 62 * DEG },
+    focused = { x = 960, y = 812, r = 230, tilt = 32 * DEG },
+    depth = 7, -- perspective, in radii
+}
+-- Focusing: one table, as `render` is close to LuaJIT's limit of 60
+-- upvalues per function.
+local FOCUS = {
+    time = 0.3, -- seconds the radar takes to focus or go back
+    -- focused, how much bigger the rings and blobs round its contacts are, and
+    -- how much smaller (in radar radii) your ship, your heat and the signal
+    -- ring's distance from the rim, so they keep about their size on screen
+    grow = 2,
+    shrink = 0.55,
+    button = { gap = 34, r = 11 }, -- the focus button: right of the rim, its radius
+    keycap = { w = 18, h = 16 },   -- the key's cap under the button
+    rimLabelLowest = 1070,         -- the rim's distance label's lowest baseline, clear of the screen's bottom
+}
+-- Focused, a contact's map icon on the radar (longer side, 1080p pixels)
+local RADAR_ICON = { ship = { 16, 19, 23 }, station = 21, asteroid = 12, planet = 24, star = 20 }
+local PANEL = { x = 1720, y = 858, r = 128 } -- the HUD vision's target panel
 local RADAR_MIN, RADAR_MAX = 50, 1e5 -- metres at the radar's centre and at its rim
 local SIGNAL_RING = 1.1              -- the signal ring's radius, in radar radii
 local SIGNAL_BULGE = 0.3             -- how far a strong signal bulges it out
@@ -159,15 +192,32 @@ local function radarRadius(d)
     return clamp((math.log10(math.max(1, d)) - lo) / (hi - lo), 0, 1)
 end
 
+local function lerp(a, b, t) return a + (b - a) * t end
+
+-- The radar's place, radius and tilt this frame: compact, focused or on its
+-- way between them (focusRadar).
+local radar = { x = RADAR.compact.x, y = RADAR.compact.y, r = RADAR.compact.r, tilt = RADAR.compact.tilt }
+
+--- Puts the radar `focus` of the way (0 to 1, eased in and out) from compact
+--- to focused. Returns the eased focus, how much bigger the marks round its
+--- contacts are, and how much smaller your ship and heat are in radar radii.
+local function focusRadar(focus)
+    local t = focus * focus * (3 - 2 * focus)
+    for _, key in ipairs({ "x", "y", "r", "tilt" }) do
+        radar[key] = lerp(RADAR.compact[key], RADAR.focused[key], t)
+    end
+    return t, lerp(1, FOCUS.grow, t), lerp(1, FOCUS.shrink, t)
+end
+
 --- A point in the radar's space (x right, y ahead, h up from the disc, in
 --- radar radii) in screen pixels at 1080p, through the disc's tilt and
 --- perspective.
 local function onRadar(x, y, h)
     h = h or 0
-    local ct, st = math.cos(RADAR.tilt), math.sin(RADAR.tilt)
+    local ct, st = math.cos(radar.tilt), math.sin(radar.tilt)
     local Y, Z = y * ct + h * st, -y * st + h * ct
     local p = RADAR.depth / (RADAR.depth - Z)
-    return RADAR.x + RADAR.r * x * p, RADAR.y - RADAR.r * Y * p
+    return radar.x + radar.r * x * p, radar.y - radar.r * Y * p
 end
 
 --- A contact's colour: unknown (yellow) until it's classed, then its standing.
@@ -182,6 +232,13 @@ local function iconName(o)
     if o.kind == "station" or o.kind == "asteroid" or o.kind == "star" then return o.kind end
     if o.kind == "planet" then return "planet-rocky" end
     return SHIP_ICONS[SensorModel.shipClass(o)] or SHIP_ICONS[1] -- ships and wrecks by class
+end
+
+--- A contact's icon size on the focused radar.
+local function radarIconSize(o)
+    local size = RADAR_ICON[o.kind]
+    if type(size) == "number" then return size end
+    return RADAR_ICON.ship[SensorModel.shipClass(o)] or RADAR_ICON.ship[1] -- ships and wrecks by class
 end
 
 --- The hologram stand-in: a wireframe per kind, in radii of the panel's
@@ -262,11 +319,20 @@ local function new(_, args)
     ---@type SensorPictureData|nil
     local picture
     local clock = 0
+    -- the radar's focus: `at` runs from 0 (compact) to 1 (focused) toward `on`
+    local focus = { on = false, at = 0, key = args.focusKey }
 
     function hud:update(newPicture, dt)
         picture = newPicture
         clock = clock + (dt or 0)
+        focus.at = clamp(focus.at + (focus.on and 1 or -1) * (dt or 0) / FOCUS.time, 0, 1)
     end
+
+    function hud:setFocused(on) focus.on = on == true end
+
+    function hud:toggleFocus() focus.on = not focus.on end
+
+    function hud:isFocused() return focus.on end
 
     function hud:render()
         if not picture or not self.state.visible() then return end
@@ -275,6 +341,10 @@ local function new(_, args)
         local s = self.state.scale()
         defineLooks(s)
         local W, H = Window:width(), Window:height()
+
+        -- The radar's focus, eased (fe: 0 compact, 1 focused); marks round
+        -- its contacts grow with it, your ship and heat shrink in radii.
+        local fe, grow, shrink = focusRadar(focus.at)
 
         -- 1080p places to window pixels: the radar from the bottom centre,
         -- the target panel from the bottom right, the view from the top left.
@@ -498,7 +568,7 @@ local function new(_, args)
         local function radarDot(o, x, y, tier, mode, alpha)
             local c = contactColor(o, tier)
             if mode == "ghost" then
-                arc(c, 0.9 * alpha, 1.2, x, y, 3.5, 0, 360, "line", { 2, 2 })
+                arc(c, 0.9 * alpha, 1.2, x, y, 3.5 * grow, 0, 360, "line", { 2, 2 })
                 return
             end
             local a = (mode == "stale" and 0.55 or 0.95) * alpha
@@ -712,9 +782,9 @@ local function new(_, args)
         end
 
         do -- the ship, nose up
-            local nx, ny = onRadar(0, 0.1)
-            local lx, ly = onRadar(-0.065, -0.06)
-            local rx, ry = onRadar(0.065, -0.06)
+            local nx, ny = onRadar(0, 0.1 * shrink)
+            local lx, ly = onRadar(-0.065 * shrink, -0.06 * shrink)
+            local rx, ry = onRadar(0.065 * shrink, -0.06 * shrink)
             triangle(style.pale, 0.95, nx, ny, rx, ry, lx, ly)
         end
 
@@ -742,8 +812,9 @@ local function new(_, args)
         if picture.heat > 0.005 then -- your heat, round your ship
             local col = picture.bloom and style.white or style.pale
             local glow = picture.bloom and (0.7 + 0.3 * math.sin(clock * 6)) or 0.8
-            radarCurve(col, 0.18, 2.4, function() return HEAT_RING end, SEGMENTS.heat)
-            radarCurve(col, glow, 2, function() return HEAT_RING end, SEGMENTS.heat, "neon", -math.pi,
+            local hr = HEAT_RING * shrink
+            radarCurve(col, 0.18, 2.4, function() return hr end, SEGMENTS.heat)
+            radarCurve(col, glow, 2, function() return hr end, SEGMENTS.heat, "neon", -math.pi,
                 -math.pi + picture.heat * 2 * math.pi)
         end
 
@@ -762,15 +833,16 @@ local function new(_, args)
                     bumps[#bumps + 1] = { c.bearing, clamp(math.log10(1 + p.snr) / 4, 0, 1) }
                 end
             end
+            local ring, bulge = 1 + (SIGNAL_RING - 1) * shrink, SIGNAL_BULGE * shrink
             local function radiusAt(a)
                 local deg, m = a / DEG, 0
                 for _, b in ipairs(bumps) do
                     local x = wrapDegrees(deg - b[1]) / width
                     m = math.max(m, b[2] * math.exp(-x * x))
                 end
-                return SIGNAL_RING + SIGNAL_BULGE * m
+                return ring + bulge * m
             end
-            radarCurve(style.hud, 0.2, 1, function() return SIGNAL_RING end, SEGMENTS.tier)
+            radarCurve(style.hud, 0.2, 1, function() return ring end, SEGMENTS.tier)
             radarCurve(style.cyan, 0.75, 1, radiusAt, SEGMENTS.signal, "neon")
         end
 
@@ -799,18 +871,28 @@ local function new(_, args)
                     -- heard: full; only a pulse echo: fading out over its last seconds
                     local fade = r.passive.snr >= 1 and 1 or clamp(c.echo / ECHO_FADE_TIME, 0.25, 1)
                     blob(style.unknown, fade, x + 1.5 * math.sin(clock * 1.7 + c.index * 2.1),
-                        y + 1 * math.cos(clock * 1.3 + c.index), r.count > 1 and MERGED_RADAR_BLOB or RADAR_BLOB)
+                        y + 1 * math.cos(clock * 1.3 + c.index),
+                        (r.count > 1 and MERGED_RADAR_BLOB or RADAR_BLOB) * grow)
                 else
-                    radarDot(c.object, x, y, shown, c.stale and "stale" or nil, 1)
+                    -- a dot, or focused its map icon: one fades into the other on the way
+                    local mode = c.stale and "stale" or nil
+                    local dot, iconAlpha = 1 - fe, fe
+                    if dot > 0 then radarDot(c.object, x, y, shown, mode, dot) end
+                    if iconAlpha > 0 then
+                        mapIcon(iconName(c.object), x, y, radarIconSize(c.object), col,
+                            (mode and 0.55 or 0.95) * (c.object.kind == "wreck" and 0.6 or 1) * iconAlpha,
+                            (mode and 0.2 or 0.5) * iconAlpha)
+                    end
                 end
                 if c.stale or c.ghost then -- how old what it knows is: the arc closes as it ages
-                    arc(style.pale, 0.6 * alpha, 1, x, y, 6, 0, 360 * math.min(1, c.age / STALE_FULL))
+                    arc(style.pale, 0.6 * alpha, 1, x, y, 6 * grow, 0, 360 * math.min(1, c.age / STALE_FULL))
                 end
                 if c.heardPulse then
-                    icon("ping", x, y - 12, 7, style.white, 0.95 * math.min(1, PULSE_SHOUT_TIME - picture.pulseAge))
+                    icon("ping", x, y - 12 * grow, 7 * math.sqrt(grow), style.white,
+                        0.95 * math.min(1, PULSE_SHOUT_TIME - picture.pulseAge))
                 end
                 if c.object == targetObject then
-                    arc(style.white, 0.9 * alpha, 1, x, y, 7.5, 0, 360, "neon")
+                    arc(style.white, 0.9 * alpha, 1, x, y, 7.5 * grow, 0, 360, "neon")
                     if picture.scanning and r.tier >= 1 then
                         local cx, cy = onRadar(0, 0)
                         line(style.white, 0.8, 1.3, cx, cy, x, y, "line", 0, { 3, 5, -clock * 30 })
@@ -819,9 +901,39 @@ local function new(_, args)
             end
         end
 
-        do -- the rim's distance
+        do -- the rim's distance under the disc (on the screen), and focused the middle ring's
             local lx, ly = onRadar(0, -1.18)
-            text(SensorText.distance(RADAR_MAX), lx, ly + 13, 10, style.hud, 0.85, "center")
+            text(SensorText.distance(RADAR_MAX), lx, math.min(ly + 13, FOCUS.rimLabelLowest), 10, style.hud, 0.85, "center")
+            if fe > 0 then
+                local mx, my = onRadar(0.5, 0)
+                local middle = 10 ^ ((math.log10(RADAR_MIN) + math.log10(RADAR_MAX)) / 2)
+                text(SensorText.distance(middle), mx + 4, my - 4, 10, style.hud, 0.75 * fe, "left")
+            end
+        end
+
+        if focus.key then
+            -- the focus button right of the rim, lit while focused: a small
+            -- radar disc that flips up with the radar, a contact on its stick,
+            -- and the key under it
+            local rx = onRadar(1, 0)
+            local _, nearY = onRadar(0, -1)
+            local bx, by, br = rx + FOCUS.button.gap, nearY - 6, FOCUS.button.r
+            local c = focus.on and style.white or style.hud
+            round("circle", style.hud, focus.on and 0.25 or 0.08, bx, by, br)
+            arc(c, focus.on and 0.95 or 0.6, 1.3, bx, by, br, 0, 360, "neon")
+            local flat, disc = 2.6 + 2 * fe, {}
+            for i = 0, 16 do
+                local a = i / 16 * 2 * math.pi
+                disc[#disc + 1] = { bx + 6 * math.cos(a), by + 2 + flat * math.sin(a) }
+            end
+            polyline(c, 0.9, 1.2, disc)
+            line(c, 0.9, 1.2, bx + 2, by + 1, bx + 2, by - 5)
+            round("circle", c, 0.95, bx + 2, by - 5.5, 1.5)
+            local kw, kh = FOCUS.keycap.w, FOCUS.keycap.h -- the key, on a keycap under the button
+            local ky = by + br + 6
+            polyline(style.hud, 0.6, 1, { { bx - kw / 2, ky }, { bx + kw / 2, ky }, { bx + kw / 2, ky + kh },
+                { bx - kw / 2, ky + kh }, { bx - kw / 2, ky } })
+            text(focus.key, bx, ky + kh + 4, 18, style.pale, 0.9, "center") -- low: a backtick sits high on its line
         end
 
         ------------------------------------------------------------------

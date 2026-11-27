@@ -52,6 +52,7 @@ shows the setup's name, what to try, the settings and the keys.
 | X (hold) | Scan the target |
 | Z | Pulse |
 | Tab | Next target (nearest first) |
+| ` (above Tab) | Focus the radar (below), or put it back |
 | 1 2 3 | Hull: fighter, frigate, capital ship |
 | 4 | Surroundings: open space, nebula, debris field, radiation belt |
 | 5 | The target's activity, if it is a ship: idle, thrusting, firing, cloaked |
@@ -83,6 +84,10 @@ say it: a target's name and distance, and what a full scan read.
   to it when it's above your plane and a dashed one down when it's below. On
   the radar a contact is a dot: a ship's as big as its class, a station a ring
   round a dot, a planet a ring, a yellow blob while it's only heard.
+  Focused (`hud:toggleFocus()`, or `hud:setFocused(on)`), the radar grows
+  and tilts toward top-down, with the middle ring's distance beside it, and
+  its contacts show as their icons. A small button right of the rim shows the
+  key that does it (`focusKey` when the HUD is made), lit while it's focused.
 - **Your view**: each contact's icon where it is on the screen (except
   planets and stars, and anything already big on screen), and the target in
   brackets with its icon, its distance under them and, once it's identified,
