@@ -39,7 +39,8 @@ local Owner      = Enums.ControlOwner
 local Phase      = PlanFlight.Phase
 local Components = Nav.Components
 
-local STEP = 1 / 60
+-- LTHEORY_ORDERS_STEP: the step in seconds, to fly the cases at a game frame rate (one order update a frame).
+local STEP = tonumber(os.getenv("LTHEORY_ORDERS_STEP")) or 1 / 60
 -- Bounds that turn a flight or a wait that never ends into a failure.
 local MAX_FLIGHT_S = 240
 local PLAN_WAIT_S  = 30
@@ -72,6 +73,9 @@ local FAR_BODY_RADIUS = 25
 local WIDE_RADII      = 3
 -- A station: its radius, so that its approach point is clear of the hull.
 local STATION_RADIUS = 10
+-- A station of the game's size (3 km), and where a ship starts from it (30 km), in game units.
+local SMALL_STATION_RADIUS, SMALL_STATION_DISTANCE = 0.3, 3
+local SMALL_STATION_FLIGHT_S = 120
 -- A facing holds within this angle of the point, in radians; the flight a facing is checked on, in game units.
 -- A frame body that is moved by hand while the ship flies: its speed, and the least it must have moved.
 local FRAME_DRIFT_SPEED = 0.1
@@ -379,6 +383,35 @@ function OrdersTest:caseApproachPoint()
     self:check(within(ship, point, NavConfig.pointArrival() * ARRIVED_SLACK), name .. "the ship is at the point",
         string.format("%.2f from it", ship.rb:getPos():distance(point)))
     self:finish({ order }, { ship, station })
+end
+
+---Point approaches round a small station, the size of the game's, from a few station widths away: to
+---points in front of it, behind it and beside it as the ship sees them, the way docks' approach
+---points lie. The way to a point behind the station passes its hull: the ship flies round and stops
+---at the point instead of circling the station.
+function OrdersTest:caseApproachPointRound()
+    local radius, start = SMALL_STATION_RADIUS, Position(0, 0, 0)
+    local at = Position(SMALL_STATION_DISTANCE, 0, 0)
+    for _, offset in ipairs({
+        { right = 0, up = 0, forward = 1.6 }, { right = 0, up = 0, forward = -1.6 },
+        { right = 1.6, up = 0, forward = 0 }, { right = -1.6, up = 0, forward = 0 },
+    }) do
+        local name = string.format("a point approach at (%.1f, %.1f, %.1f) station radii: ", offset.right, offset.up, offset.forward)
+        local ship = self:ship(start)
+        local station = FlightScene.spawnBody(self.world, at, radius)
+        station.entity:add(ConstructComponents.SpaceStation())
+        self.world:update(STEP)
+        local spec = ApproachSpec.Of { kind = Enums.ApproachKind.Point, offsetRadii = offset }
+        local point = spec:pointOf(at, radius, station.rb:getRot())
+
+        local order = Nav.order(ship.entity, Nav.Orders.MoveTo { target = station.entity, approach = spec })
+        local reached = self:flyUntil(function() return Nav.status(order) == Status.Done end, SMALL_STATION_FLIGHT_S)
+        self:check(reached, name .. "the order is done",
+            string.format("%.2f from the point, %s", ship.rb:getPos():distance(point), tostring(Nav.status(order))))
+        self:check(within(ship, point, NavConfig.pointArrival() * ARRIVED_SLACK), name .. "the ship is at the point",
+            string.format("%.2f from it", ship.rb:getPos():distance(point)))
+        self:finish({ order }, { ship, station })
+    end
 end
 
 ---Bad approach specs are errors, and leave no order queued.
@@ -1456,10 +1489,21 @@ function OrdersTest:onInit()
     Nav.attach(self.world)
     self:listen()
 
+    -- LTHEORY_ORDERS_CASE=<caseName> runs that case alone (for working on it), without the event checks.
+    local only = os.getenv("LTHEORY_ORDERS_CASE")
+    if only then
+        assert(type(self[only]) == "function", "NavigationOrdersTest: no case " .. only)
+        self[only](self)
+        Log.Info("NavigationOrdersTest: %s: %d checks passed, %d failed", only, self.passed, self.failed)
+        self:quit(self.failed == 0 and Core.ExitCode.Success or Core.ExitCode.Failure)
+        return
+    end
+
     self:caseMoveToPastPlanet()
     self:caseMoveToBody()
     self:caseApproachStandOff()
     self:caseApproachPoint()
+    self:caseApproachPointRound()
     self:caseApproachRefused()
     self:caseFacingHold()
     self:caseFacingMoveTo()
