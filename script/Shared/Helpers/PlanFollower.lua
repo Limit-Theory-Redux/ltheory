@@ -9,6 +9,7 @@
 -- to the goal.
 -- Design: doc/script/nav/system-planner.md
 local SystemPlanner = require("Shared.Helpers.SystemPlanner")
+local NavSpeedCaps  = require("Shared.Helpers.NavSpeedCaps")
 
 -- A ship on an arc is steered at the point of the arc it would reach in this many seconds at the
 -- corner's speed, at most this many radians ahead of it (pure pursuit).
@@ -318,7 +319,7 @@ function PlanFollower:beginArc(speed, time)
         index = self.index, radius = waypoint.radius, speed = waypoint.speed, enteredAt = time,
         entrySpeed = speed, peakSpeed = speed, maxError = 0, maxShare = 0,
     }
-    self.nav:setSpeedCap(self.agent, waypoint.speed)
+    NavSpeedCaps.cap(self.nav, self.agent, waypoint.speed)
 end
 
 ---Where the ship is on `arc`: the angle about the centre from the entry, and its distance from
@@ -360,7 +361,7 @@ end
 ---@param time number
 ---@param listener PlanFollowerListener
 function PlanFollower:endArc(time, listener)
-    self.nav:setSpeedCap(self.agent, math.huge)
+    NavSpeedCaps.cap(self.nav, self.agent, math.huge)
     listener:arcFlown(self.arc, time)
     self.arc = nil
     self:nextPoint(time, listener)

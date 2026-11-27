@@ -15,6 +15,7 @@ local CostZones           = require("Shared.Helpers.CostZones")
 local NavZoneSystem       = require("Modules.Navigation.Systems.NavZoneSystem")
 local NavRateSystem       = require("Modules.Navigation.Systems.NavRateSystem")
 local Stagger             = require("Shared.Helpers.Stagger")
+local NavSpeedCaps        = require("Shared.Helpers.NavSpeedCaps")
 
 local Phase   = PlanFlight.Phase
 local Status  = Enums.NavOrderStatus
@@ -79,6 +80,7 @@ local function detachAgent(world, ship)
     local agent = ship:get(Components.NavAgent)
     if not agent then return end
     world:getNav():removeAgent(agent:getSlot())
+    NavSpeedCaps.forget(agent:getSlot())
     world:unassign(agent:getSlot())
     ship:remove(Components.NavAgent)
     ship:remove(Components.NavRate)
@@ -102,6 +104,8 @@ local function attachAgent(world, ship, rb)
     world:reserve(nav:slotCount())
     world:assign(slot, ship.id)
     ship:add(Components.NavAgent(slot))
+    local maxSpeed = ship:get(Components.MaxSpeed)
+    if maxSpeed then NavSpeedCaps.limit(nav, slot, maxSpeed:getSpeed()) end
 end
 
 ---Drops the flight's plan and the refresh of it that is out; a reply still to come is thrown away.
@@ -147,6 +151,7 @@ local function dropLostAgents(world)
     for slot, shipId in world:slots() do
         if not Registry:getEntityById(shipId) then
             world:getNav():removeAgent(slot)
+            NavSpeedCaps.forget(slot)
             world:unassign(slot)
         end
     end
@@ -275,7 +280,7 @@ end
 local function startPlan(world, head, key, announce)
     local flight = head.order:get(Components.OrderFlight)
     -- An arc holds the agent to the corner's speed, which only the follower of that plan lifts.
-    if PlanFlight.onArc(flight.plan) then world:getNav():setSpeedCap(head.slot, math.huge) end
+    if PlanFlight.onArc(flight.plan) then NavSpeedCaps.cap(world:getNav(), head.slot, math.huge) end
     dropPlans(flight)
     flight.plan = beginPlan(head)
     -- The ship's course changes: the detour held for the old goal is not for this one.

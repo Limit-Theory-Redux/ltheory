@@ -15,6 +15,7 @@ local NavEstimateClient   = require("Shared.Helpers.NavEstimateClient")
 local NearbyBodies        = require("Shared.Helpers.NearbyBodies")
 local PlanFlight          = require("Shared.Helpers.PlanFlight")
 local NavConfig           = require("Config.Navigation.NavConfig")
+local NavSpeedCaps        = require("Shared.Helpers.NavSpeedCaps")
 
 local Kind = Enums.NavOrderKind
 
@@ -41,6 +42,24 @@ function Nav.attach(physics)
     nav:setAvoidanceTuning(avoidance.horizonS, avoidance.clearanceRadii, avoidance.aimFactor)
     worldEntity = Entity.Create("NavWorldEntity", component)
     system = system or Systems.NavOrder()
+    NavSpeedCaps.reset()
+end
+
+---Holds the ship's orders to `speed` (game units per second) at most, whatever its flight profile
+---allows, until it is set again; nil lifts it. A formation's leader keeps its wing's pace by it.
+---@param ship Entity
+---@param speed number|nil
+function Nav.setMaxSpeed(ship, speed)
+    if speed then
+        local component = ship:get(Components.MaxSpeed)
+        if component then component:setSpeed(speed) else ship:add(Components.MaxSpeed(speed)) end
+    elseif ship:get(Components.MaxSpeed) then
+        ship:remove(Components.MaxSpeed)
+    end
+    local agent = ship:get(Components.NavAgent)
+    if agent and worldEntity then
+        NavSpeedCaps.limit(worldEntity:get(Components.NavWorld):getNav(), agent:getSlot(), speed)
+    end
 end
 
 ---Cancels the orders that have not ended and destroys the navigation world. Call it before the

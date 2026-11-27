@@ -2,6 +2,7 @@ return {
     CostProfile    = require("Modules.Navigation.Components.CostProfileComponent"),
     PathCost       = require("Modules.Navigation.Components.PathCostComponent"),
     SpeedLimit     = require("Modules.Navigation.Components.SpeedLimitComponent"),
+    MaxSpeed       = require("Modules.Navigation.Components.MaxSpeedComponent"),
     NavOrder       = require("Modules.Navigation.Components.NavOrderComponent"),
     MoveToOrder    = require("Modules.Navigation.Components.MoveToOrderComponent"),
     PatrolOrder    = require("Modules.Navigation.Components.PatrolOrderComponent"),

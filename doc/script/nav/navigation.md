@@ -39,7 +39,7 @@ if Nav.status(order) == Enums.NavOrderStatus.Done then Nav.release(order) end
 | `Nav.Orders.Patrol { points, loop, facing }` | Flies to each point in turn, as a MoveTo to a point. Without `loop` it ends `Done` at the last point; with it, it goes back to the first and never ends. `progress.waypointIndex` is the point it flies to. |
 | `Nav.Orders.Hold { facing }` | Stays where it was when the order began, and brings the ship back if it drifts. It never ends by itself: cancel it. `Nav.Orders.Hold()` has no facing. |
 | `Nav.Orders.Orbit { target, altitude, normal, facing }` | Circles `target`, an entity with a rigid body, anticlockwise about `normal`, at a radius of `altitude` target radii from its centre (at least 500 km, `NavConfig.minStandOffM`, as a stand-off; `NavConfig.standOffRadii` when `altitude` is `nil`). `altitude` must be more than 1. It never ends by itself: cancel it. See [Orbit and Follow](#orbit-and-follow). |
-| `Nav.Orders.Follow { target, offset, facing }` | Keeps a slot at `offset`, a `Vec3d` of metres (right, up, forward) in the leader's own axes, and matches the leader's velocity. `target` is an entity with a rigid body. It never ends by itself: cancel it. See [Orbit and Follow](#orbit-and-follow). |
+| `Nav.Orders.Follow { target, offset, facing }` | Keeps a slot at `offset`, a `Vec3d` of metres (right, up, forward) along the leader's level axes (its nose, with the system's up; see [Follow](../../engine/nav.md)), flying predictively and matching the slot's velocity. `target` is an entity with a rigid body. It never ends by itself: cancel it. See [Orbit and Follow](#orbit-and-follow). |
 
 Every spec also takes `priority`, a level of `Nav.Priority` (`Routine`, `Urgent`, `Combat`; `Routine` when `nil`). See [Queue and status](#queue-and-status).
 
@@ -121,6 +121,8 @@ stateDiagram-v2
 `Ended` stands for one of three statuses: `Done` (arrived), `Failed` and `Cancelled`. Of the two reasons an order fails (`Nav.failure`), `TargetLost` is a MoveTo whose target entity has been destroyed, and `ShipLost` an order whose ship entity or body is gone. Cancelling a queued order ends it without it ever having begun.
 
 A `Suspended` order is one that had begun and was displaced. The system drops its plan, stops tracking and tells the travel drive to disengage; what the order itself holds stays (a Patrol's point, an Orbit's chosen plane, the target, the facing). When it is the head again it resumes: it begins as new, from where the ship is, so a goal order plans again and a Hold holds where the ship is then, not where it began. Cancelling a suspended order ends it `Cancelled` and it never resumes. Because a Hold is displaced by a higher priority, it no longer blocks the orders behind it.
+
+`Nav.setMaxSpeed(ship, speed)` holds a ship's orders to `speed` (game units per second) at most, whatever its flight profile allows, until it is set again; `nil` lifts it. It is combined with the caps a flight sets itself (a plan's corner speed, `Shared/Helpers/NavSpeedCaps.lua`), the lower of the two counting. A formation's leader keeps its wing's pace by it ([Formations](../formations.md)).
 
 `Nav.progress(order)` has `distanceLeft` (game units to the stand-off point or point), `eta` (seconds), `nextWaypoint` (the `Position` the ship flies to now: the plan's next corner while it flies the corners, and the goal itself while it flies the approach or the plan is out; `nil` for Orbit and Follow) and, for a Patrol, `waypointIndex`. The system writes them while the order is the head, and they are `nil` before that.
 
