@@ -30,10 +30,11 @@ local SUFFIXED = { [Enums.FactionType.Corporation] = true, [Enums.FactionType.Tr
 ---@class FactionManager
 ---@overload fun(self: FactionManager): FactionManager class internal
 ---@overload fun(): FactionManager class external
-local FactionManager = Class("FactionManager", function(self)
-    -- The weapons' team of everything owned outside the factions.
-    self.INDEPENDENT_TEAM = "independent"
-end)
+local FactionManager = Class("FactionManager", function(self) end)
+
+-- The weapons' team of everything owned outside the factions (a constant of the class, so code in
+-- this file and the instance's users read the same).
+FactionManager.INDEPENDENT_TEAM = "independent"
 
 ---@param entityOrId Entity|integer|nil
 ---@return Entity|nil
