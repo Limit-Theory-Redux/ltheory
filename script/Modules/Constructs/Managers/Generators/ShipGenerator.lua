@@ -19,6 +19,11 @@ local Materials             = require("Shared.Registries.Materials")
 local FlightProfileRegistry = require("Shared.Registries.FlightProfileRegistry")
 local FlightProfileHelper   = require("Shared.Helpers.FlightProfileHelper")
 
+-- Fighter meshes made so far, by seed, hull and resolution, while a ship still uses one: ships of
+-- one design share the mesh, so it is generated once and its collision shape (cached by mesh)
+-- decomposed once. Weak, so a mesh goes when its last ship does.
+local fighterMeshes = setmetatable({}, { __mode = "v" })
+
 ---@class ShipGenerator
 ---@overload fun(): ShipGenerator
 local ShipGenerator = Class("ShipGenerator", function()
@@ -139,11 +144,15 @@ function ShipGenerator:createFighter(seed, config, stats)
 
     local shipType = Enums.ShipType.Fighter
 
-    -- Generate mesh
-    local generated = generateShipMesh(seed, shipType, config.hull, config.res, config)
-    local mesh = unpackGeneratedGeometry(generated)
-    mesh:computeNormals()
-    mesh:computeAO(0.3 * mesh:getRadius())
+    -- Generate mesh, or take the one ships of this design already have
+    local key = string.format("%d:%s:%s", seed, tostring(config.hull), tostring(config.res))
+    local mesh = fighterMeshes[key]
+    if not mesh then
+        mesh = unpackGeneratedGeometry(generateShipMesh(seed, shipType, config.hull, config.res, config))
+        mesh:computeNormals()
+        mesh:computeAO(0.3 * mesh:getRadius())
+        fighterMeshes[key] = mesh
+    end
 
     -- Get or create material
     local material = config.material or (Materials.Metal and Materials.Metal:instance())

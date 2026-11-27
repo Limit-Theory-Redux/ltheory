@@ -88,6 +88,23 @@ function SpawnerSystem:reset()
     self.pending = {}
     self.counts = {}
     self.nextFleetAt = nil
+    -- The hull design of each faction's ships of a kind: a seed, keyed "<faction leader id>:<kind>".
+    self.designs = {}
+end
+
+---The seed of the hull a faction builds its ships of a kind on: drawn at its first ship of the kind
+---and kept, so its haulers look alike, its fighters alike (and the hull's mesh and collision shape
+---are made once, `ShipGenerator`'s cache). A ship without an owner gets a hull of its own.
+---@param owner Entity|nil
+---@param kind ShipKindDefinition
+---@param rng RNG|nil Draws a new design (the spawner's own by default)
+---@return integer seed
+function SpawnerSystem:designSeed(owner, kind, rng)
+    rng = rng or self.rng
+    if not owner then return rng:get31() end
+    local key = owner.id .. ":" .. kind.name
+    if not self.designs[key] then self.designs[key] = rng:get31() end
+    return self.designs[key]
 end
 
 function SpawnerSystem:registerEvents()
@@ -226,7 +243,7 @@ function SpawnerSystem:buildHull(kind, spec, name)
         isKinematic = false,
         flightProfile = Enums.FlightProfile.Solo,
     }
-    local seed = spec.seed or self.rng:get31()
+    local seed = spec.seed or self:designSeed(spec.owner, kind)
     local weaponCombat = self.hooks.weaponCombat
     if kind.armed and weaponCombat then
         local ok, construction = pcall(function()
@@ -436,7 +453,8 @@ function SpawnerSystem:populate(planets, density)
             for _ = 1, scaled(ships[2] or 0, density) do
                 index = index + 1
                 local station = stations[(index - 1) % #stations + 1]
-                self:spawnAgent({ kind = ships[1], position = self:besideStation(station, index), owner = leader, seed = rng:get31() })
+                self:spawnAgent({ kind = ships[1], position = self:besideStation(station, index), owner = leader,
+                    seed = self:designSeed(leader, ShipKinds[ships[1]], rng) })
             end
         end
     end
