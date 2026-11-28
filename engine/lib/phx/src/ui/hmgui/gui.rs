@@ -821,6 +821,7 @@ impl HmGui {
         item.outline = Some(TextOutline {
             outline: *outline,
             halo: *halo,
+            ..TextOutline::NONE
         });
         let widget_rf = self.init_widget(WidgetItem::Text(item));
         let _ = widget_rf.as_mut();
@@ -840,6 +841,16 @@ impl HmGui {
     /// wider than it), like CSS `text-align`.
     pub fn set_text_align(&self, align: AlignHorizontal) {
         self.with_last_text("setTextAlign", |text| text.align = align.into());
+    }
+
+    /// Give the last text a soft glow in `color` round its glyphs, reaching
+    /// about 8 px. It lies under the text's halo (see `textOutlined`), so it
+    /// shows past the halo's dark rim and the text stays readable. Alpha 1
+    /// is full strength, 0 none. Like the halo it spills past the widget.
+    pub fn set_text_glow(&self, color: &Color) {
+        self.with_last_text("setTextGlow", |text| {
+            text.outline.get_or_insert(TextOutline::NONE).glow = *color;
+        });
     }
 
     /// Add multiline styled text element.

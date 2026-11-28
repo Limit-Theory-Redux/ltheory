@@ -29,8 +29,7 @@ const OUTLINED_ATLAS_SIZE: u32 = 512;
 /// never reach a neighbour.
 const ATLAS_PAD: u32 = 1;
 
-/// Pixels the halo reaches past a glyph's ink: the outlined atlas makes every
-/// glyph this much bigger on each side.
+/// Pixels the halo reaches past a glyph's ink.
 const HALO_REACH: i32 = 3;
 /// The halo is the glyph stamped at every whole-pixel offset up to this far,
 /// each stamp darkening by [`HALO_STEP_ALPHA`] (the look picked with the Lua
@@ -39,6 +38,20 @@ const HALO_RADIUS: f32 = 3.2;
 const HALO_STEP_ALPHA: f32 = 0.08;
 /// The outline is the glyph stamped at the 8 neighbouring pixels, opaque.
 const OUTLINE_RADIUS: f32 = 1.5;
+/// The glow is the glyph's ink blurred with a Gaussian of [`GLOW_SIGMA`]
+/// pixels, cut off at [`GLOW_REACH`], and brought up with
+/// `1 - exp(-GLOW_GAIN * blur)`: thin strokes glow too, and the glow of a
+/// solid area saturates instead of clipping.
+const GLOW_SIGMA: f32 = 2.5;
+const GLOW_REACH: i32 = 8;
+const GLOW_GAIN: f32 = 4.0;
+/// Pixels every glyph of the outlined atlas grows by on each side: room for
+/// the halo and the glow, whichever reaches further.
+const OUTLINED_MARGIN: i32 = if GLOW_REACH > HALO_REACH {
+    GLOW_REACH
+} else {
+    HALO_REACH
+};
 
 /// Glyphs are rasterized at this many horizontal subpixel positions (quarter
 /// pixels), so a line keeps the spacing the font asks for instead of every
@@ -54,12 +67,24 @@ const K_RCP_GAMMA: f32 = 1.0 / K_GAMMA;
 /// lines it shaped for as long as they are asked for every frame.
 static FRAME: AtomicU64 = AtomicU64::new(0);
 
-/// The outline and halo colours of a text drawn with
-/// [`Font::draw_outlined`].
+/// The outline, halo and glow colours of a text drawn with
+/// [`Font::draw_with_outline`]. A colour with alpha 0 leaves its part out.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct TextOutline {
     pub outline: Color,
     pub halo: Color,
+    /// A soft light round the glyphs, under the halo: it shows past the
+    /// halo's dark rim, so the text stays readable with it.
+    pub glow: Color,
+}
+
+impl TextOutline {
+    /// No outline, halo or glow.
+    pub const NONE: TextOutline = TextOutline {
+        outline: Color::TRANSPARENT,
+        halo: Color::TRANSPARENT,
+        glow: Color::TRANSPARENT,
+    };
 }
 
 #[derive(Clone)]
@@ -117,9 +142,10 @@ struct FontData {
 enum AtlasKind {
     /// R8 pages: the gamma corrected coverage (`fragment/ui/text`).
     Plain,
-    /// RGBA8 pages, every glyph [`HALO_REACH`] pixels bigger on each side:
-    /// the coverage in red (as in the plain atlas), the 1 px outline in green
-    /// and the halo in blue (`fragment/ui/text_outlined`).
+    /// RGBA8 pages, every glyph [`OUTLINED_MARGIN`] pixels bigger on each
+    /// side: the coverage in red (as in the plain atlas), the 1 px outline in
+    /// green, the halo in blue and the glow in alpha
+    /// (`fragment/ui/text_outlined`).
     Outlined,
 }
 
@@ -149,7 +175,7 @@ impl AtlasKind {
     fn margin(self) -> i32 {
         match self {
             AtlasKind::Plain => 0,
-            AtlasKind::Outlined => HALO_REACH,
+            AtlasKind::Outlined => OUTLINED_MARGIN,
         }
     }
 
@@ -193,8 +219,8 @@ fn stamp_offsets(radius: f32) -> Vec<(i32, i32)> {
     offsets
 }
 
-/// The RGBA texels of a glyph in the outlined atlas, [`HALO_REACH`] pixels
-/// bigger on each side than its coverage bitmap (`w` x `h`).
+/// The RGBA texels of a glyph in the outlined atlas, [`OUTLINED_MARGIN`]
+/// pixels bigger on each side than its coverage bitmap (`w` x `h`).
 ///
 /// Red is the coverage exactly as the plain atlas stores it, so the text
 /// itself looks the same. Green (outline) and blue (halo) are what the Lua
@@ -202,9 +228,10 @@ fn stamp_offsets(radius: f32) -> Vec<(i32, i32)> {
 /// added up once here: the outline is the glyph at the 8 neighbouring pixels,
 /// opaque; the halo is the glyph at every offset within [`HALO_RADIUS`], each
 /// at [`HALO_STEP_ALPHA`]. A stamp covers what `text.glsl` draws of a pixel:
-/// the square root of its red.
+/// the square root of its red. Alpha (glow) is that ink blurred (see
+/// [`GLOW_SIGMA`]).
 fn outlined_texels(coverage: &[u8], w: u32, h: u32) -> Vec<u8> {
-    let m = HALO_REACH;
+    let m = OUTLINED_MARGIN;
     let (w, h) = (w as i32, h as i32);
     let (sw, sh) = (w + 2 * m, h + 2 * m);
 
@@ -230,6 +257,30 @@ fn outlined_texels(coverage: &[u8], w: u32, h: u32) -> Vec<u8> {
     let halo = stamp_offsets(HALO_RADIUS);
     let to_byte = |a: f32| (a.clamp(0.0, 1.0) * 255.0 + 0.5) as u8;
 
+    // The glow: the ink blurred with a normalized Gaussian, one pass per axis.
+    let kernel: Vec<f32> = (-GLOW_REACH..=GLOW_REACH)
+        .map(|d| (-((d * d) as f32) / (2.0 * GLOW_SIGMA * GLOW_SIGMA)).exp())
+        .collect();
+    let kernel_sum: f32 = kernel.iter().sum();
+    let blur = |src: &[f32], (sx, sy): (i32, i32)| -> Vec<f32> {
+        let mut out = vec![0.0f32; src.len()];
+        for y in 0..sh {
+            for x in 0..sw {
+                let mut sum = 0.0;
+                for (k, weight) in kernel.iter().enumerate() {
+                    let d = k as i32 - GLOW_REACH;
+                    let (px, py) = (x + d * sx, y + d * sy);
+                    if px >= 0 && py >= 0 && px < sw && py < sh {
+                        sum += weight * src[(py * sw + px) as usize];
+                    }
+                }
+                out[(y * sw + x) as usize] = sum / kernel_sum;
+            }
+        }
+        out
+    };
+    let glow = blur(&blur(&ink, (1, 0)), (0, 1));
+
     let mut texels = vec![0u8; (sw * sh * 4) as usize];
     for y in 0..sh {
         for x in 0..sw {
@@ -248,10 +299,15 @@ fn outlined_texels(coverage: &[u8], w: u32, h: u32) -> Vec<u8> {
             texels[i * 4] = red[i];
             texels[i * 4 + 1] = to_byte(1.0 - outline_clear);
             texels[i * 4 + 2] = to_byte(1.0 - halo_clear);
+            texels[i * 4 + 3] = to_byte(1.0 - (-GLOW_GAIN * glow[i]).exp());
         }
     }
     texels
 }
+
+/// The vertex `color`, `p`, `q` and `r` of one pass of [`Font::draw_atlas`]:
+/// every glyph quad of the pass carries them (see `Imm2DVertex`).
+type GlyphPass = ([f32; 4], [f32; 4], [f32; 4], [f32; 4]);
 
 /// The rasterized glyphs of one atlas kind and the pages holding them.
 struct Atlas {
@@ -791,9 +847,43 @@ impl Font {
         )
     }
 
+    /// Draw `text` like [`Self::draw_outlined`], with `outline`'s glow as
+    /// well. Glow, then halo and outline, then the text: every glyph of one
+    /// before any of the next, so no glyph's glow covers a neighbour's halo
+    /// and no halo a neighbour's text. The text's alpha fades all three.
+    #[allow(clippy::too_many_arguments)]
+    pub fn draw_with_outline(
+        &self,
+        r: &mut Renderer,
+        text: &str,
+        x: f32,
+        y: f32,
+        color: &Color,
+        outline: &TextOutline,
+    ) {
+        let fade = color.a;
+        let faded = |c: &Color| [c.r, c.g, c.b, c.a * fade];
+        let (glow, line, halo) = (
+            faded(&outline.glow),
+            faded(&outline.outline),
+            faded(&outline.halo),
+        );
+        let none = [0.0; 4];
+
+        let mut passes = Vec::with_capacity(3);
+        if glow[3] > 0.0 {
+            passes.push((none, none, none, glow));
+        }
+        if line[3] > 0.0 || halo[3] > 0.0 {
+            passes.push((none, line, halo, none));
+        }
+        passes.push(([color.r, color.g, color.b, color.a], none, none, none));
+        self.draw_atlas(r, AtlasKind::Outlined, text, x, y, &passes);
+    }
+
     /// Draw `text` with the glyphs of the atlas of `kind`, once per pass:
     /// every glyph of a pass before any of the next, each pass with its own
-    /// vertex `color`, `p` and `q`.
+    /// vertex parameters.
     fn draw_atlas(
         &self,
         r: &mut Renderer,
@@ -801,7 +891,7 @@ impl Font {
         text: &str,
         x: f32,
         y: f32,
-        passes: &[([f32; 4], [f32; 4], [f32; 4])],
+        passes: &[GlyphPass],
     ) {
         Profiler::begin("Font_Draw");
 
@@ -840,7 +930,7 @@ impl Font {
         }
 
         let mut verts = Vec::new();
-        for &(color, p, q) in passes {
+        for &(color, p, q, pass_r) in passes {
             for (page, page_quads) in quads.iter().enumerate() {
                 if page_quads.is_empty() {
                     continue;
@@ -853,7 +943,7 @@ impl Font {
                         color,
                         p,
                         q,
-                        r: [0.0; 4],
+                        r: pass_r,
                     };
                     // The corners of `Draw.RectEx`, as two triangles of its fan.
                     let (a, b, c, d) = (
@@ -891,7 +981,7 @@ impl Font {
             text,
             x,
             y,
-            &[(color, [0.0; 4], [0.0; 4])],
+            &[(color, [0.0; 4], [0.0; 4], [0.0; 4])],
         );
     }
 
@@ -907,7 +997,8 @@ impl Font {
     /// the halo alone); a halo alpha of 1 is the halo's full strength, about
     /// 0.95 opaque next to the glyphs. The text's alpha fades outline and
     /// halo with it. With both left out the text looks exactly as `draw`
-    /// draws it.
+    /// draws it. (The same atlas holds a glow: see
+    /// [`Self::draw_with_outline`].)
     #[allow(clippy::too_many_arguments)]
     pub fn draw_outlined(
         &self,
@@ -919,17 +1010,12 @@ impl Font {
         outline: &Color,
         halo: &Color,
     ) {
-        let fill = [color.r, color.g, color.b, color.a];
-        let fade = color.a;
-        let outline = [outline.r, outline.g, outline.b, outline.a * fade];
-        let halo = [halo.r, halo.g, halo.b, halo.a * fade];
-        let under = ([0.0; 4], outline, halo);
-        let text_pass = (fill, [0.0; 4], [0.0; 4]);
-        if outline[3] > 0.0 || halo[3] > 0.0 {
-            self.draw_atlas(r, AtlasKind::Outlined, text, x, y, &[under, text_pass]);
-        } else {
-            self.draw_atlas(r, AtlasKind::Outlined, text, x, y, &[text_pass]);
-        }
+        let outline = TextOutline {
+            outline: *outline,
+            halo: *halo,
+            ..TextOutline::NONE
+        };
+        self.draw_with_outline(r, text, x, y, color, &outline);
     }
 
     /// Distance between the baselines of two lines of this font.
@@ -1153,29 +1239,48 @@ mod tests {
 
     #[test]
     fn outline_and_halo_are_the_prototype_stamps() {
-        // One fully covered pixel: 7x7 texels with the pixel in the middle.
+        // One fully covered pixel in the middle of its margins.
         let texels = outlined_texels(&[255], 1, 1);
-        let size = (1 + 2 * HALO_REACH) as usize;
+        let size = (1 + 2 * OUTLINED_MARGIN) as usize;
         assert_eq!(texels.len(), size * size * 4);
+        // Fill, outline and halo; alpha is the glow (its own test).
         let at = |dx: i32, dy: i32| {
-            let m = HALO_REACH;
-            texel(&texels, size, (m + dx) as usize, (m + dy) as usize)
+            let m = OUTLINED_MARGIN;
+            let t = texel(&texels, size, (m + dx) as usize, (m + dy) as usize);
+            [t[0], t[1], t[2]]
         };
         let step = (HALO_STEP_ALPHA * 255.0 + 0.5) as u8;
 
-        assert_eq!(at(0, 0), [255, 0, 0, 0], "the ink itself: fill only");
-        assert_eq!(at(1, 0), [0, 255, step, 0], "next to it: outline");
-        assert_eq!(at(-1, -1), [0, 255, step, 0], "diagonally next to it");
-        assert_eq!(at(2, 0), [0, 0, step, 0], "two away: halo only");
-        assert_eq!(at(3, 1), [0, 0, step, 0], "inside the halo radius");
-        assert_eq!(at(3, 2), [0, 0, 0, 0], "outside the halo radius");
+        assert_eq!(at(0, 0), [255, 0, 0], "the ink itself: fill only");
+        assert_eq!(at(1, 0), [0, 255, step], "next to it: outline");
+        assert_eq!(at(-1, -1), [0, 255, step], "diagonally next to it");
+        assert_eq!(at(2, 0), [0, 0, step], "two away: halo only");
+        assert_eq!(at(3, 1), [0, 0, step], "inside the halo radius");
+        assert_eq!(at(3, 2), [0, 0, 0], "outside the halo radius");
+    }
+
+    #[test]
+    fn the_glow_is_strongest_on_the_ink_and_fades_out_within_the_margin() {
+        let texels = outlined_texels(&[255; 9], 3, 3);
+        let size = (3 + 2 * OUTLINED_MARGIN) as usize;
+        let middle = size / 2;
+        let glow = |dx: usize| texel(&texels, size, middle + dx, middle)[3];
+
+        assert!(glow(0) > 128, "on the ink: {}", glow(0));
+        for dx in 0..(size - middle - 1) {
+            assert!(glow(dx + 1) <= glow(dx), "fades outwards at {dx}");
+        }
+        assert!(
+            glow(size - middle - 1) < 4,
+            "next to nothing at the margin's edge"
+        );
     }
 
     #[test]
     fn the_halo_adds_up_its_stamps() {
         // Deep inside ink every one of the 36 stamps covers the pixel.
         let texels = outlined_texels(&[255; 81], 9, 9);
-        let size = 9 + 2 * HALO_REACH as usize;
+        let size = 9 + 2 * OUTLINED_MARGIN as usize;
         let middle = texel(&texels, size, size / 2, size / 2);
         let full = 1.0 - (1.0 - HALO_STEP_ALPHA).powi(stamp_offsets(HALO_RADIUS).len() as i32);
         assert_eq!(stamp_offsets(HALO_RADIUS).len(), 36);
@@ -1185,7 +1290,7 @@ mod tests {
     }
 
     #[test]
-    fn outlined_glyphs_grow_by_the_halo_and_keep_their_fill() {
+    fn outlined_glyphs_grow_by_their_margin_and_keep_their_fill() {
         let font = font("Exo2", 32);
         let mut r = Renderer::new_headless();
         let mut font_data = font.0.as_mut();
@@ -1193,7 +1298,7 @@ mod tests {
 
         let plain = font_data.glyph(&mut r, AtlasKind::Plain, placed.face, placed.id, 0);
         let outlined = font_data.glyph(&mut r, AtlasKind::Outlined, placed.face, placed.id, 0);
-        let m = HALO_REACH;
+        let m = OUTLINED_MARGIN;
         assert_eq!(outlined.x0, plain.x0 - m);
         assert_eq!(outlined.y0, plain.y0 - m);
         assert_eq!(outlined.sx, plain.sx + 2 * m);

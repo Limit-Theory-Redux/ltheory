@@ -12,6 +12,33 @@ local meta = {
 Text.OutlineMinSize = 24
 
 local NO_OUTLINE = Color(0, 0, 0, 0)
+local BLACK = Color(0, 0, 0, 1)
+
+--- The outlined text variant: the font's outlined glyphs (`Gui:textOutlined`)
+--- with a halo, and a 1 px outline as well when `mode` is "outline", or
+--- `true` from `Text.OutlineMinSize` on.
+local function addOutlined(text, font, size, color, mode, outlineColor, haloColor)
+    local withOutline = mode == "outline" or (mode == true and size >= Text.OutlineMinSize)
+    Gui:textOutlined(text, font, color, withOutline and outlineColor or NO_OUTLINE, haloColor)
+end
+
+--- Adds a text widget as `outline = true` draws it (a black halo, plus a
+--- black 1 px outline from `Text.OutlineMinSize`), for text placed by hand
+--- that reads like every outlined text on any background. `glow` adds a
+--- soft light in its colour round the glyphs, under the halo, so the text
+--- stays readable (`Gui:setTextGlow`; alpha = strength). Halo and glow
+--- reach past the widget: turn clipping off on the container around it.
+---@param text string
+---@param font Font
+---@param size number the font's size, real pixels
+---@param color Color
+---@param glow Color|nil
+function Text.addOutlined(text, font, size, color, glow)
+    addOutlined(text, font, size, color, true, BLACK, BLACK)
+    if glow and glow.a > 0 then
+        Gui:setTextGlow(glow)
+    end
+end
 
 ---@class UIComponentText: UIComponent
 ---@field visible boolean
@@ -63,8 +90,8 @@ function Text:new(args)
         heightInLayout = args.heightInLayout,
         align = args.align or { AlignHorizontal.Default, AlignVertical.Default },
         outline = args.outline or false,
-        outlineColor = args.outlineColor or Color(0, 0, 0, 1),
-        haloColor = args.haloColor or Color(0, 0, 0, 1),
+        outlineColor = args.outlineColor or BLACK,
+        haloColor = args.haloColor or BLACK,
         wrap = args.wrap,
         textAlign = args.textAlign
     }
@@ -88,8 +115,7 @@ function Text:new(args)
         local outline = self.state.outline()
         if outline then
             Gui:setClipping(false) -- the halo reaches past the text's box
-            local withOutline = outline == "outline" or (outline == true and self.state.size() >= Text.OutlineMinSize)
-            Gui:textOutlined(text, font, self.state.color(), withOutline and self.state.outlineColor() or NO_OUTLINE,
+            addOutlined(text, font, self.state.size(), self.state.color(), outline, self.state.outlineColor(),
                 self.state.haloColor())
         else
             Gui:text(text, font, self.state.color())
