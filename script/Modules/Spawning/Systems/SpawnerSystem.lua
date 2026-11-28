@@ -16,8 +16,11 @@ local FactionManager      = require("Modules.Factions.Managers.FactionManager")
 local SpawningComponents  = require("Modules.Spawning.Components")
 -- Required for their event subscriptions: they run the economy, the dockings and the factions.
 local EconomySystems      = require("Modules.Economy.Systems")
-local _                   = require("Modules.Docking.Systems")
-local _                   = require("Modules.Factions.Systems")
+local DockingSystem       = require("Modules.Docking.Systems.DockingSystem")
+local FactionSystems      = require("Modules.Factions.Systems")
+local CoreComponents      = require("Modules.Core.Components")
+local InventoryManager    = require("Modules.Economy.Managers.InventoryManager")
+local WreckSystem         = require("Modules.Salvage.Systems.WreckSystem")
 local PeopleManager       = require("Modules.People.Managers.PeopleManager")
 local _                   = require("Modules.People.Systems")
 
@@ -39,6 +42,7 @@ local _                   = require("Modules.People.Systems")
 ---@field name string
 ---@field kind string A key of `ShipKindDefs`
 ---@field battery WeaponBattery|nil Its weapons, when it is armed
+---@field seed integer Its hull design
 
 ---@class SpawnedFaction
 ---@field entity Entity
@@ -55,7 +59,10 @@ local _                   = require("Modules.People.Systems")
 ---Stations and ships are made by the scene's `ConstructManager` (armed ones through
 ---`ArmedShipBuilder`, run by the scene's weapons) and rocks by `OreField`; the spawner keeps them, so
 ---`clear` takes them all down with the scene. A new ship becomes an agent after the next physics step
----(at PostSim), when its body is in the query index navigation reads.
+---(at PostSim), when its body is in the query index navigation reads. A ship whose hull is destroyed
+---is taken out of the scene `wreckS` later (its death explosion is taken from its body first): its
+---jobs end, its weapons and construct go, its crew are left without a post (`CrewSystem`), and its
+---wreck stays (`WreckSystem`).
 ---@class SpawnerSystem
 local SpawnerSystem = Class("SpawnerSystem", function(self)
     self:registerVars()
@@ -73,6 +80,8 @@ function SpawnerSystem:registerVars()
     -- kind a faction runs.
     self.fleetDemand = 1500
     self.maxFleetPerKind = 8
+    -- How long a destroyed ship stays in the scene, in simulated seconds.
+    self.wreckS = 1
     self:reset()
 end
 
@@ -123,6 +132,7 @@ end
 function SpawnerSystem:attach(world, constructs, hooks)
     assert(not self.world, "SpawnerSystem:attach: a scene is attached already (clear it first)")
     self.world, self.constructs, self.hooks = world, constructs, hooks or {}
+    WreckSystem:attach(constructs)
 end
 
 ---@return boolean
@@ -134,6 +144,7 @@ end
 ---`Nav.detach`, while the bodies are still in the physics world.
 function SpawnerSystem:clear()
     if not self.world then return end
+    WreckSystem:clear()
     for _, ship in ipairs(self.agents) do
         if ship.battery and self.hooks.weaponCombat then self.hooks.weaponCombat:removeBattery(ship.battery) end
         self.constructs:destroy(ship.handle)
@@ -242,7 +253,7 @@ end
 ---@param kind ShipKindDefinition
 ---@param spec table
 ---@param name string
----@return table handle, WeaponBattery|nil battery
+---@return table handle, WeaponBattery|nil battery, integer seed
 function SpawnerSystem:buildHull(kind, spec, name)
     local config = {
         hull = Enums.ShipHulls.Solo,
@@ -263,11 +274,11 @@ function SpawnerSystem:buildHull(kind, spec, name)
             local battery = weaponCombat:addBattery(WeaponBattery(construction, {
                 name = name, aiActive = true, team = spec.owner and FactionManager:teamOf(spec.owner) or FactionManager.INDEPENDENT_TEAM,
             }))
-            return construction.shipHandle, battery
+            return construction.shipHandle, battery, seed
         end
         Log.Warn("[Spawner] %s flies unarmed: %s", name, tostring(construction))
     end
-    return self.constructs:createShip({ seed = seed, shipType = Enums.ShipType.Fighter, config = config }), nil
+    return self.constructs:createShip({ seed = seed, shipType = Enums.ShipType.Fighter, config = config }), nil, seed
 end
 
 ---The armament of a fighter: a mirrored pair of small burst-laser turrets on the top of its fore hull,
@@ -332,7 +343,7 @@ function SpawnerSystem:spawnAgent(spec)
     assert(self.world, "SpawnerSystem:spawnAgent: no scene attached")
     local kind = assert(ShipKinds[spec.kind], "SpawnerSystem: no ship kind " .. tostring(spec.kind))
     local name = spec.name or self:nextName(kind.name)
-    local handle, battery = self:buildHull(kind, spec, name)
+    local handle, battery, seed = self:buildHull(kind, spec, name)
     local ship = handle.root
     if not ship:get(ConstructComponents.TravelDrive) then ship:add(ConstructComponents.TravelDrive()) end
     if not ship:get(ConstructComponents.ControlInput) then ship:add(ConstructComponents.ControlInput()) end
@@ -356,7 +367,7 @@ function SpawnerSystem:spawnAgent(spec)
     end
     ship:add(Economy.Ownership(owner.id))
     FactionManager:enlist(ship)
-    self.agents[#self.agents + 1] = { entity = ship, handle = handle, name = name, kind = spec.kind, battery = battery }
+    self.agents[#self.agents + 1] = { entity = ship, handle = handle, name = name, kind = spec.kind, battery = battery, seed = seed }
     if spec.economy ~= false then
         self.pending[#self.pending + 1] = { entity = ship, kind = spec.kind, name = name, owner = owner }
     end
@@ -409,8 +420,54 @@ end
 
 ---@param data EventData
 function SpawnerSystem:onPostSim(data)
+    self:removeWrecks(data:deltaTime())
     self:startPending()
     self:upkeepFleets()
+end
+
+---Takes the ships whose hull was destroyed out of the scene, `wreckS` after it was: their jobs end
+---(a fight, an economic job, a docking), their weapons and construct are destroyed, and they leave
+---the spawner's ships.
+---@param dt number
+function SpawnerSystem:removeWrecks(dt)
+    local kept, removed = {}, false
+    for _, ship in ipairs(self.agents) do
+        local entity = ship.entity
+        local alive = Registry:hasEntity(entity)
+        local health = alive and entity:get(CoreComponents.Health)
+        if alive and health and health:isDestroyed() then
+            ship.wreckFor = (ship.wreckFor or 0) + dt
+            if ship.wreckFor >= self.wreckS then
+                self:removeShip(ship)
+                alive = false
+            end
+        end
+        if alive then kept[#kept + 1] = ship else removed = true end
+    end
+    if removed then self.agents = kept end
+end
+
+---Ends a ship's jobs and destroys it, leaving its wreck (with its cargo) drifting on as it moved.
+---@param ship SpawnedShip
+function SpawnerSystem:removeShip(ship)
+    local entity = ship.entity
+    Log.Debug("[Spawner] %s was destroyed", ship.name)
+    local body = entity:get(PhysicsComponents.RigidBody):getRigidBody()
+    local p, v = body:getPos(), body:getVelocity()
+    local cargo = {}
+    local inventory = entity:get(Economy.Inventory)
+    for itemId in pairs(inventory and inventory:getInventory() or {}) do
+        local quantity = InventoryManager:count(inventory, itemId)
+        if quantity > 0 then cargo[itemId] = quantity end
+    end
+    WreckSystem:wreck({ kind = ship.kind, seed = ship.seed, name = ship.name, position = Position(p.x, p.y, p.z),
+        velocity = Vec3d(v.x, v.y, v.z), rotation = body:getRot(), cargo = cargo })
+    FactionSystems.CombatAgent:release(entity)
+    local agent = PeopleManager:commandOf(entity, Economy.EconomyAgent)
+    if agent then EconomySystems.EconomyAgent:endJob(agent) end
+    if DockingSystem:phaseOf(entity) then DockingSystem:release(entity) end
+    if ship.battery and self.hooks.weaponCombat then self.hooks.weaponCombat:removeBattery(ship.battery) end
+    self.constructs:destroy(ship.handle)
 end
 
 ---Makes the ships spawned before this physics step agents, with the equipment of their kind.

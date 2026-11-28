@@ -2,7 +2,8 @@
 -- heavy weapon fire. A trading guild's fighters and a marauder band's start a few kilometres apart;
 -- each fighter is on a patrol round the middle (a fighting job, not one the economy gave it), so
 -- every one engages the nearest enemy within its guard range and its weapons do the rest. Lost
--- fighters are replaced at their side's start, so the battle keeps its size for as long as it runs.
+-- fighters leave wrecks (data, made hulks near the camera) and are replaced at their side's start,
+-- so the battle keeps its size for as long as it runs.
 -- The log reports, every few seconds, the ships each side has, the hits, damage and kills since the
 -- start, and the frame time; the orbit camera follows a ship, Left and Right pick another.
 --
@@ -12,6 +13,7 @@
 --   LTHEORY_BATTLE_SHIPS      fighters a side (default 20)
 --   LTHEORY_BATTLE_SECONDS    simulated seconds to run, then quit with a summary (default: until closed)
 --   LTHEORY_BATTLE_REINFORCE  0 to let the fleets wear down instead of replacing losses (default 1)
+--   LTHEORY_BATTLE_HULL       the fighters' hull strength (default: their own), lower for quick kills
 -- Camera: right mouse turns, the wheel zooms.
 
 local Application             = require("States.Application")
@@ -42,6 +44,9 @@ local FactionManager          = require("Modules.Factions.Managers.FactionManage
 -- Required for its event subscriptions: it flies the fighting jobs.
 local _                       = require("Modules.Factions.Systems.CombatAgentSystem")
 local SpawnerSystem           = require("Modules.Spawning.Systems.SpawnerSystem")
+local WreckSystem             = require("Modules.Salvage.Systems.WreckSystem")
+local Presence                = require("Modules.Presence")
+local CoreComponents          = require("Modules.Core.Components")
 local Actions                 = require("Input.ActionBindings.EconomyDemoActions")
 
 ---@class BattleTestbed: Application
@@ -53,6 +58,7 @@ local STAR_RADIUS_M, STAR_DISTANCE_M = 7e8, 1.5e11
 local SHIPS = tonumber(os.getenv('LTHEORY_BATTLE_SHIPS')) or 20
 local SECONDS = tonumber(os.getenv('LTHEORY_BATTLE_SECONDS'))
 local REINFORCE = os.getenv('LTHEORY_BATTLE_REINFORCE') ~= '0'
+local HULL = tonumber(os.getenv('LTHEORY_BATTLE_HULL'))
 -- In game units (a unit is 10 km): where each side starts, and the patrol both fly round the middle.
 local STARTS = { Position(-0.8, 0, 0), Position(0.8, 0, 0) }
 local PATROL_RADIUS, PATROL_POINTS = 0.3, 6
@@ -122,6 +128,11 @@ function BattleTestbed:spawnFighter(side, index)
     local position = Position(x, (column - 4.5) * 0.04, (row % 2) * 0.02)
     local ship = SpawnerSystem:spawnAgent({ kind = "Fighter", owner = side.leader, position = position, economy = false })
     ship:add(Factions.CombatAgent(Enums.CombatTask.Patrol, self.patrol))
+    local health = HULL and ship:get(CoreComponents.Health)
+    if health then
+        health:setMaxHealth(HULL)
+        health:setCurrentHealth(HULL)
+    end
     side.ships[#side.ships + 1] = ship
 end
 
@@ -198,6 +209,12 @@ function BattleTestbed:statusLines()
         end
         lines[#lines + 1] = string.format("%s: %d ships, %d engaging, %d lost", side.name, #side.ships, engaging, side.lost)
     end
+    local wrecks, hulks = 0, 0
+    for _, wreck in ipairs(WreckSystem:getWrecks()) do
+        wrecks = wrecks + 1
+        if Presence.System:bodyOf(wreck) then hulks = hulks + 1 end
+    end
+    lines[#lines + 1] = string.format("wrecks: %d, %d of them hulks in the scene", wrecks, hulks)
     return lines
 end
 
