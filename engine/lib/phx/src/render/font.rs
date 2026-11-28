@@ -305,6 +305,10 @@ fn outlined_texels(coverage: &[u8], w: u32, h: u32) -> Vec<u8> {
     texels
 }
 
+/// The vertex `color`, `p`, `q` and `r` of one pass of [`Font::draw_atlas`]:
+/// every glyph quad of the pass carries them (see `Imm2DVertex`).
+type GlyphPass = ([f32; 4], [f32; 4], [f32; 4], [f32; 4]);
+
 /// The rasterized glyphs of one atlas kind and the pages holding them.
 struct Atlas {
     kind: AtlasKind,
@@ -879,7 +883,7 @@ impl Font {
 
     /// Draw `text` with the glyphs of the atlas of `kind`, once per pass:
     /// every glyph of a pass before any of the next, each pass with its own
-    /// vertex `color`, `p`, `q` and `r`.
+    /// vertex parameters.
     fn draw_atlas(
         &self,
         r: &mut Renderer,
@@ -887,7 +891,7 @@ impl Font {
         text: &str,
         x: f32,
         y: f32,
-        passes: &[([f32; 4], [f32; 4], [f32; 4], [f32; 4])],
+        passes: &[GlyphPass],
     ) {
         Profiler::begin("Font_Draw");
 
