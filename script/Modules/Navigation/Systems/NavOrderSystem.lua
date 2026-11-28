@@ -119,6 +119,20 @@ local function dropPlans(flight)
     flight.legsBefore = 0
 end
 
+---Takes the behaviour a tracking order (Orbit, Follow) gave the ship's agent off it: the agent
+---outlasts the order, and a behaviour left on it would go on reading the order's target (a panic in
+---the world's step once that target's body has left).
+---@param world NavWorldComponent
+---@param ship Entity|nil
+---@param flight OrderFlightComponent
+local function dropTracking(world, ship, flight)
+    if not flight.tracking then return end
+    flight.tracking = false
+    local agent = ship and ship:get(Components.NavAgent)
+    local slot = agent and agent:getSlot()
+    if slot then world:getNav():clearBehaviour(slot) end
+end
+
 ---Ends an order: its status, its plan, its place in the ship's queue, the ship's agent if the queue
 ---is empty, and the event that announces it.
 ---@param world NavWorldComponent
@@ -130,7 +144,9 @@ local function endOrder(world, order, ship, status, failure)
     local orderStatus = order:get(Components.OrderStatus)
     orderStatus:setStatus(status)
     if failure then orderStatus:setFailure(failure) end
-    dropPlans(order:get(Components.OrderFlight))
+    local flight = order:get(Components.OrderFlight)
+    dropTracking(world, ship, flight)
+    dropPlans(flight)
 
     if ship then
         local queue = ship:get(Components.OrderQueue)
@@ -179,13 +195,14 @@ end
 ---because the ship's controls belong to someone else: its plan is dropped and it will begin again
 ---from where the ship is. What the order itself holds (a Patrol's point, an Orbit's plane, its
 ---target and facing) stays.
+---@param world NavWorldComponent
 ---@param order Entity
 ---@param ship Entity
-local function suspendOrder(order, ship)
+local function suspendOrder(world, order, ship)
     local flight = order:get(Components.OrderFlight)
+    dropTracking(world, ship, flight)
     dropPlans(flight)
     flight.begun = false
-    flight.tracking = false
     order:get(Components.OrderStatus):setStatus(Status.Suspended)
     disengageDrive(ship)
     EventBus:dispatch(Event[TRANSITION_EVENTS.suspended], order.id)
@@ -636,7 +653,7 @@ local function collectHeads(world)
                 heads[#heads + 1] = { order = order, ship = ship, handler = OrderHandlers[navOrder:getKind()],
                     facing = order:get(Components.FacingGoal) }
             elseif ship and order:get(Components.OrderFlight).begun then
-                suspendOrder(order, ship)
+                suspendOrder(world, order, ship)
             end
         end
     end
