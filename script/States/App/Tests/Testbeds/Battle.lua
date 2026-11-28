@@ -202,12 +202,17 @@ function BattleTestbed:statusLines()
         string.format("%.0f s simulated, %.1f ms a frame | hits %d, damage %.0f", self.simTime, frameMs, self.hits, self.damage),
     }
     for _, side in ipairs(self.sides) do
-        local engaging = 0
+        local engaging, targets, distinct = 0, {}, 0
         for _, ship in ipairs(side.ships) do
             local agent = Registry:hasEntity(ship) and ship:get(Factions.CombatAgent)
-            if agent and agent:getTarget() then engaging = engaging + 1 end
+            local target = agent and agent:getTarget()
+            if target then
+                engaging = engaging + 1
+                if not targets[target] then targets[target], distinct = true, distinct + 1 end
+            end
         end
-        lines[#lines + 1] = string.format("%s: %d ships, %d engaging, %d lost", side.name, #side.ships, engaging, side.lost)
+        lines[#lines + 1] = string.format("%s: %d ships, %d engaging %d targets, %d lost", side.name, #side.ships,
+            engaging, distinct, side.lost)
     end
     local wrecks, hulks = 0, 0
     for _, wreck in ipairs(WreckSystem:getWrecks()) do

@@ -20,7 +20,10 @@ local People = require("Modules.People.Components")
 
 ---Flies the ships on fighting jobs (`CombatAgentComponent`). On a patrol, a ship circles its points
 ---(round the station it guards) and, when a ship of a hostile faction comes within `guardRange`,
----follows it close; its weapons do the rest. On a raid, a ship hunts the nearest trader or miner of a
+---follows it close; its weapons do the rest, the target first (`WeaponControl` focus). Among the
+---hostiles in reach a captain takes the one nearest by a measure that grows with the others already
+---engaging it (`crowding`) and leans by the captain's own bias, so a group spreads over the enemy
+---instead of all of them picking the same nearest ship. On a raid, a ship hunts the nearest trader or miner of a
 ---faction it is hostile to within `huntRange` (not one docked), and follows it; staying within
 ---`raidRange` for `raidS` forces part of the victim's cargo out into its hold, fences part of its
 ---value into the raider's account, raises the threat at the victim's stations, turns the victim's
@@ -52,6 +55,11 @@ function CombatAgentSystem:registerVars()
     self.pirateCooldownS = 60
     -- Followers keep this far behind their target, in metres.
     self.followGapM = 1500
+    -- How much farther a target seems for each other ship engaging it: 0.6 makes one with two
+    -- attackers already about as good as a free one twice as far.
+    self.crowding = 0.6
+    ---@type table<integer, integer> Target entity id -> the agents engaging it
+    self.engagers = {}
     ---@type Entity[]
     self.cancelled = {}
 end
@@ -94,7 +102,12 @@ function CombatAgentSystem:update()
     local now = MarketplaceSystem:now()
     self:releaseCancelled()
     local agents = {}
-    for ship, agent in Registry:view(Factions.CombatAgent) do agents[#agents + 1] = { ship, agent } end
+    local engagers = {}
+    for ship, agent in Registry:view(Factions.CombatAgent) do
+        agents[#agents + 1] = { ship, agent }
+        if agent.target then engagers[agent.target] = (engagers[agent.target] or 0) + 1 end
+    end
+    self.engagers = engagers
     for _, entry in ipairs(agents) do
         local ship, agent = entry[1], entry[2]
         if ship:get(PhysicsComponents.RigidBody) then
@@ -138,6 +151,8 @@ function CombatAgentSystem:release(ship)
     if not agent then return end
     self:dropOrder(agent)
     FormationSystem:leave(ship)
+    local control = ship:get(ConstructComponents.WeaponControl)
+    if control then control:setFocusTarget(nil) end
     ship:remove(Factions.CombatAgent)
 end
 
@@ -192,6 +207,39 @@ local function nearest(from, range, accept)
     return best, best and bestDistance or nil
 end
 
+---A captain's own lean in choosing among targets, fixed per ship: a share around 1 (from 0.85 to
+---1.15). Traits will decide it later; for now it keeps captains from choosing alike.
+---@param ship Entity
+---@return number
+local function bias(ship)
+    return 0.85 + 0.3 * ((ship.id * 2654435761) % 1000) / 1000
+end
+
+---The hostile ship within `range` that is nearest by distance, made longer by the ships already
+---engaging it (`crowding`) and by the captain's bias.
+---@param ship Entity
+---@param from Position
+---@param own Entity|nil Its faction
+---@param range number
+---@return Entity|nil
+function CombatAgentSystem:chooseEnemy(ship, from, own, range)
+    local lean, crowding, engagers = bias(ship), self.crowding, self.engagers
+    local best, bestScore = nil, math.huge
+    for other in Registry:view(ConstructComponents.Targetable) do
+        local pos = other ~= ship and positionOf(other)
+        if pos then
+            local d = distance(from, pos)
+            if d < range then
+                local score = d * (1 + crowding * (engagers[other.id] or 0)) * lean
+                if score < bestScore and FactionManager:isHostile(own, FactionManager:factionOf(other)) then
+                    best, bestScore = other, score
+                end
+            end
+        end
+    end
+    return best
+end
+
 ---@param ship Entity
 ---@param agent CombatAgentComponent
 ---@param now number
@@ -230,12 +278,17 @@ function CombatAgentSystem:decide(ship, agent, now)
                 or nearest(pos, self.huntRange, function(other) return prey(other, false) end)
         end
     else
-        if not target then
-            target = nearest(pos, self.guardRange, function(other)
-                return other ~= ship and FactionManager:isHostile(own, FactionManager:factionOf(other))
-            end)
-        end
+        if not target then target = self:chooseEnemy(ship, pos, own, self.guardRange) end
     end
+
+    -- The others choosing after it this scan see whom it engages.
+    local engagers = self.engagers
+    if agent.target and (not target or agent.target ~= target.id) then
+        engagers[agent.target] = math.max(0, (engagers[agent.target] or 1) - 1)
+    end
+    if target and agent.target ~= target.id then engagers[target.id] = (engagers[target.id] or 0) + 1 end
+    local control = ship:get(ConstructComponents.WeaponControl)
+    if control then control:setFocusTarget(target and target.id or nil) end
 
     if target then
         if agent.target ~= target.id or agent.orderKind ~= "follow" then

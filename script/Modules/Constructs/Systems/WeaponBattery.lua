@@ -14,6 +14,7 @@
 ---in order each frame. The battery never destroys its ship: the ship is a
 ---ConstructManager handle owned by whoever built it.
 local Registry = require("Core.ECS.Registry")
+local Entity = require("Core.ECS.Entity")
 local PhysicsComponents = require("Modules.Physics.Components")
 local CoreComponents = require("Modules.Core.Components")
 local ConstructComponents = require("Modules.Constructs.Components")
@@ -251,6 +252,9 @@ end
 function WeaponBattery:assignTargets()
     local candidates = self.targetCandidates
     local aiActive = self.control:isActive()
+    -- The commander's choice (a fighting job's target), which the mounts take while it is in reach.
+    local focusId = self.control:getFocusTarget()
+    self.focusTargetEntity = focusId and Entity(focusId) or nil
 
     if #candidates == 0 then
         self.mountTargetByMount = nil

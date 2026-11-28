@@ -1,6 +1,7 @@
 local Component = require("Core.ECS.Component")
 
 ---@class WeaponControlComponent: Component
+---@field focusTargetId integer|nil The contact its commander engages: the weapons prefer it while it is in reach
 ---@overload fun(mode?: string, sequence?: string[]): WeaponControlComponent
 local WeaponControlComponent = Subclass("WeaponControlComponent", Component, function(self, mode, sequence)
     self:setComponentName("WeaponControl")
@@ -18,7 +19,18 @@ local WeaponControlComponent = Subclass("WeaponControlComponent", Component, fun
     self.active = false
     self.interShotGap = 0
     self.shotSerial = 0
+    self.focusTargetId = nil
 end)
+
+---@return integer|nil entityId
+function WeaponControlComponent:getFocusTarget()
+    return self.focusTargetId
+end
+
+---@param entityId integer|nil
+function WeaponControlComponent:setFocusTarget(entityId)
+    self.focusTargetId = entityId
+end
 
 function WeaponControlComponent:getMode()
     return self.mode

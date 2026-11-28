@@ -1434,9 +1434,10 @@ function WeaponSystem:selectPriorityTarget(
                 local distance = math.sqrt(distanceSquared)
                 local weight = weights[candidate.sizeClass] or 1.0
                 -- Weight dominates; distance applies a soft falloff so a
-                -- high-priority large hull beats a close low-priority one.
-                local distanceFactor = range / math.max(distance, 0.0001)
-                local score = weight * (0.5 + 0.5 * math.min(distanceFactor, 2.0))
+                -- high-priority large hull beats a close low-priority one,
+                -- and among equals the nearer wins (a capped falloff made
+                -- every contact in half range tie, and the list's order chose).
+                local score = weight * (0.5 + 1 / (1 + distance / math.max(range, 0.0001)))
                 local isCurrent = currentEntity ~= nil
                     and candidate.entity == currentEntity
                 if not best

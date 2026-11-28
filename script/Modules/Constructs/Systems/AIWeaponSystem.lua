@@ -175,7 +175,20 @@ function AIWeaponSystem:update(state, dt)
             pool = filtered
         end
     end
-    local selected, _ = WeaponSystem:selectPriorityTarget(
+    -- The commander's choice first, while it is a candidate in range.
+    local selected = nil
+    local focus = state.focusTargetEntity
+    if focus then
+        for _, candidate in ipairs(candidates) do
+            if candidate.entity == focus and candidate.enabled ~= false and candidate.position then
+                local dx, dy, dz = candidate.position.x - origin.x, candidate.position.y - origin.y,
+                    candidate.position.z - origin.z
+                if dx * dx + dy * dy + dz * dz <= range * range then selected = candidate end
+                break
+            end
+        end
+    end
+    selected = selected or WeaponSystem:selectPriorityTarget(
         origin,
         pool,
         range,
