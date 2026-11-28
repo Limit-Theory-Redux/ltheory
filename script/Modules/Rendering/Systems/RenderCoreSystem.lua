@@ -488,19 +488,31 @@ function RenderCoreSystem:renderInOrder(pass, blendMode)
 
     -- Custom render fns are called in every pass (their blend mode isn't
     -- queryable); they set their own pipeline. Mesh entities are in the scene
-    -- list, so `submit` only touches the meshes that draw in this pass.
+    -- list, so `submit` only touches the meshes that draw in this pass. In the
+    -- alpha pass the fns come after the meshes: their volumes (explosions) cover
+    -- what they are in front of, which translucent meshes drawn after them (an
+    -- atmosphere, a ring) would paint over, as none of them writes depth.
+    local fnsLast = blendMode == BlendMode.Alpha
+    if not fnsLast then self:renderFns(blendMode) end
+
+    -- Frustum cull, sort by (pipeline, material, mesh) (alpha keeps insertion
+    -- order), per-draw callbacks of the survivors, then the draws.
+    Profiler.Begin('Render.Scene')
+    self.scene:submit(pass, blendMode, self.settings.frustumCulling)
+    Profiler.End()
+
+    if fnsLast then self:renderFns(blendMode) end
+end
+
+---Calls the custom render fns of the frame for one pass.
+---@param blendMode BlendMode
+function RenderCoreSystem:renderFns(blendMode)
     local fns = self.passRenderFns
     Profiler.Begin('Render.Fns')
     for fi = 1, fns.n do
         local fnEntry = fns[fi]
         fnEntry.fn(fnEntry.entity, blendMode)
     end
-    Profiler.End()
-
-    -- Frustum cull, sort by (pipeline, material, mesh) (alpha keeps insertion
-    -- order), per-draw callbacks of the survivors, then the draws.
-    Profiler.Begin('Render.Scene')
-    self.scene:submit(pass, blendMode, self.settings.frustumCulling)
     Profiler.End()
 end
 

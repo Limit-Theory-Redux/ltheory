@@ -25,6 +25,17 @@ UserSettings.textureQualities = {
     { name = "High",   resolution = 1024 },
 }
 
+---How finely volumetric effects (explosions) are drawn, for the Effect Quality setting
+---(`GameState.render.effectQuality` is an index into this list): the march's steps through the
+---volume and whether its density has its full detail. An effect small on screen is drawn at Low
+---whatever the setting (`smallBelowPx`, its radius in pixels).
+UserSettings.effectQualities = {
+    { name = "Low",    steps = 16, detail = false },
+    { name = "Medium", steps = 26, detail = true },
+    { name = "High",   steps = 44, detail = true },
+}
+UserSettings.smallEffectBelowPx = 48
+
 ---The Display Mode setting's choices, as GameState.render.fullscreen and
 ---fullscreenExclusive.
 UserSettings.displayModes = {
@@ -58,6 +69,7 @@ local defaults = {
         bloom               = Config.render.postFx.bloom.enable,
         smoothing           = Config.render.postFx.fxaa.enable,
         textureQuality      = Config.render.general.textureQuality,
+        effectQuality       = Config.render.general.effectQuality,
         speedFov            = Config.render.speedFeel.settings.fov,
         speedShake          = Config.render.speedFeel.settings.shake,
         speedBlur           = Config.render.speedFeel.settings.radialBlur,
@@ -239,6 +251,7 @@ local groups = {
         { "render", "fullscreen" }, { "render", "fullscreenExclusive" }, { "render", "vsync" },
         { "render", "superSampleRate" }, { "render", "fov" }, { "render", "brightness" },
         { "render", "bloom" }, { "render", "smoothing" }, { "render", "textureQuality" },
+        { "render", "effectQuality" },
         { "render", "speedFov" }, { "render", "speedShake" }, { "render", "speedBlur" },
         { "render", "speedAberration" }, { "render", "speedVignette" },
         { "render", "speedTravelDrive" }, { "render", "speedDust" }, { "render", "speedIntensity" },

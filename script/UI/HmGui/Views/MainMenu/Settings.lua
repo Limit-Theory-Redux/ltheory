@@ -249,6 +249,12 @@ local graphicsTab = flatten {
             GameState.render.bloom = v
             UserSettings.applyPostFx()
         end),
+    dropdownRow(272, 642, 320, "Effect Quality", {
+        toolTip = "How finely explosions are drawn.\nLower is much cheaper when an explosion fills the screen.",
+        selections = names(UserSettings.effectQualities),
+        getIndex = function() return GameState.render.effectQuality end,
+        setIndex = function(index) GameState.render.effectQuality = index end
+    }),
     dropdownRow(972, 98, 260, "Texture Quality", {
         toolTip = "Size of the planet and moon surface textures.\nShows from the next new game.",
         selections = names(UserSettings.textureQualities),

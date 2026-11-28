@@ -41,6 +41,7 @@ GameState.render = {
     bloom               = Config.render.postFx.bloom.enable,
     smoothing           = Config.render.postFx.fxaa.enable,
     textureQuality      = Config.render.general.textureQuality,
+    effectQuality       = Config.render.general.effectQuality,
     fov                 = Config.render.camera.fov,
     zNear               = Config.render.camera.zNear,
     zFar                = Config.render.camera.zFar,

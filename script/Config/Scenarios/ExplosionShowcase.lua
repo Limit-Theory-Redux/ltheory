@@ -74,7 +74,11 @@ return {
         data.anchor = anchor
         game:setOrbitFocus(anchor, CAMERA)
 
-        spawn(game, false)
+        -- LTHEORY_EFFECT_QUALITY=1..3 draws it at that Effect Quality (for comparing their cost).
+        local quality = tonumber(os.getenv("LTHEORY_EFFECT_QUALITY"))
+        if quality then GameState.render.effectQuality = quality end
+        -- LTHEORY_EXPLOSION_LOOP=1 loops it from the start (for measuring a running explosion).
+        spawn(game, os.getenv("LTHEORY_EXPLOSION_LOOP") == "1")
     end,
 
     regenerate = function(game)

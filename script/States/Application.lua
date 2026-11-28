@@ -4,6 +4,7 @@ local ShaderErrorOverlay = require('Shared.Tools.ShaderErrorOverlay')
 local RenderInfoOverlay = require('Shared.Tools.RenderInfoOverlay')
 local GeneralActions = require('Input.ActionBindings.GeneralActions')
 local SubscriberProfile = require("Shared.Tools.SubscriberProfile")
+local GpuTimingLog = require("Shared.Tools.GpuTimingLog")
 local FrameScheduler = require("Shared.Tools.FrameScheduler")
 
 -- The frame stages a fixed step (`Application.fixedSimStepS`) applies to and runs again (made on first
@@ -111,6 +112,7 @@ function Application:eventLoop()
 
     EventBus:startEventIteration()
     SubscriberProfile:frame()
+    GpuTimingLog:frame()
     self:jitProfileFrame()
 
     -- With a fixed step (`fixedSimStepS`), the simulation's stages see that step instead of the

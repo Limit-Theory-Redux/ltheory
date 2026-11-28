@@ -14,6 +14,7 @@ Config.render.general = {
     vsync               = false, -- the game's presentation: VSync off
     brightness          = 0.5,   -- 0-1, 0.5 = the tonemap's own exposure
     textureQuality      = 3,     -- index into UserSettings.textureQualities (3 = High, 1024 px)
+    effectQuality       = 3,     -- index into UserSettings.effectQualities (3 = High)
 }
 
 Config.render.window = {

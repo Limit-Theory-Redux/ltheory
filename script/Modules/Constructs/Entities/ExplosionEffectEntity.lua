@@ -4,6 +4,7 @@ local Physics       = require("Modules.Physics.Components")
 local Rendering     = require("Modules.Rendering.Components")
 local CameraManager = require("Modules.Cameras.Managers.CameraManager")
 local Pipelines     = require("Render.Pipelines")
+local UserSettings  = require("Shared.UserSettings")
 
 local ExplosionEffectComponent =
     require("Modules.Constructs.Components.ExplosionEffectComponent")
@@ -24,11 +25,30 @@ local function ensureAssets()
     end
 end
 
----Render callback invoked by RenderCoreSystem during the additive pass.
+-- The fire's largest reach, in sizes (the shader's `reachOf` at its cap).
+local REACH = 1.46
+
+---The march's steps and whether the density keeps its detail: the Effect Quality setting's, or
+---Low's for an explosion whose radius on screen is under `UserSettings.smallEffectBelowPx`.
+---@param size number
+---@param distance number From the eye
+---@return integer steps, boolean detail
+local function quality(size, distance)
+    local levels = UserSettings.effectQualities
+    local level = levels[GameState.render.effectQuality] or levels[#levels]
+    local halfHeight = math.tan(math.rad(CameraManager:getFov()) * 0.5)
+    local radiusPx = size * REACH / math.max(distance, 1e-6) / halfHeight * (GameState.render.resY or 720) * 0.5
+    if radiusPx < UserSettings.smallEffectBelowPx then level = levels[1] end
+    return level.steps, level.detail
+end
+
+---Render callback invoked by RenderCoreSystem during the alpha pass: the fire
+---hides what is behind it as far as it is dense (premultiplied alpha), so a
+---planet or its atmosphere doesn't show through it.
 ---Positions are camera-relative at the draw boundary; the shader marches a
----ray per fragment through the explosion's bounding sphere.
+---ray per fragment through the sphere the fire reaches.
 local function render(entity, blendMode)
-    if blendMode ~= BlendMode.Additive then
+    if blendMode ~= BlendMode.Alpha then
         return
     end
 
@@ -63,18 +83,22 @@ local function render(entity, blendMode)
     local eye = CameraManager:getEye()
     ensureAssets()
 
-    -- One draw in the additive pass: the pipeline sets the state, the draw
+    -- One draw in the alpha pass: the pipeline sets the state, the draw
     -- block (group 2) carries the shader's parameters (slots in the shaders).
     local pass = Renderer:currentPass()
-    pass:setPipeline(Pipelines.get(explosionShader, Pipelines.Additive))
+    pass:setPipeline(Pipelines.get(explosionShader, Pipelines.PreMultAlpha))
     local d = pass:alloc(DrawBlock)
     local m = d.mWorld
     m[0], m[5], m[10], m[15] = 1, 1, 1, 1
+    local dx, dy, dz = pos.x - eye.x, pos.y - eye.y, pos.z - eye.z
+    local steps, detail = quality(config.size, math.sqrt(dx * dx + dy * dy + dz * dz))
     local user = d.drawUser
     user[0], user[1], user[2] = config.age, config.seed % 1024, config.duration -- age, seed, life
-    user[4], user[5], user[6] = pos.x - eye.x, pos.y - eye.y, pos.z - eye.z -- origin (camera-relative)
+    user[3] = steps
+    user[4], user[5], user[6] = dx, dy, dz -- origin (camera-relative)
     user[7] = config.size
     user[8], user[9], user[10] = camUp.x, camUp.y, camUp.z -- up
+    user[11] = detail and 1 or 0
     pass:drawMesh(explosionMesh)
 end
 

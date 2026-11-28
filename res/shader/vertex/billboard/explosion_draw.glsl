@@ -11,15 +11,23 @@
 #define size (drawUser[1].w)
 #define up (drawUser[2].xyz)
 
-const float QUAD_SCALE = 1.7;
+#define age (drawUser[0].x)
+
+// The fragment stage's `animSpeed` and front radius, and its reach
+// (fragment/effect/explosion_volume_draw.glsl): the billboard covers the
+// sphere the fire reaches at its age, with a margin for perspective.
+const float animSpeed = 0.42;
+const float QUAD_MARGIN = 1.08;
 
 void main() {
   VS_BEGIN
   vec4 wp = vec4(vertPos + origin, 1.0);
   vec3 look = normalize(eye - wp.xyz);
   vec3 right = cross(look, up);
-  wp.xyz += size * QUAD_SCALE * uv.x * right;
-  wp.xyz += size * QUAD_SCALE * uv.y * up;
+  float R = 1.15 * (1.0 - exp(-1.5 * animSpeed * age));
+  float quad = min(1.46, 1.3 * R + 0.25) * QUAD_MARGIN;
+  wp.xyz += size * quad * uv.x * right;
+  wp.xyz += size * quad * uv.y * up;
   pos = wp.xyz;
   gl_Position = mProj * (mView * wp);
   VS_END

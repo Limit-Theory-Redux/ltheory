@@ -40,6 +40,10 @@ local function buildSceneStates()
         Opaque = opaque,
         Additive = additive,
         Alpha = alpha,
+        --- Alpha pass, for a shader whose color is already multiplied by its coverage (a volume
+        --- marched front to back: what it hides of the scene behind is its alpha).
+        ---@type PipelineState
+        PreMultAlpha = { blend = BlendMode.PreMultAlpha, cull = CullFace.None, depthTest = true, depthWrite = false },
         --- Opaque pass, but no culling and no depth writes (skyboxes). The box is
         --- drawn through the immediate batcher (`Imm.Box3`).
         ---@type PipelineState
