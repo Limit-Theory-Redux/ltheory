@@ -142,6 +142,10 @@ local function getDamageDuration(component, duration)
         nextTick = tickInterval
     end
 
+    if duration ~= duration or duration == math.huge or tickInterval < TICK_EPSILON then
+        Log.Warn("BeamSystem: no damage ticks for a duration of %s at a tick interval of %s", tostring(duration), tostring(tickInterval))
+        return 0
+    end
     local remaining = duration
     local damageDuration = 0
     while remaining > TICK_EPSILON do

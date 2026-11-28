@@ -43,12 +43,23 @@ function WeaponSystem:resolveWeapon(turret)
     return weapon
 end
 
+local TWO_PI = 2 * math.pi
+local warnedAngle = false
+
+---The angle in [-pi, pi]. A non-finite angle (an aim at a degenerate point) is 0, and warned of once:
+---stepping it by whole turns would never end.
 local function wrapAngle(angle)
-    while angle > math.pi do
-        angle = angle - 2 * math.pi
+    if angle ~= angle or angle == math.huge or angle == -math.huge then
+        if not warnedAngle then
+            warnedAngle = true
+            Log.Warn("WeaponSystem: non-finite aim angle %s (taken as 0)\n%s", tostring(angle), debug.traceback())
+        end
+        return 0
     end
-    while angle < -math.pi do
-        angle = angle + 2 * math.pi
+    if angle > math.pi or angle < -math.pi then
+        angle = math.fmod(angle + math.pi, TWO_PI)
+        if angle < 0 then angle = angle + TWO_PI end
+        angle = angle - math.pi
     end
     return angle
 end
